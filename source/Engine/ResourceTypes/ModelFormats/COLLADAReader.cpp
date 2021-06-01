@@ -831,9 +831,9 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
     // Create model
     imodel->VertexCount = totalVertices;
     if (imodel->VertexFlag & VertexType_Normal)
-        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount * imodel->FrameCount, 2 * sizeof(Vector3));
+        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount, 2 * sizeof(Vector3));
     else
-        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount * imodel->FrameCount, sizeof(Vector3));
+        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount, sizeof(Vector3));
 
     if (imodel->VertexFlag & VertexType_UV)
         imodel->UVBuffer = (Vector2*)Memory::Calloc(imodel->VertexCount, sizeof(Vector2));
@@ -849,24 +849,25 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
     imodel->VertexIndexBuffer[imodel->VertexIndexCount] = -1;
 
     // Read vertices
+    int uvBufPos = 0, colorBufPos = 0, vertBufPos = 0;
     conversion = conversionBuffer;
     for (int meshNum = 0; meshNum < imodel->FrameCount; meshNum++) {
         // Read UVs
         if (imodel->VertexFlag & VertexType_UV) {
             for (int i = 0; i < conversion->texIndices.size(); i++) {
-                imodel->UVBuffer[i] = conversion->UVs[conversion->texIndices[i]];
+                imodel->UVBuffer[uvBufPos++] = conversion->UVs[conversion->texIndices[i]];
             }
         }
         // Read Colors
         if (imodel->VertexFlag & VertexType_Color) {
             for (int i = 0; i < conversion->colIndices.size(); i++) {
-                imodel->ColorBuffer[i] = conversion->Colors[conversion->colIndices[i]];
+                imodel->ColorBuffer[colorBufPos++] = conversion->Colors[conversion->colIndices[i]];
             }
         }
         // Read Normals & Positions
         if (imodel->VertexFlag & VertexType_Normal) {
-            Vector3* vert = &imodel->PositionBuffer[0];
-            for (int i = 0; i < conversion->nrmIndices.size(); i++) {
+            Vector3* vert = &imodel->PositionBuffer[vertBufPos << 1];
+            for (int i = 0; i < conversion->nrmIndices.size(); i++, vertBufPos++) {
                 *vert = conversion->Positions[conversion->posIndices[i]];
                 vert++;
 
@@ -875,8 +876,8 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
             }
         }
         else {
-            Vector3* vert = &imodel->PositionBuffer[0];
-            for (int i = 0; i < conversion->posIndices.size(); i++) {
+            Vector3* vert = &imodel->PositionBuffer[vertBufPos];
+            for (int i = 0; i < conversion->posIndices.size(); i++, vertBufPos++) {
                 *vert = conversion->Positions[conversion->posIndices[i]];
                 vert++;
             }
