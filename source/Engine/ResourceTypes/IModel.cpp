@@ -1,22 +1,28 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
+#include <Engine/Rendering/Material.h>
 #include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 
 class IModel {
 public:
-    Vector3* PositionBuffer;
-    Vector2* UVBuffer;
-    Uint32*  ColorBuffer;
-    Sint16*  VertexIndexBuffer;
+    Vector3*   PositionBuffer;
+    Vector2*   UVBuffer;
+    Uint32*    ColorBuffer;
 
-    Uint16   VertexCount;
-    Uint16   VertexIndexCount;
-    Uint16   FrameCount;
+    Uint16     VertexCount;
+    Uint16     FrameCount;
+    Uint16     MeshCount;
 
-    Uint8    VertexFlag;
-    Uint8    FaceVertexCount;
+    Sint16**   VertexIndexBuffer;
+    Uint16*    VertexIndexCount;
+    Uint16     TotalVertexIndexCount;
+
+    Uint8      VertexFlag;
+    Uint8      FaceVertexCount;
+
+    Material** Materials;
 };
 #endif
 
@@ -55,7 +61,8 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         return false;
     }
 
-    // #define YES_PRINT 1
+    MeshCount = 1;
+    Materials = nullptr;
 
     VertexFlag = stream->ReadByte();
     FaceVertexCount = stream->ReadByte();
@@ -102,14 +109,17 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         }
     }
 
-    VertexIndexCount = stream->ReadInt16();
-    VertexIndexBuffer = (Sint16*)Memory::Malloc((VertexIndexCount + 1) * sizeof(Sint16));
+    TotalVertexIndexCount = stream->ReadInt16();
+    VertexIndexCount = (Uint16*)Memory::Malloc(MeshCount * sizeof(Uint16));
+    VertexIndexCount[0] = TotalVertexIndexCount;
 
-    for (int i = 0; i < VertexIndexCount; i++) {
-        VertexIndexBuffer[i] = stream->ReadInt16();
+    VertexIndexBuffer = (Sint16**)Memory::Malloc(MeshCount * sizeof(Sint16*));
+    VertexIndexBuffer[0] = (Sint16*)Memory::Malloc((TotalVertexIndexCount + 1) * sizeof(Sint16));
+
+    for (int i = 0; i < TotalVertexIndexCount; i++) {
+        VertexIndexBuffer[0][i] = stream->ReadInt16();
     }
-    VertexIndexBuffer[VertexIndexCount] = -1;
-
+    VertexIndexBuffer[0][TotalVertexIndexCount] = -1;
 
     if (VertexFlag & VertexType_Normal) {
         Vector3* vert = &PositionBuffer[0];

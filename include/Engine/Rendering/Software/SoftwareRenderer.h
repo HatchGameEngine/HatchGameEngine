@@ -15,6 +15,7 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Rendering/Material.h>
 #include <Engine/Includes/HashMap.h>
 
 class SoftwareRenderer {

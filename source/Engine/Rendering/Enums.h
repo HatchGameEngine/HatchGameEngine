@@ -30,6 +30,23 @@ enum {
     DrawBehavior_PGZ1_BG = 3,
 };
 
+enum {
+    DrawMode_LINES = 0,
+    DrawMode_POLYGONS = 1,
+    DrawMode_FLAT_LIGHTING = 2,
+    DrawMode_SMOOTH_LIGHTING = 4,
+    DrawMode_TEXTURED = 8,
+    DrawMode_FillTypeMask = 7,
+
+    DrawMode_LINES_FLAT = DrawMode_LINES | DrawMode_FLAT_LIGHTING,
+    DrawMode_LINES_SMOOTH = DrawMode_LINES | DrawMode_SMOOTH_LIGHTING,
+
+    DrawMode_POLYGONS_FLAT = DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
+    DrawMode_POLYGONS_SMOOTH = DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
+
+    DrawMode_PERSPECTIVE = 16,
+};
+
 #define TILE_FLIPX_MASK 0x80000000U
 #define TILE_FLIPY_MASK 0x40000000U
 // #define TILE_DIAGO_MASK 0x20000000U

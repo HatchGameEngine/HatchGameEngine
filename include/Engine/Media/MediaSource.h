@@ -17,9 +17,12 @@ class Stream;
 class MediaSource {
 public:
     enum {
-    STREAMTYPE_UNKNOWN,         STREAMTYPE_VIDEO,
-    STREAMTYPE_AUDIO,         STREAMTYPE_DATA,
-    STREAMTYPE_SUBTITLE,         STREAMTYPE_ATTACHMENT,
+    STREAMTYPE_UNKNOWN, 
+    STREAMTYPE_VIDEO, 
+    STREAMTYPE_AUDIO, 
+    STREAMTYPE_DATA, 
+    STREAMTYPE_SUBTITLE, 
+    STREAMTYPE_ATTACHMENT, 
     }; 
     void* FormatCtx;
     void* AvioCtx;

@@ -2,6 +2,7 @@
 #include <Engine/ResourceTypes/ModelFormats/COLLADA.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Rendering/Material.h>
 class COLLADAReader {
 public:
 
@@ -10,8 +11,8 @@ public:
 
 /*
 
-Implemented by Jimita
-https://github.com/Jimita
+Implemented by Lactozilla
+https://github.com/Lactozilla
 
 */
 
@@ -310,37 +311,10 @@ PRIVATE STATIC void COLLADAReader::ParseImage(ColladaModel* model, XMLNode* pare
 
     XMLNode* path = effect->children[0];
     if (path->name.Length) {
-        char* pathstring = (char* )calloc(1, path->name.Length + 1);
-        memcpy(pathstring, path->name.Start, path->name.Length);
-        daeimage->Path = pathstring;
+        daeimage->Path = (char* )calloc(1, path->name.Length + 1);
+        memcpy(daeimage->Path, path->name.Start, path->name.Length);
+        model->Images.push_back(daeimage);
     }
-
-    if (!daeimage->Path)
-        return;
-    else {
-        char* str = daeimage->Path;
-        char* filename = NULL;
-        int i = (int)strlen(str);
-        while (i-- >= 0)
-        {
-            if (str[i] == '/' || str[i] == '\\')
-            {
-                filename = &str[i+1];
-                break;
-            }
-        }
-
-        if (!filename || filename[0] == '\0')
-            return;
-
-        char* texpath = "Models\\Textures\\";
-        free(daeimage->Path);
-        daeimage->Path = (char*)calloc(strlen(texpath) + strlen(filename) + 1, 1);
-        strcpy(daeimage->Path, texpath);
-        strcat(daeimage->Path, filename);
-    }
-
-    model->Images.push_back(daeimage);
 }
 
 PRIVATE STATIC void COLLADAReader::ParseSurface(ColladaModel* model, XMLNode* parent, XMLNode* surface) {
@@ -739,7 +713,8 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
     if (!meshCount)
         return;
 
-    imodel->FrameCount = meshCount;
+    imodel->FrameCount = 1;
+    imodel->MeshCount = meshCount;
     imodel->VertexFlag = VertexType_Position;
     imodel->FaceVertexCount = 3;
 
@@ -747,15 +722,15 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
     int maxVertices = 0;
 
     // Maximum mesh conversions: 32
-    if (imodel->FrameCount > 32)
-        imodel->FrameCount = 32;
+    if (imodel->MeshCount > 32)
+        imodel->MeshCount = 32;
 
     ConversionBuffer conversionBuffer[32];
     memset(&conversionBuffer, 0, sizeof(conversionBuffer));
 
     // Obtain data
     ConversionBuffer* conversion = conversionBuffer;
-    for (int meshNum = 0; meshNum < imodel->FrameCount; meshNum++) {
+    for (int meshNum = 0; meshNum < imodel->MeshCount; meshNum++) {
         ColladaMesh* mesh = daemodel->Meshes[meshNum];
 
         size_t numInputs = mesh->Triangles.Inputs.size();
@@ -809,14 +784,12 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
 
                 // When enough inputs have been processed,
                 // it counts as a vertex.
-                // if ((numProcessedInputs % numInputs) == 0)
                 if (numProcessedInputs == numInputs) {
                     numProcessedInputs = 0;
                     numVertices++;
                 }
             }
 
-            // When three vertices have been added, add a face.
             if (numVertices == imodel->FaceVertexCount) {
                 totalVertices += numVertices;
                 totalMeshVertices += numVertices;
@@ -831,27 +804,34 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
     // Create model
     imodel->VertexCount = totalVertices;
     if (imodel->VertexFlag & VertexType_Normal)
-        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount, 2 * sizeof(Vector3));
+        imodel->PositionBuffer = (Vector3*)Memory::Calloc(totalVertices, 2 * sizeof(Vector3));
     else
-        imodel->PositionBuffer = (Vector3*)Memory::Calloc(imodel->VertexCount, sizeof(Vector3));
+        imodel->PositionBuffer = (Vector3*)Memory::Calloc(totalVertices, sizeof(Vector3));
 
     if (imodel->VertexFlag & VertexType_UV)
-        imodel->UVBuffer = (Vector2*)Memory::Calloc(imodel->VertexCount, sizeof(Vector2));
+        imodel->UVBuffer = (Vector2*)Memory::Calloc(totalVertices, sizeof(Vector2));
 
     if (imodel->VertexFlag & VertexType_Color)
-        imodel->ColorBuffer = (Uint32*)Memory::Calloc(imodel->VertexCount, sizeof(Uint32));
+        imodel->ColorBuffer = (Uint32*)Memory::Calloc(totalVertices, sizeof(Uint32));
 
-    imodel->VertexIndexCount = imodel->VertexCount;
-    imodel->VertexIndexBuffer = (Sint16*)Memory::Calloc((imodel->VertexIndexCount + 1), sizeof(Sint16));
-    for (int i = 0; i < imodel->VertexIndexCount; i++) {
-        imodel->VertexIndexBuffer[i] = i;
-    }
-    imodel->VertexIndexBuffer[imodel->VertexIndexCount] = -1;
+    imodel->TotalVertexIndexCount = totalVertices;
+    imodel->VertexIndexCount = (Uint16*)Memory::Malloc(meshCount * sizeof(Uint16));
+    imodel->VertexIndexBuffer = (Sint16**)Memory::Malloc(meshCount * sizeof(Sint16*));
 
     // Read vertices
-    int uvBufPos = 0, colorBufPos = 0, vertBufPos = 0;
+    int uvBufPos = 0, colorBufPos = 0, vertBufPos = 0, vertIdx = 0;
     conversion = conversionBuffer;
-    for (int meshNum = 0; meshNum < imodel->FrameCount; meshNum++) {
+    for (int meshNum = 0; meshNum < imodel->MeshCount; meshNum++) {
+        int meshVertCount = conversion->TotalVertexCount;
+
+        imodel->VertexIndexCount[meshNum] = meshVertCount;
+        imodel->VertexIndexBuffer[meshNum] = (Sint16*)Memory::Calloc((meshVertCount + 1), sizeof(Sint16));
+
+        for (int i = 0; i < meshVertCount; i++) {
+            imodel->VertexIndexBuffer[meshNum][i] = vertIdx++;
+        }
+        imodel->VertexIndexBuffer[meshNum][meshVertCount] = -1;
+
         // Read UVs
         if (imodel->VertexFlag & VertexType_UV) {
             for (int i = 0; i < conversion->texIndices.size(); i++) {
@@ -860,8 +840,15 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
         }
         // Read Colors
         if (imodel->VertexFlag & VertexType_Color) {
-            for (int i = 0; i < conversion->colIndices.size(); i++) {
-                imodel->ColorBuffer[colorBufPos++] = conversion->Colors[conversion->colIndices[i]];
+            int numColors = conversion->colIndices.size();
+            if (numColors) {
+                for (int i = 0; i < numColors; i++) {
+                    imodel->ColorBuffer[colorBufPos++] = conversion->Colors[conversion->colIndices[i]];
+                }
+            } else {
+                for (int i = 0; i < conversion->posIndices.size(); i++) {
+                    imodel->ColorBuffer[colorBufPos++] = 0xFFFFFFFF;
+                }
             }
         }
         // Read Normals & Positions
@@ -884,6 +871,36 @@ PRIVATE STATIC void COLLADAReader::DoConversion(ColladaModel* daemodel, IModel* 
         }
 
         conversion++;
+    }
+
+    // Read materials
+    if (imodel->VertexFlag & VertexType_UV) {
+        imodel->Materials = (Material**)Memory::Calloc(meshCount, sizeof(Material*));
+        for (int meshNum = 0; meshNum < imodel->MeshCount; meshNum++) {
+            ColladaMesh* mesh = daemodel->Meshes[meshNum];
+            if (!mesh->Material || !mesh->Material->Effect)
+                continue;
+
+            Material* material = Material::New();
+            ColladaEffect* effect = mesh->Material->Effect;
+
+            for (int i = 0; i < 4; i++) {
+                material->Specular[i] = effect->Specular.Color[i];
+                material->Ambient[i] = effect->Ambient.Color[i];
+                material->Emission[i] = effect->Emission.Color[i];
+                material->Diffuse[i] = effect->Diffuse.Color[i];
+            }
+
+            material->Shininess = effect->Shininess;
+            material->Transparency = effect->Transparency;
+            material->IndexOfRefraction = effect->IndexOfRefraction;
+
+            ColladaSampler* sampler = effect->Diffuse.Sampler;
+            if (sampler && sampler->Surface && sampler->Surface->Image)
+                material->Texture = new Image(sampler->Surface->Image->Path);
+
+            imodel->Materials[meshNum] = material;
+        }
     }
 }
 

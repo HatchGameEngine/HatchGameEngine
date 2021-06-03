@@ -279,6 +279,9 @@
     <ClCompile Include="..\source\Engine\Types\DrawGroupList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\engine\audio\StackNode.h">

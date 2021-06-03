@@ -5,6 +5,7 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Rendering/Material.h>
 #include <Engine/Includes/HashMap.h>
 
 class SoftwareRenderer {
@@ -710,6 +711,19 @@ inline void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* mul
     *dst = FilterTable[(col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3];
 }
 
+inline int TextureColorBlend(Uint32 color, Uint32 colorMult) {
+    Uint32 dR = (colorMult >> 16) & 0xFF;
+    Uint32 dG = (colorMult >> 8) & 0xFF;
+    Uint32 dB = colorMult & 0xFF;
+    Uint32 sR = (color >> 16) & 0xFF;
+    Uint32 sG = (color >> 8) & 0xFF;
+    Uint32 sB = color & 0xFF;
+    dR = (Uint8)((dR * sR + 0xFF) >> 8);
+    dG = (Uint8)((dG * sG + 0xFF) >> 8);
+    dB = (Uint8)((dB * sB + 0xFF) >> 8);
+    return dB | (dG << 8) | (dR << 16);
+}
+
 struct Contour {
     int MinX;
     int MinR;
@@ -733,6 +747,8 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
     int yEnd   = y2 >> 16;
     int cStart = color1;
     int cEnd   = color2;
+    Vector2 tStart = uv1;
+    Vector2 tEnd = uv2;
     if (yStart == yEnd)
         return;
 
@@ -744,6 +760,8 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
         yEnd   = y1 >> 16;
         cStart = color2;
         cEnd   = color1;
+        tStart = uv2;
+        tEnd   = uv1;
     }
 
     int minX, minY, maxX, maxY;
@@ -763,9 +781,15 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
     int colorBegBLUE = (cStart & 0xFF) << 16;
     int colorEndBLUE = (cEnd & 0xFF) << 16;
 
+    int texBegU = tStart.X;
+    int texBegV = tStart.Y;
+    int texEndU = tEnd.X;
+    int texEndV = tEnd.Y;
+
     int linePointSubpxX = xStart << 16;
     int yDiff = (yEnd - yStart);
     int dx = ((xEnd - xStart) << 16) / yDiff;
+
     int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
 
     if (colorBegRED != colorEndRED)
@@ -775,11 +799,20 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
     if (colorBegBLUE != colorEndBLUE)
         dxBLUE = (colorEndBLUE - colorBegBLUE) / yDiff;
 
+    int dxU = 0, dxV = 0;
+
+    if (texBegU != texEndU)
+        dxU = (texEndU - texBegU) / yDiff;
+    if (texBegV != texEndV)
+        dxV = (texEndV - texBegV) / yDiff;
+
     if (yStart < 0) {
         linePointSubpxX -= yStart * dx;
         colorBegRED -= yStart * dxRED;
         colorBegGREEN -= yStart * dxGREEN;
         colorBegBLUE -= yStart * dxBLUE;
+        texBegU -= yStart * dxU;
+        texBegV -= yStart * dxV;
         yStart = 0;
     }
 
@@ -794,12 +827,16 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
                 contour->MinR = colorBegRED;
                 contour->MinG = colorBegGREEN;
                 contour->MinB = colorBegBLUE;
+                contour->MinU = texBegU;
+                contour->MinV = texBegV;
             }
             else if (linePointX >= maxX) {
                 contour->MaxX = maxX;
                 contour->MaxR = colorBegRED;
                 contour->MaxG = colorBegGREEN;
                 contour->MaxB = colorBegBLUE;
+                contour->MaxU = texBegU;
+                contour->MaxV = texBegV;
             }
             else {
                 if (linePointX < contour->MinX) {
@@ -807,12 +844,16 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
                     contour->MinR = colorBegRED;
                     contour->MinG = colorBegGREEN;
                     contour->MinB = colorBegBLUE;
+                    contour->MinU = texBegU;
+                    contour->MinV = texBegV;
                 }
     			if (linePointX > contour->MaxX) {
                     contour->MaxX = linePointX;
                     contour->MaxR = colorBegRED;
                     contour->MaxG = colorBegGREEN;
                     contour->MaxB = colorBegBLUE;
+                    contour->MaxU = texBegU;
+                    contour->MaxV = texBegV;
                 }
             }
 
@@ -820,6 +861,8 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
             colorBegRED += dxRED;
             colorBegGREEN += dxGREEN;
             colorBegBLUE += dxBLUE;
+            texBegU += dxU;
+            texBegV += dxV;
             contour++;
     	}
     }
@@ -827,6 +870,8 @@ void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2
 void DrawPolygonBlendUV(Texture* texture, Vector2* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
 
     int minVal = INT_MAX;
     int maxVal = INT_MIN;
@@ -890,9 +935,23 @@ void DrawPolygonBlendUV(Texture* texture, Vector2* positions, Vector2* uvs, int*
 
     DrawPolygonBlendUVScanLine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, positions[0].X, positions[0].Y);
 
-    Sint32 col, colR, colG, colB, colU, colV, dxR, dxG, dxB, dxU, dxV, contLen;
+    Sint32 col, texCol, colR, colG, colB, colU, colV, dxR, dxG, dxB, dxU, dxV, contLen;
 
-    #define DRAW_POLYGONBLENDUV(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_PLACEPIXEL(pixelFunction) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            col = TextureColorBlend(col, texCol); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            col = TextureColorBlend(col, index[texCol]); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+        } \
+
+    #define DRAW_POLYGONBLENDUV(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -909,44 +968,59 @@ void DrawPolygonBlendUV(Texture* texture, Vector2* positions, Vector2* uvs, int*
         dxB = (contour.MaxB - colB) / contLen; \
         dxU = (contour.MaxU - colU) / contLen; \
         dxV = (contour.MaxV - colV) / contLen; \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            int texU = ((colU * texture->Width) >> 16) % texture->Width; \
+            int texV = ((colV * texture->Height) >> 16) % texture->Height; \
+            placePixelMacro(pixelFunction); \
             colR += dxR; \
             colG += dxG; \
             colB += dxB; \
+            colU += dxU; \
+            colV += dxV; \
         } \
         dst_strideY += dstStride; \
     }
 
+    #define BLENDFLAGS(placePixelMacro) \
+        switch (blendFlag) { \
+            case 0: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetOpaque, placePixelMacro); \
+                break; \
+            case 1: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetTransparent, placePixelMacro); \
+                break; \
+            case 2: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetAdditive, placePixelMacro); \
+                break; \
+            case 3: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetSubtract, placePixelMacro); \
+                break; \
+            case 4: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchEqual, placePixelMacro); \
+                break; \
+            case 5: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+                break; \
+            case 6: \
+                DRAW_POLYGONBLENDUV(PixelNoFiltSetFilter, placePixelMacro); \
+                break; \
+        }
+
+    Uint32* index;
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
-        case 0:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetOpaque);
-            break;
-        case 1:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetTransparent);
-            break;
-        case 2:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetAdditive);
-            break;
-        case 3:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetSubtract);
-            break;
-        case 4:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchEqual);
-            break;
-        case 5:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchNotEqual);
-            break;
-        case 6:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetFilter);
-            break;
+    if (Graphics::UsePalettes && texture->Paletted) {
+        BLENDFLAGS(DRAW_PLACEPIXEL_PAL);
+    } else {
+        BLENDFLAGS(DRAW_PLACEPIXEL);
     }
 
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
     #undef DRAW_POLYGONBLENDUV
+    #undef BLENDFLAGS
 }
 void DrawPolygonBlendScanLine(int color1, int color2, int x1, int y1, int x2, int y2) {
     int xStart = x1 >> 16;
@@ -1161,6 +1235,237 @@ void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, i
     }
 
     #undef DRAW_POLYGONBLEND
+}
+void DrawPolygonUVScanLine(Vector2 uv1, Vector2 uv2, int x1, int y1, int x2, int y2) {
+    int xStart = x1 >> 16;
+    int xEnd   = x2 >> 16;
+    int yStart = y1 >> 16;
+    int yEnd   = y2 >> 16;
+    Vector2 tStart = uv1;
+    Vector2 tEnd = uv2;
+    if (yStart == yEnd)
+        return;
+
+    // swap
+    if (yStart > yEnd) {
+        xStart = x2 >> 16;
+        xEnd   = x1 >> 16;
+        yStart = y2 >> 16;
+        yEnd   = y1 >> 16;
+        tStart = uv2;
+        tEnd   = uv1;
+    }
+
+    int minX, minY, maxX, maxY;
+    GET_CLIP_BOUNDS(minX, minY, maxX, maxY);
+
+    int yEndBound = yEnd + 1;
+    if (yEndBound < minY || yStart >= maxY)
+        return;
+
+    if (yEndBound > maxY)
+        yEndBound = maxY;
+
+    int texBegU = tStart.X;
+    int texBegV = tStart.Y;
+    int texEndU = tEnd.X;
+    int texEndV = tEnd.Y;
+
+    int linePointSubpxX = xStart << 16;
+    int yDiff = (yEnd - yStart);
+    int dx = ((xEnd - xStart) << 16) / yDiff;
+
+    int dxU = 0, dxV = 0;
+
+    if (texBegU != texEndU)
+        dxU = (texEndU - texBegU) / yDiff;
+    if (texBegV != texEndV)
+        dxV = (texEndV - texBegV) / yDiff;
+
+    if (yStart < 0) {
+        linePointSubpxX -= yStart * dx;
+        texBegU -= yStart * dxU;
+        texBegV -= yStart * dxV;
+        yStart = 0;
+    }
+
+    Contour* contour = &ContourField[yStart];
+    if (yStart < yEndBound) {
+        int lineHeight = yEndBound - yStart;
+        while (lineHeight--) {
+            int linePointX = linePointSubpxX >> 16;
+
+            if (linePointX <= minX) {
+                contour->MinX = minX;
+                contour->MinU = texBegU;
+                contour->MinV = texBegV;
+            }
+            else if (linePointX >= maxX) {
+                contour->MaxX = maxX;
+                contour->MaxU = texBegU;
+                contour->MaxV = texBegV;
+            }
+            else {
+                if (linePointX < contour->MinX) {
+                    contour->MinX = linePointX;
+                    contour->MinU = texBegU;
+                    contour->MinV = texBegV;
+                }
+                if (linePointX > contour->MaxX) {
+                    contour->MaxX = linePointX;
+                    contour->MaxU = texBegU;
+                    contour->MaxV = texBegV;
+                }
+            }
+
+            linePointSubpxX += dx;
+            texBegU += dxU;
+            texBegV += dxV;
+            contour++;
+        }
+    }
+}
+void DrawPolygonUV(Texture* texture, Vector2* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector2* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    else {
+        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        if (dst_y1 < 0)
+            dst_y1 = 0;
+    }
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    int scanLineCount = dst_y2 - dst_y1;
+    Contour* contourPtr = &ContourField[dst_y1];
+    while (scanLineCount--) {
+        contourPtr->MinX = INT_MAX;
+        contourPtr->MaxX = INT_MIN;
+        contourPtr++;
+    }
+
+    Vector2* lastVector = positions;
+    Vector2* lastUV = uvs;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            DrawPolygonUVScanLine(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
+            lastVector++;
+            lastUV++;
+        }
+    }
+
+    DrawPolygonUVScanLine(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
+
+    Sint32 col, texCol, colU, colV, dxU, dxV, contLen;
+
+    #define DRAW_PLACEPIXEL(pixelFunction) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = TextureColorBlend(color, texCol); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = TextureColorBlend(color, index[texCol]); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+        } \
+
+    #define DRAW_POLYGONUV(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        colU = contour.MinU; \
+        colV = contour.MinV; \
+        dxU = (contour.MaxU - colU) / contLen; \
+        dxV = (contour.MaxV - colV) / contLen; \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            int texU = ((colU * texture->Width) >> 16) % texture->Width; \
+            int texV = ((colV * texture->Height) >> 16) % texture->Height; \
+            placePixelMacro(pixelFunction); \
+            colU += dxU; \
+            colV += dxV; \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    #define BLENDFLAGS(placePixelMacro) \
+        switch (blendFlag) { \
+            case 0: \
+                DRAW_POLYGONUV(PixelNoFiltSetOpaque, placePixelMacro); \
+                break; \
+            case 1: \
+                DRAW_POLYGONUV(PixelNoFiltSetTransparent, placePixelMacro); \
+                break; \
+            case 2: \
+                DRAW_POLYGONUV(PixelNoFiltSetAdditive, placePixelMacro); \
+                break; \
+            case 3: \
+                DRAW_POLYGONUV(PixelNoFiltSetSubtract, placePixelMacro); \
+                break; \
+            case 4: \
+                DRAW_POLYGONUV(PixelNoFiltSetMatchEqual, placePixelMacro); \
+                break; \
+            case 5: \
+                DRAW_POLYGONUV(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+                break; \
+            case 6: \
+                DRAW_POLYGONUV(PixelNoFiltSetFilter, placePixelMacro); \
+                break; \
+        }
+
+    Uint32* index;
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+    if (Graphics::UsePalettes && texture->Paletted) {
+        BLENDFLAGS(DRAW_PLACEPIXEL_PAL);
+    } else {
+        BLENDFLAGS(DRAW_PLACEPIXEL);
+    }
+
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_POLYGONBLENDUV
+    #undef BLENDFLAGS
 }
 void DrawPolygonScanLine(int x1, int y1, int x2, int y2) {
     int xStart = x1 >> 16;
@@ -1533,15 +1838,15 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     int widthHalfSubpx = (int)(currentView->Width / 2) << 16;
     int heightHalfSubpx = (int)(currentView->Height / 2) << 16;
-    switch (drawMode & 7) {
+    switch (drawMode & DrawMode_FillTypeMask) {
         // Lines, Solid Colored
-        case 0:
+        case DrawMode_LINES:
             for (int f = 0; f < arrayBuffer->FaceCount; f++) {
                 int vertexCountPerFaceMinus1 = *faceSizePtr - 1;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
-                if (drawMode & 8) {
+                if (drawMode & DrawMode_PERSPECTIVE) {
                     widthHalfSubpx >>= 16;
                     heightHalfSubpx >>= 16;
                     #define FIX_X(x) (((x << bitshiftX) / vertexZ) - cx + widthHalfSubpx)
@@ -1579,9 +1884,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             }
             break;
         // Lines, Flat Shading
-        case 2:
+        case DrawMode_LINES_FLAT:
         // Lines, Smooth Shading
-        case 4:
+        case DrawMode_LINES_SMOOTH:
             for (int f = 0; f < arrayBuffer->FaceCount; f++) {
                 int vertexCountPerFaceMinus1 = *faceSizePtr - 1;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
@@ -1638,7 +1943,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 color = col_r << 16 | col_g << 8 | col_b;
 
                 ColRGB = color;
-                if (drawMode & 8) {
+                if (drawMode & DrawMode_PERSPECTIVE) {
                     widthHalfSubpx >>= 16;
                     heightHalfSubpx >>= 16;
                     #define FIX_X(x) (((x << bitshiftX) / vertexZ) - cx + widthHalfSubpx)
@@ -1672,16 +1977,17 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             }
             break;
         // Polygons, Solid Colored
-        case 1:
+        case DrawMode_POLYGONS:
             for (int f = 0; f < arrayBuffer->FaceCount; f++) {
                 int vertexCountPerFace = *faceSizePtr;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 Vector2 polygonVertex[4];
+                Vector2 polygonUV[4];
                 int polygonVertexIndex = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
+                    if (drawMode & DrawMode_PERSPECTIVE) {
                         int vertexZ = vertex->Position.Z;
                         if (vertexZ < 0x100)
                             goto mrt_poly_solid_NEXT_FACE;
@@ -1693,10 +1999,30 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                         polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
                         polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
                     }
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygon(polygonVertex, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
+
+                Texture *texturePtr = NULL;
+
+                #define CHECK_TEXTURE(material) \
+                    if (drawMode & DrawMode_TEXTURED) { \
+                        Material *material = (Material*)faceInfoPtr->Material; \
+                        if (material) { \
+                            Image *image = (Image*)material->Texture; \
+                            if (image && image->TexturePtr) \
+                                texturePtr = (Texture*)image->TexturePtr; \
+                        } \
+                    }
+
+                CHECK_TEXTURE(material)
+
+                if (texturePtr)
+                    DrawPolygonUV(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
+                else
+                    DrawPolygon(polygonVertex, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
 
                 mrt_poly_solid_NEXT_FACE:
                 faceSizePtr++;
@@ -1704,7 +2030,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             }
             break;
         // Polygons, Flat Shading
-        case 3:
+        case DrawMode_POLYGONS_FLAT:
             for (int f = 0; f < arrayBuffer->FaceCount; f++) {
                 int vertexCountPerFace = *faceSizePtr;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
@@ -1761,9 +2087,10 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 color = col_r << 16 | col_g << 8 | col_b;
 
                 Vector2 polygonVertex[4];
+                Vector2 polygonUV[4];
                 int polygonVertexIndex = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
+                    if (drawMode & DrawMode_PERSPECTIVE) {
                         int vertexZ = vertex->Position.Z;
                         if (vertexZ < 0x100)
                             goto mrt_poly_flat_NEXT_FACE;
@@ -1775,10 +2102,20 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                         polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
                         polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
                     }
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygon(polygonVertex, color, *faceSizePtr, opacity, blendFlag);
+
+                Texture *texturePtr = NULL;
+
+                CHECK_TEXTURE(material)
+
+                if (texturePtr)
+                    DrawPolygonUV(texturePtr, polygonVertex, polygonUV, color, *faceSizePtr, opacity, blendFlag);
+                else
+                    DrawPolygon(polygonVertex, color, *faceSizePtr, opacity, blendFlag);
 
                 mrt_poly_flat_NEXT_FACE:
                 faceSizePtr++;
@@ -1786,17 +2123,18 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             }
             break;
         // Polygons, Smooth Shading
-        case 5:
+        case DrawMode_POLYGONS_SMOOTH:
             for (int f = 0; f < arrayBuffer->FaceCount; f++) {
                 int vertexCountPerFace = *faceSizePtr;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 Vector2 polygonVertex[4];
+                Vector2 polygonUV[4];
                 int     polygonVertColor[4];
                 int     polygonVertexIndex = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
+                    if (drawMode & DrawMode_PERSPECTIVE) {
                         int vertexZ = vertex->Position.Z;
                         if (vertexZ < 0x100)
                             goto mrt_poly_smooth_NEXT_FACE;
@@ -1808,6 +2146,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                         polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
                         polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
                     }
+
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
 
                     int color = vertex->Color;
                     int col_r = (color >> 16) & 0xFF;
@@ -1846,13 +2187,21 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                     // color
                     color = col_r << 16 | col_g << 8 | col_b;
 
-
-
                     polygonVertColor[polygonVertexIndex] = color;
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygonBlend(polygonVertex, polygonVertColor, *faceSizePtr, opacity, blendFlag);
+
+                Texture *texturePtr = NULL;
+
+                CHECK_TEXTURE(material)
+
+                if (texturePtr)
+                    DrawPolygonBlendUV(texturePtr, polygonVertex, polygonUV, polygonVertColor, *faceSizePtr, opacity, blendFlag);
+                else
+                    DrawPolygonBlend(polygonVertex, polygonVertColor, *faceSizePtr, opacity, blendFlag);
+
+                #undef CHECK_TEXTURE
 
                 mrt_poly_smooth_NEXT_FACE:
                 faceSizePtr++;
@@ -1865,12 +2214,14 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
     VertexAttribute* arrayVertexItem;
     int arrayVertexCount, arrayFaceCount, modelVertexIndexCount;
     Uint8* faceSizeItem;
+    FaceInfo* faceInfoItem;
     Sint16* modelVertexIndexPtr;
     Vector3* positionPtr;
     Uint32* colorPtr;
     Vector2* uvPtr;
+    Material **materialList = nullptr;
 
-    int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color;
+    int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
 
     int color = ColRGB;
 
@@ -1883,6 +2234,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
         frame -= model->FrameCount;
     frame *= model->VertexCount;
 
+    if ((model->VertexFlag & vertexTypeMask) & VertexType_UV)
+        materialList = model->Materials;
+
     Uint32 arrayBufferIndex = CurrentArrayBuffer;
     if (viewMatrix) {
         ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
@@ -1893,12 +2247,22 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
         arrayVertexCount = arrayBuffer->VertexCount;
 
         faceSizeItem = &arrayBuffer->FaceSizeBuffer[arrayFaceCount];
+        faceInfoItem = &arrayBuffer->FaceInfoBuffer[arrayFaceCount];
         arrayVertexItem = &arrayBuffer->VertexBuffer[arrayVertexCount];
 
-        modelVertexIndexCount = model->VertexIndexCount;
-        modelVertexIndexPtr = model->VertexIndexBuffer;
+        modelVertexIndexCount = model->TotalVertexIndexCount;
 
-        if (arrayVertexCount + modelVertexIndexCount <= arrayBuffer->VertexCapacity) {
+        if (arrayVertexCount + modelVertexIndexCount > arrayBuffer->VertexCapacity) {
+            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of array buffer! Increase array buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, arrayBuffer->VertexCapacity, (arrayVertexCount + modelVertexIndexCount) - arrayBuffer->VertexCapacity);
+            return;
+        }
+
+        for (int meshNum = 0; meshNum < model->MeshCount; meshNum++) {
+            Material *meshMaterial = materialList ? materialList[meshNum] : nullptr;
+
+            modelVertexIndexCount = model->VertexIndexCount[meshNum];
+            modelVertexIndexPtr = model->VertexIndexBuffer[meshNum];
+
             arrayBuffer->VertexCount += modelVertexIndexCount;
             arrayBuffer->FaceCount += modelVertexIndexCount / model->FaceVertexCount;
 
@@ -1916,6 +2280,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
+
+                        faceInfoItem->Material = nullptr;
+                        faceInfoItem++;
                     }
                     break;
                 case VertexType_Position | VertexType_Normal:
@@ -1933,10 +2300,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 // Calculate normals
                                 APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
                                 arrayVertexItem->Color = color;
-
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = nullptr;
+                            faceInfoItem++;
                         }
                     }
                     else {
@@ -1955,6 +2324,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = nullptr;
+                            faceInfoItem++;
                         }
                     }
                     break;
@@ -1975,6 +2347,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = nullptr;
+                            faceInfoItem++;
                         }
                     }
                     else {
@@ -1993,6 +2368,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = nullptr;
+                            faceInfoItem++;
                         }
                     }
                     break;
@@ -2014,6 +2392,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = meshMaterial;
+                            faceInfoItem++;
                         }
                     }
                     else {
@@ -2033,6 +2414,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = meshMaterial;
+                            faceInfoItem++;
                         }
                     }
                     break;
@@ -2055,6 +2439,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = meshMaterial;
+                            faceInfoItem++;
                         }
                     }
                     else {
@@ -2075,13 +2462,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 modelVertexIndexPtr++;
                                 arrayVertexItem++;
                             }
+
+                            faceInfoItem->Material = meshMaterial;
+                            faceInfoItem++;
                         }
                     }
                     break;
             }
-        }
-        else {
-            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of array buffer! Increase array buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, arrayBuffer->VertexCapacity, (arrayVertexCount + modelVertexIndexCount) - arrayBuffer->VertexCapacity);
         }
     }
 

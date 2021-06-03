@@ -29,8 +29,9 @@ struct VertexAttribute {
     Uint32  Color;
 };
 struct FaceInfo {
-    int Depth;
-    int VerticesStartIndex;
+    void* Material;
+    int   Depth;
+    int   VerticesStartIndex;
 };
 struct ArrayBuffer {
     VertexAttribute* VertexBuffer;      // count = max vertex count

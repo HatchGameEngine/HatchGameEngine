@@ -12,6 +12,7 @@
 #include <Engine/ResourceTypes/ModelFormats/COLLADA.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Rendering/Material.h>
 
 class COLLADAReader {
 private:
