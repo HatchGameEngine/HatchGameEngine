@@ -15,14 +15,14 @@ public:
     Uint16     FrameCount;
     Uint16     MeshCount;
 
-    Sint16**   VertexIndexBuffer;
-    Uint16*    VertexIndexCount;
+    Mesh*      Meshes;
     Uint16     TotalVertexIndexCount;
 
     Uint8      VertexFlag;
     Uint8      FaceVertexCount;
 
     Material** Materials;
+    Uint8      MaterialCount;
 };
 #endif
 
@@ -61,10 +61,9 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         return false;
     }
 
-    MeshCount = 1;
     Materials = nullptr;
 
-    VertexFlag = stream->ReadByte();
+    Uint8 VertexFlag = stream->ReadByte();
     FaceVertexCount = stream->ReadByte();
     VertexCount = stream->ReadUInt16();
     FrameCount = stream->ReadUInt16();
@@ -110,16 +109,17 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     }
 
     TotalVertexIndexCount = stream->ReadInt16();
-    VertexIndexCount = (Uint16*)Memory::Malloc(MeshCount * sizeof(Uint16));
-    VertexIndexCount[0] = TotalVertexIndexCount;
 
-    VertexIndexBuffer = (Sint16**)Memory::Malloc(MeshCount * sizeof(Sint16*));
-    VertexIndexBuffer[0] = (Sint16*)Memory::Malloc((TotalVertexIndexCount + 1) * sizeof(Sint16));
+    Meshes = (Mesh*)Memory::Malloc(sizeof(Mesh));
+    Meshes->VertexFlag = VertexFlag;
+    Meshes->VertexIndexCount = TotalVertexIndexCount;
+    Meshes->VertexIndexBuffer = (Sint16*)Memory::Malloc((TotalVertexIndexCount + 1) * sizeof(Sint16));
+    MeshCount = 1;
 
     for (int i = 0; i < TotalVertexIndexCount; i++) {
-        VertexIndexBuffer[0][i] = stream->ReadInt16();
+        Meshes->VertexIndexBuffer[i] = stream->ReadInt16();
     }
-    VertexIndexBuffer[0][TotalVertexIndexCount] = -1;
+    Meshes->VertexIndexBuffer[TotalVertexIndexCount] = -1;
 
     if (VertexFlag & VertexType_Normal) {
         Vector3* vert = &PositionBuffer[0];

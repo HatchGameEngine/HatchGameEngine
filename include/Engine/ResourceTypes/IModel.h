@@ -24,12 +24,12 @@ public:
     Uint16     VertexCount;
     Uint16     FrameCount;
     Uint16     MeshCount;
-    Sint16**   VertexIndexBuffer;
-    Uint16*    VertexIndexCount;
+    Mesh*      Meshes;
     Uint16     TotalVertexIndexCount;
     Uint8      VertexFlag;
     Uint8      FaceVertexCount;
     Material** Materials;
+    Uint8      MaterialCount;
 
     IModel();
     IModel(const char* filename);

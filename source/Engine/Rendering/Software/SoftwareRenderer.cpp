@@ -1709,15 +1709,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawBegin(Uint32 arrayBuffe
     arrayBuffer->VertexCount = 0;
     arrayBuffer->FaceCount = 0;
 
-    // arrayBuffer->LightingAmbientR = 160;
-    // arrayBuffer->LightingAmbientG = 160;
-    // arrayBuffer->LightingAmbientB = 160;
-    // arrayBuffer->LightingDiffuseR = 8;
-    // arrayBuffer->LightingDiffuseG = 8;
-    // arrayBuffer->LightingDiffuseB = 8;
-    // arrayBuffer->LightingSpecularR = 14;
-    // arrayBuffer->LightingSpecularG = 14;
-    // arrayBuffer->LightingSpecularB = 14;
+    memset(arrayBuffer->VertexBuffer, 0x00, arrayBuffer->VertexCapacity * sizeof(VertexAttribute));
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode) {
     if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
@@ -2019,10 +2011,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 CHECK_TEXTURE(material)
 
-                if (texturePtr)
+                if (texturePtr) {
                     DrawPolygonUV(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
-                else
+                }
+                else {
                     DrawPolygon(polygonVertex, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
+                }
 
                 mrt_poly_solid_NEXT_FACE:
                 faceSizePtr++;
@@ -2112,10 +2106,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 CHECK_TEXTURE(material)
 
-                if (texturePtr)
+                if (texturePtr) {
                     DrawPolygonUV(texturePtr, polygonVertex, polygonUV, color, *faceSizePtr, opacity, blendFlag);
-                else
+                }
+                else {
                     DrawPolygon(polygonVertex, color, *faceSizePtr, opacity, blendFlag);
+                }
 
                 mrt_poly_flat_NEXT_FACE:
                 faceSizePtr++;
@@ -2196,10 +2192,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 CHECK_TEXTURE(material)
 
-                if (texturePtr)
+                if (texturePtr) {
                     DrawPolygonBlendUV(texturePtr, polygonVertex, polygonUV, polygonVertColor, *faceSizePtr, opacity, blendFlag);
-                else
+                }
+                else {
                     DrawPolygonBlend(polygonVertex, polygonVertColor, *faceSizePtr, opacity, blendFlag);
+                }
 
                 #undef CHECK_TEXTURE
 
@@ -2219,7 +2217,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
     Vector3* positionPtr;
     Uint32* colorPtr;
     Vector2* uvPtr;
-    Material **materialList = nullptr;
 
     int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
 
@@ -2230,12 +2227,17 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
         vec3out.Y = M->Column[1][3] + ((vec3in.X * M->Column[1][0]) >> 8) + ((vec3in.Y * M->Column[1][1]) >> 8) + ((vec3in.Z * M->Column[1][2]) >> 8); \
         vec3out.Z = M->Column[2][3] + ((vec3in.X * M->Column[2][0]) >> 8) + ((vec3in.Y * M->Column[2][1]) >> 8) + ((vec3in.Z * M->Column[2][2]) >> 8);
 
+    #define SET_MATERIAL(face) \
+        if (materialList) { \
+            face->Material = model->Materials[*(materialList++)]; \
+        } \
+        else { \
+            face->Material = nullptr; \
+        }
+
     while (frame >= model->FrameCount)
         frame -= model->FrameCount;
     frame *= model->VertexCount;
-
-    if ((model->VertexFlag & vertexTypeMask) & VertexType_UV)
-        materialList = model->Materials;
 
     Uint32 arrayBufferIndex = CurrentArrayBuffer;
     if (viewMatrix) {
@@ -2251,22 +2253,22 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
         arrayVertexItem = &arrayBuffer->VertexBuffer[arrayVertexCount];
 
         modelVertexIndexCount = model->TotalVertexIndexCount;
-
         if (arrayVertexCount + modelVertexIndexCount > arrayBuffer->VertexCapacity) {
             BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of array buffer! Increase array buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, arrayBuffer->VertexCapacity, (arrayVertexCount + modelVertexIndexCount) - arrayBuffer->VertexCapacity);
             return;
         }
 
         for (int meshNum = 0; meshNum < model->MeshCount; meshNum++) {
-            Material *meshMaterial = materialList ? materialList[meshNum] : nullptr;
+            Mesh *mesh = &model->Meshes[meshNum];
+            Uint8 *materialList = model->Materials ? mesh->FaceMaterials : nullptr;
 
-            modelVertexIndexCount = model->VertexIndexCount[meshNum];
-            modelVertexIndexPtr = model->VertexIndexBuffer[meshNum];
+            modelVertexIndexCount = mesh->VertexIndexCount;
+            modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
             arrayBuffer->VertexCount += modelVertexIndexCount;
             arrayBuffer->FaceCount += modelVertexIndexCount / model->FaceVertexCount;
 
-            switch (model->VertexFlag & vertexTypeMask) {
+            switch (mesh->VertexFlag & vertexTypeMask) {
                 case VertexType_Position:
                     // For every face,
                     while (*modelVertexIndexPtr != -1) {
@@ -2281,7 +2283,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             arrayVertexItem++;
                         }
 
-                        faceInfoItem->Material = nullptr;
+                        SET_MATERIAL(faceInfoItem);
                         faceInfoItem++;
                     }
                     break;
@@ -2304,7 +2306,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = nullptr;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2348,7 +2350,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = nullptr;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2369,7 +2371,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = nullptr;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2393,7 +2395,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = meshMaterial;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2415,7 +2417,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = meshMaterial;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2440,7 +2442,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = meshMaterial;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2463,7 +2465,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                                 arrayVertexItem++;
                             }
 
-                            faceInfoItem->Material = meshMaterial;
+                            SET_MATERIAL(faceInfoItem);
                             faceInfoItem++;
                         }
                     }
@@ -2473,6 +2475,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
     }
 
     #undef APPLY_MAT4X4
+    #undef SET_MATERIAL
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {

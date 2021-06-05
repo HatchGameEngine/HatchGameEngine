@@ -1,7 +1,7 @@
 /*
 
-Implemented by Jimita
-https://github.com/Jimita
+Implemented by Lactozilla
+https://github.com/Lactozilla
 
 */
 
@@ -11,6 +11,7 @@ https://github.com/Jimita
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/ResourceTypes/IModel.h>
+#include <Engine/Math/Matrix4x4.h>
 
 typedef enum {
     DAE_X_UP,
@@ -18,94 +19,98 @@ typedef enum {
     DAE_Z_UP,
 } ColladaAssetAxis;
 
-typedef enum {
-    DAE_NODE_REGULAR,
-    DAE_NODE_JOINT,
-} ColladaNodeType;
-
 //
 // Meshes
 //
 
-struct ColladaMeshFloatArray {
-    char *Id;
-    int   Count;
+struct ColladaFloatArray {
+    char*         Id;
+    int           Count;
 
     vector<float> Contents;
 };
 
-struct ColladaMeshAccessor {
-    ColladaMeshFloatArray *Source;
+struct ColladaNameArray {
+    char*         Id;
+    int           Count;
 
-    int Count;
-    int Stride;
+    vector<char*> Contents;
 };
 
-struct ColladaMeshSource {
-    char *Id;
+struct ColladaAccessor {
+    char*              Source;
+    char*              Parameter;
 
-    vector<ColladaMeshFloatArray*> FloatArrays;
-    vector<ColladaMeshAccessor*>   Accessors;
+    ColladaFloatArray* FloatArray;
+    ColladaNameArray*  NameArray;
+
+    int                Count;
+    int                Stride;
+};
+
+struct ColladaSource {
+    char*                      Id;
+
+    vector<ColladaFloatArray*> FloatArrays;
+    vector<ColladaNameArray*>  NameArrays;
+    vector<ColladaAccessor*>   Accessors;
 };
 
 struct ColladaInput {
-    char *Semantic;
-    int   Offset;
+    char*                 Semantic;
+    int                   Offset;
 
-    ColladaMeshSource    *Source;
+    ColladaSource*        Source;
     vector<ColladaInput*> Children;
 };
 
 //
-// Textures
+// Materials
 //
 
 struct ColladaImage {
-    char *Id;
-    char *Path;
+    char* Id;
+    char* Path;
 };
 
 struct ColladaSurface {
-    char *Id;
-    char *Type;
+    char*         Id;
+    char*         Type;
 
-    ColladaImage *Image;
+    ColladaImage* Image;
 };
 
 struct ColladaSampler {
-    char *Id;
+    char*           Id;
 
-    ColladaSurface *Surface;
-
-    int wrap_s,    wrap_t;
-    int minfilter, magfilter, mipfilter;
+    ColladaSurface* Surface;
 };
 
 struct ColladaPhongComponent {
-    float Color[4];
+    float           Color[4];
 
-    ColladaSampler *Sampler;
+    ColladaSampler* Sampler;
 };
 
 struct ColladaEffect {
-    char *Id;
+    char*                 Id;
 
     ColladaPhongComponent Specular;
     ColladaPhongComponent Ambient;
     ColladaPhongComponent Emission;
     ColladaPhongComponent Diffuse;
 
-    float Shininess;
-    float Transparency;
-    float IndexOfRefraction;
+    float                 Shininess;
+    float                 Transparency;
+    float                 IndexOfRefraction;
 };
 
 struct ColladaMaterial {
-    char *Id;
-    char *Name;
-    char *EffectLink;
+    char*          Id;
+    char*          Name;
+    char*          EffectLink;
 
-    ColladaEffect *Effect;
+    ColladaEffect* Effect;
 };
 
 //
@@ -113,65 +118,143 @@ struct ColladaMaterial {
 //
 
 struct ColladaTriangles {
-    int  Count;
-    char *Id;
+    int                   Count;
+    char*                 Id;
 
-    ColladaMaterial       Material;
     vector<ColladaInput*> Inputs;
     vector<int>           Primitives;
 };
 
 struct ColladaVertices {
-    char *Id;
+    char*                 Id;
 
     vector<ColladaInput*> Inputs;
 };
 
-struct ColladaMesh {
-    vector<ColladaMeshSource*> SourceList;
+struct ColladaPrimitive {
+    float Values[3];
+};
 
-    ColladaVertices   Vertices;
-    ColladaTriangles  Triangles;
-    ColladaMaterial  *Material;
+struct ColladaPreProc {
+    int                       NumVertices;
+
+    vector<ColladaPrimitive>  Positions;
+    vector<ColladaPrimitive>  Normals;
+    vector<ColladaPrimitive>  UVs;
+    vector<ColladaPrimitive>  Colors;
+
+    vector<int>               posIndices;
+    vector<int>               texIndices;
+    vector<int>               nrmIndices;
+    vector<int>               colIndices;
+};
+
+struct ColladaBone {
+    int               Joint;
+
+    Matrix4x4*        LocalMatrix;
+    Matrix4x4*        InverseBindMatrix;
+
+    Matrix4x4*        LocalTransform;
+    Matrix4x4*        FinalTransform;
+
+    void*             Parent;
+    void*             Children;
+    int               NumChildren;
+};
+
+struct ColladaJoint {
+    char*        Name;
+    ColladaBone* Bone;
+};
+
+struct ColladaMesh {
+    ColladaVertices           Vertices;
+    vector<ColladaTriangles*> Triangles;
+
+    vector<int>               VertexCounts;
+
+    vector<ColladaSource*>    SourceList;
+    vector<ColladaJoint*>     JointList;
+    vector<ColladaMaterial*>  MaterialList;
+
+    ColladaPreProc            Processed;
 };
 
 struct ColladaGeometry {
-    char *Id;
-    char *Name;
+    char*        Id;
+    char*        Name;
 
-    ColladaMesh *Mesh;
+    ColladaMesh* Mesh;
 };
 
 struct ColladaNode {
-    ColladaNodeType  Type;
-    ColladaNode     *Node;
+    char*                    Id;
+    char*                    Sid;
+    char*                    Name;
 
-    char *Id;
-    char *Name;
+    ColladaNode*             Parent;
+    vector<ColladaNode*>     Children;
 
-    float            Matrix[16];
-    ColladaMesh*     Mesh;
-    ColladaMaterial* Material;
+    float                    Matrix[16];
+
+    vector<ColladaMaterial*> MaterialList;
+    ColladaMesh*             Mesh;
+};
+
+struct ColladaController {
+    char*                  Id;
+    char*                  Skin;
+
+    vector<ColladaSource*> SourceList;
+
+    vector<ColladaSource*> JointList;
+    vector<ColladaSource*> MatrixList;
+    vector<ColladaSource*> WeightList;
+
+    ColladaNode*           RootBone;
+
+    float                  BindShapeMatrix[16];
+
+    ColladaSource*         InvBindMatrixSource;
+
+    int                    NumInputs;
+    int                    NumVertexWeights;
+    int                    VWJointOffset;
+    int                    VWWeightsOffset;
+
+    ColladaSource*         VWJoints;
+    ColladaSource*         VWWeights;
+
+    float*                 Weights;
+    float                  NumWeights;
+
+    vector<int>            Influences;
+    VertexWeightInfo*      VWInfo;
 };
 
 struct ColladaScene {
-    vector<ColladaNode*>     Nodes;
+    vector<ColladaNode*> Nodes;
+    vector<ColladaMesh*> Meshes;
 };
 
 struct ColladaModel {
-    vector<ColladaMaterial*> Materials;
-    vector<ColladaSurface*>  Surfaces;
-    vector<ColladaSampler*>  Samplers;
-    vector<ColladaEffect*>   Effects;
-    vector<ColladaImage*>    Images;
+    vector<ColladaScene*>      Scenes;
+    vector<ColladaNode*>       Nodes;
+    ColladaNode*               RootNode;
 
-    vector<ColladaGeometry*> Geometries;
-    vector<ColladaMesh*>     Meshes;
+    vector<ColladaMaterial*>   Materials;
+    vector<ColladaSurface*>    Surfaces;
+    vector<ColladaSampler*>    Samplers;
+    vector<ColladaEffect*>     Effects;
+    vector<ColladaImage*>      Images;
 
-    vector<ColladaNode*>     Nodes;
-    vector<ColladaScene*>    Scenes;
+    vector<ColladaController*> Controllers;
 
-    ColladaAssetAxis         Axis;
+    vector<ColladaGeometry*>   Geometries;
+    vector<ColladaMesh*>       Meshes;
+
+    ColladaAssetAxis           Axis;
 };
 
 #endif
