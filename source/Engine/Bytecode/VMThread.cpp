@@ -300,6 +300,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_LESS),
             VM_ADD_DISPATCH(OP_LESS_EQUAL),
             VM_ADD_DISPATCH(OP_PRINT),
+            VM_ADD_DISPATCH(OP_TYPEOF),
             VM_ADD_DISPATCH_NULL(OP_ENUM),
             VM_ADD_DISPATCH(OP_SAVE_VALUE),
             VM_ADD_DISPATCH(OP_LOAD_VALUE),
@@ -385,6 +386,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_LESS)
                 PRINT_CASE(OP_LESS_EQUAL)
                 PRINT_CASE(OP_PRINT)
+                PRINT_CASE(OP_TYPEOF)
                 PRINT_CASE(OP_ENUM)
                 PRINT_CASE(OP_SAVE_VALUE)
                 PRINT_CASE(OP_LOAD_VALUE)
@@ -947,6 +949,8 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_GREATER):        Push(Values_GreaterThan()); VM_BREAK;
         VM_CASE(OP_LESS_EQUAL):     Push(Values_LessThanOrEqual()); VM_BREAK;
         VM_CASE(OP_GREATER_EQUAL):  Push(Values_GreaterThanOrEqual()); VM_BREAK;
+        // typeof Operator
+        VM_CASE(OP_TYPEOF):         Push(Value_TypeOf()); VM_BREAK;
 
         // Functions
         VM_CASE(OP_WITH): {
@@ -1541,32 +1545,10 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
 }
 
 // #region Value Operations
-// TODO: Move these definitions to Types.h
-const char* BasicTypesNames[] = {
-    "Null",
-    "Integer",
-    "Decimal",
-    "Object",
-    "LinkedInteger",
-    "LinkedDecimal",
-};
-const char* ObjectTypesNames[] = {
-    "Bound Method",
-    "Class",
-    "Closure",
-    "Function",
-    "Instance",
-    "Native",
-    "String",
-    "Upvalue",
-    "Array",
-    "Map",
-};
-
 #define IS_NOT_NUMBER(a) (a.Type != VAL_DECIMAL && a.Type != VAL_INTEGER && a.Type != VAL_LINKED_DECIMAL && a.Type != VAL_LINKED_INTEGER)
 #define CHECK_IS_NUM(a, b, def) \
     if (IS_NOT_NUMBER(a)) { \
-        ThrowRuntimeError(false, "Cannot perform %s operation on non-number value of type %s.", #b, a.Type == VAL_OBJECT ? ObjectTypesNames[OBJECT_TYPE(a)] : BasicTypesNames[a.Type]); \
+        ThrowRuntimeError(false, "Cannot perform %s operation on non-number value of type %s.", #b, GetTypeString(a)); \
         a = def; \
     }
 
@@ -1931,5 +1913,58 @@ PUBLIC VMValue VMThread::Values_BitwiseNOT() {
         return DECIMAL_VAL((float)(~(int)AS_DECIMAL(a)));
     }
     return INTEGER_VAL(~AS_INTEGER(a));
+}
+PUBLIC VMValue VMThread::Value_TypeOf() {
+    const char *valueType = "unknown";
+
+    VMValue value = Pop();
+
+    switch (value.Type) {
+        case VAL_NULL:
+            valueType = "null";
+            break;
+        case VAL_INTEGER:
+        case VAL_LINKED_INTEGER:
+            valueType = "integer";
+            break;
+        case VAL_DECIMAL:
+        case VAL_LINKED_DECIMAL:
+            valueType = "decimal";
+            break;
+        case VAL_OBJECT: {
+            switch (OBJECT_TYPE(value)) {
+                case OBJ_BOUND_METHOD:
+                case OBJ_FUNCTION:
+                    valueType = "event";
+                    break;
+                case OBJ_CLASS:
+                    valueType = "class";
+                    break;
+                case OBJ_CLOSURE:
+                    valueType = "closure";
+                    break;
+                case OBJ_INSTANCE:
+                    valueType = "instance";
+                    break;
+                case OBJ_NATIVE:
+                    valueType = "native";
+                    break;
+                case OBJ_STRING:
+                    valueType = "string";
+                    break;
+                case OBJ_UPVALUE:
+                    valueType = "upvalue";
+                    break;
+                case OBJ_ARRAY:
+                    valueType = "array";
+                    break;
+                case OBJ_MAP:
+                    valueType = "map";
+                    break;
+            }
+        }
+    }
+
+    return OBJECT_VAL(CopyString(valueType, strlen(valueType)));
 }
 // #endregion

@@ -66,6 +66,7 @@ enum TokenTYPE {
     // Precedence 3
     TOKEN_LOGICAL_NOT, // (!)
     TOKEN_BITWISE_NOT, // (~)
+    TOKEN_TYPEOF,
     // Precedence 5
     TOKEN_MULTIPLY,
     TOKEN_DIVISION,
@@ -401,6 +402,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                 switch (*(scanner.Start + 1)) {
                     case 'h': return CheckKeyword(2, 2, "is", TOKEN_THIS);
                     case 'r': return CheckKeyword(2, 2, "ue", TOKEN_TRUE);
+                    case 'y': return CheckKeyword(2, 4, "peof", TOKEN_TYPEOF);
                 }
             }
             break;
@@ -1312,6 +1314,7 @@ PUBLIC void Compiler::GetUnary(bool canAssign) {
         case TOKEN_MINUS:       EmitByte(OP_NEGATE); break;
         case TOKEN_BITWISE_NOT: EmitByte(OP_BW_NOT); break;
         case TOKEN_LOGICAL_NOT: EmitByte(OP_LG_NOT); break;
+        case TOKEN_TYPEOF:      EmitByte(OP_TYPEOF); break;
 
         // HACK: replace these with prefix version of OP
         // case TOKEN_INCREMENT:   EmitByte(OP_INCREMENT); break;
@@ -2152,6 +2155,7 @@ PUBLIC STATIC void   Compiler::MakeRules() {
     Rules[TOKEN_LOGICAL_AND] = ParseRule { NULL, &Compiler::GetLogicalAND, NULL, PREC_AND };
     Rules[TOKEN_LOGICAL_OR] = ParseRule { NULL, &Compiler::GetLogicalOR, NULL, PREC_OR };
     Rules[TOKEN_LOGICAL_NOT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_TYPEOF] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
     Rules[TOKEN_NOT_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_GREATER] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
@@ -2697,6 +2701,8 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return SimpleInstruction("OP_NEGATE", offset);
         case OP_PRINT:
             return SimpleInstruction("OP_PRINT", offset);
+        case OP_TYPEOF:
+            return SimpleInstruction("OP_TYPEOF", offset);
         case OP_JUMP:
             return JumpInstruction("OP_JUMP", 1, chunk, offset);
         case OP_JUMP_IF_FALSE:

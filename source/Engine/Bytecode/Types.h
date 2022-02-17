@@ -333,6 +333,7 @@ enum   OpCode {
     OP_SWITCH_TABLE,
     OP_FAILSAFE,
     OP_EVENT,
+    OP_TYPEOF,
 
     OP_SYNC = 0xFF,
 };
