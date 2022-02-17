@@ -31,8 +31,8 @@ int ini_property_count( ini_t const* ini, int section );
 char const* ini_property_name( ini_t const* ini, int section, int property );
 char const* ini_property_value( ini_t const* ini, int section, int property );
 
-int ini_find_section( ini_t const* ini, char const* name, int name_length );
-int ini_find_property( ini_t const* ini, int section, char const* name, int name_length );
+int ini_find_section( ini_t const* ini, char const* name );
+int ini_find_property( ini_t const* ini, int section, char const* name );
 
 int ini_section_add( ini_t* ini, char const* name, int length );
 void ini_property_add( ini_t* ini, int section, char const* name, int name_length, char const* value, int value_length );
@@ -40,8 +40,8 @@ void ini_section_remove( ini_t* ini, int section );
 void ini_property_remove( ini_t* ini, int section, int property );
 
 void ini_section_name_set( ini_t* ini, int section, char const* name, int length );
-void ini_property_name_set( ini_t* ini, int section, int property, char const* name, int length );
-void ini_property_value_set( ini_t* ini, int section, int property, char const* value, int length  );
+void ini_property_name_set( ini_t* ini, int section, int property, char const* name );
+void ini_property_value_set( ini_t* ini, int section, int property, char const* value  );
 
 #endif /* ini_h */
 
@@ -391,7 +391,7 @@ the length is determined automatically, but in this case `value` has to be zero-
 #ifdef INI_IMPLEMENTATION
 #undef INI_IMPLEMENTATION
 
-#define INITIAL_CAPACITY ( 256 )
+#define INITIAL_CAPACITY ( 8 )
 
 #undef _CRT_NONSTDC_NO_DEPRECATE 
 #define _CRT_NONSTDC_NO_DEPRECATE 
@@ -415,14 +415,9 @@ the length is determined automatically, but in this case `value` has to be zero-
     #define INI_STRLEN( s ) ( strlen( s ) )
 #endif 
 
-#ifndef INI_STRNICMP
-    #ifdef _WIN32
-        #include <string.h>
-        #define INI_STRNICMP( s1, s2, cnt ) ( strnicmp( s1, s2, cnt ) )
-    #else                           
-        #include <string.h>         
-        #define INI_STRNICMP( s1, s2, cnt ) ( strncasecmp( s1, s2, cnt ) )        
-    #endif
+#ifndef INI_STRCMP
+    #include <string.h>
+    #define INI_STRCMP( s1, s2 ) ( strcmp( s1, s2 ) )
 #endif 
 
 
@@ -545,12 +540,31 @@ ini_t* ini_load( char const* data, void* memctx )
             else
                 {
                 start = ptr;
-                while( *ptr && *ptr !='=' && *ptr != '\n' )
+                l = -1;
+                while( *ptr )
+                    {
+                    if ( *ptr == '=' || *ptr == ' ' )
+                        {
+                        l = (int)( ptr - start);
+                        break;
+                        }
+                    else if ( *ptr == '\n' )
+                        break;
+                    ++ptr;
+                    }
+
+                if ( l < 1 ) {
+                    while( *ptr != '\n' )
+                        ++ptr;
+                    ++ptr;
+                    continue;
+                }
+
+                while( *ptr == ' ' )
                     ++ptr;
 
                 if( *ptr == '=' )
                     {
-                    l = (int)( ptr - start);
                     ++ptr;
                     while( *ptr && *ptr <= ' ' && *ptr != '\n' ) 
                         ptr++;
@@ -612,7 +626,11 @@ int ini_save( ini_t const* ini, char* data, int size )
                         if( data && pos < size ) data[ pos ] = n[ i ];
                         ++pos;
                         }
+                    if( data && pos < size ) data[ pos ] = ' ';
+                    ++pos;
                     if( data && pos < size ) data[ pos ] = '=';
+                    ++pos;
+                    if( data && pos < size ) data[ pos ] = ' ';
                     ++pos;
                     n = ini->properties[ p ].value_large ? ini->properties[ p ].value_large : ini->properties[ p ].value;
                     l = (int) INI_STRLEN( n );
@@ -621,12 +639,15 @@ int ini_save( ini_t const* ini, char* data, int size )
                         if( data && pos < size ) data[ pos ] = n[ i ];
                         ++pos;
                         }
-                    if( data && pos < size ) data[ pos ] = '\n';
-                    ++pos;
+                    if ( p < ini->property_count - 1 )
+                        {
+                        if( data && pos < size ) data[ pos ] = '\n';
+                        ++pos;
+                        }
                     }
                 }
 
-            if( pos > 0 )
+            if( pos > 0 && s < ini->section_count - 1 )
                 {
                 if( data && pos < size ) data[ pos ] = '\n';
                 ++pos;
@@ -665,7 +686,13 @@ void ini_destroy( ini_t* ini )
 
 int ini_section_count( ini_t const* ini )
     {
-    if( ini ) return ini->section_count;
+    if( ini )
+        {
+        int count = ini->section_count - 1;
+        if ( ini_property_count( ini, INI_GLOBAL_SECTION ) > 0 )
+            count++;
+        return count;
+        }
     return 0;
     }
 
@@ -728,18 +755,17 @@ char const* ini_property_value( ini_t const* ini, int section, int property )
     }
 
 
-int ini_find_section( ini_t const* ini, char const* name, int name_length )
+int ini_find_section( ini_t const* ini, char const* name )
     {
     int i;
 
     if( ini && name )
         {
-        if( name_length <= 0 ) name_length = (int) INI_STRLEN( name );
         for( i = 0; i < ini->section_count; ++i )
             {
             char const* const other = 
                 ini->sections[ i ].name_large ? ini->sections[ i ].name_large : ini->sections[ i ].name;
-            if( INI_STRNICMP( name, other, name_length ) == 0 )
+            if( INI_STRCMP( name, other ) == 0 )
                 return i;
             }
         }
@@ -748,22 +774,21 @@ int ini_find_section( ini_t const* ini, char const* name, int name_length )
     }
 
 
-int ini_find_property( ini_t const* ini, int section, char const* name, int name_length )
+int ini_find_property( ini_t const* ini, int section, char const* name )
     {
     int i;
     int c;
 
     if( ini && name && section >= 0 && section < ini->section_count)
         {
-        if( name_length <= 0 ) name_length = (int) INI_STRLEN( name );
         c = 0;
-        for( i = 0; i < ini->property_capacity; ++i )
+        for( i = 0; i < ini->property_count; ++i )
             {
             if( ini->properties[ i ].section == section )
                 {
                 char const* const other = 
                     ini->properties[ i ].name_large ? ini->properties[ i ].name_large : ini->properties[ i ].name;
-                if( INI_STRNICMP( name, other, name_length ) == 0 )
+                if( INI_STRCMP( name, other ) == 0 )
                     return c;
                 ++c;
                 }
@@ -932,13 +957,13 @@ void ini_section_name_set( ini_t* ini, int section, char const* name, int length
     }
 
 
-void ini_property_name_set( ini_t* ini, int section, int property, char const* name, int length )
+void ini_property_name_set( ini_t* ini, int section, int property, char const* name )
     {
     int p;
 
     if( ini && name && section >= 0 && section < ini->section_count )
         {
-        if( length <= 0 ) length = (int) INI_STRLEN( name );
+        int length = (int) INI_STRLEN( name );
         p = ini_internal_property_index( ini, section, property );
         if( p != INI_NOT_FOUND )
             {
@@ -961,13 +986,13 @@ void ini_property_name_set( ini_t* ini, int section, int property, char const* n
     }
 
 
-void ini_property_value_set( ini_t* ini, int section, int property, char const* value, int length )
+void ini_property_value_set( ini_t* ini, int section, int property, char const* value )
     {
     int p;
 
     if( ini && value && section >= 0 && section < ini->section_count )
         {
-        if( length <= 0 ) length = (int) INI_STRLEN( value );
+        int length = (int) INI_STRLEN( value );
         p = ini_internal_property_index( ini, section, property );
         if( p != INI_NOT_FOUND )
             {

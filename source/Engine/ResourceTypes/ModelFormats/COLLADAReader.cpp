@@ -10,8 +10,8 @@ public:
 
 /*
 
-Implemented by Jimita
-https://github.com/Jimita
+Implemented by Lactozilla
+https://github.com/Lactozilla
 
 */
 
@@ -19,8 +19,7 @@ https://github.com/Jimita
 
 static void TokenToString(Token tok, char** string)
 {
-    *string = (char* )calloc(1, tok.Length + 1);
-    memcpy(*string, tok.Start, tok.Length);
+    *string = XMLParser::TokenToString(tok);
 }
 
 // Caveat: This modifies the source string.

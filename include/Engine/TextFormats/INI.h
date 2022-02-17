@@ -13,22 +13,26 @@
 
 class INI {
 public:
-    struct ConfigItems {
-    char section[60];
-    bool hasSection;
-    char key[60];
-    char value[60];
-    }; 
-    ConfigItems item[80];
-    int count = 0;
+    void* Struct;
+    char* Filename;
 
+    static INI* New(const char* filename);
     static INI* Load(const char* filename);
-    bool GetString(const char* section, const char* key, char* dest);
+    bool Save();
+    bool GetString(const char* section, const char* key, char* dest, size_t destSize);
     bool GetInteger(const char* section, const char* key, int* dest);
     bool GetBool(const char* section, const char* key, bool* dest);
     bool SetString(const char* section, const char* key, const char* value);
     bool SetInteger(const char* section, const char* key, int value);
     bool SetBool(const char* section, const char* key, bool value);
+    bool AddSection(const char* section);
+    bool RemoveSection(const char* section);
+    bool SectionExists(const char* section);
+    int GetSectionCount();
+    char const* GetProperty(const char* section, const char* key);
+    bool PropertyExists(const char* section, const char* key);
+    bool RemoveProperty(const char* section, const char* key);
+    int GetPropertyCount(const char* section);
     void Dispose();
 };
 

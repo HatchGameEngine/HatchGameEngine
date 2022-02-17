@@ -4,6 +4,7 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
+#include <Engine/IO/MemoryStream.h>
 
 class XMLParser {
 public:
@@ -322,7 +323,7 @@ void     GetAttributes() {
             ConsumeToken(TOKEN_STRING, "Invalid token for attribute value.");
 
             Token value = PrevToken();
-            XMLCurrent->attributes.Put(XMLCurrent->attributes.HashFunction(name.Start, name.Length), value);
+            XMLCurrent->attributes.Put(XMLParser::TokenToString(name), value);
         }
 
         if (PeekToken().Type != TOKEN_IDENTIFIER)
@@ -483,9 +484,7 @@ PUBLIC STATIC XMLNode* XMLParser::Parse() {
 
     return XMLRoot;
 }
-PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
-    MemoryStream* stream = MemoryStream::New(streamSrc);
-    if (!stream) return NULL;
+PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
     // NOTE: This fixes the XML overread bug (unterminated string caused bad access/read)
     stream->SeekEnd(0);
     stream->WriteByte(0);
@@ -504,6 +503,11 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
     xml->base_stream = stream;
     return xml;
 }
+PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
+    MemoryStream* stream = MemoryStream::New(streamSrc);
+    if (!stream) return NULL;
+    return XMLParser::ParseFromStream(stream);
+}
 PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
     ResourceStream* res = ResourceStream::New(filename);
     if (!res) {
@@ -514,6 +518,19 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
     XMLNode* node = XMLParser::ParseFromStream(res);
     res->Close();
     return node;
+}
+
+PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
+    char* string = (char*)malloc(tok.Length + 1);
+    if (!string) {
+        Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
+        exit(-1);
+    }
+
+    memcpy(string, tok.Start, tok.Length);
+    string[tok.Length] = '\0';
+
+    return string;
 }
 
 void FreeNode(XMLNode* root) {
