@@ -257,6 +257,17 @@ PUBLIC STATIC void       Matrix4x4::Rotate(Matrix4x4* out, Matrix4x4* a, float r
         out->Values[15] = a->Values[15];
     }
 }
+PUBLIC STATIC void       Matrix4x4::Transpose(Matrix4x4* out) {
+    Matrix4x4 transposed;
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            transposed.Values[(i*4)+j] = out->Values[(j*4)+i];
+        }
+    }
+
+    Matrix4x4::Copy(out, &transposed);
+}
 PUBLIC STATIC void       Matrix4x4::LookAt(Matrix4x4* out, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) {
     float x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
     if (Math::Abs(eyex - centerx) < EPSILON &&

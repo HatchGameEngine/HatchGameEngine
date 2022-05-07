@@ -8,23 +8,28 @@
 #define VIRTUAL
 #define EXPOSED
 
+class Material;
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
+#include <Engine/Rendering/Material.h>
 #include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 
 class IModel {
 public:
-    Vector3* PositionBuffer;
-    Vector2* UVBuffer;
-    Uint32*  ColorBuffer;
-    Sint16*  VertexIndexBuffer;
-    Uint16   VertexCount;
-    Uint16   VertexIndexCount;
-    Uint16   FrameCount;
-    Uint8    VertexFlag;
-    Uint8    FaceVertexCount;
+    Vector3*   PositionBuffer;
+    Vector2*   UVBuffer;
+    Uint32*    ColorBuffer;
+    Uint16     VertexCount;
+    Uint16     FrameCount;
+    Uint16     MeshCount;
+    Mesh*      Meshes;
+    Uint16     TotalVertexIndexCount;
+    Uint8      VertexFlag;
+    Uint8      FaceVertexCount;
+    Material** Materials;
+    Uint8      MaterialCount;
 
     IModel();
     IModel(const char* filename);

@@ -7894,15 +7894,16 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, Clear);
     DEF_NATIVE(Draw, ResetTextureTarget);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES", 0);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS", 1);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FLAT_LIGHTING", 2);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_SMOOTH_LIGHTING", 4);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_PERSPECTIVE", 8);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_FLAT", 2);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_SMOOTH", 4);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_FLAT", 3);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_SMOOTH", 5);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES", DrawMode_LINES);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS", DrawMode_POLYGONS);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FLAT_LIGHTING", DrawMode_FLAT_LIGHTING);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_SMOOTH_LIGHTING", DrawMode_SMOOTH_LIGHTING);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_TEXTURED", DrawMode_TEXTURED);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_PERSPECTIVE", DrawMode_PERSPECTIVE);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_FLAT", DrawMode_LINES_FLAT);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_SMOOTH", DrawMode_LINES_SMOOTH);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_FLAT", DrawMode_POLYGONS_FLAT);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_SMOOTH", DrawMode_POLYGONS_SMOOTH);
 
     BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_ADD", BlendMode_ADD);
     BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_MAX", BlendMode_MAX);

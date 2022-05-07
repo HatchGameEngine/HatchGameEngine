@@ -22,6 +22,21 @@ enum VertexType {
 #define MAX_VECTOR_COUNT 0x800
 #define MAX_ARRAY_BUFFERS 0x20
 
+struct VertexWeightInfo {
+    int  Influences;
+    int *JointIndices;
+    int *WeightIndices;
+};
+
+struct Mesh {
+    Sint16*    VertexIndexBuffer;
+    Uint16     VertexIndexCount;
+
+    Uint8      VertexFlag;
+
+    Uint8*     FaceMaterials;
+};
+
 struct VertexAttribute {
     Vector3 Position;
     Vector3 Normal;
@@ -29,8 +44,9 @@ struct VertexAttribute {
     Uint32  Color;
 };
 struct FaceInfo {
-    int Depth;
-    int VerticesStartIndex;
+    void* Material;
+    int   Depth;
+    int   VerticesStartIndex;
 };
 struct ArrayBuffer {
     VertexAttribute* VertexBuffer;      // count = max vertex count

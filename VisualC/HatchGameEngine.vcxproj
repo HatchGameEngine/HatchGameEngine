@@ -204,6 +204,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp" />
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Shader.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />

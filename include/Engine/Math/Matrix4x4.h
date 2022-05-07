@@ -25,6 +25,7 @@ public:
     static void       Translate(Matrix4x4* out, Matrix4x4* a, float x, float y, float z);
     static void       Scale(Matrix4x4* out, Matrix4x4* a, float x, float y, float z);
     static void       Rotate(Matrix4x4* out, Matrix4x4* a, float rad, float x, float y, float z);
+    static void       Transpose(Matrix4x4* out);
     static void       LookAt(Matrix4x4* out, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
     static void       Print(Matrix4x4* out);
 };

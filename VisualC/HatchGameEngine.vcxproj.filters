@@ -198,6 +198,9 @@
     <ClCompile Include="..\source\engine\rendering\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
