@@ -21,7 +21,7 @@ public:
     float Shininess;
     float Transparency;
     float IndexOfRefraction;
-    void* Texture;
+    void* Image;
 
     static Material* New(void);
 };

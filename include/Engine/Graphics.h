@@ -75,6 +75,7 @@ public:
     static void     Present();
     static void     SoftwareStart();
     static void     SoftwareEnd();
+    static void     FreeSceneMemory();
     static void     SetRenderTarget(Texture* texture);
     static void     UpdateOrtho(float width, float height);
     static void     UpdateOrthoFlipped(float width, float height);

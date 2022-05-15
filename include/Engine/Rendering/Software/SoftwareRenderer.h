@@ -14,11 +14,23 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Math/Matrix4x4.h>
+#include <Engine/Math/Clipper.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Rendering/Material.h>
+#include <Engine/Rendering/Software/Contour.h>
 #include <Engine/Includes/HashMap.h>
 
 class SoftwareRenderer {
+private:
+    static void   BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer);
+    static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int averageNormalY);
+    static int SortPolygonFaces(const void *a, const void *b);
+    static void    SetFaceInfoMaterial(FaceInfo* face, Material* material);
+    static void    SetFaceInfoMaterial(FaceInfo* face, Texture* texture);
+    static void    ConvertMatrix(Matrix4x4i* output, Matrix4x4* input);
+    static void    CalcModelViewProjMat(Matrix4x4i* output, Matrix4x4* viewMatrix, Matrix4x4* projMatrix);
+    static bool    CheckPolygonVisible(VertexAttribute* vertex, int vertexCount);
+
 public:
     static GraphicsFunctions BackendFunctions;
     static Uint32            CompareColor;
@@ -27,23 +39,15 @@ public:
     static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
 
-    static inline Uint32 GetPixelIndex(ISprite* sprite, int x, int y);
-    static void    SetDrawAlpha(int a);
-    static void    SetDrawFunc(int a);
-    static void    SetFade(int fade);
-    static void    SetFilter(int filter);
-    static int     GetFilter();
-    static bool    IsOnScreen(int x, int y, int w, int h);
-    static void    DrawRectangleStroke(int x, int y, int width, int height, Uint32 color);
-    static void    DrawRectangleSkewedH(int x, int y, int width, int height, int sk, Uint32 color);
-    static void    DrawTextSprite(ISprite* sprite, int animation, char first, int x, int y, const char* string);
-    static int     MeasureTextSprite(ISprite* sprite, int animation, char first, const char* string);
     static void    ConvertFromARGBtoNative(Uint32* argb, int count);
     static void     Init();
     static Uint32   GetWindowFlags();
     static void     SetGraphicsFunctions();
     static void     Dispose();
+    static void     RenderStart();
+    static void     RenderEnd();
     static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
     static int      LockTexture(Texture* texture, void** pixels, int* pitch);
     static int      UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
@@ -65,6 +69,10 @@ public:
     static void     Present();
     static void     SetBlendColor(float r, float g, float b, float a);
     static void     SetBlendMode(int srcC, int dstC, int srcA, int dstA);
+    static void     SetDepthTest(bool enabled);
+    static void     InitDepthBuffer();
+    static void     ResizeDepthBuffer();
+    static void     ClearDepthBuffer();
     static void     Resize(int width, int height);
     static void     SetClip(float x, float y, float width, float height);
     static void     ClearClip();
@@ -73,13 +81,22 @@ public:
     static void     Rotate(float x, float y, float z);
     static void     Scale(float x, float y, float z);
     static void     Restore();
+    static void     FreeMemory(void);
     static void     ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices);
+    static void     ArrayBuffer_SetFieldOfView(Uint32 arrayBufferIndex, float fov);
+    static void     ArrayBuffer_SetDrawDistance(Uint32 arrayBufferIndex, float distance);
+    static void     ArrayBuffer_SetNearClippingPlane(Uint32 arrayBufferIndex, float distance);
     static void     ArrayBuffer_SetAmbientLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_SetDiffuseLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_SetSpecularLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
+    static void     ArrayBuffer_SetFogDensity(Uint32 arrayBufferIndex, float density);
+    static void     ArrayBuffer_SetFogColor(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
+    static void     ArrayBuffer_Bind(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_DrawBegin(Uint32 arrayBufferIndex);
+    static void     ArrayBuffer_UpdateProjectionMatrix(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
-    static void     DrawModel(IModel* model, int frame, Matrix4x4i* viewMatrix, Matrix4x4i* normalMatrix);
+    static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fViewMatrix, Matrix4x4* fNormalMatrix);
+    static void     DrawModel(IModel* model, int frame, Matrix4x4* fViewMatrix, Matrix4x4* fNormalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);
     static void     StrokeCircle(float x, float y, float rad);

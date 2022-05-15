@@ -1547,7 +1547,7 @@ PRIVATE STATIC bool COLLADAReader::DoConversion(ColladaScene *scene, IModel* imo
                 if (sampler) {
                     ColladaSurface* surface = sampler->Surface;
                     if (surface && surface->Image && surface->Image->Path) {
-                        material->Texture = new Image(surface->Image->Path);
+                        material->Image = new Image(surface->Image->Path);
                     }
                 }
             }

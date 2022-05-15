@@ -14,7 +14,7 @@ public:
     float Transparency;
     float IndexOfRefraction;
 
-    void* Texture;
+    void* Image;
 };
 #endif
 
@@ -36,7 +36,7 @@ PUBLIC STATIC Material* Material::New(void) {
     material->Transparency = 1.0f;
     material->IndexOfRefraction = 1.0f;
 
-    material->Texture = nullptr;
+    material->Image = nullptr;
 
     return material;
 }

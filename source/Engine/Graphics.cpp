@@ -336,14 +336,17 @@ PUBLIC STATIC void     Graphics::Present() {
 
 PUBLIC STATIC void     Graphics::SoftwareStart() {
 	Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
-    for (int i = 0; i < MAX_PALETTE_COUNT; i++)
-        SoftwareRenderer::PaletteColors[i][0] &= 0xFFFFFF;
+	SoftwareRenderer::RenderStart();
 }
 PUBLIC STATIC void     Graphics::SoftwareEnd() {
-	// Present to current view texture
-	// Scene::Views[Scene::ViewCurrent]
+	SoftwareRenderer::RenderEnd();
 	Graphics::GfxFunctions = &Graphics::Internal;
 	Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
+}
+
+PUBLIC STATIC void     Graphics::FreeSceneMemory() {
+	SoftwareRenderer::SetDepthTest(false);
+    SoftwareRenderer::FreeMemory();
 }
 
 PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {

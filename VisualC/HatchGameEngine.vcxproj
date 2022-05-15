@@ -190,6 +190,8 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
     <ClCompile Include="..\source\engine\math\Math.cpp" />
     <ClCompile Include="..\source\engine\math\Matrix4x4.cpp" />
+    <ClCompile Include="..\source\engine\math\Vector.cpp" />
+    <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\media\Decoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\AudioDecoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\VideoDecoder.cpp" />
@@ -208,6 +210,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Shader.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
+    <ClCompile Include="..\source\engine\rendering\software\Rasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />

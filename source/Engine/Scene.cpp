@@ -948,6 +948,8 @@ PUBLIC STATIC void Scene::Restart() {
     Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
     Scene::TileViewRenderFlag = VIEW_RENDER_FLAG;
 
+    Graphics::FreeSceneMemory();
+
     if (Scene::AnyLayerTileChange) {
         // Copy backup tiles into main tiles
         for (int l = 0; l < (int)Layers.size(); l++) {
