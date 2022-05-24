@@ -34,8 +34,8 @@ enum VertexType {
 
 struct VertexWeightInfo {
     int  Influences;
-    int *JointIndices;
-    int *WeightIndices;
+    int* JointIndices;
+    int* WeightIndices;
 };
 
 struct Mesh {
@@ -60,11 +60,11 @@ struct FaceMaterial {
     void*  Texture;
 };
 struct FaceInfo {
-    int          Depth;
     int          NumVertices;
     int          VerticesStartIndex;
     bool         UseMaterial;
     FaceMaterial Material;
+    int          Depth;
 };
 struct ArrayBuffer {
     VertexAttribute* VertexBuffer;      // count = max vertex count
@@ -80,14 +80,14 @@ struct ArrayBuffer {
     Uint32           LightingSpecularR;
     Uint32           LightingSpecularG;
     Uint32           LightingSpecularB;
-    float            FogDensity;
     Uint32           FogColorR;
     Uint32           FogColorG;
     Uint32           FogColorB;
-    float            FOV;
+    float            FogDensity;
     float            NearClippingPlane;
     float            FarClippingPlane;
     Matrix4x4        ProjectionMatrix;
+    Matrix4x4        ViewMatrix;
     Uint16           VertexCapacity;
     Uint16           VertexCount;
     Uint16           FaceCount;

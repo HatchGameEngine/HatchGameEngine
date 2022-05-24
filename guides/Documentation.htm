@@ -139,12 +139,26 @@
                     <li><a href="#Reference_Draw_ImageSized">Draw.ImageSized</a></li>
                     <li><a href="#Reference_Draw_ImagePartSized">Draw.ImagePartSized</a></li>
                     <li><a href="#Reference_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
+                    <li><a href="#Reference_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
+                    <li><a href="#Reference_Draw_SetViewMatrix">Draw.SetViewMatrix</a></li>
                     <li><a href="#Reference_Draw_SetAmbientLighting">Draw.SetAmbientLighting</a></li>
                     <li><a href="#Reference_Draw_SetDiffuseLighting">Draw.SetDiffuseLighting</a></li>
                     <li><a href="#Reference_Draw_SetSpecularLighting">Draw.SetSpecularLighting</a></li>
+                    <li><a href="#Reference_Draw_SetFogDensity">Draw.SetFogDensity</a></li>
+                    <li><a href="#Reference_Draw_SetFogColor">Draw.SetFogColor</a></li>
                     <li><a href="#Reference_Draw_BindArrayBuffer">Draw.BindArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_Model">Draw.Model</a></li>
                     <li><a href="#Reference_Draw_ModelSimple">Draw.ModelSimple</a></li>
+                    <li><a href="#Reference_Draw_Triangle3D">Draw.Triangle3D</a></li>
+                    <li><a href="#Reference_Draw_Quad3D">Draw.Quad3D</a></li>
+                    <li><a href="#Reference_Draw_Sprite3D">Draw.Sprite3D</a></li>
+                    <li><a href="#Reference_Draw_SpritePart3D">Draw.SpritePart3D</a></li>
+                    <li><a href="#Reference_Draw_Image3D">Draw.Image3D</a></li>
+                    <li><a href="#Reference_Draw_ImagePart3D">Draw.ImagePart3D</a></li>
+                    <li><a href="#Reference_Draw_Tile3D">Draw.Tile3D</a></li>
+                    <li><a href="#Reference_Draw_SpritePoints">Draw.SpritePoints</a></li>
+                    <li><a href="#Reference_Draw_ImagePoints">Draw.ImagePoints</a></li>
+                    <li><a href="#Reference_Draw_TilePoints">Draw.TilePoints</a></li>
                     <li><a href="#Reference_Draw_RenderArrayBuffer">Draw.RenderArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_Draw_VideoPart">Draw.VideoPart</a></li>
@@ -321,6 +335,8 @@
                 <ul>
                     <li><a href="#Reference_Matrix_Create">Matrix.Create</a></li>
                     <li><a href="#Reference_Matrix_Identity">Matrix.Identity</a></li>
+                    <li><a href="#Reference_Matrix_Perspective">Matrix.Perspective</a></li>
+                    <li><a href="#Reference_Matrix_Ortho">Matrix.Ortho</a></li>
                     <li><a href="#Reference_Matrix_Copy">Matrix.Copy</a></li>
                     <li><a href="#Reference_Matrix_Multiply">Matrix.Multiply</a></li>
                     <li><a href="#Reference_Matrix_Translate">Matrix.Translate</a></li>
@@ -409,7 +425,9 @@
                     <li><a href="#Reference_Scene_SetLayerInternalSize">Scene.SetLayerInternalSize</a></li>
                     <li><a href="#Reference_Scene_SetLayerOffsetPosition">Scene.SetLayerOffsetPosition</a></li>
                     <li><a href="#Reference_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
-                    <li><a href="#Reference_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
+                    <li><a href="#Reference_/ul>">/ul></a></li>
+                    <li><a href="#Reference_/ul>">/ul></a></li>
+                    <li><a href="#Reference_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
                     <li><a href="#Reference_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
                     <li><a href="#Reference_Scene_SetLayerSetParallaxLines">Scene.SetLayerSetParallaxLines</a></li>
@@ -952,6 +970,28 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Draw_SetProjectionMatrix">
+        <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
+        <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the projection matrix.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>projMatrix (Matrix): The projection matrix.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetViewMatrix">
+        <h2 style="margin-bottom: 8px;">Draw.SetViewMatrix</h2>
+        <code>Draw.SetViewMatrix(arrayBufferIndex, viewMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>viewMatrix (Matrix): The view matrix.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Draw_SetAmbientLighting">
         <h2 style="margin-bottom: 8px;">Draw.SetAmbientLighting</h2>
         <code>Draw.SetAmbientLighting(arrayBufferIndex, red, green, blue)</code>
@@ -991,6 +1031,30 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Draw_SetFogDensity">
+        <h2 style="margin-bottom: 8px;">Draw.SetFogDensity</h2>
+        <code>Draw.SetFogDensity(arrayBufferIndex, density)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the array buffer's fog.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>density (Number): The fog density.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetFogColor">
+        <h2 style="margin-bottom: 8px;">Draw.SetFogColor</h2>
+        <code>Draw.SetFogColor(arrayBufferIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the array buffer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Draw_BindArrayBuffer">
         <h2 style="margin-bottom: 8px;">Draw.BindArrayBuffer</h2>
         <code>Draw.BindArrayBuffer(arrayBufferIndex)</code>
@@ -1003,13 +1067,13 @@
         <hr/>
         <p id="Reference_Draw_Model">
         <h2 style="margin-bottom: 8px;">Draw.Model</h2>
-        <code>Draw.Model(modelIndex, frame, matrixView, matrixNormal)</code>
+        <code>Draw.Model(modelIndex, frame[, matrixModel, matrixNormal])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>modelIndex (Integer): Index of loaded model.</li>
         <li>frame (Integer): Frame of model to draw.</li>
-        <li>matrixView (Matrix): Matrix for transforming model coordinates to screen space.</li>
+        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
         </ul>
         </p>
@@ -1031,10 +1095,247 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Draw_Triangle3D">
+        <h2 style="margin-bottom: 8px;">Draw.Triangle3D</h2>
+        <code>Draw.Triangle3D(x1, y1, z1, color1, x2, y2, z2, color2, x3, y3, z3, color3[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_Quad3D">
+        <h2 style="margin-bottom: 8px;">Draw.Quad3D</h2>
+        <code>Draw.Quad3D(x1, y1, z1, color1, x2, y2, z2, color2, x3, y3, z3, color3, x4, y4, z4, color4[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a quadrilateral in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_Sprite3D">
+        <h2 style="margin-bottom: 8px;">Draw.Sprite3D</h2>
+        <code>Draw.Sprite3D(sprite, animation, frame, x, y, z, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a sprite in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>x (Number): X position of where to draw the sprite.</li>
+        <li>y (Number): Y position of where to draw the sprite.</li>
+        <li>z (Number): Z position of where to draw the sprite.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
+        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SpritePart3D">
+        <h2 style="margin-bottom: 8px;">Draw.SpritePart3D</h2>
+        <code>Draw.SpritePart3D(sprite, animation, frame, x, y, z, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>x (Number): X position of where to draw the sprite.</li>
+        <li>y (Number): Y position of where to draw the sprite.</li>
+        <li>z (Number): Z position of where to draw the sprite.</li>
+        <li>partX (Integer): X coordinate of part of frame to draw.</li>
+        <li>partY (Integer): Y coordinate of part of frame to draw.</li>
+        <li>partW (Integer): Width of part of frame to draw.</li>
+        <li>partH (Integer): Height of part of frame to draw.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
+        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_Image3D">
+        <h2 style="margin-bottom: 8px;">Draw.Image3D</h2>
+        <code>Draw.Image3D(image, x, y, z[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws an image in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x (Number): X position of where to draw the image.</li>
+        <li>y (Number): Y position of where to draw the image.</li>
+        <li>z (Number): Z position of where to draw the image.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ImagePart3D">
+        <h2 style="margin-bottom: 8px;">Draw.ImagePart3D</h2>
+        <code>Draw.ImagePart3D(image, x, y, z, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of an image in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x (Number): X position of where to draw the image.</li>
+        <li>y (Number): Y position of where to draw the image.</li>
+        <li>z (Number): Z position of where to draw the image.</li>
+        <li>partX (Integer): X coordinate of part of image to draw.</li>
+        <li>partY (Integer): Y coordinate of part of image to draw.</li>
+        <li>partW (Integer): Width of part of image to draw.</li>
+        <li>partH (Integer): Height of part of image to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_Tile3D">
+        <h2 style="margin-bottom: 8px;">Draw.Tile3D</h2>
+        <code>Draw.Tile3D(ID, x, y, z, flipX, flipY[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a tile in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>ID (Integer): ID of the tile to draw.</li>
+        <li>x (Number): X position of where to draw the tile.</li>
+        <li>y (Number): Y position of where to draw the tile.</li>
+        <li>z (Number): Z position of where to draw the tile.</li>
+        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SpritePoints">
+        <h2 style="margin-bottom: 8px;">Draw.SpritePoints</h2>
+        <code>Draw.SpritePoints(sprite, animation, frame, flipX, flipY, x1, y1, z1, color1, x2, y2, z2, color2, x3, y3, z3, color3, x4, y4, z4, color4[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ImagePoints">
+        <h2 style="margin-bottom: 8px;">Draw.ImagePoints</h2>
+        <code>Draw.ImagePoints(image, x1, y1, z1, color1, x2, y2, z2, color2, x3, y3, z3, color3, x4, y4, z4, color4[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be an image.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_TilePoints">
+        <h2 style="margin-bottom: 8px;">Draw.TilePoints</h2>
+        <code>Draw.TilePoints(ID, flipX, flipY, x1, y1, z1, color1, x2, y2, z2, color2, x3, y3, z3, color3, x4, y4, z4, color4[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a tile.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>ID (Integer): ID of the tile to draw.</li>
+        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Draw_RenderArrayBuffer">
         <h2 style="margin-bottom: 8px;">Draw.RenderArrayBuffer</h2>
         <code>Draw.RenderArrayBuffer(arrayBufferIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer with the specified draw mode. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the model faces with lines, using a solid color determined by the model's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_FLAT</code>: Draws the model faces with lines, using a color for the face calculated with the vertex normals, the model's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_SMOOTH</code>: Draws the model faces with lines, using a color smoothly spread across the face calculated with the vertex normals, the model's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the model faces with polygons, using a solid color determined by the model's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_FLAT</code>: Draws the model faces with polygons, using a color for the face calculated with the vertex normals, the model's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the model faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the model's existing colors (and if not, the blend color.)</li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer with the specified draw mode. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_FLAT</code>: Draws the faces with lines, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_SMOOTH</code>: Draws the faces with lines, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_FLAT</code>: Draws the faces with polygons, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: Enables fog.</li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>arrayBufferIndex (Integer): The array buffer at the index to draw.</li>
@@ -2457,7 +2758,7 @@
         <p id="Reference_Matrix_Create">
         <h2 style="margin-bottom: 8px;">Matrix.Create</h2>
         <code>Matrix.Create()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix and sets it to the identity. <br/>"The model, view and projection matrices are three separate matrices. <br/>Model maps from an object's local coordinate space into world space, <br/>view from world space to camera space, projection from camera to screen.<br/><br/>If you compose all three, you can use the one result to map all the way from <br/>object space to screen space, making you able to work out what you need to <br/>pass on to the next stage of a programmable pipeline from the incoming <br/>vertex positions." - Tommy (https://stackoverflow.com/questions/5550620/the-purpose-of-model-view-projection-matrix)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix and sets it to the identity. <br/>"The model, view and projection matrices are three separate matrices. <br/>Model maps from an object's local coordinate space into world space, <br/>view from world space to view space, projection from camera to screen.<br/><br/>If you compose all three, you can use the one result to map all the way from <br/>object space to screen space, making you able to work out what you need to <br/>pass on to the next stage of a programmable pipeline from the incoming <br/>vertex positions." - Tommy (https://stackoverflow.com/questions/5550620/the-purpose-of-model-view-projection-matrix)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the Matrix as an Array.</div>
         </p>
@@ -2469,6 +2770,35 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>matrix (Matrix): The matrix to set to the identity.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Matrix_Perspective">
+        <h2 style="margin-bottom: 8px;">Matrix.Perspective</h2>
+        <code>Matrix.Perspective(fov, near, far, matrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a perspective projection matrix.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>fov (Number): The field of view, in degrees.</li>
+        <li>near (Number): The near clipping plane value.</li>
+        <li>far (Number): The far clipping plane value.</li>
+        <li>matrix (Matrix): The matrix to use to generate the projection matrix into.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Matrix_Ortho">
+        <h2 style="margin-bottom: 8px;">Matrix.Ortho</h2>
+        <code>Matrix.Ortho(left, right, top, bottom, near, far, matrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates an orthographic projection matrix.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>left (Number): The left clipping plane value.</li>
+        <li>right (Number): The left clipping plane value.</li>
+        <li>top (Number): The top clipping plane value.</li>
+        <li>bottom (Number): The bottom clipping plane value.</li>
+        <li>near (Number): The near clipping plane value.</li>
+        <li>far (Number): The far clipping plane value.</li>
+        <li>matrix (Matrix): The matrix to use to generate the projection matrix into.</li>
         </ul>
         </p>
         <hr/>
@@ -3106,14 +3436,37 @@
         </ul>
         </p>
         <hr/>
-        <p id="Reference_Scene_SetLayerDrawBehavior">
-        <h2 style="margin-bottom: 8px;">Scene.SetLayerDrawBehavior</h2>
-        <code>Scene.SetLayerDrawBehavior(layerIndex, isVertical)</code>
+        <p id="Reference_/ul>">
+        <h2 style="margin-bottom: 8px;">/ul></h2>
+        <code>/ul>(layerIndex, drawBehavior)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the parallax direction of the layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>isVertical (Boolean): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>drawBehavior (Integer): Draw behavior. <br/>\</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_/ul>">
+        <h2 style="margin-bottom: 8px;">/ul></h2>
+        <code>/ul>(layerIndex, doBlend[, blendMode])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color and alpha blending on this layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doBlend (Boolean): Whether or not to use blending.</li>
+        <li>blendMode (Integer): The desired blend mode. <br/>\</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetLayerOpacity">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerOpacity</h2>
+        <code>Scene.SetLayerOpacity(layerIndex, opacity)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the opacity of the layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
         </ul>
         </p>
         <hr/>
@@ -3208,7 +3561,7 @@
         <hr/>
         <p id="Reference_Scene_SetTileScanline">
         <h2 style="margin-bottom: 8px;">Scene.SetTileScanline</h2>
-        <code>Scene.SetTileScanline(scanline, srcX, srcY, deltaX, deltaY)</code>
+        <code>Scene.SetTileScanline(scanline, srcX, srcY, deltaX, deltaY[, opacity, maxHorzCells, maxVertCells])</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the tile scanline (for use only inside a Custom Scanline Function).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3217,6 +3570,9 @@
         <li>srcY (Number):</li>
         <li>deltaX (Number):</li>
         <li>deltaY (Number):</li>
+        <li>opacity (Decimal):</li>
+        <li>maxHorzCells (Number):</li>
+        <li>maxVertCells (Number):</li>
         </ul>
         </p>
         <hr/>
@@ -4381,6 +4737,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>282 out of 354 functions have descriptions. </p>
+        <p>300 out of 372 functions have descriptions. </p>
     </body>
 </html>

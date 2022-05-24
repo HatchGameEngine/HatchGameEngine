@@ -43,11 +43,10 @@ enum {
     DrawMode_POLYGONS_FLAT   = DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
     DrawMode_POLYGONS_SMOOTH = DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
 
-    DrawMode_PERSPECTIVE     = 1<<3,
-    DrawMode_TEXTURED        = 1<<4,
-    DrawMode_AFFINE          = 1<<5,
-    DrawMode_DEPTH_TEST      = 1<<6,
-    DrawMode_FOG             = 1<<7
+    DrawMode_TEXTURED        = 1<<3,
+    DrawMode_AFFINE          = 1<<4,
+    DrawMode_DEPTH_TEST      = 1<<5,
+    DrawMode_FOG             = 1<<6
 };
 
 #define TILE_FLIPX_MASK 0x80000000U

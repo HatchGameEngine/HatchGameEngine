@@ -21,16 +21,6 @@
 #include <Engine/Includes/HashMap.h>
 
 class SoftwareRenderer {
-private:
-    static void   BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer);
-    static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int averageNormalY);
-    static int SortPolygonFaces(const void *a, const void *b);
-    static void    SetFaceInfoMaterial(FaceInfo* face, Material* material);
-    static void    SetFaceInfoMaterial(FaceInfo* face, Texture* texture);
-    static void    ConvertMatrix(Matrix4x4i* output, Matrix4x4* input);
-    static void    CalcModelViewProjMat(Matrix4x4i* output, Matrix4x4* viewMatrix, Matrix4x4* projMatrix);
-    static bool    CheckPolygonVisible(VertexAttribute* vertex, int vertexCount);
-
 public:
     static GraphicsFunctions BackendFunctions;
     static Uint32            CompareColor;
@@ -81,11 +71,11 @@ public:
     static void     Rotate(float x, float y, float z);
     static void     Scale(float x, float y, float z);
     static void     Restore();
+    static void     MakeOrthoMatrix(Matrix4x4* out, float left, float right, float top, float bottom, float near, float far);
+    static void     MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far);
     static void     FreeMemory(void);
     static void     ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices);
-    static void     ArrayBuffer_SetFieldOfView(Uint32 arrayBufferIndex, float fov);
-    static void     ArrayBuffer_SetDrawDistance(Uint32 arrayBufferIndex, float distance);
-    static void     ArrayBuffer_SetNearClippingPlane(Uint32 arrayBufferIndex, float distance);
+    static void     ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_SetAmbientLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_SetDiffuseLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_SetSpecularLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
@@ -93,10 +83,11 @@ public:
     static void     ArrayBuffer_SetFogColor(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_Bind(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_DrawBegin(Uint32 arrayBufferIndex);
-    static void     ArrayBuffer_UpdateProjectionMatrix(Uint32 arrayBufferIndex);
+    static void     ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat);
+    static void     ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
-    static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fViewMatrix, Matrix4x4* fNormalMatrix);
-    static void     DrawModel(IModel* model, int frame, Matrix4x4* fViewMatrix, Matrix4x4* fNormalMatrix);
+    static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
+    static void     DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);
     static void     StrokeCircle(float x, float y, float rad);

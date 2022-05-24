@@ -892,54 +892,50 @@ VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Draw.SetFieldOfView
- * \desc Changes the field of view of the array buffer.
+ * Draw.SetProjectionMatrix
+ * \desc Sets the projection matrix.
  * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param fov (Number): The FOV value.
+ * \param projMatrix (Matrix): The projection matrix.
  * \return
  * \ns Draw
  */
-VMValue Draw_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    ObjArray* projMatrix = GET_ARG(1, GetArray);
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::ArrayBuffer_SetFieldOfView(arrayBufferIndex, GET_ARG(1, GetDecimal));
+    Matrix4x4 matrix4x4;
+
+    // Yeah just copy it directly
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
+
+    SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(arrayBufferIndex, &matrix4x4);
     return NULL_VAL;
 }
 /***
- * Draw.SetDrawDistance
- * \desc Sets the draw distance of the array buffer.
+ * Draw.SetViewMatrix
+ * \desc Sets the view matrix.
  * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param distance (Number): The draw distance value.
+ * \param viewMatrix (Matrix): The view matrix.
  * \return
  * \ns Draw
  */
-VMValue Draw_SetDrawDistance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    ObjArray* viewMatrix = GET_ARG(1, GetArray);
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::ArrayBuffer_SetDrawDistance(arrayBufferIndex, GET_ARG(1, GetDecimal));
-    return NULL_VAL;
-}
-/***
- * Draw.SetNearClippingPlane
- * \desc Sets the near clip value of the array buffer.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param distance (Number): The distance of the near clipping plane.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return NULL_VAL;
+    Matrix4x4 matrix4x4;
 
-    SoftwareRenderer::ArrayBuffer_SetNearClippingPlane(arrayBufferIndex, GET_ARG(1, GetDecimal));
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
+
+    SoftwareRenderer::ArrayBuffer_SetViewMatrix(arrayBufferIndex, &matrix4x4);
     return NULL_VAL;
 }
 /***
@@ -1081,27 +1077,14 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     SoftwareRenderer::ArrayBuffer_Bind(arrayBufferIndex);
     return NULL_VAL;
 }
-static void PrepareMatrices(Matrix4x4 *matrixView, Matrix4x4 *matrixNormal, ObjArray* matrixViewArr, ObjArray* matrixNormalArr) {
-    MatrixHelper helperV;
-    MatrixHelper_CopyFrom(&helperV, matrixViewArr);
+static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
+    MatrixHelper helper;
+    MatrixHelper_CopyFrom(&helper, input);
 
-    if (matrixNormalArr) {
-        MatrixHelper helperN;
-        MatrixHelper_CopyFrom(&helperN, matrixNormalArr);
-
-        for (int i = 0; i < 16; i++) {
-            int x = i  & 3;
-            int y = i >> 2;
-            matrixView->Values[i] = helperV[x][y];
-            matrixNormal->Values[i] = helperN[x][y];
-        }
-    }
-    else {
-        for (int i = 0; i < 16; i++) {
-            int x = i  & 3;
-            int y = i >> 2;
-            matrixView->Values[i] = helperV[x][y];
-        }
+    for (int i = 0; i < 16; i++) {
+        int x = i >> 2;
+        int y = i  & 3;
+        output->Values[i] = helper[x][y];
     }
 }
 /***
@@ -1109,40 +1092,33 @@ static void PrepareMatrices(Matrix4x4 *matrixView, Matrix4x4 *matrixNormal, ObjA
  * \desc Draws a model.
  * \param modelIndex (Integer): Index of loaded model.
  * \param frame (Integer): Frame of model to draw.
- * \param matrixView (Matrix): Matrix for transforming model coordinates to view space.
- * \param matrixNormal (Matrix): Matrix for transforming model normals.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
+
     IModel* model = GET_ARG(0, GetModel);
     int frame = GET_ARG(1, GetInteger);
 
-    ObjArray* matrixViewArr = NULL;
-    if (!IS_NULL(args[2]))
-        matrixViewArr = GET_ARG(2, GetArray);
-
-    if (!matrixViewArr)
-        return NULL_VAL;
+    ObjArray* matrixModelArr = NULL;
+    Matrix4x4 matrixModel;
+    if (!IS_NULL(args[2])) {
+        matrixModelArr = GET_ARG(2, GetArray);
+        PrepareMatrix(&matrixModel, matrixModelArr);
+    }
 
     ObjArray* matrixNormalArr = NULL;
-    if (!IS_NULL(args[3]))
+    Matrix4x4 matrixNormal;
+    if (!IS_NULL(args[3])) {
         matrixNormalArr = GET_ARG(3, GetArray);
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawModel(model, frame, &matrixView, &matrixNormal);
+        PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
 
-        SoftwareRenderer::DrawModel(model, frame, &matrixView, NULL);
-    }
+    SoftwareRenderer::DrawModel(model, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+
     return NULL_VAL;
 }
 /***
@@ -1175,9 +1151,9 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
     Matrix4x4::IdentityScale(&matrixScaleTranslate, scale, scale, scale);
     Matrix4x4::Translate(&matrixScaleTranslate, &matrixScaleTranslate, x, y, 0);
 
-    Matrix4x4 matrixView;
-    Matrix4x4::IdentityRotationXYZ(&matrixView, 0, ry, rz);
-    Matrix4x4::Multiply(&matrixView, &matrixView, &matrixScaleTranslate);
+    Matrix4x4 matrixModel;
+    Matrix4x4::IdentityRotationXYZ(&matrixModel, 0, ry, rz);
+    Matrix4x4::Multiply(&matrixModel, &matrixModel, &matrixScaleTranslate);
 
     Matrix4x4 matrixRotationX;
     Matrix4x4::IdentityRotationX(&matrixRotationX, rx);
@@ -1185,9 +1161,47 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
     Matrix4x4::IdentityRotationXYZ(&matrixNormal, 0, ry, rz);
     Matrix4x4::Multiply(&matrixNormal, &matrixNormal, &matrixRotationX);
 
-    SoftwareRenderer::DrawModel(model, frame, &matrixView, &matrixNormal);
+    SoftwareRenderer::DrawModel(model, frame, &matrixModel, &matrixNormal);
     return NULL_VAL;
 }
+static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
+    Matrix4x4 matrixModel, matrixNormal;
+
+    Matrix4x4* pMatrixModel = NULL;
+    if (matrixModelArr) {
+        pMatrixModel = &matrixModel;
+        PrepareMatrix(pMatrixModel, matrixModelArr);
+    }
+
+    Matrix4x4* pMatrixNormal = NULL;
+    if (matrixNormalArr) {
+        pMatrixNormal = &matrixNormal;
+        PrepareMatrix(pMatrixNormal, matrixNormalArr);
+    }
+
+    SoftwareRenderer::DrawPolygon3D(data, vertexCount, vertexFlag, texture, pMatrixModel, pMatrixNormal);
+}
+
+#define VERTEX_ARG(i, offset) \
+    data[i].Position.X = GET_ARG(i * 4 + offset,     GetDecimal) * 0x100; \
+    data[i].Position.Y = GET_ARG(i * 4 + offset + 1, GetDecimal) * 0x100; \
+    data[i].Position.Z = GET_ARG(i * 4 + offset + 2, GetDecimal) * 0x100; \
+    data[i].Color      = GET_ARG(i * 4 + offset + 3, GetInteger); \
+    data[i].Normal.X   = 0x100; \
+    data[i].Normal.Y   = 0x100; \
+    data[i].Normal.Z   = 0x100; \
+    data[i].Normal.W   = 0; \
+    data[i].UV.X       = 0; \
+    data[i].UV.Y       = 0
+
+#define GET_MATRICES(offset) \
+    ObjArray* matrixModelArr = NULL; \
+    if (argCount > offset && !IS_NULL(args[offset])) \
+        matrixModelArr = GET_ARG(offset, GetArray); \
+    ObjArray* matrixNormalArr = NULL; \
+    if (argCount > offset + 1 && !IS_NULL(args[offset + 1])) \
+        matrixNormalArr = GET_ARG(offset + 1, GetArray)
+
 /***
  * Draw.Triangle3D
  * \desc Draws a triangle in 3D space.
@@ -1203,51 +1217,23 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
  * \param y3 (Number): Y position of the third vertex.
  * \param z3 (Number): Z position of the third vertex.
  * \param color3 (Integer): Color of the third vertex.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
-#define VERTEX_ARG(i, offset) \
-    data[i].Position.X = GET_ARG(i * 4 + offset,     GetDecimal) * 0x100; \
-    data[i].Position.Y = GET_ARG(i * 4 + offset + 1, GetDecimal) * 0x100; \
-    data[i].Position.Z = GET_ARG(i * 4 + offset + 2, GetDecimal) * 0x100; \
-    data[i].Color      = GET_ARG(i * 4 + offset + 3, GetInteger); \
-    data[i].Normal.X   = 0x100; \
-    data[i].Normal.Y   = 0x100; \
-    data[i].Normal.Z   = 0x100; \
-    data[i].Normal.W   = 0; \
-    data[i].UV.X       = 0; \
-    data[i].UV.Y       = 0
-
 VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(13);
+    CHECK_AT_LEAST_ARGCOUNT(12);
 
     VertexAttribute data[3];
-    int vertexFlag = VertexType_Position | VertexType_Color;
 
     VERTEX_ARG(0, 0);
     VERTEX_ARG(1, 0);
     VERTEX_ARG(2, 0);
 
-    ObjArray* matrixViewArr = GET_ARG(12, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 13)
-        matrixNormalArr = GET_ARG(13, GetArray);
+    GET_MATRICES(12);
 
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 3, vertexFlag, NULL, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 3, vertexFlag, NULL, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1269,40 +1255,24 @@ VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
  * \param color4 (Integer): Color of the fourth vertex.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Quad3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(17);
+    CHECK_AT_LEAST_ARGCOUNT(16);
 
     VertexAttribute data[4];
-    int vertexFlag = VertexType_Position | VertexType_Color;
 
     VERTEX_ARG(0, 0);
     VERTEX_ARG(1, 0);
     VERTEX_ARG(2, 0);
     VERTEX_ARG(3, 0);
 
-    ObjArray* matrixViewArr = GET_ARG(16, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 17)
-        matrixNormalArr = GET_ARG(17, GetArray);
+    GET_MATRICES(16);
 
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, NULL, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, NULL, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 static void MakeSpritePolygonUVs(
@@ -1332,13 +1302,6 @@ static void MakeSpritePolygonUVs(
         top_v    = uv_top;
         bottom_v = uv_bottom;
     }
-
-#if 0
-    left_u   += 0.5 / texture->Width;
-    right_u  -= 0.5 / texture->Width;
-    top_v    += 0.5 / texture->Height;
-    bottom_v -= 0.5 / texture->Height;
-#endif
 
     // 0--1
     // |  |
@@ -1402,13 +1365,13 @@ static void MakeSpritePolygon(
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(8);
+    CHECK_AT_LEAST_ARGCOUNT(7);
 
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
@@ -1418,16 +1381,14 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
     float z = GET_ARG(5, GetDecimal);
     int flipX = GET_ARG(6, GetInteger);
     int flipY = GET_ARG(7, GetInteger);
-    ObjArray* matrixViewArr = GET_ARG(8, GetArray);
     float scaleX = 1.0f;
     float scaleY = 1.0f;
-    ObjArray* matrixNormalArr = NULL;
+    if (argCount > 8)
+        scaleX = GET_ARG(8, GetDecimal);
     if (argCount > 9)
-        scaleX = GET_ARG(9, GetDecimal);
-    if (argCount > 10)
-        scaleY = GET_ARG(10, GetDecimal);
-    if (argCount > 11)
-        matrixNormalArr = GET_ARG(11, GetArray);
+        scaleY = GET_ARG(9, GetDecimal);
+
+    GET_MATRICES(10);
 
     if (Graphics::SpriteRangeCheck(sprite, animation, frame))
         return NULL_VAL;
@@ -1441,21 +1402,7 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
     y += frameStr.OffsetY * scaleY;
 
     MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-
-    int vertexFlag = VertexType_Position | VertexType_UV;
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
 
     return NULL_VAL;
 }
@@ -1476,13 +1423,13 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(12);
+    CHECK_AT_LEAST_ARGCOUNT(11);
 
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
@@ -1496,16 +1443,14 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
     int sh = (int)GET_ARG(9, GetDecimal);
     int flipX = GET_ARG(10, GetInteger);
     int flipY = GET_ARG(11, GetInteger);
-    ObjArray* matrixViewArr = GET_ARG(12, GetArray);
     float scaleX = 1.0f;
     float scaleY = 1.0f;
-    ObjArray* matrixNormalArr = NULL;
+    if (argCount > 12)
+        scaleX = GET_ARG(12, GetDecimal);
     if (argCount > 13)
-        scaleX = GET_ARG(13, GetDecimal);
-    if (argCount > 14)
-        scaleY = GET_ARG(14, GetDecimal);
-    if (argCount > 15)
-        matrixNormalArr = GET_ARG(15, GetArray);
+        scaleY = GET_ARG(13, GetDecimal);
+
+    GET_MATRICES(14);
 
     if (Graphics::SpriteRangeCheck(sprite, animation, frame))
         return NULL_VAL;
@@ -1522,21 +1467,7 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
     y += frameStr.OffsetY * scaleY;
 
     MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
-
-    int vertexFlag = VertexType_Position | VertexType_UV;
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
 
     return NULL_VAL;
 }
@@ -1547,13 +1478,13 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \param z (Number): Z position of where to draw the image.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(5);
+    CHECK_AT_LEAST_ARGCOUNT(4);
 
     int index = GET_ARG(0, GetInteger);
     if (index < 0)
@@ -1563,31 +1494,14 @@ VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float z = GET_ARG(3, GetDecimal);
-    ObjArray* matrixViewArr = GET_ARG(4, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 5)
-        matrixNormalArr = GET_ARG(5, GetArray);
+
+    GET_MATRICES(4);
 
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
     MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
-
-    int vertexFlag = VertexType_Position | VertexType_Normal | VertexType_UV;
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1601,13 +1515,13 @@ VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param partY (Integer): Y coordinate of part of image to draw.
  * \param partW (Integer): Width of part of image to draw.
  * \param partH (Integer): Height of part of image to draw.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(9);
+    CHECK_AT_LEAST_ARGCOUNT(8);
 
     int index = GET_ARG(0, GetInteger);
     if (index < 0)
@@ -1621,31 +1535,14 @@ VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
     int sy = (int)GET_ARG(5, GetDecimal);
     int sw = (int)GET_ARG(6, GetDecimal);
     int sh = (int)GET_ARG(7, GetDecimal);
-    ObjArray* matrixViewArr = GET_ARG(8, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 8)
-        matrixNormalArr = GET_ARG(8, GetArray);
+
+    GET_MATRICES(8);
 
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
     MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
-
-    int vertexFlag = VertexType_Position | VertexType_Normal | VertexType_UV;
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1657,13 +1554,13 @@ VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param z (Number): Z position of where to draw the tile.
  * \param flipX (Integer): Whether or not to flip the tile horizontally.
  * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(7);
+    CHECK_AT_LEAST_ARGCOUNT(6);
 
     Uint32 id = GET_ARG(0, GetInteger);
     float x = GET_ARG(1, GetDecimal);
@@ -1671,10 +1568,8 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
     float z = GET_ARG(3, GetDecimal);
     int flipX = GET_ARG(4, GetInteger);
     int flipY = GET_ARG(5, GetInteger);
-    ObjArray* matrixViewArr = GET_ARG(6, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 7)
-        matrixNormalArr = GET_ARG(7, GetArray);
+
+    GET_MATRICES(6);
 
     TileSpriteInfo info;
     ISprite* sprite;
@@ -1689,22 +1584,7 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
     VertexAttribute data[4];
 
     MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-
-    int vertexFlag = VertexType_Position | VertexType_UV;
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
-
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1731,16 +1611,15 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
  * \param color4 (Integer): Color of the fourth vertex.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(21);
+    CHECK_AT_LEAST_ARGCOUNT(20);
 
     VertexAttribute data[4];
-    int vertexFlag = VertexType_Position | VertexType_UV | VertexType_Color;
 
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
@@ -1759,26 +1638,10 @@ VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_ARG(2, 5);
     VERTEX_ARG(3, 5);
 
-    ObjArray* matrixViewArr = GET_ARG(21, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 22)
-        matrixNormalArr = GET_ARG(22, GetArray);
+    GET_MATRICES(21);
 
     MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1801,13 +1664,13 @@ VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
  * \param color4 (Integer): Color of the fourth vertex.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(18);
+    CHECK_AT_LEAST_ARGCOUNT(17);
 
     VertexAttribute data[4];
     int vertexFlag = VertexType_Position | VertexType_UV | VertexType_Color;
@@ -1822,10 +1685,7 @@ VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_ARG(2, 1);
     VERTEX_ARG(3, 1);
 
-    ObjArray* matrixViewArr = GET_ARG(17, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 18)
-        matrixNormalArr = GET_ARG(18, GetArray);
+    GET_MATRICES(17);
 
     // 0--1
     // |  |
@@ -1838,19 +1698,7 @@ VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
 
     data[3].UV.Y = 0x10000;
 
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -1875,18 +1723,17 @@ VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
  * \param color4 (Integer): Color of the fourth vertex.
- * \param matrixView (Matrix): Matrix for transforming coordinates to view space.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(20);
+    CHECK_AT_LEAST_ARGCOUNT(19);
 
     VertexAttribute data[4];
     TileSpriteInfo info;
     ISprite* sprite;
-    int vertexFlag = VertexType_Position | VertexType_UV | VertexType_Color;
 
     Uint32 id = GET_ARG(0, GetInteger);
     int flipX = GET_ARG(1, GetInteger);
@@ -1904,26 +1751,10 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_ARG(2, 3);
     VERTEX_ARG(3, 3);
 
-    ObjArray* matrixViewArr = GET_ARG(19, GetArray);
-    ObjArray* matrixNormalArr = NULL;
-    if (argCount > 20)
-        matrixNormalArr = GET_ARG(20, GetArray);
+    GET_MATRICES(19);
 
     MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-
-    if (matrixNormalArr) {
-        Matrix4x4 matrixView;
-        Matrix4x4 matrixNormal;
-        PrepareMatrices(&matrixView, &matrixNormal, matrixViewArr, matrixNormalArr);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, &matrixNormal);
-    }
-    else {
-        Matrix4x4 matrixView;
-        PrepareMatrices(&matrixView, NULL, matrixViewArr, NULL);
-
-        SoftwareRenderer::DrawPolygon3D(data, 4, vertexFlag, texture, &matrixView, NULL);
-    }
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 #undef VERTEX_ARG
@@ -1936,8 +1767,7 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
 <li><code>DrawMode_LINES_SMOOTH</code>: Draws the faces with lines, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_POLYGONS_FLAT</code>: Draws the faces with polygons, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the faca's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_PERSPECTIVE</code>: Uses a perspective matrix for projection instead of an orthographic matrix.</li>\
+<li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
 <li><code>DrawMode_AFFINE</code>: Uses affine texture mapping.</li>\
 <li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
@@ -4331,11 +4161,6 @@ VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
         array->Values->push_back(DECIMAL_VAL(0.0));
     }
 
-    // (*array->Values)[0] = DECIMAL_VAL(1.0);
-    // (*array->Values)[5] = DECIMAL_VAL(1.0);
-    // (*array->Values)[10] = DECIMAL_VAL(1.0);
-    // (*array->Values)[15] = DECIMAL_VAL(1.0);
-
     MatrixHelper helper;
         memset(&helper, 0, sizeof(helper));
         helper[0][0] = 1.0f;
@@ -4355,13 +4180,6 @@ VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjArray* array = GET_ARG(0, GetArray);
-    // for (int i = 0; i < 16; i++) {
-    //     (*array->Values)[i] = DECIMAL_VAL(0.0);
-    // }
-    // (*array->Values)[0] = DECIMAL_VAL(1.0);
-    // (*array->Values)[5] = DECIMAL_VAL(1.0);
-    // (*array->Values)[10] = DECIMAL_VAL(1.0);
-    // (*array->Values)[15] = DECIMAL_VAL(1.0);
 
     MatrixHelper helper;
         memset(&helper, 0, sizeof(helper));
@@ -4370,6 +4188,61 @@ VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
         helper[2][2] = 1.0f;
         helper[3][3] = 1.0f;
     MatrixHelper_CopyTo(&helper, array);
+
+    return NULL_VAL;
+}
+/***
+ * Matrix.Perspective
+ * \desc Creates a perspective projection matrix.
+ * \param fov (Number): The field of view, in degrees.
+ * \param near (Number): The near clipping plane value.
+ * \param far (Number): The far clipping plane value.
+ * \param matrix (Matrix): The matrix to use to generate the projection matrix into.
+ * \ns Matrix
+ */
+VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ObjArray* array = GET_ARG(0, GetArray);
+    float fov = GET_ARG(1, GetDecimal);
+    float nearClip = GET_ARG(2, GetDecimal);
+    float farClip = GET_ARG(3, GetDecimal);
+
+    Matrix4x4 matrix4x4;
+    SoftwareRenderer::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip);
+
+    for (int i = 0; i < 16; i++)
+        (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);
+
+    return NULL_VAL;
+}
+/***
+ * Matrix.Ortho
+ * \desc Creates an orthographic projection matrix.
+ * \param left (Number): The left clipping plane value.
+ * \param right (Number): The left clipping plane value.
+ * \param top (Number): The top clipping plane value.
+ * \param bottom (Number): The bottom clipping plane value.
+ * \param near (Number): The near clipping plane value.
+ * \param far (Number): The far clipping plane value.
+ * \param matrix (Matrix): The matrix to use to generate the projection matrix into.
+ * \ns Matrix
+ */
+VMValue Matrix_Ortho(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(8);
+    ObjArray* array = GET_ARG(0, GetArray);
+    float fov = GET_ARG(1, GetDecimal);
+    float left = GET_ARG(2, GetDecimal);
+    float right = GET_ARG(3, GetDecimal);
+    float top = GET_ARG(4, GetDecimal);
+    float bottom = GET_ARG(5, GetDecimal);
+    float near = GET_ARG(6, GetDecimal);
+    float far = GET_ARG(7, GetDecimal);
+
+    Matrix4x4 matrix4x4;
+    SoftwareRenderer::MakeOrthoMatrix(&matrix4x4, left, right, top, bottom, near, far);
+
+    for (int i = 0; i < 16; i++)
+        (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);
 
     return NULL_VAL;
 }
@@ -8476,9 +8349,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ImagePartSized);
     DEF_NATIVE(Draw, InitArrayBuffer);
     DEF_NATIVE(Draw, BindArrayBuffer);
-    DEF_NATIVE(Draw, SetFieldOfView);
-    DEF_NATIVE(Draw, SetDrawDistance);
-    DEF_NATIVE(Draw, SetNearClippingPlane);
+    DEF_NATIVE(Draw, SetProjectionMatrix);
+    DEF_NATIVE(Draw, SetViewMatrix);
     DEF_NATIVE(Draw, SetAmbientLighting);
     DEF_NATIVE(Draw, SetDiffuseLighting);
     DEF_NATIVE(Draw, SetSpecularLighting);
@@ -8554,7 +8426,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_SMOOTH", DrawMode_LINES_SMOOTH);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_FLAT", DrawMode_POLYGONS_FLAT);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_SMOOTH", DrawMode_POLYGONS_SMOOTH);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_PERSPECTIVE", DrawMode_PERSPECTIVE);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_TEXTURED", DrawMode_TEXTURED);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_AFFINE", DrawMode_AFFINE);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_DEPTH_TEST", DrawMode_DEPTH_TEST);
@@ -8702,6 +8573,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Matrix);
     DEF_NATIVE(Matrix, Create);
     DEF_NATIVE(Matrix, Identity);
+    DEF_NATIVE(Matrix, Perspective);
+    DEF_NATIVE(Matrix, Ortho);
     DEF_NATIVE(Matrix, Copy);
     DEF_NATIVE(Matrix, Multiply);
     DEF_NATIVE(Matrix, Translate);
