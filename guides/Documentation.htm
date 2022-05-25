@@ -2857,7 +2857,7 @@
         <hr/>
         <p id="Reference_Matrix_Translate">
         <h2 style="margin-bottom: 8px;">Matrix.Translate</h2>
-        <code>Matrix.Translate(matrix, x, y, z[, resetToIdentity])</code>
+        <code>Matrix.Translate(matrix, x, y, z[, resetToIdentity, actuallyTranslate])</code>
         <div style="margin-top: 8px; font-size: 14px;">Translates the matrix.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2866,6 +2866,7 @@
         <li>y (Number): Y position value.</li>
         <li>z (Number): Z position value.</li>
         <li>resetToIdentity (Boolean): Whether or not to calculate the translation values based on the matrix. (Default: <code>false</code>)</li>
+        <li>actuallyTranslate (Boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (Default: <code>false</code>)</li>
         </ul>
         </p>
         <hr/>

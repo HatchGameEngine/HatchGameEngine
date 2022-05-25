@@ -4378,6 +4378,7 @@ VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position value.
  * \param z (Number): Z position value.
  * \paramOpt resetToIdentity (Boolean): Whether or not to calculate the translation values based on the matrix. (Default: <code>false</code>)
+ * \paramOpt actuallyTranslate (Boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (Default: <code>false</code>)
  * \ns Matrix
  */
 VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
@@ -4388,6 +4389,7 @@ VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
     float y = GET_ARG(2, GetDecimal);
     float z = GET_ARG(3, GetDecimal);
     bool resetToIdentity = argCount >= 5 ? GET_ARG(4, GetInteger) : false;
+    bool actuallyTranslate = argCount >= 6 ? GET_ARG(5, GetInteger) : false;
 
     MatrixHelper helper;
     MatrixHelper_CopyFrom(&helper, out);
@@ -4399,9 +4401,15 @@ VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
         helper[2][2] = 1.0f;
         helper[3][3] = 1.0f;
     }
-    helper[0][3] = x;
-    helper[1][3] = y;
-    helper[2][3] = z;
+    if (actuallyTranslate) {
+        helper[0][3] += x;
+        helper[1][3] += y;
+        helper[2][3] += z;
+    } else {
+        helper[0][3] = x;
+        helper[1][3] = y;
+        helper[2][3] = z;
+    }
 
     MatrixHelper_CopyTo(&helper, out);
     return NULL_VAL;
