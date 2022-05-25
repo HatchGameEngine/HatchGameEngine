@@ -237,7 +237,6 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int
     int dx = ((xEnd - xStart) << 16) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 
@@ -339,7 +338,6 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
         dxBLUE = (colorEndBLUE - colorBegBLUE) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 
@@ -456,7 +454,6 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
         dxV = (texEndV - texBegV) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 
@@ -587,7 +584,6 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
         dxV = (texEndV - texBegV) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 
@@ -701,10 +697,10 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end
 
-    int texBegU = tStart.X / zStart; // u/z
-    int texBegV = tStart.Y / zStart; // v/z
-    int texEndU = tEnd.X / zEnd; // u/z at end
-    int texEndV = tEnd.Y / zEnd; // v/z at end
+    float texBegU = (float)tStart.X / zStart; // u/z
+    float texBegV = (float)tStart.Y / zStart; // v/z
+    float texEndU = (float)tEnd.X / zEnd; // u/z at end
+    float texEndV = (float)tEnd.Y / zEnd; // v/z at end
 
     int linePointSubpxX = xStart << 16;
     int yDiff = (yEnd - yStart);
@@ -715,12 +711,11 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
     float dxU = 0, dxV = 0;
 
     if (texBegU != texEndU)
-        dxU = (float)(texEndU - texBegU) / yDiff;
+        dxU = (texEndU - texBegU) / yDiff;
     if (texBegV != texEndV)
-        dxV = (float)(texEndV - texBegV) / yDiff;
+        dxV = (texEndV - texBegV) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 
@@ -822,15 +817,13 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
     float colorBegBLUE = ((cStart & 0xFF) << 16) / zStart;
     float colorEndBLUE = ((cEnd & 0xFF) << 16) / zEnd;
 
-    // We can interpolate 1/z, u/z, v/z because they're linear in screen space
-    // To index the texture, we calculate 1 / (1/z) and multiply that by u/z and v/z
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end
 
-    int texBegU = tStart.X / zStart; // u/z
-    int texBegV = tStart.Y / zStart; // v/z
-    int texEndU = tEnd.X / zEnd; // u/z at end
-    int texEndV = tEnd.Y / zEnd; // v/z at end
+    float texBegU = (float)tStart.X / zStart; // u/z
+    float texBegV = (float)tStart.Y / zStart; // v/z
+    float texEndU = (float)tEnd.X / zEnd; // u/z at end
+    float texEndV = (float)tEnd.Y / zEnd; // v/z at end
 
     int linePointSubpxX = xStart << 16;
     int yDiff = (yEnd - yStart);
@@ -848,18 +841,16 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
     if (colorBegBLUE != colorEndBLUE)
         dxBLUE = (colorEndBLUE - colorBegBLUE) / yDiff;
 
-    // I tried making this stuff fixed-point only, but it looked pretty bad
     float texMapU = texBegU;
     float texMapV = texBegV;
     float dxU = 0, dxV = 0;
 
     if (texBegU != texEndU)
-        dxU = (float)(texEndU - texBegU) / yDiff;
+        dxU = (texEndU - texBegU) / yDiff;
     if (texBegV != texEndV)
-        dxV = (float)(texEndV - texBegV) / yDiff;
+        dxV = (texEndV - texBegV) / yDiff;
 
     float dxZ = 0;
-
     if (invZStart != invZEnd)
         dxZ = (invZEnd - invZStart) / yDiff;
 

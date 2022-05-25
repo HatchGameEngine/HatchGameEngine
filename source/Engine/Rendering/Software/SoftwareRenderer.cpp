@@ -787,14 +787,11 @@ inline int LightPixel(int color, float depth) {
     Sint32 colG = contG * mapZ; \
     Sint32 colB = contB * mapZ
 #define SCANLINE_GET_MAPUV() \
-    int mapU = contU; \
-    int mapV = contV
-#define SCANLINE_GET_MAPUV_PERSP() \
-    int mapU = contU * mapZ; \
-    int mapV = contV * mapZ
+    float mapU = contU; \
+    float mapV = contV
 #define SCANLINE_GET_TEXUV() \
-    int texU = ((mapU * texture->Width) >> 16) % texture->Width; \
-    int texV = ((mapV * texture->Height) >> 16) % texture->Height
+    int texU = ((int)(mapU * texture->Width) >> 16) % texture->Width; \
+    int texV = ((int)(mapV * texture->Height) >> 16) % texture->Height
 
 Contour *ContourField = SoftwareRenderer::ContourBuffer;
 
@@ -1424,7 +1421,76 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
     #undef BLENDFLAGS
 }
 // Draws a perspective-correct texture mapped polygon
-// TODO: Subdivision for perspective correction
+#ifdef SCANLINE_DIVISION
+#define PERSP_MAPPER_SUBDIVIDE(width, placePixelMacro, pixelFunction, dpR, dpW) \
+    contZ += dxZ * width; \
+    contU += dxU * width; \
+    contV += dxV * width; \
+    endZ = 1.0f / contZ; \
+    endU = contU * endZ; \
+    endV = contV * endZ; \
+    stepZ = (endZ - startZ) * invContSize; \
+    stepU = (endU - startU) * invContSize; \
+    stepV = (endV - startV) * invContSize; \
+    mapZ = startZ; \
+    currU = startU; \
+    currV = startV; \
+    for (int i = 0; i < width; i++) { \
+        Uint32 iz = mapZ * 0xFFFF; \
+        if (dpR(iz)) { \
+            DRAW_PERSP_GET(currU, currV); \
+            placePixelMacro(pixelFunction, dpW); \
+        } \
+        DRAW_PERSP_STEP(); \
+        mapZ += stepZ; \
+        currU += stepU; \
+        currV += stepV; \
+        dst_x++; \
+    }
+#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) { \
+    int dst_x = contour.MinX; \
+    int contWidth = contour.MaxX - contour.MinX; \
+    int contSize = 16; \
+    float invContSize = 1.0f / contSize; \
+    float startZ = 1.0f / contZ; \
+    float startU = contU * startZ; \
+    float startV = contV * startZ; \
+    float endZ, endU, endV; \
+    float stepZ, stepU, stepV; \
+    float mapZ, currU, currV; \
+    while (contWidth >= contSize) { \
+        PERSP_MAPPER_SUBDIVIDE(contSize, placePixelMacro, pixelFunction, dpR, dpW); \
+        startU = endU; \
+        startV = endV; \
+        startZ = endZ; \
+        contWidth -= contSize; \
+    } \
+    if (contWidth > 0) { \
+        if (contWidth > 1) { \
+            PERSP_MAPPER_SUBDIVIDE(contWidth, placePixelMacro, pixelFunction, dpR, dpW); \
+        } \
+        else { \
+            Uint32 iz = startZ * 0xFFFF; \
+            if (dpR(iz)) { \
+                DRAW_PERSP_GET(startU, startV); \
+                placePixelMacro(pixelFunction, dpW); \
+            } \
+        } \
+    } \
+}
+#else
+#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) \
+    for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+        SCANLINE_GET_MAPZ(); \
+        if (dpR(iz)) { \
+            DRAW_PERSP_GET(contU * mapZ, contV * mapZ); \
+            placePixelMacro(pixelFunction, dpW); \
+        } \
+        SCANLINE_STEP_Z(); \
+        SCANLINE_STEP_UV(); \
+        DRAW_PERSP_STEP(); \
+    }
+#endif
 void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
@@ -1505,6 +1571,13 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
             dpW(iz); \
         } \
 
+    #define DRAW_PERSP_GET(u, v) \
+        float mapU = u; \
+        float mapV = v; \
+        SCANLINE_GET_TEXUV()
+
+    #define DRAW_PERSP_STEP()
+
     #define DRAW_POLYGONPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MapRight - contour.MapLeft; \
@@ -1520,16 +1593,7 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
             SCANLINE_STEP_UV_BY(diff); \
         } \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (dpR(iz)) { \
-                SCANLINE_GET_MAPUV_PERSP(); \
-                SCANLINE_GET_TEXUV(); \
-                placePixelMacro(pixelFunction, dpW); \
-            } \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_UV(); \
-        } \
+        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
         dst_strideY += dstStride; \
     }
 
@@ -1542,6 +1606,8 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PERSP_GET
+    #undef DRAW_PERSP_STEP
     #undef DRAW_POLYGONPERSP
 }
 // Draws a perspective-correct texture mapped polygon with blending
@@ -1627,7 +1693,15 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
             col = LightPixel(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
-        } \
+        }
+
+    #define DRAW_PERSP_GET(u, v) \
+        float mapU = u; \
+        float mapV = v; \
+        SCANLINE_GET_RGB_PERSP(); \
+        SCANLINE_GET_TEXUV()
+
+    #define DRAW_PERSP_STEP() SCANLINE_STEP_RGB()
 
     #define DRAW_POLYGONBLENDPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
@@ -1646,18 +1720,7 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
             SCANLINE_STEP_UV_BY(diff); \
         } \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (dpR(iz)) { \
-                SCANLINE_GET_MAPUV_PERSP(); \
-                SCANLINE_GET_RGB_PERSP(); \
-                SCANLINE_GET_TEXUV(); \
-                placePixelMacro(pixelFunction, dpW); \
-            } \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_RGB(); \
-            SCANLINE_STEP_UV(); \
-        } \
+        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
         dst_strideY += dstStride; \
     }
 
@@ -1670,6 +1733,8 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PERSP_GET
+    #undef DRAW_PERSP_STEP
     #undef DRAW_POLYGONBLENDPERSP
 }
 // Draws a polygon with depth testing
