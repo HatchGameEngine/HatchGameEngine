@@ -64,6 +64,8 @@ struct FaceInfo {
     int          VerticesStartIndex;
     bool         UseMaterial;
     FaceMaterial Material;
+    Uint8        Opacity;
+    Uint8        BlendFlag;
     int          Depth;
 };
 struct ArrayBuffer {

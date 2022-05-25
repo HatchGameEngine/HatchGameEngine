@@ -112,6 +112,7 @@ bool ClipPolygonsByFrustum = false;
 int NumFrustumPlanes = 0;
 Frustum ViewFrustum[NUM_FRUSTUM_PLANES];
 
+bool DepthTest = false;
 bool UseDepthBuffer = false;
 size_t DepthBufferSize = 0;
 Uint32* DepthBuffer = NULL;
@@ -420,9 +421,9 @@ PUBLIC STATIC void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int sr
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetDepthTest(bool enabled) {
-    UseDepthBuffer = enabled;
+    DepthTest = enabled;
 
-    if (UseDepthBuffer) {
+    if (DepthTest) {
         size_t dpSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
         if (DepthBuffer == NULL) {
             DepthBufferSize = dpSize;
@@ -2115,10 +2116,21 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     x -= cx;
     y -= cy;
 
-    int blendFlag = BlendFlag;
-    int opacity = Alpha;
+    int opacity;
+    int blendFlag;
 
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+#define SET_BLENDFLAG_AND_OPACITY(face) \
+    if (!Graphics::TextureBlend) { \
+        blendFlag = BlendFlag_OPAQUE; \
+        opacity = 0xFF; \
+    } else { \
+        blendFlag = face->BlendFlag; \
+        opacity = face->Opacity; \
+    } \
+    if (blendFlag != BlendFlag_OPAQUE) \
+        UseDepthBuffer = false; \
+    else \
+        UseDepthBuffer = DepthTest
 
     arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
@@ -2140,7 +2152,10 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     // TODO: remove
     bool usePerspective = true; // (drawMode & DrawMode_PERSPECTIVE);
-    bool sortFaces = !UseDepthBuffer && arrayBuffer->FaceCount > 1;
+    bool sortFaces = !DepthTest && arrayBuffer->FaceCount > 1;
+
+    if (Graphics::TextureBlend)
+        sortFaces = true;
 
     // Get the face depth and vertices' start index
     int verticesStartIndex = 0;
@@ -2182,6 +2197,10 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 vertexCountPerFaceMinus1 = faceInfoPtr->NumVertices - 1;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
+
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+                Alpha = opacity;
+                BlendFlag = blendFlag;
 
                 if (usePerspective) {
                     #define FIX_X(x) (((x << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx) >> 16
@@ -2233,6 +2252,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 averageNormalY /= vertexCount;
 
                 ColRGB = CalcVertexColor(arrayBuffer, vertex, averageNormalY);
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+                Alpha = opacity;
+                BlendFlag = blendFlag;
 
                 if (usePerspective) {
                     #define FIX_X(x) (((x << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx) >> 16
@@ -2270,6 +2292,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
+
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
@@ -2332,8 +2356,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
-                // color
                 int color = CalcVertexColor(arrayBuffer, vertex, averageNormalY);
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
@@ -2386,6 +2410,10 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
+
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+
+#undef SET_BLENDFLAG_AND_OPACITY
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
@@ -2547,6 +2575,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
         return;
     }
 
+    faceInfoItem->Opacity = Alpha;
+    faceInfoItem->BlendFlag = BlendFlag;
     if (texture)
         SetFaceInfoMaterial(faceInfoItem, texture);
     else
@@ -2624,6 +2654,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
         return;
 
     faceInfoItem->NumVertices = vertexCount;
+    faceInfoItem->Opacity = Alpha;
+    faceInfoItem->BlendFlag = BlendFlag;
 
     arrayBuffer->VertexCount += vertexCount;
     arrayBuffer->FaceCount++;
@@ -2798,6 +2830,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
                     SetFaceInfoMaterial(faceInfoItem, texture);
                 else
                     faceInfoItem->UseMaterial = false;
+                faceInfoItem->Opacity = Alpha;
+                faceInfoItem->BlendFlag = BlendFlag;
                 faceInfoItem->NumVertices = vertexCount;
                 faceInfoItem++;
                 arrayVertexCount += vertexCount;
@@ -2864,6 +2898,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
     arrayBuffer->FaceCount++; \
     arrayBuffer->VertexCount += faceVertexCount; \
     faceInfoItem->NumVertices = faceVertexCount; \
+    faceInfoItem->Opacity = Alpha; \
+    faceInfoItem->BlendFlag = BlendFlag; \
     SET_MATERIAL(faceInfoItem); \
     faceInfoItem++
 
