@@ -1164,22 +1164,23 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
     SoftwareRenderer::DrawModel(model, frame, &matrixModel, &matrixNormal);
     return NULL_VAL;
 }
+
+#define PREPARE_MATRICES(matrixModelArr, matrixNormalArr) \
+    Matrix4x4* matrixModel = NULL; \
+    Matrix4x4* matrixNormal = NULL; \
+    Matrix4x4 sMatrixModel, sMatrixNormal; \
+    if (matrixModelArr) { \
+        matrixModel = &sMatrixModel; \
+        PrepareMatrix(matrixModel, matrixModelArr); \
+    } \
+    if (matrixNormalArr) { \
+        matrixNormal = &sMatrixNormal; \
+        PrepareMatrix(matrixNormal, matrixNormalArr); \
+    }
+
 static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
-    Matrix4x4 matrixModel, matrixNormal;
-
-    Matrix4x4* pMatrixModel = NULL;
-    if (matrixModelArr) {
-        pMatrixModel = &matrixModel;
-        PrepareMatrix(pMatrixModel, matrixModelArr);
-    }
-
-    Matrix4x4* pMatrixNormal = NULL;
-    if (matrixNormalArr) {
-        pMatrixNormal = &matrixNormal;
-        PrepareMatrix(pMatrixNormal, matrixNormalArr);
-    }
-
-    SoftwareRenderer::DrawPolygon3D(data, vertexCount, vertexFlag, texture, pMatrixModel, pMatrixNormal);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+    SoftwareRenderer::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
 }
 
 #define VERTEX_ARG(i, offset) \
@@ -1758,6 +1759,68 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 #undef VERTEX_ARG
+/***
+ * Draw.SceneLayer3D
+ * \desc Draws a scene layer in 3D space.
+ * \param layer (Integer): Index of the layer.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SceneLayer3D(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int layerID = GET_ARG(0, GetInteger);
+
+    GET_MATRICES(1);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    SceneLayer* layer = &Scene::Layers[layerID];
+    SoftwareRenderer::DrawSceneLayer3D(layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+/***
+ * Draw.SceneLayerPart3D
+ * \desc Draws part of a scene layer in 3D space.
+ * \param layer (Integer): Index of the layer.
+ * \param partX (Integer): X coordinate (in tiles) of part of layer to draw.
+ * \param partY (Integer): Y coordinate (in tiles) of part of layer to draw.
+ * \param partW (Integer): Width (in tiles) of part of layer to draw.
+ * \param partH (Integer): Height (in tiles) of part of layer to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SceneLayerPart3D(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(5);
+    int layerID = GET_ARG(0, GetInteger);
+    int sx = (int)GET_ARG(1, GetDecimal);
+    int sy = (int)GET_ARG(2, GetDecimal);
+    int sw = (int)GET_ARG(3, GetDecimal);
+    int sh = (int)GET_ARG(4, GetDecimal);
+
+    GET_MATRICES(5);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    SceneLayer* layer = &Scene::Layers[layerID];
+    if (sx < 0)
+        sx = 0;
+    if (sy < 0)
+        sy = 0;
+    if (sw <= 0 || sh <= 0)
+        return NULL_VAL;
+    if (sw > layer->Width)
+        sw = layer->Width;
+    if (sh > layer->Height)
+        sh = layer->Height;
+    if (sx >= sw || sy >= sh)
+        return NULL_VAL;
+
+    SoftwareRenderer::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+#undef PREPARE_MATRICES
 /***
  * Draw.RenderArrayBuffer
  * \desc Draws everything in the array buffer with the specified draw mode. <br/>\
@@ -4194,10 +4257,10 @@ VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Perspective
  * \desc Creates a perspective projection matrix.
+ * \param matrix (Matrix): The matrix to generate the projection matrix into.
  * \param fov (Number): The field of view, in degrees.
  * \param near (Number): The near clipping plane value.
  * \param far (Number): The far clipping plane value.
- * \param matrix (Matrix): The matrix to use to generate the projection matrix into.
  * \ns Matrix
  */
 VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
@@ -4218,13 +4281,13 @@ VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Ortho
  * \desc Creates an orthographic projection matrix.
+ * \param matrix (Matrix): The matrix to generate the projection matrix into.
  * \param left (Number): The left clipping plane value.
  * \param right (Number): The left clipping plane value.
  * \param top (Number): The top clipping plane value.
  * \param bottom (Number): The bottom clipping plane value.
  * \param near (Number): The near clipping plane value.
  * \param far (Number): The far clipping plane value.
- * \param matrix (Matrix): The matrix to use to generate the projection matrix into.
  * \ns Matrix
  */
 VMValue Matrix_Ortho(int argCount, VMValue* args, Uint32 threadID) {
@@ -8368,6 +8431,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SpritePoints);
     DEF_NATIVE(Draw, ImagePoints);
     DEF_NATIVE(Draw, TilePoints);
+    DEF_NATIVE(Draw, SceneLayer3D);
+    DEF_NATIVE(Draw, SceneLayerPart3D);
     DEF_NATIVE(Draw, RenderArrayBuffer);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);

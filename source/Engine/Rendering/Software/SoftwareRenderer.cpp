@@ -2563,6 +2563,187 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
     arrayBuffer->VertexCount += vertexCount;
     arrayBuffer->FaceCount++;
 }
+PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
+    int vertexCountPerFace = 4;
+    int tileSize = 16;
+
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[CurrentArrayBuffer];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    Matrix4x4i mvp4x4i, norm4x4i;
+    Matrix4x4i* mvpMatrix = &mvp4x4i, *normalMatrix = NULL;
+
+    CalculateMVPMatrix(mvpMatrix, fModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+
+    if (fNormalMatrix) {
+        normalMatrix = &norm4x4i;
+        ConvertMatrix(normalMatrix, fNormalMatrix);
+    }
+
+    int arrayVertexCount = arrayBuffer->VertexCount;
+    FaceInfo* faceInfoItem = &arrayBuffer->FaceInfoBuffer[arrayBuffer->FaceCount];
+    VertexAttribute* arrayVertexBuffer = &arrayBuffer->VertexBuffer[arrayVertexCount];
+
+    vector<AnimFrame> animFrames;
+    vector<Texture*> textureSources;
+    animFrames.resize(Scene::TileSpriteInfos.size());
+    textureSources.resize(Scene::TileSpriteInfos.size());
+    for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+        TileSpriteInfo info = Scene::TileSpriteInfos[i];
+        animFrames[i] = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+        textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
+    }
+
+    int totalVertexCount = 0;
+    for (int y = sy; y < sh; y++) {
+        for (int x = sx; x < sw; x++) {
+            int tileID = (int)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK);
+            if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size())
+                totalVertexCount += vertexCountPerFace;
+        }
+    }
+
+    if (arrayVertexCount + totalVertexCount > arrayBuffer->VertexCapacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Array buffer of size %d is full! Increase its size by %d!", arrayBuffer->VertexCapacity, (arrayVertexCount + totalVertexCount) - arrayBuffer->VertexCapacity);
+        return;
+    }
+
+    for (int y = sy, destY = 0; y < sh; y++, destY++) {
+        for (int x = sx, destX = 0; x < sw; x++, destX++) {
+            int tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
+            int tileID = tileAtPos & TILE_IDENT_MASK;
+            if (tileID == Scene::EmptyTile || tileID >= Scene::TileSpriteInfos.size())
+                continue;
+
+            // 0--1
+            // |  |
+            // 3--2
+            VertexAttribute data[4];
+            AnimFrame frameStr = animFrames[tileID];
+            Texture* texture = textureSources[tileID];
+
+            float uv_left   = (float)frameStr.X / texture->Width;
+            float uv_right  = (float)(frameStr.X + frameStr.Width) / texture->Width;
+            float uv_top    = (float)frameStr.Y / texture->Height;
+            float uv_bottom = (float)(frameStr.Y + frameStr.Height) / texture->Height;
+
+            float left_u, right_u, top_v, bottom_v;
+            int flipX = tileAtPos & TILE_FLIPX_MASK;
+            int flipY = tileAtPos & TILE_FLIPY_MASK;
+
+            if (flipX) {
+                left_u  = uv_right;
+                right_u = uv_left;
+            } else {
+                left_u  = uv_left;
+                right_u = uv_right;
+            }
+
+            if (flipY) {
+                top_v    = uv_bottom;
+                bottom_v = uv_top;
+            } else {
+                top_v    = uv_top;
+                bottom_v = uv_bottom;
+            }
+
+            data[0].Position.X = (destX * tileSize) * 0x100;
+            data[0].Position.Z = (destY * tileSize) * 0x100;
+            data[0].Position.Y = 0;
+            data[0].UV.X       = left_u * 0x10000;
+            data[0].UV.Y       = top_v * 0x10000;
+            data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0x100;
+
+            data[1].Position.X = data[0].Position.X + (tileSize * 0x100);
+            data[1].Position.Z = data[0].Position.Z;
+            data[1].Position.Y = 0;
+            data[1].UV.X       = right_u * 0x10000;
+            data[1].UV.Y       = top_v * 0x10000;
+            data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0x100;
+
+            data[2].Position.X = data[1].Position.X;
+            data[2].Position.Z = data[1].Position.Z + (tileSize * 0x100);
+            data[2].Position.Y = 0;
+            data[2].UV.X       = right_u * 0x10000;
+            data[2].UV.Y       = bottom_v * 0x10000;
+            data[2].Normal.X   = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0x100;
+
+            data[3].Position.X = data[0].Position.X;
+            data[3].Position.Z = data[2].Position.Z;
+            data[3].Position.Y = 0;
+            data[3].UV.X       = left_u * 0x10000;
+            data[3].UV.Y       = bottom_v * 0x10000;
+            data[3].Normal.X   = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0x100;
+
+            VertexAttribute* vertex = arrayVertexBuffer;
+            int vertexIndex = 0;
+            while (vertexIndex < vertexCountPerFace) {
+                // Calculate position
+                APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix);
+
+                // Calculate normals
+                if (normalMatrix) {
+                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, normalMatrix);
+                }
+                else {
+                    COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
+                }
+
+                vertex->UV = data[vertexIndex].UV;
+                vertex->Color = ColRGB;
+
+                vertex++;
+                vertexIndex++;
+            }
+
+            if (CheckPolygonVisible(arrayVertexBuffer, vertexCountPerFace)) {
+                int vertexCount = vertexCountPerFace;
+
+                // Vertices are now in clip space, so they can be frustum clipped
+                if (ClipPolygonsByFrustum) {
+                    PolygonClipBuffer output;
+                    output.NumPoints = 0;
+                    output.MaxPoints = MAX_POLYGON_VERTICES;
+
+                    vertexCount = Clipper::FrustumClip(&output, ViewFrustum, NumFrustumPlanes, arrayVertexBuffer, vertexCount);
+                    if (vertexCount < 3 || vertexCount > MAX_POLYGON_VERTICES)
+                        continue;
+
+                    if (arrayVertexCount + vertexCount > arrayBuffer->VertexCapacity) {
+                        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Array buffer of size %d is full! Increase its size by %d!", arrayBuffer->VertexCapacity, (arrayVertexCount + vertexCount) - arrayBuffer->VertexCapacity);
+                        return;
+                    }
+
+                    // Copy the vertices into the array buffer
+                    VertexAttribute* clipped = output.Buffer;
+                    vertex = arrayVertexBuffer;
+                    vertexIndex = vertexCount;
+                    while (vertexIndex--) {
+                        COPY_VECTOR(vertex->Position, clipped->Position);
+                        COPY_NORMAL(vertex->Normal, clipped->Normal);
+                        vertex->Color = clipped->Color;
+                        vertex->UV = clipped->UV;
+                        vertex++;
+                        clipped++;
+                    }
+                }
+
+                if (texture)
+                    SetFaceInfoMaterial(faceInfoItem, texture);
+                else
+                    faceInfoItem->UseMaterial = false;
+                faceInfoItem->NumVertices = vertexCount;
+                faceInfoItem++;
+                arrayVertexCount += vertexCount;
+                arrayVertexBuffer += vertexCount;
+                arrayBuffer->FaceCount++;
+            }
+        }
+    }
+
+    arrayBuffer->VertexCount = arrayVertexCount;
+}
 PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
     VertexAttribute* arrayVertexBuffer;
     VertexAttribute* arrayVertexItem;

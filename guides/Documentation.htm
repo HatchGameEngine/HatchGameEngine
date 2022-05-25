@@ -159,6 +159,8 @@
                     <li><a href="#Reference_Draw_SpritePoints">Draw.SpritePoints</a></li>
                     <li><a href="#Reference_Draw_ImagePoints">Draw.ImagePoints</a></li>
                     <li><a href="#Reference_Draw_TilePoints">Draw.TilePoints</a></li>
+                    <li><a href="#Reference_Draw_SceneLayer3D">Draw.SceneLayer3D</a></li>
+                    <li><a href="#Reference_Draw_SceneLayerPart3D">Draw.SceneLayerPart3D</a></li>
                     <li><a href="#Reference_Draw_RenderArrayBuffer">Draw.RenderArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_Draw_VideoPart">Draw.VideoPart</a></li>
@@ -1327,6 +1329,34 @@
         <li>y4 (Number): Y position of the fourth vertex.</li>
         <li>z4 (Number): Z position of the fourth vertex.</li>
         <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SceneLayer3D">
+        <h2 style="margin-bottom: 8px;">Draw.SceneLayer3D</h2>
+        <code>Draw.SceneLayer3D(layer[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a scene layer in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layer (Integer): Index of the layer.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SceneLayerPart3D">
+        <h2 style="margin-bottom: 8px;">Draw.SceneLayerPart3D</h2>
+        <code>Draw.SceneLayerPart3D(layer, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a scene layer in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layer (Integer): Index of the layer.</li>
+        <li>partX (Integer): X coordinate (in tiles) of part of layer to draw.</li>
+        <li>partY (Integer): Y coordinate (in tiles) of part of layer to draw.</li>
+        <li>partW (Integer): Width (in tiles) of part of layer to draw.</li>
+        <li>partH (Integer): Height (in tiles) of part of layer to draw.</li>
         <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
         </ul>
@@ -2775,30 +2805,30 @@
         <hr/>
         <p id="Reference_Matrix_Perspective">
         <h2 style="margin-bottom: 8px;">Matrix.Perspective</h2>
-        <code>Matrix.Perspective(fov, near, far, matrix)</code>
+        <code>Matrix.Perspective(matrix, fov, near, far)</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a perspective projection matrix.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
+        <li>matrix (Matrix): The matrix to generate the projection matrix into.</li>
         <li>fov (Number): The field of view, in degrees.</li>
         <li>near (Number): The near clipping plane value.</li>
         <li>far (Number): The far clipping plane value.</li>
-        <li>matrix (Matrix): The matrix to use to generate the projection matrix into.</li>
         </ul>
         </p>
         <hr/>
         <p id="Reference_Matrix_Ortho">
         <h2 style="margin-bottom: 8px;">Matrix.Ortho</h2>
-        <code>Matrix.Ortho(left, right, top, bottom, near, far, matrix)</code>
+        <code>Matrix.Ortho(matrix, left, right, top, bottom, near, far)</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates an orthographic projection matrix.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
+        <li>matrix (Matrix): The matrix to generate the projection matrix into.</li>
         <li>left (Number): The left clipping plane value.</li>
         <li>right (Number): The left clipping plane value.</li>
         <li>top (Number): The top clipping plane value.</li>
         <li>bottom (Number): The bottom clipping plane value.</li>
         <li>near (Number): The near clipping plane value.</li>
         <li>far (Number): The far clipping plane value.</li>
-        <li>matrix (Matrix): The matrix to use to generate the projection matrix into.</li>
         </ul>
         </p>
         <hr/>
@@ -4737,6 +4767,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>300 out of 372 functions have descriptions. </p>
+        <p>302 out of 374 functions have descriptions. </p>
     </body>
 </html>

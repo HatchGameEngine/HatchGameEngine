@@ -87,6 +87,7 @@ public:
     static void     ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
     static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
+    static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);
