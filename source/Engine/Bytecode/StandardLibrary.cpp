@@ -1063,7 +1063,7 @@ VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.BindArrayBuffer
- * \desc Binds an array buffer for drawing models.
+ * \desc Binds an array buffer for drawing polygons in 3D space.
  * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
  * \return
  * \ns Draw
@@ -1075,6 +1075,65 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
 
     SoftwareRenderer::ArrayBuffer_Bind(arrayBufferIndex);
+    return NULL_VAL;
+}
+/***
+ * Draw.InitVertexBuffer
+ * \desc Initializes a vertex buffer. There are 256 vertex buffers.
+ * \param vertexBufferIndex (Integer): The vertex buffer at the index to use. (Maximum index: 255)
+ * \param maxVertices (Integer): The maximum vertices that this vertex buffer will hold.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_InitVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    Uint32 maxVertices = GET_ARG(1, GetInteger);
+    SoftwareRenderer::VertexBuffer_Create(vertexBufferIndex, maxVertices);
+    return NULL_VAL;
+}
+/***
+ * Draw.BindVertexBuffer
+ * \desc Binds a vertex buffer.
+ * \param vertexBufferIndex (Integer): Sets the vertex buffer to bind.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    SoftwareRenderer::VertexBuffer_Bind(vertexBufferIndex);
+    return NULL_VAL;
+}
+/***
+ * Draw.UnbindVertexBuffer
+ * \desc Unbinds the currently bound vertex buffer.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    SoftwareRenderer::VertexBuffer_Bind(-1);
+    return NULL_VAL;
+}
+/***
+ * Draw.ClearVertexBuffer
+ * \desc Clears a vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to clear.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_ClearVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    SoftwareRenderer::VertexBuffer_Clear(buffer);
     return NULL_VAL;
 }
 static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
@@ -1818,6 +1877,27 @@ VMValue Draw_SceneLayerPart3D(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
 
     SoftwareRenderer::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+/***
+ * Draw.VertexBuffer
+ * \desc Draws a vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    GET_MATRICES(1);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    SoftwareRenderer::DrawVertexBuffer(vertexBufferIndex, matrixModel, matrixNormal);
     return NULL_VAL;
 }
 #undef PREPARE_MATRICES
@@ -8420,6 +8500,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ImagePartSized);
     DEF_NATIVE(Draw, InitArrayBuffer);
     DEF_NATIVE(Draw, BindArrayBuffer);
+    DEF_NATIVE(Draw, InitVertexBuffer);
+    DEF_NATIVE(Draw, BindVertexBuffer);
+    DEF_NATIVE(Draw, UnbindVertexBuffer);
+    DEF_NATIVE(Draw, ClearVertexBuffer);
     DEF_NATIVE(Draw, SetProjectionMatrix);
     DEF_NATIVE(Draw, SetViewMatrix);
     DEF_NATIVE(Draw, SetAmbientLighting);
@@ -8441,6 +8525,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, TilePoints);
     DEF_NATIVE(Draw, SceneLayer3D);
     DEF_NATIVE(Draw, SceneLayerPart3D);
+    DEF_NATIVE(Draw, VertexBuffer);
     DEF_NATIVE(Draw, RenderArrayBuffer);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);

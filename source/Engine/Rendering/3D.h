@@ -29,6 +29,7 @@ enum VertexType {
 };
 
 #define MAX_ARRAY_BUFFERS 0x20
+#define MAX_VERTEX_BUFFERS 256
 #define MAX_POLYGON_VERTICES 16
 #define NUM_FRUSTUM_PLANES 6
 
@@ -68,9 +69,16 @@ struct FaceInfo {
     Uint8        BlendFlag;
     int          Depth;
 };
-struct ArrayBuffer {
-    VertexAttribute* VertexBuffer;      // count = max vertex count
+struct VertexBuffer {
+    VertexAttribute* Vertices;          // count = max vertex count
     FaceInfo*        FaceInfoBuffer;    // count = max face count
+    Uint32           Capacity;
+    Uint32           VertexCount;
+    Uint32           FaceCount;
+    bool             Initialized;
+};
+struct ArrayBuffer {
+    VertexBuffer     Buffer;
     Uint32           PerspectiveBitshiftX;
     Uint32           PerspectiveBitshiftY;
     Uint32           LightingAmbientR;
@@ -90,10 +98,6 @@ struct ArrayBuffer {
     float            FarClippingPlane;
     Matrix4x4        ProjectionMatrix;
     Matrix4x4        ViewMatrix;
-    Uint16           VertexCapacity;
-    Uint16           VertexCount;
-    Uint16           FaceCount;
-    Uint8            DrawMode;
     bool             Initialized;
 };
 struct Frustum {

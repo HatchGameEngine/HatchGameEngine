@@ -30,6 +30,8 @@ public:
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static VertexBuffer      VertexBuffers[MAX_VERTEX_BUFFERS];
+    static Uint32            CurrentVertexBuffer;
 
     static void    ConvertFromARGBtoNative(Uint32* argb, int count);
     static void     Init();
@@ -86,9 +88,14 @@ public:
     static void     ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat);
     static void     ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
+    static void     VertexBuffer_Create(Uint32 vertexBufferIndex, Uint32 maxVertices);
+    static void     VertexBuffer_Init(VertexBuffer* buffer, Uint32 maxVertices);
+    static void     VertexBuffer_Clear(VertexBuffer* buffer);
+    static void     VertexBuffer_Bind(Uint32 vertexBufferIndex);
     static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
+    static void     DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);
     static void     StrokeCircle(float x, float y, float rad);
