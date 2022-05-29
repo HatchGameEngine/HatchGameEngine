@@ -102,8 +102,14 @@ Uint32 ColRGB = 0xFFFFFF;
 int MultTable[0x10000];
 int MultTableInv[0x10000];
 int MultSubTable[0x10000];
-int Sin0x200[0x200];
-int Cos0x200[0x200];
+
+#define TRIG_TABLE_BITS 11
+#define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
+#define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
+#define TRIG_TABLE_HALF (TRIG_TABLE_SIZE >> 1)
+
+int SinTable[TRIG_TABLE_SIZE];
+int CosTable[TRIG_TABLE_SIZE];
 
 bool ClipPolygonsByFrustum = false;
 int NumFrustumPlanes = 0;
@@ -146,10 +152,10 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
         }
     }
 
-    for (int a = 0; a < 0x200; a++) {
-        float ang = a * M_PI / 0x100;
-        Sin0x200[a] = (int)(Math::Sin(ang) * 0x200);
-        Cos0x200[a] = (int)(Math::Cos(ang) * 0x200);
+    for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+        float ang = a * M_PI / TRIG_TABLE_HALF;
+        SinTable[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
+        CosTable[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
     }
     for (int a = 0; a < 0x8000; a++) {
         int r = (a >> 10) & 0x1F;
@@ -3905,10 +3911,10 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     int src_x2 = sx + sw - 1;
     int src_y2 = sy + sh - 1;
 
-    int cos = Cos0x200[rotation];
-    int sin = Sin0x200[rotation];
-    int rcos = Cos0x200[(0x200 - rotation + 0x200) & 0x1FF];
-    int rsin = Sin0x200[(0x200 - rotation + 0x200) & 0x1FF];
+    int cos = CosTable[rotation];
+    int sin = SinTable[rotation];
+    int rcos = CosTable[(TRIG_TABLE_SIZE - rotation + TRIG_TABLE_SIZE) & TRIG_TABLE_MASK];
+    int rsin = SinTable[(TRIG_TABLE_SIZE - rotation + TRIG_TABLE_SIZE) & TRIG_TABLE_MASK];
 
     int _x1 = offx;
     int _y1 = offy;
@@ -3963,10 +3969,10 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     #undef SET_MIN
     #undef SET_MAX
 
-    dst_x1 >>= 9;
-    dst_y1 >>= 9;
-    dst_x2 >>= 9;
-    dst_y2 >>= 9;
+    dst_x1 >>= TRIG_TABLE_BITS;
+    dst_y1 >>= TRIG_TABLE_BITS;
+    dst_x2 >>= TRIG_TABLE_BITS;
+    dst_y2 >>= TRIG_TABLE_BITS;
 
     dst_x1 += x;
     dst_y1 += y;
@@ -4021,8 +4027,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
+            src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+            src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
             if (src_x >= _x1 && src_y >= _y1 && \
                 src_x <  _x2 && src_y <  _y2) { \
                 src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -4038,8 +4044,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
+            src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+            src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
             if (src_x >= _x1 && src_y >= _y1 && \
                 src_x <  _x2 && src_y <  _y2) { \
                 src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -4055,8 +4061,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
+            src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+            src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
             if (src_x >= _x1 && src_y >= _y1 && \
                 src_x <  _x2 && src_y <  _y2) { \
                 src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -4072,8 +4078,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
+            src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+            src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
             if (src_x >= _x1 && src_y >= _y1 && \
                 src_x <  _x2 && src_y <  _y2) { \
                 src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -4197,7 +4203,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
 
     int flipFlag = (int)flipX | ((int)flipY << 1);
     if (rotation != 0.0f || scaleW != 1.0f || scaleH != 1.0f) {
-        int rot = (int)(rotation * 0x100 / M_PI) & 0x1FF;
+        int rot = (int)(rotation * TRIG_TABLE_HALF / M_PI) & TRIG_TABLE_MASK;
         DrawSpriteImageTransformed(texture,
             x, y,
             frameStr.OffsetX * scaleW, frameStr.OffsetY * scaleH,
@@ -4259,7 +4265,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int ani
 
     int flipFlag = (int)flipX | ((int)flipY << 1);
     if (rotation != 0.0f || scaleW != 1.0f || scaleH != 1.0f) {
-        int rot = (int)(rotation * 0x100 / M_PI) & 0x1FF;
+        int rot = (int)(rotation * TRIG_TABLE_HALF / M_PI) & TRIG_TABLE_MASK;
         DrawSpriteImageTransformed(texture,
             x, y,
             (frameStr.OffsetX + sx) * scaleW, (frameStr.OffsetY + sy) * scaleH,
