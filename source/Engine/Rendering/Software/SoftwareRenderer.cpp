@@ -7,6 +7,7 @@
 #include <Engine/Math/Clipper.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Rendering/Material.h>
+#include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/Rendering/Software/Contour.h>
 #include <Engine/Includes/HashMap.h>
 
@@ -20,13 +21,14 @@ public:
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static VertexBuffer      VertexBuffers[MAX_VERTEX_BUFFERS];
+    static VertexBuffer*     VertexBuffers[MAX_VERTEX_BUFFERS];
     static Uint32            CurrentVertexBuffer;
 };
 #endif
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/Software/Rasterizer.h>
+#include <Engine/Rendering/ArrayBuffer.h>
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -43,7 +45,7 @@ Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-VertexBuffer      SoftwareRenderer::VertexBuffers[MAX_VERTEX_BUFFERS];
+VertexBuffer*     SoftwareRenderer::VertexBuffers[MAX_VERTEX_BUFFERS];
 Uint32            SoftwareRenderer::CurrentVertexBuffer = -1;
 
 int Alpha = 0xFF;
@@ -480,8 +482,8 @@ PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
     }
 
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        VertexBuffer* buffer = &VertexBuffers[i];
-        if (!buffer->Initialized || buffer->UnloadPolicy > SCOPE_SCENE)
+        VertexBuffer* buffer = VertexBuffers[i];
+        if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
             continue;
 
         VertexBuffer_Delete(i);
@@ -733,7 +735,7 @@ inline int LightPixel(int color, float depth) {
 
 #define SCANLINE_GET_MAPZ() \
     float mapZ = 1.0f / contZ; \
-    Uint32 iz = mapZ * 0xFFFF;
+    Uint32 iz = mapZ * 0xFFFF
 #define SCANLINE_GET_RGB() \
     Sint32 colR = contR; \
     Sint32 colG = contG; \
@@ -1924,6 +1926,19 @@ static int SortPolygonFaces(const void *a, const void *b) {
     return faceB->Depth - faceA->Depth;
 }
 
+static void BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
+    // Near
+    frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
+    frustum[0].Normal.Z = 0x10000;
+
+    // Far
+    frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
+    frustum[1].Normal.Z = -0x10000;
+
+    ClipPolygonsByFrustum = true;
+    NumFrustumPlanes = 2;
+}
+
 // Drawing 3D
 ArrayBuffer ArrayBuffers[MAX_ARRAY_BUFFERS];
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices) {
@@ -1931,7 +1946,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferInde
         return;
 
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    VertexBuffer_Init(&arrayBuffer->Buffer, maxVertices);
+    VertexBuffer::Init(&arrayBuffer->Buffer, maxVertices);
 
     arrayBuffer->Initialized = true;
 
@@ -2008,7 +2023,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawBegin(Uint32 arrayBuffe
 
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (arrayBuffer->Initialized) {
-        VertexBuffer_Clear(&arrayBuffer->Buffer);
+        VertexBuffer::Clear(&arrayBuffer->Buffer);
         BuildFrustumPlanes(ViewFrustum, arrayBuffer);
     }
 }
@@ -2453,47 +2468,13 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
 PUBLIC STATIC Uint32   SoftwareRenderer::VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy) {
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        VertexBuffer* buffer = &VertexBuffers[i];
-        if (!buffer->Initialized) {
-            buffer->UnloadPolicy = unloadPolicy;
-            VertexBuffer_Init(buffer, maxVertices);
-            VertexBuffer_Clear(buffer);
+        if (VertexBuffers[i] == NULL) {
+            VertexBuffers[i] = VertexBuffer::Create(maxVertices, unloadPolicy);
             return i;
         }
     }
 
     return 0xFFFFFFFF;
-}
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Init(VertexBuffer* buffer, Uint32 maxVertices) {
-    Uint32 maxFaces = maxVertices / 3;
-
-    if (!buffer->Capacity) {
-        buffer->Vertices = (VertexAttribute*)Memory::Calloc(maxVertices, sizeof(VertexAttribute));
-        buffer->FaceInfoBuffer = (FaceInfo*)Memory::Calloc(maxFaces, sizeof(FaceInfo));
-    }
-    else
-        VertexBuffer_Resize(buffer, maxVertices, maxFaces);
-
-    buffer->Capacity = maxVertices;
-    buffer->Initialized = true;
-}
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Clear(VertexBuffer* buffer) {
-    if (!buffer->Initialized)
-        return;
-
-    buffer->VertexCount = 0;
-    buffer->FaceCount = 0;
-
-    memset(buffer->Vertices, 0x00, buffer->Capacity * sizeof(VertexAttribute));
-}
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Resize(VertexBuffer* buffer, Uint32 maxVertices, Uint32 maxFaces) {
-    if (!buffer->Initialized)
-        return;
-
-    buffer->Vertices = (VertexAttribute*)Memory::Realloc(buffer->Vertices, maxVertices * sizeof(VertexAttribute));
-    buffer->FaceInfoBuffer = (FaceInfo*)Memory::Realloc(buffer->FaceInfoBuffer, maxFaces * sizeof(FaceInfo));
-
-    VertexBuffer_Clear(buffer);
 }
 PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Bind(Uint32 vertexBufferIndex) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
@@ -2504,17 +2485,8 @@ PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Delete(Uint32 vertexBuffer
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
-    VertexBuffer* buffer = &VertexBuffers[vertexBufferIndex];
-    if (!buffer->Initialized)
-        return;
-
-    if (buffer->Capacity) {
-        Memory::Free(buffer->Vertices);
-        Memory::Free(buffer->FaceInfoBuffer);
-    }
-
-    buffer->Capacity = 0;
-    buffer->Initialized = false;
+    VertexBuffer::Delete(VertexBuffers[vertexBufferIndex]);
+    VertexBuffers[vertexBufferIndex] = NULL;
 }
 
 static void SetFaceInfoMaterial(FaceInfo* face, Material* material) {
@@ -2617,23 +2589,11 @@ static int ClipPolygon(VertexBuffer* vertexBuffer, VertexAttribute* output, Vert
 
     return numOutVertices;
 }
-PUBLIC STATIC void     SoftwareRenderer::BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
-    // Near
-    frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
-    frustum[0].Normal.Z = 0x10000;
-
-    // Far
-    frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
-    frustum[1].Normal.Z = -0x10000;
-
-    ClipPolygonsByFrustum = true;
-    NumFrustumPlanes = 2;
-}
 
 #define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
     if (vertexBufferIndex != -1) { \
-        vertexBuffer = &VertexBuffers[vertexBufferIndex]; \
-        if (!vertexBuffer->Initialized) \
+        vertexBuffer = VertexBuffers[vertexBufferIndex]; \
+        if (!vertexBuffer) \
             return; \
     } \
     else { \
@@ -3201,8 +3161,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     if (!arrayBuffer->Initialized)
         return;
 
-    VertexBuffer* vertexBuffer = &VertexBuffers[vertexBufferIndex];
-    if (!vertexBuffer->Initialized)
+    VertexBuffer* vertexBuffer = VertexBuffers[vertexBufferIndex];
+    if (!vertexBuffer)
         return;
 
     Matrix4x4 mvpMatrix;

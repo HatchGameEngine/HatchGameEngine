@@ -40,19 +40,19 @@ PUBLIC STATIC void Rasterizer::Prepare(int y1, int y2) {
 
 // Simple
 PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
     if (yStart == yEnd)
         return;
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
     }
 
     int minX, minY, maxX, maxY;
@@ -65,8 +65,8 @@ PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
     if (yEndBound > maxY)
         yEndBound = maxY;
 
-    int linePointSubpxX = xStart << 16;
-    int dx = ((xEnd - xStart) << 16) / (yEnd - yStart);
+    int linePointSubpxX = xStart * 0x10000;
+    int dx = ((xEnd - xStart) * 0x10000) / (yEnd - yStart);
 
     if (yStart < 0) {
         linePointSubpxX -= yStart * dx;
@@ -77,7 +77,7 @@ PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX)
                 contour->MinX = minX;
@@ -98,10 +98,10 @@ PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
 
 // Blended
 PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, int x2, int y2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
     int cStart = color1;
     int cEnd   = color2;
     if (yStart == yEnd)
@@ -109,10 +109,10 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
         cStart = color2;
         cEnd   = color1;
     }
@@ -131,12 +131,12 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) << 16;
-    int colorEndBLUE = (cEnd & 0xFF) << 16;
+    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
+    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
     int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
 
     if (colorBegRED != colorEndRED)
@@ -158,7 +158,7 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -200,23 +200,23 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
 
 // With depth
 PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     if (yStart == yEnd)
         return;
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
     }
 
     int minX, minY, maxX, maxY;
@@ -232,9 +232,9 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
 
     float dxZ = 0;
     if (invZStart != invZEnd)
@@ -250,7 +250,7 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -282,12 +282,12 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int
 
 // With depth and blending
 PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     int cStart = color1;
     int cEnd   = color2;
     if (yStart == yEnd)
@@ -295,12 +295,12 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
         cStart = color2;
         cEnd   = color1;
     }
@@ -322,12 +322,12 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) << 16;
-    int colorEndBLUE = (cEnd & 0xFF) << 16;
+    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
+    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
     int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
 
     if (colorBegRED != colorEndRED)
@@ -354,7 +354,7 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -401,12 +401,12 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
 
 // Textured affine
 PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     Vector2 tStart = uv1;
     Vector2 tEnd = uv2;
     if (yStart == yEnd)
@@ -414,12 +414,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
         tStart = uv2;
         tEnd   = uv1;
     }
@@ -442,9 +442,9 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
     int texEndU = tEnd.X;
     int texEndV = tEnd.Y;
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
 
     int dxU = 0, dxV = 0;
 
@@ -469,7 +469,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -511,12 +511,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
 
 // Textured affine with blending
 PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     int cStart = color1;
     int cEnd   = color2;
     Vector2 tStart = uv1;
@@ -526,12 +526,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
         cStart = color2;
         cEnd   = color1;
         tStart = uv2;
@@ -552,8 +552,8 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) << 16;
-    int colorEndBLUE = (cEnd & 0xFF) << 16;
+    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
+    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
 
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end
@@ -563,9 +563,9 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
     int texEndU = tEnd.X;
     int texEndV = tEnd.Y;
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
 
     int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
 
@@ -602,7 +602,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -659,12 +659,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
 
 // Perspective correct
 PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     Vector2 tStart = uv1;
     Vector2 tEnd = uv2;
     if (yStart == yEnd)
@@ -672,12 +672,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
         tStart = uv2;
         tEnd   = uv1;
     }
@@ -702,9 +702,9 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
     float texEndU = (float)tEnd.X / zEnd; // u/z at end
     float texEndV = (float)tEnd.Y / zEnd; // v/z at end
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
 
     float texMapU = texBegU;
     float texMapV = texBegV;
@@ -731,7 +731,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;
@@ -773,12 +773,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
 
 // Perspective correct with blending
 PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int zStart = z1 >> 16;
-    int zEnd   = z2 >> 16;
+    int xStart = x1 / 0x10000;
+    int xEnd   = x2 / 0x10000;
+    int yStart = y1 / 0x10000;
+    int yEnd   = y2 / 0x10000;
+    int zStart = z1 / 0x10000;
+    int zEnd   = z2 / 0x10000;
     int cStart = color1;
     int cEnd   = color2;
     Vector2 tStart = uv1;
@@ -788,12 +788,12 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
 
     // swap
     if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        zStart = z2 >> 16;
-        zEnd   = z1 >> 16;
+        xStart = x2 / 0x10000;
+        xEnd   = x1 / 0x10000;
+        yStart = y2 / 0x10000;
+        yEnd   = y1 / 0x10000;
+        zStart = z2 / 0x10000;
+        zEnd   = z1 / 0x10000;
         cStart = color2;
         cEnd   = color1;
         tStart = uv2;
@@ -814,8 +814,8 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
     float colorEndRED = (cEnd & 0xFF0000) / zEnd;
     float colorBegGREEN = ((cStart & 0xFF00) << 8) / zStart;
     float colorEndGREEN = ((cEnd & 0xFF00) << 8) / zEnd;
-    float colorBegBLUE = ((cStart & 0xFF) << 16) / zStart;
-    float colorEndBLUE = ((cEnd & 0xFF) << 16) / zEnd;
+    float colorBegBLUE = ((cStart & 0xFF) * 0x10000) / zStart;
+    float colorEndBLUE = ((cEnd & 0xFF) * 0x10000) / zEnd;
 
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end
@@ -825,9 +825,9 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
     float texEndU = (float)tEnd.X / zEnd; // u/z at end
     float texEndV = (float)tEnd.Y / zEnd; // v/z at end
 
-    int linePointSubpxX = xStart << 16;
+    int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
+    int dx = ((xEnd - xStart) * 0x10000) / yDiff;
 
     float colorRED = colorBegRED;
     float colorGREEN = colorBegGREEN;
@@ -869,7 +869,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, V
     if (yStart < yEndBound) {
         int lineHeight = yEndBound - yStart;
         while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
+            int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
                 contour->MinX = minX;

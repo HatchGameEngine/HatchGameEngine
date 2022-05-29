@@ -192,6 +192,9 @@
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -207,7 +210,7 @@
     <ClCompile Include="..\source\engine\rendering\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
+    <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp">

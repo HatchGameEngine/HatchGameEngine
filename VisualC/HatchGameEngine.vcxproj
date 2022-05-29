@@ -212,6 +212,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\Rasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
+    <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\ImageFormat.cpp" />

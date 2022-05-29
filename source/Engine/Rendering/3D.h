@@ -39,9 +39,7 @@ struct VertexWeightInfo {
 struct Mesh {
     Sint16*    VertexIndexBuffer;
     Uint16     VertexIndexCount;
-
     Uint8      VertexFlag;
-
     Uint8*     FaceMaterials;
 };
 
@@ -65,36 +63,6 @@ struct FaceInfo {
     Uint8        Opacity;
     Uint8        BlendFlag;
     int          Depth;
-};
-struct VertexBuffer {
-    VertexAttribute* Vertices;          // count = max vertex count
-    FaceInfo*        FaceInfoBuffer;    // count = max face count
-    Uint32           Capacity;
-    Uint32           VertexCount;
-    Uint32           FaceCount;
-    Uint32           UnloadPolicy;
-    bool             Initialized;
-};
-struct ArrayBuffer {
-    VertexBuffer     Buffer;
-    Uint32           LightingAmbientR;
-    Uint32           LightingAmbientG;
-    Uint32           LightingAmbientB;
-    Uint32           LightingDiffuseR;
-    Uint32           LightingDiffuseG;
-    Uint32           LightingDiffuseB;
-    Uint32           LightingSpecularR;
-    Uint32           LightingSpecularG;
-    Uint32           LightingSpecularB;
-    Uint32           FogColorR;
-    Uint32           FogColorG;
-    Uint32           FogColorB;
-    float            FogDensity;
-    float            NearClippingPlane;
-    float            FarClippingPlane;
-    Matrix4x4        ProjectionMatrix;
-    Matrix4x4        ViewMatrix;
-    bool             Initialized;
 };
 struct Frustum {
     Vector4 Plane;

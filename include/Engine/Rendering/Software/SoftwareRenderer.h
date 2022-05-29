@@ -17,6 +17,7 @@
 #include <Engine/Math/Clipper.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Rendering/Material.h>
+#include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/Rendering/Software/Contour.h>
 #include <Engine/Includes/HashMap.h>
 
@@ -30,7 +31,7 @@ public:
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static VertexBuffer      VertexBuffers[MAX_VERTEX_BUFFERS];
+    static VertexBuffer*     VertexBuffers[MAX_VERTEX_BUFFERS];
     static Uint32            CurrentVertexBuffer;
 
     static void    ConvertFromARGBtoNative(Uint32* argb, int count);
@@ -88,12 +89,8 @@ public:
     static void     ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
     static Uint32   VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy);
-    static void     VertexBuffer_Init(VertexBuffer* buffer, Uint32 maxVertices);
-    static void     VertexBuffer_Clear(VertexBuffer* buffer);
-    static void     VertexBuffer_Resize(VertexBuffer* buffer, Uint32 maxVertices, Uint32 maxFaces);
     static void     VertexBuffer_Bind(Uint32 vertexBufferIndex);
     static void     VertexBuffer_Delete(Uint32 vertexBufferIndex);
-    static void     BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer);
     static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     DrawModel(IModel* model, int frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);

@@ -7463,8 +7463,9 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
-    SoftwareRenderer::VertexBuffer_Resize(buffer, maxVertices, maxVertices / 3);
+    VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    if (buffer)
+        VertexBuffer::Resize(buffer, maxVertices, maxVertices / 3);
     return NULL_VAL;
 }
 /***
@@ -7480,8 +7481,9 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
-    SoftwareRenderer::VertexBuffer_Clear(buffer);
+    VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    if (buffer)
+        VertexBuffer::Clear(buffer);
     return NULL_VAL;
 }
 /***
