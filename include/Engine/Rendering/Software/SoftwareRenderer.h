@@ -73,8 +73,7 @@ public:
     static void     Rotate(float x, float y, float z);
     static void     Scale(float x, float y, float z);
     static void     Restore();
-    static void     MakeOrthoMatrix(Matrix4x4* out, float left, float right, float top, float bottom, float near, float far);
-    static void     MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far);
+    static void     MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
     static void     UnloadSceneData(void);
     static void     ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices);
     static void     ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex);
@@ -94,10 +93,11 @@ public:
     static void     VertexBuffer_Resize(VertexBuffer* buffer, Uint32 maxVertices, Uint32 maxFaces);
     static void     VertexBuffer_Bind(Uint32 vertexBufferIndex);
     static void     VertexBuffer_Delete(Uint32 vertexBufferIndex);
-    static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
-    static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
-    static void     DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
-    static void     DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
+    static void     BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer);
+    static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+    static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+    static void     DrawModel(IModel* model, int frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+    static void     DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);
     static void     StrokeCircle(float x, float y, float rad);

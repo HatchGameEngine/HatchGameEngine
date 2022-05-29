@@ -46,7 +46,8 @@ enum {
     DrawMode_TEXTURED        = 1<<3,
     DrawMode_AFFINE          = 1<<4,
     DrawMode_DEPTH_TEST      = 1<<5,
-    DrawMode_FOG             = 1<<6
+    DrawMode_FOG             = 1<<6,
+    DrawMode_ORTHOGRAPHIC    = 1<<7
 };
 
 #define TILE_FLIPX_MASK 0x80000000U

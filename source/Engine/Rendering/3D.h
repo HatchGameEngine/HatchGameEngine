@@ -8,18 +8,15 @@ struct Vector2 {
     int Y;
 };
 struct Vector3 {
-    int X;
-    int Y;
-    int Z;
+    Sint64 X;
+    Sint64 Y;
+    Sint64 Z;
 };
 struct Vector4 {
-    int X;
-    int Y;
-    int Z;
-    int W;
-};
-struct Matrix4x4i {
-    int Column[4][4];
+    Sint64 X;
+    Sint64 Y;
+    Sint64 Z;
+    Sint64 W;
 };
 enum VertexType {
     VertexType_Position = 0,
@@ -80,8 +77,6 @@ struct VertexBuffer {
 };
 struct ArrayBuffer {
     VertexBuffer     Buffer;
-    Uint32           PerspectiveBitshiftX;
-    Uint32           PerspectiveBitshiftY;
     Uint32           LightingAmbientR;
     Uint32           LightingAmbientG;
     Uint32           LightingAmbientB;

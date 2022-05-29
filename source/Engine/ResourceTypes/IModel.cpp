@@ -125,9 +125,9 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         Vector3* vert = &PositionBuffer[0];
         int totalVertexCount = VertexCount * FrameCount;
         for (int v = 0; v < totalVertexCount; v++) {
-            vert->X = (int)(stream->ReadFloat() * 0x100);
-            vert->Y = (int)(stream->ReadFloat() * 0x100);
-            vert->Z = (int)(stream->ReadFloat() * 0x100);
+            vert->X = (int)(stream->ReadFloat() * 0x10000);
+            vert->Y = (int)(stream->ReadFloat() * 0x10000);
+            vert->Z = (int)(stream->ReadFloat() * 0x10000);
             vert++;
 
             vert->X = (int)(stream->ReadFloat() * 0x10000);
@@ -140,9 +140,9 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         Vector3* vert = &PositionBuffer[0];
         int totalVertexCount = VertexCount * FrameCount;
         for (int v = 0; v < totalVertexCount; v++) {
-            vert->X = (int)(stream->ReadFloat() * 0x100);
-            vert->Y = (int)(stream->ReadFloat() * 0x100);
-            vert->Z = (int)(stream->ReadFloat() * 0x100);
+            vert->X = (int)(stream->ReadFloat() * 0x10000);
+            vert->Y = (int)(stream->ReadFloat() * 0x10000);
+            vert->Z = (int)(stream->ReadFloat() * 0x10000);
             vert++;
         }
     }

@@ -10,14 +10,11 @@ public:
 #include <Engine/Math/Clipper.h>
 #include <Engine/Math/Vector.h>
 
-PRIVATE STATIC void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, int t) {
+PRIVATE STATIC void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, Sint64 t) {
     Vector4 diff = Vector::Subtract(p2, p1);
     Vector4 newPosition = Vector::Add(p1, Vector::Multiply(diff, t));
 
-    buf->Position.X = newPosition.X >> 8;
-    buf->Position.Y = newPosition.Y >> 8;
-    buf->Position.Z = newPosition.Z >> 8;
-    buf->Position.W = newPosition.W >> 8;
+    buf->Position = newPosition;
 
     float x = (float)t / 0x10000;
 
@@ -37,22 +34,13 @@ PRIVATE STATIC void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1,
 PRIVATE STATIC bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, VertexAttribute* v2, PolygonClipBuffer* output) {
     VertexAttribute* buffer = &output->Buffer[output->NumPoints];
 
-    Vector4 pos1;
-    pos1.X = v1->Position.X << 8;
-    pos1.Y = v1->Position.Y << 8;
-    pos1.Z = v1->Position.Z << 8;
-    pos1.W = v1->Position.W << 8;
-
-    Vector4 pos2;
-    pos2.X = v2->Position.X << 8;
-    pos2.Y = v2->Position.Y << 8;
-    pos2.Z = v2->Position.Z << 8;
-    pos2.W = v2->Position.W << 8;
+    Vector4 pos1 = v1->Position;
+    Vector4 pos2 = v2->Position;
 
     frustum.Normal = Vector::Normalize(frustum.Normal);
 
-    int distance1 = Vector::DistanceToPlane(pos1, frustum.Plane, frustum.Normal);
-    int distance2 = Vector::DistanceToPlane(pos2, frustum.Plane, frustum.Normal);
+    Sint64 distance1 = Vector::DistanceToPlane(pos1, frustum.Plane, frustum.Normal);
+    Sint64 distance2 = Vector::DistanceToPlane(pos2, frustum.Plane, frustum.Normal);
 
     bool inside1 = distance1 >= 0;
     bool inside2 = distance2 >= 0;
@@ -71,7 +59,7 @@ PRIVATE STATIC bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, Vert
     }
     else if (inside1) {
         // If the first point is inside, add the intersected point
-        int t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos1, pos2);
+        Sint64 t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos1, pos2);
         if (t <= 0)
             return false;
 
@@ -84,7 +72,7 @@ PRIVATE STATIC bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, Vert
         if (output->NumPoints + 1 == output->MaxPoints)
             return false;
 
-        int t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos2, pos1);
+        Sint64 t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos2, pos1);
         if (t <= 0)
             return false;
 

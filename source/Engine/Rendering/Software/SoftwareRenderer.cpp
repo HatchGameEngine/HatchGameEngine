@@ -105,7 +105,7 @@ int MultSubTable[0x10000];
 int Sin0x200[0x200];
 int Cos0x200[0x200];
 
-bool ClipPolygonsByFrustum = true;
+bool ClipPolygonsByFrustum = false;
 int NumFrustumPlanes = 0;
 Frustum ViewFrustum[NUM_FRUSTUM_PLANES];
 
@@ -247,37 +247,6 @@ PUBLIC STATIC void     SoftwareRenderer::RenderStart() {
 }
 PUBLIC STATIC void     SoftwareRenderer::RenderEnd() {
 
-}
-
-static void BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
-    // Near
-    frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
-    frustum[0].Normal.Z = 0x10000;
-
-    // Far
-    frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
-    frustum[1].Normal.Z = -0x10000;
-
-    ClipPolygonsByFrustum = true;
-    NumFrustumPlanes = 2;
-
-#if 0
-    // Left
-    frustum[2].Plane.X = 0;
-    frustum[3].Normal.X = 0x10000;
-
-    // Right
-    frustum[3].Plane.X = 0;
-    frustum[3].Normal.X = -0x10000;
-
-    // Bottom
-    frustum[4].Plane.Y = 0;
-    frustum[4].Normal.Y = 0x10000;
-
-    // Top
-    frustum[5].Plane.Y = 0;
-    frustum[5].Normal.Y = -0x10000;
-#endif
 }
 
 // Texture management functions
@@ -473,36 +442,11 @@ PUBLIC STATIC void     SoftwareRenderer::Restore() {
 
 }
 
-PUBLIC STATIC void     SoftwareRenderer::MakeOrthoMatrix(Matrix4x4* out, float left, float right, float top, float bottom, float near, float far) {
-    float lr = 1.0f / (left - right);
-    float bt = 1.0f / (bottom - top);
-    float nf = 1.0f / (near - far);
-
-    out->Values[0]  = 2.0f * lr;
-    out->Values[1]  = 0.0f;
-    out->Values[2]  = 0.0f;
-    out->Values[3]  = 0.0f;
-
-    out->Values[4]  = 0.0f;
-    out->Values[5]  = -2.0f * bt;
-    out->Values[6]  = 0.0f;
-    out->Values[7]  = 0.0f;
-
-    out->Values[8]  = 0.0f;
-    out->Values[9]  = 0.0f;
-    out->Values[10] = -2.0f * nf;
-    out->Values[11] = 1.0f;
-
-    out->Values[12] = -(left + right) * lr;
-    out->Values[13] = -(top + bottom) * bt;
-    out->Values[14] = -(far + near) * nf;
-    out->Values[15] = 0.0f;
-}
-PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far) {
+PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     float f = 1.0f / tanf(fov / 2.0f);
     float diff = near - far;
 
-    out->Values[0]  = f;
+    out->Values[0]  = f / aspect;
     out->Values[1]  = 0.0f;
     out->Values[2]  = 0.0f;
     out->Values[3]  = 0.0f;
@@ -1932,14 +1876,14 @@ void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opaci
 }
 
 // TODO: Material support
-static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int averageNormalY) {
+static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int normalY) {
     int col_r = GET_R(vertex->Color);
     int col_g = GET_G(vertex->Color);
     int col_b = GET_B(vertex->Color);
     int specularR = 0, specularG = 0, specularB = 0;
 
-    int ambientNormalY = averageNormalY >> 10;
-    int reweightedNormal = (averageNormalY >> 2) * (abs(averageNormalY) >> 2);
+    int ambientNormalY = normalY >> 10;
+    int reweightedNormal = (normalY >> 2) * (abs(normalY) >> 2);
 
     // r
     col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
@@ -1965,7 +1909,6 @@ static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, in
     CLAMP_VAL(specularB, 0x00, 0xFF);
     col_b = specularB;
 
-    // color
     return col_r << 16 | col_g << 8 | col_b;
 }
 
@@ -1984,15 +1927,13 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferInde
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     VertexBuffer_Init(&arrayBuffer->Buffer, maxVertices);
 
-    arrayBuffer->PerspectiveBitshiftX = 8;
-    arrayBuffer->PerspectiveBitshiftY = 8;
     arrayBuffer->Initialized = true;
 
     SoftwareRenderer::ArrayBuffer_InitMatrices(arrayBufferIndex);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex) {
     Matrix4x4 projMat, viewMat;
-    SoftwareRenderer::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f);
+    SoftwareRenderer::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
     Matrix4x4::Identity(&viewMat);
 
     SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(arrayBufferIndex, &projMat);
@@ -2095,7 +2036,6 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     FaceInfo* faceInfoPtr;
     ArrayBuffer* arrayBuffer;
     VertexBuffer* vertexBuffer;
-    Uint32 bitshiftX, bitshiftY;
     VertexAttribute* vertexAttribsPtr;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
@@ -2140,11 +2080,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     vertexAttribsPtr = vertexBuffer->Vertices; // R
     faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
-    bitshiftX = arrayBuffer->PerspectiveBitshiftX;
-    bitshiftY = arrayBuffer->PerspectiveBitshiftY;
 
-    // TODO: remove
-    bool usePerspective = true; // (drawMode & DrawMode_PERSPECTIVE);
+    bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
     bool sortFaces = !DepthTest && vertexBuffer->FaceCount > 1;
 
     if (Graphics::TextureBlend)
@@ -2157,11 +2094,11 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
         // Average the Z coordinates of the face
         if (sortFaces) {
-            faceInfoPtr->Depth = vertexAttribsPtr[0].Position.Z;
+            Sint64 depth = vertexAttribsPtr[0].Position.Z;
             for (int i = 1; i < vertexCount; i++)
-                faceInfoPtr->Depth += vertexAttribsPtr[i].Position.Z;
+                depth += vertexAttribsPtr[i].Position.Z;
 
-            faceInfoPtr->Depth /= vertexCount;
+            faceInfoPtr->Depth = depth / vertexCount;
             vertexAttribsPtr += vertexCount;
         }
 
@@ -2181,8 +2118,17 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     Texture *texturePtr;
 
-    int widthHalfSubpx = (int)(currentView->Width / 2) << 16;
-    int heightHalfSubpx = (int)(currentView->Height / 2) << 16;
+    int widthSubpx = (int)(currentView->Width) << 16;
+    int heightSubpx = (int)(currentView->Height) << 16;
+    int widthHalfSubpx = widthSubpx >> 1;
+    int heightHalfSubpx = heightSubpx >> 1;
+
+#define PROJECT_X(pointX) ((pointX * currentView->Width * 0x10000) / vertexZ) - (cx << 16) + widthHalfSubpx
+#define PROJECT_Y(pointY) ((pointY * currentView->Height * 0x10000) / vertexZ) - (cy << 16) + heightHalfSubpx
+
+#define ORTHO_X(pointX) pointX - (cx << 16) + widthHalfSubpx
+#define ORTHO_Y(pointY) pointY - (cy << 16) + heightHalfSubpx
+
     switch (drawMode & DrawMode_FillTypeMask) {
         // Lines, Solid Colored
         case DrawMode_LINES:
@@ -2196,33 +2142,33 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 BlendFlag = blendFlag;
 
                 if (usePerspective) {
-                    #define FIX_X(x) (((x << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx) >> 16
-                    #define FIX_Y(y) (((y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx) >> 16
+                    #define LINE_X(pos) ((float)PROJECT_X(pos)) / 0x10000
+                    #define LINE_Y(pos) ((float)PROJECT_Y(pos)) / 0x10000
                     while (vertexCountPerFaceMinus1--) {
                         int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_line_solid_NEXT_FACE;
 
                         ColRGB = vertex->Color;
-                        SoftwareRenderer::StrokeLine(FIX_X(vertex[0].Position.X), FIX_Y(vertex[0].Position.Y), FIX_X(vertex[1].Position.X), FIX_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
-                    if (vertexZ < 0x100)
+                    if (vertexZ < 0x10000)
                         goto mrt_line_solid_NEXT_FACE;
                     ColRGB = vertex->Color;
-                    SoftwareRenderer::StrokeLine(FIX_X(vertex->Position.X), FIX_Y(vertex->Position.Y), FIX_X(vertexFirst->Position.X), FIX_Y(vertexFirst->Position.Y));
-                    #undef FIX_X
-                    #undef FIX_Y
+                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
                 }
                 else {
+                    #define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
+                    #define LINE_ORTHO_Y(pos) ((float)ORTHO_Y(pos)) / 0x10000
                     while (vertexCountPerFaceMinus1--) {
                         ColRGB = vertex->Color;
-                        SoftwareRenderer::StrokeLine(vertex[0].Position.X >> 8, vertex[0].Position.Y >> 8, vertex[1].Position.X >> 8, vertex[1].Position.Y >> 8);
+                        SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex[0].Position.X), LINE_ORTHO_Y(vertex[0].Position.Y), LINE_ORTHO_X(vertex[1].Position.X), LINE_ORTHO_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     ColRGB = vertex->Color;
-                    SoftwareRenderer::StrokeLine(vertex->Position.X >> 8, vertex->Position.Y >> 8, vertexFirst->Position.X >> 8, vertexFirst->Position.Y >> 8);
+                    SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex->Position.X), LINE_ORTHO_Y(vertex->Position.Y), LINE_ORTHO_X(vertexFirst->Position.X), LINE_ORTHO_Y(vertexFirst->Position.Y));
                 }
 
                 mrt_line_solid_NEXT_FACE:
@@ -2244,35 +2190,35 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
-                ColRGB = CalcVertexColor(arrayBuffer, vertex, averageNormalY);
+                ColRGB = CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8);
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
                 Alpha = opacity;
                 BlendFlag = blendFlag;
 
                 if (usePerspective) {
-                    #define FIX_X(x) (((x << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx) >> 16
-                    #define FIX_Y(y) (((y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx) >> 16
                     while (vertexCountPerFaceMinus1--) {
                         int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_line_smooth_NEXT_FACE;
 
-                        SoftwareRenderer::StrokeLine(FIX_X(vertex[0].Position.X), FIX_Y(vertex[0].Position.Y), FIX_X(vertex[1].Position.X), FIX_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
-                    if (vertexZ < 0x100)
+                    if (vertexZ < 0x10000)
                         goto mrt_line_smooth_NEXT_FACE;
-                    SoftwareRenderer::StrokeLine(FIX_X(vertex->Position.X), FIX_Y(vertex->Position.Y), FIX_X(vertexFirst->Position.X), FIX_Y(vertexFirst->Position.Y));
-                    #undef FIX_X
-                    #undef FIX_Y
+                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
+                    #undef LINE_X
+                    #undef LINE_Y
                 }
                 else {
                     while (vertexCountPerFaceMinus1--) {
-                        SoftwareRenderer::StrokeLine(vertex[0].Position.X >> 8, vertex[0].Position.Y >> 8, vertex[1].Position.X >> 8, vertex[1].Position.Y >> 8);
+                        SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex[0].Position.X), LINE_ORTHO_Y(vertex[0].Position.Y), LINE_ORTHO_X(vertex[1].Position.X), LINE_ORTHO_Y(vertex[1].Position.Y));
                         vertex++;
                     }
-                    SoftwareRenderer::StrokeLine(vertex->Position.X >> 8, vertex->Position.Y >> 8, vertexFirst->Position.X >> 8, vertexFirst->Position.Y >> 8);
+                    SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex->Position.X), LINE_ORTHO_Y(vertex->Position.Y), LINE_ORTHO_X(vertexFirst->Position.X), LINE_ORTHO_Y(vertexFirst->Position.Y));
+                    #undef LINE_ORTHO_X
+                    #undef LINE_ORTHO_Y
                 }
 
                 mrt_line_smooth_NEXT_FACE:
@@ -2290,26 +2236,37 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                int polygonVertexIndex = 0;
+                int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_solid_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
-                    polygonVertex[polygonVertexIndex].Z = vertexZ << 8;
+
+#define POINT_IS_OUTSIDE(i) \
+    (polygonVertex[i].X < 0 || polygonVertex[i].Y < 0 || polygonVertex[i].X > widthSubpx || polygonVertex[i].Y > heightSubpx)
+
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
+
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
                     polygonUV[polygonVertexIndex].X = vertex->UV.X;
                     polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_solid_NEXT_FACE;
 
                 #define CHECK_TEXTURE(face) \
                     if (face->UseMaterial) \
@@ -2349,31 +2306,39 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
-                int color = CalcVertexColor(arrayBuffer, vertex, averageNormalY);
+                int color = CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8);
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                int polygonVertexIndex = 0;
+                int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_flat_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
-                    polygonVertex[polygonVertexIndex].Z = vertexZ << 8;
+
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
+
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
                     polygonUV[polygonVertexIndex].X = vertex->UV.X;
                     polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_flat_NEXT_FACE;
 
                 texturePtr = NULL;
                 if (drawMode & DrawMode_TEXTURED) {
@@ -2412,29 +2377,38 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
                 int     polygonVertColor[MAX_POLYGON_VERTICES];
                 int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_smooth_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
 
-                    polygonVertex[polygonVertexIndex].Z = vertexZ << 8;
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
+
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
 
                     polygonUV[polygonVertexIndex].X = vertex->UV.X;
                     polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
 
-                    polygonVertColor[polygonVertexIndex] = CalcVertexColor(arrayBuffer, vertex, vertex->Normal.Y);
+                    polygonVertColor[polygonVertexIndex] = CalcVertexColor(arrayBuffer, vertex, vertex->Normal.Y >> 8);
                     polygonVertexIndex++;
                     vertex++;
                 }
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_smooth_NEXT_FACE;
+
+#undef POINT_IS_OUTSIDE
 
                 texturePtr = NULL;
                 if (drawMode & DrawMode_TEXTURED) {
@@ -2461,6 +2435,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             }
             break;
     }
+
+#undef PROJECT_X
+#undef PROJECT_Y
+
+#undef ORTHO_X
+#undef ORTHO_Y
 
     SoftwareRenderer::SetDepthTest(false);
 }
@@ -2556,29 +2536,38 @@ static void SetFaceInfoMaterial(FaceInfo* face, Texture* texture) {
     }
 }
 
-static void ConvertMatrix(Matrix4x4i* output, Matrix4x4* input) {
-    for (int i = 0; i < 16; i++)
-        output->Column[i >> 2][i & 3] = (int)(input->Values[i] * 0x100);
+#define APPLY_MAT4X4(vec4out, vec3in, M) { \
+    float vecX = vec3in.X; \
+    float vecY = vec3in.Y; \
+    float vecZ = vec3in.Z; \
+    vec4out.X = (M[ 3] * 0x10000) + ((int)(vecX * M[ 0])) + ((int)(vecY * M[ 1])) + ((int)(vecZ * M[ 2])); \
+    vec4out.Y = (M[ 7] * 0x10000) + ((int)(vecX * M[ 4])) + ((int)(vecY * M[ 5])) + ((int)(vecZ * M[ 6])); \
+    vec4out.Z = (M[11] * 0x10000) + ((int)(vecX * M[ 8])) + ((int)(vecY * M[ 9])) + ((int)(vecZ * M[10])); \
+    vec4out.W = (M[15] * 0x10000) + ((int)(vecX * M[12])) + ((int)(vecY * M[13])) + ((int)(vecZ * M[14])); \
 }
-static void CalculateMVPMatrix(Matrix4x4i* output, Matrix4x4* modelMatrix, Matrix4x4* viewMatrix, Matrix4x4* projMatrix) {
-    Matrix4x4 mvpMatrix;
-    Matrix4x4 *finalMatrix = &mvpMatrix;
+#define COPY_VECTOR(vecout, vecin) vecout = vecin
+#define COPY_NORMAL(vec4out, vec3in) \
+    vec4out.X = vec3in.X; \
+    vec4out.Y = vec3in.Y; \
+    vec4out.Z = vec3in.Z; \
+    vec4out.W = 0
 
+static void CalculateMVPMatrix(Matrix4x4* output, Matrix4x4* modelMatrix, Matrix4x4* viewMatrix, Matrix4x4* projMatrix) {
     if (viewMatrix && projMatrix) {
+        Matrix4x4 modelView;
+
         if (modelMatrix) {
-            Matrix4x4::Multiply(finalMatrix, modelMatrix, viewMatrix);
-            Matrix4x4::Multiply(finalMatrix, finalMatrix, projMatrix);
-        } else
-            Matrix4x4::Multiply(finalMatrix, viewMatrix, projMatrix);
+            Matrix4x4::Multiply(&modelView, modelMatrix, viewMatrix);
+            Matrix4x4::Multiply(output, &modelView, projMatrix);
+        }
+        else
+            Matrix4x4::Multiply(output, viewMatrix, projMatrix);
     }
     else if (modelMatrix)
-        finalMatrix = modelMatrix;
+        *output = *modelMatrix;
     else
-        Matrix4x4::Identity(finalMatrix);
-
-    ConvertMatrix(output, finalMatrix);
+        Matrix4x4::Identity(output);
 }
-
 static bool CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
     int numBehind[3] = { 0, 0, 0 };
     int numVertices = vertexCount;
@@ -2598,18 +2587,42 @@ static bool CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
 
     return true;
 }
+static int ClipPolygon(VertexBuffer* vertexBuffer, VertexAttribute* output, VertexAttribute* input, int numVertices) {
+    PolygonClipBuffer clipper;
+    clipper.NumPoints = 0;
+    clipper.MaxPoints = MAX_POLYGON_VERTICES;
 
-#define APPLY_MAT4X4(vec4out, vec3in, M) \
-    vec4out.X = M->Column[0][3] + ((vec3in.X * M->Column[0][0]) >> 8) + ((vec3in.Y * M->Column[0][1]) >> 8) + ((vec3in.Z * M->Column[0][2]) >> 8); \
-    vec4out.Y = M->Column[1][3] + ((vec3in.X * M->Column[1][0]) >> 8) + ((vec3in.Y * M->Column[1][1]) >> 8) + ((vec3in.Z * M->Column[1][2]) >> 8); \
-    vec4out.Z = M->Column[2][3] + ((vec3in.X * M->Column[2][0]) >> 8) + ((vec3in.Y * M->Column[2][1]) >> 8) + ((vec3in.Z * M->Column[2][2]) >> 8); \
-    vec4out.W = M->Column[3][3] + ((vec3in.X * M->Column[3][0]) >> 8) + ((vec3in.Y * M->Column[3][1]) >> 8) + ((vec3in.Z * M->Column[3][2]) >> 8)
-#define COPY_VECTOR(vecout, vecin) vecout = vecin
-#define COPY_NORMAL(vec4out, vec3in) \
-    vec4out.X = vec3in.X; \
-    vec4out.Y = vec3in.Y; \
-    vec4out.Z = vec3in.Z; \
-    vec4out.W = 0x100
+    int numOutVertices = Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
+    if (numOutVertices < 3 || numOutVertices >= MAX_POLYGON_VERTICES)
+        return 0;
+    else if (vertexBuffer->VertexCount + numOutVertices > vertexBuffer->Capacity)
+        return -1;
+
+    VertexAttribute* result = clipper.Buffer;
+    int n = numOutVertices;
+    while (n--) {
+        COPY_VECTOR(output->Position, result->Position);
+        COPY_NORMAL(output->Normal, result->Normal);
+        output->Color = result->Color;
+        output->UV = result->UV;
+        output++;
+        result++;
+    }
+
+    return numOutVertices;
+}
+PUBLIC STATIC void     SoftwareRenderer::BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
+    // Near
+    frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
+    frustum[0].Normal.Z = 0x10000;
+
+    // Far
+    frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
+    frustum[1].Normal.Z = -0x10000;
+
+    ClipPolygonsByFrustum = true;
+    NumFrustumPlanes = 2;
+}
 
 #define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
     if (vertexBufferIndex != -1) { \
@@ -2626,24 +2639,17 @@ static bool CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
             return; \
     }
 
-PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
+PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     ArrayBuffer* arrayBuffer = NULL;
     VertexBuffer* vertexBuffer = NULL;
 
     GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
 
-    Matrix4x4i mvp4x4i, norm4x4i;
-    Matrix4x4i* mvpMatrix = &mvp4x4i, *normalMatrix = NULL;
-
+    Matrix4x4 mvpMatrix;
     if (arrayBuffer)
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
     else
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, NULL, NULL);
-
-    if (fNormalMatrix) {
-        normalMatrix = &norm4x4i;
-        ConvertMatrix(normalMatrix, fNormalMatrix);
-    }
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
 
     int arrayFaceCount = vertexBuffer->FaceCount;
     int arrayVertexCount = vertexBuffer->VertexCount;
@@ -2661,19 +2667,19 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
     int numBehind = 0;
     while (numVertices--) {
         // Calculate position
-        APPLY_MAT4X4(vertex->Position, data->Position, mvpMatrix);
+        APPLY_MAT4X4(vertex->Position, data->Position, mvpMatrix.Values);
 
         // Calculate normals
         if (vertexFlag & VertexType_Normal) {
             if (normalMatrix) {
-                APPLY_MAT4X4(vertex->Normal, data->Normal, normalMatrix);
+                APPLY_MAT4X4(vertex->Normal, data->Normal, normalMatrix->Values);
             }
             else {
                 COPY_NORMAL(vertex->Normal, data->Normal);
             }
         }
         else
-            vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0x100;
+            vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
 
         if (vertexFlag & VertexType_Color)
             vertex->Color = ColorMultiply(data->Color, ColRGB);
@@ -2683,7 +2689,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
         if (vertexFlag & VertexType_UV)
             vertex->UV = data->UV;
 
-        if (arrayBuffer && vertex->Position.Z <= 0x100)
+        if (arrayBuffer && vertex->Position.Z <= 0x10000)
             numBehind++;
 
         vertex++;
@@ -2698,30 +2704,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
 
         // Vertices are now in clip space, which means that the polygon can be frustum clipped
         if (ClipPolygonsByFrustum) {
-            PolygonClipBuffer output;
-            output.NumPoints = 0;
-            output.MaxPoints = MAX_POLYGON_VERTICES;
-
-            vertexCount = Clipper::FrustumClip(&output, ViewFrustum, NumFrustumPlanes, arrayVertexBuffer, vertexCount);
-            if (vertexCount < 3 || vertexCount >= MAX_POLYGON_VERTICES)
-                return;
-
-            if (arrayVertexCount + vertexCount > vertexBuffer->Capacity) {
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + vertexCount) - vertexBuffer->Capacity);
+            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+            if (vertexCount == -1) {
+                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
                 return;
             }
-
-            // Copy the vertices into the vertex buffer
-            data = output.Buffer;
-            numVertices = vertexCount;
-            while (numVertices--) {
-                COPY_VECTOR(arrayVertexBuffer->Position, data->Position);
-                COPY_NORMAL(arrayVertexBuffer->Normal, data->Normal);
-                arrayVertexBuffer->Color = data->Color;
-                arrayVertexBuffer->UV = data->UV;
-                arrayVertexBuffer++;
-                data++;
-            }
+            else if (vertexCount == 0)
+                return;
         } else if (numBehind != 0)
             return;
     }
@@ -2739,7 +2728,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
     vertexBuffer->VertexCount += vertexCount;
     vertexBuffer->FaceCount++;
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
+PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     int vertexCountPerFace = 4;
     int tileSize = 16;
 
@@ -2748,18 +2737,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
 
     GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
 
-    Matrix4x4i mvp4x4i, norm4x4i;
-    Matrix4x4i* mvpMatrix = &mvp4x4i, *normalMatrix = NULL;
-
+    Matrix4x4 mvpMatrix;
     if (arrayBuffer)
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
     else
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, NULL, NULL);
-
-    if (fNormalMatrix) {
-        normalMatrix = &norm4x4i;
-        ConvertMatrix(normalMatrix, fNormalMatrix);
-    }
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
 
     int arrayVertexCount = vertexBuffer->VertexCount;
     int arrayFaceCount = vertexBuffer->FaceCount;
@@ -2829,43 +2811,43 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
                 bottom_v = uv_bottom;
             }
 
-            data[0].Position.X = (destX * tileSize) * 0x100;
-            data[0].Position.Z = (destY * tileSize) * 0x100;
+            data[0].Position.X = (destX * tileSize) * 0x10000;
+            data[0].Position.Z = (destY * tileSize) * 0x10000;
             data[0].Position.Y = 0;
             data[0].UV.X       = left_u * 0x10000;
             data[0].UV.Y       = top_v * 0x10000;
-            data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0x100;
+            data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0;
 
-            data[1].Position.X = data[0].Position.X + (tileSize * 0x100);
+            data[1].Position.X = data[0].Position.X + (tileSize * 0x10000);
             data[1].Position.Z = data[0].Position.Z;
             data[1].Position.Y = 0;
             data[1].UV.X       = right_u * 0x10000;
             data[1].UV.Y       = top_v * 0x10000;
-            data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0x100;
+            data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0;
 
             data[2].Position.X = data[1].Position.X;
-            data[2].Position.Z = data[1].Position.Z + (tileSize * 0x100);
+            data[2].Position.Z = data[1].Position.Z + (tileSize * 0x10000);
             data[2].Position.Y = 0;
             data[2].UV.X       = right_u * 0x10000;
             data[2].UV.Y       = bottom_v * 0x10000;
-            data[2].Normal.X   = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0x100;
+            data[2].Normal.X   = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0;
 
             data[3].Position.X = data[0].Position.X;
             data[3].Position.Z = data[2].Position.Z;
             data[3].Position.Y = 0;
             data[3].UV.X       = left_u * 0x10000;
             data[3].UV.Y       = bottom_v * 0x10000;
-            data[3].Normal.X   = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0x100;
+            data[3].Normal.X   = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0;
 
             VertexAttribute* vertex = arrayVertexBuffer;
             int vertexIndex = 0;
             while (vertexIndex < vertexCountPerFace) {
                 // Calculate position
-                APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix);
+                APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix.Values);
 
                 // Calculate normals
                 if (normalMatrix) {
-                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, normalMatrix);
+                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, normalMatrix->Values);
                 }
                 else {
                     COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
@@ -2886,31 +2868,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
 
                 // Vertices are now in clip space, which means that the polygon can be frustum clipped
                 if (ClipPolygonsByFrustum) {
-                    PolygonClipBuffer output;
-                    output.NumPoints = 0;
-                    output.MaxPoints = MAX_POLYGON_VERTICES;
-
-                    vertexCount = Clipper::FrustumClip(&output, ViewFrustum, NumFrustumPlanes, arrayVertexBuffer, vertexCount);
-                    if (vertexCount < 3 || vertexCount >= MAX_POLYGON_VERTICES)
-                        continue;
-
-                    if (arrayVertexCount + vertexCount > vertexBuffer->Capacity) {
-                        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + vertexCount) - vertexBuffer->Capacity);
+                    vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+                    if (vertexCount == -1) {
+                        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
                         return;
                     }
-
-                    // Copy the vertices into the vertex buffer
-                    VertexAttribute* clipped = output.Buffer;
-                    vertex = arrayVertexBuffer;
-                    vertexIndex = vertexCount;
-                    while (vertexIndex--) {
-                        COPY_VECTOR(vertex->Position, clipped->Position);
-                        COPY_NORMAL(vertex->Normal, clipped->Normal);
-                        vertex->Color = clipped->Color;
-                        vertex->UV = clipped->UV;
-                        vertex++;
-                        clipped++;
-                    }
+                    else if (vertexCount == 0)
+                        continue;
                 }
             }
 
@@ -2931,7 +2895,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
     vertexBuffer->VertexCount = arrayVertexCount;
     vertexBuffer->FaceCount = arrayFaceCount;
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
+PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     VertexAttribute* arrayVertexBuffer;
     VertexAttribute* arrayVertexItem;
     int arrayVertexCount, arrayFaceCount;
@@ -2956,22 +2920,16 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
         else \
             face->UseMaterial = false
 
-    while (frame >= model->FrameCount)
-        frame -= model->FrameCount;
+    if (frame < 0)
+        return;
+    frame %= model->FrameCount;
     frame *= model->VertexCount;
 
-    Matrix4x4i mvp4x4i, norm4x4i;
-    Matrix4x4i* mvpMatrix = &mvp4x4i, *normalMatrix = NULL;
-
+    Matrix4x4 mvpMatrix;
     if (arrayBuffer)
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
     else
-        CalculateMVPMatrix(mvpMatrix, fModelMatrix, NULL, NULL);
-
-    if (fNormalMatrix) {
-        normalMatrix = &norm4x4i;
-        ConvertMatrix(normalMatrix, fNormalMatrix);
-    }
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
 
     arrayFaceCount = vertexBuffer->FaceCount;
     arrayVertexCount = vertexBuffer->VertexCount;
@@ -2995,33 +2953,20 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
     SET_MATERIAL(faceInfoItem); \
     faceInfoItem++
 
-#define CLIP_FACE_BY_FRUSTUM(inputVertices) \
+#define CLIP_FACE_BY_FRUSTUM() \
     if (arrayBuffer) { \
-        if (!CheckPolygonVisible(inputVertices, faceVertexCount)) { \
-            arrayVertexItem = arrayVertexBuffer; \
+        arrayVertexItem = arrayVertexBuffer; \
+        if (!CheckPolygonVisible(arrayVertexItem, faceVertexCount)) { \
             continue; \
         } else if (ClipPolygonsByFrustum) { \
-            PolygonClipBuffer output; \
-            VertexAttribute* input = output.Buffer; \
-            output.NumPoints = 0; \
-            output.MaxPoints = MAX_POLYGON_VERTICES; \
-            arrayVertexItem = arrayVertexBuffer; \
-            faceVertexCount = Clipper::FrustumClip(&output, ViewFrustum, NumFrustumPlanes, inputVertices, faceVertexCount); \
-            if (faceVertexCount < 3 || faceVertexCount >= MAX_POLYGON_VERTICES) \
-                continue; \
-            if (vertexBuffer->VertexCount + faceVertexCount > vertexBuffer->Capacity) { \
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size!", vertexBuffer->Capacity); \
+            faceVertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexItem, faceVertexCount); \
+            if (faceVertexCount == -1) { \
+                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity); \
                 return; \
             } \
-            numVertices = faceVertexCount; \
-            while (numVertices--) { \
-                COPY_VECTOR(arrayVertexItem->Position, input->Position); \
-                COPY_NORMAL(arrayVertexItem->Normal, input->Normal); \
-                arrayVertexItem->Color = input->Color; \
-                arrayVertexItem->UV = input->UV; \
-                arrayVertexItem++; \
-                input++; \
-            } \
+            else if (faceVertexCount == 0) \
+                continue; \
+            arrayVertexItem += faceVertexCount; \
             arrayVertexBuffer = arrayVertexItem; \
         } \
     }
@@ -3043,12 +2988,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                     int numVertices = faceVertexCount;
                     while (numVertices--) {
                         positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame)];
-                        APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                        APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                         modelVertexIndexPtr++;
                         arrayVertexItem++;
                     }
 
-                    CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                    CLIP_FACE_BY_FRUSTUM();
                     NEXT_FACE();
                 }
                 break;
@@ -3063,15 +3008,15 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             // Calculate position
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                             // Calculate normals
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
                             arrayVertexItem->Color = color;
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3085,14 +3030,14 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             // Calculate position
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                             COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
                             arrayVertexItem->Color = color;
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3108,14 +3053,14 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
+                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3129,14 +3074,14 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                             COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3152,15 +3097,15 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
+                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             arrayVertexItem->UV = uvPtr[0];
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3174,7 +3119,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                         while (numVertices--) {
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                             COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             arrayVertexItem->UV = uvPtr[0];
@@ -3182,7 +3127,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3199,15 +3144,15 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
                             colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
+                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             arrayVertexItem->UV = uvPtr[0];
                             modelVertexIndexPtr++;
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3222,7 +3167,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
                             uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
                             colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix);
+                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
                             COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
                             arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
                             arrayVertexItem->UV = uvPtr[0];
@@ -3230,7 +3175,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                             arrayVertexItem++;
                         }
 
-                        CLIP_FACE_BY_FRUSTUM(arrayVertexBuffer);
+                        CLIP_FACE_BY_FRUSTUM();
                         NEXT_FACE();
                     }
                 }
@@ -3242,7 +3187,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
 #undef NEXT_FACE
 #undef CLIP_FACE_BY_FRUSTUM
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix) {
+PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (CurrentArrayBuffer == -1)
         return;
 
@@ -3254,15 +3199,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     if (!vertexBuffer->Initialized)
         return;
 
-    Matrix4x4i mvp4x4i, norm4x4i;
-    Matrix4x4i* mvpMatrix = &mvp4x4i, *normalMatrix = NULL;
-
-    CalculateMVPMatrix(mvpMatrix, fModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
-
-    if (fNormalMatrix) {
-        normalMatrix = &norm4x4i;
-        ConvertMatrix(normalMatrix, fNormalMatrix);
-    }
+    Matrix4x4 mvpMatrix;
+    CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
 
     // destination
     VertexBuffer* destVertexBuffer = &arrayBuffer->Buffer;
@@ -3292,10 +3230,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
         int vertexCount = srcFaceInfoItem->NumVertices;
         int vertexCountPerFace = vertexCount;
         while (vertexCountPerFace--) {
-            APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix);
+            APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
 
             if (normalMatrix) {
-                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix);
+                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix->Values);
             }
             else {
                 COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
@@ -3316,30 +3254,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
 
         // Vertices are now in clip space, which means that the polygon can be frustum clipped
         if (ClipPolygonsByFrustum) {
-            PolygonClipBuffer output;
-            output.NumPoints = 0;
-            output.MaxPoints = MAX_POLYGON_VERTICES;
-
-            vertexCount = Clipper::FrustumClip(&output, ViewFrustum, NumFrustumPlanes, arrayVertexBuffer, vertexCount);
-            if (vertexCount < 3 || vertexCount >= MAX_POLYGON_VERTICES)
-                continue;
-
-            if (arrayVertexCount + vertexCount > destVertexBuffer->Capacity) {
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", destVertexBuffer->Capacity, (arrayVertexCount + vertexCount) - vertexBuffer->Capacity);
+            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+            if (vertexCount == -1) {
+                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
                 return;
             }
-
-            // Copy the vertices into the vertex buffer
-            VertexAttribute* result = output.Buffer;
-            vertexCountPerFace = vertexCount;
-            while (vertexCountPerFace--) {
-                COPY_VECTOR(arrayVertexItem->Position, result->Position);
-                COPY_NORMAL(arrayVertexItem->Normal, result->Normal);
-                arrayVertexItem->Color = result->Color;
-                arrayVertexItem->UV = result->UV;
-                arrayVertexItem++;
-                result++;
-            }
+            else if (vertexCount == 0)
+                continue;
         }
 
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;

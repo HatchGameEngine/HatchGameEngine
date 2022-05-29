@@ -14,7 +14,7 @@
 
 class Clipper {
 private:
-    static void AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, int t);
+    static void AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, Sint64 t);
     static bool ClipEdge(Frustum frustum, VertexAttribute* v1, VertexAttribute* v2, PolygonClipBuffer* output);
     static int  ClipPolygon(Frustum frustum, PolygonClipBuffer* output, VertexAttribute* input, int vertexCount);
 

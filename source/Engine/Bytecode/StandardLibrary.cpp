@@ -1211,13 +1211,13 @@ static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vert
 }
 
 #define VERTEX_ARG(i, offset) \
-    data[i].Position.X = GET_ARG(i * 4 + offset,     GetDecimal) * 0x100; \
-    data[i].Position.Y = GET_ARG(i * 4 + offset + 1, GetDecimal) * 0x100; \
-    data[i].Position.Z = GET_ARG(i * 4 + offset + 2, GetDecimal) * 0x100; \
+    data[i].Position.X = GET_ARG(i * 4 + offset,     GetDecimal) * 0x10000; \
+    data[i].Position.Y = GET_ARG(i * 4 + offset + 1, GetDecimal) * 0x10000; \
+    data[i].Position.Z = GET_ARG(i * 4 + offset + 2, GetDecimal) * 0x10000; \
     data[i].Color      = GET_ARG(i * 4 + offset + 3, GetInteger); \
-    data[i].Normal.X   = 0x100; \
-    data[i].Normal.Y   = 0x100; \
-    data[i].Normal.Z   = 0x100; \
+    data[i].Normal.X   = 0; \
+    data[i].Normal.Y   = 0; \
+    data[i].Normal.Z   = 0; \
     data[i].Normal.W   = 0; \
     data[i].UV.X       = 0; \
     data[i].UV.Y       = 0
@@ -1357,24 +1357,24 @@ static void MakeSpritePolygon(
     // |  |
     // 3--2
 
-    data[3].Position.X = x * 0x100;
-    data[3].Position.Y = y * 0x100;
-    data[3].Position.Z = z * 0x100;
+    data[3].Position.X = x * 0x10000;
+    data[3].Position.Y = y * 0x10000;
+    data[3].Position.Z = z * 0x10000;
 
-    data[2].Position.X = (x + (frameW * scaleX)) * 0x100;
-    data[2].Position.Y = y * 0x100;
-    data[2].Position.Z = z * 0x100;
+    data[2].Position.X = (x + (frameW * scaleX)) * 0x10000;
+    data[2].Position.Y = y * 0x10000;
+    data[2].Position.Z = z * 0x10000;
 
-    data[1].Position.X = (x + (frameW * scaleX)) * 0x100;
-    data[1].Position.Y = (y + (frameH * scaleY)) * 0x100;
-    data[1].Position.Z = z * 0x100;
+    data[1].Position.X = (x + (frameW * scaleX)) * 0x10000;
+    data[1].Position.Y = (y + (frameH * scaleY)) * 0x10000;
+    data[1].Position.Z = z * 0x10000;
 
-    data[0].Position.X = x * 0x100;
-    data[0].Position.Y = (y + (frameH * scaleY)) * 0x100;
-    data[0].Position.Z = z * 0x100;
+    data[0].Position.X = x * 0x10000;
+    data[0].Position.Y = (y + (frameH * scaleY)) * 0x10000;
+    data[0].Position.Z = z * 0x10000;
 
     for (int i = 0; i < 4; i++) {
-        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0x100;
+        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0;
         data[i].Position.W = 0;
     }
 
@@ -1883,6 +1883,7 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 <li><code>DrawMode_AFFINE</code>: Uses affine texture mapping.</li>\
 <li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
 <li><code>DrawMode_FOG</code>: Enables fog.</li>\
+<li><code>DrawMode_ORTHOGRAPHIC</code>: Uses orthographic perspective projection.</li>\
 </ul>
  * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
  * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
@@ -4309,48 +4310,19 @@ VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
  * \param fov (Number): The field of view, in degrees.
  * \param near (Number): The near clipping plane value.
  * \param far (Number): The far clipping plane value.
+ * \param aspect (Number): The aspect ratio.
  * \ns Matrix
  */
 VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
+    CHECK_ARGCOUNT(5);
     ObjArray* array = GET_ARG(0, GetArray);
     float fov = GET_ARG(1, GetDecimal);
     float nearClip = GET_ARG(2, GetDecimal);
     float farClip = GET_ARG(3, GetDecimal);
+    float aspect = GET_ARG(4, GetDecimal);
 
     Matrix4x4 matrix4x4;
-    SoftwareRenderer::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip);
-
-    for (int i = 0; i < 16; i++)
-        (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);
-
-    return NULL_VAL;
-}
-/***
- * Matrix.Ortho
- * \desc Creates an orthographic projection matrix.
- * \param matrix (Matrix): The matrix to generate the projection matrix into.
- * \param left (Number): The left clipping plane value.
- * \param right (Number): The left clipping plane value.
- * \param top (Number): The top clipping plane value.
- * \param bottom (Number): The bottom clipping plane value.
- * \param near (Number): The near clipping plane value.
- * \param far (Number): The far clipping plane value.
- * \ns Matrix
- */
-VMValue Matrix_Ortho(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(8);
-    ObjArray* array = GET_ARG(0, GetArray);
-    float fov = GET_ARG(1, GetDecimal);
-    float left = GET_ARG(2, GetDecimal);
-    float right = GET_ARG(3, GetDecimal);
-    float top = GET_ARG(4, GetDecimal);
-    float bottom = GET_ARG(5, GetDecimal);
-    float near = GET_ARG(6, GetDecimal);
-    float far = GET_ARG(7, GetDecimal);
-
-    Matrix4x4 matrix4x4;
-    SoftwareRenderer::MakeOrthoMatrix(&matrix4x4, left, right, top, bottom, near, far);
+    SoftwareRenderer::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip, aspect);
 
     for (int i = 0; i < 16; i++)
         (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);
@@ -8627,6 +8599,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_AFFINE", DrawMode_AFFINE);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_DEPTH_TEST", DrawMode_DEPTH_TEST);
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FOG", DrawMode_FOG);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_ORTHOGRAPHIC", DrawMode_ORTHOGRAPHIC);
 
     BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_ADD", BlendMode_ADD);
     BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_MAX", BlendMode_MAX);
@@ -8771,7 +8744,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Matrix, Create);
     DEF_NATIVE(Matrix, Identity);
     DEF_NATIVE(Matrix, Perspective);
-    DEF_NATIVE(Matrix, Ortho);
     DEF_NATIVE(Matrix, Copy);
     DEF_NATIVE(Matrix, Multiply);
     DEF_NATIVE(Matrix, Translate);
