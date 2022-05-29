@@ -26,7 +26,6 @@ class Entity;
 
 class Scene {
 public:
-    static Uint32                BackgroundColor;
     static int                   ShowTileCollisionFlag;
     static int                   ShowObjectRegions;
     static HashMap<ObjectList*>* ObjectLists;
@@ -63,8 +62,6 @@ public:
     static bool                  Paused;
     static int                   MainLayer;
     static View                  Views[MAX_SCENE_VIEWS];
-    static int                   ViewRenderList[MAX_SCENE_VIEWS];
-    static bool                  UseViewPriority;
     static int                   ViewCurrent;
     static int                   ViewsActive;
     static int                   ObjectViewRenderFlag;
@@ -83,6 +80,7 @@ public:
     static void Init();
     static void ResetPerf();
     static void Update();
+    static int ViewSortFunction(const void *a, const void *b);
     static void SortViews();
     static void Render();
     static void AfterScene();

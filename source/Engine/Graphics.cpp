@@ -344,9 +344,9 @@ PUBLIC STATIC void     Graphics::SoftwareEnd() {
 	Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
 }
 
-PUBLIC STATIC void     Graphics::FreeSceneMemory() {
-	SoftwareRenderer::SetDepthTest(false);
-    SoftwareRenderer::FreeMemory();
+PUBLIC STATIC void     Graphics::UnloadSceneData() {
+    SoftwareRenderer::SetDepthTest(false);
+    SoftwareRenderer::UnloadSceneData();
 }
 
 PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {

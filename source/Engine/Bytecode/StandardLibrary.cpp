@@ -1078,21 +1078,6 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Draw.InitVertexBuffer
- * \desc Initializes a vertex buffer. There are 256 vertex buffers.
- * \param vertexBufferIndex (Integer): The vertex buffer at the index to use. (Maximum index: 255)
- * \param maxVertices (Integer): The maximum vertices that this vertex buffer will hold.
- * \return
- * \ns Draw
- */
-VMValue Draw_InitVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 maxVertices = GET_ARG(1, GetInteger);
-    SoftwareRenderer::VertexBuffer_Create(vertexBufferIndex, maxVertices);
-    return NULL_VAL;
-}
-/***
  * Draw.BindVertexBuffer
  * \desc Binds a vertex buffer.
  * \param vertexBufferIndex (Integer): Sets the vertex buffer to bind.
@@ -1117,23 +1102,6 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     SoftwareRenderer::VertexBuffer_Bind(-1);
-    return NULL_VAL;
-}
-/***
- * Draw.ClearVertexBuffer
- * \desc Clears a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to clear.
- * \return
- * \ns Draw
- */
-VMValue Draw_ClearVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
-        return NULL_VAL;
-
-    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
-    SoftwareRenderer::VertexBuffer_Clear(buffer);
     return NULL_VAL;
 }
 static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
@@ -7489,6 +7457,79 @@ VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region VertexBuffer
+/***
+ * VertexBuffer.Create
+ * \desc Create a vertex buffer.
+ * \param maxVertices (Integer): The maximum vertices that this vertex buffer will hold.
+ * \param unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.
+ * \return The index of the created vertex buffer.
+ * \ns VertexBuffer
+ */
+VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 maxVertices = GET_ARG(0, GetInteger);
+    Uint32 unloadPolicy = GET_ARG(1, GetInteger);
+    Uint32 vertexBufferIndex = SoftwareRenderer::VertexBuffer_Create(maxVertices, unloadPolicy);
+    if (vertexBufferIndex == 0xFFFFFFFF) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more vertex buffers available.");
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)vertexBufferIndex);
+}
+/***
+ * VertexBuffer.Resize
+ * \desc Resizes a vertex buffer. This clears the vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to resize.
+ * \return
+ * \ns VertexBuffer
+ */
+VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    Uint32 maxVertices = GET_ARG(1, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    SoftwareRenderer::VertexBuffer_Resize(buffer, maxVertices, maxVertices / 3);
+    return NULL_VAL;
+}
+/***
+ * VertexBuffer.Clear
+ * \desc Clears a vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to clear.
+ * \return
+ * \ns VertexBuffer
+ */
+VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    VertexBuffer* buffer = &SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    SoftwareRenderer::VertexBuffer_Clear(buffer);
+    return NULL_VAL;
+}
+/***
+ * VertexBuffer.Delete
+ * \desc Deletes a vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to delete.
+ * \return
+ * \ns VertexBuffer
+ */
+VMValue VertexBuffer_Delete(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    SoftwareRenderer::VertexBuffer_Delete(vertexBufferIndex);
+    return NULL_VAL;
+}
+// #endregion
+
 // #region Video
 /***
  * Video.Play
@@ -8500,10 +8541,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ImagePartSized);
     DEF_NATIVE(Draw, InitArrayBuffer);
     DEF_NATIVE(Draw, BindArrayBuffer);
-    DEF_NATIVE(Draw, InitVertexBuffer);
     DEF_NATIVE(Draw, BindVertexBuffer);
     DEF_NATIVE(Draw, UnbindVertexBuffer);
-    DEF_NATIVE(Draw, ClearVertexBuffer);
     DEF_NATIVE(Draw, SetProjectionMatrix);
     DEF_NATIVE(Draw, SetViewMatrix);
     DEF_NATIVE(Draw, SetAmbientLighting);
@@ -8787,8 +8826,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Resources, ReadAllText);
     DEF_NATIVE(Resources, UnloadImage);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_SCENE", 0);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_GAME", 1);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_SCENE", SCOPE_SCENE);
+    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_GAME", SCOPE_GAME);
     // #endregion
 
     // #region Scene
@@ -8941,6 +8980,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Thread);
     DEF_NATIVE(Thread, RunEvent);
     DEF_NATIVE(Thread, Sleep);
+    // #endregion
+
+    // #region VertexBuffer
+    INIT_CLASS(VertexBuffer);
+    DEF_NATIVE(VertexBuffer, Create);
+    DEF_NATIVE(VertexBuffer, Clear);
+    DEF_NATIVE(VertexBuffer, Resize);
+    DEF_NATIVE(VertexBuffer, Delete);
     // #endregion
 
     // #region Video

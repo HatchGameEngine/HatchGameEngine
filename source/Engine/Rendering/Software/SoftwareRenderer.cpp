@@ -523,10 +523,18 @@ PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, f
     out->Values[15] = 0.0f;
 }
 
-PUBLIC STATIC void     SoftwareRenderer::FreeMemory(void) {
+PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
     if (DepthBuffer) {
         Memory::Free(DepthBuffer);
         DepthBuffer = NULL;
+    }
+
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        VertexBuffer* buffer = &VertexBuffers[i];
+        if (!buffer->Initialized || buffer->UnloadPolicy > SCOPE_SCENE)
+            continue;
+
+        VertexBuffer_Delete(i);
     }
 }
 
@@ -2457,35 +2465,70 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     SoftwareRenderer::SetDepthTest(false);
 }
 
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Create(Uint32 vertexBufferIndex, Uint32 maxVertices) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
+PUBLIC STATIC Uint32   SoftwareRenderer::VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy) {
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        VertexBuffer* buffer = &VertexBuffers[i];
+        if (!buffer->Initialized) {
+            buffer->UnloadPolicy = unloadPolicy;
+            VertexBuffer_Init(buffer, maxVertices);
+            VertexBuffer_Clear(buffer);
+            return i;
+        }
+    }
 
-    VertexBuffer* buffer = &VertexBuffers[vertexBufferIndex];
-    VertexBuffer_Init(buffer, maxVertices);
-    VertexBuffer_Clear(buffer);
+    return 0xFFFFFFFF;
 }
 PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Init(VertexBuffer* buffer, Uint32 maxVertices) {
+    Uint32 maxFaces = maxVertices / 3;
+
     if (!buffer->Capacity) {
         buffer->Vertices = (VertexAttribute*)Memory::Calloc(maxVertices, sizeof(VertexAttribute));
-        buffer->FaceInfoBuffer = (FaceInfo*)Memory::Calloc(maxVertices / 3, sizeof(FaceInfo));
+        buffer->FaceInfoBuffer = (FaceInfo*)Memory::Calloc(maxFaces, sizeof(FaceInfo));
     }
-    else {
-        buffer->Vertices = (VertexAttribute*)Memory::Realloc(buffer->Vertices, maxVertices * sizeof(VertexAttribute));
-        buffer->FaceInfoBuffer = (FaceInfo*)Memory::Realloc(buffer->FaceInfoBuffer, (maxVertices / 3) * sizeof(FaceInfo));
-    }
+    else
+        VertexBuffer_Resize(buffer, maxVertices, maxFaces);
 
     buffer->Capacity = maxVertices;
     buffer->Initialized = true;
 }
 PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Clear(VertexBuffer* buffer) {
+    if (!buffer->Initialized)
+        return;
+
     buffer->VertexCount = 0;
     buffer->FaceCount = 0;
 
     memset(buffer->Vertices, 0x00, buffer->Capacity * sizeof(VertexAttribute));
 }
+PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Resize(VertexBuffer* buffer, Uint32 maxVertices, Uint32 maxFaces) {
+    if (!buffer->Initialized)
+        return;
+
+    buffer->Vertices = (VertexAttribute*)Memory::Realloc(buffer->Vertices, maxVertices * sizeof(VertexAttribute));
+    buffer->FaceInfoBuffer = (FaceInfo*)Memory::Realloc(buffer->FaceInfoBuffer, maxFaces * sizeof(FaceInfo));
+
+    VertexBuffer_Clear(buffer);
+}
 PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Bind(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        vertexBufferIndex = -1;
     CurrentVertexBuffer = vertexBufferIndex;
+}
+PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Delete(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    VertexBuffer* buffer = &VertexBuffers[vertexBufferIndex];
+    if (!buffer->Initialized)
+        return;
+
+    if (buffer->Capacity) {
+        Memory::Free(buffer->Vertices);
+        Memory::Free(buffer->FaceInfoBuffer);
+    }
+
+    buffer->Capacity = 0;
+    buffer->Initialized = false;
 }
 
 static void SetFaceInfoMaterial(FaceInfo* face, Material* material) {

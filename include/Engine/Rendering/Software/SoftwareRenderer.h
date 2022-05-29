@@ -75,7 +75,7 @@ public:
     static void     Restore();
     static void     MakeOrthoMatrix(Matrix4x4* out, float left, float right, float top, float bottom, float near, float far);
     static void     MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far);
-    static void     FreeMemory(void);
+    static void     UnloadSceneData(void);
     static void     ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices);
     static void     ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_SetAmbientLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
@@ -88,10 +88,12 @@ public:
     static void     ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat);
     static void     ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat);
     static void     ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode);
-    static void     VertexBuffer_Create(Uint32 vertexBufferIndex, Uint32 maxVertices);
+    static Uint32   VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy);
     static void     VertexBuffer_Init(VertexBuffer* buffer, Uint32 maxVertices);
     static void     VertexBuffer_Clear(VertexBuffer* buffer);
+    static void     VertexBuffer_Resize(VertexBuffer* buffer, Uint32 maxVertices, Uint32 maxFaces);
     static void     VertexBuffer_Bind(Uint32 vertexBufferIndex);
+    static void     VertexBuffer_Delete(Uint32 vertexBufferIndex);
     static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);
     static void     DrawModel(IModel* model, int frame, Matrix4x4* fModelMatrix, Matrix4x4* fNormalMatrix);

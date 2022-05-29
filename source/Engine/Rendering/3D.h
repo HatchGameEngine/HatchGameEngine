@@ -75,6 +75,7 @@ struct VertexBuffer {
     Uint32           Capacity;
     Uint32           VertexCount;
     Uint32           FaceCount;
+    Uint32           UnloadPolicy;
     bool             Initialized;
 };
 struct ArrayBuffer {
