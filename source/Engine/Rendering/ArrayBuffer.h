@@ -23,6 +23,7 @@ struct ArrayBuffer {
     float            FarClippingPlane;
     Matrix4x4        ProjectionMatrix;
     Matrix4x4        ViewMatrix;
+    bool             ClipPolygons;
     bool             Initialized;
 };
 

@@ -1926,7 +1926,11 @@ static int SortPolygonFaces(const void *a, const void *b) {
     return faceB->Depth - faceA->Depth;
 }
 
-static void BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
+static void BuildFrustumPlanes(ArrayBuffer* arrayBuffer, Frustum* frustum) {
+    ClipPolygonsByFrustum = arrayBuffer->ClipPolygons;
+    if (!ClipPolygonsByFrustum)
+        return;
+
     // Near
     frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
     frustum[0].Normal.Z = 0x10000;
@@ -1935,7 +1939,6 @@ static void BuildFrustumPlanes(Frustum* frustum, ArrayBuffer* arrayBuffer) {
     frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
     frustum[1].Normal.Z = -0x10000;
 
-    ClipPolygonsByFrustum = true;
     NumFrustumPlanes = 2;
 }
 
@@ -1949,6 +1952,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferInde
     VertexBuffer::Init(&arrayBuffer->Buffer, maxVertices);
 
     arrayBuffer->Initialized = true;
+    arrayBuffer->ClipPolygons = true;
 
     SoftwareRenderer::ArrayBuffer_InitMatrices(arrayBufferIndex);
 }
@@ -2013,6 +2017,15 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetFogColor(Uint32 arrayBuf
     arrayBuffer->FogColorG = g;
     arrayBuffer->FogColorB = b;
 }
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetClipPolygons(Uint32 arrayBufferIndex, bool clipPolygons) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    arrayBuffer->ClipPolygons = clipPolygons;
+}
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Bind(Uint32 arrayBufferIndex) {
     CurrentArrayBuffer = arrayBufferIndex;
     ArrayBuffer_DrawBegin(arrayBufferIndex);
@@ -2024,7 +2037,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawBegin(Uint32 arrayBuffe
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (arrayBuffer->Initialized) {
         VertexBuffer::Clear(&arrayBuffer->Buffer);
-        BuildFrustumPlanes(ViewFrustum, arrayBuffer);
+        BuildFrustumPlanes(arrayBuffer, ViewFrustum);
     }
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat) {

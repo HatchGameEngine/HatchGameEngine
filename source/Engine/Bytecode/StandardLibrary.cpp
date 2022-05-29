@@ -1062,6 +1062,21 @@ VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.SetClipPolygons
+ * \desc Enables or disables polygon clipping by the view frustum of the array buffer.
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param clipPolygons (Boolean): Whether or not to clip polygons.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    bool clipPolygons = !!GET_ARG(1, GetInteger);
+    SoftwareRenderer::ArrayBuffer_SetClipPolygons(arrayBufferIndex, clipPolygons);
+    return NULL_VAL;
+}
+/***
  * Draw.BindArrayBuffer
  * \desc Binds an array buffer for drawing polygons in 3D space.
  * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
@@ -8524,6 +8539,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetSpecularLighting);
     DEF_NATIVE(Draw, SetFogDensity);
     DEF_NATIVE(Draw, SetFogColor);
+    DEF_NATIVE(Draw, SetClipPolygons);
     DEF_NATIVE(Draw, Model);
     DEF_NATIVE(Draw, ModelSimple);
     DEF_NATIVE(Draw, Triangle3D);

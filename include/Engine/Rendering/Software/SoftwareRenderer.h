@@ -83,6 +83,7 @@ public:
     static void     ArrayBuffer_SetSpecularLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
     static void     ArrayBuffer_SetFogDensity(Uint32 arrayBufferIndex, float density);
     static void     ArrayBuffer_SetFogColor(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b);
+    static void     ArrayBuffer_SetClipPolygons(Uint32 arrayBufferIndex, bool clipPolygons);
     static void     ArrayBuffer_Bind(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_DrawBegin(Uint32 arrayBufferIndex);
     static void     ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat);
