@@ -70,13 +70,11 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   endif()
 endif()
 
-# Find the libraries
+# Find the includes
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
   find_package(Freetype REQUIRED)
 else()
-  # Set the paths to the MinGW libraries
-  set(SDL2_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.dll.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2main.a")
   set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
 endif()
 
@@ -102,17 +100,13 @@ else()
   )
 endif()
 
-# Add SDL2 libraries
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
-
-# Add other libraries
+# Add libraries
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  # All that fun stuff
-  # MinGW libraries are linked statically
   target_link_libraries(${PROJECT_NAME}
-    -static
-    -lmingw32 -mwindows
-    -lws2_32)
+    "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
+    -static -mwindows -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
+    -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
+    -lversion -luuid -lhid -lsetupapi -lws2_32)
   add_definitions(-DSDL_MAIN_HANDLED)
 else()
   target_link_libraries(${PROJECT_NAME}
