@@ -110,6 +110,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   add_definitions(-DSDL_MAIN_HANDLED)
 else()
   target_link_libraries(${PROJECT_NAME}
+    ${SDL2_LIBRARIES}
     ${FREETYPE_LIBRARIES}
   )
 endif()
