@@ -28,9 +28,7 @@ public:
     static Uint32               CurrentObjectHash;
     static vector<ObjFunction*> FunctionList;
     static vector<ObjFunction*> AllFunctionList;
-    static vector<Uint32>       AllFunctionListObjectOwner;
     static HashMap<Uint8*>*     Sources;
-    static HashMap<Uint64>*     OwnedFunctions;
     static HashMap<char*>*      Tokens;
     static vector<char*>        TokensList;
     static vector<VMValue>      EjectedGlobals;
@@ -71,7 +69,6 @@ public:
     static bool    CallFunction(char* functionName);
     static Entity* SpawnFunction();
     static void*   GetSpawnFunction(Uint32 objectNameHash, const char* objectName);
-    static void FreeObjectClassBytecode(const char* objectName);
 };
 
 #endif /* ENGINE_BYTECODE_BYTECODEOBJECTMANAGER_H */
