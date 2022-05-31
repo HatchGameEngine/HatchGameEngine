@@ -48,10 +48,20 @@ Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
 VertexBuffer*     SoftwareRenderer::VertexBuffers[MAX_VERTEX_BUFFERS];
 Uint32            SoftwareRenderer::CurrentVertexBuffer = -1;
 
-int Alpha = 0xFF;
-int BlendFlag = 0;
+enum BlendFlags {
+    BlendFlag_OPAQUE = 0,
+    BlendFlag_TRANSPARENT,
+    BlendFlag_ADDITIVE,
+    BlendFlag_SUBTRACT,
+    BlendFlag_MATCH_EQUAL,
+    BlendFlag_MATCH_NOT_EQUAL,
+    BlendFlag_FILTER
+};
 
-inline Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
+int Alpha = 0xFF;
+int BlendFlag = BlendFlag_OPAQUE;
+
+Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 r = (color1 & 0xFF0000U) + (((color2 & 0xFF0000U) * percent) >> 8);
 	Uint32 g = (color1 & 0xFF00U) + (((color2 & 0xFF00U) * percent) >> 8);
 	Uint32 b = (color1 & 0xFFU) + (((color2 & 0xFFU) * percent) >> 8);
@@ -60,14 +70,14 @@ inline Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	if (b > 0xFFU) b = 0xFFU;
 	return r | g | b;
 }
-inline Uint32 ColorBlend(Uint32 color1, Uint32 color2, int percent) {
+Uint32 ColorBlend(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 rb = color1 & 0xFF00FFU;
 	Uint32 g  = color1 & 0x00FF00U;
 	rb += (((color2 & 0xFF00FFU) - rb) * percent) >> 8;
 	g  += (((color2 & 0x00FF00U) - g) * percent) >> 8;
 	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
 }
-inline Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
+Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
     Sint32 r = (color1 & 0xFF0000U) - (((color2 & 0xFF0000U) * percent) >> 8);
 	Sint32 g = (color1 & 0xFF00U) - (((color2 & 0xFF00U) * percent) >> 8);
 	Sint32 b = (color1 & 0xFFU) - (((color2 & 0xFFU) * percent) >> 8);
@@ -76,7 +86,7 @@ inline Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
 	if (b < 0) b = 0;
 	return r | g | b;
 }
-inline int ColorMultiply(Uint32 color, Uint32 colorMult) {
+int ColorMultiply(Uint32 color, Uint32 colorMult) {
     Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
     Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
     Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
@@ -122,7 +132,6 @@ bool UseDepthBuffer = false;
 size_t DepthBufferSize = 0;
 Uint32* DepthBuffer = NULL;
 
-bool UseFog = false;
 float FogDensity = 1.0f;
 int FogColor = 0x000000;
 
@@ -347,16 +356,6 @@ PUBLIC STATIC void     SoftwareRenderer::Present() {
 
 }
 
-enum BlendFlags {
-    BlendFlag_OPAQUE = 0,
-    BlendFlag_TRANSPARENT,
-    BlendFlag_ADDITIVE,
-    BlendFlag_SUBTRACT,
-    BlendFlag_MATCH_EQUAL,
-    BlendFlag_MATCH_NOT_EQUAL,
-    BlendFlag_FILTER,
-};
-
 // Draw mode setting functions
 PUBLIC STATIC void     SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
     ColR = (int)(r * 0xFF);
@@ -493,11 +492,11 @@ PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
 #define ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity) \
     if (FilterTable != &FilterColor[0]) \
         blendFlag = BlendFlag_FILTER; \
-    if (opacity == 0 && (blendFlag != BlendFlag_OPAQUE && blendFlag != BlendFlag_FILTER)) \
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT) \
         return; \
-    if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
+    else if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
         blendFlag = BlendFlag_TRANSPARENT; \
-    if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
+    else if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
         blendFlag = BlendFlag_OPAQUE;
 
 // Filterless versions
@@ -508,17 +507,17 @@ PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
 #define ISOLATE_G(color) (color & 0x00FF00)
 #define ISOLATE_B(color) (color & 0x0000FF)
 
-inline void PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     *dst = *src;
 }
-inline void PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     int* multInvTableAt = &MultTableInv[opacity << 8];
     *dst = 0xFF000000U
         | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16
         | (multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8
         | (multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
 }
-inline void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 R = (multTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Uint32 G = (multTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Uint32 B = (multTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -527,7 +526,7 @@ inline void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* m
     if (B > 0x0000FF) B = 0x0000FF;
     *dst = 0xFF000000U | R | G | B;
 }
-inline void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Sint32 R = (multSubTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Sint32 G = (multSubTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Sint32 B = (multSubTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -536,24 +535,26 @@ inline void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* m
     if (B < 0) B = 0;
     *dst = 0xFF000000U | R | G | B;
 }
-inline void PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst == SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-inline void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst != SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-inline void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 col = *dst;
     *dst = FilterTable[(col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3];
 }
 
-inline int TextureColorBlend(Uint32 color, Uint32 colorMult) {
+int TextureColorBlend(Uint32 color, Uint32 colorMult) {
+    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
+        return color;
     Uint32 dR = (colorMult >> 16) & 0xFF;
     Uint32 dG = (colorMult >> 8) & 0xFF;
     Uint32 dB = colorMult & 0xFF;
@@ -566,22 +567,24 @@ inline int TextureColorBlend(Uint32 color, Uint32 colorMult) {
     return dB | (dG << 8) | (dR << 16);
 }
 
-inline int FogEquation(float density, float coord) {
+int FogEquation(float density, float coord) {
     int result = expf(-density * coord) * 0x100;
     CLAMP_VAL(result, 0, 0x100);
     return 0x100 - result;
 }
-inline int DoFogLighting(int color, float fogCoord) {
+int DoFogLighting(int color, float fogCoord) {
     int fogValue = FogEquation(FogDensity, fogCoord / 192.0f);
     if (fogValue != 0)
         return ColorBlend(color, FogColor, fogValue);
     return color;
 }
-inline int LightPixel(int color, float depth) {
-    if (UseFog)
-        color = DoFogLighting(color, depth);
+int LightPixel(int color, float depth) {
+    return DoFogLighting(color, depth);
+}
+int LightPixelNoOp(int color, float depth) {
     return color;
 }
+int (*LightPixelFunc)(int, float) = NULL;
 
 #define POLYGON_BLENDFLAGS(drawPolygonMacro, placePixelMacro) \
     switch (blendFlag) { \
@@ -750,6 +753,11 @@ inline int LightPixel(int color, float depth) {
 #define SCANLINE_GET_TEXUV() \
     int texU = ((int)(mapU * texture->Width) >> 16) % texture->Width; \
     int texV = ((int)(mapV * texture->Height) >> 16) % texture->Height
+#define SCANLINE_GET_COLOR() \
+    CLAMP_VAL(colR, 0x00, 0xFF0000); \
+    CLAMP_VAL(colG, 0x00, 0xFF0000); \
+    CLAMP_VAL(colB, 0x00, 0xFF0000); \
+    col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
 
 Contour *ContourField = SoftwareRenderer::ContourBuffer;
 
@@ -933,7 +941,7 @@ void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, i
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_RGB(); \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            SCANLINE_GET_COLOR(); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             SCANLINE_STEP_RGB(); \
         } \
@@ -1019,7 +1027,7 @@ void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity,
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
-            col = LightPixel(color, mapZ); \
+            col = LightPixelFunc(color, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             SCANLINE_STEP_Z(); \
         } \
@@ -1112,8 +1120,8 @@ void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opac
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_RGB(); \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
-            col = LightPixel(col, mapZ); \
+            SCANLINE_GET_COLOR(); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             SCANLINE_STEP_Z(); \
             SCANLINE_STEP_RGB(); \
@@ -1197,7 +1205,7 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             col = TextureColorBlend(color, texCol); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         }
@@ -1205,7 +1213,7 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             col = TextureColorBlend(color, index[texCol]); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         } \
@@ -1318,18 +1326,18 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            SCANLINE_GET_COLOR(); \
             col = TextureColorBlend(col, texCol); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            SCANLINE_GET_COLOR(); \
             col = TextureColorBlend(col, index[texCol]); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         } \
@@ -1516,7 +1524,7 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             col = TextureColorBlend(color, texCol); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         }
@@ -1524,7 +1532,7 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             col = TextureColorBlend(color, index[texCol]); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         } \
@@ -1637,18 +1645,18 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            SCANLINE_GET_COLOR(); \
             col = TextureColorBlend(col, texCol); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
+            SCANLINE_GET_COLOR(); \
             col = TextureColorBlend(col, index[texCol]); \
-            col = LightPixel(col, mapZ); \
+            col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
         }
@@ -1767,7 +1775,7 @@ void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, 
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             if (DEPTH_READ_U32(iz)) { \
-                col = LightPixel(color, mapZ); \
+                col = LightPixelFunc(color, mapZ); \
                 pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
                 DEPTH_WRITE_U32(iz); \
             } \
@@ -1863,8 +1871,8 @@ void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opaci
             SCANLINE_GET_MAPZ(); \
             if (DEPTH_READ_U32(iz)) { \
                 SCANLINE_GET_RGB(); \
-                col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
-                col = LightPixel(col, mapZ); \
+                SCANLINE_GET_COLOR(); \
+                col = LightPixelFunc(col, mapZ); \
                 pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
                 DEPTH_WRITE_U32(iz); \
             } \
@@ -2092,6 +2100,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     } else { \
         blendFlag = face->BlendFlag; \
         opacity = face->Opacity; \
+        if (blendFlag == BlendFlag_TRANSPARENT && opacity == 0xFF) \
+            blendFlag = BlendFlag_OPAQUE; \
     } \
     if (blendFlag != BlendFlag_OPAQUE) \
         UseDepthBuffer = false; \
@@ -2103,18 +2113,20 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
         return;
     vertexBuffer = &arrayBuffer->Buffer;
 
-    bool doAffineMapping = drawMode & DrawMode_AFFINE;
     SoftwareRenderer::SetDepthTest(drawMode & DrawMode_DEPTH_TEST);
 
-    UseFog = drawMode & DrawMode_FOG;
-    if (UseFog) {
-        FogDensity = arrayBuffer->FogDensity;
-        FogColor   = arrayBuffer->FogColorR << 16 | arrayBuffer->FogColorG << 8 | arrayBuffer->FogColorB;
+    if (drawMode & DrawMode_FOG) {
+        FogColor       = arrayBuffer->FogColorR << 16 | arrayBuffer->FogColorG << 8 | arrayBuffer->FogColorB;
+        FogDensity     = arrayBuffer->FogDensity;
+        LightPixelFunc = LightPixel;
     }
+    else
+        LightPixelFunc = LightPixelNoOp;
 
     vertexAttribsPtr = vertexBuffer->Vertices; // R
     faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
 
+    bool doAffineMapping = drawMode & DrawMode_AFFINE;
     bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
     bool sortFaces = !DepthTest && vertexBuffer->FaceCount > 1;
 
@@ -3225,7 +3237,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
         }
 
         arrayVertexItem = arrayVertexBuffer;
-        srcFaceInfoItem++;
 
         // Check if the polygon is at least partially inside the frustum
         if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
@@ -3249,6 +3260,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
         faceInfoItem->Opacity = Alpha;
         faceInfoItem->BlendFlag = BlendFlag;
         faceInfoItem++;
+        srcFaceInfoItem++;
 
         arrayVertexCount += vertexCount;
         arrayVertexBuffer += vertexCount;
@@ -4870,7 +4882,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         int* multTableAt = &MultTable[opacity << 8];
         int* multSubTableAt = &MultSubTable[opacity << 8];
 
-        if (opacity == 0 && (blendFlag != BlendFlag_OPAQUE && blendFlag != BlendFlag_FILTER))
+        if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
             goto scanlineDone;
 
         linePixelFunction = pixelFunction;

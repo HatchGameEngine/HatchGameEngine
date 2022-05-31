@@ -15,9 +15,9 @@ struct ArrayBuffer {
     Uint32           LightingSpecularR;
     Uint32           LightingSpecularG;
     Uint32           LightingSpecularB;
-    Uint32           FogColorR;
-    Uint32           FogColorG;
-    Uint32           FogColorB;
+    Uint8            FogColorR;
+    Uint8            FogColorG;
+    Uint8            FogColorB;
     float            FogDensity;
     float            NearClippingPlane;
     float            FarClippingPlane;

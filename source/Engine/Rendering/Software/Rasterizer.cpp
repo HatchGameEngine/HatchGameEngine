@@ -131,8 +131,8 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
-    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
+    int colorBegBLUE = (cStart & 0xFF) << 16;
+    int colorEndBLUE = (cEnd & 0xFF) << 16;
 
     int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
@@ -322,8 +322,8 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
-    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
+    int colorBegBLUE = (cStart & 0xFF) << 16;
+    int colorEndBLUE = (cEnd & 0xFF) << 16;
 
     int linePointSubpxX = xStart * 0x10000;
     int yDiff = (yEnd - yStart);
@@ -552,8 +552,8 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
     int colorEndRED = (cEnd & 0xFF0000);
     int colorBegGREEN = (cStart & 0xFF00) << 8;
     int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) * 0x10000;
-    int colorEndBLUE = (cEnd & 0xFF) * 0x10000;
+    int colorBegBLUE = (cStart & 0xFF) << 16;
+    int colorEndBLUE = (cEnd & 0xFF) << 16;
 
     float invZStart = 1.0f / zStart; // 1/z
     float invZEnd = 1.0f / zEnd; // 1/z at end

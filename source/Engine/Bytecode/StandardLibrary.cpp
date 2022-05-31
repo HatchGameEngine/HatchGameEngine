@@ -1225,17 +1225,38 @@ static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vert
     SoftwareRenderer::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
 }
 
-#define VERTEX_ARG(i, offset) \
-    data[i].Position.X = GET_ARG(i * 4 + offset,     GetDecimal) * 0x10000; \
-    data[i].Position.Y = GET_ARG(i * 4 + offset + 1, GetDecimal) * 0x10000; \
-    data[i].Position.Z = GET_ARG(i * 4 + offset + 2, GetDecimal) * 0x10000; \
-    data[i].Color      = GET_ARG(i * 4 + offset + 3, GetInteger); \
-    data[i].Normal.X   = 0; \
-    data[i].Normal.Y   = 0; \
-    data[i].Normal.Z   = 0; \
-    data[i].Normal.W   = 0; \
-    data[i].UV.X       = 0; \
-    data[i].UV.Y       = 0
+#define VERTEX_ARGS(num, offset) \
+    int argOffset = offset; \
+    for (int i = 0; i < num; i++) { \
+        data[i].Position.X = GET_ARG(i * 3 + argOffset,     GetDecimal) * 0x10000; \
+        data[i].Position.Y = GET_ARG(i * 3 + argOffset + 1, GetDecimal) * 0x10000; \
+        data[i].Position.Z = GET_ARG(i * 3 + argOffset + 2, GetDecimal) * 0x10000; \
+        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0; \
+        data[i].UV.X       = data[i].UV.Y = 0; \
+    } \
+    argOffset += 3 * num
+
+#define VERTEX_COLOR_ARGS(num) \
+    for (int i = 0; i < num; i++) { \
+        if (argCount <= i + argOffset) \
+            break; \
+        if (!IS_NULL(args[i + argOffset])) \
+            data[i].Color = GET_ARG(i + argOffset, GetInteger); \
+        else \
+            data[i].Color = 0xFFFFFF; \
+    } \
+    argOffset += num
+
+#define VERTEX_UV_ARGS(num) \
+    for (int i = 0; i < num; i++) { \
+        if (argCount <= (i * 2) + argOffset) \
+            break; \
+        if (!IS_NULL(args[(i * 2) + argOffset])) \
+            data[i].UV.X = GET_ARG((i * 2) + argOffset, GetDecimal) * 0x10000; \
+        if (!IS_NULL(args[(i * 2) + 1 + argOffset])) \
+            data[i].UV.Y = GET_ARG((i * 2) + 1 + argOffset, GetDecimal) * 0x10000; \
+    } \
+    argOffset += num * 2
 
 #define GET_MATRICES(offset) \
     ObjArray* matrixModelArr = NULL; \
@@ -1251,30 +1272,28 @@ static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vert
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
- * \param color1 (Integer): Color of the first vertex.
  * \param x2 (Number): X position of the second vertex.
  * \param y2 (Number): Y position of the second vertex.
  * \param z2 (Number): Z position of the second vertex.
- * \param color2 (Integer): Color of the second vertex.
  * \param x3 (Number): X position of the third vertex.
  * \param y3 (Number): Y position of the third vertex.
  * \param z3 (Number): Z position of the third vertex.
- * \param color3 (Integer): Color of the third vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(12);
+    CHECK_AT_LEAST_ARGCOUNT(9);
 
     VertexAttribute data[3];
 
-    VERTEX_ARG(0, 0);
-    VERTEX_ARG(1, 0);
-    VERTEX_ARG(2, 0);
-
-    GET_MATRICES(12);
+    VERTEX_ARGS(3, 0);
+    VERTEX_COLOR_ARGS(3);
+    GET_MATRICES(argOffset);
 
     DrawPolygonSoftware(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
@@ -1285,35 +1304,32 @@ VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
- * \param color1 (Integer): Color of the first vertex.
  * \param x2 (Number): X position of the second vertex.
  * \param y2 (Number): Y position of the second vertex.
  * \param z2 (Number): Z position of the second vertex.
- * \param color2 (Integer): Color of the second vertex.
  * \param x3 (Number): X position of the third vertex.
  * \param y3 (Number): Y position of the third vertex.
  * \param z3 (Number): Z position of the third vertex.
- * \param color3 (Integer): Color of the third vertex.
  * \param x4 (Number): X position of the fourth vertex.
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
- * \param color4 (Integer): Color of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_Quad3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(16);
+    CHECK_AT_LEAST_ARGCOUNT(12);
 
     VertexAttribute data[4];
 
-    VERTEX_ARG(0, 0);
-    VERTEX_ARG(1, 0);
-    VERTEX_ARG(2, 0);
-    VERTEX_ARG(3, 0);
-
-    GET_MATRICES(16);
+    VERTEX_ARGS(4, 0);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
 
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
@@ -1631,6 +1647,126 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.TriangleTextured
+ * \desc Draws a textured triangle in 3D space. The texture source should be an image.
+ * \param image (Integer): Index of the loaded image.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(7);
+
+    VertexAttribute data[3];
+
+    int index = GET_ARG(0, GetInteger);
+    if (index < 0)
+        return NULL_VAL;
+    Texture* texture = Scene::ImageList[index]->AsImage->TexturePtr;
+
+    VERTEX_ARGS(3, 1);
+    VERTEX_COLOR_ARGS(3);
+
+    // 0
+    // | \
+    // 1--2
+
+    data[1].UV.X = 0x10000;
+
+    data[2].UV.X = 0x10000;
+    data[2].UV.Y = 0x10000;
+
+    VERTEX_UV_ARGS(3);
+
+    GET_MATRICES(argOffset);
+
+    DrawPolygonSoftware(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw.QuadTextured
+ * \desc Draws a textured quad in 3D space. The texture source should be an image.
+ * \param image (Integer): Index of the loaded image.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \param z4 (Number): Z position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \paramOpt u4 (Number): Texture U of the fourth vertex.
+ * \paramOpt v4 (Number): Texture V of the fourth vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(13);
+
+    VertexAttribute data[4];
+
+    int index = GET_ARG(0, GetInteger);
+    if (index < 0)
+        return NULL_VAL;
+    Texture* texture = Scene::ImageList[index]->AsImage->TexturePtr;
+
+    VERTEX_ARGS(4, 1);
+    VERTEX_COLOR_ARGS(4);
+
+    // 0--1
+    // |  |
+    // 3--2
+
+    data[1].UV.X = 0x10000;
+
+    data[2].UV.X = 0x10000;
+    data[2].UV.Y = 0x10000;
+
+    data[3].UV.Y = 0x10000;
+
+    VERTEX_UV_ARGS(4);
+
+    GET_MATRICES(argOffset);
+
+    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
  * Draw.SpritePoints
  * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
  * \param sprite (Integer): Index of the loaded sprite.
@@ -1641,26 +1777,26 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
- * \param color1 (Integer): Color of the first vertex.
  * \param x2 (Number): X position of the second vertex.
  * \param y2 (Number): Y position of the second vertex.
  * \param z2 (Number): Z position of the second vertex.
- * \param color2 (Integer): Color of the second vertex.
  * \param x3 (Number): X position of the third vertex.
  * \param y3 (Number): Y position of the third vertex.
  * \param z3 (Number): Z position of the third vertex.
- * \param color3 (Integer): Color of the third vertex.
  * \param x4 (Number): X position of the fourth vertex.
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
- * \param color4 (Integer): Color of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(20);
+    CHECK_AT_LEAST_ARGCOUNT(16);
 
     VertexAttribute data[4];
 
@@ -1676,71 +1812,11 @@ VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    VERTEX_ARG(0, 5);
-    VERTEX_ARG(1, 5);
-    VERTEX_ARG(2, 5);
-    VERTEX_ARG(3, 5);
-
-    GET_MATRICES(21);
+    VERTEX_ARGS(4, 5);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
 
     MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.ImagePoints
- * \desc Draws a textured rectangle in 3D space. The texture source should be an image.
- * \param image (Integer): Index of the loaded image.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param color1 (Integer): Color of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param color2 (Integer): Color of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param color3 (Integer): Color of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \param color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(17);
-
-    VertexAttribute data[4];
-    int vertexFlag = VertexType_Position | VertexType_UV | VertexType_Color;
-
-    int index = GET_ARG(0, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-    Texture* texture = Scene::ImageList[index]->AsImage->TexturePtr;
-
-    VERTEX_ARG(0, 1);
-    VERTEX_ARG(1, 1);
-    VERTEX_ARG(2, 1);
-    VERTEX_ARG(3, 1);
-
-    GET_MATRICES(17);
-
-    // 0--1
-    // |  |
-    // 3--2
-
-    data[1].UV.X = 0x10000;
-
-    data[2].UV.X = 0x10000;
-    data[2].UV.Y = 0x10000;
-
-    data[3].UV.Y = 0x10000;
-
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
@@ -1753,26 +1829,26 @@ VMValue Draw_ImagePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
- * \param color1 (Integer): Color of the first vertex.
  * \param x2 (Number): X position of the second vertex.
  * \param y2 (Number): Y position of the second vertex.
  * \param z2 (Number): Z position of the second vertex.
- * \param color2 (Integer): Color of the second vertex.
  * \param x3 (Number): X position of the third vertex.
  * \param y3 (Number): Y position of the third vertex.
  * \param z3 (Number): Z position of the third vertex.
- * \param color3 (Integer): Color of the third vertex.
  * \param x4 (Number): X position of the fourth vertex.
  * \param y4 (Number): Y position of the fourth vertex.
  * \param z4 (Number): Z position of the fourth vertex.
- * \param color4 (Integer): Color of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \return
  * \ns Draw
  */
 VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(19);
+    CHECK_AT_LEAST_ARGCOUNT(15);
 
     VertexAttribute data[4];
     TileSpriteInfo info;
@@ -1789,18 +1865,14 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
     AnimFrame frameStr = sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    VERTEX_ARG(0, 3);
-    VERTEX_ARG(1, 3);
-    VERTEX_ARG(2, 3);
-    VERTEX_ARG(3, 3);
-
-    GET_MATRICES(19);
+    VERTEX_ARGS(4, 3);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
 
     MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
-#undef VERTEX_ARG
 /***
  * Draw.SceneLayer3D
  * \desc Draws a scene layer in 3D space.
@@ -8549,8 +8621,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, Image3D);
     DEF_NATIVE(Draw, ImagePart3D);
     DEF_NATIVE(Draw, Tile3D);
+    DEF_NATIVE(Draw, TriangleTextured);
+    DEF_NATIVE(Draw, QuadTextured);
     DEF_NATIVE(Draw, SpritePoints);
-    DEF_NATIVE(Draw, ImagePoints);
     DEF_NATIVE(Draw, TilePoints);
     DEF_NATIVE(Draw, SceneLayer3D);
     DEF_NATIVE(Draw, SceneLayerPart3D);
