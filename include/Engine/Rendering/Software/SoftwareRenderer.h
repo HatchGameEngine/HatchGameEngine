@@ -8,6 +8,12 @@
 #define VIRTUAL
 #define EXPOSED
 
+class VertexBuffer;
+class Matrix4x4;
+class Matrix4x4;
+class Matrix4x4;
+class Matrix4x4;
+class Matrix4x4;
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
@@ -94,7 +100,7 @@ public:
     static void     VertexBuffer_Delete(Uint32 vertexBufferIndex);
     static void     DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
-    static void     DrawModel(IModel* model, int frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+    static void     DrawModel(IModel* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     static void     SetLineWidth(float n);
     static void     StrokeLine(float x1, float y1, float x2, float y2);

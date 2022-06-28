@@ -1111,11 +1111,12 @@
         <hr/>
         <p id="Reference_Draw_Model">
         <h2 style="margin-bottom: 8px;">Draw.Model</h2>
-        <code>Draw.Model(modelIndex, frame[, matrixModel, matrixNormal])</code>
+        <code>Draw.Model(modelIndex, animation, frame[, matrixModel, matrixNormal])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Integer): Frame of model to draw.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
@@ -1124,11 +1125,12 @@
         <hr/>
         <p id="Reference_Draw_ModelSimple">
         <h2 style="margin-bottom: 8px;">Draw.ModelSimple</h2>
-        <code>Draw.ModelSimple(modelIndex, frame, x, y, scale, rx, ry, rz)</code>
+        <code>Draw.ModelSimple(modelIndex, animation, frame, x, y, scale, rx, ry, rz)</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a model without using matrices.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Integer): Frame of model to draw.</li>
         <li>x (Number): X position</li>
         <li>y (Number): Y position</li>
@@ -3249,12 +3251,14 @@
         <p id="Reference_Resources_LoadModel">
         <h2 style="margin-bottom: 8px;">Resources.LoadModel</h2>
         <code>Resources.LoadModel(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Doesn't work yet</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads Model resource, returning its Model index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filename (String):</li>
-        <li>unloadPolicy (Integer):</li>
+        <li>filename (String): Filename of the resource.</li>
+        <li>unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the Resource.</div>
         </p>
         <hr/>
         <p id="Reference_Resources_LoadMusic">

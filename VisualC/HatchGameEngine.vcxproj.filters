@@ -237,7 +237,7 @@
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\resourcetypes\modelformats\COLLADAReader.cpp">
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">
@@ -362,6 +362,12 @@
     <ClInclude Include="..\include\engine\rendering\3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\engine\rendering\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\engine\rendering\Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -377,7 +383,7 @@
     <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\COLLADA.h">
+    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">

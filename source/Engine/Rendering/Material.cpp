@@ -1,42 +1,50 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
-
-need_t Material;
+#include <Engine/ResourceTypes/Image.h>
 
 class Material {
 public:
+    float Diffuse[4];
     float Specular[4];
     float Ambient[4];
-    float Emission[4];
-    float Diffuse[4];
+    float Emissive[4];
 
     float Shininess;
-    float Transparency;
+    float ShininessStrength;
+    float Opacity;
     float IndexOfRefraction;
 
-    void* Image;
+    Image* ImagePtr;
 };
 #endif
 
 #include <Engine/Rendering/Material.h>
 
-#include <Engine/Diagnostics/Memory.h>
-
-PUBLIC STATIC Material* Material::New(void) {
-    Material* material = (Material*)Memory::TrackedCalloc("Material::Material", 1, sizeof(Material));
-
-    for (int i = 0; i < 4; i++) {
-        material->Specular[i] = 1.0f;
-        material->Ambient[i] = 1.0f;
-        material->Emission[i] = 1.0f;
-        material->Diffuse[i] = 1.0f;
+PUBLIC Material::Material() {
+    for (int i = 0; i < 3; i++) {
+        Diffuse[i] = 0.0f;
+        Specular[i] = 0.0f;
+        Ambient[i] = 0.0f;
+        Emissive[i] = 0.0f;
     }
 
-    material->Shininess = 0.0f;
-    material->Transparency = 1.0f;
-    material->IndexOfRefraction = 1.0f;
+    Diffuse[3] = 1.0f;
+    Specular[3] = 1.0f;
+    Ambient[3] = 1.0f;
+    Emissive[3] = 1.0f;
 
-    material->Image = nullptr;
+    Shininess = 0.0f;
+    ShininessStrength = 1.0f;
+    Opacity = 1.0f;
+    IndexOfRefraction = 1.0f;
 
-    return material;
+    ImagePtr = nullptr;
+}
+
+PUBLIC void Material::Dispose() {
+    delete ImagePtr;
+}
+
+PUBLIC Material::~Material() {
+    Dispose();
 }

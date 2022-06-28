@@ -65,3 +65,51 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
 
     return (s - src - 1);   // count does not include NUL
 }
+PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
+    if (!filename)
+        return nullptr;
+
+    const char* sep = strrchr(filename, '/');
+    if (!sep)
+        sep = strrchr(filename, '\\');
+    if (!sep)
+        return nullptr;
+
+    size_t len = sep - filename;
+    char* path = (char*)malloc(len + 1);
+    if (!path)
+        return nullptr;
+
+    memcpy(path, filename, len);
+    path[len] = '\0';
+
+    return path;
+}
+PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
+    if (!pathA || !pathB)
+        return nullptr;
+
+    size_t lenA = strlen(pathA);
+    size_t lenB = strlen(pathB) + 1;
+    size_t totalLen = lenA + lenB;
+
+    bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
+    if (!hasSep)
+        totalLen++;
+
+    char* newPath = (char*)malloc(totalLen);
+    char* out = newPath;
+    if (!newPath)
+        return nullptr;
+
+    memcpy(newPath, pathA, lenA);
+    newPath += lenA;
+
+    if (!hasSep) {
+        newPath[0] = '/';
+        newPath++;
+    }
+
+    memcpy(newPath, pathB, lenB);
+    return out;
+}

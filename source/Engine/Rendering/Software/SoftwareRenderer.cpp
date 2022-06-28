@@ -2518,7 +2518,7 @@ static void SetFaceInfoMaterial(FaceInfo* face, Material* material) {
     face->UseMaterial = true;
     face->Material.Texture = NULL;
 
-    Image *image = (Image*)material->Image;
+    Image *image = material->ImagePtr;
     if (image && image->TexturePtr)
         face->Material.Texture = (Texture*)image->TexturePtr;
 
@@ -2886,91 +2886,141 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
     vertexBuffer->VertexCount = arrayVertexCount;
     vertexBuffer->FaceCount = arrayFaceCount;
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    VertexAttribute* arrayVertexBuffer;
-    VertexAttribute* arrayVertexItem;
-    int arrayVertexCount, arrayFaceCount;
-    int modelVertexIndexCount;
-    FaceInfo* faceInfoItem;
-    Sint16* modelVertexIndexPtr;
-    Vector3* positionPtr;
-    Uint32* colorPtr;
-    Vector2* uvPtr;
+
+class ModelRenderer {
+public:
+    ModelRenderer(VertexBuffer* vertexBuffer);
+
+    void DrawModel(IModel* model, Uint16 animation, Uint32 frame);
+    void DrawMesh(IModel* model, Mesh* mesh, Uint16 frame, Matrix4x4& mvpMatrix);
+    void DrawNode(IModel* model, ModelNode* node, Matrix4x4* world);
+    void AddFace(int faceVertexCount, Material* material);
+    int  ClipFace(int faceVertexCount);
+    void SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal);
+
+    VertexBuffer*    Buffer;
+    int              VertexCount;
+
+    VertexAttribute* AttribBuffer;
+    VertexAttribute* Vertex;
+    FaceInfo*        FaceItem;
+
+    Matrix4x4*       ModelMatrix;
+    Matrix4x4*       ViewMatrix;
+    Matrix4x4*       ProjectionMatrix;
+    Matrix4x4*       NormalMatrix;
+
+    Matrix4x4        MVPMatrix;
+
+    bool             ClipFaces;
+};
+
+ModelRenderer::ModelRenderer(VertexBuffer* vertexBuffer) {
+    Buffer = vertexBuffer;
+    VertexCount = Buffer->VertexCount;
+
+    FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
+    AttribBuffer = Vertex = &Buffer->Vertices[VertexCount];
+
+    ClipFaces = false;
+}
+
+void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
+    ModelMatrix = model;
+    ViewMatrix = view;
+    ProjectionMatrix = projection;
+    NormalMatrix = normal;
+}
+
+void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
+    FaceItem->NumVertices = faceVertexCount;
+    FaceItem->Opacity = Alpha;
+    FaceItem->BlendFlag = BlendFlag;
+
+    if (material)
+        SetFaceInfoMaterial(FaceItem, material);
+    else
+        FaceItem->UseMaterial = false;
+
+    FaceItem++;
+
+    Buffer->FaceCount++;
+    Buffer->VertexCount += faceVertexCount;
+}
+
+int ModelRenderer::ClipFace(int faceVertexCount) {
+    if (!ClipFaces)
+        return faceVertexCount;
+
+    Vertex = AttribBuffer;
+
+    if (!CheckPolygonVisible(Vertex, faceVertexCount))
+        return 0;
+    else if (ClipPolygonsByFrustum) {
+        faceVertexCount = ClipPolygon(Buffer, AttribBuffer, Vertex, faceVertexCount);
+        if (faceVertexCount == -1) {
+            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", Buffer->Capacity);
+            throw -1;
+        }
+        else if (faceVertexCount == 0)
+            return 0;
+    }
+
+    Vertex += faceVertexCount;
+    AttribBuffer = Vertex;
+
+    return faceVertexCount;
+}
+
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 frame, Matrix4x4& mvpMatrix) {
+    Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
+
+    int modelVertexIndexCount = mesh->VertexIndexCount;
+    Sint16* modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
     int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
     int color = ColRGB;
 
-    ArrayBuffer* arrayBuffer = NULL;
-    VertexBuffer* vertexBuffer = NULL;
+    Vector3* positionPtr;
+    Vector3* normalPtr;
+    Uint32* colorPtr;
+    Vector2* uvPtr;
 
-    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+    Vector3* positionBuffer = mesh->PositionBuffer;
+    Vector3* normalBuffer = mesh->NormalBuffer;
 
-    #define SET_MATERIAL(face) \
-        if (materialList) \
-            SetFaceInfoMaterial(face, model->Materials[*(materialList++)]); \
-        else \
-            face->UseMaterial = false
-
-    if (frame < 0)
-        return;
-    frame %= model->FrameCount;
-    frame *= model->VertexCount;
-
-    Matrix4x4 mvpMatrix;
-    if (arrayBuffer)
-        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
-    else
-        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
-
-    arrayFaceCount = vertexBuffer->FaceCount;
-    arrayVertexCount = vertexBuffer->VertexCount;
-
-    faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
-    arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
-    arrayVertexItem = arrayVertexBuffer;
-
-    modelVertexIndexCount = model->TotalVertexIndexCount;
-    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
-        return;
+    if (mesh->UseSkeleton) {
+        positionBuffer = mesh->TransformedPositions;
+        normalBuffer = mesh->TransformedNormals;
+    }
+    else if (model->UseVertexAnimation) {
+        positionBuffer += frame * model->VertexCount;
+        if (normalBuffer)
+            normalBuffer += frame * model->VertexCount;
     }
 
-#define NEXT_FACE() \
-    vertexBuffer->FaceCount++; \
-    vertexBuffer->VertexCount += faceVertexCount; \
-    faceInfoItem->NumVertices = faceVertexCount; \
-    faceInfoItem->Opacity = Alpha; \
-    faceInfoItem->BlendFlag = BlendFlag; \
-    SET_MATERIAL(faceInfoItem); \
-    faceInfoItem++
+    switch (mesh->VertexFlag & vertexTypeMask) {
+        case VertexType_Position:
+            // For every face,
+            while (*modelVertexIndexPtr != -1) {
+                int faceVertexCount = model->FaceVertexCount;
 
-#define CLIP_FACE_BY_FRUSTUM() \
-    if (arrayBuffer) { \
-        arrayVertexItem = arrayVertexBuffer; \
-        if (!CheckPolygonVisible(arrayVertexItem, faceVertexCount)) { \
-            continue; \
-        } else if (ClipPolygonsByFrustum) { \
-            faceVertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexItem, faceVertexCount); \
-            if (faceVertexCount == -1) { \
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity); \
-                return; \
-            } \
-            else if (faceVertexCount == 0) \
-                continue; \
-            arrayVertexItem += faceVertexCount; \
-            arrayVertexBuffer = arrayVertexItem; \
-        } \
-    }
+                // For every vertex index,
+                int numVertices = faceVertexCount;
+                while (numVertices--) {
+                    positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                    APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                    Vertex->Color = color;
+                    modelVertexIndexPtr++;
+                    Vertex++;
+                }
 
-    for (int meshNum = 0; meshNum < model->MeshCount; meshNum++) {
-        Mesh* mesh = &model->Meshes[meshNum];
-        Uint8* materialList = model->Materials ? mesh->FaceMaterials : nullptr;
-
-        modelVertexIndexCount = mesh->VertexIndexCount;
-        modelVertexIndexPtr = mesh->VertexIndexBuffer;
-
-        switch (mesh->VertexFlag & vertexTypeMask) {
-            case VertexType_Position:
+                if (faceVertexCount = ClipFace(faceVertexCount))
+                    AddFace(faceVertexCount, material);
+            }
+            break;
+        case VertexType_Position | VertexType_Normal:
+            if (NormalMatrix) {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
                     int faceVertexCount = model->FaceVertexCount;
@@ -2978,205 +3028,300 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Mat
                     // For every vertex index,
                     int numVertices = faceVertexCount;
                     while (numVertices--) {
-                        positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame)];
-                        APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        // Calculate position
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        // Calculate normals
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = color;
                         modelVertexIndexPtr++;
-                        arrayVertexItem++;
+                        Vertex++;
                     }
 
-                    CLIP_FACE_BY_FRUSTUM();
-                    NEXT_FACE();
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                break;
-            case VertexType_Position | VertexType_Normal:
-                if (normalMatrix) {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            // Calculate position
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            // Calculate normals
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
-                            arrayVertexItem->Color = color;
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        // Calculate position
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = color;
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                else {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_Color:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            // Calculate position
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
-                            arrayVertexItem->Color = color;
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                break;
-            case VertexType_Position | VertexType_Normal | VertexType_Color:
-                if (normalMatrix) {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                else {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_UV:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = color;
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                break;
-            case VertexType_Position | VertexType_Normal | VertexType_UV:
-                if (normalMatrix) {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            arrayVertexItem->UV = uvPtr[0];
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = color;
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                else {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_UV | VertexType_Color:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            arrayVertexItem->UV = uvPtr[0];
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                break;
-            case VertexType_Position | VertexType_Normal | VertexType_UV | VertexType_Color:
-                if (normalMatrix) {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix->Values);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            arrayVertexItem->UV = uvPtr[0];
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
                     }
-                }
-                else {
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
 
-                        // For every vertex index,
-                        int numVertices = faceVertexCount;
-                        while (numVertices--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                            uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                            colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], mvpMatrix.Values);
-                            COPY_NORMAL(arrayVertexItem->Normal, positionPtr[1]);
-                            arrayVertexItem->Color = ColorMultiply(colorPtr[0], color);
-                            arrayVertexItem->UV = uvPtr[0];
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-
-                        CLIP_FACE_BY_FRUSTUM();
-                        NEXT_FACE();
-                    }
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
                 }
-                break;
+            }
+            break;
+    }
+}
+
+void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
+    size_t numMeshes = node->Meshes.size();
+    size_t numChildren = node->Children.size();
+
+    Matrix4x4::Multiply(world, world, node->Transform);
+    Matrix4x4 nodeToWorldMat;
+    bool madeMatrix = false;
+
+    for (size_t i = 0; i < numMeshes; i++) {
+        Mesh* mesh = node->Meshes[i];
+
+        if (mesh->UseSkeleton) // in world space
+            DrawMesh(model, mesh, 0, MVPMatrix);
+        else {
+            if (!madeMatrix) {
+                if (ViewMatrix && ProjectionMatrix) {
+                    Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
+                    Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ViewMatrix);
+                    Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ProjectionMatrix);
+                } else
+                    Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
+
+                madeMatrix = true;
+            }
+
+            DrawMesh(model, mesh, 0, nodeToWorldMat);
         }
     }
 
-#undef SET_MATERIAL
-#undef NEXT_FACE
-#undef CLIP_FACE_BY_FRUSTUM
+    for (size_t i = 0; i < numChildren; i++)
+        DrawNode(model, node->Children[i], world);
+}
+
+void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+    if (!model->UseVertexAnimation) {
+        // FrameCount is the animation count in models that use skeletal animation
+        Uint16 numAnims = model->FrameCount;
+        if (numAnims > 0) {
+            if (animation >= numAnims)
+                animation = numAnims - 1;
+
+            // TODO: Optimize this?
+            model->Animate(model->Animations[animation], frame);
+        }
+    }
+    else
+        frame %= model->FrameCount;
+
+    if (ViewMatrix && ProjectionMatrix)
+        CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
+    else
+        CalculateMVPMatrix(&MVPMatrix, ModelMatrix, NULL, NULL);
+
+    if (model->RootNode) {
+        Matrix4x4 identity;
+        Matrix4x4::Identity(&identity);
+
+        try {
+            DrawNode(model, model->RootNode, &identity);
+        } catch (...) {
+            // Just ignore it
+            return;
+        }
+    }
+    else {
+        for (int i = 0; i < model->MeshCount; i++) {
+            Mesh* mesh = &model->Meshes[i];
+
+            try {
+                DrawMesh(model, mesh, (frame >> 8) & 0xFFFFFF, MVPMatrix);
+            } catch (...) {
+                // Stop rendering meshes
+                return;
+            }
+        }
+    }
+}
+
+PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    if (animation < 0 || frame < 0)
+        return;
+    else if (!model->UseVertexAnimation && animation >= model->FrameCount)
+        return;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4* viewMatrix = nullptr;
+    Matrix4x4* projMatrix = nullptr;
+
+    if (arrayBuffer) {
+        viewMatrix = &arrayBuffer->ViewMatrix;
+        projMatrix = &arrayBuffer->ProjectionMatrix;
+    }
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    int modelVertexIndexCount = model->VertexIndexCount;
+    int arrayVertexCount = rend.VertexCount;
+    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    rend.ClipFaces = arrayBuffer != nullptr;
+    rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
+    rend.DrawModel(model, animation, frame);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (CurrentArrayBuffer == -1)

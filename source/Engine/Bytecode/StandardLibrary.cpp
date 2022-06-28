@@ -1133,6 +1133,7 @@ static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
  * Draw.Model
  * \desc Draws a model.
  * \param modelIndex (Integer): Index of loaded model.
+ * \param animation (Integer): Animation of model to draw.
  * \param frame (Integer): Frame of model to draw.
  * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
@@ -1140,26 +1141,27 @@ static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
  * \ns Draw
  */
 VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
+    CHECK_ARGCOUNT(5);
 
     IModel* model = GET_ARG(0, GetModel);
-    int frame = GET_ARG(1, GetInteger);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetDecimal) * 0x100;
 
     ObjArray* matrixModelArr = NULL;
     Matrix4x4 matrixModel;
-    if (!IS_NULL(args[2])) {
-        matrixModelArr = GET_ARG(2, GetArray);
+    if (!IS_NULL(args[3])) {
+        matrixModelArr = GET_ARG(3, GetArray);
         PrepareMatrix(&matrixModel, matrixModelArr);
     }
 
     ObjArray* matrixNormalArr = NULL;
     Matrix4x4 matrixNormal;
-    if (!IS_NULL(args[3])) {
-        matrixNormalArr = GET_ARG(3, GetArray);
+    if (!IS_NULL(args[4])) {
+        matrixNormalArr = GET_ARG(4, GetArray);
         PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
 
-    SoftwareRenderer::DrawModel(model, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+    SoftwareRenderer::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -1167,6 +1169,7 @@ VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.ModelSimple
  * \desc Draws a model without using matrices.
  * \param modelIndex (Integer): Index of loaded model.
+ * \param animation (Integer): Animation of model to draw.
  * \param frame (Integer): Frame of model to draw.
  * \param x (Number): X position
  * \param y (Number): Y position
@@ -1178,16 +1181,17 @@ VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw
  */
 VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(8);
+    CHECK_ARGCOUNT(9);
 
     IModel* model = GET_ARG(0, GetModel);
-    int frame = GET_ARG(1, GetInteger);
-    float x = GET_ARG(2, GetDecimal);
-    float y = GET_ARG(3, GetDecimal);
-    float scale = GET_ARG(4, GetDecimal);
-    float rx = GET_ARG(5, GetDecimal);
-    float ry = GET_ARG(6, GetDecimal);
-    float rz = GET_ARG(7, GetDecimal);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetDecimal) * 0x100;
+    float x = GET_ARG(3, GetDecimal);
+    float y = GET_ARG(4, GetDecimal);
+    float scale = GET_ARG(5, GetDecimal);
+    float rx = GET_ARG(6, GetDecimal);
+    float ry = GET_ARG(7, GetDecimal);
+    float rz = GET_ARG(8, GetDecimal);
 
     Matrix4x4 matrixScaleTranslate;
     Matrix4x4::IdentityScale(&matrixScaleTranslate, scale, scale, scale);
@@ -1203,7 +1207,7 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
     Matrix4x4::IdentityRotationXYZ(&matrixNormal, 0, ry, rz);
     Matrix4x4::Multiply(&matrixNormal, &matrixNormal, &matrixRotationX);
 
-    SoftwareRenderer::DrawModel(model, frame, &matrixModel, &matrixNormal);
+    SoftwareRenderer::DrawModel(model, animation, frame, &matrixModel, &matrixNormal);
     return NULL_VAL;
 }
 
@@ -5285,10 +5289,10 @@ VMValue Resources_LoadShader(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadModel
- * \desc Doesn't work yet
- * \param filename (String):
- * \param unloadPolicy (Integer):
- * \return
+ * \desc Loads Model resource, returning its Model index.
+ * \param filename (String): Filename of the resource.
+ * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \return Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {

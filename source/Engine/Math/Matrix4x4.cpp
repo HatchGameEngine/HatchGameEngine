@@ -376,6 +376,39 @@ PUBLIC STATIC void       Matrix4x4::LookAt(Matrix4x4* out, float eyex, float eye
     return;
 }
 
+PUBLIC STATIC void       Matrix4x4::Invert(Matrix4x4* out, Matrix4x4* in) {
+    float *src = in->Values;
+    float inv[16];
+
+    inv[0]  =  src[5] * src[10] * src[15] - src[5] * src[11] * src[14] - src[9] * src[6] * src[15] + src[9] * src[7] * src[14] + src[13] * src[6] * src[11] - src[13] * src[7] * src[10];
+    inv[1]  = -src[1] * src[10] * src[15] + src[1] * src[11] * src[14] + src[9] * src[2] * src[15] - src[9] * src[3] * src[14] - src[13] * src[2] * src[11] + src[13] * src[3] * src[10];
+    inv[2]  =  src[1] * src[6] * src[15] - src[1] * src[7] * src[14] - src[5] * src[2] * src[15] + src[5] * src[3] * src[14] + src[13] * src[2] * src[7] - src[13] * src[3] * src[6];
+    inv[3]  = -src[1] * src[6] * src[11] + src[1] * src[7] * src[10] + src[5] * src[2] * src[11] - src[5] * src[3] * src[10] - src[9] * src[2] * src[7] + src[9] * src[3] * src[6];
+    inv[4]  = -src[4] * src[10] * src[15] + src[4] * src[11] * src[14] + src[8] * src[6] * src[15] - src[8] * src[7] * src[14] - src[12] * src[6] * src[11] + src[12] * src[7] * src[10];
+    inv[5]  =  src[0] * src[10] * src[15] - src[0] * src[11] * src[14] - src[8] * src[2] * src[15] + src[8] * src[3] * src[14] + src[12] * src[2] * src[11] - src[12] * src[3] * src[10];
+    inv[6]  = -src[0] * src[6] * src[15] + src[0] * src[7] * src[14] + src[4] * src[2] * src[15] - src[4] * src[3] * src[14] - src[12] * src[2] * src[7] + src[12] * src[3] * src[6];
+    inv[7]  =  src[0] * src[6] * src[11] - src[0] * src[7] * src[10] - src[4] * src[2] * src[11] + src[4] * src[3] * src[10] + src[8] * src[2] * src[7] - src[8] * src[3] * src[6];
+    inv[8]  =  src[4] * src[9] * src[15] - src[4] * src[11] * src[13] - src[8] * src[5] * src[15] + src[8] * src[7] * src[13] + src[12] * src[5] * src[11] - src[12] * src[7] * src[9];
+    inv[9]  = -src[0] * src[9] * src[15] + src[0] * src[11] * src[13] + src[8] * src[1] * src[15] - src[8] * src[3] * src[13] - src[12] * src[1] * src[11] + src[12] * src[3] * src[9];
+    inv[10] =  src[0] * src[5] * src[15] - src[0] * src[7] * src[13] - src[4] * src[1] * src[15] + src[4] * src[3] * src[13] + src[12] * src[1] * src[7] - src[12] * src[3] * src[5];
+    inv[11] = -src[0] * src[5] * src[11] + src[0] * src[7] * src[9] + src[4] * src[1] * src[11] - src[4] * src[3] * src[9] - src[8] * src[1] * src[7] + src[8] * src[3] * src[5];
+    inv[12] = -src[4] * src[9] * src[14] + src[4] * src[10] * src[13] +src[8] * src[5] * src[14] - src[8] * src[6] * src[13] - src[12] * src[5] * src[10] + src[12] * src[6] * src[9];
+    inv[13] =  src[0] * src[9] * src[14] - src[0] * src[10] * src[13] - src[8] * src[1] * src[14] + src[8] * src[2] * src[13] + src[12] * src[1] * src[10] - src[12] * src[2] * src[9];
+    inv[14] = -src[0] * src[5] * src[14] + src[0] * src[6] * src[13] + src[4] * src[1] * src[14] - src[4] * src[2] * src[13] - src[12] * src[1] * src[6] + src[12] * src[2] * src[5];
+    inv[15] =  src[0] * src[5] * src[10] - src[0] * src[6] * src[9] - src[4] * src[1] * src[10] + src[4] * src[2] * src[9] + src[8] * src[1] * src[6] - src[8] * src[2] * src[5];
+
+    float det = src[0] * inv[0] + src[1] * inv[4] + src[2] * inv[8] + src[3] * inv[12];
+    if (det > 0.0f) {
+        det = 1.0f / det;
+        for (int i = 0; i < 16; i++)
+            out->Values[i] = inv[i] * det;
+    }
+    else {
+        for (int i = 0; i < 16; i++)
+            out->Values[i] = 0.0f;
+    }
+}
+
 PUBLIC STATIC void       Matrix4x4::Print(Matrix4x4* out) {
     Log::Print(Log::LOG_INFO, "\n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f", out->Values[0], out->Values[1], out->Values[2], out->Values[3], out->Values[4], out->Values[5], out->Values[6], out->Values[7], out->Values[8], out->Values[9], out->Values[10], out->Values[11], out->Values[12], out->Values[13], out->Values[14], out->Values[15]);
 }

@@ -30,19 +30,6 @@ enum VertexType {
 #define MAX_POLYGON_VERTICES 16
 #define NUM_FRUSTUM_PLANES 6
 
-struct VertexWeightInfo {
-    int  Influences;
-    int* JointIndices;
-    int* WeightIndices;
-};
-
-struct Mesh {
-    Sint16*    VertexIndexBuffer;
-    Uint16     VertexIndexCount;
-    Uint8      VertexFlag;
-    Uint8*     FaceMaterials;
-};
-
 struct VertexAttribute {
     Vector4 Position;
     Vector4 Normal;

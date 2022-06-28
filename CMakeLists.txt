@@ -74,8 +74,13 @@ endif()
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
   find_package(Freetype REQUIRED)
+  find_package(assimp REQUIRED)
+  set(ASSIMP_INCLUDE_DIRS assimp_INCLUDE_DIRS)
+  set(ASSIMP_LIBRARIES assimp)
 else()
   set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
+  set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
+  set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a")
 endif()
 
 # Add needed directories
@@ -83,6 +88,7 @@ include_directories(
   include
   source
   ${SDL2_INCLUDE_DIRS}
+  ${ASSIMP_INCLUDE_DIRS}
 )
 
 # Include libraries
@@ -112,5 +118,6 @@ else()
   target_link_libraries(${PROJECT_NAME}
     ${SDL2_LIBRARIES}
     ${FREETYPE_LIBRARIES}
+    ${ASSIMP_LIBRARIES}
   )
 endif()
