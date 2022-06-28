@@ -58,11 +58,6 @@ static char* CopyString(aiString src) {
     size_t length = strlen(cStr) + 1;
 
     char* string = (char*)Memory::Malloc(length);
-    if (!string) {
-        Log::Print(Log::LOG_ERROR, "Out of memory loading model");
-        exit(-1);
-    }
-
     memcpy(string, cStr, length);
     return string;
 }
@@ -89,7 +84,7 @@ static Image* LoadImage(const char* path) {
         free(concat);
     }
 
-    // Well, I tried
+    // Well, we tried
     if (!image->TexturePtr) {
         image->Dispose();
         image = nullptr;
@@ -134,12 +129,12 @@ static AnimQuaternionKey GetQuatKey(struct aiQuatKey* quatKey) {
     return key;
 }
 
-PRIVATE STATIC void ModelImporter::LoadMesh(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
+PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
     size_t numFaces = amesh->mNumFaces;
     size_t numVertices = amesh->mNumVertices;
 
-    imodel->InitMesh(mesh);
-
+    Mesh* mesh = new Mesh;
+    mesh->Name = CopyString(amesh->mName);
     mesh->NumVertices = numVertices;
 
     mesh->VertexIndexCount = numFaces * 3;
@@ -171,8 +166,6 @@ PRIVATE STATIC void ModelImporter::LoadMesh(IModel* imodel, Mesh* mesh, struct a
         for (int i = 0; i < numVertices; i++)
             mesh->ColorBuffer[i] = 0xFFFFFFFF;
     }
-
-    mesh->Name = CopyString(amesh->mName);
 
     for (size_t v = 0; v < numVertices; v++) {
         vert->X = (int)(amesh->mVertices[v].x * 0x10000);
@@ -214,9 +207,11 @@ PRIVATE STATIC void ModelImporter::LoadMesh(IModel* imodel, Mesh* mesh, struct a
 
     mesh->VertexIndexBuffer[mesh->VertexIndexCount] = -1;
     imodel->VertexIndexCount += mesh->VertexIndexCount;
+
+    return mesh;
 }
 
-PRIVATE STATIC void ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat) {
+PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat) {
     Material* material = new Material();
 
     aiString texDiffuse;
@@ -246,14 +241,14 @@ PRIVATE STATIC void ModelImporter::LoadMaterial(IModel* imodel, struct aiMateria
     if (aiGetMaterialFloatArray(mat, AI_MATKEY_OPACITY, &opacity, &n) == AI_SUCCESS)
         material->Opacity = opacity;
 
-    imodel->Materials.push_back(material);
+    return material;
 }
 
 PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode) {
     ModelNode* node = new ModelNode;
 
     node->Name = CopyString(anode->mName);
-    node->Children.clear();
+    node->Children.resize(0);
     node->Parent = parent;
     node->Transform = CopyMatrix(anode->mTransformation);
     node->LocalTransform = Matrix4x4::Create();
@@ -267,7 +262,7 @@ PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* par
     for (size_t i = 0; i < anode->mNumMeshes; i++) {
         int meshID = MeshIDs[anode->mMeshes[i]];
         if (meshID != -1)
-            node->Meshes.push_back(&imodel->Meshes[meshID]);
+            node->Meshes.push_back(imodel->Meshes[meshID]);
     }
 
     return node;
@@ -275,17 +270,18 @@ PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* par
 
 PRIVATE STATIC void ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
     mesh->UseSkeleton = true;
-    mesh->Bones = new vector<MeshBone*>(amesh->mNumBones);
+    mesh->NumBones = amesh->mNumBones;
+    mesh->Bones = new MeshBone*[mesh->NumBones];
     mesh->VertexWeights = (Uint32*)Memory::Calloc(mesh->NumVertices, sizeof(Uint32));
 
-    for (size_t i = 0; i < amesh->mNumBones; i++) {
+    for (size_t i = 0; i < mesh->NumBones; i++) {
         struct aiBone* abone = amesh->mBones[i];
 
         MeshBone* bone = new MeshBone;
         bone->Name = CopyString(abone->mName);
         bone->InverseBindMatrix = CopyMatrix(abone->mOffsetMatrix);
         bone->FinalTransform = nullptr;
-        bone->Weights.clear();
+        bone->Weights.resize(0);
 
         for (size_t w = 0; w < abone->mNumWeights; w++) {
             struct aiVertexWeight& aweight = abone->mWeights[w];
@@ -312,19 +308,17 @@ PRIVATE STATIC void ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct 
 
         bone->FinalTransform = Matrix4x4::Create();
 
-        (*mesh->Bones)[i] = bone;
+        mesh->Bones[i] = bone;
     }
 }
 
-PRIVATE STATIC void ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimation* aanim) {
+PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimation* aanim) {
     ModelAnim* anim = new ModelAnim;
     anim->Name = CopyString(aanim->mName);
     anim->Channels.resize(aanim->mNumChannels);
     anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
-
-    // TODO: Convert these to fixed-point
-    anim->Duration = aanim->mDuration;
-    anim->TicksPerSecond = aanim->mTicksPerSecond;
+    anim->Duration = aanim->mDuration * 0x10000;
+    anim->TicksPerSecond = aanim->mTicksPerSecond * 0x10000;
 
     for (size_t i = 0; i < aanim->mNumChannels; i++) {
         struct aiNodeAnim* channel = aanim->mChannels[i];
@@ -353,7 +347,7 @@ PRIVATE STATIC void ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimat
         anim->Channels.push_back(nodeAnim);
     }
 
-    imodel->Animations.push_back(anim);
+    return anim;
 }
 
 PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
@@ -396,39 +390,42 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
         meshCount = 256;
 
     // Create model
-    imodel->Meshes = (Mesh*)Memory::Malloc(meshCount * sizeof(Mesh));
+    imodel->Meshes = new Mesh*[meshCount];
     imodel->MeshCount = meshCount;
     imodel->VertexCount = totalVertices;
     imodel->FaceVertexCount = 3;
 
     // Load materials
-    for (size_t i = 0; i < scene->mNumMaterials; i++)
-        LoadMaterial(imodel, scene->mMaterials[i]);
+    if (scene->HasMaterials()) {
+        imodel->MaterialCount = scene->mNumMaterials;
+        imodel->Materials = new Material*[imodel->MaterialCount];
 
-    // Load meshes
-    for (size_t i = 0, meshNum = 0; i < scene->mNumMeshes, meshNum < meshCount; i++) {
-        struct aiMesh* amesh = scene->mMeshes[i];
-        if (amesh->HasPositions())
-            LoadMesh(imodel, &imodel->Meshes[meshNum++], amesh);
+        for (size_t i = 0; i < imodel->MaterialCount; i++)
+            imodel->Materials[i] = LoadMaterial(imodel, scene->mMaterials[i]);
     }
 
-    // Load nodes
+    // Load meshes
+    for (size_t i = 0; i < meshCount; i++)
+        imodel->Meshes[i] = LoadMesh(imodel, ameshes[i]);
+
+    // Load all nodes, starting from the root
     imodel->RootNode = LoadNode(imodel, nullptr, scene->mRootNode);
     imodel->GlobalInverseMatrix = Matrix4x4::Create();
+
+    // Invert the root node's matrix, making a global inverse matrix
     Matrix4x4::Invert(imodel->GlobalInverseMatrix, imodel->RootNode->Transform);
 
     // Load bones
     for (size_t i = 0; i < meshCount; i++) {
-        Mesh* mesh = &imodel->Meshes[i];
         if (ameshes[i]->HasBones())
-            LoadBones(imodel, mesh, ameshes[i]);
+            LoadBones(imodel, imodel->Meshes[i], ameshes[i]);
     }
 
     // Pose and transform the meshes
     imodel->Pose();
 
     for (size_t i = 0; i < meshCount; i++) {
-        Mesh* mesh = &imodel->Meshes[i];
+        Mesh* mesh = imodel->Meshes[i];
         if (!mesh->UseSkeleton)
             continue;
 
@@ -444,10 +441,12 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
     // Load animations
     // FIXME: Doesn't seem to be working with Collada scenes for some reason.
     if (scene->HasAnimations()) {
-        for (size_t i = 0; i < scene->mNumAnimations; i++)
-            LoadAnimation(imodel, scene->mAnimations[i]);
+        imodel->AnimationCount = scene->mNumAnimations;
+        imodel->Animations = new ModelAnim*[imodel->AnimationCount];
 
-        imodel->FrameCount = imodel->Animations.size();
+        for (size_t i = 0; i < imodel->AnimationCount; i++)
+            imodel->Animations[i] = LoadAnimation(imodel, scene->mAnimations[i]);
+
         imodel->Animate(imodel->Animations[0], 0);
     }
 

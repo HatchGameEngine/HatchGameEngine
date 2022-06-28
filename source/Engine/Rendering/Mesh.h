@@ -16,13 +16,17 @@ struct MeshBone {
     Matrix4x4*            GlobalTransform;
     Matrix4x4*            FinalTransform;
     vector<BoneWeight>    Weights;
-};
 
-enum AnimBehavior {
-    AnimBehavior_DEFAULT,
-    AnimBehavior_CONSTANT,
-    AnimBehavior_LINEAR,
-    AnimBehavior_REPEAT
+    ~MeshBone() {
+        Memory::Free(Name);
+
+        delete InverseBindMatrix;
+        delete FinalTransform;
+
+        // I don't delete its GlobalTransform because it points to a node's GlobalTransform
+
+        Weights.clear();
+    }
 };
 
 struct AnimVectorKey {
@@ -33,6 +37,13 @@ struct AnimVectorKey {
 struct AnimQuaternionKey {
     double  Time;
     Vector4 Value;
+};
+
+enum AnimBehavior {
+    AnimBehavior_DEFAULT,
+    AnimBehavior_CONSTANT,
+    AnimBehavior_LINEAR,
+    AnimBehavior_REPEAT
 };
 
 struct NodeAnim {
@@ -48,6 +59,14 @@ struct NodeAnim {
 
     AnimBehavior              PostState;
     AnimBehavior              PreState;
+
+    ~NodeAnim() {
+        Memory::Free(NodeName);
+
+        PositionKeys.clear();
+        RotationKeys.clear();
+        ScalingKeys.clear();
+    }
 };
 
 struct ModelAnim {
@@ -56,8 +75,17 @@ struct ModelAnim {
     vector<NodeAnim*>   Channels;
     HashMap<NodeAnim*>* NodeLookup;
 
-    double              Duration;
-    double              TicksPerSecond;
+    Uint32              Duration;
+    Uint32              TicksPerSecond;
+
+    ~ModelAnim() {
+        Memory::Free(Name);
+
+        for (size_t i = 0; i < Channels.size(); i++)
+            delete Channels[i];
+
+        delete NodeLookup;
+    }
 };
 
 struct Mesh {
@@ -76,11 +104,50 @@ struct Mesh {
 
     int                MaterialIndex;
     bool               UseSkeleton;
-    vector<MeshBone*>* Bones;
+
+    MeshBone**         Bones;
+    size_t             NumBones;
+
     Uint32*            VertexWeights;
 
     Vector3*           TransformedPositions;
     Vector3*           TransformedNormals;
+
+    Mesh() {
+        NumVertices = 0;
+        VertexFlag = 0;
+        MaterialIndex = -1;
+        UseSkeleton = false;
+        PositionBuffer = nullptr;
+        NormalBuffer = nullptr;
+        UVBuffer = nullptr;
+        ColorBuffer = nullptr;
+        TransformedPositions = nullptr;
+        TransformedNormals = nullptr;
+        Bones = nullptr;
+        VertexWeights = nullptr;
+        Name = nullptr;
+    };
+
+    ~Mesh() {
+        Memory::Free(Name);
+        Memory::Free(PositionBuffer);
+        Memory::Free(NormalBuffer);
+        Memory::Free(UVBuffer);
+        Memory::Free(ColorBuffer);
+        Memory::Free(VertexIndexBuffer);
+
+        Memory::Free(VertexWeights);
+
+        Memory::Free(TransformedPositions);
+        Memory::Free(TransformedNormals);
+
+        if (Bones) {
+            for (size_t i = 0; i < NumBones; i++)
+                delete Bones[i];
+            delete[] Bones;
+        }
+    }
 };
 
 struct ModelNode {
@@ -88,11 +155,23 @@ struct ModelNode {
 
     ModelNode*         Parent;
     vector<ModelNode*> Children;
+
     Matrix4x4*         Transform;
     Matrix4x4*         LocalTransform;
     Matrix4x4*         GlobalTransform;
 
     vector<Mesh*>      Meshes;
+
+    ~ModelNode() {
+        Memory::Free(Name);
+
+        delete Transform;
+        delete LocalTransform;
+        delete GlobalTransform;
+
+        for (size_t i = 0; i < Children.size(); i++)
+            delete Children[i];
+    }
 };
 
 #endif /* MESH_H */

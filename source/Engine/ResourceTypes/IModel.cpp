@@ -8,18 +8,22 @@
 
 class IModel {
 public:
-    Uint16              MeshCount;
-    Uint16              VertexCount;
-    Uint16              FrameCount; // HACK: This is the animation count in models with skeletal animation
+    Mesh**              Meshes;
+    size_t              MeshCount;
 
-    Mesh*               Meshes;
-    Uint16              VertexIndexCount;
+    size_t              VertexCount;
+    size_t              FrameCount;
+    size_t              VertexIndexCount;
 
     Uint8               VertexFlag;
     Uint8               FaceVertexCount;
 
-    vector<Material*>   Materials;
-    vector<ModelAnim*>  Animations;
+    Material**          Materials;
+    size_t              MaterialCount;
+
+    ModelAnim**         Animations;
+    size_t              AnimationCount;
+
     bool                UseVertexAnimation;
 
     ModelNode*          RootNode;
@@ -43,6 +47,7 @@ PUBLIC IModel::IModel() {
     MeshCount = 0;
     VertexCount = 0;
     FrameCount = 0;
+    AnimationCount = 0;
 
     Meshes = nullptr;
     VertexIndexCount = 0;
@@ -50,8 +55,8 @@ PUBLIC IModel::IModel() {
     VertexFlag = 0;
     FaceVertexCount = 0;
 
-    Materials.resize(0);
-    Animations.resize(0);
+    Materials = nullptr;
+    Animations = nullptr;
     UseVertexAnimation = false;
 
     RootNode = nullptr;
@@ -77,20 +82,6 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
         return this->ReadRSDK(stream);
 
     return !!ModelImporter::Convert(this, stream, filename);
-}
-
-PUBLIC void IModel::InitMesh(Mesh* mesh) {
-    mesh->VertexFlag = 0;
-    mesh->MaterialIndex = -1;
-    mesh->UseSkeleton = false;
-    mesh->PositionBuffer = nullptr;
-    mesh->NormalBuffer = nullptr;
-    mesh->UVBuffer = nullptr;
-    mesh->ColorBuffer = nullptr;
-    mesh->TransformedPositions = nullptr;
-    mesh->TransformedNormals = nullptr;
-    mesh->Bones = nullptr;
-    mesh->VertexWeights = nullptr;
 }
 
 PUBLIC ModelNode* IModel::SearchNode(ModelNode* node, char* name) {
@@ -125,13 +116,11 @@ PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 fr
 }
 
 PUBLIC void IModel::CalculateBones(Mesh* mesh) {
-    if (!mesh->Bones)
+    if (!mesh->NumBones)
         return;
 
-    vector<MeshBone*>& bones = *mesh->Bones;
-
-    for (size_t i = 0; i < mesh->Bones->size(); i++) {
-        MeshBone* bone = bones[i];
+    for (size_t i = 0; i < mesh->NumBones; i++) {
+        MeshBone* bone = mesh->Bones[i];
 
         Matrix4x4::Multiply(bone->FinalTransform, bone->InverseBindMatrix, bone->GlobalTransform);
         Matrix4x4::Multiply(bone->FinalTransform, GlobalInverseMatrix, bone->FinalTransform);
@@ -159,17 +148,15 @@ static Vector3 MultiplyMatrix3x3(Vector3* v, Matrix4x4* m) {
 }
 
 PUBLIC void IModel::TransformMesh(Mesh* mesh, Vector3* outPositions, Vector3* outNormals) {
-    if (!mesh->Bones)
+    if (!mesh->NumBones)
         return;
-
-    vector<MeshBone*>& bones = *mesh->Bones;
 
     memset(outPositions, 0x00, mesh->NumVertices * sizeof(Vector3));
     if (outNormals)
         memset(outNormals, 0x00, mesh->NumVertices * sizeof(Vector3));
 
-    for (size_t i = 0; i < mesh->Bones->size(); i++) {
-        MeshBone* bone = bones[i];
+    for (size_t i = 0; i < mesh->NumBones; i++) {
+        MeshBone* bone = mesh->Bones[i];
 
         for (size_t w = 0; w < bone->Weights.size(); w++) {
             BoneWeight& boneWeight = bone->Weights[w];
@@ -296,101 +283,70 @@ static Vector4 InterpolateQuaternions(Vector4 q1, Vector4 q2, Sint64 t) {
     return result;
 }
 
-PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
-    Uint32 keyframe = (frame >> 8) & 0xFFFFFF;
+PUBLIC Uint32 IModel::GetKeyFrame(Uint32 frame) {
+    return (frame >> 8) & 0xFFFFFF;
+}
+
+PUBLIC Sint64 IModel::GetInBetween(Uint32 frame) {
     float interp = (float)(frame & 0xFF) / 0xFF;
     Sint64 inbetween = (Sint64)(interp * 0x10000);
+
     if (inbetween < 0)
         inbetween = 0;
     else if (inbetween > 0x10000)
         inbetween = 0x10000;
 
+    return inbetween;
+}
+
+PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
+    Uint32 keyframe = GetKeyFrame(frame);
+    Sint64 inbetween = GetInBetween(frame);
+
     // TODO: Use the keys' time values instead of what I'm doing right now
-    AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
-    AnimVectorKey& p2 = channel->PositionKeys[(keyframe+1) % channel->NumPositionKeys];
+    if (inbetween == 0) {
+        AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
+        AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
+        AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
 
-    AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
-    AnimQuaternionKey& r2 = channel->RotationKeys[(keyframe+1) % channel->NumRotationKeys];
+        MakeChannelMatrix(out, &p1.Value, &r1.Value, &s1.Value);
+    }
+    else if (inbetween == 0x10000) {
+        AnimVectorKey& p2 = channel->PositionKeys[(keyframe+1) % channel->NumPositionKeys];
+        AnimQuaternionKey& r2 = channel->RotationKeys[(keyframe+1) % channel->NumRotationKeys];
+        AnimVectorKey& s2 = channel->ScalingKeys[(keyframe+1) % channel->NumScalingKeys];
 
-    AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
-    AnimVectorKey& s2 = channel->ScalingKeys[(keyframe+1) % channel->NumScalingKeys];
+        MakeChannelMatrix(out, &p2.Value, &r2.Value, &s2.Value);
+    }
+    else {
+        AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
+        AnimVectorKey& p2 = channel->PositionKeys[(keyframe+1) % channel->NumPositionKeys];
 
-    Vector3 pos = Vector::Interpolate(p1.Value, p2.Value, inbetween);
-    Vector4 rot = InterpolateQuaternions(r1.Value, r2.Value, inbetween);
-    Vector3 scale = Vector::Interpolate(s1.Value, s2.Value, inbetween);
+        AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
+        AnimQuaternionKey& r2 = channel->RotationKeys[(keyframe+1) % channel->NumRotationKeys];
 
-    MakeChannelMatrix(out, &pos, &rot, &scale);
+        AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
+        AnimVectorKey& s2 = channel->ScalingKeys[(keyframe+1) % channel->NumScalingKeys];
+
+        Vector3 pos = Vector::Interpolate(p1.Value, p2.Value, inbetween);
+        Vector4 rot = InterpolateQuaternions(r1.Value, r2.Value, inbetween);
+        Vector3 scale = Vector::Interpolate(s1.Value, s2.Value, inbetween);
+
+        MakeChannelMatrix(out, &pos, &rot, &scale);
+    }
 }
 
 PUBLIC void IModel::Animate(ModelAnim* animation, Uint32 frame) {
     Pose(animation, frame);
 
     for (size_t i = 0; i < MeshCount; i++) {
-        Mesh* mesh = &Meshes[i];
+        Mesh* mesh = Meshes[i];
         if (!mesh->UseSkeleton || !mesh->TransformedPositions)
             continue;
 
         CalculateBones(mesh);
         TransformMesh(mesh, mesh->TransformedPositions, mesh->TransformedNormals);
     }
-}
-
-PUBLIC void IModel::UnloadBones(Mesh* mesh) {
-    if (mesh->Bones == nullptr)
-        return;
-
-    vector<MeshBone*>& bones = *mesh->Bones;
-
-    for (size_t i = 0; i < mesh->Bones->size(); i++) {
-        MeshBone* bone = bones[i];
-        if (!bone)
-            continue;
-
-        Memory::Free(bone->Name);
-
-        if (bone->InverseBindMatrix)
-            delete bone->InverseBindMatrix;
-        if (bone->FinalTransform)
-            delete bone->FinalTransform;
-
-        // I don't free its GlobalTransform because it points to a node's GlobalTransform
-
-        bone->Weights.clear();
-
-        delete bone;
-    }
-
-    delete mesh->Bones;
-}
-
-PUBLIC void IModel::UnloadNode(ModelNode* node) {
-    if (node->Transform)
-        delete node->Transform;
-    if (node->GlobalTransform)
-        delete node->GlobalTransform;
-
-    for (size_t i = 0; i < node->Children.size(); i++)
-        UnloadNode(node->Children[i]);
-}
-
-PUBLIC void IModel::UnloadNodeAnimation(NodeAnim* nodeAnim) {
-    Memory::Free(nodeAnim->NodeName);
-
-    nodeAnim->PositionKeys.clear();
-    nodeAnim->RotationKeys.clear();
-    nodeAnim->ScalingKeys.clear();
-
-    delete nodeAnim;
-}
-
-PUBLIC void IModel::UnloadAnimation(ModelAnim* anim) {
-    Memory::Free(anim->Name);
-
-    for (size_t i = 0; i < anim->Channels.size(); i++)
-        UnloadNodeAnimation(anim->Channels[i]);
-
-    delete anim->NodeLookup;
-    delete anim;
 }
 
 PUBLIC void IModel::Dispose() {
@@ -402,45 +358,29 @@ PUBLIC void IModel::Dispose() {
     VertexIndexCount = 0;
     FaceVertexCount = 0;
 
-    for (size_t i = 0; i < MeshCount; i++) {
-        Mesh* mesh = &Meshes[i];
+    for (size_t i = 0; i < MeshCount; i++)
+        delete Meshes[i];
 
-        Memory::Free(mesh->Name);
-        Memory::Free(mesh->PositionBuffer);
-        Memory::Free(mesh->NormalBuffer);
-        Memory::Free(mesh->UVBuffer);
-        Memory::Free(mesh->ColorBuffer);
-        Memory::Free(mesh->VertexIndexBuffer);
-
-        if (mesh->Bones) {
-            UnloadBones(mesh);
-            delete mesh->Bones;
-        }
-
-        Memory::Free(mesh->VertexWeights);
-
-        Memory::Free(mesh->TransformedPositions);
-        Memory::Free(mesh->TransformedNormals);
-    }
-
-    Memory::Free(Meshes);
+    delete[] Meshes;
     Meshes = nullptr;
     MeshCount = 0;
 
-    for (size_t i = 0; i < Materials.size(); i++)
+    for (size_t i = 0; i < MaterialCount; i++)
         delete Materials[i];
-    Materials.resize(0);
+    delete[] Materials;
+    Materials = nullptr;
+    MaterialCount = 0;
 
-    for (size_t i = 0; i < Animations.size(); i++)
-        UnloadAnimation(Animations[i]);
-    Animations.resize(0);
+    for (size_t i = 0; i < AnimationCount; i++)
+        delete Animations[i];
+    delete[] Animations;
+    Animations = nullptr;
+    AnimationCount = 0;
 
-    if (RootNode)
-        UnloadNode(RootNode);
+    delete RootNode;
     RootNode = nullptr;
 
-    if (GlobalInverseMatrix)
-        delete GlobalInverseMatrix;
+    delete GlobalInverseMatrix;
     GlobalInverseMatrix = nullptr;
 }
 
@@ -458,12 +398,13 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     FaceVertexCount = stream->ReadByte();
     VertexCount = stream->ReadUInt16();
     FrameCount = stream->ReadUInt16();
+    AnimationCount = 1;
 
-    Mesh* mesh = (Mesh*)Memory::Malloc(sizeof(Mesh));
-    Meshes = mesh;
+    // We only need one mesh for RSDK models
+    Mesh* mesh = new Mesh;
+    Meshes = new Mesh*[1];
+    Meshes[0] = mesh;
     MeshCount = 1;
-
-    InitMesh(mesh);
 
     mesh->VertexFlag = VertexFlag;
     mesh->PositionBuffer = (Vector3*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector3));
@@ -506,9 +447,8 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         }
     }
 
-    Materials.clear();
-    Animations.clear();
-
+    Materials = nullptr;
+    Animations = nullptr;
     RootNode = nullptr;
     GlobalInverseMatrix = nullptr;
     UseVertexAnimation = true;
@@ -522,8 +462,8 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     mesh->VertexIndexBuffer[VertexIndexCount] = -1;
 
     if (VertexFlag & VertexType_Normal) {
-        Vector3* vert = &mesh->PositionBuffer[0];
-        Vector3* norm = &mesh->NormalBuffer[0];
+        Vector3* vert = mesh->PositionBuffer;
+        Vector3* norm = mesh->NormalBuffer;
         int totalVertexCount = VertexCount * FrameCount;
         for (int v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);
@@ -538,7 +478,7 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         }
     }
     else {
-        Vector3* vert = &mesh->PositionBuffer[0];
+        Vector3* vert = mesh->PositionBuffer;
         int totalVertexCount = VertexCount * FrameCount;
         for (int v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);

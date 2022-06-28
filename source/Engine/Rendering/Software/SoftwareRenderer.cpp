@@ -3248,8 +3248,7 @@ void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
 
 void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
     if (!model->UseVertexAnimation) {
-        // FrameCount is the animation count in models that use skeletal animation
-        Uint16 numAnims = model->FrameCount;
+        Uint16 numAnims = model->AnimationCount;
         if (numAnims > 0) {
             if (animation >= numAnims)
                 animation = numAnims - 1;
@@ -3258,8 +3257,6 @@ void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
             model->Animate(model->Animations[animation], frame);
         }
     }
-    else
-        frame %= model->FrameCount;
 
     if (ViewMatrix && ProjectionMatrix)
         CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
@@ -3274,15 +3271,16 @@ void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
             DrawNode(model, model->RootNode, &identity);
         } catch (...) {
             // Just ignore it
-            return;
         }
     }
     else {
+        frame = model->GetKeyFrame(frame) % model->FrameCount;
+
         for (int i = 0; i < model->MeshCount; i++) {
-            Mesh* mesh = &model->Meshes[i];
+            Mesh* mesh = model->Meshes[i];
 
             try {
-                DrawMesh(model, mesh, (frame >> 8) & 0xFFFFFF, MVPMatrix);
+                DrawMesh(model, mesh, frame, MVPMatrix);
             } catch (...) {
                 // Stop rendering meshes
                 return;
@@ -3297,7 +3295,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animati
 
     if (animation < 0 || frame < 0)
         return;
-    else if (!model->UseVertexAnimation && animation >= model->FrameCount)
+    else if (!model->UseVertexAnimation && animation >= model->AnimationCount)
         return;
 
     GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);

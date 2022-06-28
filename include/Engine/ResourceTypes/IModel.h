@@ -8,6 +8,7 @@
 #define VIRTUAL
 #define EXPOSED
 
+class Material;
 class Matrix4x4;
 
 #include <Engine/Includes/Standard.h>
@@ -22,15 +23,17 @@ private:
     void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 
 public:
-    Uint16              MeshCount;
-    Uint16              VertexCount;
-    Uint16              FrameCount; // HACK: This is the animation count in models with skeletal animation
-    Mesh*               Meshes;
-    Uint16              VertexIndexCount;
+    Mesh**              Meshes;
+    size_t              MeshCount;
+    size_t              VertexCount;
+    size_t              FrameCount;
+    size_t              VertexIndexCount;
     Uint8               VertexFlag;
     Uint8               FaceVertexCount;
-    vector<Material*>   Materials;
-    vector<ModelAnim*>  Animations;
+    Material**          Materials;
+    size_t              MaterialCount;
+    ModelAnim**         Animations;
+    size_t              AnimationCount;
     bool                UseVertexAnimation;
     ModelNode*          RootNode;
     Matrix4x4*          GlobalInverseMatrix;
@@ -38,7 +41,6 @@ public:
     IModel();
     IModel(const char* filename);
     bool Load(Stream* stream, const char* filename);
-    void InitMesh(Mesh* mesh);
     ModelNode* SearchNode(ModelNode* node, char* name);
     void TransformNode(ModelNode* node, Matrix4x4* parentMatrix);
     void AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 frame, Matrix4x4* parentMatrix);
@@ -46,11 +48,9 @@ public:
     void TransformMesh(Mesh* mesh, Vector3* outPositions, Vector3* outNormals);
     void Pose();
     void Pose(ModelAnim* animation, Uint32 frame);
+    Uint32 GetKeyFrame(Uint32 frame);
+    Sint64 GetInBetween(Uint32 frame);
     void Animate(ModelAnim* animation, Uint32 frame);
-    void UnloadBones(Mesh* mesh);
-    void UnloadNode(ModelNode* node);
-    void UnloadNodeAnimation(NodeAnim* nodeAnim);
-    void UnloadAnimation(ModelAnim* anim);
     void Dispose();
     ~IModel();
     bool ReadRSDK(Stream* stream);

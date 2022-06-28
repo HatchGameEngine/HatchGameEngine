@@ -15,11 +15,11 @@
 
 class ModelImporter {
 private:
-    static void LoadMesh(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
-    static void LoadMaterial(IModel* imodel, struct aiMaterial* mat);
+    static Mesh* LoadMesh(IModel* imodel, struct aiMesh* amesh);
+    static Material* LoadMaterial(IModel* imodel, struct aiMaterial* mat);
     static ModelNode* LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode);
     static void LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
-    static void LoadAnimation(IModel* imodel, struct aiAnimation* aanim);
+    static ModelAnim* LoadAnimation(IModel* imodel, struct aiAnimation* aanim);
     static bool DoConversion(const struct aiScene* scene, IModel* imodel);
 
 public:
