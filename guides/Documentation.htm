@@ -60,6 +60,7 @@
             <li><a href="#Reference_JSON">JSON</a></li>
             <li><a href="#Reference_Math">Math</a></li>
             <li><a href="#Reference_Matrix">Matrix</a></li>
+            <li><a href="#Reference_Model">Model</a></li>
             <li><a href="#Reference_Music">Music</a></li>
             <li><a href="#Reference_Number">Number</a></li>
             <li><a href="#Reference_Palette">Palette</a></li>
@@ -152,6 +153,7 @@
                     <li><a href="#Reference_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
                     <li><a href="#Reference_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
                     <li><a href="#Reference_Draw_Model">Draw.Model</a></li>
+                    <li><a href="#Reference_Draw_ModelSkinned">Draw.ModelSkinned</a></li>
                     <li><a href="#Reference_Draw_ModelSimple">Draw.ModelSimple</a></li>
                     <li><a href="#Reference_Draw_Triangle3D">Draw.Triangle3D</a></li>
                     <li><a href="#Reference_Draw_Quad3D">Draw.Quad3D</a></li>
@@ -349,6 +351,21 @@
                     <li><a href="#Reference_Matrix_Translate">Matrix.Translate</a></li>
                     <li><a href="#Reference_Matrix_Scale">Matrix.Scale</a></li>
                     <li><a href="#Reference_Matrix_Rotate">Matrix.Rotate</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Model">
+                <h2>Model</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Model_GetAnimationCount">Model.GetAnimationCount</a></li>
+                    <li><a href="#Reference_Model_GetAnimationName">Model.GetAnimationName</a></li>
+                    <li><a href="#Reference_Model_GetAnimationIndex">Model.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_Model_GetFrameCount">Model.GetFrameCount</a></li>
+                    <li><a href="#Reference_Model_GetAnimationLength">Model.GetAnimationLength</a></li>
+                    <li><a href="#Reference_Model_CreateArmature">Model.CreateArmature</a></li>
+                    <li><a href="#Reference_Model_PoseArmature">Model.PoseArmature</a></li>
+                    <li><a href="#Reference_Model_ResetArmature">Model.ResetArmature</a></li>
+                    <li><a href="#Reference_Model_DeleteArmature">Model.DeleteArmature</a></li>
                 </ul>
             </p>
             <p id="Reference_Music">
@@ -1117,7 +1134,20 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>modelIndex (Integer): Index of loaded model.</li>
         <li>animation (Integer): Animation of model to draw.</li>
-        <li>frame (Integer): Frame of model to draw.</li>
+        <li>frame (Decimal): Frame of model to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ModelSkinned">
+        <h2 style="margin-bottom: 8px;">Draw.ModelSkinned</h2>
+        <code>Draw.ModelSkinned(modelIndex, skeleton[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a skinned model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>skeleton (Integer): Skeleton of model to skin the model.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
         </ul>
@@ -2972,6 +3002,116 @@
         <li>x (Number): X rotation value.</li>
         <li>y (Number): Y rotation value.</li>
         <li>z (Number): Z rotation value.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Model_GetAnimationCount">
+        <h2 style="margin-bottom: 8px;">Model.GetAnimationCount</h2>
+        <code>Model.GetAnimationCount(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many animations exist in the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The animation count. Will always return <code>0</code> for vertex-animated models.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_GetAnimationName">
+        <h2 style="margin-bottom: 8px;">Model.GetAnimationName</h2>
+        <code>Model.GetAnimationName(model, animation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the model animation with the specified index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        <li>animation (Integer): Index of the animation.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the animation name, or <code>null</code> if the model contains no animations.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_GetAnimationIndex">
+        <h2 style="margin-bottom: 8px;">Model.GetAnimationIndex</h2>
+        <code>Model.GetAnimationIndex(model, animationName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the model animation with the specified name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        <li>animationName (String): Name of the animation to find.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_GetFrameCount">
+        <h2 style="margin-bottom: 8px;">Model.GetFrameCount</h2>
+        <code>Model.GetFrameCount(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The frame count. Will always return <code>0</code> for skeletal-animated models.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_GetAnimationLength">
+        <h2 style="margin-bottom: 8px;">Model.GetAnimationLength</h2>
+        <code>Model.GetAnimationLength(model, animation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the length of the animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The number of keyframes in the animation.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_CreateArmature">
+        <h2 style="margin-bottom: 8px;">Model.CreateArmature</h2>
+        <code>Model.CreateArmature(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates an armature from the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the armature.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_PoseArmature">
+        <h2 style="margin-bottom: 8px;">Model.PoseArmature</h2>
+        <code>Model.PoseArmature(model, armature[, animation, frame])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Poses an armature.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index.</li>
+        <li>armature (Integer): The armature index to pose.</li>
+        <li>animation (Integer): Animation to pose the armature.</li>
+        <li>frame (Decimal): Frame to pose the armature.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Model_ResetArmature">
+        <h2 style="margin-bottom: 8px;">Model.ResetArmature</h2>
+        <code>Model.ResetArmature(model, armature)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Resets an armature to its default pose.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index.</li>
+        <li>armature (Integer): The armature index to reset.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Model_DeleteArmature">
+        <h2 style="margin-bottom: 8px;">Model.DeleteArmature</h2>
+        <code>Model.DeleteArmature(model, armature)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Deletes an armature from the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index.</li>
+        <li>armature (Integer): The armature index to delete.</li>
         </ul>
         </p>
         <hr/>
@@ -4892,6 +5032,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>310 out of 382 functions have descriptions. </p>
+        <p>320 out of 392 functions have descriptions. </p>
     </body>
 </html>

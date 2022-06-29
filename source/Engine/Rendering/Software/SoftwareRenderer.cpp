@@ -2891,8 +2891,9 @@ class ModelRenderer {
 public:
     ModelRenderer(VertexBuffer* vertexBuffer);
 
+    void DrawModel(IModel* model, Uint32 frame);
     void DrawModel(IModel* model, Uint16 animation, Uint32 frame);
-    void DrawMesh(IModel* model, Mesh* mesh, Uint16 frame, Matrix4x4& mvpMatrix);
+    void DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix);
     void DrawNode(IModel* model, ModelNode* node, Matrix4x4* world);
     void AddFace(int faceVertexCount, Material* material);
     int  ClipFace(int faceVertexCount);
@@ -2913,6 +2914,7 @@ public:
     Matrix4x4        MVPMatrix;
 
     bool             ClipFaces;
+    Armature*        ArmaturePtr;
 };
 
 ModelRenderer::ModelRenderer(VertexBuffer* vertexBuffer) {
@@ -2923,6 +2925,7 @@ ModelRenderer::ModelRenderer(VertexBuffer* vertexBuffer) {
     AttribBuffer = Vertex = &Buffer->Vertices[VertexCount];
 
     ClipFaces = false;
+    ArmaturePtr = nullptr;
 }
 
 void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
@@ -2972,7 +2975,7 @@ int ModelRenderer::ClipFace(int faceVertexCount) {
     return faceVertexCount;
 }
 
-void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 frame, Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
     Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
 
     int modelVertexIndexCount = mesh->VertexIndexCount;
@@ -2989,14 +2992,9 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 frame, Matrix4x4&
     Vector3* positionBuffer = mesh->PositionBuffer;
     Vector3* normalBuffer = mesh->NormalBuffer;
 
-    if (mesh->UseSkeleton) {
-        positionBuffer = mesh->TransformedPositions;
-        normalBuffer = mesh->TransformedNormals;
-    }
-    else if (model->UseVertexAnimation) {
-        positionBuffer += frame * model->VertexCount;
-        if (normalBuffer)
-            normalBuffer += frame * model->VertexCount;
+    if (skeleton) {
+        positionBuffer = skeleton->TransformedPositions;
+        normalBuffer = skeleton->TransformedNormals;
     }
 
     switch (mesh->VertexFlag & vertexTypeMask) {
@@ -3217,15 +3215,15 @@ void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
     size_t numMeshes = node->Meshes.size();
     size_t numChildren = node->Children.size();
 
-    Matrix4x4::Multiply(world, world, node->Transform);
+    Matrix4x4::Multiply(world, world, node->TransformMatrix);
     Matrix4x4 nodeToWorldMat;
     bool madeMatrix = false;
 
     for (size_t i = 0; i < numMeshes; i++) {
         Mesh* mesh = node->Meshes[i];
 
-        if (mesh->UseSkeleton) // in world space
-            DrawMesh(model, mesh, 0, MVPMatrix);
+        if (mesh->SkeletonIndex != -1) // in world space
+            DrawMesh(model, mesh, ArmaturePtr->Skeletons[mesh->SkeletonIndex], MVPMatrix);
         else {
             if (!madeMatrix) {
                 if (ViewMatrix && ProjectionMatrix) {
@@ -3238,7 +3236,7 @@ void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
                 madeMatrix = true;
             }
 
-            DrawMesh(model, mesh, 0, nodeToWorldMat);
+            DrawMesh(model, mesh, nullptr, nodeToWorldMat);
         }
     }
 
@@ -3246,47 +3244,61 @@ void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
         DrawNode(model, node->Children[i], world);
 }
 
-void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
-    if (!model->UseVertexAnimation) {
-        Uint16 numAnims = model->AnimationCount;
-        if (numAnims > 0) {
-            if (animation >= numAnims)
-                animation = numAnims - 1;
-
-            // TODO: Optimize this?
-            model->Animate(model->Animations[animation], frame);
-        }
-    }
-
+void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
     if (ViewMatrix && ProjectionMatrix)
         CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
         CalculateMVPMatrix(&MVPMatrix, ModelMatrix, NULL, NULL);
 
-    if (model->RootNode) {
+    if (!model->UseVertexAnimation) {
         Matrix4x4 identity;
         Matrix4x4::Identity(&identity);
 
         try {
-            DrawNode(model, model->RootNode, &identity);
-        } catch (...) {
-            // Just ignore it
-        }
+            DrawNode(model, model->BaseArmature->RootNode, &identity);
+        } catch (...) { }
     }
     else {
+        static Skeleton vertexAnimSkeleton;
+
         frame = model->GetKeyFrame(frame) % model->FrameCount;
 
+        // Just render every mesh directly
         for (int i = 0; i < model->MeshCount; i++) {
             Mesh* mesh = model->Meshes[i];
 
+            Skeleton *skeletonPtr = nullptr;
+            if (frame) {
+                skeletonPtr = &vertexAnimSkeleton;
+                skeletonPtr->TransformedPositions = mesh->PositionBuffer + (frame * model->VertexCount);
+                skeletonPtr->TransformedNormals = mesh->NormalBuffer + (frame * model->VertexCount);
+            }
+
             try {
-                DrawMesh(model, mesh, frame, MVPMatrix);
+                DrawMesh(model, mesh, skeletonPtr, MVPMatrix);
             } catch (...) {
                 // Stop rendering meshes
                 return;
             }
         }
     }
+}
+
+void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+    if (!model->UseVertexAnimation) {
+        if (ArmaturePtr == nullptr)
+            ArmaturePtr = model->BaseArmature;
+
+        Uint16 numAnims = model->AnimationCount;
+        if (numAnims > 0) {
+            if (animation >= numAnims)
+                animation = numAnims - 1;
+
+            model->Animate(ArmaturePtr, model->Animations[animation], frame);
+        }
+    }
+
+    DrawModel(model, frame);
 }
 
 PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
@@ -3320,6 +3332,42 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animati
     rend.ClipFaces = arrayBuffer != nullptr;
     rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
     rend.DrawModel(model, animation, frame);
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(IModel* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    if (model->UseVertexAnimation) {
+        SoftwareRenderer::DrawModel(model, 0, 0, modelMatrix, normalMatrix);
+        return;
+    }
+
+    if (armature >= model->ArmatureCount)
+        return;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4* viewMatrix = nullptr;
+    Matrix4x4* projMatrix = nullptr;
+
+    if (arrayBuffer) {
+        viewMatrix = &arrayBuffer->ViewMatrix;
+        projMatrix = &arrayBuffer->ProjectionMatrix;
+    }
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    int modelVertexIndexCount = model->VertexIndexCount;
+    int arrayVertexCount = rend.VertexCount;
+    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    rend.ClipFaces = arrayBuffer != nullptr;
+    rend.ArmaturePtr = model->ArmatureList[armature];
+    rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
+    rend.DrawModel(model, 0);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (CurrentArrayBuffer == -1)

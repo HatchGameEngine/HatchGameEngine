@@ -54,12 +54,7 @@ static void CopyColors(float dest[4], aiColor4D& src) {
 }
 
 static char* CopyString(aiString src) {
-    const char* cStr = src.C_Str();
-    size_t length = strlen(cStr) + 1;
-
-    char* string = (char*)Memory::Malloc(length);
-    memcpy(string, cStr, length);
-    return string;
+    return StringUtils::Duplicate(src.C_Str());
 }
 
 static Matrix4x4* CopyMatrix(aiMatrix4x4 mat) {
@@ -81,7 +76,7 @@ static Image* LoadImage(const char* path) {
         char* concat = StringUtils::ConcatPaths(ModelImporter::ParentDirectory, path);
         image = new Image(concat);
 
-        free(concat);
+        Memory::Free(concat);
     }
 
     // Well, we tried
@@ -248,16 +243,16 @@ PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* par
     ModelNode* node = new ModelNode;
 
     node->Name = CopyString(anode->mName);
-    node->Children.resize(0);
     node->Parent = parent;
-    node->Transform = CopyMatrix(anode->mTransformation);
     node->LocalTransform = Matrix4x4::Create();
     node->GlobalTransform = Matrix4x4::Create();
 
-    Matrix4x4::Copy(node->LocalTransform, node->Transform);
+    node->TransformMatrix = CopyMatrix(anode->mTransformation);
+    Matrix4x4::Copy(node->LocalTransform, node->TransformMatrix);
 
+    node->Children.resize(anode->mNumChildren);
     for (size_t i = 0; i < anode->mNumChildren; i++)
-        node->Children.push_back(LoadNode(imodel, node, anode->mChildren[i]));
+        node->Children[i] = LoadNode(imodel, node, anode->mChildren[i]);
 
     for (size_t i = 0; i < anode->mNumMeshes; i++) {
         int meshID = MeshIDs[anode->mMeshes[i]];
@@ -268,20 +263,23 @@ PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* par
     return node;
 }
 
-PRIVATE STATIC void ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
-    mesh->UseSkeleton = true;
-    mesh->NumBones = amesh->mNumBones;
-    mesh->Bones = new MeshBone*[mesh->NumBones];
-    mesh->VertexWeights = (Uint32*)Memory::Calloc(mesh->NumVertices, sizeof(Uint32));
+PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
+    Skeleton* skeleton = new Skeleton;
 
-    for (size_t i = 0; i < mesh->NumBones; i++) {
+    skeleton->NumBones = amesh->mNumBones;
+    skeleton->NumVertices = mesh->NumVertices;
+    skeleton->Bones = new MeshBone*[skeleton->NumBones];
+    skeleton->VertexWeights = (Uint32*)Memory::Calloc(skeleton->NumVertices, sizeof(Uint32));
+    skeleton->PositionBuffer = mesh->PositionBuffer;
+    skeleton->NormalBuffer = mesh->NormalBuffer;
+    skeleton->GlobalInverseMatrix = imodel->GlobalInverseMatrix;
+
+    for (size_t i = 0; i < skeleton->NumBones; i++) {
         struct aiBone* abone = amesh->mBones[i];
 
         MeshBone* bone = new MeshBone;
         bone->Name = CopyString(abone->mName);
         bone->InverseBindMatrix = CopyMatrix(abone->mOffsetMatrix);
-        bone->FinalTransform = nullptr;
-        bone->Weights.resize(0);
 
         for (size_t w = 0; w < abone->mNumWeights; w++) {
             struct aiVertexWeight& aweight = abone->mWeights[w];
@@ -294,22 +292,20 @@ PRIVATE STATIC void ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct 
                 bone->Weights.push_back(boneWeight);
             }
 
-            mesh->VertexWeights[vertexID] += weight;
+            skeleton->VertexWeights[vertexID] += weight;
         }
 
         // FIXME: Blender's Collada exporter prefixes the Armature name, so this won't work as-is.
-        ModelNode* node = imodel->SearchNode(imodel->RootNode, bone->Name);
+        ModelNode* node = imodel->BaseArmature->RootNode->Search(bone->Name);
         if (node)
             bone->GlobalTransform = node->GlobalTransform;
-        else {
-            bone->GlobalTransform = Matrix4x4::Create();
+        else
             LogWarn("In mesh %s: Couldn't find node for bone %s", mesh->Name, bone->Name);
-        }
 
-        bone->FinalTransform = Matrix4x4::Create();
-
-        mesh->Bones[i] = bone;
+        skeleton->Bones[i] = bone;
     }
+
+    return skeleton;
 }
 
 PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimation* aanim) {
@@ -317,8 +313,18 @@ PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct ai
     anim->Name = CopyString(aanim->mName);
     anim->Channels.resize(aanim->mNumChannels);
     anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
-    anim->Duration = aanim->mDuration * 0x10000;
-    anim->TicksPerSecond = aanim->mTicksPerSecond * 0x10000;
+
+    double baseDuration = ceil(aanim->mDuration + 1.0);
+    double ticksPerSecond = aanim->mTicksPerSecond;
+    if (ticksPerSecond == 0.0)
+        ticksPerSecond = 24.0; // Blender's default
+
+    double durationInSeconds = baseDuration / ticksPerSecond;
+
+    anim->Length = (int)baseDuration;
+    anim->DurationInFrames = (int)(durationInSeconds * 60);
+    anim->BaseDuration = baseDuration;
+    anim->TicksPerSecond = ticksPerSecond;
 
     for (size_t i = 0; i < aanim->mNumChannels; i++) {
         struct aiNodeAnim* channel = aanim->mChannels[i];
@@ -409,33 +415,48 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
         imodel->Meshes[i] = LoadMesh(imodel, ameshes[i]);
 
     // Load all nodes, starting from the root
-    imodel->RootNode = LoadNode(imodel, nullptr, scene->mRootNode);
+    Armature* armature = new Armature;
+    armature->RootNode = LoadNode(imodel, nullptr, scene->mRootNode);
+
+    imodel->BaseArmature = armature;
     imodel->GlobalInverseMatrix = Matrix4x4::Create();
 
     // Invert the root node's matrix, making a global inverse matrix
-    Matrix4x4::Invert(imodel->GlobalInverseMatrix, imodel->RootNode->Transform);
+    Matrix4x4::Invert(imodel->GlobalInverseMatrix, armature->RootNode->TransformMatrix);
 
     // Load bones
+    vector<Skeleton*> skeletons;
+
     for (size_t i = 0; i < meshCount; i++) {
-        if (ameshes[i]->HasBones())
-            LoadBones(imodel, imodel->Meshes[i], ameshes[i]);
+        Mesh* mesh = imodel->Meshes[i];
+
+        // There may be less skeletons than meshes, which is normal.
+        if (ameshes[i]->HasBones()) {
+            Skeleton* skeleton = LoadBones(imodel, mesh, ameshes[i]);
+
+            // To figure out which skeleton number the mesh uses in an armature,
+            // we directly store it in the mesh.
+            mesh->SkeletonIndex = skeletons.size();
+
+            // Remember this skeleton for storing it in the base armature
+            skeletons.push_back(skeleton);
+        }
     }
+
+    armature->NumSkeletons = skeletons.size();
+    armature->Skeletons = new Skeleton*[armature->NumSkeletons];
+
+    for (size_t i = 0; i < armature->NumSkeletons; i++)
+        armature->Skeletons[i] = skeletons[i];
 
     // Pose and transform the meshes
     imodel->Pose();
 
-    for (size_t i = 0; i < meshCount; i++) {
-        Mesh* mesh = imodel->Meshes[i];
-        if (!mesh->UseSkeleton)
-            continue;
-
-        imodel->CalculateBones(mesh);
-
-        mesh->TransformedPositions = (Vector3*)Memory::Malloc(mesh->NumVertices * sizeof(Vector3));
-        if (mesh->VertexFlag & VertexType_Normal)
-            mesh->TransformedNormals = (Vector3*)Memory::Malloc(mesh->NumVertices * sizeof(Vector3));
-
-        imodel->TransformMesh(mesh, mesh->TransformedPositions, mesh->TransformedNormals);
+    for (size_t i = 0; i < armature->NumSkeletons; i++) {
+        Skeleton* skeleton = armature->Skeletons[i];
+        skeleton->PrepareTransform();
+        skeleton->CalculateBones();
+        skeleton->Transform();
     }
 
     // Load animations
@@ -447,7 +468,7 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
         for (size_t i = 0; i < imodel->AnimationCount; i++)
             imodel->Animations[i] = LoadAnimation(imodel, scene->mAnimations[i]);
 
-        imodel->Animate(imodel->Animations[0], 0);
+        imodel->Animate(imodel->BaseArmature, imodel->Animations[0], 0);
     }
 
     return true;
@@ -482,7 +503,8 @@ PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const c
         else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
             LogError("Couldn't import %s: Scene is incomplete", path);
 
-        free(data);
+        Memory::Free(data);
+
         return false;
     }
 
@@ -498,8 +520,8 @@ PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const c
     if (!success)
         model->Dispose();
 
-    free(data);
-    free(ParentDirectory);
+    Memory::Free(data);
+    Memory::Free(ParentDirectory);
 
     return success;
 }

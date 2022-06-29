@@ -1134,7 +1134,7 @@ static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
  * \desc Draws a model.
  * \param modelIndex (Integer): Index of loaded model.
  * \param animation (Integer): Animation of model to draw.
- * \param frame (Integer): Frame of model to draw.
+ * \param frame (Decimal): Frame of model to draw.
  * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
  * \return
@@ -1162,6 +1162,40 @@ VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     SoftwareRenderer::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+
+    return NULL_VAL;
+}
+/***
+ * Draw.ModelSkinned
+ * \desc Draws a skinned model.
+ * \param modelIndex (Integer): Index of loaded model.
+ * \param skeleton (Integer): Skeleton of model to skin the model.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+
+    IModel* model = GET_ARG(0, GetModel);
+    int armature = GET_ARG(1, GetInteger);
+
+    ObjArray* matrixModelArr = NULL;
+    Matrix4x4 matrixModel;
+    if (!IS_NULL(args[2])) {
+        matrixModelArr = GET_ARG(2, GetArray);
+        PrepareMatrix(&matrixModel, matrixModelArr);
+    }
+
+    ObjArray* matrixNormalArr = NULL;
+    Matrix4x4 matrixNormal;
+    if (!IS_NULL(args[3])) {
+        matrixNormalArr = GET_ARG(3, GetArray);
+        PrepareMatrix(&matrixNormal, matrixNormalArr);
+    }
+
+    SoftwareRenderer::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -4599,6 +4633,179 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 // #endregion
+
+#define CHECK_ANIMATION_INDEX(animation) \
+    if (animation < 0 || animation >= model->AnimationCount) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index out of range 0 through %d", model->AnimationCount); \
+        return NULL_VAL; \
+    }
+
+#define CHECK_ARMATURE_INDEX(armature) \
+    if (armature < 0 || armature >= model->ArmatureCount) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index out of range 0 through %d", model->ArmatureCount); \
+        return NULL_VAL; \
+    }
+
+// #region Model
+/***
+ * Model.GetAnimationCount
+ * \desc Returns how many animations exist in the model.
+ * \param model (Integer): The model index to check.
+ * \return The animation count. Will always return <code>0</code> for vertex-animated models.
+ * \ns Model
+ */
+VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL((int)model->AnimationCount);
+}
+/***
+ * Model.GetAnimationName
+ * \desc Gets the name of the model animation with the specified index.
+ * \param model (Integer): The model index to check.
+ * \param animation (Integer): Index of the animation.
+ * \return Returns the animation name, or <code>null</code> if the model contains no animations.
+ * \ns Model
+ */
+VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    IModel* model = GET_ARG(0, GetModel);
+    int animation = GET_ARG(1, GetInteger);
+
+    if (model->AnimationCount == 0)
+        return NULL_VAL;
+
+    CHECK_ANIMATION_INDEX(animation);
+
+    const char* animationName = model->Animations[animation]->Name;
+    if (!animationName)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(animationName, strlen(animationName)));
+}
+/***
+ * Model.GetAnimationIndex
+ * \desc Gets the index of the model animation with the specified name.
+ * \param model (Integer): The model index to check.
+ * \param animationName (String): Name of the animation to find.
+ * \return Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.
+ * \ns Model
+ */
+VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    IModel* model = GET_ARG(0, GetModel);
+    char* animationName = GET_ARG(1, GetString);
+    return INTEGER_VAL(model->GetAnimationIndex(animationName));
+}
+/***
+ * Model.GetFrameCount
+ * \desc Returns how many frames exist in the model.
+ * \param model (Integer): The model index to check.
+ * \return The frame count. Will always return <code>0</code> for skeletal-animated models.
+ * \ns Model
+ */
+VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL((int)model->FrameCount);
+}
+/***
+ * Model.GetAnimationLength
+ * \desc Returns the length of the animation.
+ * \param model (Integer): The model index to check.
+ * \param animation (Integer): The animation index to check.
+ * \return The number of keyframes in the animation.
+ * \ns Model
+ */
+VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    IModel* model = GET_ARG(0, GetModel);
+    int animation = GET_ARG(1, GetInteger);
+    CHECK_ANIMATION_INDEX(animation);
+    return INTEGER_VAL((int)model->Animations[animation]->Length);
+}
+/***
+ * Model.CreateArmature
+ * \desc Creates an armature from the model.
+ * \param model (Integer): The model index.
+ * \return Returns the index of the armature.
+ * \ns Model
+ */
+VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL(model->NewArmature());
+}
+/***
+ * Model.PoseArmature
+ * \desc Poses an armature.
+ * \param model (Integer): The model index.
+ * \param armature (Integer): The armature index to pose.
+ * \paramOpt animation (Integer): Animation to pose the armature.
+ * \paramOpt frame (Decimal): Frame to pose the armature.
+ * \return
+ * \ns Model
+ */
+VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    IModel* model = GET_ARG(0, GetModel);
+    int armature = GET_ARG(1, GetInteger);
+
+    CHECK_ARMATURE_INDEX(armature);
+
+    if (argCount >= 3) {
+        int animation = GET_ARG(2, GetInteger);
+        int frame = GET_ARG(3, GetDecimal) * 0x100;
+        if (frame < 0)
+            frame = 0;
+
+        CHECK_ANIMATION_INDEX(animation);
+
+        model->Animate(model->ArmatureList[armature], model->Animations[animation], frame);
+    } else {
+        // Just update the skeletons
+        model->ArmatureList[armature]->UpdateSkeletons();
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Model.ResetArmature
+ * \desc Resets an armature to its default pose.
+ * \param model (Integer): The model index.
+ * \param armature (Integer): The armature index to reset.
+ * \return
+ * \ns Model
+ */
+VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    IModel* model = GET_ARG(0, GetModel);
+    int armature = GET_ARG(1, GetInteger);
+    CHECK_ARMATURE_INDEX(armature);
+    model->ArmatureList[armature]->Reset();
+    return NULL_VAL;
+}
+/***
+ * Model.DeleteArmature
+ * \desc Deletes an armature from the model.
+ * \param model (Integer): The model index.
+ * \param armature (Integer): The armature index to delete.
+ * \return
+ * \ns Model
+ */
+VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    IModel* model = GET_ARG(0, GetModel);
+    int armature = GET_ARG(1, GetInteger);
+    CHECK_ARMATURE_INDEX(armature);
+    model->DeleteArmature((size_t)armature);
+    return NULL_VAL;
+}
+// #endregion
+
+#undef CHECK_ANIMATION_INDEX
+#undef CHECK_ARMATURE_INDEX
 
 // #region Music
 /***
@@ -8617,6 +8824,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetFogColor);
     DEF_NATIVE(Draw, SetClipPolygons);
     DEF_NATIVE(Draw, Model);
+    DEF_NATIVE(Draw, ModelSkinned);
     DEF_NATIVE(Draw, ModelSimple);
     DEF_NATIVE(Draw, Triangle3D);
     DEF_NATIVE(Draw, Quad3D);
@@ -8844,6 +9052,19 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Matrix, Translate);
     DEF_NATIVE(Matrix, Scale);
     DEF_NATIVE(Matrix, Rotate);
+    // #endregion
+
+    // #region Model
+    INIT_CLASS(Model);
+    DEF_NATIVE(Model, GetAnimationCount);
+    DEF_NATIVE(Model, GetAnimationName);
+    DEF_NATIVE(Model, GetAnimationIndex);
+    DEF_NATIVE(Model, GetFrameCount);
+    DEF_NATIVE(Model, GetAnimationLength);
+    DEF_NATIVE(Model, CreateArmature);
+    DEF_NATIVE(Model, PoseArmature);
+    DEF_NATIVE(Model, ResetArmature);
+    DEF_NATIVE(Model, DeleteArmature);
     // #endregion
 
     // #region Music

@@ -24,9 +24,12 @@ public:
     ModelAnim**         Animations;
     size_t              AnimationCount;
 
+    Armature**          ArmatureList;
+    size_t              ArmatureCount;
+
     bool                UseVertexAnimation;
 
-    ModelNode*          RootNode;
+    Armature*           BaseArmature;
     Matrix4x4*          GlobalInverseMatrix;
 };
 #endif
@@ -44,23 +47,28 @@ public:
 #define RSDK_MODEL_MAGIC 0x4D444C00 // MDL0
 
 PUBLIC IModel::IModel() {
-    MeshCount = 0;
     VertexCount = 0;
     FrameCount = 0;
-    AnimationCount = 0;
 
     Meshes = nullptr;
-    VertexIndexCount = 0;
+    MeshCount = 0;
 
     VertexFlag = 0;
+    VertexIndexCount = 0;
     FaceVertexCount = 0;
 
     Materials = nullptr;
-    Animations = nullptr;
-    UseVertexAnimation = false;
+    MaterialCount = 0;
 
-    RootNode = nullptr;
+    Animations = nullptr;
+    AnimationCount = 0;
+
+    ArmatureList = nullptr;
+    ArmatureCount = 0;
+
+    BaseArmature = nullptr;
     GlobalInverseMatrix = nullptr;
+    UseVertexAnimation = false;
 }
 PUBLIC IModel::IModel(const char* filename) {
     ResourceStream* resourceStream = ResourceStream::New(filename);
@@ -84,26 +92,6 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
     return !!ModelImporter::Convert(this, stream, filename);
 }
 
-PUBLIC ModelNode* IModel::SearchNode(ModelNode* node, char* name) {
-    if (!strcmp(node->Name, name))
-        return node;
-
-    for (size_t i = 0; i < node->Children.size(); i++) {
-        ModelNode* found = SearchNode(node->Children[i], name);
-        if (found != nullptr)
-            return found;
-    }
-
-    return nullptr;
-}
-
-PUBLIC void IModel::TransformNode(ModelNode* node, Matrix4x4* parentMatrix) {
-    Matrix4x4::Multiply(node->GlobalTransform, node->LocalTransform, parentMatrix);
-
-    for (size_t i = 0; i < node->Children.size(); i++)
-        TransformNode(node->Children[i], node->GlobalTransform);
-}
-
 PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
     NodeAnim* nodeAnim = animation->NodeLookup->Get(node->Name);
     if (nodeAnim)
@@ -115,85 +103,18 @@ PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 fr
         AnimateNode(node->Children[i], animation, frame, node->GlobalTransform);
 }
 
-PUBLIC void IModel::CalculateBones(Mesh* mesh) {
-    if (!mesh->NumBones)
-        return;
-
-    for (size_t i = 0; i < mesh->NumBones; i++) {
-        MeshBone* bone = mesh->Bones[i];
-
-        Matrix4x4::Multiply(bone->FinalTransform, bone->InverseBindMatrix, bone->GlobalTransform);
-        Matrix4x4::Multiply(bone->FinalTransform, GlobalInverseMatrix, bone->FinalTransform);
-    }
-}
-
-static Vector3 MultiplyMatrix3x3(Vector3* v, Matrix4x4* m) {
-    Vector3 result;
-
-    Sint64 mat11 = m->Values[0]  * 0x10000;
-    Sint64 mat12 = m->Values[1]  * 0x10000;
-    Sint64 mat13 = m->Values[2]  * 0x10000;
-    Sint64 mat21 = m->Values[4]  * 0x10000;
-    Sint64 mat22 = m->Values[5]  * 0x10000;
-    Sint64 mat23 = m->Values[6]  * 0x10000;
-    Sint64 mat31 = m->Values[8]  * 0x10000;
-    Sint64 mat32 = m->Values[9]  * 0x10000;
-    Sint64 mat33 = m->Values[10] * 0x10000;
-
-    result.X = FP16_MULTIPLY(mat11, v->X) + FP16_MULTIPLY(mat12, v->Y) + FP16_MULTIPLY(mat13, v->Z);
-    result.Y = FP16_MULTIPLY(mat21, v->X) + FP16_MULTIPLY(mat22, v->Y) + FP16_MULTIPLY(mat23, v->Z);
-    result.Z = FP16_MULTIPLY(mat31, v->X) + FP16_MULTIPLY(mat32, v->Y) + FP16_MULTIPLY(mat33, v->Z);
-
-    return result;
-}
-
-PUBLIC void IModel::TransformMesh(Mesh* mesh, Vector3* outPositions, Vector3* outNormals) {
-    if (!mesh->NumBones)
-        return;
-
-    memset(outPositions, 0x00, mesh->NumVertices * sizeof(Vector3));
-    if (outNormals)
-        memset(outNormals, 0x00, mesh->NumVertices * sizeof(Vector3));
-
-    for (size_t i = 0; i < mesh->NumBones; i++) {
-        MeshBone* bone = mesh->Bones[i];
-
-        for (size_t w = 0; w < bone->Weights.size(); w++) {
-            BoneWeight& boneWeight = bone->Weights[w];
-
-            Uint32 vertexID = boneWeight.VertexID;
-            Sint64 weight = FP16_DIVIDE(boneWeight.Weight, mesh->VertexWeights[vertexID]);
-
-            Vector3 temp = Vector::Multiply(mesh->PositionBuffer[vertexID], bone->FinalTransform);
-
-            outPositions[vertexID].X += FP16_MULTIPLY(temp.X, weight);
-            outPositions[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
-            outPositions[vertexID].Z += FP16_MULTIPLY(temp.Z, weight);
-
-            if (!outNormals)
-                continue;
-
-            temp = MultiplyMatrix3x3(&mesh->NormalBuffer[vertexID], bone->FinalTransform);
-
-            outNormals[vertexID].X += FP16_MULTIPLY(temp.X, weight);
-            outNormals[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
-            outNormals[vertexID].Z += FP16_MULTIPLY(temp.Z, weight);
-        }
-    }
-}
-
 PUBLIC void IModel::Pose() {
     Matrix4x4 identity;
     Matrix4x4::Identity(&identity);
 
-    TransformNode(RootNode, &identity);
+    BaseArmature->RootNode->Transform(&identity);
 }
 
-PUBLIC void IModel::Pose(ModelAnim* animation, Uint32 frame) {
+PUBLIC void IModel::Pose(Armature* armature, ModelAnim* animation, Uint32 frame) {
     Matrix4x4 identity;
     Matrix4x4::Identity(&identity);
 
-    AnimateNode(RootNode, animation, frame, &identity);
+    AnimateNode(armature->RootNode, animation, frame, &identity);
 }
 
 static void MakeChannelMatrix(Matrix4x4* out, Vector3* pos, Vector4* rot, Vector3* scale) {
@@ -336,52 +257,87 @@ PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 fra
     }
 }
 
-PUBLIC void IModel::Animate(ModelAnim* animation, Uint32 frame) {
-    Pose(animation, frame);
+PUBLIC void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
+    Pose(armature, animation, frame);
 
-    for (size_t i = 0; i < MeshCount; i++) {
-        Mesh* mesh = Meshes[i];
-        if (!mesh->UseSkeleton || !mesh->TransformedPositions)
-            continue;
+    armature->UpdateSkeletons();
+}
 
-        CalculateBones(mesh);
-        TransformMesh(mesh, mesh->TransformedPositions, mesh->TransformedNormals);
+PUBLIC int IModel::GetAnimationIndex(const char* animationName) {
+    if (!AnimationCount)
+        return -1;
+
+    for (size_t i = 0; i < AnimationCount; i++)
+        if (!strcmp(Animations[i]->Name, animationName))
+            return (int)i;
+
+    return -1;
+}
+
+PUBLIC int IModel::NewArmature() {
+    if (UseVertexAnimation)
+        return -1;
+
+    // Initialize
+    if (ArmatureList == nullptr) {
+        ArmatureList = (Armature**)Memory::Malloc(sizeof(Armature*));
+        ArmatureCount = 1;
     }
+
+    Armature* armature = BaseArmature->Copy();
+
+    // Find an unoccupied index
+    for (size_t i = 0; i < ArmatureCount; i++) {
+        if (ArmatureList[i] == nullptr) {
+            ArmatureList[i] = armature;
+            return i;
+        }
+    }
+
+    // Nope, we have to find space.
+    ArmatureList = (Armature**)Memory::Realloc(ArmatureList, sizeof(Armature*) * ++ArmatureCount);
+    ArmatureList[ArmatureCount - 1] = armature;
+
+    // Pose it
+    if (AnimationCount)
+        Animate(armature, Animations[0], 0);
+    else {
+        Matrix4x4 identity;
+        Matrix4x4::Identity(&identity);
+        armature->RootNode->Transform(&identity);
+        armature->UpdateSkeletons();
+    }
+
+    return ArmatureCount - 1;
+}
+
+PUBLIC void IModel::DeleteArmature(size_t index) {
+    if (ArmatureList == nullptr)
+        return;
+
+    delete ArmatureList[index];
+    ArmatureList[index] = nullptr;
 }
 
 PUBLIC void IModel::Dispose() {
-    VertexCount = 0;
-    FrameCount = 0;
-    UseVertexAnimation = false;
-
-    VertexFlag = 0;
-    VertexIndexCount = 0;
-    FaceVertexCount = 0;
-
     for (size_t i = 0; i < MeshCount; i++)
         delete Meshes[i];
-
     delete[] Meshes;
-    Meshes = nullptr;
-    MeshCount = 0;
 
     for (size_t i = 0; i < MaterialCount; i++)
         delete Materials[i];
     delete[] Materials;
-    Materials = nullptr;
-    MaterialCount = 0;
 
     for (size_t i = 0; i < AnimationCount; i++)
         delete Animations[i];
     delete[] Animations;
-    Animations = nullptr;
-    AnimationCount = 0;
 
-    delete RootNode;
-    RootNode = nullptr;
+    for (size_t i = 0; i < ArmatureCount; i++)
+        delete ArmatureList[i];
+    Memory::Free(ArmatureList);
 
+    delete BaseArmature;
     delete GlobalInverseMatrix;
-    GlobalInverseMatrix = nullptr;
 }
 
 PUBLIC IModel::~IModel() {
@@ -398,7 +354,7 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     FaceVertexCount = stream->ReadByte();
     VertexCount = stream->ReadUInt16();
     FrameCount = stream->ReadUInt16();
-    AnimationCount = 1;
+    AnimationCount = 0;
 
     // We only need one mesh for RSDK models
     Mesh* mesh = new Mesh;
@@ -449,7 +405,7 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
 
     Materials = nullptr;
     Animations = nullptr;
-    RootNode = nullptr;
+    BaseArmature = nullptr;
     GlobalInverseMatrix = nullptr;
     UseVertexAnimation = true;
 

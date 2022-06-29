@@ -7,6 +7,7 @@ public:
 #endif
 
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Memory.h>
 
 PUBLIC STATIC bool  StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
@@ -41,7 +42,6 @@ PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* ne
     }
     return NULL;
 }
-// This is the FreeBSD strlcpy.
 PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     char *d = dst;
     const char *s = src;
@@ -58,12 +58,18 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     // Not enough room in dst, add NUL and traverse rest of src
     if (n == 0) {
         if (sz != 0)
-            *d = '\0';      // NUL-terminate dst
+            *d = '\0'; // NUL-terminate dst
         while (*s++)
             ;
     }
 
-    return (s - src - 1);   // count does not include NUL
+    return s - src - 1; // count does not include NUL
+}
+PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
+    size_t length = strlen(src) + 1;
+    char* string = (char*)Memory::Malloc(length);
+    memcpy(string, src, length);
+    return string;
 }
 PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
     if (!filename)
@@ -76,7 +82,7 @@ PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
         return nullptr;
 
     size_t len = sep - filename;
-    char* path = (char*)malloc(len + 1);
+    char* path = (char*)Memory::Malloc(len + 1);
     if (!path)
         return nullptr;
 
@@ -97,7 +103,7 @@ PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* path
     if (!hasSep)
         totalLen++;
 
-    char* newPath = (char*)malloc(totalLen);
+    char* newPath = (char*)Memory::Malloc(totalLen);
     char* out = newPath;
     if (!newPath)
         return nullptr;
