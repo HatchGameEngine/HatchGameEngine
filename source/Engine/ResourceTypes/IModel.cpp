@@ -104,10 +104,7 @@ PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 fr
 }
 
 PUBLIC void IModel::Pose() {
-    Matrix4x4 identity;
-    Matrix4x4::Identity(&identity);
-
-    BaseArmature->RootNode->Transform(&identity);
+    BaseArmature->RootNode->Transform();
 }
 
 PUBLIC void IModel::Pose(Armature* armature, ModelAnim* animation, Uint32 frame) {
@@ -299,14 +296,8 @@ PUBLIC int IModel::NewArmature() {
     ArmatureList[ArmatureCount - 1] = armature;
 
     // Pose it
-    if (AnimationCount)
-        Animate(armature, Animations[0], 0);
-    else {
-        Matrix4x4 identity;
-        Matrix4x4::Identity(&identity);
-        armature->RootNode->Transform(&identity);
-        armature->UpdateSkeletons();
-    }
+    armature->RootNode->Transform();
+    armature->UpdateSkeletons();
 
     return ArmatureCount - 1;
 }

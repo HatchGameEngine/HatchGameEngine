@@ -467,8 +467,6 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
 
         for (size_t i = 0; i < imodel->AnimationCount; i++)
             imodel->Animations[i] = LoadAnimation(imodel, scene->mAnimations[i]);
-
-        imodel->Animate(imodel->BaseArmature, imodel->Animations[0], 0);
     }
 
     return true;

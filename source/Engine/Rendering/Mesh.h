@@ -375,6 +375,12 @@ struct ModelNode {
             Children[i]->Transform(GlobalTransform);
     }
 
+    void Transform() {
+        Matrix4x4 identity;
+        Matrix4x4::Identity(&identity);
+        Transform(&identity);
+    }
+
     void Reset(Matrix4x4* parentMatrix) {
         Matrix4x4::Copy(LocalTransform, TransformMatrix);
         Matrix4x4::Multiply(GlobalTransform, LocalTransform, parentMatrix);
