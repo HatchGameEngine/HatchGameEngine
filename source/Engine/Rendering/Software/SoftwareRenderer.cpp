@@ -3001,7 +3001,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
         case VertexType_Position:
             // For every face,
             while (*modelVertexIndexPtr != -1) {
-                int faceVertexCount = model->FaceVertexCount;
+                int faceVertexCount = model->VertexPerFace;
 
                 // For every vertex index,
                 int numVertices = faceVertexCount;
@@ -3021,7 +3021,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             if (NormalMatrix) {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3044,7 +3044,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             else {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3068,7 +3068,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             if (NormalMatrix) {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3090,7 +3090,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             else {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3114,7 +3114,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             if (NormalMatrix) {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3137,7 +3137,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             else {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3162,7 +3162,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             if (NormalMatrix) {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;
@@ -3186,7 +3186,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
             else {
                 // For every face,
                 while (*modelVertexIndexPtr != -1) {
-                    int faceVertexCount = model->FaceVertexCount;
+                    int faceVertexCount = model->VertexPerFace;
 
                     // For every vertex index,
                     int numVertices = faceVertexCount;

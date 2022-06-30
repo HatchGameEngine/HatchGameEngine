@@ -28,8 +28,7 @@ public:
     size_t              VertexCount;
     size_t              FrameCount;
     size_t              VertexIndexCount;
-    Uint8               VertexFlag;
-    Uint8               FaceVertexCount;
+    Uint8               VertexPerFace;
     Material**          Materials;
     size_t              MaterialCount;
     ModelAnim**         Animations;
@@ -43,6 +42,8 @@ public:
     IModel();
     IModel(const char* filename);
     bool Load(Stream* stream, const char* filename);
+    bool HasMaterials();
+    bool HasBones();
     void AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 frame, Matrix4x4* parentMatrix);
     void Pose();
     void Pose(Armature* armature, ModelAnim* animation, Uint32 frame);

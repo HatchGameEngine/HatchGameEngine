@@ -15,8 +15,7 @@ public:
     size_t              FrameCount;
     size_t              VertexIndexCount;
 
-    Uint8               VertexFlag;
-    Uint8               FaceVertexCount;
+    Uint8               VertexPerFace;
 
     Material**          Materials;
     size_t              MaterialCount;
@@ -53,9 +52,8 @@ PUBLIC IModel::IModel() {
     Meshes = nullptr;
     MeshCount = 0;
 
-    VertexFlag = 0;
     VertexIndexCount = 0;
-    FaceVertexCount = 0;
+    VertexPerFace = 0;
 
     Materials = nullptr;
     MaterialCount = 0;
@@ -90,6 +88,17 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
         return this->ReadRSDK(stream);
 
     return !!ModelImporter::Convert(this, stream, filename);
+}
+
+PUBLIC bool IModel::HasMaterials() {
+    return MaterialCount > 0;
+}
+
+PUBLIC bool IModel::HasBones() {
+    if (BaseArmature == nullptr)
+        return false;
+
+    return BaseArmature->NumSkeletons > 0;
 }
 
 PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
@@ -341,8 +350,9 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         return false;
     }
 
-    Uint8 VertexFlag = stream->ReadByte();
-    FaceVertexCount = stream->ReadByte();
+    Uint8 vertexFlag = stream->ReadByte();
+
+    VertexPerFace = stream->ReadByte();
     VertexCount = stream->ReadUInt16();
     FrameCount = stream->ReadUInt16();
     AnimationCount = 0;
@@ -353,20 +363,20 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     Meshes[0] = mesh;
     MeshCount = 1;
 
-    mesh->VertexFlag = VertexFlag;
+    mesh->VertexFlag = vertexFlag;
     mesh->PositionBuffer = (Vector3*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector3));
 
-    if (VertexFlag & VertexType_Normal)
+    if (vertexFlag & VertexType_Normal)
         mesh->NormalBuffer = (Vector3*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector3));
 
-    if (VertexFlag & VertexType_UV)
+    if (vertexFlag & VertexType_UV)
         mesh->UVBuffer = (Vector2*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector2));
 
-    if (VertexFlag & VertexType_Color)
+    if (vertexFlag & VertexType_Color)
         mesh->ColorBuffer = (Uint32*)Memory::Malloc(VertexCount * FrameCount * sizeof(Uint32));
 
     // Read UVs
-    if (VertexFlag & VertexType_UV) {
+    if (vertexFlag & VertexType_UV) {
         int uvX, uvY;
         for (int i = 0; i < VertexCount; i++) {
             Vector2* uv = &mesh->UVBuffer[i];
@@ -381,7 +391,7 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         }
     }
     // Read Colors
-    if (VertexFlag & VertexType_Color) {
+    if (vertexFlag & VertexType_Color) {
         Uint32* colorPtr, color;
         for (int i = 0; i < VertexCount; i++) {
             colorPtr = &mesh->ColorBuffer[i];
@@ -408,7 +418,7 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
         mesh->VertexIndexBuffer[i] = stream->ReadInt16();
     mesh->VertexIndexBuffer[VertexIndexCount] = -1;
 
-    if (VertexFlag & VertexType_Normal) {
+    if (vertexFlag & VertexType_Normal) {
         Vector3* vert = mesh->PositionBuffer;
         Vector3* norm = mesh->NormalBuffer;
         int totalVertexCount = VertexCount * FrameCount;

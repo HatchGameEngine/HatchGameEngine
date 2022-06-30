@@ -4648,6 +4648,18 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Model
 /***
+ * Model.GetVertexCount
+ * \desc Returns how many vertices are in the model.
+ * \param model (Integer): The model index to check.
+ * \return The vertex count.
+ * \ns Model
+ */
+VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL((int)model->VertexCount);
+}
+/***
  * Model.GetAnimationCount
  * \desc Returns how many animations exist in the model.
  * \param model (Integer): The model index to check.
@@ -4724,6 +4736,30 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
     int animation = GET_ARG(1, GetInteger);
     CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)model->Animations[animation]->Length);
+}
+/***
+ * Model.HasMaterials
+ * \desc Checks to see if the model has materials.
+ * \param model (Integer): The model index to check.
+ * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise.
+ * \ns Model
+ */
+VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL((int)model->HasMaterials());
+}
+/***
+ * Model.HasBones
+ * \desc Checks to see if the model has bones.
+ * \param model (Integer): The model index to check.
+ * \return Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.
+ * \ns Model
+ */
+VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    return INTEGER_VAL((int)model->HasBones());
 }
 /***
  * Model.CreateArmature
@@ -9056,11 +9092,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Model
     INIT_CLASS(Model);
+    DEF_NATIVE(Model, GetVertexCount);
     DEF_NATIVE(Model, GetAnimationCount);
     DEF_NATIVE(Model, GetAnimationName);
     DEF_NATIVE(Model, GetAnimationIndex);
     DEF_NATIVE(Model, GetFrameCount);
     DEF_NATIVE(Model, GetAnimationLength);
+    DEF_NATIVE(Model, HasMaterials);
+    DEF_NATIVE(Model, HasBones);
     DEF_NATIVE(Model, CreateArmature);
     DEF_NATIVE(Model, PoseArmature);
     DEF_NATIVE(Model, ResetArmature);

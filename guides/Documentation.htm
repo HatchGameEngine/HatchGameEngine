@@ -357,11 +357,14 @@
                 <h2>Model</h2>
                 <i>Functions:</i>
                 <ul>
+                    <li><a href="#Reference_Model_GetVertexCount">Model.GetVertexCount</a></li>
                     <li><a href="#Reference_Model_GetAnimationCount">Model.GetAnimationCount</a></li>
                     <li><a href="#Reference_Model_GetAnimationName">Model.GetAnimationName</a></li>
                     <li><a href="#Reference_Model_GetAnimationIndex">Model.GetAnimationIndex</a></li>
                     <li><a href="#Reference_Model_GetFrameCount">Model.GetFrameCount</a></li>
                     <li><a href="#Reference_Model_GetAnimationLength">Model.GetAnimationLength</a></li>
+                    <li><a href="#Reference_Model_HasMaterials">Model.HasMaterials</a></li>
+                    <li><a href="#Reference_Model_HasBones">Model.HasBones</a></li>
                     <li><a href="#Reference_Model_CreateArmature">Model.CreateArmature</a></li>
                     <li><a href="#Reference_Model_PoseArmature">Model.PoseArmature</a></li>
                     <li><a href="#Reference_Model_ResetArmature">Model.ResetArmature</a></li>
@@ -3005,6 +3008,18 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Model_GetVertexCount">
+        <h2 style="margin-bottom: 8px;">Model.GetVertexCount</h2>
+        <code>Model.GetVertexCount(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many vertices are in the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The vertex count.</div>
+        </p>
+        <hr/>
         <p id="Reference_Model_GetAnimationCount">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationCount</h2>
         <code>Model.GetAnimationCount(model)</code>
@@ -3066,6 +3081,30 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The number of keyframes in the animation.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_HasMaterials">
+        <h2 style="margin-bottom: 8px;">Model.HasMaterials</h2>
+        <code>Model.HasMaterials(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has materials.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the model has materials, <code>false</code> if otherwise.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Model_HasBones">
+        <h2 style="margin-bottom: 8px;">Model.HasBones</h2>
+        <code>Model.HasBones(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has bones.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.</div>
         </p>
         <hr/>
         <p id="Reference_Model_CreateArmature">
@@ -5032,6 +5071,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>320 out of 392 functions have descriptions. </p>
+        <p>323 out of 395 functions have descriptions. </p>
     </body>
 </html>

@@ -140,7 +140,7 @@ struct Skeleton {
     Vector3*           TransformedPositions;
     Vector3*           TransformedNormals;
 
-    Matrix4x4*         GlobalInverseMatrix;
+    Matrix4x4*         GlobalInverseMatrix; // Pointer to the model's GlobalInverseMatrix
 
     Skeleton() {
         Bones = nullptr;
@@ -416,6 +416,9 @@ struct ModelNode {
     }
 };
 
+// An armature is a collection of skeletons (which are collections of bones),
+// plus a node tree (that the bones of the skeletons use for transforming.)
+// In Blender, "armature" and "skeleton" mean the same thing.
 struct Armature {
     ModelNode* RootNode;
     Skeleton** Skeletons;

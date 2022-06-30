@@ -363,8 +363,6 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
     size_t meshCount = 0;
     size_t totalVertices = 0;
 
-    int vertexFlag = 0;
-
     vector<struct aiMesh*> ameshes;
     ameshes.clear();
 
@@ -375,31 +373,21 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
             continue;
         }
 
-        if (amesh->HasNormals())
-            vertexFlag |= VertexType_Normal;
-        if (amesh->HasTextureCoords(0))
-            vertexFlag |= VertexType_UV;
-        if (amesh->HasVertexColors(0))
-            vertexFlag |= VertexType_Color;
-
         ameshes.push_back(amesh);
         MeshIDs.push_back(meshCount++);
 
         totalVertices += amesh->mNumVertices;
     }
 
+    // No meshes?
     if (!meshCount)
         return false;
-
-    // Maximum mesh conversions: 256
-    if (meshCount > 256)
-        meshCount = 256;
 
     // Create model
     imodel->Meshes = new Mesh*[meshCount];
     imodel->MeshCount = meshCount;
     imodel->VertexCount = totalVertices;
-    imodel->FaceVertexCount = 3;
+    imodel->VertexPerFace = 3;
 
     // Load materials
     if (scene->HasMaterials()) {
@@ -443,11 +431,15 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
         }
     }
 
+    // Copy all the skeletons that were created, if there were any
     armature->NumSkeletons = skeletons.size();
-    armature->Skeletons = new Skeleton*[armature->NumSkeletons];
 
-    for (size_t i = 0; i < armature->NumSkeletons; i++)
-        armature->Skeletons[i] = skeletons[i];
+    if (armature->NumSkeletons) {
+        armature->Skeletons = new Skeleton*[armature->NumSkeletons];
+
+        for (size_t i = 0; i < armature->NumSkeletons; i++)
+            armature->Skeletons[i] = skeletons[i];
+    }
 
     // Pose and transform the meshes
     imodel->Pose();
@@ -461,6 +453,7 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
 
     // Load animations
     // FIXME: Doesn't seem to be working with Collada scenes for some reason.
+    // Might be an issue in Open Asset Importer?
     if (scene->HasAnimations()) {
         imodel->AnimationCount = scene->mNumAnimations;
         imodel->Animations = new ModelAnim*[imodel->AnimationCount];
