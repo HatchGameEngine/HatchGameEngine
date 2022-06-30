@@ -355,7 +355,6 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     VertexPerFace = stream->ReadByte();
     VertexCount = stream->ReadUInt16();
     FrameCount = stream->ReadUInt16();
-    AnimationCount = 0;
 
     // We only need one mesh for RSDK models
     Mesh* mesh = new Mesh;

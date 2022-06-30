@@ -3306,7 +3306,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animati
 
     if (animation < 0 || frame < 0)
         return;
-    else if (!model->UseVertexAnimation && animation >= model->AnimationCount)
+    else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
         return;
 
     GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
