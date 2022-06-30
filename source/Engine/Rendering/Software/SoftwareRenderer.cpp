@@ -92,6 +92,20 @@ int ColorMultiply(Uint32 color, Uint32 colorMult) {
     Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
     return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
+int ColorTint(Uint32 color, Uint32 colorMult) {
+    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
+        return color;
+    Uint32 dR = (colorMult >> 16) & 0xFF;
+    Uint32 dG = (colorMult >> 8) & 0xFF;
+    Uint32 dB = colorMult & 0xFF;
+    Uint32 sR = (color >> 16) & 0xFF;
+    Uint32 sG = (color >> 8) & 0xFF;
+    Uint32 sB = color & 0xFF;
+    dR = (Uint8)((dR * sR + 0xFF) >> 8);
+    dG = (Uint8)((dG * sG + 0xFF) >> 8);
+    dB = (Uint8)((dB * sB + 0xFF) >> 8);
+    return dB | (dG << 8) | (dR << 16);
+}
 
 #define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b;
 
@@ -550,21 +564,6 @@ void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* mul
 void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 col = *dst;
     *dst = FilterTable[(col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3];
-}
-
-int TextureColorBlend(Uint32 color, Uint32 colorMult) {
-    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
-        return color;
-    Uint32 dR = (colorMult >> 16) & 0xFF;
-    Uint32 dG = (colorMult >> 8) & 0xFF;
-    Uint32 dB = colorMult & 0xFF;
-    Uint32 sR = (color >> 16) & 0xFF;
-    Uint32 sG = (color >> 8) & 0xFF;
-    Uint32 sB = color & 0xFF;
-    dR = (Uint8)((dR * sR + 0xFF) >> 8);
-    dG = (Uint8)((dG * sG + 0xFF) >> 8);
-    dB = (Uint8)((dB * sB + 0xFF) >> 8);
-    return dB | (dG << 8) | (dR << 16);
 }
 
 int FogEquation(float density, float coord) {
@@ -1204,7 +1203,7 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = TextureColorBlend(color, texCol); \
+            col = ColorTint(color, texCol); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1212,7 +1211,7 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = TextureColorBlend(color, index[texCol]); \
+            col = ColorTint(color, index[texCol]); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1327,7 +1326,7 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = TextureColorBlend(col, texCol); \
+            col = ColorTint(col, texCol); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1336,7 +1335,7 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = TextureColorBlend(col, index[texCol]); \
+            col = ColorTint(col, index[texCol]); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1523,7 +1522,7 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = TextureColorBlend(color, texCol); \
+            col = ColorTint(color, texCol); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1531,7 +1530,7 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = TextureColorBlend(color, index[texCol]); \
+            col = ColorTint(color, index[texCol]); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1646,7 +1645,7 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = TextureColorBlend(col, texCol); \
+            col = ColorTint(col, texCol); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -1655,7 +1654,7 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = TextureColorBlend(col, index[texCol]); \
+            col = ColorTint(col, index[texCol]); \
             col = LightPixelFunc(col, mapZ); \
             pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
             dpW(iz); \
@@ -3078,7 +3077,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
-                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
                         modelVertexIndexPtr++;
                         Vertex++;
                     }
@@ -3100,7 +3099,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
-                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
                         modelVertexIndexPtr++;
                         Vertex++;
                     }
@@ -3173,7 +3172,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
-                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
                         Vertex->UV = uvPtr[0];
                         modelVertexIndexPtr++;
                         Vertex++;
@@ -3197,7 +3196,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
-                        Vertex->Color = ColorMultiply(colorPtr[0], color);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
                         Vertex->UV = uvPtr[0];
                         modelVertexIndexPtr++;
                         Vertex++;
