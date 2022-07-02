@@ -462,7 +462,10 @@ struct Armature {
             for (size_t i = 0; i < newSkeleton->NumBones; i++) {
                 MeshBone* bone = newSkeleton->Bones[i];
                 ModelNode* node = newArmature->RootNode->Search(bone->Name);
-                bone->GlobalTransform = node->GlobalTransform;
+                if (node)
+                    bone->GlobalTransform = node->GlobalTransform;
+                else
+                    bone->GlobalTransform = nullptr;
             }
 
             newArmature->Skeletons[i] = newSkeleton;
