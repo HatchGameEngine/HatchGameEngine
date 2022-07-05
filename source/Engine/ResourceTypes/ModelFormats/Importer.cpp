@@ -16,12 +16,13 @@ public:
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Clock.h>
 
+vector<int> ModelImporter::MeshIDs;
+char*       ModelImporter::ParentDirectory;
+
+#ifdef USING_ASSIMP
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
-vector<int> ModelImporter::MeshIDs;
-char*       ModelImporter::ParentDirectory;
 
 #define LOG_FMT(s) \
     char s[1024]; \
@@ -464,8 +465,10 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
 
     return true;
 }
+#endif
 
 PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
+#ifdef USING_ASSIMP
     size_t size = stream->Length();
     void* data = Memory::Malloc(size);
     if (data)
@@ -515,4 +518,7 @@ PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const c
     Memory::Free(ParentDirectory);
 
     return success;
+#else
+    return false;
+#endif
 }

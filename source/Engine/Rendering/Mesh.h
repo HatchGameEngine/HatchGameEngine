@@ -464,8 +464,6 @@ struct Armature {
                 ModelNode* node = newArmature->RootNode->Search(bone->Name);
                 if (node)
                     bone->GlobalTransform = node->GlobalTransform;
-                else
-                    bone->GlobalTransform = nullptr;
             }
 
             newArmature->Skeletons[i] = newSkeleton;
