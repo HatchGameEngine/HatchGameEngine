@@ -1,43 +1,44 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Input/Controller.h>
 #include <Engine/Application.h>
 
 class InputManager {
 public:
-    static float MouseX;
-    static float MouseY;
-    static int   MouseDown;
-    static int   MousePressed;
-    static int   MouseReleased;
+    static float               MouseX;
+    static float               MouseY;
+    static int                 MouseDown;
+    static int                 MousePressed;
+    static int                 MouseReleased;
 
-    static Uint8 KeyboardState[0x120];
-    static Uint8 KeyboardStateLast[0x120];
+    static Uint8               KeyboardState[0x120];
+    static Uint8               KeyboardStateLast[0x120];
 
-    static void* Controllers[8];
-    static void* ControllerHaptics[8];
+    static int                 NumControllers;
+    static vector<Controller*> Controllers;
 
-    static SDL_TouchID TouchDevice;
-    static void*       TouchStates;
+    static SDL_TouchID         TouchDevice;
+    static void*               TouchStates;
 };
 #endif
 
 #include <Engine/InputManager.h>
 
-float       InputManager::MouseX = 0;
-float       InputManager::MouseY = 0;
-int         InputManager::MouseDown = 0;
-int         InputManager::MousePressed = 0;
-int         InputManager::MouseReleased = 0;
+float               InputManager::MouseX = 0;
+float               InputManager::MouseY = 0;
+int                 InputManager::MouseDown = 0;
+int                 InputManager::MousePressed = 0;
+int                 InputManager::MouseReleased = 0;
 
-Uint8       InputManager::KeyboardState[0x120];
-Uint8       InputManager::KeyboardStateLast[0x120];
+Uint8               InputManager::KeyboardState[0x120];
+Uint8               InputManager::KeyboardStateLast[0x120];
 
-void*       InputManager::Controllers[8];
-void*       InputManager::ControllerHaptics[8];
+int                 InputManager::NumControllers;
+vector<Controller*> InputManager::Controllers;
 
-SDL_TouchID InputManager::TouchDevice;
-void*       InputManager::TouchStates;
+SDL_TouchID         InputManager::TouchDevice;
+void*               InputManager::TouchStates;
 
 struct TouchState {
     float X;
@@ -51,21 +52,7 @@ PUBLIC STATIC void  InputManager::Init() {
     memset(KeyboardState, 0, 0x120);
     memset(KeyboardStateLast, 0, 0x120);
 
-    Log::Print(Log::LOG_VERBOSE, "Opening joysticks... (%d count)", SDL_NumJoysticks());
-    for (int i = 0; i < SDL_NumJoysticks(); i++) {
-        InputManager::Controllers[i] = SDL_JoystickOpen(i);
-
-        if (InputManager::Controllers[i])
-            Log::Print(Log::LOG_VERBOSE, "InputManager::Controllers[%d] opened. (%p)", i, InputManager::Controllers[i]);
-        else
-            Log::Print(Log::LOG_ERROR, "InputManager::Controllers[%d] failed: %s", i, SDL_GetError());
-
-        if (InputManager::Controllers[i])
-            InputManager::ControllerHaptics[i] = SDL_HapticOpenFromJoystick((SDL_Joystick*)InputManager::Controllers[i]);
-
-        if (InputManager::ControllerHaptics[i] && SDL_HapticRumbleInit((SDL_Haptic*)InputManager::ControllerHaptics[i]))
-            InputManager::ControllerHaptics[i] = NULL;
-    }
+    InputManager::InitControllers();
 
     InputManager::TouchStates = Memory::TrackedCalloc("InputManager::TouchStates", 8, sizeof(TouchState));
     for (int t = 0; t < 8; t++) {
@@ -76,6 +63,79 @@ PUBLIC STATIC void  InputManager::Init() {
         current->Pressed = false;
         current->Released = false;
     }
+}
+
+PUBLIC STATIC Controller* InputManager::OpenController(int index) {
+    Controller* controller = new Controller(index);
+    if (controller->Device == nullptr) {
+        Log::Print(Log::LOG_ERROR, "Opening controller %d failed: %s", index, SDL_GetError());
+        delete controller;
+    }
+
+    Log::Print(Log::LOG_VERBOSE, "Controller %d opened", index);
+
+    return controller;
+}
+
+PUBLIC STATIC void  InputManager::InitControllers() {
+    int numControllers = 0;
+    int numJoysticks = SDL_NumJoysticks();
+    for (int i = 0; i < numJoysticks; i++) {
+        if (SDL_IsGameController(i))
+            numControllers++;
+    }
+
+    Log::Print(Log::LOG_VERBOSE, "Opening controllers... (%d count)", numControllers);
+
+    InputManager::Controllers.resize(0);
+    InputManager::NumControllers = 0;
+
+    for (int i = 0; i < numJoysticks; i++) {
+        if (!SDL_IsGameController(i))
+            continue;
+
+        Controller* controller = InputManager::OpenController(i);
+        if (controller) {
+            InputManager::Controllers.push_back(controller);
+            InputManager::NumControllers++;
+        }
+    }
+}
+
+PRIVATE STATIC int InputManager::FindController(int joystickID) {
+    for (int i = 0; i < InputManager::NumControllers; i++) {
+        Controller* controller = InputManager::Controllers[i];
+        if (controller->Connected && controller->JoystickID == joystickID)
+            return i;
+    }
+
+    return -1;
+}
+
+PUBLIC STATIC bool  InputManager::AddController(int index) {
+    Controller* controller;
+    for (int i = 0; i < InputManager::NumControllers; i++) {
+        controller = InputManager::Controllers[i];
+        if (!controller->Connected)
+            return controller->Open(index);
+    }
+
+    controller = InputManager::OpenController(index);
+    if (!controller)
+        return false;
+
+    InputManager::Controllers.push_back(controller);
+    InputManager::NumControllers = InputManager::Controllers.size();
+
+    return true;
+}
+
+PUBLIC STATIC void  InputManager::RemoveController(int joystickID) {
+    int controller_id = InputManager::FindController(joystickID);
+    if (controller_id == -1)
+        return;
+
+    InputManager::Controllers[controller_id]->Close();
 }
 
 PUBLIC STATIC void  InputManager::Poll() {
@@ -157,33 +217,105 @@ PUBLIC STATIC void  InputManager::Poll() {
         MousePressed |= mP << i;
         MouseReleased |= mR << i;
     }
+
+    for (int i = 0; i < InputManager::NumControllers; i++) {
+        Controller* controller = InputManager::Controllers[i];
+        if (controller->Connected)
+            controller->Update();
+    }
 }
 
-PUBLIC STATIC bool  InputManager::GetControllerAttached(int controller_index) {
-    SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[controller_index];
-    if (!joy) return false;
-    return SDL_JoystickGetAttached(joy);
+#define GET_CONTROLLER(ret) \
+    if (index < 0 || index >= InputManager::NumControllers) \
+        return ret; \
+    Controller* controller = InputManager::Controllers[index]; \
+    if (!controller) return ret
+
+PUBLIC STATIC bool  InputManager::ControllerIsConnected(int index) {
+    GET_CONTROLLER(false);
+    return controller->Connected;
 }
-PUBLIC STATIC float InputManager::GetControllerAxis(int controller_index, int index) {
-    SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[controller_index];
-    return SDL_JoystickGetAxis(joy, index) / (double)0x8000;
+PUBLIC STATIC bool  InputManager::ControllerGetButton(int index, int button) {
+    GET_CONTROLLER(false);
+    return controller->GetButton(button);
 }
-PUBLIC STATIC bool  InputManager::GetControllerButton(int controller_index, int index) {
-    SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[controller_index];
-    return SDL_JoystickGetButton(joy, index);
+// For backwards compatibility. Use ControllerGetButton instead.
+PUBLIC STATIC int   InputManager::ControllerGetHat(int index, int hat) {
+    if (hat != 0) return 0;
+    GET_CONTROLLER(0);
+
+    int flags = 0;
+    if (controller->GetButton((int)ControllerButton::DPadUp))
+        flags |= SDL_HAT_UP;
+    if (controller->GetButton((int)ControllerButton::DPadDown))
+        flags |= SDL_HAT_DOWN;
+    if (controller->GetButton((int)ControllerButton::DPadLeft))
+        flags |= SDL_HAT_LEFT;
+    if (controller->GetButton((int)ControllerButton::DPadRight))
+        flags |= SDL_HAT_RIGHT;
+
+    return flags;
 }
-PUBLIC STATIC int   InputManager::GetControllerHat(int controller_index, int index) {
-    SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[controller_index];
-    return SDL_JoystickGetHat(joy, index);
+PUBLIC STATIC float InputManager::ControllerGetAxis(int index, int axis) {
+    GET_CONTROLLER(0.0f);
+    return controller->GetAxis(axis);
 }
-PUBLIC STATIC char* InputManager::GetControllerName(int controller_index) {
-    SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[controller_index];
-    return (char*)SDL_JoystickName(joy);
+PUBLIC STATIC int   InputManager::ControllerGetType(int index) {
+    GET_CONTROLLER((int)ControllerType::Unknown);
+    return (int)controller->Type;
 }
-PUBLIC STATIC void  InputManager::SetControllerVibrate(int controller_index, double strength, int duration) {
-    if (InputManager::ControllerHaptics[controller_index])
-        SDL_HapticRumblePlay((SDL_Haptic*)InputManager::ControllerHaptics[controller_index], strength, duration);
+PUBLIC STATIC char* InputManager::ControllerGetName(int index) {
+    GET_CONTROLLER(nullptr);
+    return controller->GetName();
 }
+PUBLIC STATIC void  InputManager::ControllerSetPlayerIndex(int index, int player_index) {
+    GET_CONTROLLER();
+    controller->SetPlayerIndex(player_index);
+}
+PUBLIC STATIC bool  InputManager::ControllerHasRumble(int index) {
+    GET_CONTROLLER(false);
+    return controller->Rumble != nullptr;
+}
+PUBLIC STATIC bool  InputManager::ControllerIsRumbleActive(int index) {
+    GET_CONTROLLER(false);
+    if (!controller->Rumble) return false;
+    return controller->Rumble->Active;
+}
+PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float large_frequency, float small_frequency, int duration) {
+    GET_CONTROLLER(false);
+    if (!controller->Rumble) return false;
+    return controller->Rumble->Enable(large_frequency, small_frequency, (Uint32)duration);
+}
+PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float strength, int duration) {
+    return InputManager::ControllerRumble(index, strength, strength, duration);
+}
+PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
+    GET_CONTROLLER();
+    if (!controller->Rumble) return;
+    controller->Rumble->Stop();
+}
+PUBLIC STATIC bool  InputManager::ControllerGetRumblePaused(int index) {
+    GET_CONTROLLER(false);
+    if (!controller->Rumble) return false;
+    return controller->Rumble->Paused;
+}
+PUBLIC STATIC void  InputManager::ControllerSetRumblePaused(int index, bool paused) {
+    GET_CONTROLLER();
+    if (!controller->Rumble) return;
+    controller->Rumble->SetPaused(paused);
+}
+PUBLIC STATIC bool  InputManager::ControllerSetLargeMotorFrequency(int index, float frequency) {
+    GET_CONTROLLER(false);
+    if (!controller->Rumble) return false;
+    return controller->Rumble->SetLargeMotorFrequency(frequency);
+}
+PUBLIC STATIC bool  InputManager::ControllerSetSmallMotorFrequency(int index, float frequency) {
+    GET_CONTROLLER(false);
+    if (!controller->Rumble) return false;
+    return controller->Rumble->SetSmallMotorFrequency(frequency);
+}
+
+#undef GET_CONTROLLER
 
 PUBLIC STATIC float InputManager::TouchGetX(int touch_index) {
     TouchState* states = (TouchState*)TouchStates;
@@ -207,17 +339,10 @@ PUBLIC STATIC bool  InputManager::TouchIsReleased(int touch_index) {
 }
 
 PUBLIC STATIC void  InputManager::Dispose() {
-    // Close joysticks
-    for (int i = 0; i < 8; i++) {
-        SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[i];
-        if (!joy) continue;
-
-        if (InputManager::ControllerHaptics[i])
-            SDL_HapticClose((SDL_Haptic*)InputManager::ControllerHaptics[i]);
-
-        if (SDL_JoystickGetAttached(joy)) {
-            SDL_JoystickClose(joy);
-        }
+    // Close controllers
+    for (int i = 0; i < InputManager::NumControllers; i++) {
+        Log::Print(Log::LOG_VERBOSE, "Closing controller %d", i);
+        delete InputManager::Controllers[i];
     }
 
     // Dispose of touch states
