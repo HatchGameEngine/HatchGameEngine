@@ -200,9 +200,6 @@ void _ObjectList_RemoveNonPersistentDynamicFromLists(Uint32, ObjectList* list) {
 void _ObjectList_Clear(Uint32, ObjectList* list) {
     list->Clear();
 }
-void _ObjectList_FreeBytecode(Uint32, ObjectList* list) {
-    BytecodeObjectManager::FreeObjectClassBytecode(list->ObjectName);
-}
 void _ObjectList_ResetPerf(Uint32, ObjectList* list) {
     // list->AverageUpdateTime = 0.0;
     list->AverageUpdateItemCount = 0.0;
@@ -1017,7 +1014,6 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Clear lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll(_ObjectList_Clear);
-        Scene::ObjectLists->ForAll(_ObjectList_FreeBytecode);
         Scene::ObjectLists->Clear();
     }
     if (Scene::ObjectRegistries) {
