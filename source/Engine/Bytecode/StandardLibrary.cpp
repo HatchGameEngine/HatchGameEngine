@@ -24,6 +24,8 @@ public:
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/Input/Controller.h>
+#include <Engine/Input/Input.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
@@ -598,6 +600,378 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Controller
+#define CHECK_CONTROLLER_INDEX(idx) \
+if (InputManager::NumControllers == 0) { \
+    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No controllers are connected."); \
+    return NULL_VAL; \
+} \
+else if (idx < 0 || idx >= InputManager::NumControllers) { \
+    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller index %d out of range. (0 - %d)", idx, InputManager::NumControllers - 1); \
+    return NULL_VAL; \
+}
+/***
+ * Controller.GetCount
+ * \desc Gets the amount of connected controllers in the device.
+ * \return Returns the amount of connected controllers in the device.
+ * \ns Controller
+ */
+VMValue Controller_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(InputManager::NumControllers);
+}
+/***
+ * Controller.IsConnected
+ * \desc Gets whether the controller at the index is connected.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is connected.
+ * \ns Controller
+ */
+VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    if (index < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller index %d out of range.", index);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(InputManager::ControllerIsConnected(index));
+}
+#define CONTROLLER_GET_BOOL(str) \
+VMValue Controller_ ## str(int argCount, VMValue* args, Uint32 threadID) { \
+    CHECK_ARGCOUNT(1); \
+    int index = GET_ARG(0, GetInteger); \
+    CHECK_CONTROLLER_INDEX(index); \
+    return INTEGER_VAL(InputManager::Controller ## str(index)); \
+}
+#define CONTROLLER_GET_INT(str) \
+VMValue Controller_ ## str(int argCount, VMValue* args, Uint32 threadID) { \
+    CHECK_ARGCOUNT(1); \
+    int index = GET_ARG(0, GetInteger); \
+    CHECK_CONTROLLER_INDEX(index); \
+    return INTEGER_VAL((int)(InputManager::Controller ## str(index))); \
+}
+/***
+ * Controller.IsXbox
+ * \desc Gets whether the controller at the index is an Xbox controller.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is an Xbox controller.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsXbox)
+/***
+ * Controller.IsPlayStation
+ * \desc Gets whether the controller at the index is a PlayStation controller.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is a PlayStation controller.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsPlaystation)
+/***
+ * Controller.IsJoyCon
+ * \desc Gets whether the controller at the index is a Nintendo Switch Joy-Con L or R.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is a Nintendo Switch Joy-Con L or R.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsJoyCon)
+/***
+ * Controller.HasShareButton
+ * \desc Gets whether the controller at the index has a Share or Capture button.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has a Share or Capture button.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasShareButton)
+/***
+ * Controller.HasMicrophoneButton
+ * \desc Gets whether the controller at the index has a Microphone button.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has a Microphone button.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasMicrophoneButton)
+/***
+ * Controller.HasPaddles
+ * \desc Gets whether the controller at the index has paddles.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has paddles.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasPaddles)
+/***
+ * Controller.GetButton
+ * \desc Gets the button value from the controller at the index. <br/>\
+</br>Buttons:<ul>\
+<li><code>Button_A</code>: Bottom face button.</li>\
+<li><code>Button_B</code>: Right face button.</li>\
+<li><code>Button_X</code>: Left face button.</li>\
+<li><code>Button_Y</code>: Top face button.</li>\
+<li><code>Button_BACK</code>: Back button.</li>\
+<li><code>Button_GUIDE</code>: Guide button.</li>\
+<li><code>Button_START</code>: Start button.</li>\
+<li><code>Button_LEFTSTICK</code>: Left stick click.</li>\
+<li><code>Button_RIGHTSTICK</code>: Right stick click.</li>\
+<li><code>Button_LEFTSHOULDER</code>: Left shoulder.</li>\
+<li><code>Button_RIGHTSHOULDER</code>: Right shoulder.</li>\
+<li><code>Button_DPAD_UP</code>: D-Pad Up.</li>\
+<li><code>Button_DPAD_DOWN</code>: D-Pad Down.</li>\
+<li><code>Button_DPAD_LEFT</code>: D-Pad Left.</li>\
+<li><code>Button_DPAD_RIGHT</code>: D-Pad Right.</li>\
+<li><code>Button_SHARE</code>: Share/Capture button.</li>\
+<li><code>Button_MICROPHONE</code>: Microphone button.</li>\
+<li><code>Button_TOUCHPAD</code>: Touchpad button.</li>\
+<li><code>Button_PADDLE1</code>: P1 Paddle (Xbox Elite controllers.)</li>\
+<li><code>Button_PADDLE2</code>: P2 Paddle (Xbox Elite controllers.)</li>\
+<li><code>Button_PADDLE3</code>: P3 Paddle (Xbox Elite controllers.)</li>\
+<li><code>Button_PADDLE4</code>: P4 Paddle (Xbox Elite controllers.)</li>\
+<li><code>Button_MISC1</code>: Button for miscellaneous purposes.</li>\
+</ul>
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param buttonIndex (Integer): Index of the button to check.
+ * \return Returns the button value from the controller at the index.
+ * \ns Controller
+ */
+VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int button = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    if (button < 0 || button >= (int)ControllerButton::Max) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller button %d out of range.", button);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(InputManager::ControllerGetButton(index, button));
+}
+/***
+ * Controller.GetAxis
+ * \desc Gets the axis value from the controller at the index. <br/>\
+</br>Axes:<ul>\
+<li><code>Axis_LEFTX</code>: Left stick X.</li>\
+<li><code>Axis_LEFTY</code>: Left stick Y.</li>\
+<li><code>Axis_RIGHTX</code>: Right stick X.</li>\
+<li><code>Axis_RIGHTY</code>: Right stick Y.</li>\
+<li><code>Axis_TRIGGERLEFT</code>: Left trigger.</li>\
+<li><code>Axis_TRIGGERRIGHT</code>: Right trigger.</li>\
+</ul>
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param axisIndex (Integer): Index of the axis to check.
+ * \return Returns the axis value from the controller at the index.
+ * \ns Controller
+ */
+VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int axis = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    if (axis < 0 || axis >= (int)ControllerAxis::Max) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller axis %d out of range.", axis);
+        return NULL_VAL;
+    }
+    return DECIMAL_VAL(InputManager::ControllerGetAxis(index, axis));
+}
+/***
+ * Controller.GetType
+ * \desc Gets the type of the controller at the index. <br/>\
+</br>Types:<ul>\
+<li><code>Controller_Xbox360</code>: Xbox 360 controller.</li>\
+<li><code>Controller_XboxOne</code>: Xbox One controller.</li>\
+<li><code>Controller_XboxSeriesXS</code>: Xbox Series XS controller.</li>\
+<li><code>Controller_XboxElite</code>: Xbox Elite controller.</li>\
+<li><code>Controller_PS3</code>: PlayStation 3 controller.</li>\
+<li><code>Controller_PS4</code>: PlayStation 4 controller.</li>\
+<li><code>Controller_PS5</code>: PlayStation 5 controller.</li>\
+<li><code>Controller_SwitchJoyConPair</code>: Nintendo Switch Joy-Con pair.</li>\
+<li><code>Controller_SwitchJoyConLeft</code>: Nintendo Switch Joy-Con L.</li>\
+<li><code>Controller_SwitchJoyConRight</code>: Nintendo Switch Joy-Con R.</li>\
+<li><code>Controller_SwitchPro</code>: Nintendo Switch Pro Controller.</li>\
+<li><code>Controller_Stadia</code>: Stadia Controller.</li>\
+<li><code>Controller_AmazonLuna</code>: Amazon Luna controller.</li>\
+<li><code>Controller_NvidiaShield</code>: Nvidia Shield TV controller.</li>\
+<li><code>Controller_Unknown</code>: Unknown or unrecognized.</li>\
+</ul>
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns the type of the controller at the index.
+ * \ns Controller
+ */
+CONTROLLER_GET_INT(GetType)
+/***
+ * Controller.GetName
+ * \desc Gets the name of the controller at the index.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns the name of the controller at the index.
+ * \ns Controller
+ */
+VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+
+    CHECK_CONTROLLER_INDEX(index);
+
+    char* name = InputManager::ControllerGetName(index);
+    if (name && BytecodeObjectManager::Lock()) {
+        ObjString* string = CopyString(name, strlen(name));
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(string);
+    }
+    return NULL_VAL;
+}
+/***
+ * Controller.SetPlayerIndex
+ * \desc Sets the player index of the controller at the index.
+ * \param controllerIndex (Integer): Index of the controller.
+ * \param playerIndex (Integer): The player index. Use <code>-1</code> to disable the controller's LEDs.
+ * \ns Controller
+ */
+VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int player_index = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    InputManager::ControllerSetPlayerIndex(index, player_index);
+    return NULL_VAL;
+}
+/***
+ * Controller.HasRumble
+ * \desc Checks if the controller at the index supports rumble.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns <code>true</code> if the controller at the index supports rumble, <code>false</code> otherwise.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasRumble)
+/***
+ * Controller.IsRumbleActive
+ * \desc Checks if rumble is active for the controller at the index.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns <code>true</code> if rumble is active for the controller at the index, <code>false</code> otherwise.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsRumbleActive)
+/***
+ * Controller.Rumble
+ * \desc Rumbles a controller.
+ * \param controllerIndex (Integer): Index of the controller to rumble.
+ * \param largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)
+ * \param smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)
+ * \param duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.
+ * \ns Controller
+ */
+VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
+    if (argCount <= 3) {
+        CHECK_ARGCOUNT(3);
+        int index = GET_ARG(0, GetInteger);
+        float strength = GET_ARG(1, GetDecimal);
+        int duration = GET_ARG(2, GetInteger);
+        CHECK_CONTROLLER_INDEX(index);
+        if (strength < 0.0 || strength > 1.0) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble strength %f out of range. (0.0 - 1.0)", strength);
+            return NULL_VAL;
+        }
+        if (duration < 0) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble duration %d out of range.", duration);
+            return NULL_VAL;
+        }
+        InputManager::ControllerRumble(index, strength, duration);
+    }
+    else {
+        CHECK_ARGCOUNT(4);
+        int index = GET_ARG(0, GetInteger);
+        float large_frequency = GET_ARG(1, GetDecimal);
+        float small_frequency = GET_ARG(2, GetDecimal);
+        int duration = GET_ARG(3, GetInteger);
+        CHECK_CONTROLLER_INDEX(index);
+        if (large_frequency < 0.0 || large_frequency > 1.0) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Large motor frequency %f out of range. (0.0 - 1.0)", large_frequency);
+            return NULL_VAL;
+        }
+        if (small_frequency < 0.0 || small_frequency > 1.0) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Small motor frequency %f out of range. (0.0 - 1.0)", small_frequency);
+            return NULL_VAL;
+        }
+        if (duration < 0) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble duration %d out of range.", duration);
+            return NULL_VAL;
+        }
+        InputManager::ControllerRumble(index, large_frequency, small_frequency, duration);
+    }
+    return NULL_VAL;
+}
+/***
+ * Controller.StopRumble
+ * \desc Stops controller haptics.
+ * \param controllerIndex (Integer): Index of the controller to stop.
+ * \ns Controller
+ */
+VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    InputManager::ControllerStopRumble(index);
+    return NULL_VAL;
+}
+/***
+ * Controller.IsRumblePaused
+ * \desc Checks if rumble is paused for the controller at the index.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns <code>true</code> if rumble is paused for the controller at the index, <code>false</code> otherwise.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsRumblePaused)
+/***
+ * Controller.SetRumblePaused
+ * \desc Pauses or unpauses rumble for the controller at the index.
+ * \param controllerIndex (Integer): Index of the controller.
+ * \ns Controller
+ */
+VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    bool paused = !!GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    InputManager::ControllerSetRumblePaused(index, paused);
+    return NULL_VAL;
+}
+/***
+ * Controller.SetLargeMotorFrequency
+ * \desc Sets the frequency of a controller's large motor.
+ * \param controllerIndex (Integer): Index of the controller.
+ * \param frequency (Number): Frequency of the large motor.
+ * \ns Controller
+ */
+VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    float frequency = GET_ARG(1, GetDecimal);
+    CHECK_CONTROLLER_INDEX(index);
+    if (frequency < 0.0 || frequency > 1.0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Large motor frequency %f out of range. (0.0 - 1.0)", frequency);
+        return NULL_VAL;
+    }
+    InputManager::ControllerSetLargeMotorFrequency(index, frequency);
+    return NULL_VAL;
+}
+/***
+ * Controller.SetSmallMotorFrequency
+ * \desc Sets the frequency of a controller's small motor.
+ * \param controllerIndex (Integer): Index of the controller.
+ * \param frequency (Number): Frequency of the small motor.
+ * \ns Controller
+ */
+VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    float frequency = GET_ARG(1, GetDecimal);
+    CHECK_CONTROLLER_INDEX(index);
+    if (frequency < 0.0 || frequency > 1.0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Small motor frequency %f out of range. (0.0 - 1.0)", frequency);
+        return NULL_VAL;
+    }
+    InputManager::ControllerSetSmallMotorFrequency(index, frequency);
+    return NULL_VAL;
+}
+#undef CONTROLLER_GET_BOOL
+#undef CONTROLLER_GET_INT
+// #endregion
+
 // #region Date
 /***
  * Date.GetEpoch
@@ -624,8 +998,18 @@ VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
 // #region Device
 /***
  * Device.GetPlatform
- * \desc Gets the id of the platform the application is currently running on. <br/></br>Platform IDs:<ul><li>Unknown = 0</li><li>Windows = 1</li><li>MacOS = 2</li><li>Linux = 3</li><li>Switch = 5</li><li>Android = 8</li><li>iOS = 9</li></ul>
- * \return Returns ID of the current platform.
+ * \desc Gets the platform the application is currently running on. <br/>\
+</br>Platform IDs:<ul>\
+<li><code>Platform_Windows</code></li>\
+<li><code>Platform_MacOSX</code></li>\
+<li><code>Platform_Linux</code></li>\
+<li><code>Platform_Ubuntu</code></li>\
+<li><code>Platform_Switch</code></li>\
+<li><code>Platform_iOS</code></li>\
+<li><code>Platform_Android</code></li>\
+<li><code>Platform_Default</code></li>\
+</ul>
+ * \return Returns the current platform.
  * \ns Device
  */
 VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
@@ -2993,20 +3377,27 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(down);
 }
 /***
+ * Input.GetControllerCount
+ * \desc Gets the amount of connected controllers in the device. (Deprecated; use <code>Controller.GetCount</code> instead.)
+ * \return Returns the amount of connected controllers in the device.
+ * \ns Input
+ */
+VMValue Input_GetControllerCount(int argCount, VMValue* args, Uint32 threadID) {
+    return Controller_GetCount(argCount, args, threadID);
+}
+/***
  * Input.GetControllerAttached
- * \desc Gets whether the controller at the index is attached.
+ * \desc Gets whether the controller at the index is connected. (Deprecated; use <code>Controller.IsConnected</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is attached.
+ * \return Returns whether the controller at the index is connected.
  * \ns Input
  */
 VMValue Input_GetControllerAttached(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int controller_index = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(InputManager::GetControllerAttached(controller_index));
+    return Controller_IsConnected(argCount, args, threadID);
 }
 /***
  * Input.GetControllerHat
- * \desc Gets the hat value from the controller at the index.
+ * \desc Gets the hat value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param hatIndex (Integer): Index of the hat to check.
  * \return Returns the hat value from the controller at the index.
@@ -3016,56 +3407,42 @@ VMValue Input_GetControllerHat(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int controller_index = GET_ARG(0, GetInteger);
     int index = GET_ARG(1, GetInteger);
-    return INTEGER_VAL(InputManager::GetControllerHat(controller_index, index));
+    CHECK_CONTROLLER_INDEX(controller_index);
+    return INTEGER_VAL(InputManager::ControllerGetHat(controller_index, index));
 }
 /***
  * Input.GetControllerAxis
- * \desc Gets the axis value from the controller at the index.
+ * \desc Gets the axis value from the controller at the index. (Deprecated; use <code>Controller.GetAxis</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param axisIndex (Integer): Index of the axis to check.
  * \return Returns the axis value from the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerAxis(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    return DECIMAL_VAL(InputManager::GetControllerAxis(controller_index, index));
+    return Controller_GetAxis(argCount, args, threadID);
 }
 /***
  * Input.GetControllerButton
- * \desc Gets the button value from the controller at the index.
+ * \desc Gets the button value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param buttonIndex (Integer): Index of the button to check.
  * \return Returns the button value from the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerButton(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    return INTEGER_VAL(InputManager::GetControllerButton(controller_index, index));
+    return Controller_GetButton(argCount, args, threadID);
 }
 /***
  * Input.GetControllerName
- * \desc Gets the name of the controller at the index.
+ * \desc Gets the name of the controller at the index. (Deprecated; use <code>Controller.GetName</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \return Returns the name of the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerName(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int controller_index = GET_ARG(0, GetInteger);
-
-    char* name = InputManager::GetControllerName(controller_index);
-
-    if (BytecodeObjectManager::Lock()) {
-        ObjString* string = CopyString(name, strlen(name));
-        BytecodeObjectManager::Unlock();
-        return OBJECT_VAL(string);
-    }
-    return NULL_VAL;
+    return Controller_GetName(argCount, args, threadID);
 }
+#undef CHECK_CONTROLLER_INDEX
 // #endregion
 
 // #region IO
@@ -5306,14 +5683,14 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerDrawBehavior
- * \desc Sets the parallax direction of the layer.
- * \param layerIndex (Integer): Index of layer.
- * \param drawBehavior (Integer): Draw behavior. <br/>\
+ * \desc Sets the parallax direction of the layer. <br/>\
 </br>Behaviors:<ul>\
 <li><code>DrawBehavior_HorizontalParallax</code>: Horizontal parallax.</li>\
 <li><code>DrawBehavior_VerticalParallax</code>: Do not use.</li>\
 <li><code>DrawBehavior_CustomTileScanLines</code>: Custom scanline behavior.</li>\
 </ul>
+ * \param layerIndex (Integer): Index of layer.
+ * \param drawBehavior (Integer): Draw behavior.
  * \ns Scene
  */
 VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID) {
@@ -5325,10 +5702,7 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Scene.SetLayerBlend
- * \desc Sets whether or not to use color and alpha blending on this layer.
- * \param layerIndex (Integer): Index of layer.
- * \param doBlend (Boolean): Whether or not to use blending.
- * \paramOpt blendMode (Integer): The desired blend mode. <br/>\
+ * \desc Sets whether or not to use color and alpha blending on this layer. <br/>\
 </br>Blend Modes:<ul>\
 <li><code>BlendMode_NORMAL</code>: Normal pixel blending.</li>\
 <li><code>BlendMode_ADD</code>: Additive pixel blending.</li>\
@@ -5337,6 +5711,9 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 <li><code>BlendMode_MATCH_EQUAL</code>: (software-renderer only) Draw pixels only where it matches the Comparison Color.</li>\
 <li><code>BlendMode_MATCH_NOT_EQUAL</code>: (software-renderer only) Draw pixels only where it does not match the Comparison Color.</li>\
 </ul>
+ * \param layerIndex (Integer): Index of layer.
+ * \param doBlend (Boolean): Whether or not to use blending.
+ * \paramOpt blendMode (Integer): The desired blend mode.
  * \ns Scene
  */
 VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -8258,6 +8635,87 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Array, SetAll);
     // #endregion
 
+    // #region Controller
+    INIT_CLASS(Controller);
+    DEF_NATIVE(Controller, GetCount);
+    DEF_NATIVE(Controller, IsConnected);
+    DEF_NATIVE(Controller, IsXbox);
+    DEF_NATIVE(Controller, IsPlaystation);
+    DEF_NATIVE(Controller, IsJoyCon);
+    DEF_NATIVE(Controller, HasShareButton);
+    DEF_NATIVE(Controller, HasMicrophoneButton);
+    DEF_NATIVE(Controller, HasPaddles);
+    DEF_NATIVE(Controller, GetButton);
+    DEF_NATIVE(Controller, GetAxis);
+    DEF_NATIVE(Controller, GetType);
+    DEF_NATIVE(Controller, GetName);
+    DEF_NATIVE(Controller, SetPlayerIndex);
+    DEF_NATIVE(Controller, HasRumble);
+    DEF_NATIVE(Controller, IsRumbleActive);
+    DEF_NATIVE(Controller, IsRumblePaused);
+    DEF_NATIVE(Controller, Rumble);
+    DEF_NATIVE(Controller, StopRumble);
+    DEF_NATIVE(Controller, SetRumblePaused);
+    DEF_NATIVE(Controller, SetLargeMotorFrequency);
+    DEF_NATIVE(Controller, SetSmallMotorFrequency);
+    #define CONST_BUTTON(x, y) BytecodeObjectManager::GlobalConstInteger(NULL, "Button_"#x, (int)ControllerButton::y)
+    {
+        CONST_BUTTON(A, A);
+        CONST_BUTTON(B, B);
+        CONST_BUTTON(X, X);
+        CONST_BUTTON(Y, Y);
+        CONST_BUTTON(BACK, Back);
+        CONST_BUTTON(GUIDE, Guide);
+        CONST_BUTTON(START, Start);
+        CONST_BUTTON(LEFTSTICK, LeftStick);
+        CONST_BUTTON(RIGHTSTICK, RightStick);
+        CONST_BUTTON(LEFTSHOULDER, LeftShoulder);
+        CONST_BUTTON(RIGHTSHOULDER, RightShoulder);
+        CONST_BUTTON(DPAD_UP, DPadUp);
+        CONST_BUTTON(DPAD_DOWN, DPadDown);
+        CONST_BUTTON(DPAD_LEFT, DPadLeft);
+        CONST_BUTTON(DPAD_RIGHT, DPadRight);
+        CONST_BUTTON(SHARE, Share);
+        CONST_BUTTON(MICROPHONE, Microphone);
+        CONST_BUTTON(TOUCHPAD, Touchpad);
+        CONST_BUTTON(PADDLE1, Paddle1);
+        CONST_BUTTON(PADDLE2, Paddle2);
+        CONST_BUTTON(PADDLE3, Paddle3);
+        CONST_BUTTON(PADDLE4, Paddle4);
+        CONST_BUTTON(MISC1, Misc1);
+    }
+    #undef CONST_BUTTON
+    #define CONST_AXIS(x, y) BytecodeObjectManager::GlobalConstInteger(NULL, "Axis_"#x, (int)ControllerAxis::y)
+    {
+        CONST_AXIS(LEFTX, LeftX);
+        CONST_AXIS(LEFTY, LeftY);
+        CONST_AXIS(RIGHTX, RightX);
+        CONST_AXIS(RIGHTY, RightY);
+        CONST_AXIS(TRIGGERLEFT, TriggerLeft);
+        CONST_AXIS(TRIGGERRIGHT, TriggerRight);
+    }
+    #undef CONST_AXIS
+    #define CONST_CONTROLLER(type) BytecodeObjectManager::GlobalConstInteger(NULL, "Axis_"#type, (int)ControllerType::type)
+    {
+        CONST_CONTROLLER(Xbox360);
+        CONST_CONTROLLER(XboxOne);
+        CONST_CONTROLLER(XboxSeriesXS);
+        CONST_CONTROLLER(XboxElite);
+        CONST_CONTROLLER(PS3);
+        CONST_CONTROLLER(PS4);
+        CONST_CONTROLLER(PS5);
+        CONST_CONTROLLER(SwitchJoyConPair);
+        CONST_CONTROLLER(SwitchJoyConLeft);
+        CONST_CONTROLLER(SwitchJoyConRight);
+        CONST_CONTROLLER(SwitchPro);
+        CONST_CONTROLLER(Stadia);
+        CONST_CONTROLLER(AmazonLuna);
+        CONST_CONTROLLER(NvidiaShield);
+        CONST_CONTROLLER(Unknown);
+    }
+    #undef CONST_CONTROLLER
+    // #endregion
+
     // #region Date
     INIT_CLASS(Date);
     DEF_NATIVE(Date, GetEpoch);
@@ -8443,6 +8901,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsKeyDown);
     DEF_NATIVE(Input, IsKeyPressed);
     DEF_NATIVE(Input, IsKeyReleased);
+    DEF_NATIVE(Input, GetControllerCount);
     DEF_NATIVE(Input, GetControllerAttached);
     DEF_NATIVE(Input, GetControllerHat);
     DEF_NATIVE(Input, GetControllerAxis);
@@ -8451,11 +8910,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // DEF_NATIVE(Key, IsDown);
     // DEF_NATIVE(Key, IsPressed);
     // DEF_NATIVE(Key, IsReleased);
-    // DEF_NATIVE(Controller, IsAttached);
-    // DEF_NATIVE(Controller, GetHat);
-    // DEF_NATIVE(Controller, GetAxis);
-    // DEF_NATIVE(Controller, GetButton);
-    // DEF_NATIVE(Controller, GetName);
     // DEF_NATIVE(Mouse, GetX);
     // DEF_NATIVE(Mouse, GetY);
     // DEF_NATIVE(Mouse, IsButtonDown);

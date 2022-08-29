@@ -145,7 +145,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
     #endif
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
         Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
     }
 
@@ -726,33 +726,16 @@ PRIVATE STATIC void Application::PollEvents() {
                 }
                 break;
             }
-            case SDL_JOYDEVICEADDED: {
-                int i = e.jdevice.which;
-                InputManager::Controllers[i] = SDL_JoystickOpen(i);
-                if (InputManager::Controllers[i])
-                    Log::Print(Log::LOG_VERBOSE, "InputManager::Controllers[%d] opened.", i);
-
-                if (InputManager::Controllers[i])
-                    InputManager::ControllerHaptics[i] = SDL_HapticOpenFromJoystick((SDL_Joystick*)InputManager::Controllers[i]);
-
-                if (InputManager::ControllerHaptics[i] && SDL_HapticRumbleInit((SDL_Haptic*)InputManager::ControllerHaptics[i]))
-                    InputManager::ControllerHaptics[i] = NULL;
+            case SDL_CONTROLLERDEVICEADDED: {
+                int i = e.cdevice.which;
+                Log::Print(Log::LOG_VERBOSE, "Added controller device %d", i);
+                InputManager::AddController(i);
                 break;
             }
-            case SDL_JOYDEVICEREMOVED: {
-                int i = e.jdevice.which;
-
-                SDL_Joystick* joy = (SDL_Joystick*)InputManager::Controllers[i];
-
-                SDL_JoystickClose(joy);
-
-                InputManager::Controllers[i] = NULL;
-
-                // if (InputManager::Controllers[i])
-                //     InputManager::ControllerHaptics[i] = SDL_HapticOpenFromJoystick((SDL_Joystick*)InputManager::Controllers[i]);
-                //
-                // if (InputManager::ControllerHaptics[i] && SDL_HapticRumbleInit((SDL_Haptic*)InputManager::ControllerHaptics[i]))
-                //     InputManager::ControllerHaptics[i] = NULL;
+            case SDL_CONTROLLERDEVICEREMOVED: {
+                int i = e.cdevice.which;
+                Log::Print(Log::LOG_VERBOSE, "Removed controller device %d", i);
+                InputManager::RemoveController(i);
                 break;
             }
         }

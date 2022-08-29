@@ -47,6 +47,7 @@
         <h3>Function Namespaces</h3>
         <ul>
             <li><a href="#Reference_Array">Array</a></li>
+            <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
             <li><a href="#Reference_Device">Device</a></li>
             <li><a href="#Reference_Directory">Directory</a></li>
@@ -92,6 +93,33 @@
                     <li><a href="#Reference_Array_Clear">Array.Clear</a></li>
                     <li><a href="#Reference_Array_Shift">Array.Shift</a></li>
                     <li><a href="#Reference_Array_SetAll">Array.SetAll</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Controller">
+                <h2>Controller</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Controller_GetCount">Controller.GetCount</a></li>
+                    <li><a href="#Reference_Controller_IsConnected">Controller.IsConnected</a></li>
+                    <li><a href="#Reference_Controller_IsXbox">Controller.IsXbox</a></li>
+                    <li><a href="#Reference_Controller_IsPlayStation">Controller.IsPlayStation</a></li>
+                    <li><a href="#Reference_Controller_IsJoyCon">Controller.IsJoyCon</a></li>
+                    <li><a href="#Reference_Controller_HasShareButton">Controller.HasShareButton</a></li>
+                    <li><a href="#Reference_Controller_HasMicrophoneButton">Controller.HasMicrophoneButton</a></li>
+                    <li><a href="#Reference_Controller_HasPaddles">Controller.HasPaddles</a></li>
+                    <li><a href="#Reference_Controller_GetButton">Controller.GetButton</a></li>
+                    <li><a href="#Reference_Controller_GetAxis">Controller.GetAxis</a></li>
+                    <li><a href="#Reference_Controller_GetType">Controller.GetType</a></li>
+                    <li><a href="#Reference_Controller_GetName">Controller.GetName</a></li>
+                    <li><a href="#Reference_Controller_SetPlayerIndex">Controller.SetPlayerIndex</a></li>
+                    <li><a href="#Reference_Controller_HasRumble">Controller.HasRumble</a></li>
+                    <li><a href="#Reference_Controller_IsRumbleActive">Controller.IsRumbleActive</a></li>
+                    <li><a href="#Reference_Controller_Rumble">Controller.Rumble</a></li>
+                    <li><a href="#Reference_Controller_StopRumble">Controller.StopRumble</a></li>
+                    <li><a href="#Reference_Controller_IsRumblePaused">Controller.IsRumblePaused</a></li>
+                    <li><a href="#Reference_Controller_SetRumblePaused">Controller.SetRumblePaused</a></li>
+                    <li><a href="#Reference_Controller_SetLargeMotorFrequency">Controller.SetLargeMotorFrequency</a></li>
+                    <li><a href="#Reference_Controller_SetSmallMotorFrequency">Controller.SetSmallMotorFrequency</a></li>
                 </ul>
             </p>
             <p id="Reference_Date">
@@ -261,6 +289,7 @@
                     <li><a href="#Reference_Input_IsKeyDown">Input.IsKeyDown</a></li>
                     <li><a href="#Reference_Input_IsKeyPressed">Input.IsKeyPressed</a></li>
                     <li><a href="#Reference_Input_IsKeyReleased">Input.IsKeyReleased</a></li>
+                    <li><a href="#Reference_Input_GetControllerCount">Input.GetControllerCount</a></li>
                     <li><a href="#Reference_Input_GetControllerAttached">Input.GetControllerAttached</a></li>
                     <li><a href="#Reference_Input_GetControllerHat">Input.GetControllerHat</a></li>
                     <li><a href="#Reference_Input_GetControllerAxis">Input.GetControllerAxis</a></li>
@@ -410,6 +439,8 @@
                     <li><a href="#Reference_Scene_SetLayerOffsetPosition">Scene.SetLayerOffsetPosition</a></li>
                     <li><a href="#Reference_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
+                    <li><a href="#Reference_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
+                    <li><a href="#Reference_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
                     <li><a href="#Reference_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
                     <li><a href="#Reference_Scene_SetLayerSetParallaxLines">Scene.SetLayerSetParallaxLines</a></li>
@@ -732,6 +763,250 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Controller_GetCount">
+        <h2 style="margin-bottom: 8px;">Controller.GetCount</h2>
+        <code>Controller.GetCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of connected controllers in the device.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of connected controllers in the device.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsConnected">
+        <h2 style="margin-bottom: 8px;">Controller.IsConnected</h2>
+        <code>Controller.IsConnected(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is connected.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index is connected.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsXbox">
+        <h2 style="margin-bottom: 8px;">Controller.IsXbox</h2>
+        <code>Controller.IsXbox(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is an Xbox controller.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index is an Xbox controller.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsPlayStation">
+        <h2 style="margin-bottom: 8px;">Controller.IsPlayStation</h2>
+        <code>Controller.IsPlayStation(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is a PlayStation controller.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index is a PlayStation controller.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsJoyCon">
+        <h2 style="margin-bottom: 8px;">Controller.IsJoyCon</h2>
+        <code>Controller.IsJoyCon(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is a Nintendo Switch Joy-Con L or R.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index is a Nintendo Switch Joy-Con L or R.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_HasShareButton">
+        <h2 style="margin-bottom: 8px;">Controller.HasShareButton</h2>
+        <code>Controller.HasShareButton(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index has a Share or Capture button.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index has a Share or Capture button.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_HasMicrophoneButton">
+        <h2 style="margin-bottom: 8px;">Controller.HasMicrophoneButton</h2>
+        <code>Controller.HasMicrophoneButton(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index has a Microphone button.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index has a Microphone button.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_HasPaddles">
+        <h2 style="margin-bottom: 8px;">Controller.HasPaddles</h2>
+        <code>Controller.HasPaddles(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index has paddles.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index has paddles.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_GetButton">
+        <h2 style="margin-bottom: 8px;">Controller.GetButton</h2>
+        <code>Controller.GetButton(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the button value from the controller at the index. <br/></br>Buttons:<ul><li><code>Button_A</code>: Bottom face button.</li><li><code>Button_B</code>: Right face button.</li><li><code>Button_X</code>: Left face button.</li><li><code>Button_Y</code>: Top face button.</li><li><code>Button_BACK</code>: Back button.</li><li><code>Button_GUIDE</code>: Guide button.</li><li><code>Button_START</code>: Start button.</li><li><code>Button_LEFTSTICK</code>: Left stick click.</li><li><code>Button_RIGHTSTICK</code>: Right stick click.</li><li><code>Button_LEFTSHOULDER</code>: Left shoulder.</li><li><code>Button_RIGHTSHOULDER</code>: Right shoulder.</li><li><code>Button_DPAD_UP</code>: D-Pad Up.</li><li><code>Button_DPAD_DOWN</code>: D-Pad Down.</li><li><code>Button_DPAD_LEFT</code>: D-Pad Left.</li><li><code>Button_DPAD_RIGHT</code>: D-Pad Right.</li><li><code>Button_SHARE</code>: Share/Capture button.</li><li><code>Button_MICROPHONE</code>: Microphone button.</li><li><code>Button_TOUCHPAD</code>: Touchpad button.</li><li><code>Button_PADDLE1</code>: P1 Paddle (Xbox Elite controllers.)</li><li><code>Button_PADDLE2</code>: P2 Paddle (Xbox Elite controllers.)</li><li><code>Button_PADDLE3</code>: P3 Paddle (Xbox Elite controllers.)</li><li><code>Button_PADDLE4</code>: P4 Paddle (Xbox Elite controllers.)</li><li><code>Button_MISC1</code>: Button for miscellaneous purposes.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Integer): Index of the button to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_GetAxis">
+        <h2 style="margin-bottom: 8px;">Controller.GetAxis</h2>
+        <code>Controller.GetAxis(controllerIndex, axisIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the axis value from the controller at the index. <br/></br>Axes:<ul><li><code>Axis_LEFTX</code>: Left stick X.</li><li><code>Axis_LEFTY</code>: Left stick Y.</li><li><code>Axis_RIGHTX</code>: Right stick X.</li><li><code>Axis_RIGHTY</code>: Right stick Y.</li><li><code>Axis_TRIGGERLEFT</code>: Left trigger.</li><li><code>Axis_TRIGGERRIGHT</code>: Right trigger.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>axisIndex (Integer): Index of the axis to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_GetType">
+        <h2 style="margin-bottom: 8px;">Controller.GetType</h2>
+        <code>Controller.GetType(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the type of the controller at the index. <br/></br>Types:<ul><li><code>Controller_Xbox360</code>: Xbox 360 controller.</li><li><code>Controller_XboxOne</code>: Xbox One controller.</li><li><code>Controller_XboxSeriesXS</code>: Xbox Series XS controller.</li><li><code>Controller_XboxElite</code>: Xbox Elite controller.</li><li><code>Controller_PS3</code>: PlayStation 3 controller.</li><li><code>Controller_PS4</code>: PlayStation 4 controller.</li><li><code>Controller_PS5</code>: PlayStation 5 controller.</li><li><code>Controller_SwitchJoyConPair</code>: Nintendo Switch Joy-Con pair.</li><li><code>Controller_SwitchJoyConLeft</code>: Nintendo Switch Joy-Con L.</li><li><code>Controller_SwitchJoyConRight</code>: Nintendo Switch Joy-Con R.</li><li><code>Controller_SwitchPro</code>: Nintendo Switch Pro Controller.</li><li><code>Controller_Stadia</code>: Stadia Controller.</li><li><code>Controller_AmazonLuna</code>: Amazon Luna controller.</li><li><code>Controller_NvidiaShield</code>: Nvidia Shield TV controller.</li><li><code>Controller_Unknown</code>: Unknown or unrecognized.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the type of the controller at the index.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_GetName">
+        <h2 style="margin-bottom: 8px;">Controller.GetName</h2>
+        <code>Controller.GetName(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the controller at the index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the controller at the index.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_SetPlayerIndex">
+        <h2 style="margin-bottom: 8px;">Controller.SetPlayerIndex</h2>
+        <code>Controller.SetPlayerIndex(controllerIndex, playerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the player index of the controller at the index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller.</li>
+        <li>playerIndex (Integer): The player index. Use <code>-1</code> to disable the controller's LEDs.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_HasRumble">
+        <h2 style="margin-bottom: 8px;">Controller.HasRumble</h2>
+        <code>Controller.HasRumble(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the controller at the index supports rumble.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the controller at the index supports rumble, <code>false</code> otherwise.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsRumbleActive">
+        <h2 style="margin-bottom: 8px;">Controller.IsRumbleActive</h2>
+        <code>Controller.IsRumbleActive(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if rumble is active for the controller at the index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if rumble is active for the controller at the index, <code>false</code> otherwise.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_Rumble">
+        <h2 style="margin-bottom: 8px;">Controller.Rumble</h2>
+        <code>Controller.Rumble(controllerIndex, largeMotorFrequency, smallMotorFrequency, duration)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Rumbles a controller.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to rumble.</li>
+        <li>largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)</li>
+        <li>smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)</li>
+        <li>duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_StopRumble">
+        <h2 style="margin-bottom: 8px;">Controller.StopRumble</h2>
+        <code>Controller.StopRumble(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Stops controller haptics.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to stop.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_IsRumblePaused">
+        <h2 style="margin-bottom: 8px;">Controller.IsRumblePaused</h2>
+        <code>Controller.IsRumblePaused(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if rumble is paused for the controller at the index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if rumble is paused for the controller at the index, <code>false</code> otherwise.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_SetRumblePaused">
+        <h2 style="margin-bottom: 8px;">Controller.SetRumblePaused</h2>
+        <code>Controller.SetRumblePaused(controllerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Pauses or unpauses rumble for the controller at the index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_SetLargeMotorFrequency">
+        <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
+        <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller.</li>
+        <li>frequency (Number): Frequency of the large motor.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Controller_SetSmallMotorFrequency">
+        <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
+        <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller.</li>
+        <li>frequency (Number): Frequency of the small motor.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Date_GetEpoch">
         <h2 style="margin-bottom: 8px;">Date.GetEpoch</h2>
         <code>Date.GetEpoch()</code>
@@ -751,9 +1026,9 @@
         <p id="Reference_Device_GetPlatform">
         <h2 style="margin-bottom: 8px;">Device.GetPlatform</h2>
         <code>Device.GetPlatform()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the id of the platform the application is currently running on. <br/></br>Platform IDs:<ul><li>Unknown = 0</li><li>Windows = 1</li><li>MacOS = 2</li><li>Linux = 3</li><li>Switch = 5</li><li>Android = 8</li><li>iOS = 9</li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the platform the application is currently running on. <br/></br>Platform IDs:<ul><li><code>Platform_Windows</code></li><li><code>Platform_MacOSX</code></li><li><code>Platform_Linux</code></li><li><code>Platform_Ubuntu</code></li><li><code>Platform_Switch</code></li><li><code>Platform_iOS</code></li><li><code>Platform_Android</code></li><li><code>Platform_Default</code></li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns ID of the current platform.</div>
+        <div style="font-size: 14px;">Returns the current platform.</div>
         </p>
         <hr/>
         <p id="Reference_Device_IsMobile">
@@ -2027,22 +2302,30 @@
         <div style="font-size: 14px;">Returns whether the key released during the current frame.</div>
         </p>
         <hr/>
+        <p id="Reference_Input_GetControllerCount">
+        <h2 style="margin-bottom: 8px;">Input.GetControllerCount</h2>
+        <code>Input.GetControllerCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of connected controllers in the device. (Deprecated; use <code>Controller.GetCount</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of connected controllers in the device.</div>
+        </p>
+        <hr/>
         <p id="Reference_Input_GetControllerAttached">
         <h2 style="margin-bottom: 8px;">Input.GetControllerAttached</h2>
         <code>Input.GetControllerAttached(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is attached.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is connected. (Deprecated; use <code>Controller.IsConnected</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether the controller at the index is attached.</div>
+        <div style="font-size: 14px;">Returns whether the controller at the index is connected.</div>
         </p>
         <hr/>
         <p id="Reference_Input_GetControllerHat">
         <h2 style="margin-bottom: 8px;">Input.GetControllerHat</h2>
         <code>Input.GetControllerHat(controllerIndex, hatIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hat value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hat value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2055,7 +2338,7 @@
         <p id="Reference_Input_GetControllerAxis">
         <h2 style="margin-bottom: 8px;">Input.GetControllerAxis</h2>
         <code>Input.GetControllerAxis(controllerIndex, axisIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the axis value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the axis value from the controller at the index. (Deprecated; use <code>Controller.GetAxis</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2068,7 +2351,7 @@
         <p id="Reference_Input_GetControllerButton">
         <h2 style="margin-bottom: 8px;">Input.GetControllerButton</h2>
         <code>Input.GetControllerButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the button value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the button value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2081,7 +2364,7 @@
         <p id="Reference_Input_GetControllerName">
         <h2 style="margin-bottom: 8px;">Input.GetControllerName</h2>
         <code>Input.GetControllerName(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the controller at the index. (Deprecated; use <code>Controller.GetName</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -3108,12 +3391,35 @@
         <hr/>
         <p id="Reference_Scene_SetLayerDrawBehavior">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerDrawBehavior</h2>
-        <code>Scene.SetLayerDrawBehavior(layerIndex, isVertical)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the parallax direction of the layer.</div>
+        <code>Scene.SetLayerDrawBehavior(layerIndex, drawBehavior)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the parallax direction of the layer. <br/></br>Behaviors:<ul><li><code>DrawBehavior_HorizontalParallax</code>: Horizontal parallax.</li><li><code>DrawBehavior_VerticalParallax</code>: Do not use.</li><li><code>DrawBehavior_CustomTileScanLines</code>: Custom scanline behavior.</li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>isVertical (Boolean): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>drawBehavior (Integer): Draw behavior.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetLayerBlend">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerBlend</h2>
+        <code>Scene.SetLayerBlend(layerIndex, doBlend[, blendMode])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color and alpha blending on this layer. <br/></br>Blend Modes:<ul><li><code>BlendMode_NORMAL</code>: Normal pixel blending.</li><li><code>BlendMode_ADD</code>: Additive pixel blending.</li><li><code>BlendMode_MAX</code>: Maximum pixel blending.</li><li><code>BlendMode_SUBTRACT</code>: Subtractive pixel blending.</li><li><code>BlendMode_MATCH_EQUAL</code>: (software-renderer only) Draw pixels only where it matches the Comparison Color.</li><li><code>BlendMode_MATCH_NOT_EQUAL</code>: (software-renderer only) Draw pixels only where it does not match the Comparison Color.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doBlend (Boolean): Whether or not to use blending.</li>
+        <li>blendMode (Integer): The desired blend mode.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetLayerOpacity">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerOpacity</h2>
+        <code>Scene.SetLayerOpacity(layerIndex, opacity)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the opacity of the layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
         </ul>
         </p>
         <hr/>
@@ -3208,7 +3514,7 @@
         <hr/>
         <p id="Reference_Scene_SetTileScanline">
         <h2 style="margin-bottom: 8px;">Scene.SetTileScanline</h2>
-        <code>Scene.SetTileScanline(scanline, srcX, srcY, deltaX, deltaY)</code>
+        <code>Scene.SetTileScanline(scanline, srcX, srcY, deltaX, deltaY[, opacity, maxHorzCells, maxVertCells])</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the tile scanline (for use only inside a Custom Scanline Function).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3217,6 +3523,9 @@
         <li>srcY (Number):</li>
         <li>deltaX (Number):</li>
         <li>deltaY (Number):</li>
+        <li>opacity (Decimal):</li>
+        <li>maxHorzCells (Number):</li>
+        <li>maxVertCells (Number):</li>
         </ul>
         </p>
         <hr/>
@@ -4381,6 +4690,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>282 out of 354 functions have descriptions. </p>
+        <p>306 out of 378 functions have descriptions. </p>
     </body>
 </html>
