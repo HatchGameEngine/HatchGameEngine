@@ -47,6 +47,7 @@
         <h3>Function Namespaces</h3>
         <ul>
             <li><a href="#Reference_Array">Array</a></li>
+            <li><a href="#Reference_Audio">Audio</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
             <li><a href="#Reference_Device">Device</a></li>
@@ -66,6 +67,7 @@
             <li><a href="#Reference_Palette">Palette</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
+            <li><a href="#Reference_Settings">Settings</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
             <li><a href="#Reference_Sound">Sound</a></li>
@@ -79,6 +81,7 @@
             <li><a href="#Reference_Video">Video</a></li>
             <li><a href="#Reference_View">View</a></li>
             <li><a href="#Reference_Window">Window</a></li>
+            <li><a href="#Reference_XML">XML</a></li>
         </ul>
             <p id="Reference_Array">
                 <h2>Array</h2>
@@ -93,6 +96,18 @@
                     <li><a href="#Reference_Array_Clear">Array.Clear</a></li>
                     <li><a href="#Reference_Array_Shift">Array.Shift</a></li>
                     <li><a href="#Reference_Array_SetAll">Array.SetAll</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Audio">
+                <h2>Audio</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Audio_GetMasterVolume">Audio.GetMasterVolume</a></li>
+                    <li><a href="#Reference_Audio_GetMusicVolume">Audio.GetMusicVolume</a></li>
+                    <li><a href="#Reference_Audio_GetSoundVolume">Audio.GetSoundVolume</a></li>
+                    <li><a href="#Reference_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
+                    <li><a href="#Reference_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
+                    <li><a href="#Reference_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
                 </ul>
             </p>
             <p id="Reference_Controller">
@@ -455,6 +470,26 @@
                     <li><a href="#Reference_Scene_IsPaused">Scene.IsPaused</a></li>
                 </ul>
             </p>
+            <p id="Reference_Settings">
+                <h2>Settings</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Settings_GetString">Settings.GetString</a></li>
+                    <li><a href="#Reference_Settings_GetInteger">Settings.GetInteger</a></li>
+                    <li><a href="#Reference_Settings_GetBool">Settings.GetBool</a></li>
+                    <li><a href="#Reference_Settings_SetString">Settings.SetString</a></li>
+                    <li><a href="#Reference_Settings_SetInteger">Settings.SetInteger</a></li>
+                    <li><a href="#Reference_Settings_SetBool">Settings.SetBool</a></li>
+                    <li><a href="#Reference_Settings_AddSection">Settings.AddSection</a></li>
+                    <li><a href="#Reference_Settings_RemoveSection">Settings.RemoveSection</a></li>
+                    <li><a href="#Reference_Settings_SectionExists">Settings.SectionExists</a></li>
+                    <li><a href="#Reference_Settings_GetSectionCount">Settings.GetSectionCount</a></li>
+                    <li><a href="#Reference_Settings_PropertyExists">Settings.PropertyExists</a></li>
+                    <li><a href="#Reference_Settings_RemoveProperty">Settings.RemoveProperty</a></li>
+                    <li><a href="#Reference_Settings_GetPropertyCount">Settings.GetPropertyCount</a></li>
+                    <li><a href="#Reference_Settings_Save">Settings.Save</a></li>
+                </ul>
+            </p>
             <p id="Reference_Shader">
                 <h2>Shader</h2>
                 <i>Functions:</i>
@@ -656,8 +691,69 @@
                     <li><a href="#Reference_Window_GetFullscreen">Window.GetFullscreen</a></li>
                 </ul>
             </p>
+            <p id="Reference_XML">
+                <h2>XML</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_XML_Parse">XML.Parse</a></li>
+                </ul>
+            </p>
         <h3>Functions</h3>
         <p>Note: Please use Find (Ctrl+F) there are way too many functions</p>
+        <p id="Reference_Audio_GetMasterVolume">
+        <h2 style="margin-bottom: 8px;">Audio.GetMasterVolume</h2>
+        <code>Audio.GetMasterVolume()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the master volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The master volume, from 0 to 100.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Audio_GetMusicVolume">
+        <h2 style="margin-bottom: 8px;">Audio.GetMusicVolume</h2>
+        <code>Audio.GetMusicVolume()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the music volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The music volume, from 0 to 100.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Audio_GetSoundVolume">
+        <h2 style="margin-bottom: 8px;">Audio.GetSoundVolume</h2>
+        <code>Audio.GetSoundVolume()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the sound effect volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The sound effect volume, from 0 to 100.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Audio_SetMasterVolume">
+        <h2 style="margin-bottom: 8px;">Audio.SetMasterVolume</h2>
+        <code>Audio.SetMasterVolume(volume)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the master volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>volume (Integer): The master volume, from 0 to 100.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Audio_SetMusicVolume">
+        <h2 style="margin-bottom: 8px;">Audio.SetMusicVolume</h2>
+        <code>Audio.SetMusicVolume(volume)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the music volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>volume (Integer): The music volume, from 0 to 100.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Audio_SetSoundVolume">
+        <h2 style="margin-bottom: 8px;">Audio.SetSoundVolume</h2>
+        <code>Audio.SetSoundVolume(volume)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the sound effect volume of the audio mixer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>volume (Integer): The sound effect volume, from 0 to 100.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Array_Create">
         <h2 style="margin-bottom: 8px;">Array.Create</h2>
         <code>Array.Create(size[, initialValue])</code>
@@ -3559,6 +3655,163 @@
         <div style="font-size: 14px;">Returns whether or not the scene is in Paused mode.</div>
         </p>
         <hr/>
+        <p id="Reference_Settings_GetString">
+        <h2 style="margin-bottom: 8px;">Settings.GetString</h2>
+        <code>Settings.GetString(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Looks for a property in a section, and returns its value, as a string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to look for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property as a string, or <code>null</code> if the section or property aren't valid.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_GetInteger">
+        <h2 style="margin-bottom: 8px;">Settings.GetInteger</h2>
+        <code>Settings.GetInteger(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Looks for a property in a section, and returns its value, as an integer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to look for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property as an integer, or <code>null</code> if the section or property aren't valid.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_GetBool">
+        <h2 style="margin-bottom: 8px;">Settings.GetBool</h2>
+        <code>Settings.GetBool(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Looks for a property in a section, and returns its value, as a boolean.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to look for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property as a boolean, or <code>null</code> if the section or property aren't valid.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SetString">
+        <h2 style="margin-bottom: 8px;">Settings.SetString</h2>
+        <code>Settings.SetString(section, property, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to a string value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to set.</li>
+        <li>value (String): The value of the property.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SetInteger">
+        <h2 style="margin-bottom: 8px;">Settings.SetInteger</h2>
+        <code>Settings.SetInteger(section, property, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to an integer value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to set.</li>
+        <li>value (Integer): The value of the property.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SetBool">
+        <h2 style="margin-bottom: 8px;">Settings.SetBool</h2>
+        <code>Settings.SetBool(section, property, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to a boolean value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to set.</li>
+        <li>value (Boolean): The value of the property.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_AddSection">
+        <h2 style="margin-bottom: 8px;">Settings.AddSection</h2>
+        <code>Settings.AddSection(section)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a section.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section name.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_RemoveSection">
+        <h2 style="margin-bottom: 8px;">Settings.RemoveSection</h2>
+        <code>Settings.RemoveSection(section)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes a section.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section name.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SectionExists">
+        <h2 style="margin-bottom: 8px;">Settings.SectionExists</h2>
+        <code>Settings.SectionExists(section)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a section exists.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the section exists, <code>false</code> if not.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_GetSectionCount">
+        <h2 style="margin-bottom: 8px;">Settings.GetSectionCount</h2>
+        <code>Settings.GetSectionCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many sections exist in the settings.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The total section count, as an integer.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_PropertyExists">
+        <h2 style="margin-bottom: 8px;">Settings.PropertyExists</h2>
+        <code>Settings.PropertyExists(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a property exists.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if not.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_RemoveProperty">
+        <h2 style="margin-bottom: 8px;">Settings.RemoveProperty</h2>
+        <code>Settings.RemoveProperty(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes a property from a section.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to remove.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_GetPropertyCount">
+        <h2 style="margin-bottom: 8px;">Settings.GetPropertyCount</h2>
+        <code>Settings.GetPropertyCount(section)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many properties exist in the section.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section. If this is <code>null</code>, the global section is used instead.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The total section count, as an integer.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_Save">
+        <h2 style="margin-bottom: 8px;">Settings.Save</h2>
+        <code>Settings.Save()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Saves the settings.</div>
+        </p>
+        <hr/>
         <p id="Reference_Shader_Set">
         <h2 style="margin-bottom: 8px; color: red;">Shader.Set</h2>
         <code>Shader.Set()</code>
@@ -4690,6 +4943,18 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
-        <p>306 out of 378 functions have descriptions. </p>
+        <hr/>
+        <p id="Reference_XML_Parse">
+        <h2 style="margin-bottom: 8px;">XML.Parse</h2>
+        <code>XML.Parse(xmlText)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Decodes a String value into a Map value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>xmlText (String): XML-compliant text.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
+        </p>
+        <p>327 out of 399 functions have descriptions. </p>
     </body>
 </html>
