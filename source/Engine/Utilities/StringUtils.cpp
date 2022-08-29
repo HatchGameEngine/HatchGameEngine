@@ -8,7 +8,19 @@ public:
 
 #include <Engine/Utilities/StringUtils.h>
 
-PUBLIC STATIC bool  StringUtils::WildcardMatch(const char* first, const char* second) {
+PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
+    if (!src)
+        return NULL;
+
+    size_t sz = strlen(src) + 1;
+    char *dst = (char*)malloc(sz);
+    if (!dst)
+        return NULL;
+
+    memcpy(dst, src, sz);
+    return dst;
+}
+PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
         return true;
     if (*first == 0 && *second == '*' && *(second + 1) != 0)
@@ -41,7 +53,6 @@ PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* ne
     }
     return NULL;
 }
-// This is the FreeBSD strlcpy.
 PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     char *d = dst;
     const char *s = src;
@@ -64,4 +75,19 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     }
 
     return (s - src - 1);   // count does not include NUL
+}
+PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
+    char *end;
+    long num = strtol(src, &end, 10);
+
+    if (*end != '\0')
+        return false;
+    else if (num > INT_MAX || (errno == ERANGE && num == LONG_MAX))
+        return false;
+    else if (num < INT_MIN || (errno == ERANGE && num == LONG_MIN))
+        return false;
+
+    (*dst) = num;
+
+    return true;
 }

@@ -304,6 +304,93 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
     }
 }
 
+// #region Audio
+/***
+ * Audio.GetMasterVolume
+ * \desc Gets the master volume of the audio mixer.
+ * \return The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::MasterVolume);
+}
+/***
+ * Audio.GetMusicVolume
+ * \desc Gets the music volume of the audio mixer.
+ * \return The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::MusicVolume);
+}
+/***
+ * Audio.GetSoundVolume
+ * \desc Gets the sound effect volume of the audio mixer.
+ * \return The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::SoundVolume);
+}
+/***
+ * Audio.SetMasterVolume
+ * \desc Sets the master volume of the audio mixer.
+ * \param volume (Integer): The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+    } else if (volume > 100) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+    } else
+        Application::SetMasterVolume(volume);
+
+    return NULL_VAL;
+}
+/***
+ * Audio.SetMusicVolume
+ * \desc Sets the music volume of the audio mixer.
+ * \param volume (Integer): The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+    } else if (volume > 100) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+    } else
+        Application::SetMusicVolume(volume);
+
+    return NULL_VAL;
+}
+/***
+ * Audio.SetSoundVolume
+ * \desc Sets the sound effect volume of the audio mixer.
+ * \param volume (Integer): The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+    } else if (volume > 100) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+    } else
+        Application::SetSoundVolume(volume);
+
+    return NULL_VAL;
+}
+// #endregion
+
 // #region Array
 /***
  * Array.Create
@@ -5638,6 +5725,262 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Settings
+/***
+ * Settings.GetString
+ * \desc Looks for a property in a section, and returns its value, as a string.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to look for.
+ * \return Returns the property as a string, or <code>null</code> if the section or property aren't valid.
+ * \ns Settings
+ */
+VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    char const* result = Application::Settings->GetProperty(section, GET_ARG(1, GetString));
+    if (!result)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(result, strlen(result)));
+}
+/***
+ * Settings.GetInteger
+ * \desc Looks for a property in a section, and returns its value, as an integer.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to look for.
+ * \return Returns the property as an integer, or <code>null</code> if the section or property aren't valid.
+ * \ns Settings
+ */
+VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    int result;
+    if (!Application::Settings->GetInteger(section, GET_ARG(1, GetString), &result))
+        return NULL_VAL;
+
+    return INTEGER_VAL(result);
+}
+/***
+ * Settings.GetBool
+ * \desc Looks for a property in a section, and returns its value, as a boolean.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to look for.
+ * \return Returns the property as a boolean, or <code>null</code> if the section or property aren't valid.
+ * \ns Settings
+ */
+VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    bool result;
+    if (!Application::Settings->GetBool(section, GET_ARG(1, GetString), &result))
+        return NULL_VAL;
+
+    return INTEGER_VAL((int)result);
+}
+/***
+ * Settings.SetString
+ * \desc Sets a property in a section to a string value.
+ * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to set.
+ * \param value (String): The value of the property.
+ * \ns Settings
+ */
+VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+
+    Application::Settings->SetString(section, GET_ARG(1, GetString), GET_ARG(2, GetString));
+    return NULL_VAL;
+}
+/***
+ * Settings.SetInteger
+ * \desc Sets a property in a section to an integer value.
+ * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to set.
+ * \param value (Integer): The value of the property.
+ * \ns Settings
+ */
+VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+
+    Application::Settings->SetInteger(section, GET_ARG(1, GetString), GET_ARG(2, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Settings.SetBool
+ * \desc Sets a property in a section to a boolean value.
+ * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to set.
+ * \param value (Boolean): The value of the property.
+ * \ns Settings
+ */
+VMValue Settings_SetBool(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+
+    Application::Settings->SetBool(section, GET_ARG(1, GetString), GET_ARG(2, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Settings.AddSection
+ * \desc Creates a section.
+ * \param section (String): The section name.
+ * \ns Settings
+ */
+VMValue Settings_AddSection(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Application::Settings->AddSection(GET_ARG(0, GetString));
+    return NULL_VAL;
+}
+/***
+ * Settings.RemoveSection
+ * \desc Removes a section.
+ * \param section (String): The section name.
+ * \ns Settings
+ */
+VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    Application::Settings->RemoveSection(section);
+    return NULL_VAL;
+}
+/***
+ * Settings.SectionExists
+ * \desc Checks if a section exists.
+ * \param section (String): The section name.
+ * \return Returns <code>true</code> if the section exists, <code>false</code> if not.
+ * \ns Settings
+ */
+VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Application::Settings->SectionExists(GET_ARG(0, GetString)));
+}
+/***
+ * Settings.GetSectionCount
+ * \desc Returns how many sections exist in the settings.
+ * \return The total section count, as an integer.
+ * \ns Settings
+ */
+VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::Settings->GetSectionCount());
+}
+/***
+ * Settings.PropertyExists
+ * \desc Checks if a property exists.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property name.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \ns Settings
+ */
+VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL(Application::Settings->PropertyExists(section, GET_ARG(1, GetString)));
+}
+/***
+ * Settings.RemoveProperty
+ * \desc Removes a property from a section.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to remove.
+ * \ns Settings
+ */
+VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    Application::Settings->RemoveProperty(section, GET_ARG(1, GetString));
+    return NULL_VAL;
+}
+/***
+ * Settings.GetPropertyCount
+ * \desc Returns how many properties exist in the section.
+ * \param section (String): The section. If this is <code>null</code>, the global section is used instead.
+ * \return The total section count, as an integer.
+ * \ns Settings
+ */
+VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL(Application::Settings->GetPropertyCount(section));
+}
+/***
+ * Settings.Save
+ * \desc Saves the settings.
+ * \ns Settings
+ */
+VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    Application::SaveSettings();
+    return NULL_VAL;
+}
+// #endregion
+
 // #region Shader
 /***
  * Shader.Set
@@ -7748,6 +8091,115 @@ VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region XML
+static VMValue _XML_FillMap(XMLNode* parent) {
+    ObjMap* map = NewMap();
+    Uint32 keyHash;
+
+    XMLAttributes* attributes = &parent->attributes;
+    size_t numAttr = attributes->KeyVector.size();
+    size_t numChildren = parent->children.size();
+
+    if (numChildren == 1 && !parent->children[0]->children.size()) {
+        Token text = parent->children[0]->name;
+
+        if (numAttr) {
+            const char* textKey = "#text";
+            keyHash = map->Keys->HashFunction(textKey, strlen(textKey));
+
+            map->Keys->Put(keyHash, HeapCopyString(textKey, strlen(textKey)));
+            map->Values->Put(keyHash, OBJECT_VAL(CopyString(text.Start, text.Length)));
+        }
+        else
+            return OBJECT_VAL(CopyString(text.Start, text.Length));
+    }
+    else {
+        for (size_t i = 0; i < numChildren; i++) {
+            XMLNode* node = parent->children[i];
+
+            Token *nodeName = &node->name;
+            keyHash = map->Keys->HashFunction(nodeName->Start, nodeName->Length);
+
+            // If the key already exists, push into it
+            if (map->Keys->Exists(keyHash)) {
+                VMValue thisVal = map->Values->Get(keyHash);
+                ObjArray* thisArray = NULL;
+
+                // Turn the value into an array if it isn't one
+                if (!IS_ARRAY(thisVal)) {
+                    thisArray = NewArray();
+                    thisArray->Values->push_back(thisVal);
+                    map->Values->Put(keyHash, OBJECT_VAL(thisArray));
+                } else {
+                    thisArray = AS_ARRAY(thisVal);
+                }
+
+                thisArray->Values->push_back(_XML_FillMap(node));
+            }
+            else {
+                map->Keys->Put(keyHash, HeapCopyString(nodeName->Start, nodeName->Length));
+                map->Values->Put(keyHash, _XML_FillMap(node));
+            }
+        }
+    }
+
+    // Insert attributes
+    if (!numAttr)
+        return OBJECT_VAL(map);
+
+    char* attrName = NULL;
+
+    for (size_t i = 0; i < numAttr; i++) {
+        char *key = attributes->KeyVector[i];
+        char *value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
+
+        attrName = (char*)realloc(attrName, strlen(key) + 2);
+        if (!attrName) {
+            Log::Print(Log::LOG_ERROR, "Out of memory in XML.FillMap!");
+            abort();
+        }
+
+        sprintf(attrName, "#%s", key);
+
+        keyHash = map->Keys->HashFunction(attrName, strlen(attrName));
+        map->Keys->Put(keyHash, HeapCopyString(attrName, strlen(attrName)));
+        map->Values->Put(keyHash, OBJECT_VAL(CopyString(value, strlen(value))));
+    }
+
+    free(attrName);
+
+    return OBJECT_VAL(map);
+}
+
+/***
+ * XML.Parse
+ * \desc Decodes a String value into a Map value.
+ * \param xmlText (String): XML-compliant text.
+ * \return Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.
+ * \ns XML
+ */
+VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    if (BytecodeObjectManager::Lock()) {
+        ObjString* string = AS_STRING(args[0]);
+        MemoryStream* stream = MemoryStream::New(string->Chars, string->Length);
+
+        if (stream) {
+            XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
+
+            if (xmlRoot) {
+                VMValue mapValue = _XML_FillMap(xmlRoot);
+                BytecodeObjectManager::Unlock();
+                return mapValue;
+            }
+        }
+
+        BytecodeObjectManager::Unlock();
+    }
+    return NULL_VAL;
+}
+// #endregion
+
 #define String_CaseMapBind(lowerCase, upperCase) \
     String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
     String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
@@ -7781,7 +8233,17 @@ PUBLIC STATIC void StandardLibrary::Link() {
         val = OBJECT_VAL(klass); \
         BytecodeObjectManager::Globals->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
-        BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName);
+        BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    // #region Audio
+    INIT_CLASS(Audio);
+    DEF_NATIVE(Audio, GetMasterVolume);
+    DEF_NATIVE(Audio, GetMusicVolume);
+    DEF_NATIVE(Audio, GetSoundVolume);
+    DEF_NATIVE(Audio, SetMasterVolume);
+    DEF_NATIVE(Audio, SetMusicVolume);
+    DEF_NATIVE(Audio, SetSoundVolume);
+    // #endregion
 
     // #region Array
     INIT_CLASS(Array);
@@ -8148,6 +8610,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
     BytecodeObjectManager::GlobalConstInteger(NULL, "DrawBehavior_CustomTileScanLines", DrawBehavior_CustomTileScanLines);
     // #endregion
 
+    // #region Settings
+    INIT_CLASS(Settings);
+    DEF_NATIVE(Settings, GetString);
+    DEF_NATIVE(Settings, GetInteger);
+    DEF_NATIVE(Settings, GetBool);
+    DEF_NATIVE(Settings, SetString);
+    DEF_NATIVE(Settings, SetInteger);
+    DEF_NATIVE(Settings, SetBool);
+    DEF_NATIVE(Settings, AddSection);
+    DEF_NATIVE(Settings, RemoveSection);
+    DEF_NATIVE(Settings, SectionExists);
+    DEF_NATIVE(Settings, GetSectionCount);
+    DEF_NATIVE(Settings, PropertyExists);
+    DEF_NATIVE(Settings, RemoveProperty);
+    DEF_NATIVE(Settings, GetPropertyCount);
+    DEF_NATIVE(Settings, Save);
+    // #endregion
+
     // #region Shader
     INIT_CLASS(Shader);
     DEF_NATIVE(Shader, Set);
@@ -8325,6 +8805,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Window, GetWidth);
     DEF_NATIVE(Window, GetHeight);
     DEF_NATIVE(Window, GetFullscreen);
+    // #endregion
+
+    // #region XML
+    INIT_CLASS(XML);
+    DEF_NATIVE(XML, Parse);
     // #endregion
 
     #undef DEF_NATIVE

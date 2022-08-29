@@ -79,6 +79,7 @@ public:
     VMValue Values_Negate();
     VMValue Values_LogicalNOT();
     VMValue Values_BitwiseNOT();
+    VMValue Value_TypeOf();
 };
 
 #endif /* ENGINE_BYTECODE_VMTHREAD_H */

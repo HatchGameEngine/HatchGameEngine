@@ -180,23 +180,24 @@ const char*       GetTypeString(VMValue value) {
         case VAL_OBJECT:
             switch (OBJECT_TYPE(value)) {
                 case OBJ_BOUND_METHOD:
-                    return "BOUND_METHOD";
-                case OBJ_CLASS:
-                    return "CLASS";
-                case OBJ_CLOSURE:
-                    return "CLOSURE";
                 case OBJ_FUNCTION:
-                    return "FUNCTION";
+                    return "Event";
+                case OBJ_CLASS:
+                    return "Class";
+                case OBJ_CLOSURE:
+                    return "Closure";
                 case OBJ_INSTANCE:
-                    return "INSTANCE";
+                    return "Instance";
                 case OBJ_NATIVE:
-                    return "NATIVE";
+                    return "Native";
                 case OBJ_STRING:
-                    return "STRING";
+                    return "String";
+                case OBJ_UPVALUE:
+                    return "Upvalue";
                 case OBJ_ARRAY:
-                    return "ARRAY";
+                    return "Array";
                 case OBJ_MAP:
-                    return "MAP";
+                    return "Map";
                 default:
                     return "Unknown Object Type";
             }

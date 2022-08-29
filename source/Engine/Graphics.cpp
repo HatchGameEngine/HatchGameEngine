@@ -155,7 +155,7 @@ PUBLIC STATIC void     Graphics::ChooseBackend() {
 
 	// Set renderers
 	Graphics::Renderer = NULL;
-	if (Application::Settings->GetString("dev", "renderer", renderer)) {
+	if (Application::Settings->GetString("dev", "renderer", renderer, sizeof renderer)) {
 		#ifdef USING_OPENGL
 			if (!strcmp(renderer, "opengl")) {
 	            Graphics::Renderer = "opengl";

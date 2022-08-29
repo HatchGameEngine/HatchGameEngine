@@ -83,7 +83,7 @@ PUBLIC STATIC void   ResourceManager::Init(const char* filename) {
     }
 
     char modpacksString[1024];
-    if (Application::Settings->GetString("game", "modpacks", modpacksString)) {
+    if (Application::Settings->GetString("game", "modpacks", modpacksString, sizeof modpacksString)) {
         if (File::Exists(modpacksString)) {
             // ResourceManager::UsingDataFolder = false;
             ResourceManager::UsingModPack = true;
