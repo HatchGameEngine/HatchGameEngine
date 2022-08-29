@@ -2,7 +2,6 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Input/Input.h>
-// #include <Engine/Application.h>
 
 class Controller {
 public:
@@ -142,8 +141,9 @@ PUBLIC void          Controller::Reset() {
 PUBLIC char*          Controller::GetName() {
     return (char*)SDL_GameControllerName(Device);
 }
+// Sets the LEDs in some controllers
 PUBLIC void           Controller::SetPlayerIndex(int index) {
-    SDL_GameControllerSetPlayerIndex(Device, index); // Sets the LEDs in some controllers
+    SDL_GameControllerSetPlayerIndex(Device, index);
 }
 
 PUBLIC bool          Controller::GetButton(int button) {

@@ -12,7 +12,6 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Input/Input.h>
-#include <Engine/Application.h>
 
 class Controller {
 private:

@@ -3291,30 +3291,26 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.GetControllerCount
- * \desc Gets the amount of connected controllers in the device.
+ * \desc Gets the amount of connected controllers in the device. (Deprecated; use <code>Controller.GetCount</code> instead.)
  * \return Returns the amount of connected controllers in the device.
  * \ns Input
  */
 VMValue Input_GetControllerCount(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(InputManager::NumControllers);
+    return Controller_GetCount(argCount, args, threadID);
 }
 /***
  * Input.GetControllerAttached
- * \desc Gets whether the controller at the index is connected.
+ * \desc Gets whether the controller at the index is connected. (Deprecated; use <code>Controller.IsConnected</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \return Returns whether the controller at the index is connected.
  * \ns Input
  */
 VMValue Input_GetControllerAttached(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int controller_index = GET_ARG(0, GetInteger);
-    CHECK_CONTROLLER_INDEX(controller_index);
-    return INTEGER_VAL(InputManager::ControllerIsConnected(controller_index));
+    return Controller_IsConnected(argCount, args, threadID);
 }
 /***
  * Input.GetControllerHat
- * \desc Gets the hat value from the controller at the index.
+ * \desc Gets the hat value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param hatIndex (Integer): Index of the hat to check.
  * \return Returns the hat value from the controller at the index.
@@ -3329,54 +3325,35 @@ VMValue Input_GetControllerHat(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.GetControllerAxis
- * \desc Gets the axis value from the controller at the index.
+ * \desc Gets the axis value from the controller at the index. (Deprecated; use <code>Controller.GetAxis</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param axisIndex (Integer): Index of the axis to check.
  * \return Returns the axis value from the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerAxis(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return DECIMAL_VAL(InputManager::ControllerGetAxis(controller_index, index));
+    return Controller_GetAxis(argCount, args, threadID);
 }
 /***
  * Input.GetControllerButton
- * \desc Gets the button value from the controller at the index.
+ * \desc Gets the button value from the controller at the index. (Deprecated; use <code>Controller.GetButton</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param buttonIndex (Integer): Index of the button to check.
  * \return Returns the button value from the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerButton(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return INTEGER_VAL(InputManager::ControllerGetButton(controller_index, index));
+    return Controller_GetButton(argCount, args, threadID);
 }
 /***
  * Input.GetControllerName
- * \desc Gets the name of the controller at the index.
+ * \desc Gets the name of the controller at the index. (Deprecated; use <code>Controller.GetName</code> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \return Returns the name of the controller at the index.
  * \ns Input
  */
 VMValue Input_GetControllerName(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int controller_index = GET_ARG(0, GetInteger);
-
-    CHECK_CONTROLLER_INDEX(controller_index);
-
-    char* name = InputManager::ControllerGetName(controller_index);
-    if (name && BytecodeObjectManager::Lock()) {
-        ObjString* string = CopyString(name, strlen(name));
-        BytecodeObjectManager::Unlock();
-        return OBJECT_VAL(string);
-    }
-    return NULL_VAL;
+    return Controller_GetName(argCount, args, threadID);
 }
 #undef CHECK_CONTROLLER_INDEX
 // #endregion
@@ -8213,9 +8190,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, SetPlayerIndex);
     DEF_NATIVE(Controller, HasRumble);
     DEF_NATIVE(Controller, IsRumbleActive);
+    DEF_NATIVE(Controller, IsRumblePaused);
     DEF_NATIVE(Controller, Rumble);
     DEF_NATIVE(Controller, StopRumble);
-    DEF_NATIVE(Controller, IsRumblePaused);
     DEF_NATIVE(Controller, SetRumblePaused);
     DEF_NATIVE(Controller, SetLargeMotorFrequency);
     DEF_NATIVE(Controller, SetSmallMotorFrequency);
