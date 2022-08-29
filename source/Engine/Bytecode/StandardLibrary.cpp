@@ -549,6 +549,68 @@ VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
     }
     return INTEGER_VAL(InputManager::ControllerIsConnected(index));
 }
+#define CONTROLLER_GET_BOOL(str) \
+VMValue Controller_ ## str(int argCount, VMValue* args, Uint32 threadID) { \
+    CHECK_ARGCOUNT(1); \
+    int index = GET_ARG(0, GetInteger); \
+    CHECK_CONTROLLER_INDEX(index); \
+    return INTEGER_VAL(InputManager::Controller ## str(index)); \
+}
+#define CONTROLLER_GET_INT(str) \
+VMValue Controller_ ## str(int argCount, VMValue* args, Uint32 threadID) { \
+    CHECK_ARGCOUNT(1); \
+    int index = GET_ARG(0, GetInteger); \
+    CHECK_CONTROLLER_INDEX(index); \
+    return INTEGER_VAL((int)(InputManager::Controller ## str(index))); \
+}
+/***
+ * Controller.IsXbox
+ * \desc Gets whether the controller at the index is an Xbox controller.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is an Xbox controller.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsXbox)
+/***
+ * Controller.IsPlayStation
+ * \desc Gets whether the controller at the index is a PlayStation controller.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is a PlayStation controller.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsPlaystation)
+/***
+ * Controller.IsJoyCon
+ * \desc Gets whether the controller at the index is a Nintendo Switch Joy-Con L or R.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index is a Nintendo Switch Joy-Con L or R.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(IsJoyCon)
+/***
+ * Controller.HasShareButton
+ * \desc Gets whether the controller at the index has a Share or Capture button.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has a Share or Capture button.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasShareButton)
+/***
+ * Controller.HasMicrophoneButton
+ * \desc Gets whether the controller at the index has a Microphone button.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has a Microphone button.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasMicrophoneButton)
+/***
+ * Controller.HasPaddles
+ * \desc Gets whether the controller at the index has paddles.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \return Returns whether the controller at the index has paddles.
+ * \ns Controller
+ */
+CONTROLLER_GET_BOOL(HasPaddles)
 /***
  * Controller.GetButton
  * \desc Gets the button value from the controller at the index. <br/>\
@@ -644,12 +706,7 @@ VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
  * \return Returns the type of the controller at the index.
  * \ns Controller
  */
-VMValue Controller_GetType(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int index = GET_ARG(0, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return INTEGER_VAL(InputManager::ControllerGetType(index));
-}
+CONTROLLER_GET_INT(GetType)
 /***
  * Controller.GetName
  * \desc Gets the name of the controller at the index.
@@ -693,12 +750,7 @@ VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) 
  * \return Returns <code>true</code> if the controller at the index supports rumble, <code>false</code> otherwise.
  * \ns Controller
  */
-VMValue Controller_HasRumble(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int index = GET_ARG(0, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return INTEGER_VAL(InputManager::ControllerHasRumble(index));
-}
+CONTROLLER_GET_BOOL(HasRumble)
 /***
  * Controller.IsRumbleActive
  * \desc Checks if rumble is active for the controller at the index.
@@ -706,12 +758,7 @@ VMValue Controller_HasRumble(int argCount, VMValue* args, Uint32 threadID) {
  * \return Returns <code>true</code> if rumble is active for the controller at the index, <code>false</code> otherwise.
  * \ns Controller
  */
-VMValue Controller_IsRumbleActive(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int index = GET_ARG(0, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return INTEGER_VAL(InputManager::ControllerIsRumbleActive(index));
-}
+CONTROLLER_GET_BOOL(IsRumbleActive)
 /***
  * Controller.Rumble
  * \desc Rumbles a controller.
@@ -775,18 +822,13 @@ VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Controller.GetRumblePaused
+ * Controller.IsRumblePaused
  * \desc Checks if rumble is paused for the controller at the index.
  * \param controllerIndex (Integer): Index of the controller to check.
  * \return Returns <code>true</code> if rumble is paused for the controller at the index, <code>false</code> otherwise.
  * \ns Controller
  */
-VMValue Controller_GetRumblePaused(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int index = GET_ARG(0, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    return INTEGER_VAL(InputManager::ControllerGetRumblePaused(index));
-}
+CONTROLLER_GET_BOOL(IsRumblePaused)
 /***
  * Controller.SetRumblePaused
  * \desc Pauses or unpauses rumble for the controller at the index.
@@ -839,6 +881,8 @@ VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 th
     InputManager::ControllerSetSmallMotorFrequency(index, frequency);
     return NULL_VAL;
 }
+#undef CONTROLLER_GET_BOOL
+#undef CONTROLLER_GET_INT
 // #endregion
 
 // #region Date
@@ -8156,6 +8200,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Controller);
     DEF_NATIVE(Controller, GetCount);
     DEF_NATIVE(Controller, IsConnected);
+    DEF_NATIVE(Controller, IsXbox);
+    DEF_NATIVE(Controller, IsPlaystation);
+    DEF_NATIVE(Controller, IsJoyCon);
+    DEF_NATIVE(Controller, HasShareButton);
+    DEF_NATIVE(Controller, HasMicrophoneButton);
+    DEF_NATIVE(Controller, HasPaddles);
     DEF_NATIVE(Controller, GetButton);
     DEF_NATIVE(Controller, GetAxis);
     DEF_NATIVE(Controller, GetType);
@@ -8165,7 +8215,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, IsRumbleActive);
     DEF_NATIVE(Controller, Rumble);
     DEF_NATIVE(Controller, StopRumble);
-    DEF_NATIVE(Controller, GetRumblePaused);
+    DEF_NATIVE(Controller, IsRumblePaused);
     DEF_NATIVE(Controller, SetRumblePaused);
     DEF_NATIVE(Controller, SetLargeMotorFrequency);
     DEF_NATIVE(Controller, SetSmallMotorFrequency);

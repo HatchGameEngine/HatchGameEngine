@@ -40,8 +40,8 @@ public:
     bool          IsPlaystation();
     bool          IsJoyCon();
     bool          HasShareButton();
-    bool          HasPaddles();
     bool          HasMicrophoneButton();
+    bool          HasPaddles();
 };
 
 #endif /* ENGINE_INPUT_CONTROLLER_H */

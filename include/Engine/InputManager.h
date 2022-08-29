@@ -38,6 +38,12 @@ public:
     static void  RemoveController(int joystickID);
     static void  Poll();
     static bool  ControllerIsConnected(int index);
+    static bool  ControllerIsXbox(int index);
+    static bool  ControllerIsPlaystation(int index);
+    static bool  ControllerIsJoyCon(int index);
+    static bool  ControllerHasShareButton(int index);
+    static bool  ControllerHasMicrophoneButton(int index);
+    static bool  ControllerHasPaddles(int index);
     static bool  ControllerGetButton(int index, int button);
     static int   ControllerGetHat(int index, int hat);
     static float ControllerGetAxis(int index, int axis);
@@ -49,7 +55,7 @@ public:
     static bool  ControllerRumble(int index, float large_frequency, float small_frequency, int duration);
     static bool  ControllerRumble(int index, float strength, int duration);
     static void  ControllerStopRumble(int index);
-    static bool  ControllerGetRumblePaused(int index);
+    static bool  ControllerIsRumblePaused(int index);
     static void  ControllerSetRumblePaused(int index, bool paused);
     static bool  ControllerSetLargeMotorFrequency(int index, float frequency);
     static bool  ControllerSetSmallMotorFrequency(int index, float frequency);

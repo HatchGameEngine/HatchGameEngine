@@ -83,22 +83,24 @@ PRIVATE STATIC ControllerType Controller::DetermineType(void* gamecontroller) {
             return ControllerType::PS4;
         case SDL_CONTROLLER_TYPE_PS5:
             return ControllerType::PS5;
-        // case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
-        //     return ControllerType::SwitchJoyConLeft;
-        // case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
-        //     return ControllerType::SwitchJoyConRight;
-        // case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
-        //     return ControllerType::SwitchJoyConPair;
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+            return ControllerType::SwitchJoyConLeft;
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+            return ControllerType::SwitchJoyConRight;
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+            return ControllerType::SwitchJoyConPair;
         case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
             return ControllerType::SwitchPro;
         case SDL_CONTROLLER_TYPE_GOOGLE_STADIA:
             return ControllerType::Stadia;
         case SDL_CONTROLLER_TYPE_AMAZON_LUNA:
             return ControllerType::AmazonLuna;
-        // case SDL_CONTROLLER_TYPE_NVIDIA_SHIELD:
-        //     return ControllerType::NvidiaShield;
-        default:
+        case SDL_CONTROLLER_TYPE_NVIDIA_SHIELD:
+            return ControllerType::NvidiaShield;
+        case SDL_CONTROLLER_TYPE_UNKNOWN:
             return ControllerType::Unknown;
+        default:
+            return ControllerType::Xbox360;
     }
 }
 
@@ -168,29 +170,24 @@ PUBLIC bool          Controller::IsXbox() {
         Type == ControllerType::XboxSeriesXS ||
         Type == ControllerType::XboxElite;
 }
-
 PUBLIC bool          Controller::IsPlaystation() {
     return Type == ControllerType::PS3 ||
         Type == ControllerType::PS4 ||
         Type == ControllerType::PS5;
 }
-
 PUBLIC bool          Controller::IsJoyCon() {
     return Type == ControllerType::SwitchJoyConLeft ||
         Type == ControllerType::SwitchJoyConRight;
 }
-
 PUBLIC bool          Controller::HasShareButton() {
     return Type == ControllerType::XboxSeriesXS ||
         Type == ControllerType::SwitchPro ||
         Type == ControllerType::SwitchJoyConLeft;
 }
-
-PUBLIC bool          Controller::HasPaddles() {
-    return Type == ControllerType::XboxElite;
-}
-
 PUBLIC bool          Controller::HasMicrophoneButton() {
     return Type == ControllerType::PS5 ||
         Type == ControllerType::AmazonLuna;
+}
+PUBLIC bool          Controller::HasPaddles() {
+    return Type == ControllerType::XboxElite;
 }

@@ -235,6 +235,30 @@ PUBLIC STATIC bool  InputManager::ControllerIsConnected(int index) {
     GET_CONTROLLER(false);
     return controller->Connected;
 }
+PUBLIC STATIC bool  InputManager::ControllerIsXbox(int index) {
+    GET_CONTROLLER(false);
+    return controller->IsXbox();
+}
+PUBLIC STATIC bool  InputManager::ControllerIsPlaystation(int index) {
+    GET_CONTROLLER(false);
+    return controller->IsPlaystation();
+}
+PUBLIC STATIC bool  InputManager::ControllerIsJoyCon(int index) {
+    GET_CONTROLLER(false);
+    return controller->IsJoyCon();
+}
+PUBLIC STATIC bool  InputManager::ControllerHasShareButton(int index) {
+    GET_CONTROLLER(false);
+    return controller->HasShareButton();
+}
+PUBLIC STATIC bool  InputManager::ControllerHasMicrophoneButton(int index) {
+    GET_CONTROLLER(false);
+    return controller->HasMicrophoneButton();
+}
+PUBLIC STATIC bool  InputManager::ControllerHasPaddles(int index) {
+    GET_CONTROLLER(false);
+    return controller->HasPaddles();
+}
 PUBLIC STATIC bool  InputManager::ControllerGetButton(int index, int button) {
     GET_CONTROLLER(false);
     return controller->GetButton(button);
@@ -294,7 +318,7 @@ PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
     if (!controller->Rumble) return;
     controller->Rumble->Stop();
 }
-PUBLIC STATIC bool  InputManager::ControllerGetRumblePaused(int index) {
+PUBLIC STATIC bool  InputManager::ControllerIsRumblePaused(int index) {
     GET_CONTROLLER(false);
     if (!controller->Rumble) return false;
     return controller->Rumble->Paused;
