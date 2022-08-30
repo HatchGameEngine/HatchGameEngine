@@ -475,9 +475,11 @@
                 <i>Functions:</i>
                 <ul>
                     <li><a href="#Reference_Settings_GetString">Settings.GetString</a></li>
+                    <li><a href="#Reference_Settings_GetNumber">Settings.GetNumber</a></li>
                     <li><a href="#Reference_Settings_GetInteger">Settings.GetInteger</a></li>
                     <li><a href="#Reference_Settings_GetBool">Settings.GetBool</a></li>
                     <li><a href="#Reference_Settings_SetString">Settings.SetString</a></li>
+                    <li><a href="#Reference_Settings_SetNumber">Settings.SetNumber</a></li>
                     <li><a href="#Reference_Settings_SetInteger">Settings.SetInteger</a></li>
                     <li><a href="#Reference_Settings_SetBool">Settings.SetBool</a></li>
                     <li><a href="#Reference_Settings_AddSection">Settings.AddSection</a></li>
@@ -3668,6 +3670,19 @@
         <div style="font-size: 14px;">Returns the property as a string, or <code>null</code> if the section or property aren't valid.</div>
         </p>
         <hr/>
+        <p id="Reference_Settings_GetNumber">
+        <h2 style="margin-bottom: 8px;">Settings.GetNumber</h2>
+        <code>Settings.GetNumber(section, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Looks for a property in a section, and returns its value, as a number.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to look for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property as a number, or <code>null</code> if the section or property aren't valid.</div>
+        </p>
+        <hr/>
         <p id="Reference_Settings_GetInteger">
         <h2 style="margin-bottom: 8px;">Settings.GetInteger</h2>
         <code>Settings.GetInteger(section, property)</code>
@@ -3703,6 +3718,18 @@
         <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
         <li>property (String): The property to set.</li>
         <li>value (String): The value of the property.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SetNumber">
+        <h2 style="margin-bottom: 8px;">Settings.SetNumber</h2>
+        <code>Settings.SetNumber(section, property, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to a number value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
+        <li>property (String): The property to set.</li>
+        <li>value (Number): The value of the property.</li>
         </ul>
         </p>
         <hr/>
@@ -4955,6 +4982,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>327 out of 399 functions have descriptions. </p>
+        <p>329 out of 401 functions have descriptions. </p>
     </body>
 </html>
