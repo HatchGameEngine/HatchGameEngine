@@ -6129,6 +6129,31 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
     return OBJECT_VAL(CopyString(result, strlen(result)));
 }
 /***
+ * Settings.GetNumber
+ * \desc Looks for a property in a section, and returns its value, as a number.
+ * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to look for.
+ * \return Returns the property as a number, or <code>null</code> if the section or property aren't valid.
+ * \ns Settings
+ */
+VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+    if (!Application::Settings->SectionExists(section)) {
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        return NULL_VAL;
+    }
+
+    double result;
+    if (!Application::Settings->GetDecimal(section, GET_ARG(1, GetString), &result))
+        return NULL_VAL;
+
+    return DECIMAL_VAL((float)result);
+}
+/***
  * Settings.GetInteger
  * \desc Looks for a property in a section, and returns its value, as an integer.
  * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
@@ -6197,6 +6222,24 @@ VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Settings.SetNumber
+ * \desc Sets a property in a section to a number value.
+ * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
+ * \param property (String): The property to set.
+ * \param value (Number): The value of the property.
+ * \ns Settings
+ */
+VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    char* section = NULL;
+    if (!IS_NULL(args[0]))
+        section = GET_ARG(0, GetString);
+
+    Application::Settings->SetDecimal(section, GET_ARG(1, GetString), GET_ARG(2, GetDecimal));
+    return NULL_VAL;
+}
+/***
  * Settings.SetInteger
  * \desc Sets a property in a section to an integer value.
  * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
@@ -6211,7 +6254,7 @@ VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
 
-    Application::Settings->SetInteger(section, GET_ARG(1, GetString), GET_ARG(2, GetInteger));
+    Application::Settings->SetInteger(section, GET_ARG(1, GetString), (int)GET_ARG(2, GetDecimal));
     return NULL_VAL;
 }
 /***
@@ -9067,9 +9110,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Settings
     INIT_CLASS(Settings);
     DEF_NATIVE(Settings, GetString);
+    DEF_NATIVE(Settings, GetNumber);
     DEF_NATIVE(Settings, GetInteger);
     DEF_NATIVE(Settings, GetBool);
     DEF_NATIVE(Settings, SetString);
+    DEF_NATIVE(Settings, SetNumber);
     DEF_NATIVE(Settings, SetInteger);
     DEF_NATIVE(Settings, SetBool);
     DEF_NATIVE(Settings, AddSection);

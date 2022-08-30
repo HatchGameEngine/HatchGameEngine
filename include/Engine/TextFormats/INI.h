@@ -21,9 +21,11 @@ public:
     bool Save();
     bool GetString(const char* section, const char* key, char* dest, size_t destSize);
     bool GetInteger(const char* section, const char* key, int* dest);
+    bool GetDecimal(const char* section, const char* key, double* dest);
     bool GetBool(const char* section, const char* key, bool* dest);
     bool SetString(const char* section, const char* key, const char* value);
     bool SetInteger(const char* section, const char* key, int value);
+    bool SetDecimal(const char* section, const char* key, double value);
     bool SetBool(const char* section, const char* key, bool value);
     bool AddSection(const char* section);
     bool RemoveSection(const char* section);

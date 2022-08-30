@@ -54,8 +54,8 @@ PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* ne
     return NULL;
 }
 PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
-    char *d = dst;
-    const char *s = src;
+    char* d = dst;
+    const char* s = src;
     size_t n = sz;
 
     // Copy as many bytes as will fit
@@ -69,15 +69,15 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     // Not enough room in dst, add NUL and traverse rest of src
     if (n == 0) {
         if (sz != 0)
-            *d = '\0';      // NUL-terminate dst
+            *d = '\0'; // NUL-terminate dst
         while (*s++)
             ;
     }
 
-    return (s - src - 1);   // count does not include NUL
+    return s - src - 1; // count does not include NUL
 }
 PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
-    char *end;
+    char* end;
     long num = strtol(src, &end, 10);
 
     if (*end != '\0')
@@ -88,6 +88,17 @@ PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
         return false;
 
     (*dst) = num;
+    return true;
+}
+PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
+    char* end;
+    double num = strtod(src, &end);
 
+    if (*end != '\0')
+        return false;
+    if (errno == ERANGE && (num == HUGE_VAL || num == -HUGE_VAL))
+        return false;
+
+    (*dst) = num;
     return true;
 }

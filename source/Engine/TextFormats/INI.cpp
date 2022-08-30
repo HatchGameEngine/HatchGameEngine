@@ -135,6 +135,24 @@ PUBLIC bool INI::GetInteger(const char* section, const char* key, int* dest) {
 
     return StringUtils::ToNumber(dest, ini_property_value(iniData, secnum, property));
 }
+PUBLIC bool INI::GetDecimal(const char* section, const char* key, double* dest) {
+    ini_t* iniData = (ini_t*)this->Struct;
+    if (!iniData)
+        return false;
+
+    int secnum = INI_GLOBAL_SECTION;
+    if (section) {
+        secnum = ini_find_section(iniData, section);
+        if (secnum == INI_NOT_FOUND)
+            return false;
+    }
+
+    int property = ini_find_property(iniData, secnum, key);
+    if (property == INI_NOT_FOUND)
+        return false;
+
+    return StringUtils::ToDecimal(dest, ini_property_value(iniData, secnum, property));
+}
 PUBLIC bool INI::GetBool(const char* section, const char* key, bool* dest) {
     ini_t* iniData = (ini_t*)this->Struct;
     if (!iniData)
@@ -191,6 +209,30 @@ PUBLIC bool INI::SetInteger(const char* section, const char* key, int value) {
 
     char toStr[21];
     snprintf(toStr, sizeof toStr, "%d", value);
+
+    int property = ini_find_property(iniData, secnum, key);
+    if (property == INI_NOT_FOUND) {
+        ini_property_add(iniData, secnum, key, 0, toStr, 0);
+        return true;
+    }
+
+    ini_property_value_set(iniData, secnum, property, toStr);
+    return true;
+}
+PUBLIC bool INI::SetDecimal(const char* section, const char* key, double value) {
+    ini_t* iniData = (ini_t*)this->Struct;
+    if (!iniData)
+        return false;
+
+    int secnum = INI_GLOBAL_SECTION;
+    if (section) {
+        secnum = ini_find_section(iniData, section);
+        if (secnum == INI_NOT_FOUND)
+            secnum = ini_section_add(iniData, section, 0);
+    }
+
+    char toStr[512];
+    snprintf(toStr, sizeof toStr, "%lf", value);
 
     int property = ini_find_property(iniData, secnum, key);
     if (property == INI_NOT_FOUND) {

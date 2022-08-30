@@ -18,6 +18,7 @@ public:
     static char* StrCaseStr(const char* haystack, const char* needle);
     static size_t Copy(char* dst, const char* src, size_t sz);
     static bool ToNumber(int* dst, const char* src);
+    static bool ToDecimal(double* dst, const char* src);
 };
 
 #endif /* ENGINE_UTILITIES_STRINGUTILS_H */
