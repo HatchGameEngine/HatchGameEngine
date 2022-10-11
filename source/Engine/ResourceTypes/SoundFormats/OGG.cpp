@@ -316,14 +316,25 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
                 return 0;
         #endif
 
-            if (read == 0)
+            // Reached end of file, what should be done?
+            if (read == 0) {
+                // If we want to loop, seek to loop point and continue reading.
+                if (LoopIndex >= 0) {
+                    SeekSample(LoopIndex);
+                    continue;
+                }
+
+                // Otherwise, done reading.
                 break;
+            }
 
         remainingBytes -= read;
         buffer += read;
         total += read;
     }
     total /= SampleSize;
+
+    SampleIndex += total;
     return total;
 #else
     int read;
@@ -346,14 +357,26 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
         )) {
         if (read < 0)
             return 0;
-        if (read == 0)
+
+        // Reached end of file, what should be done?
+        if (read == 0) {
+            // If we want to loop, seek to loop point and continue reading.
+            if (LoopIndex >= 0) {
+                SeekSample(LoopIndex);
+                continue;
+            }
+
+            // Otherwise, done reading.
             break;
+        }
 
         remainingBytes -= read;
         buffer += read;
         total += read;
     }
     total /= SampleSize;
+
+    SampleIndex += total;
     return total;
 #endif
     return 0;

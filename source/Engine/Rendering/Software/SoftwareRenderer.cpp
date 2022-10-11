@@ -16,6 +16,8 @@ public:
     static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static bool              UseSpriteDeform;
 };
 #endif
 
@@ -35,6 +37,8 @@ Uint32            SoftwareRenderer::CurrentArrayBuffer = 0;
 Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
+bool              SoftwareRenderer::UseSpriteDeform = false;
 
 int Alpha = 0xFF;
 int BlendFlag = 0;
@@ -297,6 +301,8 @@ int* FilterTable = NULL;
 // Initialization and disposal functions
 PUBLIC STATIC void     SoftwareRenderer::Init() {
     SoftwareRenderer::BackendFunctions.Init();
+
+    UseSpriteDeform = false;
 }
 PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
@@ -2481,12 +2487,16 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     if (!Graphics::TextureBlend)
         blendFlag = BlendFlag_OPAQUE;
 
+    int clip_x1 = 0,
+        clip_y1 = 0,
+        clip_x2 = 0,
+        clip_y2 = 0;
+
     if (Graphics::CurrentClip.Enabled) {
-        int
-            clip_x1 = Graphics::CurrentClip.X,
-            clip_y1 = Graphics::CurrentClip.Y,
-            clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width,
-            clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        clip_x1 = Graphics::CurrentClip.X;
+        clip_y1 = Graphics::CurrentClip.Y;
+        clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
+        clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
 
         if (dst_x2 > clip_x2)
             dst_x2 = clip_x2;
@@ -2505,9 +2515,9 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         }
     }
     else {
-        int
-            clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
-            clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
+        clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
         if (dst_x2 > clip_x2)
             dst_x2 = clip_x2;
         if (dst_y2 > clip_y2)
@@ -2530,6 +2540,18 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     if (dst_y1 >= dst_y2)
         return;
 
+    #define DEFORM_X { \
+        dst_x += *deformValues; \
+        if (dst_x < clip_x1) { \
+            dst_x -= *deformValues; \
+            continue; \
+        } \
+        if (dst_x >= clip_x2) { \
+            dst_x -= *deformValues; \
+            continue; \
+        } \
+    }
+
     #define DRAW_PLACEPIXEL(pixelFunction) \
         if ((color = srcPxLine[src_x]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], opacity, multTableAt, multSubTableAt);
@@ -2537,41 +2559,74 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         if ((color = srcPxLine[src_x])) \
             pixelFunction(&index[color], &dstPxLine[dst_x], opacity, multTableAt, multSubTableAt);
 
-    #define DRAW_NOFLIP(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_NOFLIP(pixelFunction, placePixelMacro) \
+    for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
-            placePixelMacro(pixelFunction) \
-        } \
-        dst_strideY += dstStride; src_strideY += srcStride; \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
+                DEFORM_X; \
+                placePixelMacro(pixelFunction) \
+                dst_x -= *deformValues;\
+            } \
+        else \
+            for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
+                placePixelMacro(pixelFunction) \
+            } \
+        \
+        dst_strideY += dstStride; src_strideY += srcStride; deformValues++; \
     }
     #define DRAW_FLIPX(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
-            placePixelMacro(pixelFunction) \
-        } \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
+                DEFORM_X; \
+                placePixelMacro(pixelFunction) \
+                dst_x -= *deformValues;\
+            } \
+        else \
+            for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
+                placePixelMacro(pixelFunction) \
+            } \
         dst_strideY += dstStride; src_strideY += srcStride; \
+        deformValues++; \
     }
     #define DRAW_FLIPY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
-            placePixelMacro(pixelFunction) \
-        } \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
+                DEFORM_X; \
+                placePixelMacro(pixelFunction) \
+                dst_x -= *deformValues;\
+            } \
+        else \
+            for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
+                placePixelMacro(pixelFunction) \
+            } \
         dst_strideY += dstStride; src_strideY -= srcStride; \
+        deformValues++; \
     }
     #define DRAW_FLIPXY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
-            placePixelMacro(pixelFunction) \
-        } \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
+                DEFORM_X; \
+                placePixelMacro(pixelFunction) \
+                dst_x -= *deformValues;\
+            } \
+        else \
+            for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
+                placePixelMacro(pixelFunction) \
+            } \
         dst_strideY += dstStride; src_strideY -= srcStride; \
+        deformValues++; \
     }
 
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
@@ -2604,6 +2659,8 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     int dst_strideY, src_strideY;
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
+    Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
+
     if (Graphics::UsePalettes && texture->Paletted) {
         switch (flipFlag) {
             case 0:
@@ -2745,12 +2802,16 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     dst_x2 += x + 1;
     dst_y2 += y + 1;
 
+    int clip_x1 = 0,
+        clip_y1 = 0,
+        clip_x2 = 0,
+        clip_y2 = 0;
+
     if (Graphics::CurrentClip.Enabled) {
-        int
-            clip_x1 = Graphics::CurrentClip.X,
-            clip_y1 = Graphics::CurrentClip.Y,
-            clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width,
-            clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        clip_x1 = Graphics::CurrentClip.X,
+        clip_y1 = Graphics::CurrentClip.Y,
+        clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width,
+        clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
 
         if (dst_x1 < clip_x1)
             dst_x1 = clip_x1;
@@ -2762,9 +2823,9 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
             dst_y2 = clip_y2;
     }
     else {
-        int
-            clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
-            clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
+        clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
         if (dst_x1 < 0)
             dst_x1 = 0;
         if (dst_y1 < 0)
@@ -2780,6 +2841,18 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     if (dst_y1 >= dst_y2)
         return;
 
+    #define DEFORM_X { \
+        dst_x += *deformValues; \
+        if (dst_x < clip_x1) { \
+            dst_x -= *deformValues; \
+            continue; \
+        } \
+        if (dst_x >= clip_x2) { \
+            dst_x -= *deformValues; \
+            continue; \
+        } \
+    }
+
     #define DRAW_PLACEPIXEL(pixelFunction) \
         if ((color = srcPx[src_x + src_strideY]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], opacity, multTableAt, multSubTableAt);
@@ -2792,68 +2865,124 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
-            if (src_x >= _x1 && src_y >= _y1 && \
-                src_x <  _x2 && src_y <  _y2) { \
-                src_x       = (src_x1 + (src_x - _x1) * sw / w); \
-                src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                placePixelMacro(pixelFunction); \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                DEFORM_X; \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x1 + (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+                dst_x -= *deformValues; \
             } \
-        } \
-        dst_strideY += dstStride; \
+        else \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x1 + (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+            } \
+        dst_strideY += dstStride; deformValues++; \
     }
     #define DRAW_FLIPX(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
-            if (src_x >= _x1 && src_y >= _y1 && \
-                src_x <  _x2 && src_y <  _y2) { \
-                src_x       = (src_x2 - (src_x - _x1) * sw / w); \
-                src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                placePixelMacro(pixelFunction); \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                DEFORM_X; \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x2 - (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+                dst_x -= *deformValues; \
             } \
-        } \
-        dst_strideY += dstStride; \
+        else \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x2 - (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+            } \
+        dst_strideY += dstStride; deformValues++; \
     }
     #define DRAW_FLIPY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
-            if (src_x >= _x1 && src_y >= _y1 && \
-                src_x <  _x2 && src_y <  _y2) { \
-                src_x       = (src_x1 + (src_x - _x1) * sw / w); \
-                src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                placePixelMacro(pixelFunction); \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                DEFORM_X; \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x1 + (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+                dst_x -= *deformValues; \
             } \
-        } \
-        dst_strideY += dstStride; \
+        else \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x1 + (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+            } \
+        dst_strideY += dstStride; deformValues++; \
     }
     #define DRAW_FLIPXY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-            src_x = (i_x * rcos + i_y_rsin) >> 9; \
-            src_y = (i_x * rsin + i_y_rcos) >> 9; \
-            if (src_x >= _x1 && src_y >= _y1 && \
-                src_x <  _x2 && src_y <  _y2) { \
-                src_x       = (src_x2 - (src_x - _x1) * sw / w); \
-                src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                placePixelMacro(pixelFunction); \
+        if (SoftwareRenderer::UseSpriteDeform) \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                DEFORM_X; \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x2 - (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+                dst_x -= *deformValues; \
             } \
-        } \
-        dst_strideY += dstStride; \
+        else \
+            for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
+                src_x = (i_x * rcos + i_y_rsin) >> 9; \
+                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                if (src_x >= _x1 && src_y >= _y1 && \
+                    src_x <  _x2 && src_y <  _y2) { \
+                    src_x       = (src_x2 - (src_x - _x1) * sw / w); \
+                    src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
+                    placePixelMacro(pixelFunction); \
+                } \
+            } \
+        dst_strideY += dstStride; deformValues++; \
     }
 
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
@@ -2887,6 +3016,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     int dst_strideY, src_strideY;
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
+    Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
+
     if (Graphics::UsePalettes && texture->Paletted) {
         switch (flipFlag) {
             case 0:

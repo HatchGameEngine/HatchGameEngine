@@ -21,6 +21,7 @@ public:
     int               BytesPerSample;
     Uint8*            Buffer = NULL;
     Uint8*            UnconvertedSampleBuffer = NULL;
+    Uint32            BufferedSamples = 0;
     char              Filename[256];
     SDL_AudioStream*  Stream = NULL;
     bool              LoadFailed = false;

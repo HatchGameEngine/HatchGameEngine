@@ -26,6 +26,8 @@ public:
     static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static bool              UseSpriteDeform;
 
     static inline Uint32 GetPixelIndex(ISprite* sprite, int x, int y);
     static void    SetDrawAlpha(int a);

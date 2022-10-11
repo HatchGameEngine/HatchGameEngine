@@ -377,13 +377,17 @@
                 <i>Functions:</i>
                 <ul>
                     <li><a href="#Reference_Music_Play">Music.Play</a></li>
+                    <li><a href="#Reference_Music_PlayAtTime">Music.PlayAtTime</a></li>
                     <li><a href="#Reference_Music_Stop">Music.Stop</a></li>
                     <li><a href="#Reference_Music_StopWithFadeOut">Music.StopWithFadeOut</a></li>
                     <li><a href="#Reference_Music_Pause">Music.Pause</a></li>
                     <li><a href="#Reference_Music_Resume">Music.Resume</a></li>
                     <li><a href="#Reference_Music_Clear">Music.Clear</a></li>
                     <li><a href="#Reference_Music_Loop">Music.Loop</a></li>
+                    <li><a href="#Reference_Music_LoopAtTime">Music.LoopAtTime</a></li>
                     <li><a href="#Reference_Music_IsPlaying">Music.IsPlaying</a></li>
+                    <li><a href="#Reference_Music_GetPosition">Music.GetPosition</a></li>
+                    <li><a href="#Reference_Music_Alter">Music.Alter</a></li>
                 </ul>
             </p>
             <p id="Reference_Number">
@@ -432,6 +436,8 @@
                 <h2>Scene</h2>
                 <i>Functions:</i>
                 <ul>
+                    <li><a href="#Reference_Draw_UseSpriteDeform">Draw.UseSpriteDeform</a></li>
+                    <li><a href="#Reference_Draw_SetSpriteDeformLine">Draw.SetSpriteDeformLine</a></li>
                     <li><a href="#Reference_Scene_Load">Scene.Load</a></li>
                     <li><a href="#Reference_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
@@ -1891,6 +1897,27 @@
         <div style="margin-top: 8px; font-size: 14px;"></div>
         </p>
         <hr/>
+        <p id="Reference_Draw_UseSpriteDeform">
+        <h2 style="margin-bottom: 8px;">Draw.UseSpriteDeform</h2>
+        <code>Draw.UseSpriteDeform(useDeform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use sprite deform when drawing.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useDeform (Boolean): Whether or not to use sprite deform when drawing.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetSpriteDeformLine">
+        <h2 style="margin-bottom: 8px;">Draw.SetSpriteDeformLine</h2>
+        <code>Draw.SetSpriteDeformLine(deformIndex, deformValue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the sprite deform line at the specified line index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>deformIndex (Integer): Index of deform line. (0 = top of screen, 1 = the line below it, 2 = etc.)</li>
+        <li>deformValue (Decimal): Deform value.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Ease_InSine">
         <h2 style="margin-bottom: 8px;">Ease.InSine</h2>
         <code>Ease.InSine(value)</code>
@@ -2918,11 +2945,28 @@
         <hr/>
         <p id="Reference_Music_Play">
         <h2 style="margin-bottom: 8px;">Music.Play</h2>
-        <code>Music.Play(music)</code>
+        <code>Music.Play(music[, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to play.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Music_PlayAtTime">
+        <h2 style="margin-bottom: 8px;">Music.PlayAtTime</h2>
+        <code>Music.PlayAtTime(music, startPoint[, panning, speed, volume])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it at a time (in seconds).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>music (Integer): The music index to play.</li>
+        <li>startPoint (Decimal): The time (in seconds) to start the music at.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         </p>
         <hr/>
@@ -2962,13 +3006,32 @@
         <hr/>
         <p id="Reference_Music_Loop">
         <h2 style="margin-bottom: 8px;">Music.Loop</h2>
-        <code>Music.Loop(music, loop, loopPoint)</code>
+        <code>Music.Loop(music, loop, loopPoint[, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to play.</li>
         <li>loop (Boolean): Unused.</li>
         <li>loopPoint (Integer): The sample index to loop back to.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Music_LoopAtTime">
+        <h2 style="margin-bottom: 8px;">Music.LoopAtTime</h2>
+        <code>Music.LoopAtTime(music, startPoint, loop, loopPoint[, panning, speed, volume])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>music (Integer): The music index to play.</li>
+        <li>startPoint (Decimal): The time (in seconds) to start the music at.</li>
+        <li>loop (Boolean): Unused.</li>
+        <li>loopPoint (Integer): The sample index to loop back to.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         </p>
         <hr/>
@@ -2982,6 +3045,28 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether or not the music is playing.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Music_GetPosition">
+        <h2 style="margin-bottom: 8px;">Music.GetPosition</h2>
+        <code>Music.GetPosition(music)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the position of the current track playing.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>music (Integer): The music index to get the current position (in seconds) of.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Music_Alter">
+        <h2 style="margin-bottom: 8px;">Music.Alter</h2>
+        <code>Music.Alter(panning, speed, volume)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Alters the playback conditions of the current track playing.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed.</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume.</li>
+        </ul>
         </p>
         <hr/>
         <p id="Reference_Number_ToString">
@@ -3955,22 +4040,28 @@
         <hr/>
         <p id="Reference_Sound_Play">
         <h2 style="margin-bottom: 8px;">Sound.Play</h2>
-        <code>Sound.Play(sound)</code>
+        <code>Sound.Play(sound[, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound once.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         </p>
         <hr/>
         <p id="Reference_Sound_Loop">
         <h2 style="margin-bottom: 8px;">Sound.Loop</h2>
-        <code>Sound.Loop(sound[, loopPoint])</code>
+        <code>Sound.Loop(sound[, loopPoint, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound, looping back when it ends.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
         <li>loopPoint (Integer): Loop point in samples.</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         </p>
         <hr/>
@@ -4982,6 +5073,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>329 out of 401 functions have descriptions. </p>
+        <p>335 out of 407 functions have descriptions. </p>
     </body>
 </html>
