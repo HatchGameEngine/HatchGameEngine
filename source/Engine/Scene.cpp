@@ -355,7 +355,12 @@ void _UpdateObject(Entity* ent) {
         Scene::PriorityLists[oldPriority].Remove(ent);
         ent->PriorityListIndex = Scene::PriorityLists[ent->Priority].Add(ent);
     }
+    // Sort list.
+    else if (ent->Depth != ent->OldDepth) {
+        Scene::PriorityLists[ent->Priority].NeedsSorting = true;
+    }
     ent->PriorityOld = ent->Priority;
+    ent->OldDepth = ent->Depth;
 }
 inline int _CEILPOW(int n) {
     n--;
@@ -690,6 +695,9 @@ PUBLIC STATIC void Scene::Render() {
                 break;
 
             DrawGroupList* drawGroupList = &PriorityLists[l];
+            if (drawGroupList->NeedsSorting) {
+                drawGroupList->Sort();
+            }
             for (size_t o = 0; o < drawGroupList->EntityCapacity; o++) {
                 if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
                     drawGroupList->Entities[o]->RenderEarly();

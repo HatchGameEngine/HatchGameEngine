@@ -44,6 +44,9 @@ public:
     int          PriorityListIndex = -1;
     int          PriorityOld = 0;
 
+    float        Depth = 0.0f;
+    float        OldDepth = 0.0f;
+
     int          Sprite = -1;
     int          CurrentAnimation = -1;
     int          CurrentFrame = -1;

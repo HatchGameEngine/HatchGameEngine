@@ -74,6 +74,10 @@ endif()
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
   find_package(Freetype REQUIRED)
+  find_package(PNG)
+  IF(PNG_FOUND)
+    add_definitions(-DUSING_LIBPNG)
+  endif()
 else()
   set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
 endif()
@@ -112,5 +116,9 @@ else()
   target_link_libraries(${PROJECT_NAME}
     ${SDL2_LIBRARIES}
     ${FREETYPE_LIBRARIES}
+    ${PNG_LIBRARIES}
   )
+  IF(PNG_FOUND)
+    target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+  endif()
 endif()

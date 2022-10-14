@@ -34,6 +34,7 @@ public:
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
+#include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 #include <Engine/ResourceTypes/ResourceType.h>
@@ -4816,7 +4817,28 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                 SoftwareRenderer::PaletteColors[palIndex][p] = gif->Colors[p];
                             Memory::Free(gif->Colors);
                         }
+                        Memory::Free(gif->Data);
                         delete gif;
+                    }
+                }
+                // PNG file
+                else if (StringUtils::StrCaseStr(filename, ".png") || StringUtils::StrCaseStr(filename, ".PNG")) {
+                    bool loadPalette = Graphics::UsePalettes;
+
+                    PNG* png;
+
+                    Graphics::UsePalettes = true;
+                    png = PNG::Load(filename);
+                    Graphics::UsePalettes = loadPalette;
+
+                    if (png) {
+                        if (png->Paletted) {
+                            for (int p = 0; p < png->NumPaletteColors; p++)
+                                SoftwareRenderer::PaletteColors[palIndex][p] = png->Colors[p];
+                            Memory::Free(png->Colors);
+                        }
+                        Memory::Free(png->Data);
+                        delete png;
                     }
                 }
                 else {
@@ -4827,6 +4849,39 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
             }
             reader->Close();
         }
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Palette.LoadFromImage
+ * \desc Loads palette from an image resource.
+ * \param paletteIndex (Integer): Index of palette to load to.
+ * \param image (Integer): Index of the loaded image.
+ * \ns Palette
+ */
+VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int palIndex = GET_ARG(0, GetInteger);
+    int index = GET_ARG(1, GetInteger);
+    if (index < 0)
+        return NULL_VAL;
+
+    Image* image = Scene::ImageList[index]->AsImage;
+    Texture* texture = image->TexturePtr;
+
+    size_t x = 0;
+
+    for (size_t y = 0; y < texture->Height; y++) {
+        Uint32* line = (Uint32*)texture->Pixels + (y * texture->Width);
+        size_t length = texture->Width;
+        if (length > 0x100)
+            length = 0x100;
+
+        for (size_t src = 0; src < length && x < 0x100;)
+            SoftwareRenderer::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
+        if (x >= 0x100)
+            break;
     }
 
     return NULL_VAL;
@@ -9190,6 +9245,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Palette, EnablePaletteUsage);
     DEF_NATIVE(Palette, LoadFromFile);
     DEF_NATIVE(Palette, LoadFromResource);
+    DEF_NATIVE(Palette, LoadFromImage);
     DEF_NATIVE(Palette, GetColor);
     DEF_NATIVE(Palette, SetColor);
     DEF_NATIVE(Palette, MixPalettes);

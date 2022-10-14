@@ -9,6 +9,7 @@ public:
     int      EntityCount = 0;
     int      EntityCapacity = 0x1000;
     Entity** Entities = NULL;
+    bool     NeedsSorting = false;
 };
 #endif
 
@@ -27,6 +28,7 @@ PUBLIC int    DrawGroupList::Add(Entity* obj) {
         if (Entities[i] == NULL) {
             Entities[i] = obj;
             EntityCount++;
+            NeedsSorting = true;
             return i;
         }
     }
@@ -37,6 +39,7 @@ PUBLIC void    DrawGroupList::Remove(Entity* obj) {
         if (Entities[i] == obj) {
             Entities[i] = NULL;
             EntityCount--;
+            NeedsSorting = true;
             return;
         }
     }
@@ -46,6 +49,20 @@ PUBLIC void    DrawGroupList::Clear() {
         Entities[i] = NULL;
     }
     EntityCount = 0;
+    NeedsSorting = false;
+}
+
+PRIVATE STATIC int DrawGroupList::SortFunc(const void *a, const void *b) {
+    const Entity* entA = *(const Entity **)a;
+    const Entity* entB = *(const Entity **)b;
+    if (entA == NULL && entB == NULL) return 0;
+    else if (entA == NULL) return 1;
+    else if (entB == NULL) return -1;
+    return entA->Depth - entB->Depth;
+}
+PUBLIC void    DrawGroupList::Sort() {
+    qsort(Entities, EntityCapacity, sizeof(Entity*), DrawGroupList::SortFunc);
+    NeedsSorting = false;
 }
 
 PUBLIC void    DrawGroupList::Init() {

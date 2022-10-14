@@ -249,8 +249,6 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
     colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
     //sortFlag = (logicalScreenDesc & 0x8) != 0; // This is unneeded.
     paletteTableSize = 2 << (logicalScreenDesc & 0x7);
-
-    gif->TransparentColorIndex = transparentColorIndex;
     
     MARK_PERF_LABEL("gif header read");
 
@@ -319,7 +317,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
                         // temp = stream->ReadByte();  // Packed Field [byte] //
                         // temp16 = stream->ReadUInt16(); // Delay Time [short] //
                         stream->Skip(0x04);
-                        gif->TransparentColorIndex = stream->ReadByte();  // Transparent Color Index? [byte] //
+                        transparentColorIndex = stream->ReadByte();  // Transparent Color Index? [byte] //
                         stream->Skip(0x01);
                         // temp = stream->ReadByte();  // Block Terminator [byte] //
                         break;
@@ -462,7 +460,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
             			gif->Data[p] = entry.Suffix;
                         // For setting straight to color (no palette use)
                         if (!loadPalette) {
-                            if (gif->Data[p] == gif->TransparentColorIndex)
+                            if (gif->Data[p] == transparentColorIndex)
                                 gif->Data[p] = 0;
                             else
                                 gif->Data[p] = gif->Colors[gif->Data[p]];

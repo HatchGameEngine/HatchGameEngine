@@ -43,13 +43,6 @@ bool              SoftwareRenderer::UseSpriteDeform = false;
 int Alpha = 0xFF;
 int BlendFlag = 0;
 
-struct SWTextureData {
-	Uint32*           Palette = NULL;
-	int               PaletteSize = 0;
-	int               PaletteCount = 0;
-	int               TransparentColorIndex = 0;
-};
-
 inline Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 r = (color1 & 0xFF0000U) + (((color2 & 0xFF0000U) * percent) >> 8);
 	Uint32 g = (color1 & 0xFF00U) + (((color2 & 0xFF00U) * percent) >> 8);

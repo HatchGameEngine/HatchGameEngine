@@ -62,9 +62,8 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_INT(AngleMode);
     LINK_INT(Ground);
     LINK_DEC(Rotation);
-    // LINK_DEC(Timer);
     LINK_INT(Priority);
-    // LINK_INT(PriorityListIndex);
+    LINK_DEC(Depth);
     LINK_INT(Sprite);
     LINK_INT(CurrentAnimation);
     LINK_INT(CurrentFrame);
