@@ -23,16 +23,26 @@ public:
 
 #ifdef USING_LIBPNG
 #include "png.h"
-#ifndef PNG_READ_SUPPORTED
-#undef USING_LIBPNG
-#endif
-#endif
-
-#ifdef USING_LIBPNG
+#ifdef PNG_READ_SUPPORTED
 void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
     Stream* stream = (Stream*)png_get_io_ptr(ctx);
     stream->ReadBytes(area, size);
 }
+#else
+#undef USING_LIBPNG
+#endif
+#endif
+
+#ifndef USING_LIBPNG
+#define USING_SPNG
+#endif
+
+#ifdef USING_SPNG
+#define SPNG_STATIC
+#ifndef _WIN32
+#define SPNG_USE_SIMD
+#endif
+#include <Libraries/spng.h>
 #else
 #define STB_IMAGE_IMPLEMENTATION
 #include <Libraries/stb_image.h>
@@ -128,9 +138,9 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
                 png->Data[i] = *data;
         }
 
-        png->Colors = (Uint32*)Memory::TrackedMalloc("PNG::Colors", palette_size * sizeof(Uint32));
-        png->Paletted = true;
         png->NumPaletteColors = palette_size;
+        png->Colors = (Uint32*)Memory::TrackedMalloc("PNG::Colors", png->NumPaletteColors * sizeof(Uint32));
+        png->Paletted = true;
 
         for (size_t i = 0; i < png->NumPaletteColors; i++, palette++) {
             png->Colors[i]  = 0xFF000000U;
@@ -159,6 +169,131 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
         png_destroy_read_struct(&png_ptr, info_ptr ? &info_ptr : (png_infopp)NULL, (png_infopp)NULL);
     if (stream)
         stream->Close();
+    return png;
+#elif defined(USING_SPNG)
+    PNG* png = new PNG;
+    Stream* stream = NULL;
+    Uint8* pixelData = NULL;
+    Uint8* buffer = NULL;
+    size_t buffer_len = 0;
+    int fmt = SPNG_FMT_PNG;
+    int color_type, flags = SPNG_DECODE_TRNS;
+    bool isIndexed;
+    bool useTransparency = false;
+    bool usePalette = false;
+    struct spng_plte plte = {0};
+    spng_ctx *ctx = NULL;
+    size_t limit = 1024 * 1024 * 64;
+    size_t image_size;
+    int ret;
+
+    if (strncmp(filename, "file://", 7) == 0)
+        stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
+    else
+        stream = ResourceStream::New(filename);
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
+        goto PNG_Load_FAIL;
+    }
+
+    buffer_len = stream->Length();
+    buffer = (Uint8*)malloc(buffer_len);
+    stream->ReadBytes(buffer, buffer_len);
+    stream->Close();
+
+    ctx = spng_ctx_new(0);
+    if (ctx == NULL) {
+        Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed!");
+        goto PNG_Load_FAIL;
+    }
+
+    spng_set_crc_action(ctx, SPNG_CRC_USE, SPNG_CRC_USE);
+
+    spng_set_chunk_limits(ctx, limit, limit);
+    spng_set_png_buffer(ctx, buffer, buffer_len);
+
+    struct spng_ihdr ihdr;
+    ret = spng_get_ihdr(ctx, &ihdr);
+    if (ret) {
+        Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed! %s", spng_strerror(ret));
+        goto PNG_Load_FAIL;
+    }
+
+    png->Width = ihdr.width;
+    png->Height = ihdr.height;
+
+    color_type = ihdr.color_type;
+    isIndexed = color_type == SPNG_COLOR_TYPE_INDEXED;
+    if (isIndexed && Graphics::UsePalettes) {
+        ret = spng_get_plte(ctx, &plte);
+
+        if (ret && ret != SPNG_ECHUNKAVAIL) {
+            Log::Print(Log::LOG_ERROR, "spng_get_plte() failed! %s", spng_strerror(ret));
+            goto PNG_Load_FAIL;
+        }
+
+        usePalette = !ret;
+    }
+
+    if (!usePalette)
+        fmt = SPNG_FMT_RGBA8;
+
+    image_size;
+    ret = spng_decoded_image_size(ctx, fmt, &image_size);
+    if (ret)
+        goto PNG_Load_FAIL;
+
+    pixelData = (Uint8*)malloc(image_size);
+    if (pixelData == NULL)
+        goto PNG_Load_FAIL;
+
+    ret = spng_decode_image(ctx, (Uint8*)pixelData, image_size, fmt, flags);
+    if (ret) {
+        Log::Print(Log::LOG_ERROR, "spng_decode_image() failed! %s", spng_strerror(ret));
+        goto PNG_Load_FAIL;
+    }
+
+    png->Data = (Uint32*)Memory::TrackedMalloc("PNG::Data", ihdr.width * ihdr.height * sizeof(Uint32));
+
+    if (usePalette) {
+        if (ihdr.bit_depth != 8)
+            png->ReadPixelBitstream(pixelData, ihdr.bit_depth);
+        else {
+            for (size_t i = 0; i < ihdr.width * ihdr.height; i++)
+                png->Data[i] = pixelData[i];
+        }
+
+        png->NumPaletteColors = (Uint8)plte.n_entries;
+        png->Colors = (Uint32*)Memory::TrackedMalloc("PNG::Colors", png->NumPaletteColors * sizeof(Uint32));
+        png->Paletted = true;
+
+        for (size_t i = 0; i < png->NumPaletteColors; i++) {
+            png->Colors[i]  = 0xFF000000U;
+            png->Colors[i] |= plte.entries[i].red << 16;
+            png->Colors[i] |= plte.entries[i].green << 8;
+            png->Colors[i] |= plte.entries[i].blue;
+        }
+
+        SoftwareRenderer::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
+    }
+    else {
+        png->ReadPixelDataARGB((Uint32*)pixelData, 4);
+        png->Paletted = false;
+        png->Colors = nullptr;
+    }
+
+    goto PNG_Load_Success;
+
+PNG_Load_FAIL:
+    delete png;
+    png = NULL;
+
+PNG_Load_Success:
+    if (buffer)
+        free(buffer);
+    if (ctx)
+        spng_ctx_free(ctx);
+    free(pixelData);
     return png;
 #else
     PNG* png = new PNG;
