@@ -4,7 +4,11 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Math/Matrix4x4.h>
+#include <Engine/Math/Clipper.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Rendering/Material.h>
+#include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/Rendering/Software/Contour.h>
 #include <Engine/Includes/HashMap.h>
 
 class SoftwareRenderer {
@@ -18,10 +22,15 @@ public:
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
+    static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static VertexBuffer*     VertexBuffers[MAX_VERTEX_BUFFERS];
+    static Uint32            CurrentVertexBuffer;
 };
 #endif
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
+#include <Engine/Rendering/Software/Rasterizer.h>
+#include <Engine/Rendering/ArrayBuffer.h>
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -33,17 +42,30 @@ public:
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;
 Sint32            SoftwareRenderer::CurrentPalette = -1;
-Uint32            SoftwareRenderer::CurrentArrayBuffer = 0;
+Uint32            SoftwareRenderer::CurrentArrayBuffer = -1;
 Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
+Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+VertexBuffer*     SoftwareRenderer::VertexBuffers[MAX_VERTEX_BUFFERS];
+Uint32            SoftwareRenderer::CurrentVertexBuffer = -1;
+
+enum BlendFlags {
+    BlendFlag_OPAQUE = 0,
+    BlendFlag_TRANSPARENT,
+    BlendFlag_ADDITIVE,
+    BlendFlag_SUBTRACT,
+    BlendFlag_MATCH_EQUAL,
+    BlendFlag_MATCH_NOT_EQUAL,
+    BlendFlag_FILTER
+};
 
 int Alpha = 0xFF;
-int BlendFlag = 0;
+int BlendFlag = BlendFlag_OPAQUE;
 
-inline Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
+Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 r = (color1 & 0xFF0000U) + (((color2 & 0xFF0000U) * percent) >> 8);
 	Uint32 g = (color1 & 0xFF00U) + (((color2 & 0xFF00U) * percent) >> 8);
 	Uint32 b = (color1 & 0xFFU) + (((color2 & 0xFFU) * percent) >> 8);
@@ -52,14 +74,14 @@ inline Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	if (b > 0xFFU) b = 0xFFU;
 	return r | g | b;
 }
-inline Uint32 ColorBlend(Uint32 color1, Uint32 color2, int percent) {
+Uint32 ColorBlend(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 rb = color1 & 0xFF00FFU;
 	Uint32 g  = color1 & 0x00FF00U;
 	rb += (((color2 & 0xFF00FFU) - rb) * percent) >> 8;
 	g  += (((color2 & 0x00FF00U) - g) * percent) >> 8;
 	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
 }
-inline Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
+Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
     Sint32 r = (color1 & 0xFF0000U) - (((color2 & 0xFF0000U) * percent) >> 8);
 	Sint32 g = (color1 & 0xFF00U) - (((color2 & 0xFF00U) * percent) >> 8);
 	Sint32 b = (color1 & 0xFFU) - (((color2 & 0xFFU) * percent) >> 8);
@@ -68,201 +90,30 @@ inline Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
 	if (b < 0) b = 0;
 	return r | g | b;
 }
-inline int ColorMultiply(Uint32 color, Uint32 colorMult) {
+int ColorMultiply(Uint32 color, Uint32 colorMult) {
     Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
     Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
     Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
     return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
-
-inline void SetPixel(int x, int y, Uint32 color) {
-	// if (DoDeform) x += Deform[y];
-
-	// if (x <  Clip[0]) return;
-	// if (y <  Clip[1]) return;
-	// if (x >= Clip[2]) return;
-	// if (y >= Clip[3]) return;
-
-	// SetPixelFunction(x, y, GetPixelOutputColor(color));
-	// SetPixelFunction(x, y, color);
+int ColorTint(Uint32 color, Uint32 colorMult) {
+    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
+        return color;
+    Uint32 dR = (colorMult >> 16) & 0xFF;
+    Uint32 dG = (colorMult >> 8) & 0xFF;
+    Uint32 dB = colorMult & 0xFF;
+    Uint32 sR = (color >> 16) & 0xFF;
+    Uint32 sG = (color >> 8) & 0xFF;
+    Uint32 sB = color & 0xFF;
+    dR = (Uint8)((dR * sR + 0xFF) >> 8);
+    dG = (Uint8)((dG * sG + 0xFF) >> 8);
+    dB = (Uint8)((dB * sB + 0xFF) >> 8);
+    return dB | (dG << 8) | (dR << 16);
 }
 
-inline Uint32 GetPixelOutputColor(Uint32 color) {
-	// color = (this->*SetFilterFunction[0])(color);
-	// color = (this->*SetFilterFunction[1])(color);
-	// color = (this->*SetFilterFunction[2])(color);
-	// color = (this->*SetFilterFunction[3])(color);
-
-	return color;
-}
-
-bool SaveScreenshot(const char* filename) {
-    /*
-	Uint32* palette = (Uint32*)Memory::Calloc(256, sizeof(Uint32));
-	Uint32* pixelChecked = (Uint32*)Memory::Calloc(FrameBufferSize, sizeof(Uint32));
-	Uint32* pixelIndexes = (Uint32*)Memory::Calloc(FrameBufferSize, sizeof(Uint32));
-	Uint32  paletteCount = 0;
-	for (int checking = 0; checking < FrameBufferSize; checking++) {
-		if (!pixelChecked[checking]) {
-			Uint32 color = FrameBuffer[checking] & 0xFFFFFF;
-			for (int comparing = checking; comparing < FrameBufferSize; comparing++) {
-				if (color == (FrameBuffer[comparing] & 0xFFFFFF)) {
-					pixelIndexes[comparing] = paletteCount;
-					pixelChecked[comparing] = 1;
-				}
-			}
-			if (paletteCount == 255) {
-				Memory::Free(palette);
-				Memory::Free(pixelChecked);
-				Memory::Free(pixelIndexes);
-				Log::Print(Log::LOG_ERROR, "Too many colors!");
-				return false;
-			}
-			palette[paletteCount++] = color;
-		}
-	}
-
-	char filenameStr[100];
-	time_t now; time(&now);
-	struct tm* local = localtime(&now);
-	sprintf(filenameStr, "ImpostorEngine3_%02d-%02d-%02d_%02d-%02d-%02d.gif", local->tm_mday, local->tm_mon + 1, local->tm_year - 100, local->tm_hour, local->tm_min, local->tm_sec);
-
-	GIF* gif = new GIF;
-	gif->Colors = palette;
-    gif->Data = pixelIndexes;
-    gif->Width = Application::WIDTH;
-    gif->Height = Application::HEIGHT;
-    gif->TransparentColorIndex = 0xFF;
-	if (!gif->Save(filenameStr)) {
-		gif->Data = NULL;
-		delete gif;
-		Memory::Free(palette);
-		Memory::Free(pixelChecked);
-		Memory::Free(pixelIndexes);
-		return false;
-	}
-	gif->Data = NULL;
-	delete gif;
-	Memory::Free(palette);
-	Memory::Free(pixelChecked);
-	Memory::Free(pixelIndexes);
-
-    */
-
-	return true;
-}
-
-PUBLIC STATIC inline Uint32 SoftwareRenderer::GetPixelIndex(ISprite* sprite, int x, int y) {
-	// return sprite->Data[x + y * sprite->Width];
-	return 0;
-}
-
-// Rendering functions
-PUBLIC STATIC void    SoftwareRenderer::SetDrawAlpha(int a) {
-	// DrawAlpha = a;
-    //
-	// if (SetPixelFunction != &SoftwareRenderer::SetPixelNormal && SetPixelFunction != &SoftwareRenderer::SetPixelAlpha) return;
-    //
-	// if (DrawAlpha == 0xFF)
-	// 	SetPixelFunction = &SoftwareRenderer::SetPixelNormal;
-	// else
-	// 	SetPixelFunction = &SoftwareRenderer::SetPixelAlpha;
-}
-PUBLIC STATIC void    SoftwareRenderer::SetDrawFunc(int a) {
-	// switch (a) {
-	// 	case 1:
-	// 		SetPixelFunction = &SoftwareRenderer::SetPixelAdditive;
-	// 		break;
-	// 	default:
-	// 		SetPixelFunction = &SoftwareRenderer::SetPixelNormal;
-	// 		SetDrawAlpha(DrawAlpha);
-	// 		break;
-	// }
-}
-
-PUBLIC STATIC void    SoftwareRenderer::SetFade(int fade) {
-	// if (fade < 0)
-	// 	Fade = 0x00;
-	// else if (fade > 0xFF)
-	// 	Fade = 0xFF;
-	// else
-	// 	Fade = fade;
-}
-PUBLIC STATIC void    SoftwareRenderer::SetFilter(int filter) {
-	// DrawPixelFilter = filter;
-    //
-	// SetFilterFunction[0] = &SoftwareRenderer::FilterNone;
-	// // SetFilterFunction[1] = &SoftwareRenderer::FilterNone;
-	// // SetFilterFunction[2] = &SoftwareRenderer::FilterNone;
-	// SetFilterFunction[3] = &SoftwareRenderer::FilterNone;
-	// if ((DrawPixelFilter & 0x1) == 0x1)
-	// 	SetFilterFunction[0] = &SoftwareRenderer::FilterGrayscale;
-	// if ((DrawPixelFilter & 0x4) == 0x4)
-	// 	SetFilterFunction[3] = &SoftwareRenderer::FilterFadeToBlack;
-}
-PUBLIC STATIC int     SoftwareRenderer::GetFilter() {
-	// return DrawPixelFilter;
-    return 0;
-}
+#define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b;
 
 // Utility functions
-PUBLIC STATIC bool    SoftwareRenderer::IsOnScreen(int x, int y, int w, int h) {
-	// return (
-	// 	x + w >= Clip[0] &&
-	// 	y + h >= Clip[1] &&
-	// 	x     <  Clip[2] &&
-	// 	y     <  Clip[3]);
-    return false;
-}
-
-// Drawing Shapes
-PUBLIC STATIC void    SoftwareRenderer::DrawRectangleStroke(int x, int y, int width, int height, Uint32 color) {
-	int x1, x2, y1, y2;
-
-	x1 = x;
-	x2 = x + width - 1;
-	if (width < 0) {
-		x1 += width; x2 -= width;
-	}
-
-	y1 = y;
-	y2 = y + height - 1;
-	if (height < 0) {
-		y1 += height; y2 -= height;
-	}
-
-	for (int b = x1; b <= x2; b++) {
-		SetPixel(b, y1, color);
-		SetPixel(b, y2, color);
-	}
-	for (int b = y1 + 1; b < y2; b++) {
-		SetPixel(x1, b, color);
-		SetPixel(x2, b, color);
-	}
-}
-PUBLIC STATIC void    SoftwareRenderer::DrawRectangleSkewedH(int x, int y, int width, int height, int sk, Uint32 color) {
-
-}
-
-PUBLIC STATIC void    SoftwareRenderer::DrawTextSprite(ISprite* sprite, int animation, char first, int x, int y, const char* string) {
-	AnimFrame animframe;
-	for (int i = 0; i < (int)strlen(string); i++) {
-		animframe = sprite->Animations[animation].Frames[string[i] - first];
-		// DrawSpriteNormal(sprite, animation, string[i] - first, x - animframe.OffsetX, y, false, false);
-
-		x += animframe.Width;
-	}
-}
-PUBLIC STATIC int     SoftwareRenderer::MeasureTextSprite(ISprite* sprite, int animation, char first, const char* string) {
-	int x = 0;
-	AnimFrame animframe;
-	for (int i = 0; i < (int)strlen(string); i++) {
-		animframe = sprite->Animations[animation].Frames[string[i] - first];
-		x += animframe.Width;
-	}
-	return x;
-}
-
 PUBLIC STATIC void    SoftwareRenderer::ConvertFromARGBtoNative(Uint32* argb, int count) {
     Uint8* color = (Uint8*)argb;
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
@@ -274,7 +125,6 @@ PUBLIC STATIC void    SoftwareRenderer::ConvertFromARGBtoNative(Uint32* argb, in
     }
 }
 
-// Utility Functions
 int ColR = 0xFF;
 int ColG = 0xFF;
 int ColB = 0xFF;
@@ -282,8 +132,32 @@ Uint32 ColRGB = 0xFFFFFF;
 int MultTable[0x10000];
 int MultTableInv[0x10000];
 int MultSubTable[0x10000];
-int Sin0x200[0x200];
-int Cos0x200[0x200];
+
+#define TRIG_TABLE_BITS 11
+#define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
+#define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
+#define TRIG_TABLE_HALF (TRIG_TABLE_SIZE >> 1)
+
+int SinTable[TRIG_TABLE_SIZE];
+int CosTable[TRIG_TABLE_SIZE];
+
+bool ClipPolygonsByFrustum = false;
+int NumFrustumPlanes = 0;
+Frustum ViewFrustum[NUM_FRUSTUM_PLANES];
+
+bool DepthTest = false;
+bool UseDepthBuffer = false;
+size_t DepthBufferSize = 0;
+Uint32* DepthBuffer = NULL;
+
+float FogDensity = 1.0f;
+int FogColor = 0x000000;
+
+#define DEPTH_READ_DUMMY(depth) true
+#define DEPTH_WRITE_DUMMY(depth)
+
+#define DEPTH_READ_U32(depth) (depth < DepthBuffer[dst_x + dst_strideY])
+#define DEPTH_WRITE_U32(depth) DepthBuffer[dst_x + dst_strideY] = depth
 
 int FilterCurrent[0x8000];
 
@@ -309,10 +183,10 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
         }
     }
 
-    for (int a = 0; a < 0x200; a++) {
-        float ang = a * M_PI / 0x100;
-        Sin0x200[a] = (int)(Math::Sin(ang) * 0x200);
-        Cos0x200[a] = (int)(Math::Cos(ang) * 0x200);
+    for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+        float ang = a * M_PI / TRIG_TABLE_HALF;
+        SinTable[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
+        CosTable[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
     }
     for (int a = 0; a < 0x8000; a++) {
         int r = (a >> 10) & 0x1F;
@@ -401,15 +275,15 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
 PUBLIC STATIC void     SoftwareRenderer::Dispose() {
-	// Memory::Free(Deform);
-	// Memory::Free(FrameBuffer);
-	// SDL_FreeSurface(WindowScreen);
-	// SDL_DestroyTexture(ScreenTexture);
-	// SDL_DestroyWindow(Window);
-    //
-	// Screen->pixels = ScreenOriginalPixels;
-	// SDL_FreeSurface(Screen);
     SoftwareRenderer::BackendFunctions.Dispose();
+}
+
+PUBLIC STATIC void     SoftwareRenderer::RenderStart() {
+    for (int i = 0; i < MAX_PALETTE_COUNT; i++)
+        PaletteColors[i][0] &= 0xFFFFFF;
+}
+PUBLIC STATIC void     SoftwareRenderer::RenderEnd() {
+
 }
 
 // Texture management functions
@@ -502,16 +376,6 @@ PUBLIC STATIC void     SoftwareRenderer::Present() {
 
 }
 
-enum BlendFlags {
-    BlendFlag_OPAQUE = 0,
-    BlendFlag_TRANSPARENT,
-    BlendFlag_ADDITIVE,
-    BlendFlag_SUBTRACT,
-    BlendFlag_MATCH_EQUAL,
-    BlendFlag_MATCH_NOT_EQUAL,
-    BlendFlag_FILTER,
-};
-
 // Draw mode setting functions
 PUBLIC STATIC void     SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
     ColR = (int)(r * 0xFF);
@@ -549,48 +413,44 @@ PUBLIC STATIC void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int sr
     }
 }
 
+PUBLIC STATIC void     SoftwareRenderer::SetDepthTest(bool enabled) {
+    DepthTest = enabled;
+
+    if (DepthTest) {
+        size_t dpSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
+        if (DepthBuffer == NULL) {
+            DepthBufferSize = dpSize;
+            InitDepthBuffer();
+        }
+        else if (dpSize != DepthBufferSize) {
+            DepthBufferSize = dpSize;
+            ResizeDepthBuffer();
+        }
+
+        ClearDepthBuffer();
+    }
+}
+PUBLIC STATIC void     SoftwareRenderer::InitDepthBuffer() {
+    DepthBuffer = (Uint32*)Memory::Calloc(DepthBufferSize, sizeof(*DepthBuffer));
+}
+PUBLIC STATIC void     SoftwareRenderer::ResizeDepthBuffer() {
+    DepthBuffer = (Uint32*)Memory::Realloc(DepthBuffer, DepthBufferSize * sizeof(*DepthBuffer));
+}
+PUBLIC STATIC void     SoftwareRenderer::ClearDepthBuffer() {
+    size_t size = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
+    if (DepthBuffer)
+        memset(DepthBuffer, 0xFF, DepthBufferSize * sizeof(*DepthBuffer));
+}
+
 PUBLIC STATIC void     SoftwareRenderer::Resize(int width, int height) {
-    // Deform = (Sint8*)Memory::Realloc(Deform, height);
-    // // memset(Deform + last_height, 0, height - last_height);
-    //
-    // if (!ClipSet) {
-    //     Clip[0] = 0;
-    // 	Clip[1] = 0;
-    // 	Clip[2] = width;
-    // 	Clip[3] = height;
-    // }
-    //
-	// FrameBuffer = (Uint32*)Memory::Realloc(FrameBuffer, width * height * sizeof(Uint32));
-    // if (width * height - FrameBufferSize > 0)
-    //     memset(FrameBuffer + FrameBufferSize, 0, width * height - FrameBufferSize);
-    // FrameBufferSize = width * height;
-	// FrameBufferStride = width;
+
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetClip(float x, float y, float width, float height) {
-    // ClipSet = true;
-    //
-    // Clip[0] = (int)x;
-	// Clip[1] = (int)y;
-	// Clip[2] = (int)x + (int)w;
-	// Clip[3] = (int)y + (int)h;
-    //
-	// if (Clip[0] < 0)
-	// 	Clip[0] = 0;
-	// if (Clip[1] < 0)
-	// 	Clip[1] = 0;
-	// if (Clip[2] > Application::WIDTH)
-	// 	Clip[2] = Application::WIDTH;
-	// if (Clip[3] > Application::HEIGHT)
-	// 	Clip[3] = Application::HEIGHT;
+
 }
 PUBLIC STATIC void     SoftwareRenderer::ClearClip() {
-    // ClipSet = false;
-    //
-    // Clip[0] = 0;
-	// Clip[1] = 0;
-	// Clip[2] = Application::WIDTH;
-	// Clip[3] = Application::HEIGHT;
+
 }
 
 PUBLIC STATIC void     SoftwareRenderer::Save() {
@@ -609,28 +469,54 @@ PUBLIC STATIC void     SoftwareRenderer::Restore() {
 
 }
 
-#define SRC_CHECK false
-#define GET_CLIP_BOUNDS(x1, y1, x2, y2) \
-    if (Graphics::CurrentClip.Enabled) { \
-        x1 = Graphics::CurrentClip.X; \
-        y1 = Graphics::CurrentClip.Y; \
-        x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width; \
-        y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height; \
-    } \
-    else { \
-        x1 = 0; \
-        y1 = 0; \
-        x2 = (int)Graphics::CurrentRenderTarget->Width; \
-        y2 = (int)Graphics::CurrentRenderTarget->Height; \
+PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+    float f = 1.0f / tanf(fov / 2.0f);
+    float diff = near - far;
+
+    out->Values[0]  = f / aspect;
+    out->Values[1]  = 0.0f;
+    out->Values[2]  = 0.0f;
+    out->Values[3]  = 0.0f;
+
+    out->Values[4]  = 0.0f;
+    out->Values[5]  = -f;
+    out->Values[6]  = 0.0f;
+    out->Values[7]  = 0.0f;
+
+    out->Values[8]  = 0.0f;
+    out->Values[9]  = 0.0f;
+    out->Values[10] = -(far + near) / diff;
+    out->Values[11] = 1.0f;
+
+    out->Values[12] = 0.0f;
+    out->Values[13] = 0.0f;
+    out->Values[14] = -(2.0f * far * near) / diff;
+    out->Values[15] = 0.0f;
+}
+
+PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
+    if (DepthBuffer) {
+        Memory::Free(DepthBuffer);
+        DepthBuffer = NULL;
     }
+
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        VertexBuffer* buffer = VertexBuffers[i];
+        if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
+            continue;
+
+        VertexBuffer_Delete(i);
+    }
+}
+
 #define ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity) \
     if (FilterTable != &FilterColor[0]) \
         blendFlag = BlendFlag_FILTER; \
-    if (opacity == 0 && (blendFlag != BlendFlag_OPAQUE && blendFlag != BlendFlag_FILTER)) \
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT) \
         return; \
-    if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
+    else if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
         blendFlag = BlendFlag_TRANSPARENT; \
-    if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
+    else if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
         blendFlag = BlendFlag_OPAQUE;
 
 // Filterless versions
@@ -641,17 +527,17 @@ PUBLIC STATIC void     SoftwareRenderer::Restore() {
 #define ISOLATE_G(color) (color & 0x00FF00)
 #define ISOLATE_B(color) (color & 0x0000FF)
 
-inline void PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     *dst = *src;
 }
-inline void PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     int* multInvTableAt = &MultTableInv[opacity << 8];
     *dst = 0xFF000000U
         | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16
         | (multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8
         | (multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
 }
-inline void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 R = (multTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Uint32 G = (multTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Uint32 B = (multTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -660,7 +546,7 @@ inline void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* m
     if (B > 0x0000FF) B = 0x0000FF;
     *dst = 0xFF000000U | R | G | B;
 }
-inline void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Sint32 R = (multSubTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Sint32 G = (multSubTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Sint32 B = (multSubTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -669,531 +555,218 @@ inline void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* m
     if (B < 0) B = 0;
     *dst = 0xFF000000U | R | G | B;
 }
-inline void PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst == SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-inline void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst != SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-inline void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 col = *dst;
     *dst = FilterTable[(col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3];
 }
 
-struct Contour {
-    int MinX;
-    int MinR;
-    int MinG;
-    int MinB;
-    int MinU;
-    int MinV;
-
-    int MaxX;
-    int MaxR;
-    int MaxG;
-    int MaxB;
-    int MaxU;
-    int MaxV;
-};
-Contour ContourField[MAX_FRAMEBUFFER_HEIGHT];
-void DrawPolygonBlendUVScanLine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int x2, int y2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int cStart = color1;
-    int cEnd   = color2;
-    if (yStart == yEnd)
-        return;
-
-    // swap
-    if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        cStart = color2;
-        cEnd   = color1;
-    }
-
-    int minX, minY, maxX, maxY;
-    GET_CLIP_BOUNDS(minX, minY, maxX, maxY);
-
-    int yEndBound = yEnd + 1;
-    if (yEndBound < minY || yStart >= maxY)
-        return;
-
-    if (yEndBound > maxY)
-        yEndBound = maxY;
-
-    int colorBegRED = (cStart & 0xFF0000);
-    int colorEndRED = (cEnd & 0xFF0000);
-    int colorBegGREEN = (cStart & 0xFF00) << 8;
-    int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) << 16;
-    int colorEndBLUE = (cEnd & 0xFF) << 16;
-
-    int linePointSubpxX = xStart << 16;
-    int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
-    int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
-
-    if (colorBegRED != colorEndRED)
-        dxRED = (colorEndRED - colorBegRED) / yDiff;
-    if (colorBegGREEN != colorEndGREEN)
-        dxGREEN = (colorEndGREEN - colorBegGREEN) / yDiff;
-    if (colorBegBLUE != colorEndBLUE)
-        dxBLUE = (colorEndBLUE - colorBegBLUE) / yDiff;
-
-    if (yStart < 0) {
-        linePointSubpxX -= yStart * dx;
-        colorBegRED -= yStart * dxRED;
-        colorBegGREEN -= yStart * dxGREEN;
-        colorBegBLUE -= yStart * dxBLUE;
-        yStart = 0;
-    }
-
-    Contour* contour = &ContourField[yStart];
-    if (yStart < yEndBound) {
-        int lineHeight = yEndBound - yStart;
-        while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
-
-            if (linePointX <= minX) {
-                contour->MinX = minX;
-                contour->MinR = colorBegRED;
-                contour->MinG = colorBegGREEN;
-                contour->MinB = colorBegBLUE;
-            }
-            else if (linePointX >= maxX) {
-                contour->MaxX = maxX;
-                contour->MaxR = colorBegRED;
-                contour->MaxG = colorBegGREEN;
-                contour->MaxB = colorBegBLUE;
-            }
-            else {
-                if (linePointX < contour->MinX) {
-                    contour->MinX = linePointX;
-                    contour->MinR = colorBegRED;
-                    contour->MinG = colorBegGREEN;
-                    contour->MinB = colorBegBLUE;
-                }
-    			if (linePointX > contour->MaxX) {
-                    contour->MaxX = linePointX;
-                    contour->MaxR = colorBegRED;
-                    contour->MaxG = colorBegGREEN;
-                    contour->MaxB = colorBegBLUE;
-                }
-            }
-
-            linePointSubpxX += dx;
-            colorBegRED += dxRED;
-            colorBegGREEN += dxGREEN;
-            colorBegBLUE += dxBLUE;
-            contour++;
-    	}
-    }
+int FogEquation(float density, float coord) {
+    int result = expf(-density * coord) * 0x100;
+    CLAMP_VAL(result, 0, 0x100);
+    return 0x100 - result;
 }
-void DrawPolygonBlendUV(Texture* texture, Vector2* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+int DoFogLighting(int color, float fogCoord) {
+    int fogValue = FogEquation(FogDensity, fogCoord / 192.0f);
+    if (fogValue != 0)
+        return ColorBlend(color, FogColor, fogValue);
+    return color;
+}
+int LightPixel(int color, float depth) {
+    return DoFogLighting(color, depth);
+}
+int LightPixelNoOp(int color, float depth) {
+    return color;
+}
+int (*LightPixelFunc)(int, float) = NULL;
 
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector2* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
+#define POLYGON_BLENDFLAGS(drawPolygonMacro, placePixelMacro) \
+    switch (blendFlag) { \
+        case BlendFlag_OPAQUE: \
+            drawPolygonMacro(PixelNoFiltSetOpaque, placePixelMacro); \
+            break; \
+        case BlendFlag_TRANSPARENT: \
+            drawPolygonMacro(PixelNoFiltSetTransparent, placePixelMacro); \
+            break; \
+        case BlendFlag_ADDITIVE: \
+            drawPolygonMacro(PixelNoFiltSetAdditive, placePixelMacro); \
+            break; \
+        case BlendFlag_SUBTRACT: \
+            drawPolygonMacro(PixelNoFiltSetSubtract, placePixelMacro); \
+            break; \
+        case BlendFlag_MATCH_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchEqual, placePixelMacro); \
+            break; \
+        case BlendFlag_MATCH_NOT_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+            break; \
+        case BlendFlag_FILTER: \
+            drawPolygonMacro(PixelNoFiltSetFilter, placePixelMacro); \
+            break; \
     }
 
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    int scanLineCount = dst_y2 - dst_y1;
-    Contour* contourPtr = &ContourField[dst_y1];
-    while (scanLineCount--) {
-        contourPtr->MinX = INT_MAX;
-        contourPtr->MaxX = INT_MIN;
-        contourPtr++;
+#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro) \
+    switch (blendFlag) { \
+        case BlendFlag_OPAQUE: \
+            drawPolygonMacro(PixelNoFiltSetOpaque); \
+            break; \
+        case BlendFlag_TRANSPARENT: \
+            drawPolygonMacro(PixelNoFiltSetTransparent); \
+            break; \
+        case BlendFlag_ADDITIVE: \
+            drawPolygonMacro(PixelNoFiltSetAdditive); \
+            break; \
+        case BlendFlag_SUBTRACT: \
+            drawPolygonMacro(PixelNoFiltSetSubtract); \
+            break; \
+        case BlendFlag_MATCH_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchEqual); \
+            break; \
+        case BlendFlag_MATCH_NOT_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchNotEqual); \
+            break; \
+        case BlendFlag_FILTER: \
+            drawPolygonMacro(PixelNoFiltSetFilter); \
+            break; \
     }
 
-    int*     lastColor = colors;
-    Vector2* lastPosition = positions;
-    Vector2* lastUV = uvs;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            DrawPolygonBlendUVScanLine(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[1].X, lastPosition[1].Y);
-            lastPosition++;
-            lastColor++;
-            lastUV++;
-        }
+#define POLYGON_BLENDFLAGS_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
+    switch (blendFlag) { \
+        case BlendFlag_OPAQUE: \
+            drawPolygonMacro(PixelNoFiltSetOpaque, dpR, dpW); \
+            break; \
+        case BlendFlag_TRANSPARENT: \
+            drawPolygonMacro(PixelNoFiltSetTransparent, dpR, dpW); \
+            break; \
+        case BlendFlag_ADDITIVE: \
+            drawPolygonMacro(PixelNoFiltSetAdditive, dpR, dpW); \
+            break; \
+        case BlendFlag_SUBTRACT: \
+            drawPolygonMacro(PixelNoFiltSetSubtract, dpR, dpW); \
+            break; \
+        case BlendFlag_MATCH_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchEqual, dpR, dpW); \
+            break; \
+        case BlendFlag_MATCH_NOT_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, dpR, dpW); \
+            break; \
+        case BlendFlag_FILTER: \
+            drawPolygonMacro(PixelNoFiltSetFilter, dpR, dpW); \
+            break; \
     }
 
-    DrawPolygonBlendUVScanLine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, positions[0].X, positions[0].Y);
+#define POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
+    switch (blendFlag) { \
+        case BlendFlag_OPAQUE: \
+            drawPolygonMacro(PixelNoFiltSetOpaque, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_TRANSPARENT: \
+            drawPolygonMacro(PixelNoFiltSetTransparent, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_ADDITIVE: \
+            drawPolygonMacro(PixelNoFiltSetAdditive, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_SUBTRACT: \
+            drawPolygonMacro(PixelNoFiltSetSubtract, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_MATCH_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchEqual, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_MATCH_NOT_EQUAL: \
+            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro, dpR, dpW); \
+            break; \
+        case BlendFlag_FILTER: \
+            drawPolygonMacro(PixelNoFiltSetFilter, placePixelMacro, dpR, dpW); \
+            break; \
+    }
 
-    Sint32 col, colR, colG, colB, colU, colV, dxR, dxG, dxB, dxU, dxV, contLen;
-
-    #define DRAW_POLYGONBLENDUV(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
+#define POLYGON_SCANLINE_DEPTH(drawPolygonMacro) \
+    if (Graphics::UsePalettes && texture->Paletted) { \
+        if (UseDepthBuffer) { \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_PAL, DEPTH_READ_U32, DEPTH_WRITE_U32); \
         } \
-        colR = contour.MinR; \
-        colG = contour.MinG; \
-        colB = contour.MinB; \
-        colU = contour.MinU; \
-        colV = contour.MinV; \
-        dxR = (contour.MaxR - colR) / contLen; \
-        dxG = (contour.MaxG - colG) / contLen; \
-        dxB = (contour.MaxB - colB) / contLen; \
-        dxU = (contour.MaxU - colU) / contLen; \
-        dxV = (contour.MaxV - colV) / contLen; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
-            colR += dxR; \
-            colG += dxG; \
-            colB += dxB; \
+        else { \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_PAL, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
         } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
-        case 0:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetOpaque);
-            break;
-        case 1:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetTransparent);
-            break;
-        case 2:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetAdditive);
-            break;
-        case 3:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetSubtract);
-            break;
-        case 4:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchEqual);
-            break;
-        case 5:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetMatchNotEqual);
-            break;
-        case 6:
-            DRAW_POLYGONBLENDUV(PixelNoFiltSetFilter);
-            break;
-    }
-
-    #undef DRAW_POLYGONBLENDUV
-}
-void DrawPolygonBlendScanLine(int color1, int color2, int x1, int y1, int x2, int y2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    int cStart = color1;
-    int cEnd   = color2;
-    if (yStart == yEnd)
-        return;
-
-    // swap
-    if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-        cStart = color2;
-        cEnd   = color1;
-    }
-
-    int minX, minY, maxX, maxY;
-    GET_CLIP_BOUNDS(minX, minY, maxX, maxY);
-
-    int yEndBound = yEnd + 1;
-    if (yEndBound < minY || yStart >= maxY)
-        return;
-
-    if (yEndBound > maxY)
-        yEndBound = maxY;
-
-    int colorBegRED = (cStart & 0xFF0000);
-    int colorEndRED = (cEnd & 0xFF0000);
-    int colorBegGREEN = (cStart & 0xFF00) << 8;
-    int colorEndGREEN = (cEnd & 0xFF00) << 8;
-    int colorBegBLUE = (cStart & 0xFF) << 16;
-    int colorEndBLUE = (cEnd & 0xFF) << 16;
-
-    int linePointSubpxX = xStart << 16;
-    int yDiff = (yEnd - yStart);
-    int dx = ((xEnd - xStart) << 16) / yDiff;
-    int dxRED = 0, dxGREEN = 0, dxBLUE = 0;
-
-    if (colorBegRED != colorEndRED)
-        dxRED = (colorEndRED - colorBegRED) / yDiff;
-    if (colorBegGREEN != colorEndGREEN)
-        dxGREEN = (colorEndGREEN - colorBegGREEN) / yDiff;
-    if (colorBegBLUE != colorEndBLUE)
-        dxBLUE = (colorEndBLUE - colorBegBLUE) / yDiff;
-
-    if (yStart < 0) {
-        linePointSubpxX -= yStart * dx;
-        colorBegRED -= yStart * dxRED;
-        colorBegGREEN -= yStart * dxGREEN;
-        colorBegBLUE -= yStart * dxBLUE;
-        yStart = 0;
-    }
-
-    Contour* contour = &ContourField[yStart];
-    if (yStart < yEndBound) {
-        int lineHeight = yEndBound - yStart;
-        while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
-
-            if (linePointX <= minX) {
-                contour->MinX = minX;
-                contour->MinR = colorBegRED;
-                contour->MinG = colorBegGREEN;
-                contour->MinB = colorBegBLUE;
-            }
-            else if (linePointX >= maxX) {
-                contour->MaxX = maxX;
-                contour->MaxR = colorBegRED;
-                contour->MaxG = colorBegGREEN;
-                contour->MaxB = colorBegBLUE;
-            }
-            else {
-                if (linePointX < contour->MinX) {
-                    contour->MinX = linePointX;
-                    contour->MinR = colorBegRED;
-                    contour->MinG = colorBegGREEN;
-                    contour->MinB = colorBegBLUE;
-                }
-    			if (linePointX > contour->MaxX) {
-                    contour->MaxX = linePointX;
-                    contour->MaxR = colorBegRED;
-                    contour->MaxG = colorBegGREEN;
-                    contour->MaxB = colorBegBLUE;
-                }
-            }
-
-            linePointSubpxX += dx;
-            colorBegRED += dxRED;
-            colorBegGREEN += dxGREEN;
-            colorBegBLUE += dxBLUE;
-            contour++;
-    	}
-    }
-}
-void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector2* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    int scanLineCount = dst_y2 - dst_y1;
-    Contour* contourPtr = &ContourField[dst_y1];
-    while (scanLineCount--) {
-        contourPtr->MinX = INT_MAX;
-        contourPtr->MaxX = INT_MIN;
-        contourPtr++;
-    }
-
-    int* lastColor = colors;
-    Vector2* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            DrawPolygonBlendScanLine(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
-            lastVector++;
-            lastColor++;
-        }
-    }
-
-    DrawPolygonBlendScanLine(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
-
-    Sint32 col, colR, colG, colB, dxR, dxG, dxB, contLen;
-
-    #define DRAW_POLYGONBLEND(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
+    } else { \
+        if (UseDepthBuffer) { \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DEPTH_READ_U32, DEPTH_WRITE_U32); \
+        } else {  \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
         } \
-        colR = contour.MinR; \
-        colG = contour.MinG; \
-        colB = contour.MinB; \
-        dxR = (contour.MaxR - colR) / contLen; \
-        dxG = (contour.MaxG - colG) / contLen; \
-        dxB = (contour.MaxB - colB) / contLen; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
-            colR += dxR; \
-            colG += dxG; \
-            colB += dxB; \
-        } \
-        dst_strideY += dstStride; \
     }
 
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
-        case 0:
-            DRAW_POLYGONBLEND(PixelNoFiltSetOpaque);
-            break;
-        case 1:
-            DRAW_POLYGONBLEND(PixelNoFiltSetTransparent);
-            break;
-        case 2:
-            DRAW_POLYGONBLEND(PixelNoFiltSetAdditive);
-            break;
-        case 3:
-            DRAW_POLYGONBLEND(PixelNoFiltSetSubtract);
-            break;
-        case 4:
-            DRAW_POLYGONBLEND(PixelNoFiltSetMatchEqual);
-            break;
-        case 5:
-            DRAW_POLYGONBLEND(PixelNoFiltSetMatchNotEqual);
-            break;
-        case 6:
-            DRAW_POLYGONBLEND(PixelNoFiltSetFilter);
-            break;
-    }
+#define SCANLINE_INIT_Z() \
+    contZ = contour.MinZ; \
+    dxZ = (contour.MaxZ - contZ) / contLen
+#define SCANLINE_INIT_RGB() \
+    contR = contour.MinR; \
+    contG = contour.MinG; \
+    contB = contour.MinB; \
+    dxR = (contour.MaxR - contR) / contLen; \
+    dxG = (contour.MaxG - contG) / contLen; \
+    dxB = (contour.MaxB - contB) / contLen
+#define SCANLINE_INIT_UV() \
+    contU = contour.MinU; \
+    contV = contour.MinV; \
+    dxU = (contour.MaxU - contU) / contLen; \
+    dxV = (contour.MaxV - contV) / contLen
 
-    #undef DRAW_POLYGONBLEND
-}
-void DrawPolygonScanLine(int x1, int y1, int x2, int y2) {
-    int xStart = x1 >> 16;
-    int xEnd   = x2 >> 16;
-    int yStart = y1 >> 16;
-    int yEnd   = y2 >> 16;
-    if (yStart == yEnd)
-        return;
+#define SCANLINE_STEP_Z() contZ += dxZ
+#define SCANLINE_STEP_RGB() \
+    contR += dxR; \
+    contG += dxG; \
+    contB += dxB
+#define SCANLINE_STEP_UV() \
+    contU += dxU; \
+    contV += dxV
 
-    // swap
-    if (yStart > yEnd) {
-        xStart = x2 >> 16;
-        xEnd   = x1 >> 16;
-        yStart = y2 >> 16;
-        yEnd   = y1 >> 16;
-    }
+#define SCANLINE_STEP_Z_BY(diff) contZ += dxZ * diff
+#define SCANLINE_STEP_RGB_BY(diff) \
+    // contR += dxR * diff; \
+    // contG += dxG * diff; \
+    // contB += dxB * diff
+#define SCANLINE_STEP_UV_BY(diff) \
+    contU += dxU * diff; \
+    contV += dxV * diff
 
-    int minX, minY, maxX, maxY;
-    GET_CLIP_BOUNDS(minX, minY, maxX, maxY);
+#define SCANLINE_GET_MAPZ() \
+    float mapZ = 1.0f / contZ; \
+    Uint32 iz = mapZ * 0xFFFF
+#define SCANLINE_GET_RGB() \
+    Sint32 colR = contR; \
+    Sint32 colG = contG; \
+    Sint32 colB = contB
+#define SCANLINE_GET_RGB_PERSP() \
+    Sint32 colR = contR * mapZ; \
+    Sint32 colG = contG * mapZ; \
+    Sint32 colB = contB * mapZ
+#define SCANLINE_GET_MAPUV() \
+    float mapU = contU; \
+    float mapV = contV
+#define SCANLINE_GET_TEXUV() \
+    int texU = ((int)(mapU * texture->Width) >> 16) % texture->Width; \
+    int texV = ((int)(mapV * texture->Height) >> 16) % texture->Height
+#define SCANLINE_GET_COLOR() \
+    CLAMP_VAL(colR, 0x00, 0xFF0000); \
+    CLAMP_VAL(colG, 0x00, 0xFF0000); \
+    CLAMP_VAL(colB, 0x00, 0xFF0000); \
+    col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
 
-    int yEndBound = yEnd + 1;
-    if (yEndBound < minY || yStart >= maxY)
-        return;
+Contour *ContourField = SoftwareRenderer::ContourBuffer;
 
-    if (yEndBound > maxY)
-        yEndBound = maxY;
-
-    int linePointSubpxX = xStart << 16;
-    int dx = ((xEnd - xStart) << 16) / (yEnd - yStart);
-
-    if (yStart < 0) {
-        linePointSubpxX -= yStart * dx;
-        yStart = 0;
-    }
-
-    Contour* contour = &ContourField[yStart];
-    if (yStart < yEndBound) {
-        int lineHeight = yEndBound - yStart;
-        while (lineHeight--) {
-            int linePointX = linePointSubpxX >> 16;
-
-            if (linePointX <= minX)
-                contour->MinX = minX;
-            else if (linePointX >= maxX)
-                contour->MaxX = maxX;
-            else {
-                if (linePointX < contour->MinX)
-                    contour->MinX = linePointX;
-    			if (linePointX > contour->MaxX)
-                    contour->MaxX = linePointX;
-            }
-
-            linePointSubpxX += dx;
-            contour++;
-    	}
-    }
-}
+// Draws a polygon
 void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int blendFlag) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
@@ -1237,23 +810,17 @@ void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int b
     if (dst_y1 >= dst_y2)
         return;
 
-    int scanLineCount = dst_y2 - dst_y1;
-    Contour* contourPtr = &ContourField[dst_y1];
-    while (scanLineCount--) {
-        contourPtr->MinX = INT_MAX;
-        contourPtr->MaxX = INT_MIN;
-        contourPtr++;
-    }
+    Rasterizer::Prepare(dst_y1, dst_y2);
 
     Vector2* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            DrawPolygonScanLine(lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
+            Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
             lastVector++;
         }
     }
-    DrawPolygonScanLine(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
+    Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
 
     #define DRAW_POLYGON(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
@@ -1271,7 +838,7 @@ void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int b
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
     switch (blendFlag) {
-        case 0:
+        case BlendFlag_OPAQUE:
             for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
                 Contour contour = ContourField[dst_y];
                 if (contour.MaxX < contour.MinX) {
@@ -1283,63 +850,1137 @@ void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int b
                 dst_strideY += dstStride;
             }
             break;
-        case 1:
+        case BlendFlag_TRANSPARENT:
             DRAW_POLYGON(PixelNoFiltSetTransparent);
             break;
-        case 2:
+        case BlendFlag_ADDITIVE:
             DRAW_POLYGON(PixelNoFiltSetAdditive);
             break;
-        case 3:
+        case BlendFlag_SUBTRACT:
             DRAW_POLYGON(PixelNoFiltSetSubtract);
             break;
-        case 4:
+        case BlendFlag_MATCH_EQUAL:
             DRAW_POLYGON(PixelNoFiltSetMatchEqual);
             break;
-        case 5:
+        case BlendFlag_MATCH_NOT_EQUAL:
             DRAW_POLYGON(PixelNoFiltSetMatchNotEqual);
             break;
-        case 6:
+        case BlendFlag_FILTER:
             DRAW_POLYGON(PixelNoFiltSetFilter);
             break;
     }
 
     #undef DRAW_POLYGON
 }
+// Draws a blended polygon
+void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector2* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    if (dst_y1 < 0)
+        dst_y1 = 0;
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    int* lastColor = colors;
+    Vector2* lastVector = positions;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::Scanline(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
+            lastVector++;
+            lastColor++;
+        }
+    }
+
+    Rasterizer::Scanline(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
+
+    Sint32 col, contLen;
+    float contR, contG, contB, dxR, dxG, dxB;
+
+    #define DRAW_POLYGONBLEND(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_RGB(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_RGB_BY(diff); \
+        } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_RGB(); \
+            SCANLINE_GET_COLOR(); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_STEP_RGB(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND);
+
+    #undef DRAW_POLYGONBLEND
+}
+// Draws a polygon with lighting
+void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    if (dst_y1 < 0)
+        dst_y1 = 0;
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    Vector3* lastVector = positions;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+        }
+    }
+
+    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, contLen;
+    float contZ, dxZ;
+
+    #define DRAW_POLYGONSHADED(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        if (contour.MapLeft < contour.MinX) { \
+            SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
+        } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            col = LightPixelFunc(color, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_STEP_Z(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED);
+
+    #undef DRAW_POLYGONSHADED
+}
+// Draws a blended polygon with lighting
+void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    if (dst_y1 < 0)
+        dst_y1 = 0;
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    int* lastColor = colors;
+    Vector3* lastVector = positions;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+            lastColor++;
+        }
+    }
+
+    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, contLen;
+    float contZ, contR, contG, contB;
+    float dxZ, dxR, dxG, dxB;
+
+    #define DRAW_POLYGONBLENDSHADED(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_RGB(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_RGB_BY(diff); \
+        } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            SCANLINE_GET_RGB(); \
+            SCANLINE_GET_COLOR(); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_STEP_Z(); \
+            SCANLINE_STEP_RGB(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED);
+
+    #undef DRAW_POLYGONBLENDSHADED
+}
+// Draws an affine texture mapped polygon
+void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    else {
+        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        if (dst_y1 < 0)
+            dst_y1 = 0;
+    }
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    Vector3* lastVector = positions;
+    Vector2* lastUV = uvs;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineUVAffine(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+            lastUV++;
+        }
+    }
+
+    Rasterizer::ScanlineUVAffine(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, texCol, contLen;
+    float contZ, contU, contV;
+    float dxZ, dxU, dxV;
+
+    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = ColorTint(color, texCol); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = ColorTint(color, index[texCol]); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_POLYGONAFFINE(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_UV(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_UV_BY(diff); \
+        } \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            if (dpR(iz)) { \
+                SCANLINE_GET_MAPUV(); \
+                SCANLINE_GET_TEXUV(); \
+                placePixelMacro(pixelFunction, dpW); \
+            } \
+            SCANLINE_STEP_Z(); \
+            SCANLINE_STEP_UV(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    Uint32* index;
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONAFFINE);
+
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_POLYGONAFFINE
+}
+// Draws an affine texture mapped polygon with blending
+void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    else {
+        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        if (dst_y1 < 0)
+            dst_y1 = 0;
+    }
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    int*     lastColor = colors;
+    Vector3* lastPosition = positions;
+    Vector2* lastUV = uvs;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineUVAffine(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
+            lastPosition++;
+            lastColor++;
+            lastUV++;
+        }
+    }
+
+    Rasterizer::ScanlineUVAffine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, texCol, contLen;
+    float contZ, contU, contV, contR, contG, contB;
+    float dxZ, dxU, dxV, dxR, dxG, dxB;
+
+    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, texCol); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, index[texCol]); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_POLYGONBLENDAFFINE(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_UV(); \
+        SCANLINE_INIT_RGB(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_UV_BY(diff); \
+            SCANLINE_STEP_RGB_BY(diff); \
+        } \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            if (dpR(iz)) { \
+                SCANLINE_GET_RGB(); \
+                SCANLINE_GET_MAPUV(); \
+                SCANLINE_GET_TEXUV(); \
+                placePixelMacro(pixelFunction, dpW); \
+            } \
+            SCANLINE_STEP_Z(); \
+            SCANLINE_STEP_UV(); \
+            SCANLINE_STEP_RGB(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    Uint32* index;
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDAFFINE);
+
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_POLYGONBLENDAFFINE
+    #undef BLENDFLAGS
+}
+// Draws a perspective-correct texture mapped polygon
+#ifdef SCANLINE_DIVISION
+#define PERSP_MAPPER_SUBDIVIDE(width, placePixelMacro, pixelFunction, dpR, dpW) \
+    contZ += dxZ * width; \
+    contU += dxU * width; \
+    contV += dxV * width; \
+    endZ = 1.0f / contZ; \
+    endU = contU * endZ; \
+    endV = contV * endZ; \
+    stepZ = (endZ - startZ) * invContSize; \
+    stepU = (endU - startU) * invContSize; \
+    stepV = (endV - startV) * invContSize; \
+    mapZ = startZ; \
+    currU = startU; \
+    currV = startV; \
+    for (int i = 0; i < width; i++) { \
+        Uint32 iz = mapZ * 0xFFFF; \
+        if (dpR(iz)) { \
+            DRAW_PERSP_GET(currU, currV); \
+            placePixelMacro(pixelFunction, dpW); \
+        } \
+        DRAW_PERSP_STEP(); \
+        mapZ += stepZ; \
+        currU += stepU; \
+        currV += stepV; \
+        dst_x++; \
+    }
+#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) { \
+    int dst_x = contour.MinX; \
+    int contWidth = contour.MaxX - contour.MinX; \
+    int contSize = 16; \
+    float invContSize = 1.0f / contSize; \
+    float startZ = 1.0f / contZ; \
+    float startU = contU * startZ; \
+    float startV = contV * startZ; \
+    float endZ, endU, endV; \
+    float stepZ, stepU, stepV; \
+    float mapZ, currU, currV; \
+    while (contWidth >= contSize) { \
+        PERSP_MAPPER_SUBDIVIDE(contSize, placePixelMacro, pixelFunction, dpR, dpW); \
+        startU = endU; \
+        startV = endV; \
+        startZ = endZ; \
+        contWidth -= contSize; \
+    } \
+    if (contWidth > 0) { \
+        if (contWidth > 1) { \
+            PERSP_MAPPER_SUBDIVIDE(contWidth, placePixelMacro, pixelFunction, dpR, dpW); \
+        } \
+        else { \
+            Uint32 iz = startZ * 0xFFFF; \
+            if (dpR(iz)) { \
+                DRAW_PERSP_GET(startU, startV); \
+                placePixelMacro(pixelFunction, dpW); \
+            } \
+        } \
+    } \
+}
+#else
+#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) \
+    for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+        SCANLINE_GET_MAPZ(); \
+        if (dpR(iz)) { \
+            DRAW_PERSP_GET(contU * mapZ, contV * mapZ); \
+            placePixelMacro(pixelFunction, dpW); \
+        } \
+        SCANLINE_STEP_Z(); \
+        SCANLINE_STEP_UV(); \
+        DRAW_PERSP_STEP(); \
+    }
+#endif
+void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    else {
+        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        if (dst_y1 < 0)
+            dst_y1 = 0;
+    }
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    Vector3* lastVector = positions;
+    Vector2* lastUV = uvs;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineUV(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+            lastUV++;
+        }
+    }
+
+    Rasterizer::ScanlineUV(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, texCol, contLen;
+    float contZ, contU, contV;
+    float dxZ, dxU, dxV;
+
+    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = ColorTint(color, texCol); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = ColorTint(color, index[texCol]); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_PERSP_GET(u, v) \
+        float mapU = u; \
+        float mapV = v; \
+        SCANLINE_GET_TEXUV()
+
+    #define DRAW_PERSP_STEP()
+
+    #define DRAW_POLYGONPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MapRight - contour.MapLeft; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_UV(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_UV_BY(diff); \
+        } \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
+        dst_strideY += dstStride; \
+    }
+
+    Uint32* index;
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONPERSP);
+
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PERSP_GET
+    #undef DRAW_PERSP_STEP
+    #undef DRAW_POLYGONPERSP
+}
+// Draws a perspective-correct texture mapped polygon with blending
+void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+    Uint32* srcPx = (Uint32*)texture->Pixels;
+    Uint32  srcStride = texture->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    else {
+        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+        if (dst_y1 < 0)
+            dst_y1 = 0;
+    }
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    int*     lastColor = colors;
+    Vector3* lastPosition = positions;
+    Vector2* lastUV = uvs;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineUV(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
+            lastPosition++;
+            lastColor++;
+            lastUV++;
+        }
+    }
+
+    Rasterizer::ScanlineUV(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, texCol, contLen;
+    float contZ, contU, contV, contR, contG, contB;
+    float dxZ, dxU, dxV, dxR, dxG, dxB;
+
+    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, texCol); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, index[texCol]); \
+            col = LightPixelFunc(col, mapZ); \
+            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PERSP_GET(u, v) \
+        float mapU = u; \
+        float mapV = v; \
+        SCANLINE_GET_RGB_PERSP(); \
+        SCANLINE_GET_TEXUV()
+
+    #define DRAW_PERSP_STEP() SCANLINE_STEP_RGB()
+
+    #define DRAW_POLYGONBLENDPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MapRight - contour.MapLeft; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_RGB(); \
+        SCANLINE_INIT_UV(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_RGB_BY(diff); \
+            SCANLINE_STEP_UV_BY(diff); \
+        } \
+        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
+        dst_strideY += dstStride; \
+    }
+
+    Uint32* index;
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDPERSP);
+
+    #undef DRAW_PLACEPIXEL
+    #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PERSP_GET
+    #undef DRAW_PERSP_STEP
+    #undef DRAW_POLYGONBLENDPERSP
+}
+// Draws a polygon with depth testing
+void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    if (dst_y1 < 0)
+        dst_y1 = 0;
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    Vector3* lastVector = positions;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+        }
+    }
+
+    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, contLen;
+    float contZ, dxZ;
+
+    #define DRAW_POLYGONDEPTH(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        if (contour.MapLeft < contour.MinX) { \
+            SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
+        } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            if (DEPTH_READ_U32(iz)) { \
+                col = LightPixelFunc(color, mapZ); \
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+                DEPTH_WRITE_U32(iz); \
+            } \
+            SCANLINE_STEP_Z(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH);
+
+    #undef DRAW_POLYGONDEPTH
+}
+// Draws a blended polygon with depth testing
+void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    int minVal = INT_MAX;
+    int maxVal = INT_MIN;
+
+    if (count == 0)
+        return;
+
+    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+
+    Vector3* tempVertex = positions;
+    int      tempCount = count;
+    int      tempY;
+    while (tempCount--) {
+        tempY = tempVertex->Y >> 16;
+        if (minVal > tempY)
+            minVal = tempY;
+        if (maxVal < tempY)
+            maxVal = tempY;
+        tempVertex++;
+    }
+
+    int dst_y1 = minVal;
+    int dst_y2 = maxVal;
+
+    if (Graphics::CurrentClip.Enabled) {
+        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
+            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+        if (dst_y1 < Graphics::CurrentClip.Y)
+            dst_y1 = Graphics::CurrentClip.Y;
+    }
+    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
+        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    if (dst_y1 < 0)
+        dst_y1 = 0;
+
+    if (dst_y1 >= dst_y2)
+        return;
+
+    Rasterizer::Prepare(dst_y1, dst_y2);
+
+    int* lastColor = colors;
+    Vector3* lastVector = positions;
+    if (count > 1) {
+        int countRem = count - 1;
+        while (countRem--) {
+            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            lastVector++;
+            lastColor++;
+        }
+    }
+
+    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+
+    Sint32 col, contLen;
+    float contZ, contR, contG, contB;
+    float dxZ, dxR, dxG, dxB;
+
+    #define DRAW_POLYGONBLENDDEPTH(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
+        SCANLINE_INIT_Z(); \
+        SCANLINE_INIT_RGB(); \
+        if (contour.MapLeft < contour.MinX) { \
+            int diff = contour.MinX - contour.MapLeft; \
+            SCANLINE_STEP_Z_BY(diff); \
+            SCANLINE_STEP_RGB_BY(diff); \
+        } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            SCANLINE_GET_MAPZ(); \
+            if (DEPTH_READ_U32(iz)) { \
+                SCANLINE_GET_RGB(); \
+                SCANLINE_GET_COLOR(); \
+                col = LightPixelFunc(col, mapZ); \
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+                DEPTH_WRITE_U32(iz); \
+            } \
+            SCANLINE_STEP_Z(); \
+            SCANLINE_STEP_RGB(); \
+        } \
+        dst_strideY += dstStride; \
+    }
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int dst_strideY = dst_y1 * dstStride;
+
+    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH);
+
+    #undef DRAW_POLYGONBLENDDEPTH
+}
+
+// TODO: Material support
+static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int normalY) {
+    int col_r = GET_R(vertex->Color);
+    int col_g = GET_G(vertex->Color);
+    int col_b = GET_B(vertex->Color);
+    int specularR = 0, specularG = 0, specularB = 0;
+
+    int ambientNormalY = normalY >> 10;
+    int reweightedNormal = (normalY >> 2) * (abs(normalY) >> 2);
+
+    // r
+    col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
+    specularR = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularR;
+    CLAMP_VAL(specularR, 0x00, 0xFF);
+    specularR += col_r;
+    CLAMP_VAL(specularR, 0x00, 0xFF);
+    col_r = specularR;
+
+    // g
+    col_g = (col_g * (ambientNormalY + arrayBuffer->LightingAmbientG)) >> arrayBuffer->LightingDiffuseG;
+    specularG = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularG;
+    CLAMP_VAL(specularG, 0x00, 0xFF);
+    specularG += col_g;
+    CLAMP_VAL(specularG, 0x00, 0xFF);
+    col_g = specularG;
+
+    // b
+    col_b = (col_b * (ambientNormalY + arrayBuffer->LightingAmbientB)) >> arrayBuffer->LightingDiffuseB;
+    specularB = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularB;
+    CLAMP_VAL(specularB, 0x00, 0xFF);
+    specularB += col_b;
+    CLAMP_VAL(specularB, 0x00, 0xFF);
+    col_b = specularB;
+
+    return col_r << 16 | col_g << 8 | col_b;
+}
+
+static int SortPolygonFaces(const void *a, const void *b) {
+    const FaceInfo* faceA = (const FaceInfo *)a;
+    const FaceInfo* faceB = (const FaceInfo *)b;
+    return faceB->Depth - faceA->Depth;
+}
+
+static void BuildFrustumPlanes(ArrayBuffer* arrayBuffer, Frustum* frustum) {
+    ClipPolygonsByFrustum = arrayBuffer->ClipPolygons;
+    if (!ClipPolygonsByFrustum)
+        return;
+
+    // Near
+    frustum[0].Plane.Z = arrayBuffer->NearClippingPlane * 0x10000;
+    frustum[0].Normal.Z = 0x10000;
+
+    // Far
+    frustum[1].Plane.Z = arrayBuffer->FarClippingPlane * 0x10000;
+    frustum[1].Normal.Z = -0x10000;
+
+    NumFrustumPlanes = 2;
+}
 
 // Drawing 3D
 ArrayBuffer ArrayBuffers[MAX_ARRAY_BUFFERS];
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices) {
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->VertexCapacity) {
-        arrayBuffer->VertexCapacity = maxVertices;
-
-        arrayBuffer->VertexBuffer = (VertexAttribute*)Memory::Calloc(maxVertices, sizeof(VertexAttribute));
-        arrayBuffer->FaceSizeBuffer = (Uint8*)Memory::Calloc(maxVertices, sizeof(Uint8));
-        arrayBuffer->FaceInfoBuffer = (FaceInfo*)Memory::Calloc((maxVertices >> 1), sizeof(FaceInfo));
-
-        arrayBuffer->PerspectiveBitshiftX = 8;
-        arrayBuffer->PerspectiveBitshiftY = 8;
-    }
-    else {
-        arrayBuffer->VertexCapacity = maxVertices;
-
-        arrayBuffer->VertexBuffer = (VertexAttribute*)Memory::Realloc(arrayBuffer->VertexBuffer, maxVertices * sizeof(VertexAttribute));
-        arrayBuffer->FaceSizeBuffer = (Uint8*)Memory::Realloc(arrayBuffer->FaceSizeBuffer, maxVertices * sizeof(Uint8));
-        arrayBuffer->FaceInfoBuffer = (FaceInfo*)Memory::Realloc(arrayBuffer->FaceInfoBuffer, (maxVertices >> 1) * sizeof(FaceInfo));
-
-        arrayBuffer->PerspectiveBitshiftX = 8;
-        arrayBuffer->PerspectiveBitshiftY = 8;
-    }
+    VertexBuffer::Init(&arrayBuffer->Buffer, maxVertices);
 
     arrayBuffer->Initialized = true;
+    arrayBuffer->ClipPolygons = true;
+
+    SoftwareRenderer::ArrayBuffer_InitMatrices(arrayBufferIndex);
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex) {
+    Matrix4x4 projMat, viewMat;
+    SoftwareRenderer::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
+    Matrix4x4::Identity(&viewMat);
+
+    SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(arrayBufferIndex, &projMat);
+    SoftwareRenderer::ArrayBuffer_SetViewMatrix(arrayBufferIndex, &viewMat);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetAmbientLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
         return;
 
@@ -1348,9 +1989,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetAmbientLighting(Uint32 a
     arrayBuffer->LightingAmbientB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetDiffuseLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
         return;
 
@@ -1359,9 +2000,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetDiffuseLighting(Uint32 a
     arrayBuffer->LightingDiffuseB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetSpecularLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
         return;
 
@@ -1369,38 +2010,80 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetSpecularLighting(Uint32 
     arrayBuffer->LightingSpecularG = g;
     arrayBuffer->LightingSpecularB = b;
 }
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetFogDensity(Uint32 arrayBufferIndex, float density) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    arrayBuffer->FogDensity = density;
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetFogColor(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    arrayBuffer->FogColorR = r;
+    arrayBuffer->FogColorG = g;
+    arrayBuffer->FogColorB = b;
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetClipPolygons(Uint32 arrayBufferIndex, bool clipPolygons) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    arrayBuffer->ClipPolygons = clipPolygons;
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Bind(Uint32 arrayBufferIndex) {
+    CurrentArrayBuffer = arrayBufferIndex;
+    ArrayBuffer_DrawBegin(arrayBufferIndex);
+}
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawBegin(Uint32 arrayBufferIndex) {
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (arrayBuffer->Initialized) {
+        VertexBuffer::Clear(&arrayBuffer->Buffer);
+        BuildFrustumPlanes(arrayBuffer, ViewFrustum);
+    }
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
         return;
 
-    arrayBuffer->VertexCount = 0;
-    arrayBuffer->FaceCount = 0;
-
-    // arrayBuffer->LightingAmbientR = 160;
-    // arrayBuffer->LightingAmbientG = 160;
-    // arrayBuffer->LightingAmbientB = 160;
-    // arrayBuffer->LightingDiffuseR = 8;
-    // arrayBuffer->LightingDiffuseG = 8;
-    // arrayBuffer->LightingDiffuseB = 8;
-    // arrayBuffer->LightingSpecularR = 14;
-    // arrayBuffer->LightingSpecularG = 14;
-    // arrayBuffer->LightingSpecularB = 14;
+    arrayBuffer->ProjectionMatrix  = *projMat;
+    arrayBuffer->FarClippingPlane  = projMat->Values[14] / (projMat->Values[10] - 1.0f);
+    arrayBuffer->NearClippingPlane = projMat->Values[14] / (projMat->Values[10] + 1.0f);
 }
-PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode) {
-    if (arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
-    int facesRemaining;
-    Uint8* faceSizePtr;
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    arrayBuffer->ViewMatrix = *viewMat;
+}
+PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    int vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
     FaceInfo* faceInfoPtr;
     ArrayBuffer* arrayBuffer;
-    Uint32 bitshiftX, bitshiftY;
+    VertexBuffer* vertexBuffer;
     VertexAttribute* vertexAttribsPtr;
-    FaceInfo temp, *faceInfoPtrA, *faceInfoPtrB, *faceInfoPtrTop;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
     int cx = (int)std::floor(currentView->X);
@@ -1412,651 +2095,1384 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     x -= cx;
     y -= cy;
 
-    int blendFlag = BlendFlag;
-    int opacity = Alpha;
+    int opacity;
+    int blendFlag;
 
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+#define SET_BLENDFLAG_AND_OPACITY(face) \
+    if (!Graphics::TextureBlend) { \
+        blendFlag = BlendFlag_OPAQUE; \
+        opacity = 0xFF; \
+    } else { \
+        blendFlag = face->BlendFlag; \
+        opacity = face->Opacity; \
+        if (blendFlag == BlendFlag_TRANSPARENT && opacity == 0xFF) \
+            blendFlag = BlendFlag_OPAQUE; \
+    } \
+    if (blendFlag != BlendFlag_OPAQUE) \
+        UseDepthBuffer = false; \
+    else \
+        UseDepthBuffer = DepthTest
 
     arrayBuffer = &ArrayBuffers[arrayBufferIndex];
     if (!arrayBuffer->Initialized)
         return;
+    vertexBuffer = &arrayBuffer->Buffer;
 
-    vertexAttribsPtr = arrayBuffer->VertexBuffer; // R
-    faceInfoPtr = arrayBuffer->FaceInfoBuffer; // RW
-    faceSizePtr = arrayBuffer->FaceSizeBuffer; // R
-    bitshiftX = arrayBuffer->PerspectiveBitshiftX;
-    bitshiftY = arrayBuffer->PerspectiveBitshiftY;
+    SoftwareRenderer::SetDepthTest(drawMode & DrawMode_DEPTH_TEST);
+
+    if (drawMode & DrawMode_FOG) {
+        FogColor       = arrayBuffer->FogColorR << 16 | arrayBuffer->FogColorG << 8 | arrayBuffer->FogColorB;
+        FogDensity     = arrayBuffer->FogDensity;
+        LightPixelFunc = LightPixel;
+    }
+    else
+        LightPixelFunc = LightPixelNoOp;
+
+    vertexAttribsPtr = vertexBuffer->Vertices; // R
+    faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
+
+    bool doAffineMapping = drawMode & DrawMode_AFFINE;
+    bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
+    bool sortFaces = !DepthTest && vertexBuffer->FaceCount > 1;
+
+    if (Graphics::TextureBlend)
+        sortFaces = true;
 
     // Get the face depth and vertices' start index
     int verticesStartIndex = 0;
-    for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-        switch (*faceSizePtr) {
-            case 2:
-                // (50%, 50%)
-                // faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z >> 1;
-                // faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z >> 1;
-				faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z;
-				faceInfoPtr->Depth /= 2;
-                vertexAttribsPtr += 2;
-                break;
-            case 3:
-                // (25%, 25%, 50%)
-                // faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z >> 2;
-                // faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z >> 2;
-                // faceInfoPtr->Depth += vertexAttribsPtr[2].Position.Z >> 1;
-				faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[2].Position.Z;
-				faceInfoPtr->Depth /= 3;
-                vertexAttribsPtr += 3;
-                break;
-            case 4:
-                // (25%, 25%, 25%, 25%)
-                // faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z >> 2;
-                // faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z >> 2;
-                // faceInfoPtr->Depth += vertexAttribsPtr[2].Position.Z >> 2;
-                // faceInfoPtr->Depth += vertexAttribsPtr[3].Position.Z >> 2;
-				faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[1].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[2].Position.Z;
-				faceInfoPtr->Depth += vertexAttribsPtr[3].Position.Z;
-				faceInfoPtr->Depth /= 4;
-                vertexAttribsPtr += 4;
-                break;
-            default:
-                faceInfoPtr->Depth  = vertexAttribsPtr[0].Position.Z;
-                vertexAttribsPtr += *faceSizePtr;
-                break;
+    for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+        vertexCount = faceInfoPtr->NumVertices;
+
+        // Average the Z coordinates of the face
+        if (sortFaces) {
+            Sint64 depth = vertexAttribsPtr[0].Position.Z;
+            for (int i = 1; i < vertexCount; i++)
+                depth += vertexAttribsPtr[i].Position.Z;
+
+            faceInfoPtr->Depth = depth / vertexCount;
+            vertexAttribsPtr += vertexCount;
         }
 
         faceInfoPtr->VerticesStartIndex = verticesStartIndex;
-        verticesStartIndex += *faceSizePtr;
+        verticesStartIndex += vertexCount;
 
         faceInfoPtr++;
-        faceSizePtr++;
     }
 
     // Sort face infos by depth
-	if (arrayBuffer->FaceCount > 1) {
-		facesRemaining = arrayBuffer->FaceCount - 1;
-		faceInfoPtrTop = arrayBuffer->FaceInfoBuffer;
-		faceInfoPtrA = faceInfoPtrTop + 1;
-		while (facesRemaining--) {
-			temp = *faceInfoPtrA;
-			faceInfoPtrB = faceInfoPtrA - 1;
-			while (faceInfoPtrB >= faceInfoPtrTop && faceInfoPtrB->Depth < temp.Depth) {
-				faceInfoPtrB[1] = faceInfoPtrB[0];
-				faceInfoPtrB--;
-			}
-			faceInfoPtrB[1] = temp;
-			faceInfoPtrA++;
-		}
-	}
-
-    #define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b;
+    if (sortFaces)
+        qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), SortPolygonFaces);
 
     // sas
     VertexAttribute *vertex, *vertexFirst;
-    faceInfoPtr = arrayBuffer->FaceInfoBuffer;
-    faceSizePtr = arrayBuffer->FaceSizeBuffer;
+    faceInfoPtr = vertexBuffer->FaceInfoBuffer;
 
-    int widthHalfSubpx = (int)(currentView->Width / 2) << 16;
-    int heightHalfSubpx = (int)(currentView->Height / 2) << 16;
-    switch (drawMode & 7) {
+    Texture *texturePtr;
+
+    int widthSubpx = (int)(currentView->Width) << 16;
+    int heightSubpx = (int)(currentView->Height) << 16;
+    int widthHalfSubpx = widthSubpx >> 1;
+    int heightHalfSubpx = heightSubpx >> 1;
+
+#define PROJECT_X(pointX) ((pointX * currentView->Width * 0x10000) / vertexZ) - (cx << 16) + widthHalfSubpx
+#define PROJECT_Y(pointY) ((pointY * currentView->Height * 0x10000) / vertexZ) - (cy << 16) + heightHalfSubpx
+
+#define ORTHO_X(pointX) pointX - (cx << 16) + widthHalfSubpx
+#define ORTHO_Y(pointY) pointY - (cy << 16) + heightHalfSubpx
+
+    switch (drawMode & DrawMode_FillTypeMask) {
         // Lines, Solid Colored
-        case 0:
-            for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-                int vertexCountPerFaceMinus1 = *faceSizePtr - 1;
-                vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
+        case DrawMode_LINES:
+            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+                vertexCountPerFaceMinus1 = faceInfoPtr->NumVertices - 1;
+                vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
-                if (drawMode & 8) {
-                    widthHalfSubpx >>= 16;
-                    heightHalfSubpx >>= 16;
-                    #define FIX_X(x) (((x << bitshiftX) / vertexZ) - cx + widthHalfSubpx)
-                    #define FIX_Y(x) (((y << bitshiftY) / vertexZ) - cy + heightHalfSubpx)
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+                Alpha = opacity;
+                BlendFlag = blendFlag;
+
+                if (usePerspective) {
+                    #define LINE_X(pos) ((float)PROJECT_X(pos)) / 0x10000
+                    #define LINE_Y(pos) ((float)PROJECT_Y(pos)) / 0x10000
                     while (vertexCountPerFaceMinus1--) {
                         int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_line_solid_NEXT_FACE;
 
                         ColRGB = vertex->Color;
-                        SoftwareRenderer::StrokeLine(FIX_X(vertex[0].Position.X), FIX_Y(vertex[0].Position.Y), FIX_X(vertex[1].Position.X), FIX_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
-                    if (vertexZ < 0x100)
+                    if (vertexZ < 0x10000)
                         goto mrt_line_solid_NEXT_FACE;
                     ColRGB = vertex->Color;
-                    SoftwareRenderer::StrokeLine(FIX_X(vertex->Position.X), FIX_Y(vertex->Position.Y), FIX_X(vertexFirst->Position.X), FIX_Y(vertexFirst->Position.Y));
-                    #undef FIX_X
-                    #undef FIX_Y
+                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
                 }
                 else {
+                    #define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
+                    #define LINE_ORTHO_Y(pos) ((float)ORTHO_Y(pos)) / 0x10000
                     while (vertexCountPerFaceMinus1--) {
                         ColRGB = vertex->Color;
-                        SoftwareRenderer::StrokeLine(vertex[0].Position.X >> 8, vertex[0].Position.Y >> 8, vertex[1].Position.X >> 8, vertex[1].Position.Y >> 8);
+                        SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex[0].Position.X), LINE_ORTHO_Y(vertex[0].Position.Y), LINE_ORTHO_X(vertex[1].Position.X), LINE_ORTHO_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     ColRGB = vertex->Color;
-                    SoftwareRenderer::StrokeLine(vertex->Position.X >> 8, vertex->Position.Y >> 8, vertexFirst->Position.X >> 8, vertexFirst->Position.Y >> 8);
+                    SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex->Position.X), LINE_ORTHO_Y(vertex->Position.Y), LINE_ORTHO_X(vertexFirst->Position.X), LINE_ORTHO_Y(vertexFirst->Position.Y));
                 }
 
                 mrt_line_solid_NEXT_FACE:
-                faceSizePtr++;
                 faceInfoPtr++;
             }
             break;
         // Lines, Flat Shading
-        case 2:
+        case DrawMode_LINES_FLAT:
         // Lines, Smooth Shading
-        case 4:
-            for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-                int vertexCountPerFaceMinus1 = *faceSizePtr - 1;
-                vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
+        case DrawMode_LINES_SMOOTH:
+            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+                vertexCount = faceInfoPtr->NumVertices;
+                vertexCountPerFaceMinus1 = vertexCount - 1;
+                vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 int averageNormalY = vertex[0].Normal.Y;
-                switch (*faceSizePtr) {
-                    case 2:
-                        averageNormalY += vertex[1].Normal.Y;
-                        break;
-                    case 3:
-                        averageNormalY += vertex[1].Normal.Y + vertex[2].Normal.Y;
-                        break;
-                    case 4:
-                        averageNormalY += vertex[1].Normal.Y + vertex[2].Normal.Y + vertex[3].Normal.Y;
-                        break;
-                }
-                averageNormalY /= *faceSizePtr;
+                for (int i = 1; i < vertexCount; i++)
+                    averageNormalY += vertex[i].Normal.Y;
+                averageNormalY /= vertexCount;
 
-                int color = vertex->Color;
-                int col_r = (color >> 16) & 0xFF;
-                int col_g = (color >> 8) & 0xFF;
-                int col_b = (color) & 0xFF;
-                int specularR = 0, specularG = 0, specularB = 0;
+                ColRGB = CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8);
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+                Alpha = opacity;
+                BlendFlag = blendFlag;
 
-                int ambientNormalY = averageNormalY >> 10;
-                int reweightedNormal = (averageNormalY >> 2) * (abs(averageNormalY) >> 2);
-
-                // r
-                col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
-                specularR = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularR;
-                CLAMP_VAL(specularR, 0x00, 0xFF);
-                specularR += col_r;
-                CLAMP_VAL(specularR, 0x00, 0xFF);
-                col_r = specularR;
-
-                // g
-                col_g = (col_g * (ambientNormalY + arrayBuffer->LightingAmbientG)) >> arrayBuffer->LightingDiffuseG;
-                specularG = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularG;
-                CLAMP_VAL(specularG, 0x00, 0xFF);
-                specularG += col_g;
-                CLAMP_VAL(specularG, 0x00, 0xFF);
-                col_g = specularG;
-
-                // b
-                col_b = (col_b * (ambientNormalY + arrayBuffer->LightingAmbientB)) >> arrayBuffer->LightingDiffuseB;
-                specularB = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularB;
-                CLAMP_VAL(specularB, 0x00, 0xFF);
-                specularB += col_b;
-                CLAMP_VAL(specularB, 0x00, 0xFF);
-                col_b = specularB;
-
-                // color
-                color = col_r << 16 | col_g << 8 | col_b;
-
-                ColRGB = color;
-                if (drawMode & 8) {
-                    widthHalfSubpx >>= 16;
-                    heightHalfSubpx >>= 16;
-                    #define FIX_X(x) (((x << bitshiftX) / vertexZ) - cx + widthHalfSubpx)
-                    #define FIX_Y(x) (((y << bitshiftY) / vertexZ) - cy + heightHalfSubpx)
+                if (usePerspective) {
                     while (vertexCountPerFaceMinus1--) {
                         int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                        if (vertexZ < 0x10000)
                             goto mrt_line_smooth_NEXT_FACE;
 
-                        SoftwareRenderer::StrokeLine(FIX_X(vertex[0].Position.X), FIX_Y(vertex[0].Position.Y), FIX_X(vertex[1].Position.X), FIX_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
-                    if (vertexZ < 0x100)
+                    if (vertexZ < 0x10000)
                         goto mrt_line_smooth_NEXT_FACE;
-                    SoftwareRenderer::StrokeLine(FIX_X(vertex->Position.X), FIX_Y(vertex->Position.Y), FIX_X(vertexFirst->Position.X), FIX_Y(vertexFirst->Position.Y));
-                    #undef FIX_X
-                    #undef FIX_Y
+                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
+                    #undef LINE_X
+                    #undef LINE_Y
                 }
                 else {
                     while (vertexCountPerFaceMinus1--) {
-                        SoftwareRenderer::StrokeLine(vertex[0].Position.X >> 8, vertex[0].Position.Y >> 8, vertex[1].Position.X >> 8, vertex[1].Position.Y >> 8);
+                        SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex[0].Position.X), LINE_ORTHO_Y(vertex[0].Position.Y), LINE_ORTHO_X(vertex[1].Position.X), LINE_ORTHO_Y(vertex[1].Position.Y));
                         vertex++;
                     }
-                    SoftwareRenderer::StrokeLine(vertex->Position.X >> 8, vertex->Position.Y >> 8, vertexFirst->Position.X >> 8, vertexFirst->Position.Y >> 8);
+                    SoftwareRenderer::StrokeLine(LINE_ORTHO_X(vertex->Position.X), LINE_ORTHO_Y(vertex->Position.Y), LINE_ORTHO_X(vertexFirst->Position.X), LINE_ORTHO_Y(vertexFirst->Position.Y));
+                    #undef LINE_ORTHO_X
+                    #undef LINE_ORTHO_Y
                 }
 
                 mrt_line_smooth_NEXT_FACE:
-                faceSizePtr++;
                 faceInfoPtr++;
             }
             break;
         // Polygons, Solid Colored
-        case 1:
-            for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-                int vertexCountPerFace = *faceSizePtr;
-                vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
+        case DrawMode_POLYGONS:
+            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+                vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
+                vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
-                Vector2 polygonVertex[4];
-                int polygonVertexIndex = 0;
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+
+                Vector3 polygonVertex[MAX_POLYGON_VERTICES];
+                Vector2 polygonUV[MAX_POLYGON_VERTICES];
+                int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
-                        int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                    int vertexZ = vertex->Position.Z;
+                    if (usePerspective) {
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_solid_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
+
+#define POINT_IS_OUTSIDE(i) \
+    (polygonVertex[i].X < 0 || polygonVertex[i].Y < 0 || polygonVertex[i].X > widthSubpx || polygonVertex[i].Y > heightSubpx)
+
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
+
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygon(polygonVertex, vertexFirst->Color, *faceSizePtr, opacity, blendFlag);
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_solid_NEXT_FACE;
+
+                #define CHECK_TEXTURE(face) \
+                    if (face->UseMaterial) \
+                        texturePtr = (Texture*)face->Material.Texture
+
+                texturePtr = NULL;
+                if (drawMode & DrawMode_TEXTURED) {
+                    CHECK_TEXTURE(faceInfoPtr);
+                }
+
+                if (texturePtr) {
+                    if (!doAffineMapping)
+                        DrawPolygonPerspective(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonAffine(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                }
+                else {
+                    if (UseDepthBuffer)
+                        DrawPolygonDepth(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonShaded(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                }
 
                 mrt_poly_solid_NEXT_FACE:
-                faceSizePtr++;
                 faceInfoPtr++;
             }
             break;
         // Polygons, Flat Shading
-        case 3:
-            for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-                int vertexCountPerFace = *faceSizePtr;
-                vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
+        case DrawMode_POLYGONS_FLAT:
+            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+                vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
+                vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 int averageNormalY = vertex[0].Normal.Y;
-                switch (*faceSizePtr) {
-                    case 2:
-                        averageNormalY += vertex[1].Normal.Y;
-                        break;
-                    case 3:
-                        averageNormalY += vertex[1].Normal.Y + vertex[2].Normal.Y;
-                        break;
-                    case 4:
-                        averageNormalY += vertex[1].Normal.Y + vertex[2].Normal.Y + vertex[3].Normal.Y;
-                        break;
-                }
-                averageNormalY /= *faceSizePtr;
+                for (int i = 1; i < vertexCount; i++)
+                    averageNormalY += vertex[i].Normal.Y;
+                averageNormalY /= vertexCount;
 
-                int color = vertex->Color;
-                int col_r = (color >> 16) & 0xFF;
-                int col_g = (color >> 8) & 0xFF;
-                int col_b = (color) & 0xFF;
-                int specularR = 0, specularG = 0, specularB = 0;
+                int color = CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8);
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
-                int ambientNormalY = averageNormalY >> 10;
-                int reweightedNormal = (averageNormalY >> 2) * (abs(averageNormalY) >> 2);
-
-                // r
-                col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
-                specularR = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularR;
-                CLAMP_VAL(specularR, 0x00, 0xFF);
-                specularR += col_r;
-                CLAMP_VAL(specularR, 0x00, 0xFF);
-                col_r = specularR;
-
-                // g
-                col_g = (col_g * (ambientNormalY + arrayBuffer->LightingAmbientG)) >> arrayBuffer->LightingDiffuseG;
-                specularG = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularG;
-                CLAMP_VAL(specularG, 0x00, 0xFF);
-                specularG += col_g;
-                CLAMP_VAL(specularG, 0x00, 0xFF);
-                col_g = specularG;
-
-                // b
-                col_b = (col_b * (ambientNormalY + arrayBuffer->LightingAmbientB)) >> arrayBuffer->LightingDiffuseB;
-                specularB = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularB;
-                CLAMP_VAL(specularB, 0x00, 0xFF);
-                specularB += col_b;
-                CLAMP_VAL(specularB, 0x00, 0xFF);
-                col_b = specularB;
-
-                // color
-                color = col_r << 16 | col_g << 8 | col_b;
-
-                Vector2 polygonVertex[4];
-                int polygonVertexIndex = 0;
+                Vector3 polygonVertex[MAX_POLYGON_VERTICES];
+                Vector2 polygonUV[MAX_POLYGON_VERTICES];
+                int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
-                        int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                    int vertexZ = vertex->Position.Z;
+                    if (usePerspective) {
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_flat_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
+
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
+
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygon(polygonVertex, color, *faceSizePtr, opacity, blendFlag);
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_flat_NEXT_FACE;
+
+                texturePtr = NULL;
+                if (drawMode & DrawMode_TEXTURED) {
+                    CHECK_TEXTURE(faceInfoPtr);
+                }
+
+                if (texturePtr) {
+                    if (!doAffineMapping)
+                        DrawPolygonPerspective(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonAffine(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
+                }
+                else {
+                    if (UseDepthBuffer)
+                        DrawPolygonDepth(polygonVertex, color, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonShaded(polygonVertex, color, vertexCount, opacity, blendFlag);
+                }
 
                 mrt_poly_flat_NEXT_FACE:
-                faceSizePtr++;
                 faceInfoPtr++;
             }
             break;
         // Polygons, Smooth Shading
-        case 5:
-            for (int f = 0; f < arrayBuffer->FaceCount; f++) {
-                int vertexCountPerFace = *faceSizePtr;
-                vertexFirst = &arrayBuffer->VertexBuffer[faceInfoPtr->VerticesStartIndex];
+        case DrawMode_POLYGONS_SMOOTH:
+            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+                vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
+                vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
-                Vector2 polygonVertex[4];
-                int     polygonVertColor[4];
+                SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
+
+#undef SET_BLENDFLAG_AND_OPACITY
+
+                Vector3 polygonVertex[MAX_POLYGON_VERTICES];
+                Vector2 polygonUV[MAX_POLYGON_VERTICES];
+                int     polygonVertColor[MAX_POLYGON_VERTICES];
                 int     polygonVertexIndex = 0;
+                int     numOutside = 0;
                 while (vertexCountPerFace--) {
-                    if (drawMode & 8) {
-                        int vertexZ = vertex->Position.Z;
-                        if (vertexZ < 0x100)
+                    int vertexZ = vertex->Position.Z;
+                    if (usePerspective) {
+                        if (vertexZ < 0x10000)
                             goto mrt_poly_smooth_NEXT_FACE;
 
-                        polygonVertex[polygonVertexIndex].X = ((vertex->Position.X << bitshiftX) / vertexZ << 16) - (cx << 16) + widthHalfSubpx;
-                        polygonVertex[polygonVertexIndex].Y = ((vertex->Position.Y << bitshiftY) / vertexZ << 16) - (cy << 16) + heightHalfSubpx;
+                        polygonVertex[polygonVertexIndex].X = PROJECT_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = PROJECT_Y(vertex->Position.Y);
                     }
                     else {
-                        polygonVertex[polygonVertexIndex].X = (vertex->Position.X << 8) - (cx << 16);
-                        polygonVertex[polygonVertexIndex].Y = (vertex->Position.Y << 8) - (cy << 16);
+                        polygonVertex[polygonVertexIndex].X = ORTHO_X(vertex->Position.X);
+                        polygonVertex[polygonVertexIndex].Y = ORTHO_Y(vertex->Position.Y);
                     }
 
-                    int color = vertex->Color;
-                    int col_r = (color >> 16) & 0xFF;
-                    int col_g = (color >> 8) & 0xFF;
-                    int col_b = (color) & 0xFF;
-                    int specularR = 0, specularG = 0, specularB = 0;
-                    int averageNormalY = vertex->Normal.Y;
+                    if (POINT_IS_OUTSIDE(polygonVertexIndex))
+                        numOutside++;
 
-                    int ambientNormalY = averageNormalY >> 10;
-                    int reweightedNormal = (averageNormalY >> 2) * (abs(averageNormalY) >> 2);
+                    polygonVertex[polygonVertexIndex].Z = vertexZ;
 
-                    // r
-                    col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
-                    specularR = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularR;
-                    CLAMP_VAL(specularR, 0x00, 0xFF);
-                    specularR += col_r;
-                    CLAMP_VAL(specularR, 0x00, 0xFF);
-                    col_r = specularR;
+                    polygonUV[polygonVertexIndex].X = vertex->UV.X;
+                    polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
 
-                    // g
-                    col_g = (col_g * (ambientNormalY + arrayBuffer->LightingAmbientG)) >> arrayBuffer->LightingDiffuseG;
-                    specularG = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularG;
-                    CLAMP_VAL(specularG, 0x00, 0xFF);
-                    specularG += col_g;
-                    CLAMP_VAL(specularG, 0x00, 0xFF);
-                    col_g = specularG;
-
-                    // b
-                    col_b = (col_b * (ambientNormalY + arrayBuffer->LightingAmbientB)) >> arrayBuffer->LightingDiffuseB;
-                    specularB = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularB;
-                    CLAMP_VAL(specularB, 0x00, 0xFF);
-                    specularB += col_b;
-                    CLAMP_VAL(specularB, 0x00, 0xFF);
-                    col_b = specularB;
-
-                    // color
-                    color = col_r << 16 | col_g << 8 | col_b;
-
-
-
-                    polygonVertColor[polygonVertexIndex] = color;
+                    polygonVertColor[polygonVertexIndex] = CalcVertexColor(arrayBuffer, vertex, vertex->Normal.Y >> 8);
                     polygonVertexIndex++;
                     vertex++;
                 }
-                DrawPolygonBlend(polygonVertex, polygonVertColor, *faceSizePtr, opacity, blendFlag);
+
+                if (numOutside == vertexCount)
+                    goto mrt_poly_smooth_NEXT_FACE;
+
+#undef POINT_IS_OUTSIDE
+
+                texturePtr = NULL;
+                if (drawMode & DrawMode_TEXTURED) {
+                    CHECK_TEXTURE(faceInfoPtr);
+                }
+
+                if (texturePtr) {
+                    if (!doAffineMapping)
+                        DrawPolygonBlendPerspective(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonBlendAffine(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
+                }
+                else {
+                    if (UseDepthBuffer)
+                        DrawPolygonBlendDepth(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
+                    else
+                        DrawPolygonBlendShaded(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
+                }
+
+#undef CHECK_TEXTURE
 
                 mrt_poly_smooth_NEXT_FACE:
-                faceSizePtr++;
                 faceInfoPtr++;
             }
             break;
     }
+
+#undef PROJECT_X
+#undef PROJECT_Y
+
+#undef ORTHO_X
+#undef ORTHO_Y
+
+    SoftwareRenderer::SetDepthTest(false);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, int frame, Matrix4x4i* viewMatrix, Matrix4x4i* normalMatrix) {
-    VertexAttribute* arrayVertexItem;
-    int arrayVertexCount, arrayFaceCount, modelVertexIndexCount;
-    Uint8* faceSizeItem;
-    Sint16* modelVertexIndexPtr;
-    Vector3* positionPtr;
-    Uint32* colorPtr;
-    Vector2* uvPtr;
 
-    int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color;
-
-    int color = ColRGB;
-
-    #define APPLY_MAT4X4(vec3out, vec3in, M) \
-        vec3out.X = M->Column[0][3] + ((vec3in.X * M->Column[0][0]) >> 8) + ((vec3in.Y * M->Column[0][1]) >> 8) + ((vec3in.Z * M->Column[0][2]) >> 8); \
-        vec3out.Y = M->Column[1][3] + ((vec3in.X * M->Column[1][0]) >> 8) + ((vec3in.Y * M->Column[1][1]) >> 8) + ((vec3in.Z * M->Column[1][2]) >> 8); \
-        vec3out.Z = M->Column[2][3] + ((vec3in.X * M->Column[2][0]) >> 8) + ((vec3in.Y * M->Column[2][1]) >> 8) + ((vec3in.Z * M->Column[2][2]) >> 8);
-
-    while (frame >= model->FrameCount)
-        frame -= model->FrameCount;
-    frame *= model->VertexCount;
-
-    Uint32 arrayBufferIndex = CurrentArrayBuffer;
-    if (viewMatrix) {
-        ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-        if (!arrayBuffer->Initialized)
-            return;
-
-        arrayFaceCount = arrayBuffer->FaceCount;
-        arrayVertexCount = arrayBuffer->VertexCount;
-
-        faceSizeItem = &arrayBuffer->FaceSizeBuffer[arrayFaceCount];
-        arrayVertexItem = &arrayBuffer->VertexBuffer[arrayVertexCount];
-
-        modelVertexIndexCount = model->VertexIndexCount;
-        modelVertexIndexPtr = model->VertexIndexBuffer;
-
-        if (arrayVertexCount + modelVertexIndexCount <= arrayBuffer->VertexCapacity) {
-            arrayBuffer->VertexCount += modelVertexIndexCount;
-            arrayBuffer->FaceCount += modelVertexIndexCount / model->FaceVertexCount;
-
-            switch (model->VertexFlag & vertexTypeMask) {
-                case VertexType_Position:
-                    // For every face,
-                    while (*modelVertexIndexPtr != -1) {
-                        int faceVertexCount = model->FaceVertexCount;
-                        *faceSizeItem++ = faceVertexCount;
-
-                        // For every vertex index,
-                        while (faceVertexCount--) {
-                            positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame)];
-                            APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                            modelVertexIndexPtr++;
-                            arrayVertexItem++;
-                        }
-                    }
-                    break;
-                case VertexType_Position | VertexType_Normal:
-                    if (normalMatrix) {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                // Calculate position
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                // Calculate normals
-                                APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
-                                arrayVertexItem->Color = color;
-
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    else {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                // Calculate position
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                arrayVertexItem->Normal = positionPtr[1];
-                                arrayVertexItem->Color = color;
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    break;
-                case VertexType_Position | VertexType_Normal | VertexType_Color:
-                    if (normalMatrix) {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
-                                arrayVertexItem->Color = colorPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    else {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                arrayVertexItem->Normal = positionPtr[1];
-                                arrayVertexItem->Color = colorPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    break;
-                case VertexType_Position | VertexType_Normal | VertexType_UV:
-                    if (normalMatrix) {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
-                                arrayVertexItem->Color = color;
-                                arrayVertexItem->UV = uvPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    else {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                arrayVertexItem->Normal = positionPtr[1];
-                                arrayVertexItem->Color = color;
-                                arrayVertexItem->UV = uvPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    break;
-                case VertexType_Position | VertexType_Normal | VertexType_UV | VertexType_Color:
-                    if (normalMatrix) {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                                colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                APPLY_MAT4X4(arrayVertexItem->Normal, positionPtr[1], normalMatrix);
-                                arrayVertexItem->Color = colorPtr[0];
-                                arrayVertexItem->UV = uvPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    else {
-                        // For every face,
-                        while (*modelVertexIndexPtr != -1) {
-                            int faceVertexCount = model->FaceVertexCount;
-                            *faceSizeItem++ = faceVertexCount;
-
-                            // For every vertex index,
-                            while (faceVertexCount--) {
-                                positionPtr = &model->PositionBuffer[(*modelVertexIndexPtr + frame) << 1];
-                                uvPtr = &model->UVBuffer[(*modelVertexIndexPtr + frame)];
-                                colorPtr = &model->ColorBuffer[*modelVertexIndexPtr];
-                                APPLY_MAT4X4(arrayVertexItem->Position, positionPtr[0], viewMatrix);
-                                arrayVertexItem->Normal = positionPtr[1];
-                                arrayVertexItem->Color = colorPtr[0];
-                                arrayVertexItem->UV = uvPtr[0];
-                                modelVertexIndexPtr++;
-                                arrayVertexItem++;
-                            }
-                        }
-                    }
-                    break;
-            }
-        }
-        else {
-            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of array buffer! Increase array buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, arrayBuffer->VertexCapacity, (arrayVertexCount + modelVertexIndexCount) - arrayBuffer->VertexCapacity);
+PUBLIC STATIC Uint32   SoftwareRenderer::VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy) {
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        if (VertexBuffers[i] == NULL) {
+            VertexBuffers[i] = VertexBuffer::Create(maxVertices, unloadPolicy);
+            return i;
         }
     }
 
-    #undef APPLY_MAT4X4
+    return 0xFFFFFFFF;
 }
+PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Bind(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        vertexBufferIndex = -1;
+    CurrentVertexBuffer = vertexBufferIndex;
+}
+PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Delete(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    VertexBuffer::Delete(VertexBuffers[vertexBufferIndex]);
+    VertexBuffers[vertexBufferIndex] = NULL;
+}
+
+static void SetFaceInfoMaterial(FaceInfo* face, Material* material) {
+    face->UseMaterial = true;
+    face->Material.Texture = NULL;
+
+    Image *image = material->ImagePtr;
+    if (image && image->TexturePtr)
+        face->Material.Texture = (Texture*)image->TexturePtr;
+
+    for (unsigned i = 0; i < 4; i++) {
+        face->Material.Specular[i] = material->Specular[i] * 0x100;
+        face->Material.Ambient[i] = material->Ambient[i] * 0x100;
+        face->Material.Diffuse[i] = material->Diffuse[i] * 0x100;
+    }
+}
+static void SetFaceInfoMaterial(FaceInfo* face, Texture* texture) {
+    face->UseMaterial = true;
+    face->Material.Texture = texture;
+
+    for (unsigned i = 0; i < 4; i++) {
+        face->Material.Specular[i] = 0x100;
+        face->Material.Ambient[i] = 0x100;
+        face->Material.Diffuse[i] = 0x100;
+    }
+}
+
+#define APPLY_MAT4X4(vec4out, vec3in, M) { \
+    float vecX = vec3in.X; \
+    float vecY = vec3in.Y; \
+    float vecZ = vec3in.Z; \
+    vec4out.X = (M[ 3] * 0x10000) + ((int)(vecX * M[ 0])) + ((int)(vecY * M[ 1])) + ((int)(vecZ * M[ 2])); \
+    vec4out.Y = (M[ 7] * 0x10000) + ((int)(vecX * M[ 4])) + ((int)(vecY * M[ 5])) + ((int)(vecZ * M[ 6])); \
+    vec4out.Z = (M[11] * 0x10000) + ((int)(vecX * M[ 8])) + ((int)(vecY * M[ 9])) + ((int)(vecZ * M[10])); \
+    vec4out.W = (M[15] * 0x10000) + ((int)(vecX * M[12])) + ((int)(vecY * M[13])) + ((int)(vecZ * M[14])); \
+}
+#define COPY_VECTOR(vecout, vecin) vecout = vecin
+#define COPY_NORMAL(vec4out, vec3in) \
+    vec4out.X = vec3in.X; \
+    vec4out.Y = vec3in.Y; \
+    vec4out.Z = vec3in.Z; \
+    vec4out.W = 0
+
+static void CalculateMVPMatrix(Matrix4x4* output, Matrix4x4* modelMatrix, Matrix4x4* viewMatrix, Matrix4x4* projMatrix) {
+    if (viewMatrix && projMatrix) {
+        Matrix4x4 modelView;
+
+        if (modelMatrix) {
+            Matrix4x4::Multiply(&modelView, modelMatrix, viewMatrix);
+            Matrix4x4::Multiply(output, &modelView, projMatrix);
+        }
+        else
+            Matrix4x4::Multiply(output, viewMatrix, projMatrix);
+    }
+    else if (modelMatrix)
+        *output = *modelMatrix;
+    else
+        Matrix4x4::Identity(output);
+}
+static bool CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
+    int numBehind[3] = { 0, 0, 0 };
+    int numVertices = vertexCount;
+    while (numVertices--) {
+        if (vertex->Position.X < -vertex->Position.W || vertex->Position.X > vertex->Position.W)
+            numBehind[0]++;
+        if (vertex->Position.Y < -vertex->Position.W || vertex->Position.Y > vertex->Position.W)
+            numBehind[1]++;
+        if (vertex->Position.Z <= 0)
+            numBehind[2]++;
+
+        vertex++;
+    }
+
+    if (numBehind[0] == vertexCount || numBehind[1] == vertexCount || numBehind[2] == vertexCount)
+        return false;
+
+    return true;
+}
+static int ClipPolygon(VertexBuffer* vertexBuffer, VertexAttribute* output, VertexAttribute* input, int numVertices) {
+    PolygonClipBuffer clipper;
+    clipper.NumPoints = 0;
+    clipper.MaxPoints = MAX_POLYGON_VERTICES;
+
+    int numOutVertices = Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
+    if (numOutVertices < 3 || numOutVertices >= MAX_POLYGON_VERTICES)
+        return 0;
+    else if (vertexBuffer->VertexCount + numOutVertices > vertexBuffer->Capacity)
+        return -1;
+
+    VertexAttribute* result = clipper.Buffer;
+    int n = numOutVertices;
+    while (n--) {
+        COPY_VECTOR(output->Position, result->Position);
+        COPY_NORMAL(output->Normal, result->Normal);
+        output->Color = result->Color;
+        output->UV = result->UV;
+        output++;
+        result++;
+    }
+
+    return numOutVertices;
+}
+
+#define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
+    if (vertexBufferIndex != -1) { \
+        vertexBuffer = VertexBuffers[vertexBufferIndex]; \
+        if (!vertexBuffer) \
+            return; \
+    } \
+    else { \
+        if (arrayBufferIndex == -1) \
+            return; \
+        arrayBuffer = &ArrayBuffers[arrayBufferIndex]; \
+        vertexBuffer = &arrayBuffer->Buffer; \
+        if (!arrayBuffer->Initialized) \
+            return; \
+    }
+
+PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4 mvpMatrix;
+    if (arrayBuffer)
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+    else
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+
+    int arrayFaceCount = vertexBuffer->FaceCount;
+    int arrayVertexCount = vertexBuffer->VertexCount;
+
+    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
+
+    if (arrayVertexCount + vertexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + vertexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    VertexAttribute* vertex = arrayVertexBuffer;
+    int numVertices = vertexCount;
+    int numBehind = 0;
+    while (numVertices--) {
+        // Calculate position
+        APPLY_MAT4X4(vertex->Position, data->Position, mvpMatrix.Values);
+
+        // Calculate normals
+        if (vertexFlag & VertexType_Normal) {
+            if (normalMatrix) {
+                APPLY_MAT4X4(vertex->Normal, data->Normal, normalMatrix->Values);
+            }
+            else {
+                COPY_NORMAL(vertex->Normal, data->Normal);
+            }
+        }
+        else
+            vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
+
+        if (vertexFlag & VertexType_Color)
+            vertex->Color = ColorMultiply(data->Color, ColRGB);
+        else
+            vertex->Color = ColRGB;
+
+        if (vertexFlag & VertexType_UV)
+            vertex->UV = data->UV;
+
+        if (arrayBuffer && vertex->Position.Z <= 0x10000)
+            numBehind++;
+
+        vertex++;
+        data++;
+    }
+
+    // Don't clip polygons if drawing into a vertex buffer, since the vertices are not in clip space
+    if (arrayBuffer) {
+        // Check if the polygon is at least partially inside the frustum
+        if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
+            return;
+
+        // Vertices are now in clip space, which means that the polygon can be frustum clipped
+        if (ClipPolygonsByFrustum) {
+            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+            if (vertexCount == -1) {
+                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
+                return;
+            }
+            else if (vertexCount == 0)
+                return;
+        } else if (numBehind != 0)
+            return;
+    }
+
+    faceInfoItem->NumVertices = vertexCount;
+    if (texture)
+        SetFaceInfoMaterial(faceInfoItem, texture);
+    else
+        faceInfoItem->UseMaterial = false;
+    if (arrayBuffer) {
+        faceInfoItem->Opacity = Alpha;
+        faceInfoItem->BlendFlag = BlendFlag;
+    }
+
+    vertexBuffer->VertexCount += vertexCount;
+    vertexBuffer->FaceCount++;
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    int vertexCountPerFace = 4;
+    int tileSize = 16;
+
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4 mvpMatrix;
+    if (arrayBuffer)
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+    else
+        CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+
+    int arrayVertexCount = vertexBuffer->VertexCount;
+    int arrayFaceCount = vertexBuffer->FaceCount;
+    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
+
+    vector<AnimFrame> animFrames;
+    vector<Texture*> textureSources;
+    animFrames.resize(Scene::TileSpriteInfos.size());
+    textureSources.resize(Scene::TileSpriteInfos.size());
+    for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+        TileSpriteInfo info = Scene::TileSpriteInfos[i];
+        animFrames[i] = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+        textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
+    }
+
+    int totalVertexCount = 0;
+    for (int y = sy; y < sh; y++) {
+        for (int x = sx; x < sw; x++) {
+            int tileID = (int)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK);
+            if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size())
+                totalVertexCount += vertexCountPerFace;
+        }
+    }
+
+    if (arrayVertexCount + totalVertexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + totalVertexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    for (int y = sy, destY = 0; y < sh; y++, destY++) {
+        for (int x = sx, destX = 0; x < sw; x++, destX++) {
+            int tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
+            int tileID = tileAtPos & TILE_IDENT_MASK;
+            if (tileID == Scene::EmptyTile || tileID >= Scene::TileSpriteInfos.size())
+                continue;
+
+            // 0--1
+            // |  |
+            // 3--2
+            VertexAttribute data[4];
+            AnimFrame frameStr = animFrames[tileID];
+            Texture* texture = textureSources[tileID];
+
+            float uv_left   = (float)frameStr.X / texture->Width;
+            float uv_right  = (float)(frameStr.X + frameStr.Width) / texture->Width;
+            float uv_top    = (float)frameStr.Y / texture->Height;
+            float uv_bottom = (float)(frameStr.Y + frameStr.Height) / texture->Height;
+
+            float left_u, right_u, top_v, bottom_v;
+            int flipX = tileAtPos & TILE_FLIPX_MASK;
+            int flipY = tileAtPos & TILE_FLIPY_MASK;
+
+            if (flipX) {
+                left_u  = uv_right;
+                right_u = uv_left;
+            } else {
+                left_u  = uv_left;
+                right_u = uv_right;
+            }
+
+            if (flipY) {
+                top_v    = uv_bottom;
+                bottom_v = uv_top;
+            } else {
+                top_v    = uv_top;
+                bottom_v = uv_bottom;
+            }
+
+            data[0].Position.X = (destX * tileSize) * 0x10000;
+            data[0].Position.Z = (destY * tileSize) * 0x10000;
+            data[0].Position.Y = 0;
+            data[0].UV.X       = left_u * 0x10000;
+            data[0].UV.Y       = top_v * 0x10000;
+            data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0;
+
+            data[1].Position.X = data[0].Position.X + (tileSize * 0x10000);
+            data[1].Position.Z = data[0].Position.Z;
+            data[1].Position.Y = 0;
+            data[1].UV.X       = right_u * 0x10000;
+            data[1].UV.Y       = top_v * 0x10000;
+            data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0;
+
+            data[2].Position.X = data[1].Position.X;
+            data[2].Position.Z = data[1].Position.Z + (tileSize * 0x10000);
+            data[2].Position.Y = 0;
+            data[2].UV.X       = right_u * 0x10000;
+            data[2].UV.Y       = bottom_v * 0x10000;
+            data[2].Normal.X   = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0;
+
+            data[3].Position.X = data[0].Position.X;
+            data[3].Position.Z = data[2].Position.Z;
+            data[3].Position.Y = 0;
+            data[3].UV.X       = left_u * 0x10000;
+            data[3].UV.Y       = bottom_v * 0x10000;
+            data[3].Normal.X   = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0;
+
+            VertexAttribute* vertex = arrayVertexBuffer;
+            int vertexIndex = 0;
+            while (vertexIndex < vertexCountPerFace) {
+                // Calculate position
+                APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix.Values);
+
+                // Calculate normals
+                if (normalMatrix) {
+                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, normalMatrix->Values);
+                }
+                else {
+                    COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
+                }
+
+                vertex->UV = data[vertexIndex].UV;
+                vertex->Color = ColRGB;
+
+                vertex++;
+                vertexIndex++;
+            }
+
+            int vertexCount = vertexCountPerFace;
+            if (arrayBuffer) {
+                // Check if the polygon is at least partially inside the frustum
+                if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
+                    continue;
+
+                // Vertices are now in clip space, which means that the polygon can be frustum clipped
+                if (ClipPolygonsByFrustum) {
+                    vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+                    if (vertexCount == -1) {
+                        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
+                        return;
+                    }
+                    else if (vertexCount == 0)
+                        continue;
+                }
+            }
+
+            if (texture)
+                SetFaceInfoMaterial(faceInfoItem, texture);
+            else
+                faceInfoItem->UseMaterial = false;
+            faceInfoItem->Opacity = Alpha;
+            faceInfoItem->BlendFlag = BlendFlag;
+            faceInfoItem->NumVertices = vertexCount;
+            faceInfoItem++;
+            arrayVertexCount += vertexCount;
+            arrayVertexBuffer += vertexCount;
+            arrayFaceCount++;
+        }
+    }
+
+    vertexBuffer->VertexCount = arrayVertexCount;
+    vertexBuffer->FaceCount = arrayFaceCount;
+}
+
+class ModelRenderer {
+public:
+    ModelRenderer(VertexBuffer* vertexBuffer);
+
+    void DrawModel(IModel* model, Uint32 frame);
+    void DrawModel(IModel* model, Uint16 animation, Uint32 frame);
+    void DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix);
+    void DrawNode(IModel* model, ModelNode* node, Matrix4x4* world);
+    void AddFace(int faceVertexCount, Material* material);
+    int  ClipFace(int faceVertexCount);
+    void SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal);
+
+    VertexBuffer*    Buffer;
+    int              VertexCount;
+
+    VertexAttribute* AttribBuffer;
+    VertexAttribute* Vertex;
+    FaceInfo*        FaceItem;
+
+    Matrix4x4*       ModelMatrix;
+    Matrix4x4*       ViewMatrix;
+    Matrix4x4*       ProjectionMatrix;
+    Matrix4x4*       NormalMatrix;
+
+    Matrix4x4        MVPMatrix;
+
+    bool             ClipFaces;
+    Armature*        ArmaturePtr;
+};
+
+ModelRenderer::ModelRenderer(VertexBuffer* vertexBuffer) {
+    Buffer = vertexBuffer;
+    VertexCount = Buffer->VertexCount;
+
+    FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
+    AttribBuffer = Vertex = &Buffer->Vertices[VertexCount];
+
+    ClipFaces = false;
+    ArmaturePtr = nullptr;
+}
+
+void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
+    ModelMatrix = model;
+    ViewMatrix = view;
+    ProjectionMatrix = projection;
+    NormalMatrix = normal;
+}
+
+void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
+    FaceItem->NumVertices = faceVertexCount;
+    FaceItem->Opacity = Alpha;
+    FaceItem->BlendFlag = BlendFlag;
+
+    if (material)
+        SetFaceInfoMaterial(FaceItem, material);
+    else
+        FaceItem->UseMaterial = false;
+
+    FaceItem++;
+
+    Buffer->FaceCount++;
+    Buffer->VertexCount += faceVertexCount;
+}
+
+int ModelRenderer::ClipFace(int faceVertexCount) {
+    if (!ClipFaces)
+        return faceVertexCount;
+
+    Vertex = AttribBuffer;
+
+    if (!CheckPolygonVisible(Vertex, faceVertexCount))
+        return 0;
+    else if (ClipPolygonsByFrustum) {
+        faceVertexCount = ClipPolygon(Buffer, AttribBuffer, Vertex, faceVertexCount);
+        if (faceVertexCount == -1) {
+            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", Buffer->Capacity);
+            throw -1;
+        }
+        else if (faceVertexCount == 0)
+            return 0;
+    }
+
+    Vertex += faceVertexCount;
+    AttribBuffer = Vertex;
+
+    return faceVertexCount;
+}
+
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
+    Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
+
+    int modelVertexIndexCount = mesh->VertexIndexCount;
+    Sint16* modelVertexIndexPtr = mesh->VertexIndexBuffer;
+
+    int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
+    int color = ColRGB;
+
+    Vector3* positionPtr;
+    Vector3* normalPtr;
+    Uint32* colorPtr;
+    Vector2* uvPtr;
+
+    Vector3* positionBuffer = mesh->PositionBuffer;
+    Vector3* normalBuffer = mesh->NormalBuffer;
+
+    if (skeleton) {
+        positionBuffer = skeleton->TransformedPositions;
+        normalBuffer = skeleton->TransformedNormals;
+    }
+
+    switch (mesh->VertexFlag & vertexTypeMask) {
+        case VertexType_Position:
+            // For every face,
+            while (*modelVertexIndexPtr != -1) {
+                int faceVertexCount = model->VertexPerFace;
+
+                // For every vertex index,
+                int numVertices = faceVertexCount;
+                while (numVertices--) {
+                    positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                    APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                    Vertex->Color = color;
+                    modelVertexIndexPtr++;
+                    Vertex++;
+                }
+
+                if (faceVertexCount = ClipFace(faceVertexCount))
+                    AddFace(faceVertexCount, material);
+            }
+            break;
+        case VertexType_Position | VertexType_Normal:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        // Calculate position
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        // Calculate normals
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = color;
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        // Calculate position
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = color;
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_Color:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_UV:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = color;
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = color;
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            break;
+        case VertexType_Position | VertexType_Normal | VertexType_UV | VertexType_Color:
+            if (NormalMatrix) {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            else {
+                // For every face,
+                while (*modelVertexIndexPtr != -1) {
+                    int faceVertexCount = model->VertexPerFace;
+
+                    // For every vertex index,
+                    int numVertices = faceVertexCount;
+                    while (numVertices--) {
+                        positionPtr = &positionBuffer[*modelVertexIndexPtr];
+                        normalPtr = &normalBuffer[*modelVertexIndexPtr];
+                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
+                        APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+                        COPY_NORMAL(Vertex->Normal, normalPtr[0]);
+                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->UV = uvPtr[0];
+                        modelVertexIndexPtr++;
+                        Vertex++;
+                    }
+
+                    if (faceVertexCount = ClipFace(faceVertexCount))
+                        AddFace(faceVertexCount, material);
+                }
+            }
+            break;
+    }
+}
+
+void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
+    size_t numMeshes = node->Meshes.size();
+    size_t numChildren = node->Children.size();
+
+    Matrix4x4::Multiply(world, world, node->TransformMatrix);
+    Matrix4x4 nodeToWorldMat;
+    bool madeMatrix = false;
+
+    for (size_t i = 0; i < numMeshes; i++) {
+        Mesh* mesh = node->Meshes[i];
+
+        if (mesh->SkeletonIndex != -1) // in world space
+            DrawMesh(model, mesh, ArmaturePtr->Skeletons[mesh->SkeletonIndex], MVPMatrix);
+        else {
+            if (!madeMatrix) {
+                if (ViewMatrix && ProjectionMatrix) {
+                    Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
+                    Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ViewMatrix);
+                    Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ProjectionMatrix);
+                } else
+                    Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
+
+                madeMatrix = true;
+            }
+
+            DrawMesh(model, mesh, nullptr, nodeToWorldMat);
+        }
+    }
+
+    for (size_t i = 0; i < numChildren; i++)
+        DrawNode(model, node->Children[i], world);
+}
+
+void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
+    if (ViewMatrix && ProjectionMatrix)
+        CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
+    else
+        CalculateMVPMatrix(&MVPMatrix, ModelMatrix, NULL, NULL);
+
+    if (!model->UseVertexAnimation) {
+        Matrix4x4 identity;
+        Matrix4x4::Identity(&identity);
+
+        try {
+            DrawNode(model, model->BaseArmature->RootNode, &identity);
+        } catch (...) { }
+    }
+    else {
+        static Skeleton vertexAnimSkeleton;
+
+        frame = model->GetKeyFrame(frame) % model->FrameCount;
+
+        // Just render every mesh directly
+        for (int i = 0; i < model->MeshCount; i++) {
+            Mesh* mesh = model->Meshes[i];
+
+            Skeleton *skeletonPtr = nullptr;
+            if (frame) {
+                skeletonPtr = &vertexAnimSkeleton;
+                skeletonPtr->TransformedPositions = mesh->PositionBuffer + (frame * model->VertexCount);
+                skeletonPtr->TransformedNormals = mesh->NormalBuffer + (frame * model->VertexCount);
+            }
+
+            try {
+                DrawMesh(model, mesh, skeletonPtr, MVPMatrix);
+            } catch (...) {
+                // Stop rendering meshes
+                return;
+            }
+        }
+    }
+}
+
+void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+    if (!model->UseVertexAnimation) {
+        if (ArmaturePtr == nullptr)
+            ArmaturePtr = model->BaseArmature;
+
+        Uint16 numAnims = model->AnimationCount;
+        if (numAnims > 0) {
+            if (animation >= numAnims)
+                animation = numAnims - 1;
+
+            model->Animate(ArmaturePtr, model->Animations[animation], frame);
+        }
+    }
+
+    DrawModel(model, frame);
+}
+
+PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    if (animation < 0 || frame < 0)
+        return;
+    else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
+        return;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4* viewMatrix = nullptr;
+    Matrix4x4* projMatrix = nullptr;
+
+    if (arrayBuffer) {
+        viewMatrix = &arrayBuffer->ViewMatrix;
+        projMatrix = &arrayBuffer->ProjectionMatrix;
+    }
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    int modelVertexIndexCount = model->VertexIndexCount;
+    int arrayVertexCount = rend.VertexCount;
+    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    rend.ClipFaces = arrayBuffer != nullptr;
+    rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
+    rend.DrawModel(model, animation, frame);
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(IModel* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = NULL;
+    VertexBuffer* vertexBuffer = NULL;
+
+    if (model->UseVertexAnimation) {
+        SoftwareRenderer::DrawModel(model, 0, 0, modelMatrix, normalMatrix);
+        return;
+    }
+
+    if (armature >= model->ArmatureCount)
+        return;
+
+    GET_ARRAY_OR_VERTEX_BUFFER(CurrentArrayBuffer, CurrentVertexBuffer);
+
+    Matrix4x4* viewMatrix = nullptr;
+    Matrix4x4* projMatrix = nullptr;
+
+    if (arrayBuffer) {
+        viewMatrix = &arrayBuffer->ViewMatrix;
+        projMatrix = &arrayBuffer->ProjectionMatrix;
+    }
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    int modelVertexIndexCount = model->VertexIndexCount;
+    int arrayVertexCount = rend.VertexCount;
+    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
+        return;
+    }
+
+    rend.ClipFaces = arrayBuffer != nullptr;
+    rend.ArmaturePtr = model->ArmatureList[armature];
+    rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
+    rend.DrawModel(model, 0);
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    if (CurrentArrayBuffer == -1)
+        return;
+
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[CurrentArrayBuffer];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    VertexBuffer* vertexBuffer = VertexBuffers[vertexBufferIndex];
+    if (!vertexBuffer)
+        return;
+
+    Matrix4x4 mvpMatrix;
+    CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+
+    // destination
+    VertexBuffer* destVertexBuffer = &arrayBuffer->Buffer;
+    int arrayFaceCount = destVertexBuffer->FaceCount;
+    int arrayVertexCount = destVertexBuffer->VertexCount;
+
+    FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
+    VertexAttribute* arrayVertexItem = arrayVertexBuffer;
+
+    // source
+    int srcFaceCount = vertexBuffer->FaceCount;
+    int srcVertexCount = vertexBuffer->VertexCount;
+    if (!srcFaceCount || !srcVertexCount)
+        return;
+
+    if (arrayVertexCount + srcVertexCount > destVertexBuffer->Capacity) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", destVertexBuffer->Capacity, (arrayVertexCount + srcVertexCount) - destVertexBuffer->Capacity);
+        return;
+    }
+
+    // Copy the vertices into the vertex buffer
+    VertexAttribute* srcVertexItem = &vertexBuffer->Vertices[0];
+
+    for (int f = 0; f < srcFaceCount; f++) {
+        FaceInfo* srcFaceInfoItem = &vertexBuffer->FaceInfoBuffer[f];
+        int vertexCount = srcFaceInfoItem->NumVertices;
+        int vertexCountPerFace = vertexCount;
+        while (vertexCountPerFace--) {
+            APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
+
+            if (normalMatrix) {
+                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix->Values);
+            }
+            else {
+                COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
+            }
+
+            arrayVertexItem->Color = srcVertexItem->Color;
+            arrayVertexItem->UV = srcVertexItem->UV;
+            arrayVertexItem++;
+            srcVertexItem++;
+        }
+
+        arrayVertexItem = arrayVertexBuffer;
+
+        // Check if the polygon is at least partially inside the frustum
+        if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
+            continue;
+
+        // Vertices are now in clip space, which means that the polygon can be frustum clipped
+        if (ClipPolygonsByFrustum) {
+            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
+            if (vertexCount == -1) {
+                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
+                return;
+            }
+            else if (vertexCount == 0)
+                continue;
+        }
+
+        faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
+        if (faceInfoItem->UseMaterial)
+            faceInfoItem->Material = srcFaceInfoItem->Material;
+        faceInfoItem->NumVertices = vertexCount;
+        faceInfoItem->Opacity = Alpha;
+        faceInfoItem->BlendFlag = BlendFlag;
+        faceInfoItem++;
+        srcFaceInfoItem++;
+
+        arrayVertexCount += vertexCount;
+        arrayVertexBuffer += vertexCount;
+        arrayVertexItem = arrayVertexBuffer;
+        arrayFaceCount++;
+    }
+
+    destVertexBuffer->VertexCount = arrayVertexCount;
+    destVertexBuffer->FaceCount = arrayFaceCount;
+}
+
+#undef APPLY_MAT4X4
+#undef COPY_VECTOR
+#undef COPY_NORMAL
+
+#undef GET_ARRAY_OR_VERTEX_BUFFER
 
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
 
@@ -2727,10 +4143,10 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     int src_x2 = sx + sw - 1;
     int src_y2 = sy + sh - 1;
 
-    int cos = Cos0x200[rotation];
-    int sin = Sin0x200[rotation];
-    int rcos = Cos0x200[(0x200 - rotation + 0x200) & 0x1FF];
-    int rsin = Sin0x200[(0x200 - rotation + 0x200) & 0x1FF];
+    int cos = CosTable[rotation];
+    int sin = SinTable[rotation];
+    int rcos = CosTable[(TRIG_TABLE_SIZE - rotation + TRIG_TABLE_SIZE) & TRIG_TABLE_MASK];
+    int rsin = SinTable[(TRIG_TABLE_SIZE - rotation + TRIG_TABLE_SIZE) & TRIG_TABLE_MASK];
 
     int _x1 = offx;
     int _y1 = offy;
@@ -2785,10 +4201,10 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     #undef SET_MIN
     #undef SET_MAX
 
-    dst_x1 >>= 9;
-    dst_y1 >>= 9;
-    dst_x2 >>= 9;
-    dst_y2 >>= 9;
+    dst_x1 >>= TRIG_TABLE_BITS;
+    dst_y1 >>= TRIG_TABLE_BITS;
+    dst_x2 >>= TRIG_TABLE_BITS;
+    dst_y2 >>= TRIG_TABLE_BITS;
 
     dst_x1 += x;
     dst_y1 += y;
@@ -2861,8 +4277,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -2873,8 +4289,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
             } \
         else \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -2892,8 +4308,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -2904,8 +4320,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
             } \
         else \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -2923,8 +4339,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -2935,8 +4351,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
             } \
         else \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
@@ -2954,8 +4370,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -2966,8 +4382,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
             } \
         else \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
-                src_x = (i_x * rcos + i_y_rsin) >> 9; \
-                src_y = (i_x * rsin + i_y_rcos) >> 9; \
+                src_x = (i_x * rcos + i_y_rsin) >> TRIG_TABLE_BITS; \
+                src_y = (i_x * rsin + i_y_rcos) >> TRIG_TABLE_BITS; \
                 if (src_x >= _x1 && src_y >= _y1 && \
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
@@ -3093,7 +4509,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
 
     int flipFlag = (int)flipX | ((int)flipY << 1);
     if (rotation != 0.0f || scaleW != 1.0f || scaleH != 1.0f) {
-        int rot = (int)(rotation * 0x100 / M_PI) & 0x1FF;
+        int rot = (int)(rotation * TRIG_TABLE_HALF / M_PI) & TRIG_TABLE_MASK;
         DrawSpriteImageTransformed(texture,
             x, y,
             frameStr.OffsetX * scaleW, frameStr.OffsetY * scaleH,
@@ -3135,71 +4551,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
 PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
-	/*
-
-	bool AltPal = false;
-	Uint32 PixelIndex, *Pal = sprite->Palette;
-	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
-
-	srcw = Math::Min(srcw, animframe.Width- srcx);
-	srch = Math::Min(srch, animframe.H - srcy);
-
-	int DX = 0, DY = 0, PX, PY, size = srcw * srch;
-	int CenterX = x, CenterY = y, RealCenterX = animframe.OffX, RealCenterY = animframe.OffY;
-	int SrcX = animframe.X + srcx, SrcY = animframe.Y + srcy, Width = srcw - 1, Height = srch - 1;
-
-	if (flipX)
-		RealCenterX = -RealCenterX - Width - 1;
-	if (flipY)
-		RealCenterY = -RealCenterY - Height - 1;
-
-	if (!AltPal && CenterY + RealCenterY >= WaterPaletteStartLine)
-		AltPal = true, Pal = sprite->PaletteAlt;
-
-	if (CenterX + Width + RealCenterX < Clip[0]) return;
-	if (CenterY + Height + RealCenterY < Clip[1]) return;
-	if (CenterX + RealCenterX >= Clip[2]) return;
-	if (CenterY + RealCenterY >= Clip[3]) return;
-
-	int FX, FY;
-	for (int D = 0; D < size; D++) {
-		PX = DX;
-		PY = DY;
-		if (flipX)
-			PX = Width - PX;
-		if (flipY)
-			PY = Height - PY;
-
-		FX = CenterX + DX + RealCenterX;
-		FY = CenterY + DY + RealCenterY;
-		if (FX <  Clip[0]) goto CONTINUE;
-		if (FY <  Clip[1]) goto CONTINUE;
-		if (FX >= Clip[2]) goto CONTINUE;
-		if (FY >= Clip[3]) return;
-
-		PixelIndex = GetPixelIndex(sprite, SrcX + PX, SrcY + PY);
-		if (sprite->PaletteCount) {
-			if (PixelIndex != sprite->TransparentColorIndex)
-				SetPixelFunction(FX, FY, GetPixelOutputColor(Pal[PixelIndex]));
-				// SetPixelFunction(FX, FY, Pal[PixelIndex]);
-		}
-		else if (PixelIndex & 0xFF000000U) {
-			SetPixelFunction(FX, FY, GetPixelOutputColor(PixelIndex));
-			// SetPixelFunction(FX, FY, PixelIndex);
-		}
-
-		CONTINUE:
-
-		DX++;
-		if (DX > Width) {
-			DX = 0, DY++;
-
-			if (!AltPal && CenterY + DY + RealCenterY >= WaterPaletteStartLine)
-				AltPal = true, Pal = sprite->PaletteAlt;
-		}
-	}
-	//*/
-
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
@@ -3220,7 +4571,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int ani
 
     int flipFlag = (int)flipX | ((int)flipY << 1);
     if (rotation != 0.0f || scaleW != 1.0f || scaleH != 1.0f) {
-        int rot = (int)(rotation * 0x100 / M_PI) & 0x1FF;
+        int rot = (int)(rotation * TRIG_TABLE_HALF / M_PI) & TRIG_TABLE_MASK;
         DrawSpriteImageTransformed(texture,
             x, y,
             (frameStr.OffsetX + sx) * scaleW, (frameStr.OffsetY + sy) * scaleH,
@@ -3852,7 +5203,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         int* multTableAt = &MultTable[opacity << 8];
         int* multSubTableAt = &MultSubTable[opacity << 8];
 
-        if (opacity == 0 && (blendFlag != BlendFlag_OPAQUE && blendFlag != BlendFlag_FILTER))
+        if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
             goto scanlineDone;
 
         linePixelFunction = pixelFunction;

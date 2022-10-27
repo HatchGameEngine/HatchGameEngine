@@ -190,6 +190,8 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
     <ClCompile Include="..\source\engine\math\Math.cpp" />
     <ClCompile Include="..\source\engine\math\Matrix4x4.cpp" />
+    <ClCompile Include="..\source\engine\math\Vector.cpp" />
+    <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\media\Decoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\AudioDecoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\VideoDecoder.cpp" />
@@ -204,10 +206,13 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp" />
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Shader.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
+    <ClCompile Include="..\source\engine\rendering\software\Rasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
+    <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\ImageFormat.cpp" />
@@ -216,7 +221,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\resourcetypes\IModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISound.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp" />
-    <ClCompile Include="..\source\engine\resourcetypes\modelformats\COLLADAReader.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp" />
     <ClCompile Include="..\source\Engine\ResourceTypes\SceneFormats\HatchSceneReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\RSDKSceneReader.cpp" />
@@ -258,12 +263,14 @@ CD ..</Command>
     <ClInclude Include="..\include\engine\network\WebSocketIncludes.h" />
     <ClInclude Include="..\include\engine\platforms\macos\Filesystem.h" />
     <ClInclude Include="..\include\engine\rendering\3D.h" />
+    <ClInclude Include="..\include\engine\rendering\Mesh.h" />
+    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h" />
     <ClInclude Include="..\include\engine\rendering\Enums.h" />
     <ClInclude Include="..\include\engine\rendering\gl\Includes.h" />
     <ClInclude Include="..\include\engine\rendering\metal\Includes.h" />
     <ClInclude Include="..\include\engine\rendering\metal\MetalFuncs.h" />
     <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h" />
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\COLLADA.h" />
+    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h" />
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h" />
     <ClInclude Include="..\include\engine\sprites\Animation.h" />
     <ClInclude Include="..\include\engine\textformats\json\jsmn.h" />

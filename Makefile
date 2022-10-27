@@ -46,6 +46,7 @@ endif
 USING_LIBAV = 0
 USING_CURL = 0
 USING_LIBPNG = 1
+USING_ASSIMP = 1
 
 TARGET    = HatchGameEngine
 TARGETDIR = builds/$(OUT_FOLDER)/$(TARGET)
@@ -105,6 +106,12 @@ endif
 ifeq ($(USING_COMPILER_OPTS), 1)
 DEFINES	 +=	-Ofast
 DEFINES	 +=	-DUSING_COMPILER_OPTS
+endif
+
+# Open Asset Importer Library
+ifeq ($(USING_ASSIMP), 1)
+LIBS	 +=	-lassimp
+DEFINES	 +=	-DUSING_ASSIMP
 endif
 
 # FFmpeg Libraries

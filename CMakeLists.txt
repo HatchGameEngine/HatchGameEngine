@@ -22,7 +22,6 @@ endif()
 
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   add_definitions(-DLINUX -DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
-   -DUSING_FREETYPE
    -DNO_LIBAV
   )
 else()
@@ -39,6 +38,17 @@ option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
+endif()
+
+option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
+option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
+
+if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+  add_definitions(-DUSING_ASSIMP)
+endif()
+
+if(USE_FREETYPE_LIBRARY)
+  add_definitions(-DUSING_FREETYPE)
 endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
@@ -73,13 +83,24 @@ endif()
 # Find the includes
 IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
-  find_package(Freetype REQUIRED)
+  if(USE_FREETYPE_LIBRARY)
+    find_package(Freetype REQUIRED)
+  endif()
   find_package(PNG)
   IF(PNG_FOUND)
     add_definitions(-DUSING_LIBPNG)
   endif()
+  if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+    find_package(assimp REQUIRED)
+    set(ASSIMP_INCLUDE_DIRS assimp_INCLUDE_DIRS)
+    set(ASSIMP_LIBRARIES assimp)
+  endif()
 else()
   set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
+  if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+    set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
+    set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
+  endif()
 endif()
 
 # Add needed directories
@@ -87,7 +108,12 @@ include_directories(
   include
   source
   ${SDL2_INCLUDE_DIRS}
+  ${ASSIMP_INCLUDE_DIRS}
 )
+
+if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+  include_directories(${ASSIMP_INCLUDE_DIRS})
+endif()
 
 # Include libraries
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -99,9 +125,11 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${WIN_RES_FILE})
   endif()
 else()
-  include_directories(
-    ${FREETYPE_INCLUDE_DIRS}
-  )
+  if(USE_FREETYPE_LIBRARY)
+    include_directories(
+      ${FREETYPE_INCLUDE_DIRS}
+    )
+  endif()
 endif()
 
 # Add libraries
@@ -113,12 +141,15 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     -lversion -luuid -lhid -lsetupapi -lws2_32)
   add_definitions(-DSDL_MAIN_HANDLED)
 else()
-  target_link_libraries(${PROJECT_NAME}
-    ${SDL2_LIBRARIES}
-    ${FREETYPE_LIBRARIES}
-    ${PNG_LIBRARIES}
-  )
-  IF(PNG_FOUND)
-    target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
-  endif()
+  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
+endif()
+
+if(USE_FREETYPE_LIBRARY)
+  target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES})
+endif()
+IF(PNG_FOUND)
+  target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+endif()
+if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+  target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
 endif()

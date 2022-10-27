@@ -383,6 +383,6 @@ PUBLIC void INI::Dispose() {
     if (iniData)
         ini_destroy(iniData);
 
-    free(this->Filename);
+    Memory::Free(Filename);
     delete this;
 }

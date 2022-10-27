@@ -20,7 +20,6 @@ need_t Entity;
 
 class Scene {
 public:
-    static Uint32                BackgroundColor;
     static int                   ShowTileCollisionFlag;
     static int                   ShowObjectRegions;
 
@@ -67,8 +66,6 @@ public:
     static int                   MainLayer;
 
     static View                  Views[MAX_SCENE_VIEWS];
-    static int                   ViewRenderList[MAX_SCENE_VIEWS];
-    static bool                  UseViewPriority;
     static int                   ViewCurrent;
     static int                   ViewsActive;
     static int                   ObjectViewRenderFlag;
@@ -122,7 +119,6 @@ int                   Scene::PriorityPerLayer = 16;
 DrawGroupList*        Scene::PriorityLists = NULL;
 
 // Rendering variables
-Uint32                Scene::BackgroundColor = 0x000000;
 int                   Scene::ShowTileCollisionFlag = 0;
 int                   Scene::ShowObjectRegions = 0;
 
@@ -153,7 +149,6 @@ bool                  Scene::Paused = false;
 float                 Scene::CameraX = 0.0f;
 float                 Scene::CameraY = 0.0f;
 View                  Scene::Views[MAX_SCENE_VIEWS];
-int                   Scene::ViewRenderList[MAX_SCENE_VIEWS];
 int                   Scene::ViewCurrent = 0;
 int                   Scene::ViewsActive = 1;
 int                   Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
@@ -180,8 +175,7 @@ bool                  DEV_NoTiles = false;
 bool                  DEV_NoObjectRender = false;
 const char*           DEBUG_lastTileColFilename = NULL;
 
-int SCOPE_SCENE = 0;
-int SCOPE_GAME = 1;
+int ViewRenderList[MAX_SCENE_VIEWS];
 int TileBatchMaxSize = 8;
 
 void _ObjectList_RemoveNonPersistentDynamicFromLists(Uint32, ObjectList* list) {
@@ -579,7 +573,7 @@ PUBLIC STATIC void Scene::Update() {
         Scene::Frame++;
 }
 
-static int _SortViews(const void *a, const void *b) {
+PUBLIC STATIC int Scene::ViewSortFunction(const void *a, const void *b) {
     View* viewA = &Scene::Views[*(const int *)a];
     View* viewB = &Scene::Views[*(const int *)b];
     return (viewA->Priority - viewB->Priority);
@@ -589,13 +583,12 @@ PUBLIC STATIC void Scene::SortViews() {
     int viewCount = 0;
 
     for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
-        if (!Scene::Views[i].Active)
-            continue;
-        Scene::ViewRenderList[viewCount++] = i;
+        if (Scene::Views[i].Active)
+            ViewRenderList[viewCount++] = i;
     }
 
-    if (viewCount >= 2)
-        qsort(Scene::ViewRenderList, viewCount, sizeof(int), _SortViews);
+    if (viewCount > 1)
+        qsort(ViewRenderList, viewCount, sizeof(int), Scene::ViewSortFunction);
 }
 
 #define PERF_START(n) n = Clock::GetTicks()
@@ -621,7 +614,7 @@ PUBLIC STATIC void Scene::Render() {
 
     int viewCount = Scene::ViewsActive;
     for (int i = 0; i < viewCount; i++) {
-        int viewIndex = Scene::ViewRenderList[i];
+        int viewIndex = ViewRenderList[i];
         View* currentView = &Scene::Views[viewIndex];
         Perf_ViewRender* viewPerf = &Scene::PERF_ViewRender[viewIndex];
 
@@ -952,6 +945,8 @@ PUBLIC STATIC void Scene::Restart() {
 
     Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
     Scene::TileViewRenderFlag = VIEW_RENDER_FLAG;
+
+    Graphics::UnloadSceneData();
 
     if (Scene::AnyLayerTileChange) {
         // Copy backup tiles into main tiles

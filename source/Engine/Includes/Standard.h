@@ -48,6 +48,9 @@ enum class Platforms {
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
+#define SCOPE_SCENE 0
+#define SCOPE_GAME 1
+
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;
 typedef uint32_t Uint32;

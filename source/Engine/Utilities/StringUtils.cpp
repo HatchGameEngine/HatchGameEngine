@@ -7,18 +7,13 @@ public:
 #endif
 
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Memory.h>
 
 PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
-    if (!src)
-        return NULL;
-
-    size_t sz = strlen(src) + 1;
-    char *dst = (char*)malloc(sz);
-    if (!dst)
-        return NULL;
-
-    memcpy(dst, src, sz);
-    return dst;
+    size_t length = strlen(src) + 1;
+    char* string = (char*)Memory::Malloc(length);
+    memcpy(string, src, length);
+    return string;
 }
 PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
@@ -101,4 +96,52 @@ PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
 
     (*dst) = num;
     return true;
+}
+PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
+    if (!filename)
+        return nullptr;
+
+    const char* sep = strrchr(filename, '/');
+    if (!sep)
+        sep = strrchr(filename, '\\');
+    if (!sep)
+        return nullptr;
+
+    size_t len = sep - filename;
+    char* path = (char*)Memory::Malloc(len + 1);
+    if (!path)
+        return nullptr;
+
+    memcpy(path, filename, len);
+    path[len] = '\0';
+
+    return path;
+}
+PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
+    if (!pathA || !pathB)
+        return nullptr;
+
+    size_t lenA = strlen(pathA);
+    size_t lenB = strlen(pathB) + 1;
+    size_t totalLen = lenA + lenB;
+
+    bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
+    if (!hasSep)
+        totalLen++;
+
+    char* newPath = (char*)Memory::Malloc(totalLen);
+    char* out = newPath;
+    if (!newPath)
+        return nullptr;
+
+    memcpy(newPath, pathA, lenA);
+    newPath += lenA;
+
+    if (!hasSep) {
+        newPath[0] = '/';
+        newPath++;
+    }
+
+    memcpy(newPath, pathB, lenB);
+    return out;
 }
