@@ -124,7 +124,7 @@ double  Overdelay = 0.0;
 double  FrameTimeStart = 0.0;
 double  FrameTimeDesired = 1000.0 / TargetFPS;
 
-int     SystemKeys[(int)SystemKey::Max];
+int     KeyBinds[(int)KeyBind::Max];
 
 ISprite*    DEBUG_fontSprite = NULL;
 void        DEBUG_DrawText(char* text, float x, float y) {
@@ -510,14 +510,14 @@ PRIVATE STATIC void Application::LoadAudioSettings() {
 
 #undef CLAMP_VOLUME
 
-SDL_Keycode SystemKeysSDL[(int)SystemKey::Max];
+SDL_Keycode KeyBindsSDL[(int)KeyBind::Max];
 
-PRIVATE STATIC void Application::LoadSystemKeys() {
+PRIVATE STATIC void Application::LoadKeyBinds() {
     XMLNode* node = nullptr;
     if (Application::GameConfig)
         node = XMLParser::SearchNode(Application::GameConfig->children[0], "keys");
 
-    #define GET_KEY(setting, sys, def) { \
+    #define GET_KEY(setting, bind, def) { \
         char read[256] = {0}; \
         if (node) { \
             XMLNode* child = XMLParser::SearchNode(node, setting); \
@@ -534,7 +534,7 @@ PRIVATE STATIC void Application::LoadSystemKeys() {
             else \
                 key = Key_UNKNOWN; \
         } \
-        Application::SetSystemKey((int)SystemKey::sys, key); \
+        Application::SetKeyBind((int)KeyBind::bind, key); \
     }
 
     GET_KEY("fullscreen",            Fullscreen,       Key_F4);
@@ -596,15 +596,15 @@ PUBLIC STATIC void Application::SetWindowBorderless(bool isBorderless) {
     SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
 }
 
-PUBLIC STATIC int  Application::GetSystemKey(int sys) {
-    return SystemKeys[sys];
+PUBLIC STATIC int  Application::GetKeyBind(int bind) {
+    return KeyBinds[bind];
 }
-PUBLIC STATIC void Application::SetSystemKey(int sys, int key) {
-    SystemKeys[sys] = key;
+PUBLIC STATIC void Application::SetKeyBind(int bind, int key) {
+    KeyBinds[bind] = key;
     if (key == Key_UNKNOWN)
-        SystemKeysSDL[sys] = SDLK_UNKNOWN;
+        KeyBindsSDL[bind] = SDLK_UNKNOWN;
     else
-        SystemKeysSDL[sys] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[key]);
+        KeyBindsSDL[bind] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[key]);
 }
 
 PRIVATE STATIC void Application::PollEvents() {
@@ -619,19 +619,19 @@ PRIVATE STATIC void Application::PollEvents() {
                 SDL_Keycode key = e.key.keysym.sym;
 
                 // Fullscreen
-                if (key == SystemKeysSDL[(int)SystemKey::Fullscreen]) {
+                if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
                     Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
                     break;
                 }
 
                 if (DevMenu) {
                     // Quit game (dev)
-                    if (key == SystemKeysSDL[(int)SystemKey::DevQuit]) {
+                    if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
                         Running = false;
                         break;
                     }
                     // Restart application (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevRestartApp]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
                         Application::Restart();
 
                         Scene::Init();
@@ -642,7 +642,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Show layer info (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevLayerInfo]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
                         for (size_t li = 0; li < Scene::Layers.size(); li++) {
                             SceneLayer layer = Scene::Layers[li];
                             Log::Print(Log::LOG_IMPORTANT, "%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)", li,
@@ -661,12 +661,12 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Print performance snapshot (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevLayerInfo]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
                         TakeSnapshot = true;
                         break;
                     }
                     // Restart scene (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevRecompile]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
                         Application::Restart();
 
                         char temp[256];
@@ -682,7 +682,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Restart scene without recompiling (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevRestartScene]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
                         // Reset FPS timer
                         BenchmarkFrameCount = 0;
 
@@ -691,7 +691,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Enable update speedup (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevFastForward]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevFastForward]) {
                         if (UpdatesPerFrame == 1)
                             UpdatesPerFrame = UpdatesPerFastForward;
                         else
@@ -701,26 +701,26 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Cycle view tile collision (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevTileCol]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevTileCol]) {
                         Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag + 1) % 3;
                         Application::UpdateWindowTitle();
                         break;
                     }
                     // View object regions (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevObjectRegions]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevObjectRegions]) {
                         Scene::ShowObjectRegions ^= 1;
                         Application::UpdateWindowTitle();
                         break;
                     }
                     // Toggle frame stepper (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevFrameStepper]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevFrameStepper]) {
                         Stepper = !Stepper;
                         MetricFrameCounterTime = 0;
                         Application::UpdateWindowTitle();
                         break;
                     }
                     // Step frame (dev)
-                    else if (key == SystemKeysSDL[(int)SystemKey::DevStepFrame]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevStepFrame]) {
                         Stepper = true;
                         Step = true;
                         MetricFrameCounterTime++;
@@ -1237,7 +1237,7 @@ PUBLIC STATIC bool Application::LoadSettings(const char* filename) {
 PUBLIC STATIC void Application::ReadSettings() {
     Application::LoadAudioSettings();
     Application::LoadDevSettings();
-    Application::LoadSystemKeys();
+    Application::LoadKeyBinds();
 }
 
 PUBLIC STATIC void Application::ReloadSettings() {

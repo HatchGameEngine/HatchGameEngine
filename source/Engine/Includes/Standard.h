@@ -38,7 +38,7 @@ enum class Platforms {
     Unknown
 };
 
-enum class SystemKey {
+enum class KeyBind {
     Fullscreen,
     DevRestartApp,
     DevRestartScene,

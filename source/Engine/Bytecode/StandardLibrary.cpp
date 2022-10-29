@@ -342,28 +342,28 @@ VMValue ReturnString(char* str) {
 
 // #region Application
 /***
- * Application.GetSystemKey
- * \desc Gets a system key.
- * \param systemKey (Integer): The system key.
+ * Application.GetKeyBind
+ * \desc Gets a keybind.
+ * \param keyBind (Integer): The keybind.
  * \ns Application
  */
-VMValue Application_GetSystemKey(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int sys = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(Application::GetSystemKey(sys));
+    int bind = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(Application::GetKeyBind(bind));
 }
 /***
- * Application.SetSystemKey
- * \desc Sets a system key.
- * \param systemKey (Integer): The system key.
+ * Application.SetKeyBind
+ * \desc Sets a keybind.
+ * \param keyBind (Integer): The keybind.
  * \param keyID (Integer): The key ID.
  * \ns Application
  */
-VMValue Application_SetSystemKey(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    int sys = GET_ARG(0, GetInteger);
+    int bind = GET_ARG(0, GetInteger);
     int key = GET_ARG(1, GetInteger);
-    Application::SetSystemKey(sys, key);
+    Application::SetKeyBind(bind, key);
     return NULL_VAL;
 }
 /***
@@ -10036,21 +10036,21 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Application
     INIT_CLASS(Application);
-    DEF_NATIVE(Application, GetSystemKey);
-    DEF_NATIVE(Application, SetSystemKey);
+    DEF_NATIVE(Application, GetKeyBind);
+    DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
-    DEF_ENUM_CLASS(SystemKey, Fullscreen);
-    DEF_ENUM_CLASS(SystemKey, DevRestartApp);
-    DEF_ENUM_CLASS(SystemKey, DevRestartScene);
-    DEF_ENUM_CLASS(SystemKey, DevRecompile);
-    DEF_ENUM_CLASS(SystemKey, DevPerfSnapshot);
-    DEF_ENUM_CLASS(SystemKey, DevLayerInfo);
-    DEF_ENUM_CLASS(SystemKey, DevFastForward);
-    DEF_ENUM_CLASS(SystemKey, DevFrameStepper);
-    DEF_ENUM_CLASS(SystemKey, DevStepFrame);
-    DEF_ENUM_CLASS(SystemKey, DevTileCol);
-    DEF_ENUM_CLASS(SystemKey, DevObjectRegions);
-    DEF_ENUM_CLASS(SystemKey, DevQuit);
+    DEF_ENUM_CLASS(KeyBind, Fullscreen);
+    DEF_ENUM_CLASS(KeyBind, DevRestartApp);
+    DEF_ENUM_CLASS(KeyBind, DevRestartScene);
+    DEF_ENUM_CLASS(KeyBind, DevRecompile);
+    DEF_ENUM_CLASS(KeyBind, DevPerfSnapshot);
+    DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
+    DEF_ENUM_CLASS(KeyBind, DevFastForward);
+    DEF_ENUM_CLASS(KeyBind, DevFrameStepper);
+    DEF_ENUM_CLASS(KeyBind, DevStepFrame);
+    DEF_ENUM_CLASS(KeyBind, DevTileCol);
+    DEF_ENUM_CLASS(KeyBind, DevObjectRegions);
+    DEF_ENUM_CLASS(KeyBind, DevQuit);
     // #endregion
 
     // #region Audio
