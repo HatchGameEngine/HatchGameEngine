@@ -196,6 +196,9 @@ PRIVATE STATIC void InputManager::InitStringLookup() {
     DEF_KEY(RSHIFT);
     DEF_KEY(RALT);
     DEF_KEY(RGUI);
+
+    NameMap::Keys->Put("UNKNOWN", Key_UNKNOWN);
+
     #undef  DEF_KEY
 }
 

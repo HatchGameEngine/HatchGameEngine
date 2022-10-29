@@ -57,11 +57,16 @@ PUBLIC STATIC void     SDL2Renderer::Init() {
 PUBLIC STATIC Uint32   SDL2Renderer::GetWindowFlags() {
     return 0;
 }
+PUBLIC STATIC void     SDL2Renderer::SetVSync(bool enabled) {
+    Graphics::VsyncEnabled = enabled;
+    SDL_RenderSetVSync(Renderer, enabled);
+}
 PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.0f;
 
     Graphics::Internal.Init = SDL2Renderer::Init;
     Graphics::Internal.GetWindowFlags = SDL2Renderer::GetWindowFlags;
+    Graphics::Internal.SetVSync = SDL2Renderer::SetVSync;
     Graphics::Internal.Dispose = SDL2Renderer::Dispose;
 
     // Texture management functions

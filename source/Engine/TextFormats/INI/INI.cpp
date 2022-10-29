@@ -7,7 +7,7 @@
 
 class INI {
 public:
-    char*               Filename;
+    char*               Filename = nullptr;
     vector<INISection*> Sections;
 };
 #endif
@@ -23,7 +23,7 @@ public:
 PUBLIC STATIC INI* INI::New(const char* filename) {
     INI* ini = new INI;
 
-    ini->Filename = StringUtils::Duplicate(filename);
+    ini->SetFilename(filename);
     ini->AddSection(nullptr);
 
     return ini;
@@ -49,21 +49,45 @@ PUBLIC STATIC INI* INI::Load(const char* filename) {
 
     return ini;
 }
-PUBLIC bool INI::Save() {
-    SDLStream* stream = SDLStream::New(Filename, SDLStream::WRITE_ACCESS);
+PUBLIC bool INI::Reload() {
+    SDLStream* stream = SDLStream::New(Filename, SDLStream::READ_ACCESS);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", Filename);
         return false;
     }
 
+    if (!Read(stream)) {
+        Log::Print(Log::LOG_ERROR, "Error reading '%s'!");
+        stream->Close();
+        return false;
+    }
+
+    stream->Close();
+
+    return true;
+}
+PUBLIC bool INI::Save(const char* filename) {
+    SDLStream* stream = SDLStream::New(filename, SDLStream::WRITE_ACCESS);
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+        return false;
+    }
+
     if (!Write(stream)) {
-        Log::Print(Log::LOG_ERROR, "Couldn't write to file '%s'!", Filename);
+        Log::Print(Log::LOG_ERROR, "Couldn't write to file '%s'!", filename);
         stream->Close();
         return false;
     }
 
     stream->Close();
     return true;
+}
+PUBLIC bool INI::Save() {
+    return Save(Filename);
+}
+PUBLIC void INI::SetFilename(const char* filename) {
+    Memory::Free(Filename);
+    Filename = StringUtils::Duplicate(filename);
 }
 
 PUBLIC bool INI::Read(Stream* stream) {
@@ -75,6 +99,10 @@ PUBLIC bool INI::Read(Stream* stream) {
 
     char* ptr = (char*)data;
     ptr[length] = '\0';
+
+    for (size_t i = 0; i < Sections.size(); i++)
+        delete Sections[i];
+    Sections.clear();
 
     while (*ptr) {
         // trim leading whitespace

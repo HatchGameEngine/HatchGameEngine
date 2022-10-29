@@ -340,6 +340,44 @@ VMValue ReturnString(char* str) {
     return NULL_VAL;
 }
 
+// #region Application
+/***
+ * Application.GetSystemKey
+ * \desc Gets a system key.
+ * \param systemKey (Integer): The system key.
+ * \ns Application
+ */
+VMValue Application_GetSystemKey(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int sys = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(Application::GetSystemKey(sys));
+}
+/***
+ * Application.SetSystemKey
+ * \desc Sets a system key.
+ * \param systemKey (Integer): The system key.
+ * \param keyID (Integer): The key ID.
+ * \ns Application
+ */
+VMValue Application_SetSystemKey(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int sys = GET_ARG(0, GetInteger);
+    int key = GET_ARG(1, GetInteger);
+    Application::SetSystemKey(sys, key);
+    return NULL_VAL;
+}
+/***
+ * Application.Quit
+ * \desc Closes the application.
+ * \ns Application
+ */
+VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    Application::Running = false;
+    return NULL_VAL;
+}
+// #endregion
+
 // #region Audio
 /***
  * Audio.GetMasterVolume
@@ -1031,11 +1069,12 @@ VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
 <li><code>Platform_Windows</code></li>\
 <li><code>Platform_MacOSX</code></li>\
 <li><code>Platform_Linux</code></li>\
-<li><code>Platform_Ubuntu</code></li>\
 <li><code>Platform_Switch</code></li>\
-<li><code>Platform_iOS</code></li>\
+<li><code>Platform_Playstation</code></li>\
+<li><code>Platform_Xbox</code></li>\
 <li><code>Platform_Android</code></li>\
-<li><code>Platform_Default</code></li>\
+<li><code>Platform_iOS</code></li>\
+<li><code>Platform_Unknown</code></li>\
 </ul>
  * \return Returns the current platform.
  * \ns Device
@@ -1052,9 +1091,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    bool isMobile =
-        Application::Platform == Platforms::iOS ||
-        Application::Platform == Platforms::Android;
+    bool isMobile = Application::IsMobile();
     return INTEGER_VAL((int)isMobile);
 }
 // #endregion
@@ -7313,6 +7350,44 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Settings
 /***
+ * Settings.Load
+ * \desc Loads the config from the specified filename. Calling this does not save the current settings.
+ * \param filename (String): Filepath of config.
+ * \ns Settings
+ */
+VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Application::ReloadSettings(GET_ARG(0, GetString));
+    return NULL_VAL;
+}
+/***
+ * Settings.Save
+ * \desc Saves the settings.
+ * \paramOpt filename (String): Filepath of config. This does not change the filepath of the current settings (Use <code>Settings.SetFilename</code> to do that.)
+ * \ns Settings
+ */
+VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
+    if (argCount != 0) {
+        CHECK_ARGCOUNT(1);
+        Application::SaveSettings(GET_ARG(0, GetString));
+    }
+    else {
+        Application::SaveSettings();
+    }
+    return NULL_VAL;
+}
+/***
+ * Settings.SetFilename
+ * \desc Sets the filepath of the settings.
+ * \param filename (String): Filepath of config. This does not save the current settings.
+ * \ns Settings
+ */
+VMValue Settings_SetFilename(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Application::SetSettingsFilename(GET_ARG(0, GetString));
+    return NULL_VAL;
+}
+/***
  * Settings.GetString
  * \desc Looks for a property in a section, and returns its value, as a string.
  * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
@@ -7597,16 +7672,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
     }
 
     return INTEGER_VAL(Application::Settings->GetPropertyCount(section));
-}
-/***
- * Settings.Save
- * \desc Saves the settings.
- * \ns Settings
- */
-VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    Application::SaveSettings();
-    return NULL_VAL;
 }
 // #endregion
 
@@ -9675,6 +9740,16 @@ VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(Scene::ViewCurrent);
 }
+/***
+ * View.GetCount
+ * \desc Gets the total amount of views.
+ * \return Returns an Integer value.
+ * \ns View
+ */
+VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(MAX_SCENE_VIEWS);
+}
 // #endregion
 
 // #region Window
@@ -9687,13 +9762,13 @@ VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    // HACK: Make variable "IsWindowResizeable"
-    if (Application::Platform == Platforms::iOS ||
-        Application::Platform == Platforms::Android)
+    if (!Application::IsWindowResizeable())
         return NULL_VAL;
 
     int window_w = (int)GET_ARG(0, GetDecimal);
     int window_h = (int)GET_ARG(1, GetDecimal);
+    Application::WindowWidth = window_w;
+    Application::WindowHeight = window_h;
     Application::SetWindowSize(window_w, window_h);
     return NULL_VAL;
 }
@@ -9705,13 +9780,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-
-    SDL_SetWindowFullscreen(Application::Window, GET_ARG(0, GetInteger) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-
-    int window_w, window_h;
-    SDL_GetWindowSize(Application::Window, &window_w, &window_h);
-
-    Graphics::Resize(window_w, window_h);
+    Application::SetWindowFullscreen(!!GET_ARG(0, GetInteger));
     return NULL_VAL;
 }
 /***
@@ -9722,7 +9791,18 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    SDL_SetWindowBordered(Application::Window, (SDL_bool)!GET_ARG(0, GetInteger));
+    Application::SetWindowBorderless(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Window.SetVSync
+ * \desc Enables or disables V-Sync for the active window.
+ * \param enableVsync (Boolean): Whether or not the window should use V-Sync.
+ * \ns Window
+ */
+VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Graphics::SetVSync((SDL_bool)!GET_ARG(0, GetInteger));
     return NULL_VAL;
 }
 /***
@@ -9756,9 +9836,7 @@ VMValue Window_SetPositionCentered(int argCount, VMValue* args, Uint32 threadID)
 VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
-    memset(Application::WindowTitle, 0, sizeof(Application::WindowTitle));
-    sprintf(Application::WindowTitle, "%s", string);
-    SDL_SetWindowTitle(Application::Window, Application::WindowTitle);
+    Application::SetWindowTitle(string);
     return NULL_VAL;
 }
 /***
@@ -9791,8 +9869,17 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    int v = !!(SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_FULLSCREEN_DESKTOP);
-    return INTEGER_VAL(v);
+    return INTEGER_VAL(Application::GetWindowFullscreen());
+}
+/***
+ * Window.IsResizeable
+ * \desc Gets whether or not the active window is resizeable.
+ * \return Returns <code>true</code> if the window is resizeable, <code>false</code> if otherwise.
+ * \ns Window
+ */
+VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::IsWindowResizeable());
 }
 // #endregion
 
@@ -9860,7 +9947,7 @@ static VMValue _XML_FillMap(XMLNode* parent) {
 
         attrName = (char*)realloc(attrName, strlen(key) + 2);
         if (!attrName) {
-            Log::Print(Log::LOG_ERROR, "Out of memory in XML.FillMap!");
+            Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
             abort();
         }
 
@@ -9875,7 +9962,6 @@ static VMValue _XML_FillMap(XMLNode* parent) {
 
     return OBJECT_VAL(map);
 }
-
 /***
  * XML.Parse
  * \desc Decodes a String value into a Map value.
@@ -9913,6 +9999,9 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_LINK_INT(a, b)      BytecodeObjectManager::GlobalLinkInteger(NULL, a, b)
 #define DEF_CONST_DECIMAL(a, b) BytecodeObjectManager::GlobalConstDecimal(NULL, a, b)
 #define DEF_LINK_DECIMAL(a, b)  BytecodeObjectManager::GlobalLinkDecimal(NULL, a, b)
+#define DEF_ENUM(a)             DEF_CONST_INT(#a, a)
+#define DEF_ENUM_CLASS(a, b)    DEF_CONST_INT(#a "_" #b, (int)a::b)
+#define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(#a "_" #c, (int)b::c)
 
 PUBLIC STATIC void StandardLibrary::Link() {
     VMValue val;
@@ -9944,6 +10033,25 @@ PUBLIC STATIC void StandardLibrary::Link() {
         BytecodeObjectManager::Globals->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
         BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    // #region Application
+    INIT_CLASS(Application);
+    DEF_NATIVE(Application, GetSystemKey);
+    DEF_NATIVE(Application, SetSystemKey);
+    DEF_NATIVE(Application, Quit);
+    DEF_ENUM_CLASS(SystemKey, Fullscreen);
+    DEF_ENUM_CLASS(SystemKey, DevRestartApp);
+    DEF_ENUM_CLASS(SystemKey, DevRestartScene);
+    DEF_ENUM_CLASS(SystemKey, DevRecompile);
+    DEF_ENUM_CLASS(SystemKey, DevPerfSnapshot);
+    DEF_ENUM_CLASS(SystemKey, DevLayerInfo);
+    DEF_ENUM_CLASS(SystemKey, DevFastForward);
+    DEF_ENUM_CLASS(SystemKey, DevFrameStepper);
+    DEF_ENUM_CLASS(SystemKey, DevStepFrame);
+    DEF_ENUM_CLASS(SystemKey, DevTileCol);
+    DEF_ENUM_CLASS(SystemKey, DevObjectRegions);
+    DEF_ENUM_CLASS(SystemKey, DevQuit);
+    // #endregion
 
     // #region Audio
     INIT_CLASS(Audio);
@@ -10061,14 +10169,15 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Device);
     DEF_NATIVE(Device, GetPlatform);
     DEF_NATIVE(Device, IsMobile);
-    DEF_CONST_INT("Platform_Windows", (int)Platforms::Windows);
-    DEF_CONST_INT("Platform_MacOSX", (int)Platforms::MacOSX);
-    DEF_CONST_INT("Platform_Linux", (int)Platforms::Linux);
-    DEF_CONST_INT("Platform_Ubuntu", (int)Platforms::Ubuntu);
-    DEF_CONST_INT("Platform_Switch", (int)Platforms::Switch);
-    DEF_CONST_INT("Platform_iOS", (int)Platforms::iOS);
-    DEF_CONST_INT("Platform_Android", (int)Platforms::Android);
-    DEF_CONST_INT("Platform_Default", (int)Platforms::Default);
+    DEF_ENUM_NAMED("Platform", Platforms, Windows);
+    DEF_ENUM_NAMED("Platform", Platforms, MacOSX);
+    DEF_ENUM_NAMED("Platform", Platforms, Linux);
+    DEF_ENUM_NAMED("Platform", Platforms, Switch);
+    DEF_ENUM_NAMED("Platform", Platforms, Playstation);
+    DEF_ENUM_NAMED("Platform", Platforms, Xbox);
+    DEF_ENUM_NAMED("Platform", Platforms, iOS);
+    DEF_ENUM_NAMED("Platform", Platforms, Android);
+    DEF_ENUM_NAMED("Platform", Platforms, Unknown);
     // #endregion
 
     // #region Directory
@@ -10173,38 +10282,38 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
 
-    DEF_CONST_INT("DrawMode_FillTypeMask", DrawMode_FillTypeMask);
-    DEF_CONST_INT("DrawMode_LINES", DrawMode_LINES);
-    DEF_CONST_INT("DrawMode_POLYGONS", DrawMode_POLYGONS);
-    DEF_CONST_INT("DrawMode_FLAT_LIGHTING", DrawMode_FLAT_LIGHTING);
-    DEF_CONST_INT("DrawMode_SMOOTH_LIGHTING", DrawMode_SMOOTH_LIGHTING);
-    DEF_CONST_INT("DrawMode_LINES_FLAT", DrawMode_LINES_FLAT);
-    DEF_CONST_INT("DrawMode_LINES_SMOOTH", DrawMode_LINES_SMOOTH);
-    DEF_CONST_INT("DrawMode_POLYGONS_FLAT", DrawMode_POLYGONS_FLAT);
-    DEF_CONST_INT("DrawMode_POLYGONS_SMOOTH", DrawMode_POLYGONS_SMOOTH);
-    DEF_CONST_INT("DrawMode_TEXTURED", DrawMode_TEXTURED);
-    DEF_CONST_INT("DrawMode_AFFINE", DrawMode_AFFINE);
-    DEF_CONST_INT("DrawMode_DEPTH_TEST", DrawMode_DEPTH_TEST);
-    DEF_CONST_INT("DrawMode_FOG", DrawMode_FOG);
-    DEF_CONST_INT("DrawMode_ORTHOGRAPHIC", DrawMode_ORTHOGRAPHIC);
+    DEF_ENUM(DrawMode_FillTypeMask);
+    DEF_ENUM(DrawMode_LINES);
+    DEF_ENUM(DrawMode_POLYGONS);
+    DEF_ENUM(DrawMode_FLAT_LIGHTING);
+    DEF_ENUM(DrawMode_SMOOTH_LIGHTING);
+    DEF_ENUM(DrawMode_LINES_FLAT);
+    DEF_ENUM(DrawMode_LINES_SMOOTH);
+    DEF_ENUM(DrawMode_POLYGONS_FLAT);
+    DEF_ENUM(DrawMode_POLYGONS_SMOOTH);
+    DEF_ENUM(DrawMode_TEXTURED);
+    DEF_ENUM(DrawMode_AFFINE);
+    DEF_ENUM(DrawMode_DEPTH_TEST);
+    DEF_ENUM(DrawMode_FOG);
+    DEF_ENUM(DrawMode_ORTHOGRAPHIC);
 
-    DEF_CONST_INT("BlendMode_ADD", BlendMode_ADD);
-    DEF_CONST_INT("BlendMode_MAX", BlendMode_MAX);
-    DEF_CONST_INT("BlendMode_NORMAL", BlendMode_NORMAL);
-    DEF_CONST_INT("BlendMode_SUBTRACT", BlendMode_SUBTRACT);
-    DEF_CONST_INT("BlendMode_MATCH_EQUAL", BlendMode_MATCH_EQUAL);
-    DEF_CONST_INT("BlendMode_MATCH_NOT_EQUAL", BlendMode_MATCH_NOT_EQUAL);
+    DEF_ENUM(BlendMode_ADD);
+    DEF_ENUM(BlendMode_MAX);
+    DEF_ENUM(BlendMode_NORMAL);
+    DEF_ENUM(BlendMode_SUBTRACT);
+    DEF_ENUM(BlendMode_MATCH_EQUAL);
+    DEF_ENUM(BlendMode_MATCH_NOT_EQUAL);
 
-    DEF_CONST_INT("BlendFactor_ZERO", BlendFactor_ZERO);
-    DEF_CONST_INT("BlendFactor_ONE", BlendFactor_ONE);
-    DEF_CONST_INT("BlendFactor_SRC_COLOR", BlendFactor_SRC_COLOR);
-    DEF_CONST_INT("BlendFactor_INV_SRC_COLOR", BlendFactor_INV_SRC_COLOR);
-    DEF_CONST_INT("BlendFactor_SRC_ALPHA", BlendFactor_SRC_ALPHA);
-    DEF_CONST_INT("BlendFactor_INV_SRC_ALPHA", BlendFactor_INV_SRC_ALPHA);
-    DEF_CONST_INT("BlendFactor_DST_COLOR", BlendFactor_DST_COLOR);
-    DEF_CONST_INT("BlendFactor_INV_DST_COLOR", BlendFactor_INV_DST_COLOR);
-    DEF_CONST_INT("BlendFactor_DST_ALPHA", BlendFactor_DST_ALPHA);
-    DEF_CONST_INT("BlendFactor_INV_DST_ALPHA", BlendFactor_INV_DST_ALPHA);
+    DEF_ENUM(BlendFactor_ZERO);
+    DEF_ENUM(BlendFactor_ONE);
+    DEF_ENUM(BlendFactor_SRC_COLOR);
+    DEF_ENUM(BlendFactor_INV_SRC_COLOR);
+    DEF_ENUM(BlendFactor_SRC_ALPHA);
+    DEF_ENUM(BlendFactor_INV_SRC_ALPHA);
+    DEF_ENUM(BlendFactor_DST_COLOR);
+    DEF_ENUM(BlendFactor_INV_DST_COLOR);
+    DEF_ENUM(BlendFactor_DST_ALPHA);
+    DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
     // #region Ease
@@ -10400,8 +10509,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Resources, ReadAllText);
     DEF_NATIVE(Resources, UnloadImage);
 
-    DEF_CONST_INT("SCOPE_SCENE", SCOPE_SCENE);
-    DEF_CONST_INT("SCOPE_GAME", SCOPE_GAME);
+    DEF_ENUM(SCOPE_SCENE);
+    DEF_ENUM(SCOPE_GAME);
     // #endregion
 
     // #region Scene
@@ -10443,13 +10552,16 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileViewRender);
     DEF_NATIVE(Scene, IsPaused);
 
-    DEF_CONST_INT("DrawBehavior_HorizontalParallax", DrawBehavior_HorizontalParallax);
-    DEF_CONST_INT("DrawBehavior_VerticalParallax", DrawBehavior_VerticalParallax);
-    DEF_CONST_INT("DrawBehavior_CustomTileScanLines", DrawBehavior_CustomTileScanLines);
+    DEF_ENUM(DrawBehavior_HorizontalParallax);
+    DEF_ENUM(DrawBehavior_VerticalParallax);
+    DEF_ENUM(DrawBehavior_CustomTileScanLines);
     // #endregion
 
     // #region Settings
     INIT_CLASS(Settings);
+    DEF_NATIVE(Settings, Load);
+    DEF_NATIVE(Settings, Save);
+    DEF_NATIVE(Settings, SetFilename);
     DEF_NATIVE(Settings, GetString);
     DEF_NATIVE(Settings, GetNumber);
     DEF_NATIVE(Settings, GetInteger);
@@ -10465,7 +10577,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Settings, PropertyExists);
     DEF_NATIVE(Settings, RemoveProperty);
     DEF_NATIVE(Settings, GetPropertyCount);
-    DEF_NATIVE(Settings, Save);
     // #endregion
 
     // #region Shader
@@ -10640,6 +10751,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(View, SetPriority);
     DEF_NATIVE(View, GetPriority);
     DEF_NATIVE(View, GetCurrent);
+    DEF_NATIVE(View, GetCount);
     // #endregion
 
     // #region Window
@@ -10647,12 +10759,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Window, SetSize);
     DEF_NATIVE(Window, SetFullscreen);
     DEF_NATIVE(Window, SetBorderless);
+    DEF_NATIVE(Window, SetVSync);
     DEF_NATIVE(Window, SetPosition);
     DEF_NATIVE(Window, SetPositionCentered);
     DEF_NATIVE(Window, SetTitle);
     DEF_NATIVE(Window, GetWidth);
     DEF_NATIVE(Window, GetHeight);
     DEF_NATIVE(Window, GetFullscreen);
+    DEF_NATIVE(Window, IsResizeable);
     // #endregion
 
     // #region XML
@@ -10676,10 +10790,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
     DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
 
-    DEF_CONST_INT("NUM_KEYBOARD_KEYS", NUM_KEYBOARD_KEYS);
+    DEF_ENUM(NUM_KEYBOARD_KEYS);
 
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
+        CONST_KEY(UNKNOWN);
         CONST_KEY(A);
         CONST_KEY(B);
         CONST_KEY(C);
@@ -10797,6 +10912,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     #undef DEF_LINK_INT
     #undef DEF_CONST_DECIMAL
     #undef DEF_LINK_DECIMAL
+    #undef DEF_ENUM
+    #undef DEF_ENUM_CLASS
+    #undef DEF_ENUM_NAMED
 }
 PUBLIC STATIC void StandardLibrary::Dispose() {
 

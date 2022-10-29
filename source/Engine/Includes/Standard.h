@@ -27,16 +27,32 @@
 using namespace std;
 
 enum class Platforms {
-    Default,
     Windows,
     MacOSX,
     Linux,
-    Ubuntu,
     Switch,
     Playstation,
     Xbox,
     Android,
     iOS,
+    Unknown
+};
+
+enum class SystemKey {
+    Fullscreen,
+    DevRestartApp,
+    DevRestartScene,
+    DevRecompile,
+    DevPerfSnapshot,
+    DevLayerInfo,
+    DevFastForward,
+    DevFrameStepper,
+    DevStepFrame,
+    DevTileCol,
+    DevObjectRegions,
+    DevQuit,
+
+    Max
 };
 
 #ifndef __OBJC__

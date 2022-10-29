@@ -410,15 +410,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
     #endif
 
     if (Graphics::VsyncEnabled) {
-        if (SDL_GL_SetSwapInterval(-1) < 0) {
-			CHECK_GL();
-            if (SDL_GL_SetSwapInterval(1) < 0) {
-				CHECK_GL();
-                Log::Print(Log::LOG_WARN, "Could not enable V-Sync: %s", SDL_GetError());
-				CHECK_GL();
-                Graphics::VsyncEnabled = false;
-            }
-        }
+        GLRenderer::SetVSync(true);
     }
     CHECK_GL();
 
@@ -495,11 +487,29 @@ PUBLIC STATIC Uint32   GLRenderer::GetWindowFlags() {
 
     return SDL_WINDOW_OPENGL;
 }
+PUBLIC STATIC void     GLRenderer::SetVSync(bool enabled) {
+    if (enabled) {
+        if (SDL_GL_SetSwapInterval(-1) < 0) {
+            CHECK_GL();
+            if (SDL_GL_SetSwapInterval(1) < 0) {
+                CHECK_GL();
+                Log::Print(Log::LOG_WARN, "Could not enable V-Sync: %s", SDL_GetError());
+                CHECK_GL();
+                enabled = false;
+            }
+        }
+    }
+    else if (SDL_GL_SetSwapInterval(0) < 0) {
+        CHECK_GL();
+    }
+    Graphics::VsyncEnabled = enabled;
+}
 PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.0f;
 
     Graphics::Internal.Init = GLRenderer::Init;
     Graphics::Internal.GetWindowFlags = GLRenderer::GetWindowFlags;
+    Graphics::Internal.SetVSync = GLRenderer::SetVSync;
     Graphics::Internal.Dispose = GLRenderer::Dispose;
 
     // Texture management functions

@@ -203,6 +203,9 @@ PUBLIC STATIC void     Graphics::ChooseBackend() {
 PUBLIC STATIC Uint32   Graphics::GetWindowFlags() {
     return Graphics::GfxFunctions->GetWindowFlags();
 }
+PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
+    Graphics::GfxFunctions->SetVSync(enabled);
+}
 PUBLIC STATIC void     Graphics::Dispose() {
 	for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;

@@ -89,6 +89,7 @@ struct Point {
 struct GraphicsFunctions {
     void     (*Init)();
 	Uint32   (*GetWindowFlags)();
+	void     (*SetVSync)(bool enable);
 	void     (*SetGraphicsFunctions)();
 	void     (*Dispose)();
 

@@ -839,11 +839,15 @@ PUBLIC STATIC void     D3DRenderer::Init() {
 PUBLIC STATIC Uint32   D3DRenderer::GetWindowFlags() {
     return 0;
 }
+PUBLIC STATIC void     D3DRenderer::SetVSync(bool enabled) {
+    
+}
 PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.5f;
 
     Graphics::Internal.Init = D3DRenderer::Init;
     Graphics::Internal.GetWindowFlags = D3DRenderer::GetWindowFlags;
+    Graphics::Internal.SetVSync = D3DRenderer::SetVSync;
     Graphics::Internal.Dispose = D3DRenderer::Dispose;
 
     // Texture management functions

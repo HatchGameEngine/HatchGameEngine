@@ -2,6 +2,8 @@
 #define INPUT_H
 
 enum Keyboard {
+    Key_UNKNOWN = -1,
+
     Key_A,
     Key_B,
     Key_C,
