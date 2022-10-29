@@ -4,7 +4,7 @@
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Math/Math.h>
-#include <Engine/TextFormats/INI.h>
+#include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 
@@ -111,6 +111,25 @@ int         Application::SoundVolume = 100;
 
 char        StartingScene[256];
 
+enum {
+    SystemKey_Fullscreen,
+    SystemKey_DevRestartApp,
+    SystemKey_DevRestartScene,
+    SystemKey_DevRecompile,
+    SystemKey_DevPerfSnapshot,
+    SystemKey_DevLayerInfo,
+    SystemKey_DevFastForward,
+    SystemKey_DevFrameStepper,
+    SystemKey_DevStepFrame,
+    SystemKey_DevTileCol,
+    SystemKey_DevObjectRegions,
+    SystemKey_DevQuit,
+
+    SystemKey_Max
+};
+
+SDL_Keycode SystemKeys[SystemKey_Max];
+
 ISprite*    DEBUG_fontSprite = NULL;
 void        DEBUG_DrawText(char* text, float x, float y) {
     for (char* i = text; *i; i++) {
@@ -202,10 +221,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     InputManager::Init();
     Clock::Init();
 
-    Application::LoadGameConfig();
-    Application::LoadAudioSettings();
-    Application::LoadDevSettings();
-
+    Application::LoadDefaultsAndConfigs();
     Application::DisposeGameConfig();
 
     switch (Application::Platform) {
@@ -232,7 +248,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     }
 
     memset(Application::WindowTitle, 0, sizeof(Application::WindowTitle));
-    sprintf(Application::WindowTitle, "%s", "Hatch Game Engine");
+    snprintf(Application::WindowTitle, sizeof(Application::WindowTitle), "%s", "Hatch Game Engine");
     Application::UpdateWindowTitle();
 
     Running = true;
@@ -456,6 +472,13 @@ PUBLIC STATIC void Application::UpdateWindowTitle() {
     SDL_SetWindowTitle(Application::Window, full);
 }
 
+PRIVATE STATIC void Application::LoadDefaultsAndConfigs() {
+    Application::LoadGameConfig();
+    Application::LoadAudioSettings();
+    Application::LoadDevSettings();
+    Application::LoadSystemKeys();
+}
+
 PRIVATE STATIC void Application::Restart() {
     // Reset FPS timer
     BenchmarkFrameCount = 0;
@@ -467,10 +490,7 @@ PRIVATE STATIC void Application::Restart() {
     Graphics::SpriteSheetTextureMap->Clear();
 
     Application::LoadSettings();
-    Application::LoadGameConfig();
-
-    Application::LoadAudioSettings();
-    Application::LoadDevSettings();
+    Application::LoadDefaultsAndConfigs();
 
     Application::DisposeGameConfig();
 }
@@ -501,45 +521,11 @@ PUBLIC STATIC void Application::SetSoundVolume(int volume) {
 }
 
 PRIVATE STATIC void Application::LoadAudioSettings() {
-    int masterVolume = 100;
-    int musicVolume = 100, soundVolume = 100;
-
-    if (Application::GameConfig) {
-        XMLNode* gameconfig = Application::GameConfig->children[0];
-        char *xmlTokStr = NULL;
-
-#define GET_VOLUME(node, var) \
-        if (node->attributes.Exists("volume")) { \
-            free(xmlTokStr); \
-            xmlTokStr = XMLParser::TokenToString(node->attributes.Get("volume")); \
-            if (StringUtils::ToNumber(&var, xmlTokStr)) { \
-                CLAMP_VOLUME(var); \
-            } \
-        }
-
-        for (size_t i = 0; i < gameconfig->children.size(); i++) {
-            XMLNode* configItem = gameconfig->children[i];
-            if (XMLParser::MatchToken(configItem->name, "audio")) {
-                // Get master audio volume
-                GET_VOLUME(configItem, masterVolume);
-
-                // Get music and sound volume
-                for (size_t j = 0; j < configItem->children.size(); j++) {
-                    XMLNode* child = configItem->children[j];
-
-                    if (XMLParser::MatchToken(child->name, "music")) {
-                        GET_VOLUME(child, musicVolume);
-                    } else if (XMLParser::MatchToken(child->name, "sound")) {
-                        GET_VOLUME(child, soundVolume);
-                    }
-                }
-            }
-        }
-    }
-
-#undef GET_VOLUME
-
     INI* settings = Application::Settings;
+
+    int masterVolume = Application::MasterVolume;
+    int musicVolume = Application::MusicVolume;
+    int soundVolume = Application::SoundVolume;
 
 #define GET_OR_SET_VOLUME(var) \
     if (!settings->PropertyExists("audio", #var)) \
@@ -560,11 +546,64 @@ PRIVATE STATIC void Application::LoadAudioSettings() {
 
 #undef CLAMP_VOLUME
 
+PRIVATE STATIC void Application::LoadSystemKeys() {
+    XMLNode* node = nullptr;
+    if (Application::GameConfig)
+        node = XMLParser::SearchNode(Application::GameConfig->children[0], "keys");
+
+#define GET_KEY(setting, sys, def) { \
+        char read[256] = {0}; \
+        if (node) { \
+            XMLNode* child = XMLParser::SearchNode(node, setting); \
+            if (child) { \
+                XMLParser::CopyTokenToString(child->children[0]->name, read, sizeof(read)); \
+            } \
+        } \
+        Application::Settings->GetString("keys", setting, read, sizeof(read)); \
+        SystemKeys[sys] = def; \
+        if (read[0]) { \
+            int parsed = InputManager::ParseKeyName(read); \
+            if (parsed >= 0) \
+                SystemKeys[sys] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[parsed]); \
+            else \
+                SystemKeys[sys] = -1; \
+        } \
+    }
+
+    GET_KEY("fullscreen",            SystemKey_Fullscreen,       SDLK_F4);
+    GET_KEY("devRestartApp",         SystemKey_DevRestartApp,    SDLK_F1);
+    GET_KEY("devRestartScene",       SystemKey_DevRecompile,     SDLK_F5);
+    GET_KEY("devRecompile",          SystemKey_DevRestartScene,  SDLK_F6);
+    GET_KEY("devPerfSnapshot",       SystemKey_DevPerfSnapshot,  SDLK_F3);
+    GET_KEY("devLogLayerInfo",       SystemKey_DevLayerInfo,     SDLK_F2);
+    GET_KEY("devFastForward",        SystemKey_DevFastForward,   SDLK_BACKSPACE);
+    GET_KEY("devToggleFrameStepper", SystemKey_DevFrameStepper,  SDLK_F9);
+    GET_KEY("devStepFrame",          SystemKey_DevStepFrame,     SDLK_F10);
+    GET_KEY("devShowTileCol",        SystemKey_DevTileCol,       SDLK_F7);
+    GET_KEY("devShowObjectRegions",  SystemKey_DevObjectRegions, SDLK_F8);
+    GET_KEY("devQuit",               SystemKey_DevQuit,          SDLK_ESCAPE);
+
+#undef GET_KEY
+}
+
 PRIVATE STATIC void Application::LoadDevSettings() {
     Application::Settings->GetBool("dev", "devMenu", &DevMenu);
     Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
     Application::Settings->GetBool("dev", "donothing", &DoNothing);
     Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
+}
+
+PUBLIC STATIC void Application::SetWindowSize(int window_w, int window_h) {
+    SDL_SetWindowSize(Application::Window, window_w, window_h);
+
+    int defaultMonitor = 0;
+    Application::Settings->GetInteger("display", "defaultMonitor", &defaultMonitor);
+    SDL_SetWindowPosition(Application::Window, SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor));
+
+    // Incase the window just doesn't resize (Android)
+    SDL_GetWindowSize(Application::Window, &window_w, &window_h);
+
+    Graphics::Resize(window_w, window_h);
 }
 
 PRIVATE STATIC void Application::PollEvents() {
@@ -576,143 +615,124 @@ PRIVATE STATIC void Application::PollEvents() {
                 break;
             }
             case SDL_KEYDOWN: {
-                switch (e.key.keysym.sym) {
-                    // Quit game (dev)
-                    case SDLK_ESCAPE: {
-                        if (DevMenu) {
-                            Running = false;
-                        }
-                        break;
+                SDL_Keycode key = e.key.keysym.sym;
+
+                // Fullscreen
+                if (key == SystemKeys[SystemKey_Fullscreen]) {
+                    if (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+                        SDL_SetWindowFullscreen(Application::Window, 0);
                     }
-                    // Fullscreen
-                    case SDLK_F4: {
-                        if (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_FULLSCREEN_DESKTOP) {
-                            SDL_SetWindowFullscreen(Application::Window, 0);
-                        }
-                        else {
-                            // SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-                            SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-                        }
-                        int ww, wh;
-                        SDL_GetWindowSize(Application::Window, &ww, &wh);
-                        Graphics::Resize(ww, wh);
+                    else {
+                        // SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
+                        SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                    }
+                    int ww, wh;
+                    SDL_GetWindowSize(Application::Window, &ww, &wh);
+                    Graphics::Resize(ww, wh);
+                    break;
+                }
+
+                if (DevMenu) {
+                    // Quit game (dev)
+                    if (key == SystemKeys[SystemKey_DevQuit]) {
+                        Running = false;
                         break;
                     }
                     // Restart application (dev)
-                    case SDLK_F1: {
-                        if (DevMenu) {
-                            Application::Restart();
+                    else if (key == SystemKeys[SystemKey_DevRestartApp]) {
+                        Application::Restart();
 
-                            Scene::Init();
-                            if (*StartingScene)
-                                Scene::LoadScene(StartingScene);
-                            Scene::Restart();
-                            Application::UpdateWindowTitle();
+                        Scene::Init();
+                        if (*StartingScene)
+                            Scene::LoadScene(StartingScene);
+                        Scene::Restart();
+                        Application::UpdateWindowTitle();
+                        break;
+                    }
+                    // Show layer info (dev)
+                    else if (key == SystemKeys[SystemKey_DevLayerInfo]) {
+                        for (size_t li = 0; li < Scene::Layers.size(); li++) {
+                            SceneLayer layer = Scene::Layers[li];
+                            Log::Print(Log::LOG_IMPORTANT, "%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)", li,
+                                layer.Name,
+                                layer.Visible,
+                                layer.Width,
+                                layer.Height,
+                                layer.OffsetX,
+                                layer.OffsetY,
+                                layer.RelativeY,
+                                layer.ConstantY,
+                                layer.DrawGroup,
+                                layer.DrawBehavior,
+                                layer.Flags);
                         }
                         break;
                     }
                     // Print performance snapshot (dev)
-                    case SDLK_F2: {
-                        if (DevMenu) {
-                            for (size_t li = 0; li < Scene::Layers.size(); li++) {
-                                SceneLayer layer = Scene::Layers[li];
-                                Log::Print(Log::LOG_IMPORTANT, "%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)", li,
-                                    layer.Name,
-                                    layer.Visible,
-                                    layer.Width,
-                                    layer.Height,
-                                    layer.OffsetX,
-                                    layer.OffsetY,
-                                    layer.RelativeY,
-                                    layer.ConstantY,
-                                    layer.DrawGroup,
-                                    layer.DrawBehavior,
-                                    layer.Flags);
-                            }
-                        }
-                        break;
-                    }
-                    // Print performance snapshot (dev)
-                    case SDLK_F3: {
-                        if (DevMenu) {
-                            TakeSnapshot = true;
-                        }
+                    else if (key == SystemKeys[SystemKey_DevLayerInfo]) {
+                        TakeSnapshot = true;
                         break;
                     }
                     // Restart scene (dev)
-                    case SDLK_F5: {
-                        if (DevMenu) {
-                            Application::Restart();
+                    else if (key == SystemKeys[SystemKey_DevRecompile]) {
+                        Application::Restart();
 
-                            char temp[256];
-                            memcpy(temp, Scene::CurrentScene, 256);
+                        char temp[256];
+                        memcpy(temp, Scene::CurrentScene, 256);
 
-                            Scene::Init();
+                        Scene::Init();
 
-                            memcpy(Scene::CurrentScene, temp, 256);
-                            Scene::LoadScene(Scene::CurrentScene);
+                        memcpy(Scene::CurrentScene, temp, 256);
+                        Scene::LoadScene(Scene::CurrentScene);
 
-                            Scene::Restart();
-                            Application::UpdateWindowTitle();
-                        }
+                        Scene::Restart();
+                        Application::UpdateWindowTitle();
                         break;
                     }
                     // Restart scene without recompiling (dev)
-                    case SDLK_F6: {
-                        if (DevMenu) {
-                            // Reset FPS timer
-                            BenchmarkFrameCount = 0;
+                    else if (key == SystemKeys[SystemKey_DevRestartScene]) {
+                        // Reset FPS timer
+                        BenchmarkFrameCount = 0;
 
-                            Scene::Restart();
-                            Application::UpdateWindowTitle();
-                        }
+                        Scene::Restart();
+                        Application::UpdateWindowTitle();
                         break;
                     }
                     // Enable update speedup (dev)
-                    case SDLK_BACKSPACE: {
-                        if (DevMenu) {
-                            if (UpdatesPerFrame == 1)
-                                UpdatesPerFrame = UpdatesPerFastForward;
-                            else
-                                UpdatesPerFrame = 1;
+                    else if (key == SystemKeys[SystemKey_DevFastForward]) {
+                        if (UpdatesPerFrame == 1)
+                            UpdatesPerFrame = UpdatesPerFastForward;
+                        else
+                            UpdatesPerFrame = 1;
 
-                            Application::UpdateWindowTitle();
-                        }
+                        Application::UpdateWindowTitle();
                         break;
                     }
                     // Cycle view tile collision (dev)
-                    case SDLK_F7: {
-                        if (DevMenu) {
-                            Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag + 1) % 3;
-                            Application::UpdateWindowTitle();
-                        }
+                    else if (key == SystemKeys[SystemKey_DevTileCol]) {
+                        Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag + 1) % 3;
+                        Application::UpdateWindowTitle();
                         break;
                     }
-                    // Cycle view object regions (dev)
-                    case SDLK_F8: {
-                        if (DevMenu) {
-                            Scene::ShowObjectRegions ^= 1;
-                            Application::UpdateWindowTitle();
-                        }
+                    // View object regions (dev)
+                    else if (key == SystemKeys[SystemKey_DevObjectRegions]) {
+                        Scene::ShowObjectRegions ^= 1;
+                        Application::UpdateWindowTitle();
                         break;
                     }
                     // Toggle frame stepper (dev)
-                    case SDLK_F9: {
-                        if (DevMenu) {
-                            Stepper = !Stepper;
-                            MetricFrameCounterTime = 0;
-                            Application::UpdateWindowTitle();
-                        }
+                    else if (key == SystemKeys[SystemKey_DevFrameStepper]) {
+                        Stepper = !Stepper;
+                        MetricFrameCounterTime = 0;
+                        Application::UpdateWindowTitle();
                         break;
                     }
                     // Step frame (dev)
-                    case SDLK_F10: {
-                        if (DevMenu) {
-                            Stepper = true;
-                            Step = true;
-                            MetricFrameCounterTime++;
-                            Application::UpdateWindowTitle();
-                        }
+                    else if (key == SystemKeys[SystemKey_DevStepFrame]) {
+                        Stepper = true;
+                        Step = true;
+                        MetricFrameCounterTime++;
+                        Application::UpdateWindowTitle();
                         break;
                     }
                 }
@@ -1136,18 +1156,81 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     StartingScene[0] = '\0';
 
     Application::GameConfig = XMLParser::ParseFromResource("GameConfig.xml");
-    if (!Application::GameConfig) return;
+    if (!Application::GameConfig)
+        return;
+    XMLNode* root = Application::GameConfig->children[0];
+    XMLNode* node;
 
-    XMLNode* gameconfig = Application::GameConfig->children[0];
+    // Read display defaults
+    node = XMLParser::SearchNode(root, "display");
+    if (node) {
+        XMLNode* parent = node;
 
-    for (size_t i = 0; i < gameconfig->children.size(); i++) {
-        XMLNode* configItem = gameconfig->children[i];
-        if (XMLParser::MatchToken(configItem->name, "startscene")) {
-            Token value = configItem->children[0]->name;
-            memcpy(StartingScene, value.Start, value.Length);
-            StartingScene[value.Length] = 0;
+        bool anyChanged = false;
+        char read[256];
+
+        // Read width
+        node = XMLParser::SearchNode(parent, "width");
+        if (node) {
+            XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
+            StringUtils::ToNumber(&Application::WindowWidth, read);
+            anyChanged = true;
+        }
+
+        // Read height
+        node = XMLParser::SearchNode(parent, "height");
+        if (node) {
+            XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
+            StringUtils::ToNumber(&Application::WindowHeight, read);
+        }
+
+        // Read scale
+        double scale = 1.0f;
+        node = XMLParser::SearchNode(parent, "scale");
+        if (node) {
+            XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
+            StringUtils::ToDecimal(&scale, read);
+        }
+
+        // Set new window size
+        if (anyChanged)
+            Application::SetWindowSize(Application::WindowWidth * scale, Application::WindowHeight * scale);
+    }
+
+#define GET_VOLUME(node, func) \
+    if (node->attributes.Exists("volume")) { \
+        int volume; \
+        char xmlTokStr[32]; \
+        XMLParser::CopyTokenToString(node->attributes.Get("volume"), xmlTokStr, sizeof(xmlTokStr)); \
+        if (StringUtils::ToNumber(&volume, xmlTokStr)) \
+            Application::func(volume); \
+    }
+    // Read audio defaults
+    node = XMLParser::SearchNode(root, "audio");
+    if (node) {
+        // Get master audio volume
+        GET_VOLUME(node, SetMasterVolume);
+
+        XMLNode* parent = node;
+
+        // Get music volume
+        node = XMLParser::SearchNode(parent, "music");
+        if (node) {
+            GET_VOLUME(node, SetMusicVolume);
+        }
+
+        // Get sound volume
+        node = XMLParser::SearchNode(parent, "sound");
+        if (node) {
+            GET_VOLUME(node, SetSoundVolume);
         }
     }
+#undef GET_VOLUME
+
+    // Read starting scene
+    node = XMLParser::SearchNode(root, "startscene");
+    if (node)
+        XMLParser::CopyTokenToString(node->children[0]->name, StartingScene, sizeof(StartingScene));
 }
 
 PRIVATE STATIC void Application::DisposeGameConfig() {

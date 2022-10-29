@@ -279,7 +279,7 @@
     <ClCompile Include="..\source\engine\scene\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\textformats\INI.cpp">
+    <ClCompile Include="..\source\engine\textformats\ini\INI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp">
@@ -321,6 +321,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\includes\BijectiveMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\includes\HashMap.h">
@@ -392,6 +395,9 @@
     <ClInclude Include="..\include\engine\sprites\Animation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\engine\textformats\json\jsmn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -411,9 +417,6 @@
       <Filter>Source Files\External Libs</Filter>
     </ClInclude>
     <ClInclude Include="..\source\Libraries\stb_vorbis.h">
-      <Filter>Source Files\External Libs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\Libraries\ini.h">
       <Filter>Source Files\External Libs</Filter>
     </ClInclude>
   </ItemGroup>

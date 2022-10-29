@@ -481,10 +481,10 @@ PUBLIC STATIC void Scene::Init() {
         Scene::Views[i].Active = false;
         Scene::Views[i].Software = false;
         Scene::Views[i].Priority = 0;
-        Scene::Views[i].Width = 640;
-        Scene::Views[i].Height = 480;
-        Scene::Views[i].OutputWidth = 640;
-        Scene::Views[i].OutputHeight = 480;
+        Scene::Views[i].Width = Application::WindowWidth;
+        Scene::Views[i].Height = Application::WindowHeight;
+        Scene::Views[i].OutputWidth = Application::WindowWidth;
+        Scene::Views[i].OutputHeight = Application::WindowHeight;
         Scene::Views[i].Stride = _CEILPOW(Scene::Views[i].Width);
         Scene::Views[i].FOV = 45.0f;
         Scene::Views[i].UsePerspective = false;

@@ -9694,18 +9694,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 
     int window_w = (int)GET_ARG(0, GetDecimal);
     int window_h = (int)GET_ARG(1, GetDecimal);
-    Application::WindowWidth = window_w;
-    Application::WindowHeight = window_h;
-    SDL_SetWindowSize(Application::Window, window_w, window_h);
-
-    int defaultMonitor = 0;
-    Application::Settings->GetInteger("display", "defaultMonitor", &defaultMonitor);
-    SDL_SetWindowPosition(Application::Window, SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor));
-
-    // Incase the window just doesn't resize (Android)
-    SDL_GetWindowSize(Application::Window, &window_w, &window_h);
-
-    Graphics::Resize(window_w, window_h);
+    Application::SetWindowSize(window_w, window_h);
     return NULL_VAL;
 }
 /***

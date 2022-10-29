@@ -533,6 +533,23 @@ PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
     return string;
 }
 
+PUBLIC STATIC void     XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {
+    size_t length = tok.Length;
+    if (length >= size)
+        length = size - 1;
+    memcpy(buffer, tok.Start, length);
+    buffer[length] = '\0';
+}
+
+PUBLIC STATIC XMLNode* XMLParser::SearchNode(XMLNode* root, const char* search) {
+    for (size_t i = 0; i < root->children.size(); i++) {
+        XMLNode* node = root->children[i];
+        if (XMLParser::MatchToken(node->name, search))
+            return node;
+    }
+    return nullptr;
+}
+
 void FreeNode(XMLNode* root) {
     root->attributes.Dispose();
     for (size_t i = 0; i < root->children.size(); i++) {

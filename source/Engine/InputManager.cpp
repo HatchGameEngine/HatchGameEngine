@@ -16,7 +16,7 @@ public:
 
     static Uint8               KeyboardState[0x120];
     static Uint8               KeyboardStateLast[0x120];
-    static int                 KeyToSDLScancode[NUM_KEYBOARD_KEYS];
+    static SDL_Scancode        KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
     static int                 NumControllers;
     static vector<Controller*> Controllers;
@@ -36,7 +36,7 @@ int                 InputManager::MouseReleased = 0;
 
 Uint8               InputManager::KeyboardState[0x120];
 Uint8               InputManager::KeyboardStateLast[0x120];
-int                 InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
+SDL_Scancode        InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
 int                 InputManager::NumControllers;
 vector<Controller*> InputManager::Controllers;
@@ -400,15 +400,15 @@ PUBLIC STATIC void  InputManager::Poll() {
 }
 
 PUBLIC STATIC bool  InputManager::IsKeyDown(int key) {
-    int scancode = KeyToSDLScancode[key];
+    int scancode = (int)KeyToSDLScancode[key];
     return KeyboardState[scancode];
 }
 PUBLIC STATIC bool  InputManager::IsKeyPressed(int key) {
-    int scancode = KeyToSDLScancode[key];
+    int scancode = (int)KeyToSDLScancode[key];
     return KeyboardState[scancode] && !KeyboardStateLast[scancode];
 }
 PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
-    int scancode = KeyToSDLScancode[key];
+    int scancode = (int)KeyToSDLScancode[key];
     return !KeyboardState[key] && KeyboardStateLast[key];
 }
 

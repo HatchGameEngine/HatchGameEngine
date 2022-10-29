@@ -236,7 +236,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\scene\TileConfig.cpp" />
     <ClCompile Include="..\source\engine\scene\TileSpriteInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\View.cpp" />
-    <ClCompile Include="..\source\engine\textformats\INI.cpp" />
+    <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp" />
     <ClCompile Include="..\source\Engine\Types\DrawGroupList.cpp" />
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
@@ -250,6 +250,7 @@ CD ..</Command>
     <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h" />
     <ClInclude Include="..\include\engine\bytecode\Types.h" />
     <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h" />
+    <ClInclude Include="..\include\engine\includes\BijectiveMap.h" />
     <ClInclude Include="..\include\engine\includes\HashMap.h" />
     <ClInclude Include="..\include\engine\includes\Standard.h" />
     <ClInclude Include="..\include\engine\includes\StandardSDL2.h" />
@@ -273,11 +274,11 @@ CD ..</Command>
     <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h" />
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h" />
     <ClInclude Include="..\include\engine\sprites\Animation.h" />
+    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h" />
     <ClInclude Include="..\include\engine\textformats\json\jsmn.h" />
     <ClInclude Include="..\include\engine\textformats\xml\XMLNode.h" />
     <ClInclude Include="..\include\Engine\Types\DrawGroupList.h" />
     <ClInclude Include="..\include\engine\types\EntityTypes.h" />
-    <ClInclude Include="..\source\Libraries\ini.h" />
     <ClInclude Include="..\source\Libraries\miniz.h" />
     <ClInclude Include="..\source\Libraries\stb_image.h" />
     <ClInclude Include="..\source\Libraries\stb_vorbis.h" />
