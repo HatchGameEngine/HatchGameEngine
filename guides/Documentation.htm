@@ -334,6 +334,12 @@
                     <li><a href="#Reference_Input_GetControllerAxis">Input.GetControllerAxis</a></li>
                     <li><a href="#Reference_Input_GetControllerButton">Input.GetControllerButton</a></li>
                     <li><a href="#Reference_Input_GetControllerName">Input.GetControllerName</a></li>
+                    <li><a href="#Reference_Input_GetKeyName">Input.GetKeyName</a></li>
+                    <li><a href="#Reference_Input_GetButtonName">Input.GetButtonName</a></li>
+                    <li><a href="#Reference_Input_GetAxisName">Input.GetAxisName</a></li>
+                    <li><a href="#Reference_Input_ParseKeyName">Input.ParseKeyName</a></li>
+                    <li><a href="#Reference_Input_ParseButtonName">Input.ParseButtonName</a></li>
+                    <li><a href="#Reference_Input_ParseAxisName">Input.ParseAxisName</a></li>
                 </ul>
             </p>
             <p id="Reference_Instance">
@@ -2953,6 +2959,78 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the name of the controller at the index.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_GetKeyName">
+        <h2 style="margin-bottom: 8px;">Input.GetKeyName</h2>
+        <code>Input.GetKeyName(keyID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the key.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyID (Integer): Index of the key to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the key.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_GetButtonName">
+        <h2 style="margin-bottom: 8px;">Input.GetButtonName</h2>
+        <code>Input.GetButtonName(buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the button.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>buttonIndex (Integer): Index of the button to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the button.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_GetAxisName">
+        <h2 style="margin-bottom: 8px;">Input.GetAxisName</h2>
+        <code>Input.GetAxisName(axisIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the axis.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>axisIndex (Integer): Index of the axis to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the axis.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_ParseKeyName">
+        <h2 style="margin-bottom: 8px;">Input.ParseKeyName</h2>
+        <code>Input.ParseKeyName(keyName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Parses a key name into its ID, if possible.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyName (String): The key name to parse.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the parsed key ID, or <code>null</code> if it could not be parsed.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_ParseButtonName">
+        <h2 style="margin-bottom: 8px;">Input.ParseButtonName</h2>
+        <code>Input.ParseButtonName(keyName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Parses a button name into a button index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyName (String): The button name to parse.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the parsed button index, or <code>null</code> if it could not be parsed.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Input_ParseAxisName">
+        <h2 style="margin-bottom: 8px;">Input.ParseAxisName</h2>
+        <code>Input.ParseAxisName(keyName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Parses an axis into an axis index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyName (String): The axis name to parse.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the parsed axis index, or <code>null</code> if it could not be parsed.</div>
         </p>
         <hr/>
         <p id="Reference_Instance_Create">
@@ -5747,6 +5825,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>375 out of 447 functions have descriptions. </p>
+        <p>381 out of 453 functions have descriptions. </p>
     </body>
 </html>

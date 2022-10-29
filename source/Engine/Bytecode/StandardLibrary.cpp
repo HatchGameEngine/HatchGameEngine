@@ -331,6 +331,15 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
     }
 }
 
+VMValue ReturnString(char* str) {
+    if (str && BytecodeObjectManager::Lock()) {
+        ObjString* string = CopyString(str, strlen(str));
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(string);
+    }
+    return NULL_VAL;
+}
+
 // #region Audio
 /***
  * Audio.GetMasterVolume
@@ -832,13 +841,7 @@ VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
 
     CHECK_CONTROLLER_INDEX(index);
 
-    char* name = InputManager::ControllerGetName(index);
-    if (name && BytecodeObjectManager::Lock()) {
-        ObjString* string = CopyString(name, strlen(name));
-        BytecodeObjectManager::Unlock();
-        return OBJECT_VAL(string);
-    }
-    return NULL_VAL;
+    return ReturnString(InputManager::ControllerGetName(index));
 }
 /***
  * Controller.SetPlayerIndex
@@ -4104,7 +4107,7 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(InputManager::KeyboardState[key]);
+    return INTEGER_VAL(InputManager::IsKeyDown(key));
 }
 /***
  * Input.IsKeyPressed
@@ -4116,7 +4119,7 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = InputManager::KeyboardState[key] && !InputManager::KeyboardStateLast[key];
+    int down = InputManager::IsKeyPressed(key);
     return INTEGER_VAL(down);
 }
 /***
@@ -4129,7 +4132,7 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = !InputManager::KeyboardState[key] && InputManager::KeyboardStateLast[key];
+    int down = InputManager::IsKeyReleased(key);
     return INTEGER_VAL(down);
 }
 /***
@@ -4199,6 +4202,87 @@ VMValue Input_GetControllerName(int argCount, VMValue* args, Uint32 threadID) {
     return Controller_GetName(argCount, args, threadID);
 }
 #undef CHECK_CONTROLLER_INDEX
+/***
+ * Input.GetKeyName
+ * \desc Gets the name of the key.
+ * \param keyID (Integer): Index of the key to check.
+ * \return Returns the name of the key.
+ * \ns Input
+ */
+VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int key = GET_ARG(0, GetInteger);
+    return ReturnString(InputManager::GetKeyName(key));
+}
+/***
+ * Input.GetButtonName
+ * \desc Gets the name of the button.
+ * \param buttonIndex (Integer): Index of the button to check.
+ * \return Returns the name of the button.
+ * \ns Input
+ */
+VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int key = GET_ARG(0, GetInteger);
+    return ReturnString(InputManager::GetButtonName(key));
+}
+/***
+ * Input.GetAxisName
+ * \desc Gets the name of the axis.
+ * \param axisIndex (Integer): Index of the axis to check.
+ * \return Returns the name of the axis.
+ * \ns Input
+ */
+VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int key = GET_ARG(0, GetInteger);
+    return ReturnString(InputManager::GetAxisName(key));
+}
+/***
+ * Input.ParseKeyName
+ * \desc Parses a key name into its ID, if possible.
+ * \param keyName (String): The key name to parse.
+ * \return Returns the parsed key ID, or <code>null</code> if it could not be parsed.
+ * \ns Input
+ */
+VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* key = GET_ARG(0, GetString);
+    int parsed = InputManager::ParseKeyName(key);
+    if (parsed < 0)
+        return NULL_VAL;
+    return INTEGER_VAL(parsed);
+}
+/***
+ * Input.ParseButtonName
+ * \desc Parses a button name into a button index.
+ * \param keyName (String): The button name to parse.
+ * \return Returns the parsed button index, or <code>null</code> if it could not be parsed.
+ * \ns Input
+ */
+VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* button = GET_ARG(0, GetString);
+    int parsed = InputManager::ParseButtonName(button);
+    if (parsed < 0)
+        return NULL_VAL;
+    return INTEGER_VAL(parsed);
+}
+/***
+ * Input.ParseAxisName
+ * \desc Parses an axis into an axis index.
+ * \param keyName (String): The axis name to parse.
+ * \return Returns the parsed axis index, or <code>null</code> if it could not be parsed.
+ * \ns Input
+ */
+VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* axis = GET_ARG(0, GetString);
+    int parsed = InputManager::ParseAxisName(axis);
+    if (parsed < 0)
+        return NULL_VAL;
+    return INTEGER_VAL(parsed);
+}
 // #endregion
 
 // #region IO
@@ -9836,6 +9920,11 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
     String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
     String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
 
+#define DEF_CONST_INT(a, b)     BytecodeObjectManager::GlobalConstInteger(NULL, a, b)
+#define DEF_LINK_INT(a, b)      BytecodeObjectManager::GlobalLinkInteger(NULL, a, b)
+#define DEF_CONST_DECIMAL(a, b) BytecodeObjectManager::GlobalConstDecimal(NULL, a, b)
+#define DEF_LINK_DECIMAL(a, b)  BytecodeObjectManager::GlobalLinkDecimal(NULL, a, b)
+
 PUBLIC STATIC void StandardLibrary::Link() {
     VMValue val;
     ObjClass* klass;
@@ -9913,7 +10002,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, SetRumblePaused);
     DEF_NATIVE(Controller, SetLargeMotorFrequency);
     DEF_NATIVE(Controller, SetSmallMotorFrequency);
-    #define CONST_BUTTON(x, y) BytecodeObjectManager::GlobalConstInteger(NULL, "Button_"#x, (int)ControllerButton::y)
+    DEF_CONST_INT("NUM_CONTROLLER_BUTTONS", (int)ControllerButton::Max);
+    DEF_CONST_INT("NUM_CONTROLLER_AXES", (int)ControllerAxis::Max);
+    #define CONST_BUTTON(x, y) DEF_CONST_INT("Button_"#x, (int)ControllerButton::y)
     {
         CONST_BUTTON(A, A);
         CONST_BUTTON(B, B);
@@ -9940,7 +10031,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
         CONST_BUTTON(MISC1, Misc1);
     }
     #undef CONST_BUTTON
-    #define CONST_AXIS(x, y) BytecodeObjectManager::GlobalConstInteger(NULL, "Axis_"#x, (int)ControllerAxis::y)
+    #define CONST_AXIS(x, y) DEF_CONST_INT("Axis_"#x, (int)ControllerAxis::y)
     {
         CONST_AXIS(LEFTX, LeftX);
         CONST_AXIS(LEFTY, LeftY);
@@ -9950,7 +10041,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
         CONST_AXIS(TRIGGERRIGHT, TriggerRight);
     }
     #undef CONST_AXIS
-    #define CONST_CONTROLLER(type) BytecodeObjectManager::GlobalConstInteger(NULL, "Axis_"#type, (int)ControllerType::type)
+    #define CONST_CONTROLLER(type) DEF_CONST_INT("Axis_"#type, (int)ControllerType::type)
     {
         CONST_CONTROLLER(Xbox360);
         CONST_CONTROLLER(XboxOne);
@@ -9981,14 +10072,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Device);
     DEF_NATIVE(Device, GetPlatform);
     DEF_NATIVE(Device, IsMobile);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Windows", (int)Platforms::Windows);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_MacOSX", (int)Platforms::MacOSX);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Linux", (int)Platforms::Linux);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Ubuntu", (int)Platforms::Ubuntu);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Switch", (int)Platforms::Switch);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_iOS", (int)Platforms::iOS);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Android", (int)Platforms::Android);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "Platform_Default", (int)Platforms::Default);
+    DEF_CONST_INT("Platform_Windows", (int)Platforms::Windows);
+    DEF_CONST_INT("Platform_MacOSX", (int)Platforms::MacOSX);
+    DEF_CONST_INT("Platform_Linux", (int)Platforms::Linux);
+    DEF_CONST_INT("Platform_Ubuntu", (int)Platforms::Ubuntu);
+    DEF_CONST_INT("Platform_Switch", (int)Platforms::Switch);
+    DEF_CONST_INT("Platform_iOS", (int)Platforms::iOS);
+    DEF_CONST_INT("Platform_Android", (int)Platforms::Android);
+    DEF_CONST_INT("Platform_Default", (int)Platforms::Default);
     // #endregion
 
     // #region Directory
@@ -10093,38 +10184,38 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FillTypeMask", DrawMode_FillTypeMask);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES", DrawMode_LINES);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS", DrawMode_POLYGONS);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FLAT_LIGHTING", DrawMode_FLAT_LIGHTING);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_SMOOTH_LIGHTING", DrawMode_SMOOTH_LIGHTING);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_FLAT", DrawMode_LINES_FLAT);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_LINES_SMOOTH", DrawMode_LINES_SMOOTH);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_FLAT", DrawMode_POLYGONS_FLAT);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_POLYGONS_SMOOTH", DrawMode_POLYGONS_SMOOTH);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_TEXTURED", DrawMode_TEXTURED);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_AFFINE", DrawMode_AFFINE);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_DEPTH_TEST", DrawMode_DEPTH_TEST);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_FOG", DrawMode_FOG);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawMode_ORTHOGRAPHIC", DrawMode_ORTHOGRAPHIC);
+    DEF_CONST_INT("DrawMode_FillTypeMask", DrawMode_FillTypeMask);
+    DEF_CONST_INT("DrawMode_LINES", DrawMode_LINES);
+    DEF_CONST_INT("DrawMode_POLYGONS", DrawMode_POLYGONS);
+    DEF_CONST_INT("DrawMode_FLAT_LIGHTING", DrawMode_FLAT_LIGHTING);
+    DEF_CONST_INT("DrawMode_SMOOTH_LIGHTING", DrawMode_SMOOTH_LIGHTING);
+    DEF_CONST_INT("DrawMode_LINES_FLAT", DrawMode_LINES_FLAT);
+    DEF_CONST_INT("DrawMode_LINES_SMOOTH", DrawMode_LINES_SMOOTH);
+    DEF_CONST_INT("DrawMode_POLYGONS_FLAT", DrawMode_POLYGONS_FLAT);
+    DEF_CONST_INT("DrawMode_POLYGONS_SMOOTH", DrawMode_POLYGONS_SMOOTH);
+    DEF_CONST_INT("DrawMode_TEXTURED", DrawMode_TEXTURED);
+    DEF_CONST_INT("DrawMode_AFFINE", DrawMode_AFFINE);
+    DEF_CONST_INT("DrawMode_DEPTH_TEST", DrawMode_DEPTH_TEST);
+    DEF_CONST_INT("DrawMode_FOG", DrawMode_FOG);
+    DEF_CONST_INT("DrawMode_ORTHOGRAPHIC", DrawMode_ORTHOGRAPHIC);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_ADD", BlendMode_ADD);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_MAX", BlendMode_MAX);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_NORMAL", BlendMode_NORMAL);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_SUBTRACT", BlendMode_SUBTRACT);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_MATCH_EQUAL", BlendMode_MATCH_EQUAL);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendMode_MATCH_NOT_EQUAL", BlendMode_MATCH_NOT_EQUAL);
+    DEF_CONST_INT("BlendMode_ADD", BlendMode_ADD);
+    DEF_CONST_INT("BlendMode_MAX", BlendMode_MAX);
+    DEF_CONST_INT("BlendMode_NORMAL", BlendMode_NORMAL);
+    DEF_CONST_INT("BlendMode_SUBTRACT", BlendMode_SUBTRACT);
+    DEF_CONST_INT("BlendMode_MATCH_EQUAL", BlendMode_MATCH_EQUAL);
+    DEF_CONST_INT("BlendMode_MATCH_NOT_EQUAL", BlendMode_MATCH_NOT_EQUAL);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_ZERO", BlendFactor_ZERO);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_ONE", BlendFactor_ONE);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_SRC_COLOR", BlendFactor_SRC_COLOR);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_INV_SRC_COLOR", BlendFactor_INV_SRC_COLOR);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_SRC_ALPHA", BlendFactor_SRC_ALPHA);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_INV_SRC_ALPHA", BlendFactor_INV_SRC_ALPHA);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_DST_COLOR", BlendFactor_DST_COLOR);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_INV_DST_COLOR", BlendFactor_INV_DST_COLOR);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_DST_ALPHA", BlendFactor_DST_ALPHA);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "BlendFactor_INV_DST_ALPHA", BlendFactor_INV_DST_ALPHA);
+    DEF_CONST_INT("BlendFactor_ZERO", BlendFactor_ZERO);
+    DEF_CONST_INT("BlendFactor_ONE", BlendFactor_ONE);
+    DEF_CONST_INT("BlendFactor_SRC_COLOR", BlendFactor_SRC_COLOR);
+    DEF_CONST_INT("BlendFactor_INV_SRC_COLOR", BlendFactor_INV_SRC_COLOR);
+    DEF_CONST_INT("BlendFactor_SRC_ALPHA", BlendFactor_SRC_ALPHA);
+    DEF_CONST_INT("BlendFactor_INV_SRC_ALPHA", BlendFactor_INV_SRC_ALPHA);
+    DEF_CONST_INT("BlendFactor_DST_COLOR", BlendFactor_DST_COLOR);
+    DEF_CONST_INT("BlendFactor_INV_DST_COLOR", BlendFactor_INV_DST_COLOR);
+    DEF_CONST_INT("BlendFactor_DST_ALPHA", BlendFactor_DST_ALPHA);
+    DEF_CONST_INT("BlendFactor_INV_DST_ALPHA", BlendFactor_INV_DST_ALPHA);
     // #endregion
 
     // #region Ease
@@ -10191,14 +10282,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, GetControllerAxis);
     DEF_NATIVE(Input, GetControllerButton);
     DEF_NATIVE(Input, GetControllerName);
-    // DEF_NATIVE(Key, IsDown);
-    // DEF_NATIVE(Key, IsPressed);
-    // DEF_NATIVE(Key, IsReleased);
-    // DEF_NATIVE(Mouse, GetX);
-    // DEF_NATIVE(Mouse, GetY);
-    // DEF_NATIVE(Mouse, IsButtonDown);
-    // DEF_NATIVE(Mouse, IsButtonPressed);
-    // DEF_NATIVE(Mouse, IsButtonReleased);
+    DEF_NATIVE(Input, GetKeyName);
+    DEF_NATIVE(Input, GetButtonName);
+    DEF_NATIVE(Input, GetAxisName);
+    DEF_NATIVE(Input, ParseKeyName);
+    DEF_NATIVE(Input, ParseButtonName);
+    DEF_NATIVE(Input, ParseAxisName);
     // #endregion
 
     // #region Instance
@@ -10322,8 +10411,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Resources, ReadAllText);
     DEF_NATIVE(Resources, UnloadImage);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_SCENE", SCOPE_SCENE);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SCOPE_GAME", SCOPE_GAME);
+    DEF_CONST_INT("SCOPE_SCENE", SCOPE_SCENE);
+    DEF_CONST_INT("SCOPE_GAME", SCOPE_GAME);
     // #endregion
 
     // #region Scene
@@ -10365,9 +10454,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileViewRender);
     DEF_NATIVE(Scene, IsPaused);
 
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawBehavior_HorizontalParallax", DrawBehavior_HorizontalParallax);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawBehavior_VerticalParallax", DrawBehavior_VerticalParallax);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "DrawBehavior_CustomTileScanLines", DrawBehavior_CustomTileScanLines);
+    DEF_CONST_INT("DrawBehavior_HorizontalParallax", DrawBehavior_HorizontalParallax);
+    DEF_CONST_INT("DrawBehavior_VerticalParallax", DrawBehavior_VerticalParallax);
+    DEF_CONST_INT("DrawBehavior_CustomTileScanLines", DrawBehavior_CustomTileScanLines);
     // #endregion
 
     // #region Settings
@@ -10477,10 +10566,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(TileCollision, Point);
     DEF_NATIVE(TileCollision, PointExtended);
     DEF_NATIVE(TileCollision, Line);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SensorDirection_Down", 0);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SensorDirection_Right", 1);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SensorDirection_Up", 2);
-    BytecodeObjectManager::GlobalConstInteger(NULL, "SensorDirection_Left", 3);
+    DEF_CONST_INT("SensorDirection_Down", 0);
+    DEF_CONST_INT("SensorDirection_Right", 1);
+    DEF_CONST_INT("SensorDirection_Up", 2);
+    DEF_CONST_INT("SensorDirection_Left", 3);
     // #endregion
 
     // #region TileInfo
@@ -10587,18 +10676,20 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     BytecodeObjectManager::Globals->Put("other", NULL_VAL);
 
-    BytecodeObjectManager::GlobalLinkDecimal(NULL, "CameraX", &Scene::Views[0].X);
-    BytecodeObjectManager::GlobalLinkDecimal(NULL, "CameraY", &Scene::Views[0].Y);
-    BytecodeObjectManager::GlobalLinkDecimal(NULL, "LowPassFilter", &AudioManager::LowPassFilter);
+    DEF_LINK_DECIMAL("CameraX", &Scene::Views[0].X);
+    DEF_LINK_DECIMAL("CameraY", &Scene::Views[0].Y);
+    DEF_LINK_DECIMAL("LowPassFilter", &AudioManager::LowPassFilter);
 
-    BytecodeObjectManager::GlobalLinkInteger(NULL, "Scene_Frame", &Scene::Frame);
-    BytecodeObjectManager::GlobalConstDecimal(NULL, "Scene_MaxViews", MAX_SCENE_VIEWS);
+    DEF_LINK_INT("Scene_Frame", &Scene::Frame);
+    DEF_CONST_INT("Scene_MaxViews", MAX_SCENE_VIEWS);
 
-    BytecodeObjectManager::GlobalConstDecimal(NULL, "Math_PI", M_PI);
-    BytecodeObjectManager::GlobalConstDecimal(NULL, "Math_PI_DOUBLE", M_PI * 2.0);
-    BytecodeObjectManager::GlobalConstDecimal(NULL, "Math_PI_HALF", M_PI / 2.0);
+    DEF_CONST_DECIMAL("Math_PI", M_PI);
+    DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
+    DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
 
-    #define CONST_KEY(key) BytecodeObjectManager::GlobalConstInteger(NULL, "Key_"#key, SDL_SCANCODE_##key);
+    DEF_CONST_INT("NUM_KEYBOARD_KEYS", NUM_KEYBOARD_KEYS);
+
+    #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
         CONST_KEY(A);
         CONST_KEY(B);
@@ -10658,8 +10749,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
         CONST_KEY(CAPSLOCK);
 
-        CONST_KEY(SEMICOLON);
-
         CONST_KEY(F1);
         CONST_KEY(F2);
         CONST_KEY(F3);
@@ -10715,6 +10804,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
         CONST_KEY(RGUI);
     }
     #undef  CONST_KEY
+    #undef DEF_CONST_INT
+    #undef DEF_LINK_INT
+    #undef DEF_CONST_DECIMAL
+    #undef DEF_LINK_DECIMAL
 }
 PUBLIC STATIC void StandardLibrary::Dispose() {
 

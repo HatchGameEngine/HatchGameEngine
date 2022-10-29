@@ -1,6 +1,8 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Includes/BijectiveMap.h>
+#include <Engine/Input/Input.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Application.h>
 
@@ -14,6 +16,7 @@ public:
 
     static Uint8               KeyboardState[0x120];
     static Uint8               KeyboardStateLast[0x120];
+    static int                 KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
     static int                 NumControllers;
     static vector<Controller*> Controllers;
@@ -33,6 +36,7 @@ int                 InputManager::MouseReleased = 0;
 
 Uint8               InputManager::KeyboardState[0x120];
 Uint8               InputManager::KeyboardStateLast[0x120];
+int                 InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
 int                 InputManager::NumControllers;
 vector<Controller*> InputManager::Controllers;
@@ -49,9 +53,10 @@ struct TouchState {
 };
 
 PUBLIC STATIC void  InputManager::Init() {
-    memset(KeyboardState, 0, 0x120);
-    memset(KeyboardStateLast, 0, 0x120);
+    memset(KeyboardState, 0, NUM_KEYBOARD_KEYS);
+    memset(KeyboardStateLast, 0, NUM_KEYBOARD_KEYS);
 
+    InputManager::InitStringLookup();
     InputManager::InitControllers();
 
     InputManager::TouchStates = Memory::TrackedCalloc("InputManager::TouchStates", 8, sizeof(TouchState));
@@ -64,6 +69,175 @@ PUBLIC STATIC void  InputManager::Init() {
         current->Released = false;
     }
 }
+
+namespace NameMap {
+    BijectiveMap<const char*, Uint16>* Keys;
+    BijectiveMap<const char*, Uint8>*  Buttons;
+    BijectiveMap<const char*, Uint8>*  Axes;
+}
+
+PRIVATE STATIC void InputManager::InitStringLookup() {
+    NameMap::Keys = new BijectiveMap<const char*, Uint16>();
+    NameMap::Buttons = new BijectiveMap<const char*, Uint8>();
+    NameMap::Axes = new BijectiveMap<const char*, Uint8>();
+
+    #define DEF_KEY(key) { \
+        InputManager::KeyToSDLScancode[Key_##key] = SDL_SCANCODE_##key; \
+        NameMap::Keys->Put(#key, Key_##key); \
+    }
+    DEF_KEY(A);
+    DEF_KEY(B);
+    DEF_KEY(C);
+    DEF_KEY(D);
+    DEF_KEY(E);
+    DEF_KEY(F);
+    DEF_KEY(G);
+    DEF_KEY(H);
+    DEF_KEY(I);
+    DEF_KEY(J);
+    DEF_KEY(K);
+    DEF_KEY(L);
+    DEF_KEY(M);
+    DEF_KEY(N);
+    DEF_KEY(O);
+    DEF_KEY(P);
+    DEF_KEY(Q);
+    DEF_KEY(R);
+    DEF_KEY(S);
+    DEF_KEY(T);
+    DEF_KEY(U);
+    DEF_KEY(V);
+    DEF_KEY(W);
+    DEF_KEY(X);
+    DEF_KEY(Y);
+    DEF_KEY(Z);
+
+    DEF_KEY(1);
+    DEF_KEY(2);
+    DEF_KEY(3);
+    DEF_KEY(4);
+    DEF_KEY(5);
+    DEF_KEY(6);
+    DEF_KEY(7);
+    DEF_KEY(8);
+    DEF_KEY(9);
+    DEF_KEY(0);
+
+    DEF_KEY(RETURN);
+    DEF_KEY(ESCAPE);
+    DEF_KEY(BACKSPACE);
+    DEF_KEY(TAB);
+    DEF_KEY(SPACE);
+
+    DEF_KEY(MINUS);
+    DEF_KEY(EQUALS);
+    DEF_KEY(LEFTBRACKET);
+    DEF_KEY(RIGHTBRACKET);
+    DEF_KEY(BACKSLASH);
+    DEF_KEY(SEMICOLON);
+    DEF_KEY(APOSTROPHE);
+    DEF_KEY(GRAVE);
+    DEF_KEY(COMMA);
+    DEF_KEY(PERIOD);
+    DEF_KEY(SLASH);
+
+    DEF_KEY(CAPSLOCK);
+
+    DEF_KEY(F1);
+    DEF_KEY(F2);
+    DEF_KEY(F3);
+    DEF_KEY(F4);
+    DEF_KEY(F5);
+    DEF_KEY(F6);
+    DEF_KEY(F7);
+    DEF_KEY(F8);
+    DEF_KEY(F9);
+    DEF_KEY(F10);
+    DEF_KEY(F11);
+    DEF_KEY(F12);
+
+    DEF_KEY(PRINTSCREEN);
+    DEF_KEY(SCROLLLOCK);
+    DEF_KEY(PAUSE);
+    DEF_KEY(INSERT);
+    DEF_KEY(HOME);
+    DEF_KEY(PAGEUP);
+    DEF_KEY(DELETE);
+    DEF_KEY(END);
+    DEF_KEY(PAGEDOWN);
+    DEF_KEY(RIGHT);
+    DEF_KEY(LEFT);
+    DEF_KEY(DOWN);
+    DEF_KEY(UP);
+
+    DEF_KEY(NUMLOCKCLEAR);
+    DEF_KEY(KP_DIVIDE);
+    DEF_KEY(KP_MULTIPLY);
+    DEF_KEY(KP_MINUS);
+    DEF_KEY(KP_PLUS);
+    DEF_KEY(KP_ENTER);
+    DEF_KEY(KP_1);
+    DEF_KEY(KP_2);
+    DEF_KEY(KP_3);
+    DEF_KEY(KP_4);
+    DEF_KEY(KP_5);
+    DEF_KEY(KP_6);
+    DEF_KEY(KP_7);
+    DEF_KEY(KP_8);
+    DEF_KEY(KP_9);
+    DEF_KEY(KP_0);
+    DEF_KEY(KP_PERIOD);
+
+    DEF_KEY(LCTRL);
+    DEF_KEY(LSHIFT);
+    DEF_KEY(LALT);
+    DEF_KEY(LGUI);
+    DEF_KEY(RCTRL);
+    DEF_KEY(RSHIFT);
+    DEF_KEY(RALT);
+    DEF_KEY(RGUI);
+    #undef  DEF_KEY
+}
+
+PUBLIC STATIC char* InputManager::GetKeyName(int key) {
+    if (!NameMap::Keys->Exists(key))
+        return nullptr;
+    return (char*)NameMap::Keys->Get(key);
+}
+PUBLIC STATIC char* InputManager::GetButtonName(int button) {
+    if (!NameMap::Buttons->Exists(button))
+        return nullptr;
+    return (char*)NameMap::Buttons->Get(button);
+}
+PUBLIC STATIC char* InputManager::GetAxisName(int axis) {
+    if (!NameMap::Axes->Exists(axis))
+        return nullptr;
+    return (char*)NameMap::Axes->Get(axis);
+}
+
+#define FIND_IN_BIJECTIVE(which, search) { \
+    int found = -1; \
+    which->WithAllKeys([search, &found](const char* k, Uint16 v) -> bool { \
+        if (!strcmp(search, k)) { \
+            found = v; \
+            return true; \
+        } \
+        return false; \
+    }); \
+    return found; \
+}
+
+PUBLIC STATIC int InputManager::ParseKeyName(char* key) {
+    FIND_IN_BIJECTIVE(NameMap::Keys, key);
+}
+PUBLIC STATIC int InputManager::ParseButtonName(char* button) {
+    FIND_IN_BIJECTIVE(NameMap::Buttons, button);
+}
+PUBLIC STATIC int InputManager::ParseAxisName(char* axis) {
+    FIND_IN_BIJECTIVE(NameMap::Axes, axis);
+}
+
+#undef FIND_IN_BIJECTIVE
 
 PUBLIC STATIC Controller* InputManager::OpenController(int index) {
     Controller* controller = new Controller(index);
@@ -223,6 +397,19 @@ PUBLIC STATIC void  InputManager::Poll() {
         if (controller->Connected)
             controller->Update();
     }
+}
+
+PUBLIC STATIC bool  InputManager::IsKeyDown(int key) {
+    int scancode = KeyToSDLScancode[key];
+    return KeyboardState[scancode];
+}
+PUBLIC STATIC bool  InputManager::IsKeyPressed(int key) {
+    int scancode = KeyToSDLScancode[key];
+    return KeyboardState[scancode] && !KeyboardStateLast[scancode];
+}
+PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
+    int scancode = KeyToSDLScancode[key];
+    return !KeyboardState[key] && KeyboardStateLast[key];
 }
 
 #define GET_CONTROLLER(ret) \
