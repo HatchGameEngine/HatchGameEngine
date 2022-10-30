@@ -343,8 +343,23 @@ VMValue ReturnString(char* str) {
 // #region Application
 /***
  * Application.GetKeyBind
- * \desc Gets a keybind.
+ * \desc Gets a keybind. <br/>\
+</br>Keybind IDs:<ul>\
+<li><code>KeyBind_Fullscreen</code></li>\
+<li><code>KeyBind_DevRestartApp</code></li>\
+<li><code>KeyBind_DevRestartScene</code></li>\
+<li><code>KeyBind_DevRecompile</code></li>\
+<li><code>KeyBind_DevPerfSnapshot</code></li>\
+<li><code>KeyBind_DevLayerInfo</code></li>\
+<li><code>KeyBind_DevFastForward</code></li>\
+<li><code>KeyBind_DevFrameStepper</code></li>\
+<li><code>KeyBind_DevStepFrame</code></li>\
+<li><code>KeyBind_DevTileCol</code></li>\
+<li><code>KeyBind_DevObjectRegions</code></li>\
+<li><code>KeyBind_DevQuit</code></li>\
+</ul>
  * \param keyBind (Integer): The keybind.
+ * \return Returns the key ID of the keybind.
  * \ns Application
  */
 VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {

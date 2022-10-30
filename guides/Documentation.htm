@@ -46,6 +46,7 @@
         <h1 id="Reference_top">Hatch Game Engine Reference</h1>
         <h3>Function Namespaces</h3>
         <ul>
+            <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
@@ -85,6 +86,15 @@
             <li><a href="#Reference_Window">Window</a></li>
             <li><a href="#Reference_XML">XML</a></li>
         </ul>
+            <p id="Reference_Application">
+                <h2>Application</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Application_GetKeyBind">Application.GetKeyBind</a></li>
+                    <li><a href="#Reference_Application_SetKeyBind">Application.SetKeyBind</a></li>
+                    <li><a href="#Reference_Application_Quit">Application.Quit</a></li>
+                </ul>
+            </p>
             <p id="Reference_Array">
                 <h2>Array</h2>
                 <i>Functions:</i>
@@ -530,6 +540,9 @@
                 <h2>Settings</h2>
                 <i>Functions:</i>
                 <ul>
+                    <li><a href="#Reference_Settings_Load">Settings.Load</a></li>
+                    <li><a href="#Reference_Settings_Save">Settings.Save</a></li>
+                    <li><a href="#Reference_Settings_SetFilename">Settings.SetFilename</a></li>
                     <li><a href="#Reference_Settings_GetString">Settings.GetString</a></li>
                     <li><a href="#Reference_Settings_GetNumber">Settings.GetNumber</a></li>
                     <li><a href="#Reference_Settings_GetInteger">Settings.GetInteger</a></li>
@@ -545,7 +558,6 @@
                     <li><a href="#Reference_Settings_PropertyExists">Settings.PropertyExists</a></li>
                     <li><a href="#Reference_Settings_RemoveProperty">Settings.RemoveProperty</a></li>
                     <li><a href="#Reference_Settings_GetPropertyCount">Settings.GetPropertyCount</a></li>
-                    <li><a href="#Reference_Settings_Save">Settings.Save</a></li>
                 </ul>
             </p>
             <p id="Reference_Shader">
@@ -742,6 +754,7 @@
                     <li><a href="#Reference_View_SetPriority">View.SetPriority</a></li>
                     <li><a href="#Reference_View_GetPriority">View.GetPriority</a></li>
                     <li><a href="#Reference_View_GetCurrent">View.GetCurrent</a></li>
+                    <li><a href="#Reference_View_GetCount">View.GetCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Window">
@@ -751,12 +764,14 @@
                     <li><a href="#Reference_Window_SetSize">Window.SetSize</a></li>
                     <li><a href="#Reference_Window_SetFullscreen">Window.SetFullscreen</a></li>
                     <li><a href="#Reference_Window_SetBorderless">Window.SetBorderless</a></li>
+                    <li><a href="#Reference_Window_SetVSync">Window.SetVSync</a></li>
                     <li><a href="#Reference_Window_SetPosition">Window.SetPosition</a></li>
                     <li><a href="#Reference_Window_SetPositionCentered">Window.SetPositionCentered</a></li>
                     <li><a href="#Reference_Window_SetTitle">Window.SetTitle</a></li>
                     <li><a href="#Reference_Window_GetWidth">Window.GetWidth</a></li>
                     <li><a href="#Reference_Window_GetHeight">Window.GetHeight</a></li>
                     <li><a href="#Reference_Window_GetFullscreen">Window.GetFullscreen</a></li>
+                    <li><a href="#Reference_Window_IsResizeable">Window.IsResizeable</a></li>
                 </ul>
             </p>
             <p id="Reference_XML">
@@ -768,6 +783,35 @@
             </p>
         <h3>Functions</h3>
         <p>Note: Please use Find (Ctrl+F) there are way too many functions</p>
+        <p id="Reference_Application_GetKeyBind">
+        <h2 style="margin-bottom: 8px;">Application.GetKeyBind</h2>
+        <code>Application.GetKeyBind(keyBind)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a keybind. <br/></br>Keybind IDs:<ul><li><code>KeyBind_Fullscreen</code></li><li><code>KeyBind_DevRestartApp</code></li><li><code>KeyBind_DevRestartScene</code></li><li><code>KeyBind_DevRecompile</code></li><li><code>KeyBind_DevPerfSnapshot</code></li><li><code>KeyBind_DevLayerInfo</code></li><li><code>KeyBind_DevFastForward</code></li><li><code>KeyBind_DevFrameStepper</code></li><li><code>KeyBind_DevStepFrame</code></li><li><code>KeyBind_DevTileCol</code></li><li><code>KeyBind_DevObjectRegions</code></li><li><code>KeyBind_DevQuit</code></li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyBind (Integer): The keybind.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the key ID of the keybind.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Application_SetKeyBind">
+        <h2 style="margin-bottom: 8px;">Application.SetKeyBind</h2>
+        <code>Application.SetKeyBind(keyBind, keyID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a keybind.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>keyBind (Integer): The keybind.</li>
+        <li>keyID (Integer): The key ID.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Application_Quit">
+        <h2 style="margin-bottom: 8px;">Application.Quit</h2>
+        <code>Application.Quit()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Closes the application.</div>
+        </p>
+        <hr/>
         <p id="Reference_Audio_GetMasterVolume">
         <h2 style="margin-bottom: 8px;">Audio.GetMasterVolume</h2>
         <code>Audio.GetMasterVolume()</code>
@@ -1190,7 +1234,7 @@
         <p id="Reference_Device_GetPlatform">
         <h2 style="margin-bottom: 8px;">Device.GetPlatform</h2>
         <code>Device.GetPlatform()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the platform the application is currently running on. <br/></br>Platform IDs:<ul><li><code>Platform_Windows</code></li><li><code>Platform_MacOSX</code></li><li><code>Platform_Linux</code></li><li><code>Platform_Ubuntu</code></li><li><code>Platform_Switch</code></li><li><code>Platform_iOS</code></li><li><code>Platform_Android</code></li><li><code>Platform_Default</code></li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the platform the application is currently running on. <br/></br>Platform IDs:<ul><li><code>Platform_Windows</code></li><li><code>Platform_MacOSX</code></li><li><code>Platform_Linux</code></li><li><code>Platform_Switch</code></li><li><code>Platform_Playstation</code></li><li><code>Platform_Xbox</code></li><li><code>Platform_Android</code></li><li><code>Platform_iOS</code></li><li><code>Platform_Unknown</code></li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the current platform.</div>
         </p>
@@ -4451,6 +4495,36 @@
         <div style="font-size: 14px;">Returns whether or not the scene is in Paused mode.</div>
         </p>
         <hr/>
+        <p id="Reference_Settings_Load">
+        <h2 style="margin-bottom: 8px;">Settings.Load</h2>
+        <code>Settings.Load(filename)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads the config from the specified filename. Calling this does not save the current settings.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filepath of config.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_Save">
+        <h2 style="margin-bottom: 8px;">Settings.Save</h2>
+        <code>Settings.Save([filename])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Saves the settings.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filepath of config. This does not change the filepath of the current settings (Use <code>Settings.SetFilename</code> to do that.)</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Settings_SetFilename">
+        <h2 style="margin-bottom: 8px;">Settings.SetFilename</h2>
+        <code>Settings.SetFilename(filename)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the filepath of the settings.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filepath of config. This does not save the current settings.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Settings_GetString">
         <h2 style="margin-bottom: 8px;">Settings.GetString</h2>
         <code>Settings.GetString(section, property)</code>
@@ -4625,12 +4699,6 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The total section count, as an integer.</div>
-        </p>
-        <hr/>
-        <p id="Reference_Settings_Save">
-        <h2 style="margin-bottom: 8px;">Settings.Save</h2>
-        <code>Settings.Save()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Saves the settings.</div>
         </p>
         <hr/>
         <p id="Reference_Shader_Set">
@@ -5732,6 +5800,14 @@
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <hr/>
+        <p id="Reference_View_GetCount">
+        <h2 style="margin-bottom: 8px;">View.GetCount</h2>
+        <code>View.GetCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the total amount of views.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <hr/>
         <p id="Reference_Window_SetSize">
         <h2 style="margin-bottom: 8px;">Window.SetSize</h2>
         <code>Window.SetSize(width, height)</code>
@@ -5760,6 +5836,16 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isBorderless (Boolean): Whether or not the window should be borderless.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Window_SetVSync">
+        <h2 style="margin-bottom: 8px;">Window.SetVSync</h2>
+        <code>Window.SetVSync(enableVsync)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables V-Sync for the active window.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>enableVsync (Boolean): Whether or not the window should use V-Sync.</li>
         </ul>
         </p>
         <hr/>
@@ -5814,6 +5900,14 @@
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
         <hr/>
+        <p id="Reference_Window_IsResizeable">
+        <h2 style="margin-bottom: 8px;">Window.IsResizeable</h2>
+        <code>Window.IsResizeable()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the active window is resizeable.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the window is resizeable, <code>false</code> if otherwise.</div>
+        </p>
+        <hr/>
         <p id="Reference_XML_Parse">
         <h2 style="margin-bottom: 8px;">XML.Parse</h2>
         <code>XML.Parse(xmlText)</code>
@@ -5825,6 +5919,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>381 out of 453 functions have descriptions. </p>
+        <p>389 out of 461 functions have descriptions. </p>
     </body>
 </html>
