@@ -40,7 +40,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
 endif()
 
-option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
+option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" OFF)
 option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
