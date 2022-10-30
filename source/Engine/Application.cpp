@@ -661,7 +661,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         break;
                     }
                     // Print performance snapshot (dev)
-                    else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
                         TakeSnapshot = true;
                         break;
                     }
