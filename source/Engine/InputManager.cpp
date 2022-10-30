@@ -199,7 +199,42 @@ PRIVATE STATIC void InputManager::InitStringLookup() {
 
     NameMap::Keys->Put("UNKNOWN", Key_UNKNOWN);
 
-    #undef  DEF_KEY
+    #undef DEF_KEY
+
+    #define DEF_BUTTON(x, y) NameMap::Buttons->Put(#x, (int)ControllerButton::y)
+    DEF_BUTTON(A, A);
+    DEF_BUTTON(B, B);
+    DEF_BUTTON(X, X);
+    DEF_BUTTON(Y, Y);
+    DEF_BUTTON(BACK, Back);
+    DEF_BUTTON(GUIDE, Guide);
+    DEF_BUTTON(START, Start);
+    DEF_BUTTON(LEFTSTICK, LeftStick);
+    DEF_BUTTON(RIGHTSTICK, RightStick);
+    DEF_BUTTON(LEFTSHOULDER, LeftShoulder);
+    DEF_BUTTON(RIGHTSHOULDER, RightShoulder);
+    DEF_BUTTON(DPAD_UP, DPadUp);
+    DEF_BUTTON(DPAD_DOWN, DPadDown);
+    DEF_BUTTON(DPAD_LEFT, DPadLeft);
+    DEF_BUTTON(DPAD_RIGHT, DPadRight);
+    DEF_BUTTON(SHARE, Share);
+    DEF_BUTTON(MICROPHONE, Microphone);
+    DEF_BUTTON(TOUCHPAD, Touchpad);
+    DEF_BUTTON(PADDLE1, Paddle1);
+    DEF_BUTTON(PADDLE2, Paddle2);
+    DEF_BUTTON(PADDLE3, Paddle3);
+    DEF_BUTTON(PADDLE4, Paddle4);
+    DEF_BUTTON(MISC1, Misc1);
+    #undef DEF_BUTTON
+
+    #define DEF_AXIS(x, y) NameMap::Axes->Put(#x, (int)ControllerAxis::y)
+    DEF_AXIS(LEFTX, LeftX);
+    DEF_AXIS(LEFTY, LeftY);
+    DEF_AXIS(RIGHTX, RightX);
+    DEF_AXIS(RIGHTY, RightY);
+    DEF_AXIS(TRIGGERLEFT, TriggerLeft);
+    DEF_AXIS(TRIGGERRIGHT, TriggerRight);
+    #undef DEF_AXIS
 }
 
 PUBLIC STATIC char* InputManager::GetKeyName(int key) {
