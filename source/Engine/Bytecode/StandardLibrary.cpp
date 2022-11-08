@@ -983,7 +983,7 @@ VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Controller
  */
 VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
+    CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
     CHECK_CONTROLLER_INDEX(index);
     InputManager::ControllerStopRumble(index);

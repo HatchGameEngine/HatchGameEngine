@@ -448,6 +448,8 @@ PRIVATE STATIC void Application::Restart() {
     // Reset FPS timer
     BenchmarkFrameCount = 0;
 
+    InputManager::ControllerStopRumble();
+
     Scene::Dispose();
     Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
         Graphics::DisposeTexture(tex);
@@ -685,6 +687,8 @@ PRIVATE STATIC void Application::PollEvents() {
                     else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
                         // Reset FPS timer
                         BenchmarkFrameCount = 0;
+
+                        InputManager::ControllerStopRumble();
 
                         Scene::Restart();
                         Application::UpdateWindowTitle();
@@ -1127,7 +1131,7 @@ PUBLIC STATIC void Application::Run(int argc, char* args[]) {
     #endif
 }
 
-PRIVATE STATIC void Application::Cleanup() {
+PUBLIC STATIC void Application::Cleanup() {
     ResourceManager::Dispose();
     AudioManager::Dispose();
     InputManager::Dispose();

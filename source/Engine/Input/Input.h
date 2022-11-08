@@ -185,7 +185,7 @@ struct ControllerRumble {
 
     ControllerRumble(void *device) {
         Active = false;
-        LargeMotorFrequency = SmallMotorFrequency = 0;
+        LargeMotorFrequency = SmallMotorFrequency = 0.0f;
         TicksLeft = Expiration = 0;
         Device = device;
     };
@@ -203,7 +203,7 @@ struct ControllerRumble {
         Uint16 largeMotorFrequency = large_frequency * 0xFFFF;
         Uint16 smallMotorFrequency = small_frequency * 0xFFFF;
 
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, large_frequency, small_frequency, 0) == -1)
+        if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, smallMotorFrequency, 0) == -1)
             return false;
 
         Active = true;
@@ -224,7 +224,7 @@ struct ControllerRumble {
             frequency = 1.0f;
 
         Uint16 largeMotorFrequency = frequency * 0xFFFF;
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, SmallMotorFrequency, 0) == -1)
+        if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, SmallMotorFrequency * 0xFFFF, 0) == -1)
             return false;
 
         Active = true;
@@ -239,7 +239,7 @@ struct ControllerRumble {
             frequency = 1.0f;
 
         Uint16 smallMotorFrequency = frequency * 0xFFFF;
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, LargeMotorFrequency, smallMotorFrequency, 0) == -1)
+        if (SDL_GameControllerRumble((SDL_GameController*)Device, LargeMotorFrequency * 0xFFFF, smallMotorFrequency, 0) == -1)
             return false;
 
         Active = true;
@@ -256,7 +256,7 @@ struct ControllerRumble {
     };
     void Stop() {
         Active = false;
-        LargeMotorFrequency = SmallMotorFrequency = 0;
+        LargeMotorFrequency = SmallMotorFrequency = 0.0f;
         TicksLeft = Expiration = 0;
         SDL_GameControllerRumble((SDL_GameController*)Device, 0, 0, 0);
     };

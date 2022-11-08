@@ -543,6 +543,16 @@ PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
     if (!controller->Rumble) return;
     controller->Rumble->Stop();
 }
+PUBLIC STATIC void  InputManager::ControllerStopRumble() {
+    for (int i = 0; i < InputManager::NumControllers; i++) {
+        Controller* controller = InputManager::Controllers[i];
+        if (!controller || !controller->Rumble);
+            continue;
+
+        if (controller->Rumble->Active)
+            controller->Rumble->Stop();
+    }
+}
 PUBLIC STATIC bool  InputManager::ControllerIsRumblePaused(int index) {
     GET_CONTROLLER(false);
     if (!controller->Rumble) return false;
@@ -588,6 +598,8 @@ PUBLIC STATIC bool  InputManager::TouchIsReleased(int touch_index) {
 }
 
 PUBLIC STATIC void  InputManager::Dispose() {
+    InputManager::ControllerStopRumble();
+
     // Close controllers
     for (int i = 0; i < InputManager::NumControllers; i++) {
         Log::Print(Log::LOG_VERBOSE, "Closing controller %d", i);

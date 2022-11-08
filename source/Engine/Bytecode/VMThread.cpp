@@ -90,6 +90,7 @@ char GetTokenBuffer[16];
     switch (buttonClicked) { \
         /* Exit Game */ \
         case 1: \
+            Application::Cleanup(); \
             exit(-1); \
             /* NOTE: This is for later, this doesn't actually execute. */ \
             return ERROR_RES_EXIT; \
