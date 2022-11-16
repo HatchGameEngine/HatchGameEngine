@@ -109,8 +109,6 @@ public:
 #include <Engine/Types/ObjectList.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define VIEW_RENDER_FLAG 1
-
 // Layering variables
 vector<SceneLayer>    Scene::Layers;
 bool                  Scene::AnyLayerTileChange = false;
@@ -151,8 +149,8 @@ float                 Scene::CameraY = 0.0f;
 View                  Scene::Views[MAX_SCENE_VIEWS];
 int                   Scene::ViewCurrent = 0;
 int                   Scene::ViewsActive = 1;
-int                   Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
-int                   Scene::TileViewRenderFlag = VIEW_RENDER_FLAG;
+int                   Scene::ObjectViewRenderFlag;
+int                   Scene::TileViewRenderFlag;
 Perf_ViewRender       Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 
 char                  Scene::NextScene[256];
@@ -496,8 +494,8 @@ PUBLIC STATIC void Scene::Init() {
     Scene::Views[0].Active = true;
     Scene::ViewsActive = 1;
 
-    Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
-    Scene::TileViewRenderFlag = VIEW_RENDER_FLAG;
+    Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
+    Scene::TileViewRenderFlag = 0xFFFFFFFF;
 }
 
 PUBLIC STATIC void Scene::ResetPerf() {
@@ -573,34 +571,300 @@ PUBLIC STATIC void Scene::Update() {
         Scene::Frame++;
 }
 
-PUBLIC STATIC int Scene::ViewSortFunction(const void *a, const void *b) {
-    View* viewA = &Scene::Views[*(const int *)a];
-    View* viewB = &Scene::Views[*(const int *)b];
-    return (viewA->Priority - viewB->Priority);
+PUBLIC STATIC void Scene::SetViewActive(int viewIndex, bool active) {
+    if (Scene::Views[viewIndex].Active == active)
+        return;
+
+    Scene::Views[viewIndex].Active = active;
+    if (active)
+        Scene::ViewsActive++;
+    else
+        Scene::ViewsActive--;
+
+    Scene::SortViews();
+}
+PUBLIC STATIC void Scene::SetViewPriority(int viewIndex, int priority) {
+    Scene::Views[viewIndex].Priority = priority;
+    Scene::SortViews();
 }
 
+PRIVATE STATIC void Scene::ResetViews() {
+    Scene::ViewsActive = 0;
+
+    // Deactivate extra views
+    for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+        Scene::Views[i].Active = false;
+        Scene::Views[i].Priority = 0;
+    }
+
+    Scene::SetViewActive(0, true);
+}
+
+static int ViewSortFunction(const void *a, const void *b) {
+    View* viewA = &Scene::Views[*(const int *)a];
+    View* viewB = &Scene::Views[*(const int *)b];
+    return viewA->Priority - viewB->Priority;
+}
 PUBLIC STATIC void Scene::SortViews() {
-    int viewCount = 0;
+    int count = 0;
 
     for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
         if (Scene::Views[i].Active)
-            ViewRenderList[viewCount++] = i;
+            ViewRenderList[count++] = i;
     }
 
-    if (viewCount > 1)
-        qsort(ViewRenderList, viewCount, sizeof(int), Scene::ViewSortFunction);
+    if (count > 1)
+        qsort(ViewRenderList, count, sizeof(int), ViewSortFunction);
 }
 
-#define PERF_START(n) n = Clock::GetTicks()
-#define PERF_END(n) n = Clock::GetTicks() - n
+PUBLIC STATIC void Scene::SetView(int viewIndex) {
+    View* currentView = &Scene::Views[viewIndex];
+
+    if (currentView->UseDrawTarget && currentView->DrawTarget) {
+        float view_w = currentView->Width;
+        float view_h = currentView->Height;
+        Texture* tar = currentView->DrawTarget;
+        if (tar->Width != currentView->Stride || tar->Height != view_h) {
+            Graphics::DisposeTexture(tar);
+            Graphics::SetTextureInterpolation(false);
+            currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, _CEILPOW(view_w), view_h);
+        }
+
+        Graphics::SetRenderTarget(currentView->DrawTarget);
+
+        if (currentView->Software)
+            Graphics::SoftwareStart();
+        else
+            Graphics::Clear();
+    }
+
+    Scene::ViewCurrent = viewIndex;
+}
+
+#define PERF_START(n) if (viewPerf) viewPerf->n = Clock::GetTicks()
+#define PERF_END(n) if (viewPerf) viewPerf->n = Clock::GetTicks() - viewPerf->n
+
+PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
+    View* currentView = &Scene::Views[viewIndex];
+    Perf_ViewRender* viewPerf = doPerf ? &Scene::PERF_ViewRender[viewIndex] : NULL;
+
+    if (viewPerf)
+        viewPerf->RecreatedDrawTarget = false;
+
+    bool useDrawTarget = false;
+    Texture* drawTarget = currentView->DrawTarget;
+
+    PERF_START(RenderSetupTime);
+    if (currentView->UseDrawTarget && drawTarget)
+        useDrawTarget = true;
+    else if (!currentView->Visible) {
+        PERF_END(RenderSetupTime);
+        return;
+    }
+    Scene::SetView(viewIndex);
+    PERF_END(RenderSetupTime);
+
+    if (viewPerf && drawTarget != currentView->DrawTarget)
+        viewPerf->RecreatedDrawTarget = true;
+
+    float cx = std::floor(currentView->X);
+    float cy = std::floor(currentView->Y);
+    float cz = std::floor(currentView->Z);
+
+    int viewRenderFlag = 1 << viewIndex;
+
+    // Adjust projection
+    PERF_START(ProjectionSetupTime);
+    if (currentView->UsePerspective) {
+        Graphics::UpdatePerspective(currentView->FOV, currentView->Width / currentView->Height, currentView->NearPlane, currentView->FarPlane);
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateX, 1.0, 0.0, 0.0);
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateY, 0.0, 1.0, 0.0);
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateZ, 0.0, 0.0, 1.0);
+        Matrix4x4::Translate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, -currentView->X, -currentView->Y, -currentView->Z);
+        Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
+    }
+    else {
+        Graphics::UpdateOrtho(currentView->Width, currentView->Height);
+        if (!currentView->UseDrawTarget)
+            Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
+
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateX, 1.0, 0.0, 0.0);
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateY, 0.0, 1.0, 0.0);
+        Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateZ, 0.0, 0.0, 1.0);
+        Matrix4x4::Translate(currentView->ProjectionMatrix, currentView->BaseProjectionMatrix, -cx, -cy, -cz);
+    }
+    Graphics::UpdateProjectionMatrix();
+    PERF_END(ProjectionSetupTime);
+
+    // RenderEarly
+    PERF_START(ObjectRenderEarlyTime);
+    for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+        if (DEV_NoObjectRender)
+            break;
+
+        DrawGroupList* drawGroupList = &PriorityLists[l];
+        if (drawGroupList->NeedsSorting) {
+            drawGroupList->Sort();
+        }
+        for (size_t o = 0; o < drawGroupList->EntityCapacity; o++) {
+            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
+                drawGroupList->Entities[o]->RenderEarly();
+        }
+    }
+    PERF_END(ObjectRenderEarlyTime);
+
+    // Render Objects and Layer Tiles
+    float _vx = currentView->X;
+    float _vy = currentView->Y;
+    float _vw = currentView->Width;
+    float _vh = currentView->Height;
+    double objectTimeTotal = 0.0;
+    DrawGroupList* drawGroupList;
+    for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+        size_t oSz = PriorityLists[l].EntityCapacity;
+
+        if (DEV_NoObjectRender)
+            goto DEV_NoTilesCheck;
+
+        double elapsed;
+        double objectTime;
+        float hbW;
+        float hbH;
+        float _ox;
+        float _oy;
+        objectTime = Clock::GetTicks();
+
+        drawGroupList = &PriorityLists[l];
+        for (size_t o = 0; o < oSz; o++) {
+            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active) {
+                Entity* ent = drawGroupList->Entities[o];
+
+                if (ent->RenderRegionW == 0.0f || ent->RenderRegionH == 0.0f)
+                    goto DoCheckRender;
+
+                hbW = ent->RenderRegionW * 0.5f;
+                hbH = ent->RenderRegionH * 0.5f;
+                _ox = ent->X - _vx;
+                _oy = ent->Y - _vy;
+                if ((_ox + hbW) < 0.0f || (_ox - hbW) >= _vw ||
+                    (_oy + hbH) < 0.0f || (_oy - hbH) >= _vh)
+                    continue;
+
+                if (Scene::ShowObjectRegions) {
+                    _ox = ent->X - ent->RenderRegionW * 0.5f;
+                    _oy = ent->Y - ent->RenderRegionH * 0.5f;
+                    Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
+                    Graphics::FillRectangle(_ox, _oy, ent->RenderRegionW, ent->RenderRegionH);
+
+                    _ox = ent->X - ent->OnScreenHitboxW * 0.5f;
+                    _oy = ent->Y - ent->OnScreenHitboxH * 0.5f;
+                    Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, 0.5f);
+                    Graphics::FillRectangle(_ox, _oy, ent->OnScreenHitboxW, ent->OnScreenHitboxH);
+                }
+
+                DoCheckRender:
+                if (ent->ViewRenderFlag != 0) {
+                    if (ent->ViewRenderFlag & viewRenderFlag == 0)
+                        continue;
+                }
+                else if (Scene::ObjectViewRenderFlag & viewRenderFlag == 0)
+                    continue;
+
+                elapsed = Clock::GetTicks();
+
+                ent->Render(_vx, _vy);
+
+                elapsed = Clock::GetTicks() - elapsed;
+
+                if (ent->List) {
+                    ObjectList* list = ent->List;
+                    double count = list->AverageRenderItemCount;
+                    if (count < 60.0 * 60.0) {
+                        count += 1.0;
+                        if (count == 1.0)
+                            list->AverageRenderTime = elapsed;
+                        else
+                            list->AverageRenderTime =
+                                list->AverageRenderTime + (elapsed - list->AverageRenderTime) / count;
+                        list->AverageRenderItemCount = count;
+                    }
+                }
+            }
+        }
+        objectTime = Clock::GetTicks() - objectTime;
+        objectTimeTotal += objectTime;
+
+        DEV_NoTilesCheck:
+        if (DEV_NoTiles)
+            continue;
+
+        if (Scene::TileSprites.size() == 0)
+            continue;
+
+        if (!(Scene::TileViewRenderFlag & viewRenderFlag))
+            continue;
+
+        bool texBlend = Graphics::TextureBlend;
+        for (size_t li = 0; li < Layers.size(); li++) {
+            SceneLayer* layer = &Layers[li];
+            // Skip layer tile render if already rendered
+            if (layer->DrawGroup != l)
+                continue;
+
+            // Draw Tiles
+            if (layer->Visible) {
+                PERF_START(LayerTileRenderTime[li]);
+
+                Graphics::Save();
+                Graphics::Translate(cx, cy, cz);
+
+                Graphics::TextureBlend = layer->Blending;
+                if (Graphics::TextureBlend) {
+                    Graphics::SetBlendColor(1.0, 1.0, 1.0, layer->Opacity);
+                    Graphics::SetBlendMode(layer->BlendMode);
+                }
+                else
+                    Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+
+                Graphics::DrawSceneLayer(layer, currentView);
+                Graphics::ClearClip();
+
+                Graphics::Restore();
+
+                PERF_END(LayerTileRenderTime[li]);
+            }
+        }
+        Graphics::TextureBlend = texBlend;
+    }
+    if (viewPerf)
+        viewPerf->ObjectRenderTime = objectTimeTotal;
+
+    // RenderLate
+    PERF_START(ObjectRenderLateTime);
+    for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+        if (DEV_NoObjectRender)
+            break;
+
+        DrawGroupList* drawGroupList = &PriorityLists[l];
+        size_t oSz = drawGroupList->EntityCapacity;
+        for (size_t o = 0; o < oSz; o++) {
+            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
+                drawGroupList->Entities[o]->RenderLate();
+        }
+    }
+    PERF_END(ObjectRenderLateTime);
+
+    PERF_START(RenderFinishTime);
+    if (useDrawTarget && currentView->Software)
+        Graphics::SoftwareEnd();
+    PERF_END(RenderFinishTime);
+}
 
 PUBLIC STATIC void Scene::Render() {
     if (!Scene::PriorityLists)
         return;
 
     Graphics::ResetViewport();
-
-    float cx, cy, cz;
 
     // DEV_NoTiles = true;
     // DEV_NoObjectRender = true;
@@ -618,228 +882,12 @@ PUBLIC STATIC void Scene::Render() {
         View* currentView = &Scene::Views[viewIndex];
         Perf_ViewRender* viewPerf = &Scene::PERF_ViewRender[viewIndex];
 
-        PERF_START(viewPerf->RenderTime);
-        PERF_START(viewPerf->RenderSetupTime);
+        PERF_START(RenderTime);
 
-        cx = std::floor(currentView->X);
-        cy = std::floor(currentView->Y);
-        cz = std::floor(currentView->Z);
+        Scene::RenderView(viewIndex, true);
 
-        Scene::ViewCurrent = viewIndex;
-
-        int viewRenderFlag = 1 << viewIndex;
-
-        // NOTE: We should always be using the draw target.
-        viewPerf->RecreatedDrawTarget = false;
+        double renderFinishTime = Clock::GetTicks();
         if (currentView->UseDrawTarget && currentView->DrawTarget) {
-            float view_w = currentView->Width;
-            float view_h = currentView->Height;
-            Texture* tar = currentView->DrawTarget;
-            if (tar->Width != currentView->Stride || tar->Height != view_h) {
-                Graphics::DisposeTexture(tar);
-                Graphics::SetTextureInterpolation(false);
-                currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, _CEILPOW(view_w), view_h);
-                viewPerf->RecreatedDrawTarget = true;
-            }
-
-            Graphics::SetRenderTarget(currentView->DrawTarget);
-
-            if (currentView->Software)
-                Graphics::SoftwareStart();
-            else
-                Graphics::Clear();
-        }
-        else if (!currentView->Visible) {
-            PERF_END(viewPerf->RenderSetupTime);
-            continue;
-        }
-        PERF_END(viewPerf->RenderSetupTime);
-
-        // Adjust projection
-        PERF_START(viewPerf->ProjectionSetupTime);
-        if (currentView->UsePerspective) {
-            Graphics::UpdatePerspective(currentView->FOV, currentView->Width / currentView->Height, currentView->NearPlane, currentView->FarPlane);
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateX, 1.0, 0.0, 0.0);
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateY, 0.0, 1.0, 0.0);
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateZ, 0.0, 0.0, 1.0);
-            Matrix4x4::Translate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, -currentView->X, -currentView->Y, -currentView->Z);
-            Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
-        }
-        else {
-            Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-            if (!currentView->UseDrawTarget)
-                Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
-
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateX, 1.0, 0.0, 0.0);
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateY, 0.0, 1.0, 0.0);
-            Matrix4x4::Rotate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, currentView->RotateZ, 0.0, 0.0, 1.0);
-            Matrix4x4::Translate(currentView->ProjectionMatrix, currentView->BaseProjectionMatrix, -cx, -cy, -cz);
-        }
-        Graphics::UpdateProjectionMatrix();
-        PERF_END(viewPerf->ProjectionSetupTime);
-
-        // Graphics::SetBlendColor(0.5, 0.5, 0.5, 1.0);
-        // Graphics::FillRectangle(currentView->X, currentView->Y, currentView->Width, currentView->Height);
-
-        // RenderEarly
-        PERF_START(viewPerf->ObjectRenderEarlyTime);
-        for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-            if (DEV_NoObjectRender)
-                break;
-
-            DrawGroupList* drawGroupList = &PriorityLists[l];
-            if (drawGroupList->NeedsSorting) {
-                drawGroupList->Sort();
-            }
-            for (size_t o = 0; o < drawGroupList->EntityCapacity; o++) {
-                if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
-                    drawGroupList->Entities[o]->RenderEarly();
-            }
-        }
-        PERF_END(viewPerf->ObjectRenderEarlyTime);
-
-        // Render Objects and Layer Tiles
-        float _vx = currentView->X;
-        float _vy = currentView->Y;
-        float _vw = currentView->Width;
-        float _vh = currentView->Height;
-        double objectTimeTotal = 0.0;
-		DrawGroupList* drawGroupList;
-        for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-            size_t oSz = PriorityLists[l].EntityCapacity;
-
-            if (DEV_NoObjectRender)
-                goto DEV_NoTilesCheck;
-
-            double elapsed;
-            double objectTime;
-            float hbW;
-            float hbH;
-            float _ox;
-            float _oy;
-            objectTime = Clock::GetTicks();
-
-            drawGroupList = &PriorityLists[l];
-            for (size_t o = 0; o < oSz; o++) {
-                if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active) {
-                    Entity* ent = drawGroupList->Entities[o];
-
-                    if (ent->RenderRegionW == 0.0f || ent->RenderRegionH == 0.0f)
-                        goto DoCheckRender;
-
-                    hbW = ent->RenderRegionW * 0.5f;
-                    hbH = ent->RenderRegionH * 0.5f;
-                    _ox = ent->X - _vx;
-                    _oy = ent->Y - _vy;
-                    if ((_ox + hbW) < 0.0f || (_ox - hbW) >= _vw ||
-                        (_oy + hbH) < 0.0f || (_oy - hbH) >= _vh)
-                        continue;
-
-                    if (Scene::ShowObjectRegions) {
-                        _ox = ent->X - ent->RenderRegionW * 0.5f;
-                        _oy = ent->Y - ent->RenderRegionH * 0.5f;
-                        Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
-                        Graphics::FillRectangle(_ox, _oy, ent->RenderRegionW, ent->RenderRegionH);
-
-                        _ox = ent->X - ent->OnScreenHitboxW * 0.5f;
-                        _oy = ent->Y - ent->OnScreenHitboxH * 0.5f;
-                        Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, 0.5f);
-                        Graphics::FillRectangle(_ox, _oy, ent->OnScreenHitboxW, ent->OnScreenHitboxH);
-                    }
-
-                    DoCheckRender:
-                    if (!(ent->ViewRenderFlag & viewRenderFlag))
-                        continue;
-
-                    elapsed = Clock::GetTicks();
-
-                    ent->Render(_vx, _vy);
-
-                    elapsed = Clock::GetTicks() - elapsed;
-
-                    if (ent->List) {
-                        ObjectList* list = ent->List;
-                        double count = list->AverageRenderItemCount;
-                        if (count < 60.0 * 60.0) {
-                            count += 1.0;
-                            if (count == 1.0)
-                                list->AverageRenderTime = elapsed;
-                            else
-                                list->AverageRenderTime =
-                                    list->AverageRenderTime + (elapsed - list->AverageRenderTime) / count;
-                            list->AverageRenderItemCount = count;
-                        }
-                    }
-                }
-            }
-            objectTime = Clock::GetTicks() - objectTime;
-            objectTimeTotal += objectTime;
-
-            DEV_NoTilesCheck:
-            if (DEV_NoTiles)
-                continue;
-
-            if (Scene::TileSprites.size() == 0)
-                continue;
-
-            if (!(TileViewRenderFlag & viewRenderFlag))
-                continue;
-
-            bool texBlend = Graphics::TextureBlend;
-            for (size_t li = 0; li < Layers.size(); li++) {
-                SceneLayer* layer = &Layers[li];
-                // Skip layer tile render if already rendered
-                if (layer->DrawGroup != l)
-                    continue;
-
-                // Draw Tiles
-                if (layer->Visible) {
-                    PERF_START(viewPerf->LayerTileRenderTime[li]);
-
-                    Graphics::Save();
-                    Graphics::Translate(cx, cy, cz);
-
-                    Graphics::TextureBlend = layer->Blending;
-                    if (Graphics::TextureBlend) {
-                        Graphics::SetBlendColor(1.0, 1.0, 1.0, layer->Opacity);
-                        Graphics::SetBlendMode(layer->BlendMode);
-                    }
-                    else
-                        Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-
-                    Graphics::DrawSceneLayer(layer, currentView);
-                    Graphics::ClearClip();
-
-                    Graphics::Restore();
-
-                    PERF_END(viewPerf->LayerTileRenderTime[li]);
-                }
-            }
-            Graphics::TextureBlend = texBlend;
-        }
-        viewPerf->ObjectRenderTime = objectTimeTotal;
-
-        // RenderLate
-        PERF_START(viewPerf->ObjectRenderLateTime);
-        for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-            if (DEV_NoObjectRender)
-                break;
-
-            DrawGroupList* drawGroupList = &PriorityLists[l];
-            size_t oSz = drawGroupList->EntityCapacity;
-            for (size_t o = 0; o < oSz; o++) {
-                if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
-                    drawGroupList->Entities[o]->RenderLate();
-            }
-        }
-        PERF_END(viewPerf->ObjectRenderLateTime);
-
-
-        PERF_START(viewPerf->RenderFinishTime);
-        if (currentView->UseDrawTarget && currentView->DrawTarget) {
-            if (currentView->Software)
-                Graphics::SoftwareEnd();
-
             Graphics::SetRenderTarget(NULL);
             if (currentView->Visible) {
                 Graphics::UpdateOrthoFlipped(win_w, win_h);
@@ -900,9 +948,11 @@ PUBLIC STATIC void Scene::Render() {
                     out_x, out_y + Graphics::PixelOffset, out_w, out_h + Graphics::PixelOffset);
             }
         }
-        PERF_END(viewPerf->RenderFinishTime);
+        renderFinishTime = Clock::GetTicks() - renderFinishTime;
+        if (viewPerf)
+            viewPerf->RenderFinishTime += renderFinishTime;
 
-        PERF_END(viewPerf->RenderTime);
+        PERF_END(RenderTime);
     }
 }
 
@@ -937,14 +987,10 @@ PUBLIC STATIC void Scene::Restart() {
     Scene::Frame = 0;
     Scene::Paused = false;
 
-    // Deactivate extra views
-    for (int i = 1; i < MAX_SCENE_VIEWS; i++) {
-        Scene::Views[i].Active = false;
-    }
-    Scene::ViewsActive = 1;
+    Scene::ResetViews();
 
-    Scene::ObjectViewRenderFlag = VIEW_RENDER_FLAG;
-    Scene::TileViewRenderFlag = VIEW_RENDER_FLAG;
+    Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
+    Scene::TileViewRenderFlag = 0xFFFFFFFF;
 
     Graphics::UnloadSceneData();
 

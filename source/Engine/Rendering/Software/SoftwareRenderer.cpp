@@ -275,7 +275,7 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
 PUBLIC STATIC void     SoftwareRenderer::Dispose() {
-    SoftwareRenderer::BackendFunctions.Dispose();
+
 }
 
 PUBLIC STATIC void     SoftwareRenderer::RenderStart() {
@@ -2089,7 +2089,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     int x = out->Values[12];
     int y = out->Values[13];
     x -= cx;
@@ -3486,7 +3486,7 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -3579,7 +3579,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -3730,7 +3730,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -3820,7 +3820,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -3838,7 +3838,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -3857,7 +3857,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -4482,14 +4482,24 @@ PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx,
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
     y -= cy;
 
-    DrawSpriteImage(texture,
-        x, y, (int)sw, (int)sh, (int)sx, (int)sy, 0, BlendFlag, Alpha);
+    int textureWidth = texture->Width;
+    int textureHeight = texture->Height;
+
+    if (sw >= textureWidth - sx)
+        sw  = textureWidth - sx;
+    if (sh >= textureHeight - sy)
+        sh  = textureHeight - sy;
+
+    if (sw != textureWidth || sh != textureHeight)
+        DrawSpriteImageTransformed(texture, x, y, sx, sy, sw, sh, sx, sy, sw, sh, 0, 0, BlendFlag, Alpha);
+    else
+        DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, BlendFlag, Alpha);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
@@ -4501,7 +4511,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;
@@ -4558,7 +4568,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int ani
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
-    Matrix4x4* out = Graphics::ModelViewMatrix.top();
+    Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
     y += out->Values[13];
     x -= cx;

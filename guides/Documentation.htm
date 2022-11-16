@@ -193,6 +193,10 @@
                     <li><a href="#Reference_Draw_ImagePart">Draw.ImagePart</a></li>
                     <li><a href="#Reference_Draw_ImageSized">Draw.ImageSized</a></li>
                     <li><a href="#Reference_Draw_ImagePartSized">Draw.ImagePartSized</a></li>
+                    <li><a href="#Reference_Draw_View">Draw.View</a></li>
+                    <li><a href="#Reference_Draw_ViewPart">Draw.ViewPart</a></li>
+                    <li><a href="#Reference_Draw_ViewSized">Draw.ViewSized</a></li>
+                    <li><a href="#Reference_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
                     <li><a href="#Reference_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
                     <li><a href="#Reference_Draw_SetViewMatrix">Draw.SetViewMatrix</a></li>
@@ -750,6 +754,8 @@
                     <li><a href="#Reference_View_SetUsePerspective">View.SetUsePerspective</a></li>
                     <li><a href="#Reference_View_IsEnabled">View.IsEnabled</a></li>
                     <li><a href="#Reference_View_SetEnabled">View.SetEnabled</a></li>
+                    <li><a href="#Reference_View_IsVisible">View.IsVisible</a></li>
+                    <li><a href="#Reference_View_SetVisible">View.SetVisible</a></li>
                     <li><a href="#Reference_View_SetFieldOfView">View.SetFieldOfView</a></li>
                     <li><a href="#Reference_View_SetPriority">View.SetPriority</a></li>
                     <li><a href="#Reference_View_GetPriority">View.GetPriority</a></li>
@@ -1421,6 +1427,66 @@
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
         <li>height (Number): Height to draw the image.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_View">
+        <h2 style="margin-bottom: 8px;">Draw.View</h2>
+        <code>Draw.View(viewIndex, x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): X position of where to draw the view.</li>
+        <li>y (Number): Y position of where to draw the view.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ViewPart">
+        <h2 style="margin-bottom: 8px;">Draw.ViewPart</h2>
+        <code>Draw.ViewPart(viewIndex, x, y, partX, partY, partW, partH)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): X position of where to draw the view.</li>
+        <li>y (Number): Y position of where to draw the view.</li>
+        <li>partX (Integer): X coordinate of part of view to draw.</li>
+        <li>partY (Integer): Y coordinate of part of view to draw.</li>
+        <li>partW (Integer): Width of part of view to draw.</li>
+        <li>partH (Integer): Height of part of view to draw.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ViewSized">
+        <h2 style="margin-bottom: 8px;">Draw.ViewSized</h2>
+        <code>Draw.ViewSized(viewIndex, x, y, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a view, but sized.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): X position of where to draw the view.</li>
+        <li>y (Number): Y position of where to draw the view.</li>
+        <li>width (Number): Width to draw the view.</li>
+        <li>height (Number): Height to draw the view.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_ViewPartSized">
+        <h2 style="margin-bottom: 8px;">Draw.ViewPartSized</h2>
+        <code>Draw.ViewPartSized(viewIndex, x, y, partX, partY, partW, partH, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a view, but sized.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): X position of where to draw the view.</li>
+        <li>y (Number): Y position of where to draw the view.</li>
+        <li>partX (Integer): X coordinate of part of view to draw.</li>
+        <li>partY (Integer): Y coordinate of part of view to draw.</li>
+        <li>partW (Integer): Width of part of view to draw.</li>
+        <li>partH (Integer): Height of part of view to draw.</li>
+        <li>width (Number): Width to draw the view.</li>
+        <li>height (Number): Height to draw the view.</li>
         </ul>
         </p>
         <hr/>
@@ -5763,6 +5829,29 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_View_IsVisible">
+        <h2 style="margin-bottom: 8px;">View.IsVisible</h2>
+        <code>View.IsVisible(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is visible or not.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_View_SetVisible">
+        <h2 style="margin-bottom: 8px;">View.SetVisible</h2>
+        <code>View.SetVisible(viewIndex, visible)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the specified camera to be visible.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>visible (Boolean): Whether or not the camera should be visible.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_View_SetFieldOfView">
         <h2 style="margin-bottom: 8px; color: red;">View.SetFieldOfView</h2>
         <code>View.SetFieldOfView()</code>
@@ -5919,6 +6008,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>389 out of 461 functions have descriptions. </p>
+        <p>395 out of 467 functions have descriptions. </p>
     </body>
 </html>

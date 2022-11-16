@@ -193,21 +193,27 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
         Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
         goto GIF_Load_FAIL;
     }
-    
+
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("stream open");
-    
+#endif
+
     fileSize = stream->Length();
     fileBuffer = Memory::Malloc(fileSize);
     stream->ReadBytes(fileBuffer, fileSize);
     stream->Close();
-    
+
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("read to buffer");
+#endif
 
     stream = MemoryStream::New(fileBuffer, fileSize);
     if (!stream)
         goto GIF_Load_FAIL;
-    
+
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("memorystream transfer");
+#endif
 
     Uint8 magicGIF[4];
     stream->ReadBytes(magicGIF, 3);
@@ -249,8 +255,10 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
     colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
     //sortFlag = (logicalScreenDesc & 0x8) != 0; // This is unneeded.
     paletteTableSize = 2 << (logicalScreenDesc & 0x7);
-    
+
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("gif header read");
+#endif
 
     // Prepare image data
     gif->Data = (Uint32*)Memory::TrackedMalloc("GIF::Data", width * height * sizeof(Uint32));
@@ -278,8 +286,10 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
             gif->Colors[p] |= stream->ReadByte();
         }
     }
-    
+
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("allocate image & palette buffer");
+#endif
 
     gif->Paletted = loadPalette;
 
@@ -292,8 +302,10 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
     quarterHeight = gif->Height >> 2;
     halfHeight = gif->Height >> 1;
 
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("clear unused palette memory");
-    
+#endif
+
     // Get frame
     Uint8 type, subtype, temp;
     type = stream->ReadByte();
@@ -490,7 +502,9 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
         gif = NULL;
 
     GIF_Load_Success:
+#ifdef DO_GIF_PERF
     MARK_PERF_LABEL("decode gif data");
+#endif
         Clock::End();
         if (stream)
             stream->Close();

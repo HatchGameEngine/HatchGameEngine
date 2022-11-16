@@ -279,11 +279,11 @@ void   GL_Predraw(Texture* texture) {
 
         glUniformMatrix4fv(GLRenderer::CurrentShader->LocProjectionMatrix, 1, false, GLRenderer::CurrentShader->CachedProjectionMatrix->Values); CHECK_GL();
     }
-    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix.top())) {
+    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix)) {
         if (!GLRenderer::CurrentShader->CachedModelViewMatrix)
             GLRenderer::CurrentShader->CachedModelViewMatrix = Matrix4x4::Create();
 
-        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix.top());
+        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix);
 
         glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelViewMatrix, 1, false, GLRenderer::CurrentShader->CachedModelViewMatrix->Values); CHECK_GL();
     }

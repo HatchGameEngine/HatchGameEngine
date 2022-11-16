@@ -16,44 +16,47 @@ need_t IModel;
 
 class Graphics {
 public:
-	static HashMap<Texture*>* TextureMap;
-	static HashMap<Texture*>* SpriteSheetTextureMap;
-	static bool   		      VsyncEnabled;
-	static int 				  MultisamplingEnabled;
-	static int 				  FontDPI;
-	static bool   		      SupportsBatching;
-	static bool   		      TextureBlend;
-	static bool   		      TextureInterpolate;
-	static Uint32             PreferredPixelFormat;
+    static HashMap<Texture*>*   TextureMap;
+    static HashMap<Texture*>*   SpriteSheetTextureMap;
+    static bool                 VsyncEnabled;
+    static int                  MultisamplingEnabled;
+    static int                  FontDPI;
+    static bool                 SupportsBatching;
+    static bool                 TextureBlend;
+    static bool                 TextureInterpolate;
+    static Uint32               PreferredPixelFormat;
 
-	static Uint32 		      MaxTextureWidth;
-	static Uint32 		      MaxTextureHeight;
-	static Texture*           TextureHead;
+    static Uint32               MaxTextureWidth;
+    static Uint32               MaxTextureHeight;
+    static Texture*             TextureHead;
 
-	static stack<Matrix4x4*>  ProjectionMatrixBackups;
-	static stack<Matrix4x4*>  ModelViewMatrix;
+    static stack<GraphicsState> StateStack;
+    static stack<Matrix4x4*>    MatrixStack;
 
-	static Viewport           CurrentViewport;
-	static Viewport           BackupViewport;
-	static ClipArea           CurrentClip;
-	static ClipArea           BackupClip;
+    static Matrix4x4*           ModelViewMatrix;
 
-	static float              BlendColors[4];
+    static Viewport             CurrentViewport;
+    static Viewport             BackupViewport;
+    static ClipArea             CurrentClip;
+    static ClipArea             BackupClip;
 
-	static Texture*           CurrentRenderTarget;
+    static float                BlendColors[4];
 
-	static void*              CurrentShader;
-    static bool               SmoothFill;
-    static bool               SmoothStroke;
+    static Texture*             CurrentRenderTarget;
 
-	// Rendering functions
-	static GraphicsFunctions  Internal;
-	static GraphicsFunctions* GfxFunctions;
-	static const char*        Renderer;
-    static float              PixelOffset;
-	static bool 			  NoInternalTextures;
-	static int   			  BlendMode;
-	static bool 			  UsePalettes;
+    static void*                CurrentShader;
+    static bool                 SmoothFill;
+    static bool                 SmoothStroke;
+
+    static float                PixelOffset;
+    static bool                 NoInternalTextures;
+    static int                  BlendMode;
+    static bool                 UsePalettes;
+
+    // Rendering functions
+    static GraphicsFunctions    Internal;
+    static GraphicsFunctions*   GfxFunctions;
+    static const char*          Renderer;
 };
 #endif
 
@@ -74,48 +77,52 @@ public:
 
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 
-HashMap<Texture*>* Graphics::TextureMap = NULL;
-HashMap<Texture*>* Graphics::SpriteSheetTextureMap = NULL;
-bool   		  	   Graphics::VsyncEnabled = true;
-int   		  	   Graphics::MultisamplingEnabled = 0;
-int 			   Graphics::FontDPI = 1;
-bool   		  	   Graphics::SupportsBatching = false;
-bool               Graphics::TextureBlend = false;
-bool               Graphics::TextureInterpolate = false;
-Uint32             Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
-Uint32 		       Graphics::MaxTextureWidth = 1;
-Uint32 		       Graphics::MaxTextureHeight = 1;
-Texture*           Graphics::TextureHead = NULL;
+HashMap<Texture*>*   Graphics::TextureMap = NULL;
+HashMap<Texture*>*   Graphics::SpriteSheetTextureMap = NULL;
+bool                 Graphics::VsyncEnabled = true;
+int                  Graphics::MultisamplingEnabled = 0;
+int                  Graphics::FontDPI = 1;
+bool                 Graphics::SupportsBatching = false;
+bool                 Graphics::TextureBlend = false;
+bool                 Graphics::TextureInterpolate = false;
+Uint32               Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+Uint32               Graphics::MaxTextureWidth = 1;
+Uint32               Graphics::MaxTextureHeight = 1;
+Texture*             Graphics::TextureHead = NULL;
 
-stack<Matrix4x4*>  Graphics::ProjectionMatrixBackups;
-stack<Matrix4x4*>  Graphics::ModelViewMatrix;
+stack<GraphicsState> Graphics::StateStack;
+stack<Matrix4x4*>    Graphics::MatrixStack;
 
-Viewport           Graphics::CurrentViewport;
-Viewport           Graphics::BackupViewport;
-ClipArea           Graphics::CurrentClip;
-ClipArea           Graphics::BackupClip;
+Matrix4x4*           Graphics::ModelViewMatrix;
 
-float              Graphics::BlendColors[4];
+Viewport             Graphics::CurrentViewport;
+Viewport             Graphics::BackupViewport;
+ClipArea             Graphics::CurrentClip;
+ClipArea             Graphics::BackupClip;
 
-Texture*           Graphics::CurrentRenderTarget = NULL;
+float                Graphics::BlendColors[4];
 
-void*              Graphics::CurrentShader = NULL;
-bool               Graphics::SmoothFill = false;
-bool               Graphics::SmoothStroke = false;
+Texture*             Graphics::CurrentRenderTarget = NULL;
 
-GraphicsFunctions  Graphics::Internal;
-GraphicsFunctions* Graphics::GfxFunctions = &Graphics::Internal;
-const char*        Graphics::Renderer = "default";
-float              Graphics::PixelOffset = 0.0f;
-bool               Graphics::NoInternalTextures = false;
-int   			   Graphics::BlendMode = 0;
-bool               Graphics::UsePalettes = false;
+void*                Graphics::CurrentShader = NULL;
+bool                 Graphics::SmoothFill = false;
+bool                 Graphics::SmoothStroke = false;
+
+float                Graphics::PixelOffset = 0.0f;
+bool                 Graphics::NoInternalTextures = false;
+int                  Graphics::BlendMode = 0;
+bool                 Graphics::UsePalettes = false;
+
+GraphicsFunctions    Graphics::Internal;
+GraphicsFunctions*   Graphics::GfxFunctions = &Graphics::Internal;
+const char*          Graphics::Renderer = "default";
 
 PUBLIC STATIC void     Graphics::Init() {
 	Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
     Graphics::SpriteSheetTextureMap = new HashMap<Texture*>(NULL, 32);
 
-    Graphics::ModelViewMatrix.push(Matrix4x4::Create());
+    Graphics::ModelViewMatrix = Matrix4x4::Create();
+    Graphics::MatrixStack.push(Graphics::ModelViewMatrix);
 
 	Graphics::CurrentClip.Enabled = false;
 	Graphics::BackupClip.Enabled = false;
@@ -219,9 +226,9 @@ PUBLIC STATIC void     Graphics::Dispose() {
 
 	delete Graphics::TextureMap;
     delete Graphics::SpriteSheetTextureMap;
-    while (Graphics::ModelViewMatrix.size()) {
-        delete Graphics::ModelViewMatrix.top();
-        Graphics::ModelViewMatrix.pop();
+    while (Graphics::MatrixStack.size()) {
+        delete Graphics::MatrixStack.top();
+        Graphics::MatrixStack.pop();
     }
 }
 
@@ -230,18 +237,13 @@ PUBLIC STATIC Point    Graphics::ProjectToScreen(float x, float y, float z) {
 	float vec4[4];
 	Matrix4x4* matrix;
 
-	// matrix = Matrix4x4::Create();
-	matrix = Graphics::ModelViewMatrix.top();
-	// Matrix4x4::Multiply(matrix, Graphics::ProjectionMatrix, Graphics::ModelViewMatrix.top());
+	matrix = Graphics::MatrixStack.top();
 
 	vec4[0] = x; vec4[1] = y; vec4[2] = z; vec4[3] = 1.0f;
 	Matrix4x4::Multiply(matrix, &vec4[0]);
-	// Matrix4x4::Multiply(Graphics::ProjectionMatrix, &vec4[0]);
 
 	p.X = (vec4[0] + 1.0f) / 2.0f * Graphics::CurrentViewport.Width;
 	p.Y = (vec4[1] - 1.0f) / -2.0f * Graphics::CurrentViewport.Height;
-	// p.X = vec4[0];
-	// p.Y = vec4[1];
 	p.Z = vec4[2];
 	return p;
 }
@@ -358,16 +360,6 @@ PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
 		Graphics::BackupClip = Graphics::CurrentClip;
 	}
 
-	// if (Graphics::CurrentRenderTarget != texture) {
-    // 	Graphics::ProjectionMatrixBackups.push(Matrix4x4::Create());
-	// 	Matrix4x4::Copy(Graphics::ProjectionMatrixBackups.top(), Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
-	// }
-	// else {
-	// 	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Graphics::ProjectionMatrixBackups.top());
-	// 	delete Graphics::ProjectionMatrixBackups.top();
-	// 	Graphics::ProjectionMatrixBackups.pop();
-	// }
-
 	Graphics::CurrentRenderTarget = texture;
 
     Graphics::GfxFunctions->SetRenderTarget(texture);
@@ -444,40 +436,84 @@ PUBLIC STATIC void     Graphics::ClearClip() {
 }
 
 PUBLIC STATIC void     Graphics::Save() {
-	Matrix4x4* top = ModelViewMatrix.top();
+    Matrix4x4* top = MatrixStack.top();
     Matrix4x4* push = Matrix4x4::Create();
     Matrix4x4::Copy(push, top);
 
-    if (ModelViewMatrix.size() == 256) {
-		Log::Print(Log::LOG_ERROR, "Draw.Save stack too big.");
-		exit(-1);
-	}
+    if (MatrixStack.size() == 256) {
+        Log::Print(Log::LOG_ERROR, "Draw.Save stack too big!");
+        exit(-1);
+    }
 
-    ModelViewMatrix.push(push);
+    MatrixStack.push(push);
+    ModelViewMatrix = push;
 }
 PUBLIC STATIC void     Graphics::Translate(float x, float y, float z) {
-	Matrix4x4::Translate(ModelViewMatrix.top(), ModelViewMatrix.top(), x, y, z);
+    Matrix4x4::Translate(ModelViewMatrix, ModelViewMatrix, x, y, z);
 }
 PUBLIC STATIC void     Graphics::Rotate(float x, float y, float z) {
-	Matrix4x4::Rotate(ModelViewMatrix.top(), ModelViewMatrix.top(), x, 1.0, 0.0, 0.0);
-    Matrix4x4::Rotate(ModelViewMatrix.top(), ModelViewMatrix.top(), y, 0.0, 1.0, 0.0);
-    Matrix4x4::Rotate(ModelViewMatrix.top(), ModelViewMatrix.top(), z, 0.0, 0.0, 1.0);
+    Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, x, 1.0, 0.0, 0.0);
+    Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, y, 0.0, 1.0, 0.0);
+    Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, z, 0.0, 0.0, 1.0);
 }
 PUBLIC STATIC void     Graphics::Scale(float x, float y, float z) {
-    Matrix4x4::Scale(ModelViewMatrix.top(), ModelViewMatrix.top(), x, y, z);
+    Matrix4x4::Scale(ModelViewMatrix, ModelViewMatrix, x, y, z);
 }
 PUBLIC STATIC void     Graphics::Restore() {
-	if (ModelViewMatrix.size() == 1) return;
+    if (MatrixStack.size() == 1) return;
 
-    delete ModelViewMatrix.top();
-    ModelViewMatrix.pop();
+    delete MatrixStack.top();
+    MatrixStack.pop();
+
+    ModelViewMatrix = MatrixStack.top();
+}
+
+PUBLIC STATIC void     Graphics::PushState() {
+    if (StateStack.size() == 256) {
+        Log::Print(Log::LOG_ERROR, "Graphics::PushState stack too big!");
+        exit(-1);
+    }
+
+    GraphicsState state;
+
+    state.CurrentViewport = Graphics::CurrentViewport;
+    state.CurrentClip     = Graphics::CurrentClip;
+    state.BlendMode       = Graphics::BlendMode;
+    state.TextureBlend    = Graphics::TextureBlend;
+    state.UsePalettes     = Graphics::UsePalettes;
+
+    memcpy(state.BlendColors, Graphics::BlendColors, sizeof(Graphics::BlendColors));
+
+    StateStack.push(state);
+
+    Graphics::Save();
+}
+PUBLIC STATIC void     Graphics::PopState() {
+    if (StateStack.size() == 0) return;
+
+    GraphicsState state = StateStack.top();
+
+    Graphics::SetBlendMode(state.BlendMode);
+    Graphics::SetBlendColor(state.BlendColors[0], state.BlendColors[1], state.BlendColors[2], state.BlendColors[3]);
+
+    Graphics::CurrentViewport = state.CurrentViewport;
+    Graphics::CurrentClip     = state.CurrentClip;
+    Graphics::TextureBlend    = state.TextureBlend;
+    Graphics::UsePalettes     = state.UsePalettes;
+
+    Graphics::GfxFunctions->UpdateViewport();
+    Graphics::GfxFunctions->UpdateClipRect();
+
+    StateStack.pop();
+
+    Graphics::Restore();
 }
 
 PUBLIC STATIC void     Graphics::SetBlendColor(float r, float g, float b, float a) {
-	Graphics::BlendColors[0] = r;
-	Graphics::BlendColors[1] = g;
-	Graphics::BlendColors[2] = b;
-	Graphics::BlendColors[3] = a;
+    Graphics::BlendColors[0] = r;
+    Graphics::BlendColors[1] = g;
+    Graphics::BlendColors[2] = b;
+    Graphics::BlendColors[3] = a;
     Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
 }
 PUBLIC STATIC void     Graphics::SetBlendMode(int blendMode) {

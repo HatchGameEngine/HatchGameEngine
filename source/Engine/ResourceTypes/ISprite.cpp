@@ -6,7 +6,6 @@
 class ISprite {
 public:
     char              Filename[256];
-    bool              Print = false;
 
     Texture*          Spritesheets[32];
     bool              SpritesheetsBorrowed[32];
@@ -240,7 +239,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 		return false;
     }
 
-    if (Print) Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
+#ifdef ISPRITE_DEBUG
+    Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
+#endif
 
     /// =======================
     /// RSDKv5 Animation Format
@@ -266,8 +267,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
         }
 
         str = reader->ReadHeaderedString();
-        if (Print)
-            Log::Print(Log::LOG_VERBOSE, " - %s", str);
+#ifdef ISPRITE_DEBUG
+        Log::Print(Log::LOG_VERBOSE, " - %s", str);
+#endif
 
         strcpy(SpritesheetsFilenames[i], str);
 
@@ -308,7 +310,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
         // 4: Unknown (used alot in Mania)
         an.Flags = reader->ReadByte();
 
-        if (Print) Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
+#ifdef ISPRITE_DEBUG
+        Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
+#endif
         an.Frames.resize(frameCount);
 
         for (int i = 0; i < frameCount; i++) {
@@ -341,7 +345,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
             // Possibly buffer the position in the renderer.
             Graphics::MakeFrameBufferID(this, &anfrm);
 
-            if (Print) Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
+#ifdef ISPRITE_DEBUG
+            Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
+#endif
             an.Frames[i] = anfrm;
         }
         Animations[previousAnimationCount + a] = an;

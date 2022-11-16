@@ -222,6 +222,18 @@ namespace LOCAL {
 
         return Scene::SpriteList[where]->AsSprite;
     }
+    inline Image*         GetImage(VMValue* args, int index, Uint32 threadID) {
+        int where = GetInteger(args, index, threadID);
+        if (where < 0 || where > (int)Scene::ImageList.size()) {
+            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+                "Image index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
+                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        }
+
+        if (!Scene::ImageList[where]) return NULL;
+
+        return Scene::ImageList[where]->AsImage;
+    }
     inline ISound*         GetSound(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::SoundList.size()) {
@@ -1327,11 +1339,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
 
-	int index = GET_ARG(0, GetInteger);
-	if (index < 0)
-		return NULL_VAL;
-
-    Image* image = Scene::ImageList[index]->AsImage;
+    Image* image = GET_ARG(0, GetImage);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
 
@@ -1353,11 +1361,7 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(7);
 
-	int index = GET_ARG(0, GetInteger);
-	if (index < 0)
-		return NULL_VAL;
-
-	Image* image = Scene::ImageList[index]->AsImage;
+	Image* image = GET_ARG(0, GetImage);
     float sx = GET_ARG(1, GetDecimal);
     float sy = GET_ARG(2, GetDecimal);
     float sw = GET_ARG(3, GetDecimal);
@@ -1380,11 +1384,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
 
-	int index = GET_ARG(0, GetInteger);
-	if (index < 0)
-		return NULL_VAL;
-
-	Image* image = Scene::ImageList[index]->AsImage;
+	Image* image = GET_ARG(0, GetImage);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float w = GET_ARG(3, GetDecimal);
@@ -1410,11 +1410,7 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(9);
 
-	int index = GET_ARG(0, GetInteger);
-	if (index < 0)
-		return NULL_VAL;
-
-	Image* image = Scene::ImageList[index]->AsImage;
+	Image* image = GET_ARG(0, GetImage);
     float sx = GET_ARG(1, GetDecimal);
     float sy = GET_ARG(2, GetDecimal);
     float sw = GET_ARG(3, GetDecimal);
@@ -1425,6 +1421,150 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
     float h = GET_ARG(8, GetDecimal);
 
     Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
+    return NULL_VAL;
+}
+static VMValue RenderView(Uint32 threadID, int view_index) {
+    int currentView = Scene::ViewCurrent;
+    if (view_index == currentView) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw current view!");
+        return NULL_VAL;
+    }
+
+    if (!Scene::Views[view_index].UseDrawTarget) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw view %d if it lacks a draw target!", view_index);
+        return NULL_VAL;
+    }
+
+    // Pushes the graphics state, renders the view, restores the previous view and pops the graphics state.
+    Graphics::PushState();
+    Scene::RenderView(view_index, false);
+    Scene::SetView(currentView);
+    Graphics::PopState();
+
+    return NULL_VAL;
+}
+/***
+ * Draw.View
+ * \desc Draws a view.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): X position of where to draw the view.
+ * \param y (Number): Y position of where to draw the view.
+ * \ns Draw
+ */
+VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int view_index = GET_ARG(0, GetInteger);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
+    }
+
+    RenderView(threadID, view_index);
+
+    Texture* texture = Scene::Views[view_index].DrawTarget;
+    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
+    return NULL_VAL;
+}
+/***
+ * Draw.ViewPart
+ * \desc Draws part of a view.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): X position of where to draw the view.
+ * \param y (Number): Y position of where to draw the view.
+ * \param partX (Integer): X coordinate of part of view to draw.
+ * \param partY (Integer): Y coordinate of part of view to draw.
+ * \param partW (Integer): Width of part of view to draw.
+ * \param partH (Integer): Height of part of view to draw.
+ * \ns Draw
+ */
+VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(7);
+
+    int view_index = GET_ARG(0, GetInteger);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float sx = GET_ARG(3, GetDecimal);
+    float sy = GET_ARG(4, GetDecimal);
+    float sw = GET_ARG(5, GetDecimal);
+    float sh = GET_ARG(6, GetDecimal);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
+    }
+
+    RenderView(threadID, view_index);
+
+    Texture* texture = Scene::Views[view_index].DrawTarget;
+    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, sw, sh);
+    return NULL_VAL;
+}
+/***
+ * Draw.ViewSized
+ * \desc Draws a view, but sized.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): X position of where to draw the view.
+ * \param y (Number): Y position of where to draw the view.
+ * \param width (Number): Width to draw the view.
+ * \param height (Number): Height to draw the view.
+ * \ns Draw
+ */
+VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+
+    int view_index = GET_ARG(0, GetInteger);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float w = GET_ARG(3, GetDecimal);
+    float h = GET_ARG(4, GetDecimal);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
+    }
+
+    RenderView(threadID, view_index);
+
+    Texture* texture = Scene::Views[view_index].DrawTarget;
+    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, 0, 0, texture->Width, texture->Height, x, y, w, h);
+    return NULL_VAL;
+}
+/***
+ * Draw.ViewPartSized
+ * \desc Draws part of a view, but sized.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): X position of where to draw the view.
+ * \param y (Number): Y position of where to draw the view.
+ * \param partX (Integer): X coordinate of part of view to draw.
+ * \param partY (Integer): Y coordinate of part of view to draw.
+ * \param partW (Integer): Width of part of view to draw.
+ * \param partH (Integer): Height of part of view to draw.
+ * \param width (Number): Width to draw the view.
+ * \param height (Number): Height to draw the view.
+ * \ns Draw
+ */
+VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(9);
+
+    int view_index = GET_ARG(0, GetInteger);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float sx = GET_ARG(3, GetDecimal);
+    float sy = GET_ARG(4, GetDecimal);
+    float sw = GET_ARG(5, GetDecimal);
+    float sh = GET_ARG(6, GetDecimal);
+    float w = GET_ARG(7, GetDecimal);
+    float h = GET_ARG(8, GetDecimal);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
+    }
+
+    RenderView(threadID, view_index);
+
+    Texture* texture = Scene::Views[view_index].DrawTarget;
+    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
 /***
@@ -2134,11 +2274,7 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(4);
 
-    int index = GET_ARG(0, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-
-    Image* image = Scene::ImageList[index]->AsImage;
+    Image* image = GET_ARG(0, GetImage);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float z = GET_ARG(3, GetDecimal);
@@ -2171,11 +2307,7 @@ VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(8);
 
-    int index = GET_ARG(0, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-
-    Image* image = Scene::ImageList[index]->AsImage;
+    Image* image = GET_ARG(0, GetImage);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float z = GET_ARG(3, GetDecimal);
@@ -2267,10 +2399,8 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexAttribute data[3];
 
-    int index = GET_ARG(0, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-    Texture* texture = Scene::ImageList[index]->AsImage->TexturePtr;
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
 
     VERTEX_ARGS(3, 1);
     VERTEX_COLOR_ARGS(3);
@@ -2329,10 +2459,8 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexAttribute data[4];
 
-    int index = GET_ARG(0, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-    Texture* texture = Scene::ImageList[index]->AsImage->TexturePtr;
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
 
     VERTEX_ARGS(4, 1);
     VERTEX_COLOR_ARGS(4);
@@ -5933,11 +6061,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int palIndex = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    if (index < 0)
-        return NULL_VAL;
-
-    Image* image = Scene::ImageList[index]->AsImage;
+    Image* image = GET_ARG(1, GetImage);
     Texture* texture = image->TexturePtr;
 
     size_t x = 0;
@@ -6158,10 +6282,6 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
-    // size_t listSz = Scene::SpriteList.size();
-    // for (size_t i = 0; i < listSz; i++)
-    //     if (Scene::SpriteList[i]->FilenameHash == resource->FilenameHash)
-    //         return INTEGER_VAL((int)i);
     size_t index = 0;
     bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::SpriteList;
@@ -6169,6 +6289,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL((int)index);
     else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
+    // FIXME: This needs to return -1 if LoadAnimation fails.
     resource->AsSprite = new (nothrow) ISprite(filename);
     return INTEGER_VAL((int)index);
 }
@@ -6431,10 +6552,6 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
-    // size_t listSz = Scene::MediaList.size();
-    // for (size_t i = 0; i < listSz; i++)
-    //     if (Scene::MediaList[i]->FilenameHash == resource->FilenameHash)
-    //         return INTEGER_VAL((int)i);
     size_t index = 0;
     bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::MediaList;
@@ -7303,25 +7420,11 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
         return NULL_VAL;
     }
 
-    int viewRenderFlag = (1 << view_index);
-    if (enabled) {
+    int viewRenderFlag = 1 << view_index;
+    if (enabled)
         Scene::ObjectViewRenderFlag |= viewRenderFlag;
-        for (Entity* ent = Scene::StaticObjectFirst; ent; ent = ent->NextEntity) {
-            ent->ViewRenderFlag |= viewRenderFlag;
-        }
-        for (Entity* ent = Scene::DynamicObjectFirst; ent; ent = ent->NextEntity) {
-            ent->ViewRenderFlag |= viewRenderFlag;
-        }
-    }
-    else {
+    else
         Scene::ObjectViewRenderFlag &= ~viewRenderFlag;
-        for (Entity* ent = Scene::StaticObjectFirst; ent; ent = ent->NextEntity) {
-            ent->ViewRenderFlag &= ~viewRenderFlag;
-        }
-        for (Entity* ent = Scene::DynamicObjectFirst; ent; ent = ent->NextEntity) {
-            ent->ViewRenderFlag &= ~viewRenderFlag;
-        }
-    }
 
     return NULL_VAL;
 }
@@ -7335,19 +7438,17 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
-    int enabled = GET_ARG(1, GetDecimal);
+    int enabled = !!GET_ARG(1, GetDecimal);
     if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
         return NULL_VAL;
     }
 
-    int viewRenderFlag = (1 << view_index);
-    if (!!enabled) {
+    int viewRenderFlag = 1 << view_index;
+    if (enabled)
         Scene::TileViewRenderFlag |= viewRenderFlag;
-    }
-    else {
+    else
         Scene::TileViewRenderFlag &= ~viewRenderFlag;
-    }
 
     return NULL_VAL;
 }
@@ -8442,7 +8543,7 @@ VMValue Texture_FromSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Texture_FromImage(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Image* arg1 = Scene::ImageList[GET_ARG(0, GetInteger)]->AsImage;
+    Image* arg1 = GET_ARG(0, GetImage);
     return INTEGER_VAL((int)arg1->TexturePtr->ID);
 }
 /***
@@ -9676,20 +9777,46 @@ VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
-    int enabledddd = GET_ARG(1, GetInteger);
+    int enabled = !!GET_ARG(1, GetInteger);
     if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
         return NULL_VAL;
     }
-    enabledddd = !!enabledddd;
-    if (Scene::Views[view_index].Active != enabledddd) {
-        Scene::Views[view_index].Active = enabledddd;
-        if (enabledddd)
-            Scene::ViewsActive++;
-        else
-            Scene::ViewsActive--;
-        Scene::SortViews();
+    Scene::SetViewActive(view_index, enabled);
+    return NULL_VAL;
+}
+/***
+ * View.IsVisible
+ * \desc Gets whether the specified camera is visible or not.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Boolean value.
+ * \ns View
+ */
+VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
     }
+    return INTEGER_VAL(Scene::Views[view_index].Visible);
+}
+/***
+ * View.SetVisible
+ * \desc Sets the specified camera to be visible.
+ * \param viewIndex (Integer): Index of the view.
+ * \param visible (Boolean): Whether or not the camera should be visible.
+ * \ns View
+ */
+VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int view_index = GET_ARG(0, GetInteger);
+    int visible = GET_ARG(1, GetInteger);
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
+        return NULL_VAL;
+    }
+    Scene::Views[view_index].Visible = !!visible;
     return NULL_VAL;
 }
 /***
@@ -9724,9 +9851,7 @@ VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
         return NULL_VAL;
     }
-    Scene::Views[view_index].Priority = priority;
-    if (Scene::Views[view_index].Active)
-        Scene::SortViews();
+    Scene::SetViewPriority(view_index, priority);
     return NULL_VAL;
 }
 /***
@@ -10217,6 +10342,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ImagePart);
     DEF_NATIVE(Draw, ImageSized);
     DEF_NATIVE(Draw, ImagePartSized);
+    DEF_NATIVE(Draw, View);
+    DEF_NATIVE(Draw, ViewPart);
+    DEF_NATIVE(Draw, ViewSized);
+    DEF_NATIVE(Draw, ViewPartSized);
     DEF_NATIVE(Draw, InitArrayBuffer);
     DEF_NATIVE(Draw, BindArrayBuffer);
     DEF_NATIVE(Draw, BindVertexBuffer);
@@ -10762,6 +10891,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(View, SetUseSoftwareRenderer);
     DEF_NATIVE(View, IsEnabled);
     DEF_NATIVE(View, SetEnabled);
+    DEF_NATIVE(View, IsVisible);
+    DEF_NATIVE(View, SetVisible);
     DEF_NATIVE(View, SetFieldOfView);
     DEF_NATIVE(View, SetPriority);
     DEF_NATIVE(View, GetPriority);

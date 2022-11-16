@@ -85,6 +85,14 @@ struct Point {
     float Y;
     float Z;
 };
+struct GraphicsState {
+    Viewport           CurrentViewport;
+    ClipArea           CurrentClip;
+    float              BlendColors[4];
+    int                BlendMode;
+    bool               TextureBlend;
+    bool               UsePalettes;
+};
 
 struct GraphicsFunctions {
     void     (*Init)();

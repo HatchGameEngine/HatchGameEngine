@@ -627,7 +627,7 @@ void        D3D_DrawTextureRaw(Texture* texture, float sx, float sy, float sw, f
         memcpy(&matrix.m, D3D_MatrixIdentity->Values, sizeof(float) * 16);
     }
     else {
-        // memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        // memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         Graphics::Save();
         Graphics::Translate(x, y, 0.0f);
         if (texture->Access != SDL_TEXTUREACCESS_TARGET)
@@ -635,7 +635,7 @@ void        D3D_DrawTextureRaw(Texture* texture, float sx, float sy, float sw, f
         else
             Graphics::Translate(-0.5f * fx, -0.5f * fy, 0.0f);
         Graphics::Scale(w, h, 1.0f);
-            memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+            memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         Graphics::Restore();
     }
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
@@ -1229,7 +1229,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeLine(float x1, float y1, float x2, flo
     // UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderShape);
 
     Graphics::Save();
-        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix.top()->Values);
+        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix->Values);
 
         float v[6];
         v[0] = x1; v[1] = y1; v[2] = 0.0f;
@@ -1247,7 +1247,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad) {
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1259,7 +1259,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeEllipse(float x, float y, float w, flo
     Graphics::Save();
     Graphics::Translate(x + w / 2, y + h / 2, 0.0f);
     Graphics::Scale(w / 2, h / 2, 1.0f);
-        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix.top()->Values);
+        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix->Values);
 
         // glBindBuffer(GL_ARRAY_BUFFER, D3D_BufferCircleStroke);
         // glVertexAttribPointer(D3D_CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -1280,7 +1280,7 @@ PUBLIC STATIC void     D3DRenderer::FillCircle(float x, float y, float rad) {
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1296,7 +1296,7 @@ PUBLIC STATIC void     D3DRenderer::FillEllipse(float x, float y, float w, float
     Graphics::Translate(x + w, y + h, 0.0f);
     Graphics::Scale(w, h, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1311,7 +1311,7 @@ PUBLIC STATIC void     D3DRenderer::FillTriangle(float x1, float y1, float x2, f
     D3D_BeginDrawShape(vertices, 3);
 
     D3DMATRIX matrix;
-    memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+    memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 
     D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
@@ -1323,7 +1323,7 @@ PUBLIC STATIC void     D3DRenderer::FillRectangle(float x, float y, float w, flo
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(w, h, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1400,7 +1400,7 @@ PUBLIC STATIC void     D3DRenderer::DrawTexturedShapeBuffer(Texture* texture, Ui
     UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderTexturedShape);
 
     GLTextureData* textureData = (GLTextureData*)texture->DriverData;
-    glUniformMatrix4fv(D3DRenderer::D3D_CurrentShader->LocModelViewMatrix, 1, false, D3DRenderer::Graphics::ModelViewMatrix.top()->Values);
+    glUniformMatrix4fv(D3DRenderer::D3D_CurrentShader->LocModelViewMatrix, 1, false, D3DRenderer::Graphics::ModelViewMatrix->Values);
 
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(D3DRenderer::D3D_CurrentShader->LocTexture, 0);
