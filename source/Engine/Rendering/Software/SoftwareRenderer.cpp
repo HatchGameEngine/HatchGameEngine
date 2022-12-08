@@ -111,7 +111,7 @@ int ColorTint(Uint32 color, Uint32 colorMult) {
     return dB | (dG << 8) | (dR << 16);
 }
 
-#define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b;
+#define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b
 
 // Utility functions
 PUBLIC STATIC void    SoftwareRenderer::ConvertFromARGBtoNative(Uint32* argb, int count) {
@@ -518,7 +518,7 @@ PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
     else if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
         blendFlag = BlendFlag_TRANSPARENT; \
     else if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
-        blendFlag = BlendFlag_OPAQUE;
+        blendFlag = BlendFlag_OPAQUE
 
 // Filterless versions
 #define GET_R(color) ((color >> 16) & 0xFF)
@@ -809,7 +809,7 @@ void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int b
             continue; \
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            pixelFunction((Uint32*)&color, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, color); \
         } \
         dst_strideY += dstStride; \
     }
@@ -1020,7 +1020,7 @@ void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity,
         SCANLINE_WRITE_PIXEL(pixelFunction, color)
     #define PX_GET_FOG(pixelFunction) \
         col = DoFogLighting(color, mapZ); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col);
+        SCANLINE_WRITE_PIXEL(pixelFunction, col)
 
     #define DRAW_POLYGONSHADED(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
@@ -2088,19 +2088,29 @@ static void BuildFrustumPlanes(ArrayBuffer* arrayBuffer, Frustum* frustum) {
 
 // Drawing 3D
 ArrayBuffer ArrayBuffers[MAX_ARRAY_BUFFERS];
+
+#define GET_ARRAY_BUFFER() \
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS) \
+        return; \
+    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex]; \
+    if (!arrayBuffer->Initialized) \
+        return
+
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Init(Uint32 arrayBufferIndex, Uint32 maxVertices) {
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
     ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    VertexBuffer::Init(&arrayBuffer->Buffer, maxVertices);
 
+    arrayBuffer->Buffer.Init(maxVertices);
     arrayBuffer->Initialized = true;
     arrayBuffer->ClipPolygons = true;
 
     SoftwareRenderer::ArrayBuffer_InitMatrices(arrayBufferIndex);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_InitMatrices(Uint32 arrayBufferIndex) {
+    GET_ARRAY_BUFFER();
+
     Matrix4x4 projMat, viewMat;
     SoftwareRenderer::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
     Matrix4x4::Identity(&viewMat);
@@ -2108,65 +2118,42 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_InitMatrices(Uint32 arrayBu
     SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(arrayBufferIndex, &projMat);
     SoftwareRenderer::ArrayBuffer_SetViewMatrix(arrayBufferIndex, &viewMat);
 }
+
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetAmbientLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->LightingAmbientR = r;
     arrayBuffer->LightingAmbientG = g;
     arrayBuffer->LightingAmbientB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetDiffuseLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->LightingDiffuseR = r;
     arrayBuffer->LightingDiffuseG = g;
     arrayBuffer->LightingDiffuseB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetSpecularLighting(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->LightingSpecularR = r;
     arrayBuffer->LightingSpecularG = g;
     arrayBuffer->LightingSpecularB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetFogDensity(Uint32 arrayBufferIndex, float density) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->FogDensity = density;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetFogColor(Uint32 arrayBufferIndex, Uint32 r, Uint32 g, Uint32 b) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->FogColorR = r;
     arrayBuffer->FogColorG = g;
     arrayBuffer->FogColorB = b;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetClipPolygons(Uint32 arrayBufferIndex, bool clipPolygons) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->ClipPolygons = clipPolygons;
 }
@@ -2175,45 +2162,28 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_Bind(Uint32 arrayBufferInde
     ArrayBuffer_DrawBegin(arrayBufferIndex);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawBegin(Uint32 arrayBufferIndex) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
+    GET_ARRAY_BUFFER();
 
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (arrayBuffer->Initialized) {
-        VertexBuffer::Clear(&arrayBuffer->Buffer);
-        BuildFrustumPlanes(arrayBuffer, ViewFrustum);
-    }
+    arrayBuffer->Buffer.Clear();
+    BuildFrustumPlanes(arrayBuffer, ViewFrustum);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(Uint32 arrayBufferIndex, Matrix4x4* projMat) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->ProjectionMatrix  = *projMat;
     arrayBuffer->FarClippingPlane  = projMat->Values[14] / (projMat->Values[10] - 1.0f);
     arrayBuffer->NearClippingPlane = projMat->Values[14] / (projMat->Values[10] + 1.0f);
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetViewMatrix(Uint32 arrayBufferIndex, Matrix4x4* viewMat) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-
-    ArrayBuffer* arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
+    GET_ARRAY_BUFFER();
 
     arrayBuffer->ViewMatrix = *viewMat;
 }
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
+    GET_ARRAY_BUFFER();
 
     int vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
     FaceInfo* faceInfoPtr;
-    ArrayBuffer* arrayBuffer;
-    VertexBuffer* vertexBuffer;
     VertexAttribute* vertexAttribsPtr;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
@@ -2244,10 +2214,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     else \
         UseDepthBuffer = DepthTest
 
-    arrayBuffer = &ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
-        return;
-    vertexBuffer = &arrayBuffer->Buffer;
+    VertexBuffer* vertexBuffer = &arrayBuffer->Buffer;
 
     SoftwareRenderer::SetDepthTest(drawMode & DrawMode_DEPTH_TEST);
 
@@ -2626,10 +2593,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     SoftwareRenderer::SetDepthTest(false);
 }
 
+#undef GET_ARRAY_BUFFER
+
 PUBLIC STATIC Uint32   SoftwareRenderer::VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy) {
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
         if (VertexBuffers[i] == NULL) {
-            VertexBuffers[i] = VertexBuffer::Create(maxVertices, unloadPolicy);
+            VertexBuffers[i] = new VertexBuffer(maxVertices, unloadPolicy);
             return i;
         }
     }
@@ -2645,7 +2614,7 @@ PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Delete(Uint32 vertexBuffer
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
-    VertexBuffer::Delete(VertexBuffers[vertexBufferIndex]);
+    delete VertexBuffers[vertexBufferIndex];
     VertexBuffers[vertexBufferIndex] = NULL;
 }
 

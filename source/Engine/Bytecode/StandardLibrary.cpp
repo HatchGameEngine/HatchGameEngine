@@ -9030,7 +9030,7 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
     if (buffer)
-        VertexBuffer::Resize(buffer, maxVertices, maxVertices / 3);
+        buffer->Resize(maxVertices, maxVertices / 3);
     return NULL_VAL;
 }
 /***
@@ -9048,7 +9048,7 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
     if (buffer)
-        VertexBuffer::Clear(buffer);
+        buffer->Clear();
     return NULL_VAL;
 }
 /***
