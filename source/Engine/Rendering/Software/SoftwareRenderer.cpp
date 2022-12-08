@@ -150,6 +150,7 @@ bool UseDepthBuffer = false;
 size_t DepthBufferSize = 0;
 Uint32* DepthBuffer = NULL;
 
+bool UseFog = false;
 float FogDensity = 1.0f;
 int FogColor = 0x000000;
 
@@ -583,61 +584,29 @@ int DoFogLighting(int color, float fogCoord) {
         return ColorBlend(color, FogColor, fogValue);
     return color;
 }
-int LightPixel(int color, float depth) {
-    return DoFogLighting(color, depth);
-}
-int LightPixelNoOp(int color, float depth) {
-    return color;
-}
-int (*LightPixelFunc)(int, float) = NULL;
 
-#define POLYGON_BLENDFLAGS(drawPolygonMacro, placePixelMacro) \
+#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro, pixelMacro) \
     switch (blendFlag) { \
         case BlendFlag_OPAQUE: \
-            drawPolygonMacro(PixelNoFiltSetOpaque, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetOpaque, pixelMacro); \
             break; \
         case BlendFlag_TRANSPARENT: \
-            drawPolygonMacro(PixelNoFiltSetTransparent, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetTransparent, pixelMacro); \
             break; \
         case BlendFlag_ADDITIVE: \
-            drawPolygonMacro(PixelNoFiltSetAdditive, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetAdditive, pixelMacro); \
             break; \
         case BlendFlag_SUBTRACT: \
-            drawPolygonMacro(PixelNoFiltSetSubtract, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetSubtract, pixelMacro); \
             break; \
         case BlendFlag_MATCH_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchEqual, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetMatchEqual, pixelMacro); \
             break; \
         case BlendFlag_MATCH_NOT_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, pixelMacro); \
             break; \
         case BlendFlag_FILTER: \
-            drawPolygonMacro(PixelNoFiltSetFilter, placePixelMacro); \
-            break; \
-    }
-
-#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro) \
-    switch (blendFlag) { \
-        case BlendFlag_OPAQUE: \
-            drawPolygonMacro(PixelNoFiltSetOpaque); \
-            break; \
-        case BlendFlag_TRANSPARENT: \
-            drawPolygonMacro(PixelNoFiltSetTransparent); \
-            break; \
-        case BlendFlag_ADDITIVE: \
-            drawPolygonMacro(PixelNoFiltSetAdditive); \
-            break; \
-        case BlendFlag_SUBTRACT: \
-            drawPolygonMacro(PixelNoFiltSetSubtract); \
-            break; \
-        case BlendFlag_MATCH_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchEqual); \
-            break; \
-        case BlendFlag_MATCH_NOT_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchNotEqual); \
-            break; \
-        case BlendFlag_FILTER: \
-            drawPolygonMacro(PixelNoFiltSetFilter); \
+            drawPolygonMacro(PixelNoFiltSetFilter, pixelMacro); \
             break; \
     }
 
@@ -691,20 +660,28 @@ int (*LightPixelFunc)(int, float) = NULL;
             break; \
     }
 
-#define POLYGON_SCANLINE_DEPTH(drawPolygonMacro) \
+#define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
     if (Graphics::UsePalettes && texture->Paletted) { \
         if (UseDepthBuffer) { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_PAL, DEPTH_READ_U32, DEPTH_WRITE_U32); \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelPaletted, DEPTH_READ_U32, DEPTH_WRITE_U32); \
         } \
         else { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_PAL, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelPaletted, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
         } \
     } else { \
         if (UseDepthBuffer) { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DEPTH_READ_U32, DEPTH_WRITE_U32); \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixel, DEPTH_READ_U32, DEPTH_WRITE_U32); \
         } else {  \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
+            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixel, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
         } \
+    }
+
+#define POLYGON_SCANLINE_DEPTH(drawPolygonMacro) \
+    if (UseFog) { \
+        DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_FOG, DRAW_PLACEPIXEL_PAL_FOG) \
+    } \
+    else { \
+        DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DRAW_PLACEPIXEL_PAL) \
     }
 
 #define SCANLINE_INIT_Z() \
@@ -742,7 +719,7 @@ int (*LightPixelFunc)(int, float) = NULL;
     contV += dxV * diff
 
 #define SCANLINE_GET_MAPZ() \
-    float mapZ = 1.0f / contZ; \
+    mapZ = 1.0f / contZ; \
     Uint32 iz = mapZ * 0xFFFF
 #define SCANLINE_GET_RGB() \
     Sint32 colR = contR; \
@@ -763,6 +740,9 @@ int (*LightPixelFunc)(int, float) = NULL;
     CLAMP_VAL(colG, 0x00, 0xFF0000); \
     CLAMP_VAL(colB, 0x00, 0xFF0000); \
     col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
+
+#define SCANLINE_WRITE_PIXEL(pixelFunction, px) \
+    pixelFunction((Uint32*)&px, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt)
 
 Contour *ContourField = SoftwareRenderer::ContourBuffer;
 
@@ -931,8 +911,19 @@ void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, i
 
     Sint32 col, contLen;
     float contR, contG, contB, dxR, dxG, dxB;
+    float mapZ;
 
-    #define DRAW_POLYGONBLEND(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define PX_GET(pixelFunction) \
+        SCANLINE_GET_RGB(); \
+        SCANLINE_GET_COLOR(); \
+        SCANLINE_WRITE_PIXEL(pixelFunction, col)
+    #define PX_GET_FOG(pixelFunction) \
+        SCANLINE_GET_RGB(); \
+        SCANLINE_GET_COLOR(); \
+        col = DoFogLighting(col, mapZ); \
+        SCANLINE_WRITE_PIXEL(pixelFunction, col)
+
+    #define DRAW_POLYGONBLEND(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -945,9 +936,7 @@ void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, i
             SCANLINE_STEP_RGB_BY(diff); \
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_RGB(); \
-            SCANLINE_GET_COLOR(); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            pixelRead(pixelFunction); \
             SCANLINE_STEP_RGB(); \
         } \
         dst_strideY += dstStride; \
@@ -957,7 +946,14 @@ void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, i
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND);
+    if (UseFog) {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET_FOG);
+    } else {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET);
+    }
+
+    #undef PX_GET
+    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONBLEND
 }
@@ -1018,8 +1014,15 @@ void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity,
 
     Sint32 col, contLen;
     float contZ, dxZ;
+    float mapZ;
 
-    #define DRAW_POLYGONSHADED(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define PX_GET(pixelFunction) \
+        SCANLINE_WRITE_PIXEL(pixelFunction, color)
+    #define PX_GET_FOG(pixelFunction) \
+        col = DoFogLighting(color, mapZ); \
+        SCANLINE_WRITE_PIXEL(pixelFunction, col);
+
+    #define DRAW_POLYGONSHADED(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -1032,8 +1035,7 @@ void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity,
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
-            col = LightPixelFunc(color, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            pixelRead(pixelFunction); \
             SCANLINE_STEP_Z(); \
         } \
         dst_strideY += dstStride; \
@@ -1043,7 +1045,14 @@ void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity,
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED);
+    if (UseFog) {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET_FOG);
+    } else {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET);
+    }
+
+    #undef PX_GET
+    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONSHADED
 }
@@ -1107,8 +1116,17 @@ void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opac
     Sint32 col, contLen;
     float contZ, contR, contG, contB;
     float dxZ, dxR, dxG, dxB;
+    float mapZ;
 
-    #define DRAW_POLYGONBLENDSHADED(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define PX_GET(pixelFunction) \
+        SCANLINE_GET_COLOR(); \
+        SCANLINE_WRITE_PIXEL(pixelFunction, col)
+    #define PX_GET_FOG(pixelFunction) \
+        SCANLINE_GET_COLOR(); \
+        col = DoFogLighting(col, mapZ); \
+        SCANLINE_WRITE_PIXEL(pixelFunction, col)
+
+    #define DRAW_POLYGONBLENDSHADED(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -1125,9 +1143,7 @@ void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opac
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_RGB(); \
-            SCANLINE_GET_COLOR(); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            pixelRead(pixelFunction); \
             SCANLINE_STEP_Z(); \
             SCANLINE_STEP_RGB(); \
         } \
@@ -1138,7 +1154,14 @@ void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opac
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED);
+    if (UseFog) {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET_FOG);
+    } else {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET);
+    }
+
+    #undef PX_GET
+    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONBLENDSHADED
 }
@@ -1206,20 +1229,35 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
     Sint32 col, texCol, contLen;
     float contZ, contU, contV;
     float dxZ, dxU, dxV;
+    float mapZ;
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             col = ColorTint(color, texCol); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             col = ColorTint(color, index[texCol]); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = ColorTint(color, texCol); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = ColorTint(color, index[texCol]); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
 
@@ -1260,6 +1298,8 @@ void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint3
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PLACEPIXEL_FOG
+    #undef DRAW_PLACEPIXEL_PAL_FOG
     #undef DRAW_POLYGONAFFINE
 }
 // Draws an affine texture mapped polygon with blending
@@ -1328,13 +1368,13 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV, contR, contG, contB;
     float dxZ, dxU, dxV, dxR, dxG, dxB;
+    float mapZ;
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
             col = ColorTint(col, texCol); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
@@ -1342,8 +1382,25 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
             col = ColorTint(col, index[texCol]); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, texCol); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, index[texCol]); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
 
@@ -1388,6 +1445,8 @@ void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PLACEPIXEL_FOG
+    #undef DRAW_PLACEPIXEL_PAL_FOG
     #undef DRAW_POLYGONBLENDAFFINE
     #undef BLENDFLAGS
 }
@@ -1525,20 +1584,35 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV;
     float dxZ, dxU, dxV;
+    float mapZ;
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             col = ColorTint(color, texCol); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             col = ColorTint(color, index[texCol]); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        } \
+
+    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            col = ColorTint(color, texCol); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            col = ColorTint(color, index[texCol]); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
 
@@ -1577,6 +1651,8 @@ void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, 
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PLACEPIXEL_FOG
+    #undef DRAW_PLACEPIXEL_PAL_FOG
     #undef DRAW_PERSP_GET
     #undef DRAW_PERSP_STEP
     #undef DRAW_POLYGONPERSP
@@ -1647,13 +1723,13 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV, contR, contG, contB;
     float dxZ, dxU, dxV, dxR, dxG, dxB;
+    float mapZ;
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
             col = ColorTint(col, texCol); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
@@ -1661,8 +1737,25 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
             col = ColorTint(col, index[texCol]); \
-            col = LightPixelFunc(col, mapZ); \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, texCol); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            dpW(iz); \
+        }
+
+    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
+        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+            SCANLINE_GET_COLOR(); \
+            col = ColorTint(col, index[texCol]); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
@@ -1704,6 +1797,8 @@ void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* 
 
     #undef DRAW_PLACEPIXEL
     #undef DRAW_PLACEPIXEL_PAL
+    #undef DRAW_PLACEPIXEL_FOG
+    #undef DRAW_PLACEPIXEL_PAL_FOG
     #undef DRAW_PERSP_GET
     #undef DRAW_PERSP_STEP
     #undef DRAW_POLYGONBLENDPERSP
@@ -1765,8 +1860,23 @@ void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, 
 
     Sint32 col, contLen;
     float contZ, dxZ;
+    float mapZ;
 
-    #define DRAW_POLYGONDEPTH(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define PX_GET(pixelFunction) \
+        SCANLINE_GET_MAPZ(); \
+        if (DEPTH_READ_U32(iz)) { \
+            SCANLINE_WRITE_PIXEL(pixelFunction, color); \
+            DEPTH_WRITE_U32(iz); \
+        }
+    #define PX_GET_FOG(pixelFunction) \
+        SCANLINE_GET_MAPZ(); \
+        if (DEPTH_READ_U32(iz)) { \
+            col = DoFogLighting(color, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            DEPTH_WRITE_U32(iz); \
+        }
+
+    #define DRAW_POLYGONDEPTH(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -1778,12 +1888,7 @@ void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, 
             SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (DEPTH_READ_U32(iz)) { \
-                col = LightPixelFunc(color, mapZ); \
-                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
-                DEPTH_WRITE_U32(iz); \
-            } \
+            pixelRead(pixelFunction); \
             SCANLINE_STEP_Z(); \
         } \
         dst_strideY += dstStride; \
@@ -1793,7 +1898,14 @@ void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, 
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH);
+    if (UseFog) {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET_FOG);
+    } else {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET);
+    }
+
+    #undef PX_GET
+    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONDEPTH
 }
@@ -1857,8 +1969,27 @@ void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opaci
     Sint32 col, contLen;
     float contZ, contR, contG, contB;
     float dxZ, dxR, dxG, dxB;
+    float mapZ;
 
-    #define DRAW_POLYGONBLENDDEPTH(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define PX_GET(pixelFunction) \
+        SCANLINE_GET_MAPZ(); \
+        if (DEPTH_READ_U32(iz)) { \
+            SCANLINE_GET_RGB(); \
+            SCANLINE_GET_COLOR(); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            DEPTH_WRITE_U32(iz); \
+        }
+    #define PX_GET_FOG(pixelFunction) \
+        SCANLINE_GET_MAPZ(); \
+        if (DEPTH_READ_U32(iz)) { \
+            SCANLINE_GET_RGB(); \
+            SCANLINE_GET_COLOR(); \
+            col = DoFogLighting(col, mapZ); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
+            DEPTH_WRITE_U32(iz); \
+        }
+
+    #define DRAW_POLYGONBLENDDEPTH(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -1873,14 +2004,7 @@ void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opaci
             SCANLINE_STEP_RGB_BY(diff); \
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (DEPTH_READ_U32(iz)) { \
-                SCANLINE_GET_RGB(); \
-                SCANLINE_GET_COLOR(); \
-                col = LightPixelFunc(col, mapZ); \
-                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt); \
-                DEPTH_WRITE_U32(iz); \
-            } \
+            pixelRead(pixelFunction); \
             SCANLINE_STEP_Z(); \
             SCANLINE_STEP_RGB(); \
         } \
@@ -1891,7 +2015,14 @@ void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opaci
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH);
+    if (UseFog) {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET_FOG);
+    } else {
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET);
+    }
+
+    #undef PX_GET
+    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONBLENDDEPTH
 }
@@ -2120,13 +2251,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     SoftwareRenderer::SetDepthTest(drawMode & DrawMode_DEPTH_TEST);
 
-    if (drawMode & DrawMode_FOG) {
+    UseFog = drawMode & DrawMode_FOG;
+
+    if (UseFog) {
         FogColor       = arrayBuffer->FogColorR << 16 | arrayBuffer->FogColorG << 8 | arrayBuffer->FogColorB;
         FogDensity     = arrayBuffer->FogDensity;
-        LightPixelFunc = LightPixel;
     }
-    else
-        LightPixelFunc = LightPixelNoOp;
 
     vertexAttribsPtr = vertexBuffer->Vertices; // R
     faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
