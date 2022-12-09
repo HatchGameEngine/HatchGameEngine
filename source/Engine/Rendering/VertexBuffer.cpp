@@ -4,11 +4,11 @@
 
 class VertexBuffer {
 public:
-    VertexAttribute* Vertices;          // count = max vertex count
-    FaceInfo*        FaceInfoBuffer;    // count = max face count
-    Uint32           Capacity;
-    Uint32           VertexCount;
-    Uint32           FaceCount;
+    VertexAttribute* Vertices       = nullptr; // count = max vertex count
+    FaceInfo*        FaceInfoBuffer = nullptr; // count = max face count
+    Uint32           Capacity       = 0;
+    Uint32           VertexCount    = 0;
+    Uint32           FaceCount      = 0;
     Uint32           UnloadPolicy;
 };
 #endif
@@ -17,46 +17,37 @@ public:
 #include <Engine/Diagnostics/Memory.h>
 
 PUBLIC               VertexBuffer::VertexBuffer() {
-    Vertices = nullptr;
-    FaceInfoBuffer = nullptr;
-    VertexCount = 0;
-    FaceCount = 0;
-    Capacity = 0;
+
 }
-PUBLIC               VertexBuffer::VertexBuffer(Uint32 maxVertices, int unloadPolicy) {
-    Capacity = 0;
+PUBLIC               VertexBuffer::VertexBuffer(Uint32 numVertices, int unloadPolicy) {
     UnloadPolicy = unloadPolicy;
 
-    Init(maxVertices);
+    Init(numVertices);
     Clear();
 }
-PUBLIC void          VertexBuffer::Init(Uint32 maxVertices) {
-    Uint32 maxFaces = maxVertices / 3;
+PUBLIC void          VertexBuffer::Init(Uint32 numVertices) {
+    if (!numVertices)
+        numVertices = 192;
 
-    if (!Capacity) {
-        Vertices = (VertexAttribute*)Memory::Calloc(maxVertices, sizeof(VertexAttribute));
-        FaceInfoBuffer = (FaceInfo*)Memory::Calloc(maxFaces, sizeof(FaceInfo));
-    }
-    else
-        Resize(maxVertices, maxFaces);
-
-    Capacity = maxVertices;
+    if (Capacity != numVertices)
+        Resize(numVertices);
 }
 PUBLIC void          VertexBuffer::Clear() {
     VertexCount = 0;
     FaceCount = 0;
 
+    // Not sure why we do this
     memset(Vertices, 0x00, Capacity * sizeof(VertexAttribute));
 }
-PUBLIC void          VertexBuffer::Resize(Uint32 maxVertices, Uint32 maxFaces) {
-    Vertices = (VertexAttribute*)Memory::Realloc(Vertices, maxVertices * sizeof(VertexAttribute));
-    FaceInfoBuffer = (FaceInfo*)Memory::Realloc(FaceInfoBuffer, maxFaces * sizeof(FaceInfo));
+PUBLIC void          VertexBuffer::Resize(Uint32 numVertices) {
+    if (!numVertices)
+        numVertices = 192;
 
-    Clear();
+    Capacity = numVertices;
+    Vertices = (VertexAttribute*)Memory::Realloc(Vertices, numVertices * sizeof(VertexAttribute));
+    FaceInfoBuffer = (FaceInfo*)Memory::Realloc(FaceInfoBuffer, ((numVertices / 3) + 1) * sizeof(FaceInfo));
 }
 PUBLIC               VertexBuffer::~VertexBuffer() {
-    if (Capacity) {
-        Memory::Free(Vertices);
-        Memory::Free(FaceInfoBuffer);
-    }
+    Memory::Free(Vertices);
+    Memory::Free(FaceInfoBuffer);
 }

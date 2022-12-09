@@ -1492,12 +1492,12 @@
         <hr/>
         <p id="Reference_Draw_InitArrayBuffer">
         <h2 style="margin-bottom: 8px;">Draw.InitArrayBuffer</h2>
-        <code>Draw.InitArrayBuffer(arrayBufferIndex, maxVertices)</code>
+        <code>Draw.InitArrayBuffer(arrayBufferIndex, numVertices)</code>
         <div style="margin-top: 8px; font-size: 14px;">Initializes an array buffer. There are 32 array buffers.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)</li>
-        <li>maxVertices (Integer): The maximum vertices that this array buffer will hold.</li>
+        <li>numVertices (Integer): The initial capacity of this array buffer.</li>
         </ul>
         </p>
         <hr/>
@@ -5392,11 +5392,11 @@
         <hr/>
         <p id="Reference_VertexBuffer_Create">
         <h2 style="margin-bottom: 8px;">VertexBuffer.Create</h2>
-        <code>VertexBuffer.Create(maxVertices, unloadPolicy)</code>
+        <code>VertexBuffer.Create(numVertices, unloadPolicy)</code>
         <div style="margin-top: 8px; font-size: 14px;">Create a vertex buffer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>maxVertices (Integer): The maximum vertices that this vertex buffer will hold.</li>
+        <li>numVertices (Integer): The initial capacity of this vertex buffer.</li>
         <li>unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -5405,11 +5405,12 @@
         <hr/>
         <p id="Reference_VertexBuffer_Resize">
         <h2 style="margin-bottom: 8px;">VertexBuffer.Resize</h2>
-        <code>VertexBuffer.Resize(vertexBufferIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Resizes a vertex buffer. This clears the vertex buffer.</div>
+        <code>VertexBuffer.Resize(vertexBufferIndex, numVertices)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Resizes a vertex buffer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>vertexBufferIndex (Integer): The vertex buffer to resize.</li>
+        <li>numVertices (Integer): The amount of vertices that this vertex buffer will hold.</li>
         </ul>
         </p>
         <hr/>

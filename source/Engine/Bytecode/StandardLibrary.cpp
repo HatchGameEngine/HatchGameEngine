@@ -1571,15 +1571,15 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.InitArrayBuffer
  * \desc Initializes an array buffer. There are 32 array buffers.
  * \param arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)
- * \param maxVertices (Integer): The maximum vertices that this array buffer will hold.
+ * \param numVertices (Integer): The initial capacity of this array buffer.
  * \return
  * \ns Draw
  */
 VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 maxVertices = GET_ARG(1, GetInteger);
-    SoftwareRenderer::ArrayBuffer_Init(arrayBufferIndex, maxVertices);
+    Uint32 numVertices = GET_ARG(1, GetInteger);
+    SoftwareRenderer::ArrayBuffer_Init(arrayBufferIndex, numVertices);
     return NULL_VAL;
 }
 /***
@@ -8998,16 +8998,16 @@ VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * VertexBuffer.Create
  * \desc Create a vertex buffer.
- * \param maxVertices (Integer): The maximum vertices that this vertex buffer will hold.
+ * \param numVertices (Integer): The initial capacity of this vertex buffer.
  * \param unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.
  * \return The index of the created vertex buffer.
  * \ns VertexBuffer
  */
 VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    Uint32 maxVertices = GET_ARG(0, GetInteger);
+    Uint32 numVertices = GET_ARG(0, GetInteger);
     Uint32 unloadPolicy = GET_ARG(1, GetInteger);
-    Uint32 vertexBufferIndex = SoftwareRenderer::VertexBuffer_Create(maxVertices, unloadPolicy);
+    Uint32 vertexBufferIndex = SoftwareRenderer::VertexBuffer_Create(numVertices, unloadPolicy);
     if (vertexBufferIndex == 0xFFFFFFFF) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more vertex buffers available.");
         return NULL_VAL;
@@ -9016,21 +9016,22 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * VertexBuffer.Resize
- * \desc Resizes a vertex buffer. This clears the vertex buffer.
+ * \desc Resizes a vertex buffer.
  * \param vertexBufferIndex (Integer): The vertex buffer to resize.
+ * \param numVertices (Integer): The amount of vertices that this vertex buffer will hold.
  * \return
  * \ns VertexBuffer
  */
 VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 maxVertices = GET_ARG(1, GetInteger);
+    Uint32 numVertices = GET_ARG(1, GetInteger);
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
     VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
     if (buffer)
-        buffer->Resize(maxVertices, maxVertices / 3);
+        buffer->Resize(numVertices);
     return NULL_VAL;
 }
 /***

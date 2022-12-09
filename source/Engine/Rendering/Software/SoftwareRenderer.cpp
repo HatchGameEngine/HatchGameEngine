@@ -2694,29 +2694,25 @@ static bool CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
 
     return true;
 }
-static int ClipPolygon(VertexBuffer* vertexBuffer, VertexAttribute* output, VertexAttribute* input, int numVertices) {
-    PolygonClipBuffer clipper;
+static int ClipPolygon(PolygonClipBuffer& clipper, VertexAttribute* input, int numVertices) {
     clipper.NumPoints = 0;
     clipper.MaxPoints = MAX_POLYGON_VERTICES;
 
     int numOutVertices = Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
     if (numOutVertices < 3 || numOutVertices >= MAX_POLYGON_VERTICES)
         return 0;
-    else if (vertexBuffer->VertexCount + numOutVertices > vertexBuffer->Capacity)
-        return -1;
-
-    VertexAttribute* result = clipper.Buffer;
-    int n = numOutVertices;
-    while (n--) {
-        COPY_VECTOR(output->Position, result->Position);
-        COPY_NORMAL(output->Normal, result->Normal);
-        output->Color = result->Color;
-        output->UV = result->UV;
-        output++;
-        result++;
-    }
 
     return numOutVertices;
+}
+static void CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int numVertices) {
+    while (numVertices--) {
+        COPY_VECTOR(output->Position, buffer->Position);
+        COPY_NORMAL(output->Normal, buffer->Normal);
+        output->Color = buffer->Color;
+        output->UV = buffer->UV;
+        output++;
+        buffer++;
+    }
 }
 
 #define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
@@ -2746,17 +2742,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
     else
         CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
 
-    int arrayFaceCount = vertexBuffer->FaceCount;
     int arrayVertexCount = vertexBuffer->VertexCount;
+    int maxVertexCount = arrayVertexCount + vertexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
 
-    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
     VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
-
-    if (arrayVertexCount + vertexCount > vertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + vertexCount) - vertexBuffer->Capacity);
-        return;
-    }
-
     VertexAttribute* vertex = arrayVertexBuffer;
     int numVertices = vertexCount;
     int numBehind = 0;
@@ -2799,17 +2790,24 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
 
         // Vertices are now in clip space, which means that the polygon can be frustum clipped
         if (ClipPolygonsByFrustum) {
-            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
-            if (vertexCount == -1) {
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
+            PolygonClipBuffer clipper;
+
+            vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
+            if (vertexCount == 0)
                 return;
+
+            int maxVertexCount = arrayVertexCount + vertexCount;
+            if (maxVertexCount > vertexBuffer->Capacity) {
+                vertexBuffer->Resize(maxVertexCount);
+                arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
             }
-            else if (vertexCount == 0)
-                return;
+
+            CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
         } else if (numBehind != 0)
             return;
     }
 
+    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
     faceInfoItem->NumVertices = vertexCount;
     if (texture)
         SetFaceInfoMaterial(faceInfoItem, texture);
@@ -2840,8 +2838,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
 
     int arrayVertexCount = vertexBuffer->VertexCount;
     int arrayFaceCount = vertexBuffer->FaceCount;
-    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
-    VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 
     vector<AnimFrame> animFrames;
     vector<Texture*> textureSources;
@@ -2862,10 +2858,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
         }
     }
 
-    if (arrayVertexCount + totalVertexCount > vertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", vertexBuffer->Capacity, (arrayVertexCount + totalVertexCount) - vertexBuffer->Capacity);
-        return;
-    }
+    int maxVertexCount = arrayVertexCount + totalVertexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
+
+    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 
     for (int y = sy, destY = 0; y < sh; y++, destY++) {
         for (int x = sx, destX = 0; x < sw; x++, destX++) {
@@ -2963,13 +2961,20 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
 
                 // Vertices are now in clip space, which means that the polygon can be frustum clipped
                 if (ClipPolygonsByFrustum) {
-                    vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
-                    if (vertexCount == -1) {
-                        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
-                        return;
-                    }
-                    else if (vertexCount == 0)
+                    PolygonClipBuffer clipper;
+
+                    vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
+                    if (vertexCount == 0)
                         continue;
+
+                    int maxVertexCount = arrayVertexCount + vertexCount;
+                    if (maxVertexCount > vertexBuffer->Capacity) {
+                        vertexBuffer->Resize(maxVertexCount);
+                        faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+                        arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
+                    }
+
+                    CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
                 }
             }
 
@@ -3004,7 +3009,6 @@ public:
     void SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal);
 
     VertexBuffer*    Buffer;
-    int              VertexCount;
 
     VertexAttribute* AttribBuffer;
     VertexAttribute* Vertex;
@@ -3023,10 +3027,9 @@ public:
 
 ModelRenderer::ModelRenderer(VertexBuffer* vertexBuffer) {
     Buffer = vertexBuffer;
-    VertexCount = Buffer->VertexCount;
 
     FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
-    AttribBuffer = Vertex = &Buffer->Vertices[VertexCount];
+    AttribBuffer = Vertex = &Buffer->Vertices[Buffer->VertexCount];
 
     ClipFaces = false;
     ArmaturePtr = nullptr;
@@ -3064,13 +3067,20 @@ int ModelRenderer::ClipFace(int faceVertexCount) {
     if (!CheckPolygonVisible(Vertex, faceVertexCount))
         return 0;
     else if (ClipPolygonsByFrustum) {
-        faceVertexCount = ClipPolygon(Buffer, AttribBuffer, Vertex, faceVertexCount);
-        if (faceVertexCount == -1) {
-            BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", Buffer->Capacity);
-            throw -1;
-        }
-        else if (faceVertexCount == 0)
+        PolygonClipBuffer clipper;
+
+        faceVertexCount = ClipPolygon(clipper, Vertex, faceVertexCount);
+        if (faceVertexCount == 0)
             return 0;
+
+        int maxVertexCount = Buffer->VertexCount + faceVertexCount;
+        if (maxVertexCount > Buffer->Capacity) {
+            Buffer->Resize(maxVertexCount);
+            FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
+            AttribBuffer = Vertex = &Buffer->Vertices[Buffer->VertexCount];
+        }
+
+        CopyVertices(clipper.Buffer, Vertex, faceVertexCount);
     }
 
     Vertex += faceVertexCount;
@@ -3358,9 +3368,7 @@ void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
         Matrix4x4 identity;
         Matrix4x4::Identity(&identity);
 
-        try {
-            DrawNode(model, model->BaseArmature->RootNode, &identity);
-        } catch (...) { }
+        DrawNode(model, model->BaseArmature->RootNode, &identity);
     }
     else {
         static Skeleton vertexAnimSkeleton;
@@ -3378,12 +3386,7 @@ void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
                 skeletonPtr->TransformedNormals = mesh->NormalBuffer + (frame * model->VertexCount);
             }
 
-            try {
-                DrawMesh(model, mesh, skeletonPtr, MVPMatrix);
-            } catch (...) {
-                // Stop rendering meshes
-                return;
-            }
+            DrawMesh(model, mesh, skeletonPtr, MVPMatrix);
         }
     }
 }
@@ -3424,14 +3427,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animati
         projMatrix = &arrayBuffer->ProjectionMatrix;
     }
 
-    ModelRenderer rend = ModelRenderer(vertexBuffer);
+    int maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
 
-    int modelVertexIndexCount = model->VertexIndexCount;
-    int arrayVertexCount = rend.VertexCount;
-    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
-        return;
-    }
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
 
     rend.ClipFaces = arrayBuffer != nullptr;
     rend.SetMatrices(modelMatrix, viewMatrix, projMatrix, normalMatrix);
@@ -3459,14 +3459,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(IModel* model, Uint16 
         projMatrix = &arrayBuffer->ProjectionMatrix;
     }
 
-    ModelRenderer rend = ModelRenderer(vertexBuffer);
+    int maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
 
-    int modelVertexIndexCount = model->VertexIndexCount;
-    int arrayVertexCount = rend.VertexCount;
-    if (arrayVertexCount + modelVertexIndexCount > vertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Model has too many vertices (%d) to fit in size (%d) of vertex buffer! Increase vertex buffer size by %d, or use a model with less vertices!", modelVertexIndexCount, vertexBuffer->Capacity, (arrayVertexCount + modelVertexIndexCount) - vertexBuffer->Capacity);
-        return;
-    }
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
 
     rend.ClipFaces = arrayBuffer != nullptr;
     rend.ArmaturePtr = model->ArmatureList[armature];
@@ -3493,20 +3490,19 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     int arrayFaceCount = destVertexBuffer->FaceCount;
     int arrayVertexCount = destVertexBuffer->VertexCount;
 
-    FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
-    VertexAttribute* arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
-    VertexAttribute* arrayVertexItem = arrayVertexBuffer;
-
     // source
     int srcFaceCount = vertexBuffer->FaceCount;
     int srcVertexCount = vertexBuffer->VertexCount;
     if (!srcFaceCount || !srcVertexCount)
         return;
 
-    if (arrayVertexCount + srcVertexCount > destVertexBuffer->Capacity) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full! Increase its size by %d!", destVertexBuffer->Capacity, (arrayVertexCount + srcVertexCount) - destVertexBuffer->Capacity);
-        return;
-    }
+    int maxVertexCount = arrayVertexCount + srcVertexCount;
+    if (maxVertexCount > destVertexBuffer->Capacity)
+        destVertexBuffer->Resize(maxVertexCount);
+
+    FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
+    VertexAttribute* arrayVertexItem = arrayVertexBuffer;
 
     // Copy the vertices into the vertex buffer
     VertexAttribute* srcVertexItem = &vertexBuffer->Vertices[0];
@@ -3539,13 +3535,20 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
 
         // Vertices are now in clip space, which means that the polygon can be frustum clipped
         if (ClipPolygonsByFrustum) {
-            vertexCount = ClipPolygon(vertexBuffer, arrayVertexBuffer, arrayVertexBuffer, vertexCount);
-            if (vertexCount == -1) {
-                BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Vertex buffer of size %d is full!", vertexBuffer->Capacity);
-                return;
-            }
-            else if (vertexCount == 0)
+            PolygonClipBuffer clipper;
+
+            vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
+            if (vertexCount == 0)
                 continue;
+
+            int maxVertexCount = arrayVertexCount + vertexCount;
+            if (maxVertexCount > destVertexBuffer->Capacity) {
+                destVertexBuffer->Resize(maxVertexCount);
+                faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+                arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
+            }
+
+            CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
         }
 
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
