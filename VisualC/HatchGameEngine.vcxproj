@@ -210,6 +210,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Shader.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
+    <ClCompile Include="..\source\engine\rendering\software\PolygonRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\Rasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />

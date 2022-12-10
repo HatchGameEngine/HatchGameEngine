@@ -23,13 +23,16 @@ public:
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static VertexBuffer*     VertexBuffers[MAX_VERTEX_BUFFERS];
     static Uint32            CurrentVertexBuffer;
+    static int               MultTable[0x10000];
+    static int               MultTableInv[0x10000];
+    static int               MultSubTable[0x10000];
 };
 #endif
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
-#include <Engine/Rendering/Software/Rasterizer.h>
+#include <Engine/Rendering/Software/PolygonRenderer.h>
+#include <Engine/Rendering/Software/SoftwareEnums.h>
 #include <Engine/Rendering/ArrayBuffer.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -49,18 +52,10 @@ TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
 Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-VertexBuffer*     SoftwareRenderer::VertexBuffers[MAX_VERTEX_BUFFERS];
 Uint32            SoftwareRenderer::CurrentVertexBuffer = -1;
-
-enum BlendFlags {
-    BlendFlag_OPAQUE = 0,
-    BlendFlag_TRANSPARENT,
-    BlendFlag_ADDITIVE,
-    BlendFlag_SUBTRACT,
-    BlendFlag_MATCH_EQUAL,
-    BlendFlag_MATCH_NOT_EQUAL,
-    BlendFlag_FILTER
-};
+int               SoftwareRenderer::MultTable[0x10000];
+int               SoftwareRenderer::MultTableInv[0x10000];
+int               SoftwareRenderer::MultSubTable[0x10000];
 
 int Alpha = 0xFF;
 int BlendFlag = BlendFlag_OPAQUE;
@@ -74,13 +69,6 @@ Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
 	if (b > 0xFFU) b = 0xFFU;
 	return r | g | b;
 }
-Uint32 ColorBlend(Uint32 color1, Uint32 color2, int percent) {
-	Uint32 rb = color1 & 0xFF00FFU;
-	Uint32 g  = color1 & 0x00FF00U;
-	rb += (((color2 & 0xFF00FFU) - rb) * percent) >> 8;
-	g  += (((color2 & 0x00FF00U) - g) * percent) >> 8;
-	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
-}
 Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
     Sint32 r = (color1 & 0xFF0000U) - (((color2 & 0xFF0000U) * percent) >> 8);
 	Sint32 g = (color1 & 0xFF00U) - (((color2 & 0xFF00U) * percent) >> 8);
@@ -89,26 +77,6 @@ Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
 	if (g < 0) g = 0;
 	if (b < 0) b = 0;
 	return r | g | b;
-}
-int ColorMultiply(Uint32 color, Uint32 colorMult) {
-    Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
-    Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
-    Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
-    return (int)((R >> 8) | (G >> 8) | (B >> 8));
-}
-int ColorTint(Uint32 color, Uint32 colorMult) {
-    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
-        return color;
-    Uint32 dR = (colorMult >> 16) & 0xFF;
-    Uint32 dG = (colorMult >> 8) & 0xFF;
-    Uint32 dB = colorMult & 0xFF;
-    Uint32 sR = (color >> 16) & 0xFF;
-    Uint32 sG = (color >> 8) & 0xFF;
-    Uint32 sB = color & 0xFF;
-    dR = (Uint8)((dR * sR + 0xFF) >> 8);
-    dG = (Uint8)((dG * sG + 0xFF) >> 8);
-    dB = (Uint8)((dB * sB + 0xFF) >> 8);
-    return dB | (dG << 8) | (dR << 16);
 }
 
 #define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b
@@ -129,9 +97,6 @@ int ColR = 0xFF;
 int ColG = 0xFF;
 int ColB = 0xFF;
 Uint32 ColRGB = 0xFFFFFF;
-int MultTable[0x10000];
-int MultTableInv[0x10000];
-int MultSubTable[0x10000];
 
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
@@ -141,24 +106,9 @@ int MultSubTable[0x10000];
 int SinTable[TRIG_TABLE_SIZE];
 int CosTable[TRIG_TABLE_SIZE];
 
-bool ClipPolygonsByFrustum = false;
-int NumFrustumPlanes = 0;
+bool    ClipPolygonsByFrustum;
+int     NumFrustumPlanes;
 Frustum ViewFrustum[NUM_FRUSTUM_PLANES];
-
-bool DepthTest = false;
-bool UseDepthBuffer = false;
-size_t DepthBufferSize = 0;
-Uint32* DepthBuffer = NULL;
-
-bool UseFog = false;
-float FogDensity = 1.0f;
-int FogColor = 0x000000;
-
-#define DEPTH_READ_DUMMY(depth) true
-#define DEPTH_WRITE_DUMMY(depth)
-
-#define DEPTH_READ_U32(depth) (depth < DepthBuffer[dst_x + dst_strideY])
-#define DEPTH_WRITE_U32(depth) DepthBuffer[dst_x + dst_strideY] = depth
 
 int FilterCurrent[0x8000];
 
@@ -414,35 +364,6 @@ PUBLIC STATIC void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int sr
     }
 }
 
-PUBLIC STATIC void     SoftwareRenderer::SetDepthTest(bool enabled) {
-    DepthTest = enabled;
-
-    if (DepthTest) {
-        size_t dpSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
-        if (DepthBuffer == NULL) {
-            DepthBufferSize = dpSize;
-            InitDepthBuffer();
-        }
-        else if (dpSize != DepthBufferSize) {
-            DepthBufferSize = dpSize;
-            ResizeDepthBuffer();
-        }
-
-        ClearDepthBuffer();
-    }
-}
-PUBLIC STATIC void     SoftwareRenderer::InitDepthBuffer() {
-    DepthBuffer = (Uint32*)Memory::Calloc(DepthBufferSize, sizeof(*DepthBuffer));
-}
-PUBLIC STATIC void     SoftwareRenderer::ResizeDepthBuffer() {
-    DepthBuffer = (Uint32*)Memory::Realloc(DepthBuffer, DepthBufferSize * sizeof(*DepthBuffer));
-}
-PUBLIC STATIC void     SoftwareRenderer::ClearDepthBuffer() {
-    size_t size = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
-    if (DepthBuffer)
-        memset(DepthBuffer, 0xFF, DepthBufferSize * sizeof(*DepthBuffer));
-}
-
 PUBLIC STATIC void     SoftwareRenderer::Resize(int width, int height) {
 
 }
@@ -495,30 +416,24 @@ PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, f
     out->Values[15] = 0.0f;
 }
 
-PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
-    if (DepthBuffer) {
-        Memory::Free(DepthBuffer);
-        DepthBuffer = NULL;
+PUBLIC STATIC bool     SoftwareRenderer::AlterBlendFlag(int& blendFlag, int& opacity) {
+    if (FilterTable != &FilterColor[0]) {
+        blendFlag = BlendFlag_FILTER;
+        return true;
     }
 
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        VertexBuffer* buffer = VertexBuffers[i];
-        if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
-            continue;
+    // Not visible
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
+        return false;
 
-        VertexBuffer_Delete(i);
-    }
+    // Switch to proper blend flag depending on opacity
+    if (opacity != 0 && blendFlag == BlendFlag_OPAQUE)
+        blendFlag = BlendFlag_TRANSPARENT;
+    else if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT)
+        blendFlag = BlendFlag_OPAQUE;
+
+    return true;
 }
-
-#define ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity) \
-    if (FilterTable != &FilterColor[0]) \
-        blendFlag = BlendFlag_FILTER; \
-    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT) \
-        return; \
-    else if (opacity != 0 && blendFlag == BlendFlag_OPAQUE) \
-        blendFlag = BlendFlag_TRANSPARENT; \
-    else if (opacity == 0xFF && blendFlag == BlendFlag_TRANSPARENT) \
-        blendFlag = BlendFlag_OPAQUE
 
 // Filterless versions
 #define GET_R(color) ((color >> 16) & 0xFF)
@@ -528,17 +443,17 @@ PUBLIC STATIC void     SoftwareRenderer::UnloadSceneData(void) {
 #define ISOLATE_G(color) (color & 0x00FF00)
 #define ISOLATE_B(color) (color & 0x0000FF)
 
-void PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     *dst = *src;
 }
-void PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     int* multInvTableAt = &MultTableInv[opacity << 8];
     *dst = 0xFF000000U
         | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16
         | (multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8
         | (multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
 }
-void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 R = (multTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Uint32 G = (multTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Uint32 B = (multTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -547,7 +462,7 @@ void PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTabl
     if (B > 0x0000FF) B = 0x0000FF;
     *dst = 0xFF000000U | R | G | B;
 }
-void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Sint32 R = (multSubTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Sint32 G = (multSubTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Sint32 B = (multSubTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -556,1475 +471,42 @@ void PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTabl
     if (B < 0) B = 0;
     *dst = 0xFF000000U | R | G | B;
 }
-void PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst == SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-void PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     // if (*dst != SoftwareRenderer::CompareColor)
         // *dst = *src;
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-void PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
+PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetFilter(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     Uint32 col = *dst;
     *dst = FilterTable[(col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3];
 }
 
-int FogEquation(float density, float coord) {
-    int result = expf(-density * coord) * 0x100;
-    CLAMP_VAL(result, 0, 0x100);
-    return 0x100 - result;
+int VertexColorTint(Uint32 color, Uint32 colorMult) {
+    if ((colorMult & 0xFFFFFF) == 0xFFFFFF)
+        return color;
+    Uint32 dR = (colorMult >> 16) & 0xFF;
+    Uint32 dG = (colorMult >> 8) & 0xFF;
+    Uint32 dB = colorMult & 0xFF;
+    Uint32 sR = (color >> 16) & 0xFF;
+    Uint32 sG = (color >> 8) & 0xFF;
+    Uint32 sB = color & 0xFF;
+    dR = (Uint8)((dR * sR + 0xFF) >> 8);
+    dG = (Uint8)((dG * sG + 0xFF) >> 8);
+    dB = (Uint8)((dB * sB + 0xFF) >> 8);
+    return dB | (dG << 8) | (dR << 16);
 }
-int DoFogLighting(int color, float fogCoord) {
-    int fogValue = FogEquation(FogDensity, fogCoord / 192.0f);
-    if (fogValue != 0)
-        return ColorBlend(color, FogColor, fogValue);
-    return color;
-}
-
-#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro, pixelMacro) \
-    switch (blendFlag) { \
-        case BlendFlag_OPAQUE: \
-            drawPolygonMacro(PixelNoFiltSetOpaque, pixelMacro); \
-            break; \
-        case BlendFlag_TRANSPARENT: \
-            drawPolygonMacro(PixelNoFiltSetTransparent, pixelMacro); \
-            break; \
-        case BlendFlag_ADDITIVE: \
-            drawPolygonMacro(PixelNoFiltSetAdditive, pixelMacro); \
-            break; \
-        case BlendFlag_SUBTRACT: \
-            drawPolygonMacro(PixelNoFiltSetSubtract, pixelMacro); \
-            break; \
-        case BlendFlag_MATCH_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchEqual, pixelMacro); \
-            break; \
-        case BlendFlag_MATCH_NOT_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, pixelMacro); \
-            break; \
-        case BlendFlag_FILTER: \
-            drawPolygonMacro(PixelNoFiltSetFilter, pixelMacro); \
-            break; \
-    }
-
-#define POLYGON_BLENDFLAGS_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
-    switch (blendFlag) { \
-        case BlendFlag_OPAQUE: \
-            drawPolygonMacro(PixelNoFiltSetOpaque, dpR, dpW); \
-            break; \
-        case BlendFlag_TRANSPARENT: \
-            drawPolygonMacro(PixelNoFiltSetTransparent, dpR, dpW); \
-            break; \
-        case BlendFlag_ADDITIVE: \
-            drawPolygonMacro(PixelNoFiltSetAdditive, dpR, dpW); \
-            break; \
-        case BlendFlag_SUBTRACT: \
-            drawPolygonMacro(PixelNoFiltSetSubtract, dpR, dpW); \
-            break; \
-        case BlendFlag_MATCH_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchEqual, dpR, dpW); \
-            break; \
-        case BlendFlag_MATCH_NOT_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, dpR, dpW); \
-            break; \
-        case BlendFlag_FILTER: \
-            drawPolygonMacro(PixelNoFiltSetFilter, dpR, dpW); \
-            break; \
-    }
-
-#define POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
-    switch (blendFlag) { \
-        case BlendFlag_OPAQUE: \
-            drawPolygonMacro(PixelNoFiltSetOpaque, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_TRANSPARENT: \
-            drawPolygonMacro(PixelNoFiltSetTransparent, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_ADDITIVE: \
-            drawPolygonMacro(PixelNoFiltSetAdditive, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_SUBTRACT: \
-            drawPolygonMacro(PixelNoFiltSetSubtract, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_MATCH_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchEqual, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_MATCH_NOT_EQUAL: \
-            drawPolygonMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro, dpR, dpW); \
-            break; \
-        case BlendFlag_FILTER: \
-            drawPolygonMacro(PixelNoFiltSetFilter, placePixelMacro, dpR, dpW); \
-            break; \
-    }
-
-#define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
-    if (Graphics::UsePalettes && texture->Paletted) { \
-        if (UseDepthBuffer) { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelPaletted, DEPTH_READ_U32, DEPTH_WRITE_U32); \
-        } \
-        else { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelPaletted, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
-        } \
-    } else { \
-        if (UseDepthBuffer) { \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixel, DEPTH_READ_U32, DEPTH_WRITE_U32); \
-        } else {  \
-            POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixel, DEPTH_READ_DUMMY, DEPTH_WRITE_DUMMY); \
-        } \
-    }
-
-#define POLYGON_SCANLINE_DEPTH(drawPolygonMacro) \
-    if (UseFog) { \
-        DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL_FOG, DRAW_PLACEPIXEL_PAL_FOG) \
-    } \
-    else { \
-        DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, DRAW_PLACEPIXEL, DRAW_PLACEPIXEL_PAL) \
-    }
-
-#define SCANLINE_INIT_Z() \
-    contZ = contour.MinZ; \
-    dxZ = (contour.MaxZ - contZ) / contLen
-#define SCANLINE_INIT_RGB() \
-    contR = contour.MinR; \
-    contG = contour.MinG; \
-    contB = contour.MinB; \
-    dxR = (contour.MaxR - contR) / contLen; \
-    dxG = (contour.MaxG - contG) / contLen; \
-    dxB = (contour.MaxB - contB) / contLen
-#define SCANLINE_INIT_UV() \
-    contU = contour.MinU; \
-    contV = contour.MinV; \
-    dxU = (contour.MaxU - contU) / contLen; \
-    dxV = (contour.MaxV - contV) / contLen
-
-#define SCANLINE_STEP_Z() contZ += dxZ
-#define SCANLINE_STEP_RGB() \
-    contR += dxR; \
-    contG += dxG; \
-    contB += dxB
-#define SCANLINE_STEP_UV() \
-    contU += dxU; \
-    contV += dxV
-
-#define SCANLINE_STEP_Z_BY(diff) contZ += dxZ * diff
-#define SCANLINE_STEP_RGB_BY(diff) \
-    // contR += dxR * diff; \
-    // contG += dxG * diff; \
-    // contB += dxB * diff
-#define SCANLINE_STEP_UV_BY(diff) \
-    contU += dxU * diff; \
-    contV += dxV * diff
-
-#define SCANLINE_GET_MAPZ() \
-    mapZ = 1.0f / contZ; \
-    Uint32 iz = mapZ * 0xFFFF
-#define SCANLINE_GET_RGB() \
-    Sint32 colR = contR; \
-    Sint32 colG = contG; \
-    Sint32 colB = contB
-#define SCANLINE_GET_RGB_PERSP() \
-    Sint32 colR = contR * mapZ; \
-    Sint32 colG = contG * mapZ; \
-    Sint32 colB = contB * mapZ
-#define SCANLINE_GET_MAPUV() \
-    float mapU = contU; \
-    float mapV = contV
-#define SCANLINE_GET_TEXUV() \
-    int texU = ((int)(mapU * texture->Width) >> 16) % texture->Width; \
-    int texV = ((int)(mapV * texture->Height) >> 16) % texture->Height
-#define SCANLINE_GET_COLOR() \
-    CLAMP_VAL(colR, 0x00, 0xFF0000); \
-    CLAMP_VAL(colG, 0x00, 0xFF0000); \
-    CLAMP_VAL(colB, 0x00, 0xFF0000); \
-    col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
-
-#define SCANLINE_WRITE_PIXEL(pixelFunction, px) \
-    pixelFunction((Uint32*)&px, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt)
-
-Contour *ContourField = SoftwareRenderer::ContourBuffer;
-
-// Draws a polygon
-void DrawPolygon(Vector2* positions, Uint32 color, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector2* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    Vector2* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
-            lastVector++;
-        }
-    }
-    Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
-
-    #define DRAW_POLYGON(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        if (contour.MaxX < contour.MinX) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_WRITE_PIXEL(pixelFunction, color); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
-        case BlendFlag_OPAQUE:
-            for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-                Contour contour = ContourField[dst_y];
-                if (contour.MaxX < contour.MinX) {
-                    dst_strideY += dstStride;
-                    continue;
-                }
-
-                Memory::Memset4(&dstPx[contour.MinX + dst_strideY], color, contour.MaxX - contour.MinX);
-                dst_strideY += dstStride;
-            }
-            break;
-        case BlendFlag_TRANSPARENT:
-            DRAW_POLYGON(PixelNoFiltSetTransparent);
-            break;
-        case BlendFlag_ADDITIVE:
-            DRAW_POLYGON(PixelNoFiltSetAdditive);
-            break;
-        case BlendFlag_SUBTRACT:
-            DRAW_POLYGON(PixelNoFiltSetSubtract);
-            break;
-        case BlendFlag_MATCH_EQUAL:
-            DRAW_POLYGON(PixelNoFiltSetMatchEqual);
-            break;
-        case BlendFlag_MATCH_NOT_EQUAL:
-            DRAW_POLYGON(PixelNoFiltSetMatchNotEqual);
-            break;
-        case BlendFlag_FILTER:
-            DRAW_POLYGON(PixelNoFiltSetFilter);
-            break;
-    }
-
-    #undef DRAW_POLYGON
-}
-// Draws a blended polygon
-void DrawPolygonBlend(Vector2* positions, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector2* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    int* lastColor = colors;
-    Vector2* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::Scanline(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
-            lastVector++;
-            lastColor++;
-        }
-    }
-
-    Rasterizer::Scanline(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
-
-    Sint32 col, contLen;
-    float contR, contG, contB, dxR, dxG, dxB;
-    float mapZ;
-
-    #define PX_GET(pixelFunction) \
-        SCANLINE_GET_RGB(); \
-        SCANLINE_GET_COLOR(); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-    #define PX_GET_FOG(pixelFunction) \
-        SCANLINE_GET_RGB(); \
-        SCANLINE_GET_COLOR(); \
-        col = DoFogLighting(col, mapZ); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-
-    #define DRAW_POLYGONBLEND(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_RGB(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_RGB_BY(diff); \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            pixelRead(pixelFunction); \
-            SCANLINE_STEP_RGB(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET);
-    }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
-
-    #undef DRAW_POLYGONBLEND
-}
-// Draws a polygon with lighting
-void DrawPolygonShaded(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    Vector3* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-        }
-    }
-
-    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, contLen;
-    float contZ, dxZ;
-    float mapZ;
-
-    #define PX_GET(pixelFunction) \
-        SCANLINE_WRITE_PIXEL(pixelFunction, color)
-    #define PX_GET_FOG(pixelFunction) \
-        col = DoFogLighting(color, mapZ); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-
-    #define DRAW_POLYGONSHADED(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        if (contour.MapLeft < contour.MinX) { \
-            SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            pixelRead(pixelFunction); \
-            SCANLINE_STEP_Z(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET);
-    }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
-
-    #undef DRAW_POLYGONSHADED
-}
-// Draws a blended polygon with lighting
-void DrawPolygonBlendShaded(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    int* lastColor = colors;
-    Vector3* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-            lastColor++;
-        }
-    }
-
-    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, contLen;
-    float contZ, contR, contG, contB;
-    float dxZ, dxR, dxG, dxB;
-    float mapZ;
-
-    #define PX_GET(pixelFunction) \
-        SCANLINE_GET_COLOR(); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-    #define PX_GET_FOG(pixelFunction) \
-        SCANLINE_GET_COLOR(); \
-        col = DoFogLighting(col, mapZ); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-
-    #define DRAW_POLYGONBLENDSHADED(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_RGB(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_RGB_BY(diff); \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            SCANLINE_GET_RGB(); \
-            pixelRead(pixelFunction); \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_RGB(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET);
-    }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
-
-    #undef DRAW_POLYGONBLENDSHADED
-}
-// Draws an affine texture mapped polygon
-void DrawPolygonAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-    Uint32* srcPx = (Uint32*)texture->Pixels;
-    Uint32  srcStride = texture->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    Vector3* lastVector = positions;
-    Vector2* lastUV = uvs;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineUVAffine(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-            lastUV++;
-        }
-    }
-
-    Rasterizer::ScanlineUVAffine(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, texCol, contLen;
-    float contZ, contU, contV;
-    float dxZ, dxU, dxV;
-    float mapZ;
-
-    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ColorTint(color, texCol); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ColorTint(color, index[texCol]); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ColorTint(color, texCol); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ColorTint(color, index[texCol]); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_POLYGONAFFINE(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_UV(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_UV_BY(diff); \
-        } \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (dpR(iz)) { \
-                SCANLINE_GET_MAPUV(); \
-                SCANLINE_GET_TEXUV(); \
-                placePixelMacro(pixelFunction, dpW); \
-            } \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_UV(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    Uint32* index;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONAFFINE);
-
-    #undef DRAW_PLACEPIXEL
-    #undef DRAW_PLACEPIXEL_PAL
-    #undef DRAW_PLACEPIXEL_FOG
-    #undef DRAW_PLACEPIXEL_PAL_FOG
-    #undef DRAW_POLYGONAFFINE
-}
-// Draws an affine texture mapped polygon with blending
-void DrawPolygonBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-    Uint32* srcPx = (Uint32*)texture->Pixels;
-    Uint32  srcStride = texture->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    int*     lastColor = colors;
-    Vector3* lastPosition = positions;
-    Vector2* lastUV = uvs;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineUVAffine(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
-            lastPosition++;
-            lastColor++;
-            lastUV++;
-        }
-    }
-
-    Rasterizer::ScanlineUVAffine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, texCol, contLen;
-    float contZ, contU, contV, contR, contG, contB;
-    float dxZ, dxU, dxV, dxR, dxG, dxB;
-    float mapZ;
-
-    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, texCol); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, index[texCol]); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, texCol); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, index[texCol]); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_POLYGONBLENDAFFINE(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_UV(); \
-        SCANLINE_INIT_RGB(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_UV_BY(diff); \
-            SCANLINE_STEP_RGB_BY(diff); \
-        } \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            SCANLINE_GET_MAPZ(); \
-            if (dpR(iz)) { \
-                SCANLINE_GET_RGB(); \
-                SCANLINE_GET_MAPUV(); \
-                SCANLINE_GET_TEXUV(); \
-                placePixelMacro(pixelFunction, dpW); \
-            } \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_UV(); \
-            SCANLINE_STEP_RGB(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    Uint32* index;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDAFFINE);
-
-    #undef DRAW_PLACEPIXEL
-    #undef DRAW_PLACEPIXEL_PAL
-    #undef DRAW_PLACEPIXEL_FOG
-    #undef DRAW_PLACEPIXEL_PAL_FOG
-    #undef DRAW_POLYGONBLENDAFFINE
-    #undef BLENDFLAGS
-}
-// Draws a perspective-correct texture mapped polygon
-#ifdef SCANLINE_DIVISION
-#define PERSP_MAPPER_SUBDIVIDE(width, placePixelMacro, pixelFunction, dpR, dpW) \
-    contZ += dxZ * width; \
-    contU += dxU * width; \
-    contV += dxV * width; \
-    endZ = 1.0f / contZ; \
-    endU = contU * endZ; \
-    endV = contV * endZ; \
-    stepZ = (endZ - startZ) * invContSize; \
-    stepU = (endU - startU) * invContSize; \
-    stepV = (endV - startV) * invContSize; \
-    mapZ = startZ; \
-    currU = startU; \
-    currV = startV; \
-    for (int i = 0; i < width; i++) { \
-        Uint32 iz = mapZ * 0xFFFF; \
-        if (dpR(iz)) { \
-            DRAW_PERSP_GET(currU, currV); \
-            placePixelMacro(pixelFunction, dpW); \
-        } \
-        DRAW_PERSP_STEP(); \
-        mapZ += stepZ; \
-        currU += stepU; \
-        currV += stepV; \
-        dst_x++; \
-    }
-#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) { \
-    int dst_x = contour.MinX; \
-    int contWidth = contour.MaxX - contour.MinX; \
-    int contSize = 16; \
-    float invContSize = 1.0f / contSize; \
-    float startZ = 1.0f / contZ; \
-    float startU = contU * startZ; \
-    float startV = contV * startZ; \
-    float endZ, endU, endV; \
-    float stepZ, stepU, stepV; \
-    float mapZ, currU, currV; \
-    while (contWidth >= contSize) { \
-        PERSP_MAPPER_SUBDIVIDE(contSize, placePixelMacro, pixelFunction, dpR, dpW); \
-        startU = endU; \
-        startV = endV; \
-        startZ = endZ; \
-        contWidth -= contSize; \
-    } \
-    if (contWidth > 0) { \
-        if (contWidth > 1) { \
-            PERSP_MAPPER_SUBDIVIDE(contWidth, placePixelMacro, pixelFunction, dpR, dpW); \
-        } \
-        else { \
-            Uint32 iz = startZ * 0xFFFF; \
-            if (dpR(iz)) { \
-                DRAW_PERSP_GET(startU, startV); \
-                placePixelMacro(pixelFunction, dpW); \
-            } \
-        } \
-    } \
-}
-#else
-#define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) \
-    for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-        SCANLINE_GET_MAPZ(); \
-        if (dpR(iz)) { \
-            DRAW_PERSP_GET(contU * mapZ, contV * mapZ); \
-            placePixelMacro(pixelFunction, dpW); \
-        } \
-        SCANLINE_STEP_Z(); \
-        SCANLINE_STEP_UV(); \
-        DRAW_PERSP_STEP(); \
-    }
-#endif
-void DrawPolygonPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-    Uint32* srcPx = (Uint32*)texture->Pixels;
-    Uint32  srcStride = texture->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    Vector3* lastVector = positions;
-    Vector2* lastUV = uvs;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineUV(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-            lastUV++;
-        }
-    }
-
-    Rasterizer::ScanlineUV(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, texCol, contLen;
-    float contZ, contU, contV;
-    float dxZ, dxU, dxV;
-    float mapZ;
-
-    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ColorTint(color, texCol); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ColorTint(color, index[texCol]); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = ColorTint(color, texCol); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = ColorTint(color, index[texCol]); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        } \
-
-    #define DRAW_PERSP_GET(u, v) \
-        float mapU = u; \
-        float mapV = v; \
-        SCANLINE_GET_TEXUV()
-
-    #define DRAW_PERSP_STEP()
-
-    #define DRAW_POLYGONPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MapRight - contour.MapLeft; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_UV(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_UV_BY(diff); \
-        } \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
-        dst_strideY += dstStride; \
-    }
-
-    Uint32* index;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONPERSP);
-
-    #undef DRAW_PLACEPIXEL
-    #undef DRAW_PLACEPIXEL_PAL
-    #undef DRAW_PLACEPIXEL_FOG
-    #undef DRAW_PLACEPIXEL_PAL_FOG
-    #undef DRAW_PERSP_GET
-    #undef DRAW_PERSP_STEP
-    #undef DRAW_POLYGONPERSP
-}
-// Draws a perspective-correct texture mapped polygon with blending
-void DrawPolygonBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-    Uint32* srcPx = (Uint32*)texture->Pixels;
-    Uint32  srcStride = texture->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    int*     lastColor = colors;
-    Vector3* lastPosition = positions;
-    Vector2* lastUV = uvs;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineUV(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
-            lastPosition++;
-            lastColor++;
-            lastUV++;
-        }
-    }
-
-    Rasterizer::ScanlineUV(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, texCol, contLen;
-    float contZ, contU, contV, contR, contG, contB;
-    float dxZ, dxU, dxV, dxR, dxG, dxB;
-    float mapZ;
-
-    #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, texCol); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, index[texCol]); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, texCol); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            SCANLINE_GET_COLOR(); \
-            col = ColorTint(col, index[texCol]); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            dpW(iz); \
-        }
-
-    #define DRAW_PERSP_GET(u, v) \
-        float mapU = u; \
-        float mapV = v; \
-        SCANLINE_GET_RGB_PERSP(); \
-        SCANLINE_GET_TEXUV()
-
-    #define DRAW_PERSP_STEP() SCANLINE_STEP_RGB()
-
-    #define DRAW_POLYGONBLENDPERSP(pixelFunction, placePixelMacro, dpR, dpW) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MapRight - contour.MapLeft; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_RGB(); \
-        SCANLINE_INIT_UV(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_RGB_BY(diff); \
-            SCANLINE_STEP_UV_BY(diff); \
-        } \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
-        DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW); \
-        dst_strideY += dstStride; \
-    }
-
-    Uint32* index;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDPERSP);
-
-    #undef DRAW_PLACEPIXEL
-    #undef DRAW_PLACEPIXEL_PAL
-    #undef DRAW_PLACEPIXEL_FOG
-    #undef DRAW_PLACEPIXEL_PAL_FOG
-    #undef DRAW_PERSP_GET
-    #undef DRAW_PERSP_STEP
-    #undef DRAW_POLYGONBLENDPERSP
-}
-// Draws a polygon with depth testing
-void DrawPolygonDepth(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    Vector3* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-        }
-    }
-
-    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, contLen;
-    float contZ, dxZ;
-    float mapZ;
-
-    #define PX_GET(pixelFunction) \
-        SCANLINE_GET_MAPZ(); \
-        if (DEPTH_READ_U32(iz)) { \
-            SCANLINE_WRITE_PIXEL(pixelFunction, color); \
-            DEPTH_WRITE_U32(iz); \
-        }
-    #define PX_GET_FOG(pixelFunction) \
-        SCANLINE_GET_MAPZ(); \
-        if (DEPTH_READ_U32(iz)) { \
-            col = DoFogLighting(color, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            DEPTH_WRITE_U32(iz); \
-        }
-
-    #define DRAW_POLYGONDEPTH(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        if (contour.MapLeft < contour.MinX) { \
-            SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            pixelRead(pixelFunction); \
-            SCANLINE_STEP_Z(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET);
-    }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
-
-    #undef DRAW_POLYGONDEPTH
-}
-// Draws a blended polygon with depth testing
-void DrawPolygonBlendDepth(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
-    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
-
-    int minVal = INT_MAX;
-    int maxVal = INT_MIN;
-
-    if (count == 0)
-        return;
-
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
-
-    Vector3* tempVertex = positions;
-    int      tempCount = count;
-    int      tempY;
-    while (tempCount--) {
-        tempY = tempVertex->Y >> 16;
-        if (minVal > tempY)
-            minVal = tempY;
-        if (maxVal < tempY)
-            maxVal = tempY;
-        tempVertex++;
-    }
-
-    int dst_y1 = minVal;
-    int dst_y2 = maxVal;
-
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-        dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-    if (dst_y1 < 0)
-        dst_y1 = 0;
-
-    if (dst_y1 >= dst_y2)
-        return;
-
-    Rasterizer::Prepare(dst_y1, dst_y2);
-
-    int* lastColor = colors;
-    Vector3* lastVector = positions;
-    if (count > 1) {
-        int countRem = count - 1;
-        while (countRem--) {
-            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
-            lastVector++;
-            lastColor++;
-        }
-    }
-
-    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
-
-    Sint32 col, contLen;
-    float contZ, contR, contG, contB;
-    float dxZ, dxR, dxG, dxB;
-    float mapZ;
-
-    #define PX_GET(pixelFunction) \
-        SCANLINE_GET_MAPZ(); \
-        if (DEPTH_READ_U32(iz)) { \
-            SCANLINE_GET_RGB(); \
-            SCANLINE_GET_COLOR(); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            DEPTH_WRITE_U32(iz); \
-        }
-    #define PX_GET_FOG(pixelFunction) \
-        SCANLINE_GET_MAPZ(); \
-        if (DEPTH_READ_U32(iz)) { \
-            SCANLINE_GET_RGB(); \
-            SCANLINE_GET_COLOR(); \
-            col = DoFogLighting(col, mapZ); \
-            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
-            DEPTH_WRITE_U32(iz); \
-        }
-
-    #define DRAW_POLYGONBLENDDEPTH(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
-        contLen = contour.MaxX - contour.MinX; \
-        if (contLen <= 0) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        SCANLINE_INIT_Z(); \
-        SCANLINE_INIT_RGB(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
-            SCANLINE_STEP_Z_BY(diff); \
-            SCANLINE_STEP_RGB_BY(diff); \
-        } \
-        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            pixelRead(pixelFunction); \
-            SCANLINE_STEP_Z(); \
-            SCANLINE_STEP_RGB(); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
-    int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET);
-    }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
-
-    #undef DRAW_POLYGONBLENDDEPTH
+int VertexColorMultiply(Uint32 color, Uint32 colorMult) {
+    Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
+    Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
+    Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
+    return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
 
 // TODO: Material support
@@ -2198,6 +680,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     int opacity;
     int blendFlag;
+    bool doDepthTest = drawMode & DrawMode_DEPTH_TEST;
 
 #define SET_BLENDFLAG_AND_OPACITY(face) \
     if (!Graphics::TextureBlend) { \
@@ -2209,20 +692,22 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
         if (blendFlag == BlendFlag_TRANSPARENT && opacity == 0xFF) \
             blendFlag = BlendFlag_OPAQUE; \
     } \
+    bool useDepthBuffer; \
     if (blendFlag != BlendFlag_OPAQUE) \
-        UseDepthBuffer = false; \
+        useDepthBuffer = false; \
     else \
-        UseDepthBuffer = DepthTest
+        useDepthBuffer = doDepthTest; \
+    PolygonRenderer::SetUseDepthBuffer(useDepthBuffer)
 
     VertexBuffer* vertexBuffer = &arrayBuffer->Buffer;
+    bool useFog = drawMode & DrawMode_FOG;
 
-    SoftwareRenderer::SetDepthTest(drawMode & DrawMode_DEPTH_TEST);
+    PolygonRenderer::SetDepthTest(doDepthTest);
+    PolygonRenderer::SetUseFog(useFog);
 
-    UseFog = drawMode & DrawMode_FOG;
-
-    if (UseFog) {
-        FogColor       = arrayBuffer->FogColorR << 16 | arrayBuffer->FogColorG << 8 | arrayBuffer->FogColorB;
-        FogDensity     = arrayBuffer->FogDensity;
+    if (useFog) {
+        PolygonRenderer::SetFogColor(arrayBuffer->FogColorR, arrayBuffer->FogColorG, arrayBuffer->FogColorB);
+        PolygonRenderer::SetFogDensity(arrayBuffer->FogDensity);
     }
 
     vertexAttribsPtr = vertexBuffer->Vertices; // R
@@ -2230,7 +715,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     bool doAffineMapping = drawMode & DrawMode_AFFINE;
     bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
-    bool sortFaces = !DepthTest && vertexBuffer->FaceCount > 1;
+    bool sortFaces = !doDepthTest && vertexBuffer->FaceCount > 1;
 
     if (Graphics::TextureBlend)
         sortFaces = true;
@@ -2427,15 +912,15 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 if (texturePtr) {
                     if (!doAffineMapping)
-                        DrawPolygonPerspective(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawPerspective(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonAffine(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawAffine(texturePtr, polygonVertex, polygonUV, vertexFirst->Color, vertexCount, opacity, blendFlag);
                 }
                 else {
-                    if (UseDepthBuffer)
-                        DrawPolygonDepth(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                    if (useDepthBuffer)
+                        PolygonRenderer::DrawDepth(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonShaded(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawShaded(polygonVertex, vertexFirst->Color, vertexCount, opacity, blendFlag);
                 }
 
                 mrt_poly_solid_NEXT_FACE:
@@ -2495,15 +980,15 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 if (texturePtr) {
                     if (!doAffineMapping)
-                        DrawPolygonPerspective(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawPerspective(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonAffine(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawAffine(texturePtr, polygonVertex, polygonUV, color, vertexCount, opacity, blendFlag);
                 }
                 else {
-                    if (UseDepthBuffer)
-                        DrawPolygonDepth(polygonVertex, color, vertexCount, opacity, blendFlag);
+                    if (useDepthBuffer)
+                        PolygonRenderer::DrawDepth(polygonVertex, color, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonShaded(polygonVertex, color, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawShaded(polygonVertex, color, vertexCount, opacity, blendFlag);
                 }
 
                 mrt_poly_flat_NEXT_FACE:
@@ -2518,8 +1003,6 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 vertex = vertexFirst;
 
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
-
-#undef SET_BLENDFLAG_AND_OPACITY
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
@@ -2565,18 +1048,16 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 if (texturePtr) {
                     if (!doAffineMapping)
-                        DrawPolygonBlendPerspective(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawBlendPerspective(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonBlendAffine(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawBlendAffine(texturePtr, polygonVertex, polygonUV, polygonVertColor, vertexCount, opacity, blendFlag);
                 }
                 else {
-                    if (UseDepthBuffer)
-                        DrawPolygonBlendDepth(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
+                    if (useDepthBuffer)
+                        PolygonRenderer::DrawBlendDepth(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
                     else
-                        DrawPolygonBlendShaded(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
+                        PolygonRenderer::DrawBlendShaded(polygonVertex, polygonVertColor, vertexCount, opacity, blendFlag);
                 }
-
-#undef CHECK_TEXTURE
 
                 mrt_poly_smooth_NEXT_FACE:
                 faceInfoPtr++;
@@ -2584,38 +1065,28 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             break;
     }
 
+#undef SET_BLENDFLAG_AND_OPACITY
+#undef CHECK_TEXTURE
+
 #undef PROJECT_X
 #undef PROJECT_Y
 
 #undef ORTHO_X
 #undef ORTHO_Y
-
-    SoftwareRenderer::SetDepthTest(false);
 }
 
 #undef GET_ARRAY_BUFFER
 
-PUBLIC STATIC Uint32   SoftwareRenderer::VertexBuffer_Create(Uint32 maxVertices, int unloadPolicy) {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        if (VertexBuffers[i] == NULL) {
-            VertexBuffers[i] = new VertexBuffer(maxVertices, unloadPolicy);
-            return i;
-        }
+PUBLIC STATIC void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+        UnbindVertexBuffer();
+        return;
     }
 
-    return 0xFFFFFFFF;
-}
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Bind(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
-        vertexBufferIndex = -1;
     CurrentVertexBuffer = vertexBufferIndex;
 }
-PUBLIC STATIC void     SoftwareRenderer::VertexBuffer_Delete(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
-        return;
-
-    delete VertexBuffers[vertexBufferIndex];
-    VertexBuffers[vertexBufferIndex] = NULL;
+PUBLIC STATIC void     SoftwareRenderer::UnbindVertexBuffer() {
+    CurrentVertexBuffer = -1;
 }
 
 static void SetFaceInfoMaterial(FaceInfo* face, Material* material) {
@@ -2717,7 +1188,7 @@ static void CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int n
 
 #define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
     if (vertexBufferIndex != -1) { \
-        vertexBuffer = VertexBuffers[vertexBufferIndex]; \
+        vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex]; \
         if (!vertexBuffer) \
             return; \
     } \
@@ -2768,7 +1239,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
             vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
 
         if (vertexFlag & VertexType_Color)
-            vertex->Color = ColorMultiply(data->Color, ColRGB);
+            vertex->Color = VertexColorMultiply(data->Color, ColRGB);
         else
             vertex->Color = ColRGB;
 
@@ -3192,7 +1663,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
-                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->Color = VertexColorTint(colorPtr[0], color);
                         modelVertexIndexPtr++;
                         Vertex++;
                     }
@@ -3214,7 +1685,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
-                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->Color = VertexColorTint(colorPtr[0], color);
                         modelVertexIndexPtr++;
                         Vertex++;
                     }
@@ -3287,7 +1758,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
-                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->Color = VertexColorTint(colorPtr[0], color);
                         Vertex->UV = uvPtr[0];
                         modelVertexIndexPtr++;
                         Vertex++;
@@ -3311,7 +1782,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
-                        Vertex->Color = ColorTint(colorPtr[0], color);
+                        Vertex->Color = VertexColorTint(colorPtr[0], color);
                         Vertex->UV = uvPtr[0];
                         modelVertexIndexPtr++;
                         Vertex++;
@@ -3478,7 +1949,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     if (!arrayBuffer->Initialized)
         return;
 
-    VertexBuffer* vertexBuffer = VertexBuffers[vertexBufferIndex];
+    VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
     if (!vertexBuffer)
         return;
 
@@ -3619,7 +2090,8 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
 
     int blendFlag = BlendFlag;
     int opacity = Alpha;
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+    if (!AlterBlendFlag(blendFlag, opacity))
+        return;
 
     Uint32 col = ColRGB;
 
@@ -3634,7 +2106,6 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
 
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
-    // int dst_strideY = dst_y1 * dstStride;
     switch (blendFlag) {
         case 0:
             DRAW_LINE(PixelNoFiltSetOpaque);
@@ -3722,19 +2193,20 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
 
     int blendFlag = BlendFlag;
     int opacity = Alpha;
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+    if (!AlterBlendFlag(blendFlag, opacity))
+        return;
 
     int scanLineCount = dst_y2 - dst_y1 + 1;
-    Contour* contourPtr = &ContourField[dst_y1];
+    Contour* contourPtr = &ContourBuffer[dst_y1];
     while (scanLineCount--) {
         contourPtr->MinX = 0x7FFFFFFF;
         contourPtr->MaxX = -1;
         contourPtr++;
     }
 
-    #define SEEK_MIN(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &ContourField[our_y])->MinX) \
+    #define SEEK_MIN(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &ContourBuffer[our_y])->MinX) \
         cont->MinX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
-    #define SEEK_MAX(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &ContourField[our_y])->MaxX) \
+    #define SEEK_MAX(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &ContourBuffer[our_y])->MaxX) \
         cont->MaxX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
 
     Contour* cont;
@@ -3765,7 +2237,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     Uint32 col = ColRGB;
 
     #define DRAW_CIRCLE(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourField[dst_y]; \
+        Contour contour = ContourBuffer[dst_y]; \
         if (contour.MaxX < contour.MinX) { \
             dst_strideY += dstStride; \
             continue; \
@@ -3782,7 +2254,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     switch (blendFlag) {
         case 0:
             for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-                Contour contour = ContourField[dst_y];
+                Contour contour = ContourBuffer[dst_y];
                 if (contour.MaxX < contour.MinX) {
                     dst_strideY += dstStride;
                     continue;
@@ -3873,7 +2345,8 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
 
     int blendFlag = BlendFlag;
     int opacity = Alpha;
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+    if (!AlterBlendFlag(blendFlag, opacity))
+        return;
 
     Uint32 col = ColRGB;
 
@@ -3932,7 +2405,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16;
     vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16;
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16;
-    DrawPolygon(vectors, ColRGB, 3, Alpha, BlendFlag);
+    PolygonRenderer::DrawBasic(vectors, ColRGB, 3, Alpha, BlendFlag);
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
     int x = 0, y = 0;
@@ -3948,10 +2421,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
 
     int colors[3];
     Vector2 vectors[3];
-    vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16; colors[0] = ColorMultiply(c1, ColRGB);
-    vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = ColorMultiply(c2, ColRGB);
-    vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorMultiply(c3, ColRGB);
-    DrawPolygonBlend(vectors, colors, 3, Alpha, BlendFlag);
+    vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16; colors[0] = VertexColorMultiply(c1, ColRGB);
+    vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = VertexColorMultiply(c2, ColRGB);
+    vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = VertexColorMultiply(c3, ColRGB);
+    PolygonRenderer::DrawBasicBlend(vectors, colors, 3, Alpha, BlendFlag);
 }
 PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
     int x = 0, y = 0;
@@ -3967,11 +2440,11 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float
 
     int colors[4];
     Vector2 vectors[4];
-    vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16; colors[0] = ColorMultiply(c1, ColRGB);
-    vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = ColorMultiply(c2, ColRGB);
-    vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorMultiply(c3, ColRGB);
-    vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16; colors[3] = ColorMultiply(c4, ColRGB);
-    DrawPolygonBlend(vectors, colors, 4, Alpha, BlendFlag);
+    vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16; colors[0] = VertexColorMultiply(c1, ColRGB);
+    vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = VertexColorMultiply(c2, ColRGB);
+    vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = VertexColorMultiply(c3, ColRGB);
+    vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16; colors[3] = VertexColorMultiply(c4, ColRGB);
+    PolygonRenderer::DrawBasicBlend(vectors, colors, 4, Alpha, BlendFlag);
 }
 
 void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int sy, int flipFlag, int blendFlag, int opacity) {
@@ -4143,33 +2616,33 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
         switch (blendFlag) { \
             case 0: \
-                flipMacro(PixelNoFiltSetOpaque, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetOpaque, placePixelMacro); \
                 break; \
             case 1: \
-                flipMacro(PixelNoFiltSetTransparent, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetTransparent, placePixelMacro); \
                 break; \
             case 2: \
-                flipMacro(PixelNoFiltSetAdditive, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetAdditive, placePixelMacro); \
                 break; \
             case 3: \
-                flipMacro(PixelNoFiltSetSubtract, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetSubtract, placePixelMacro); \
                 break; \
             case 4: \
-                flipMacro(PixelNoFiltSetMatchEqual, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetMatchEqual, placePixelMacro); \
                 break; \
             case 5: \
-                flipMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetMatchNotEqual, placePixelMacro); \
                 break; \
             case 6: \
-                flipMacro(PixelNoFiltSetFilter, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetFilter, placePixelMacro); \
                 break; \
         }
 
     Uint32 color;
     Uint32* index;
     int dst_strideY, src_strideY;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
+    int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
     if (Graphics::UsePalettes && texture->Paletted) {
@@ -4499,25 +2972,25 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
         switch (blendFlag) { \
             case 0: \
-                flipMacro(PixelNoFiltSetOpaque, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetOpaque, placePixelMacro); \
                 break; \
             case 1: \
-                flipMacro(PixelNoFiltSetTransparent, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetTransparent, placePixelMacro); \
                 break; \
             case 2: \
-                flipMacro(PixelNoFiltSetAdditive, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetAdditive, placePixelMacro); \
                 break; \
             case 3: \
-                flipMacro(PixelNoFiltSetSubtract, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetSubtract, placePixelMacro); \
                 break; \
             case 4: \
-                flipMacro(PixelNoFiltSetMatchEqual, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetMatchEqual, placePixelMacro); \
                 break; \
             case 5: \
-                flipMacro(PixelNoFiltSetMatchNotEqual, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetMatchNotEqual, placePixelMacro); \
                 break; \
             case 6: \
-                flipMacro(PixelNoFiltSetFilter, placePixelMacro); \
+                flipMacro(SoftwareRenderer::PixelNoFiltSetFilter, placePixelMacro); \
                 break; \
         }
 
@@ -4525,8 +2998,8 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     Uint32* index;
     int i_y_rsin, i_y_rcos;
     int dst_strideY, src_strideY;
-    int* multTableAt = &MultTable[opacity << 8];
-    int* multSubTableAt = &MultSubTable[opacity << 8];
+    int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
+    int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
     if (Graphics::UsePalettes && texture->Paletted) {
@@ -4894,7 +3367,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         opacity = 0;
     }
 
-    ALTER_BLENDFLAG_AND_OPACITY(blendFlag, opacity);
+    if (!AlterBlendFlag(blendFlag, opacity))
+        return;
 
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];

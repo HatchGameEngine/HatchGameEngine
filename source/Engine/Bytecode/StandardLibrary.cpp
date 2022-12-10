@@ -1796,7 +1796,7 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::VertexBuffer_Bind(vertexBufferIndex);
+    SoftwareRenderer::BindVertexBuffer(vertexBufferIndex);
     return NULL_VAL;
 }
 /***
@@ -1807,7 +1807,7 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    SoftwareRenderer::VertexBuffer_Bind(-1);
+    SoftwareRenderer::UnbindVertexBuffer();
     return NULL_VAL;
 }
 static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
@@ -9007,7 +9007,7 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 numVertices = GET_ARG(0, GetInteger);
     Uint32 unloadPolicy = GET_ARG(1, GetInteger);
-    Uint32 vertexBufferIndex = SoftwareRenderer::VertexBuffer_Create(numVertices, unloadPolicy);
+    Uint32 vertexBufferIndex = Graphics::CreateVertexBuffer(numVertices, unloadPolicy);
     if (vertexBufferIndex == 0xFFFFFFFF) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more vertex buffers available.");
         return NULL_VAL;
@@ -9029,7 +9029,7 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    VertexBuffer* buffer = Graphics::VertexBuffers[vertexBufferIndex];
     if (buffer)
         buffer->Resize(numVertices);
     return NULL_VAL;
@@ -9047,7 +9047,7 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    VertexBuffer* buffer = SoftwareRenderer::VertexBuffers[vertexBufferIndex];
+    VertexBuffer* buffer = Graphics::VertexBuffers[vertexBufferIndex];
     if (buffer)
         buffer->Clear();
     return NULL_VAL;
@@ -9065,7 +9065,7 @@ VMValue VertexBuffer_Delete(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::VertexBuffer_Delete(vertexBufferIndex);
+    Graphics::DeleteVertexBuffer(vertexBufferIndex);
     return NULL_VAL;
 }
 // #endregion

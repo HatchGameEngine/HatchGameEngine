@@ -204,6 +204,9 @@
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\software\PolygonRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\software\Rasterizer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

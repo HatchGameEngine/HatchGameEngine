@@ -10,6 +10,7 @@
 #include <Engine/Scene/View.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Rendering/Enums.h>
+#include <Engine/Rendering/VertexBuffer.h>
 
 need_t ISprite;
 need_t IModel;
@@ -29,6 +30,8 @@ public:
     static Uint32               MaxTextureWidth;
     static Uint32               MaxTextureHeight;
     static Texture*             TextureHead;
+
+    static VertexBuffer*        VertexBuffers[MAX_VERTEX_BUFFERS];
 
     static stack<GraphicsState> StateStack;
     static stack<Matrix4x4*>    MatrixStack;
@@ -89,6 +92,8 @@ Uint32               Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 Uint32               Graphics::MaxTextureWidth = 1;
 Uint32               Graphics::MaxTextureHeight = 1;
 Texture*             Graphics::TextureHead = NULL;
+
+VertexBuffer*        Graphics::VertexBuffers[MAX_VERTEX_BUFFERS];
 
 stack<GraphicsState> Graphics::StateStack;
 stack<Matrix4x4*>    Graphics::MatrixStack;
@@ -324,6 +329,24 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
 	Memory::Free(texture);
 }
 
+PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        if (Graphics::VertexBuffers[i] == NULL) {
+            Graphics::VertexBuffers[i] = new VertexBuffer(maxVertices, unloadPolicy);
+            return i;
+        }
+    }
+
+    return 0xFFFFFFFF;
+}
+PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    delete Graphics::VertexBuffers[vertexBufferIndex];
+    Graphics::VertexBuffers[vertexBufferIndex] = NULL;
+}
+
 PUBLIC STATIC void     Graphics::UseShader(void* shader) {
 	Graphics::CurrentShader = shader;
 	Graphics::GfxFunctions->UseShader(shader);
@@ -350,8 +373,13 @@ PUBLIC STATIC void     Graphics::SoftwareEnd() {
 }
 
 PUBLIC STATIC void     Graphics::UnloadSceneData() {
-    SoftwareRenderer::SetDepthTest(false);
-    SoftwareRenderer::UnloadSceneData();
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+        VertexBuffer* buffer = Graphics::VertexBuffers[i];
+        if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
+            continue;
+
+        Graphics::DeleteVertexBuffer(i);
+    }
 }
 
 PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
