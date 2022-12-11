@@ -1118,10 +1118,10 @@ static void SetFaceInfoMaterial(FaceInfo* face, Texture* texture) {
     float vecX = vec3in.X; \
     float vecY = vec3in.Y; \
     float vecZ = vec3in.Z; \
-    vec4out.X = (M[ 3] * 0x10000) + ((int)(vecX * M[ 0])) + ((int)(vecY * M[ 1])) + ((int)(vecZ * M[ 2])); \
-    vec4out.Y = (M[ 7] * 0x10000) + ((int)(vecX * M[ 4])) + ((int)(vecY * M[ 5])) + ((int)(vecZ * M[ 6])); \
-    vec4out.Z = (M[11] * 0x10000) + ((int)(vecX * M[ 8])) + ((int)(vecY * M[ 9])) + ((int)(vecZ * M[10])); \
-    vec4out.W = (M[15] * 0x10000) + ((int)(vecX * M[12])) + ((int)(vecY * M[13])) + ((int)(vecZ * M[14])); \
+    vec4out.X = FP16_TO(M[ 3]) + ((int)(vecX * M[ 0])) + ((int)(vecY * M[ 1])) + ((int)(vecZ * M[ 2])); \
+    vec4out.Y = FP16_TO(M[ 7]) + ((int)(vecX * M[ 4])) + ((int)(vecY * M[ 5])) + ((int)(vecZ * M[ 6])); \
+    vec4out.Z = FP16_TO(M[11]) + ((int)(vecX * M[ 8])) + ((int)(vecY * M[ 9])) + ((int)(vecZ * M[10])); \
+    vec4out.W = FP16_TO(M[15]) + ((int)(vecX * M[12])) + ((int)(vecY * M[13])) + ((int)(vecZ * M[14])); \
 }
 #define COPY_VECTOR(vecout, vecin) vecout = vecin
 #define COPY_NORMAL(vec4out, vec3in) \
@@ -1184,6 +1184,70 @@ static void CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int n
         output++;
         buffer++;
     }
+}
+
+PUBLIC STATIC void     SoftwareRenderer::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
+    data[3].Position.X = FP16_TO(x);
+    data[3].Position.Y = FP16_TO(y);
+    data[3].Position.Z = FP16_TO(z);
+
+    data[2].Position.X = FP16_TO(x + (frameW * scaleX));
+    data[2].Position.Y = FP16_TO(y);
+    data[2].Position.Z = FP16_TO(z);
+
+    data[1].Position.X = FP16_TO(x + (frameW * scaleX));
+    data[1].Position.Y = FP16_TO(y + (frameH * scaleY));
+    data[1].Position.Z = FP16_TO(z);
+
+    data[0].Position.X = FP16_TO(x);
+    data[0].Position.Y = FP16_TO(y + (frameH * scaleY));
+    data[0].Position.Z = FP16_TO(z);
+
+    for (int i = 0; i < 4; i++) {
+        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0;
+        data[i].Position.W = 0;
+    }
+
+    SoftwareRenderer::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameX, frameY, frameW, frameH);
+}
+PUBLIC STATIC void     SoftwareRenderer::MakeSpritePolygonUVs(VertexAttribute data[4], int flipX, int flipY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
+    Sint64 textureWidth = FP16_TO(texture->Width);
+    Sint64 textureHeight = FP16_TO(texture->Height);
+
+    int uv_left   = frameX;
+    int uv_right  = frameX + frameW;
+    int uv_top    = frameY;
+    int uv_bottom = frameY + frameH;
+
+    int left_u, right_u, top_v, bottom_v;
+
+    if (flipX) {
+        left_u  = uv_right;
+        right_u = uv_left;
+    } else {
+        left_u  = uv_left;
+        right_u = uv_right;
+    }
+
+    if (flipY) {
+        top_v    = uv_bottom;
+        bottom_v = uv_top;
+    } else {
+        top_v    = uv_top;
+        bottom_v = uv_bottom;
+    }
+
+    data[3].UV.X       = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+    data[3].UV.Y       = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+
+    data[2].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+    data[2].UV.Y       = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+
+    data[1].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+    data[1].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+
+    data[0].UV.X       = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+    data[0].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
 }
 
 #define GET_ARRAY_OR_VERTEX_BUFFER(arrayBufferIndex, vertexBufferIndex) \
@@ -1350,10 +1414,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
             AnimFrame frameStr = animFrames[tileID];
             Texture* texture = textureSources[tileID];
 
-            float uv_left   = (float)frameStr.X / texture->Width;
-            float uv_right  = (float)(frameStr.X + frameStr.Width) / texture->Width;
-            float uv_top    = (float)frameStr.Y / texture->Height;
-            float uv_bottom = (float)(frameStr.Y + frameStr.Height) / texture->Height;
+            Sint64 textureWidth = FP16_TO(texture->Width);
+            Sint64 textureHeight = FP16_TO(texture->Height);
+
+            float uv_left   = (float)frameStr.X;
+            float uv_right  = (float)(frameStr.X + frameStr.Width);
+            float uv_top    = (float)frameStr.Y;
+            float uv_bottom = (float)(frameStr.Y + frameStr.Height);
 
             float left_u, right_u, top_v, bottom_v;
             int flipX = tileAtPos & TILE_FLIPX_MASK;
@@ -1375,32 +1442,32 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
                 bottom_v = uv_bottom;
             }
 
-            data[0].Position.X = (destX * tileSize) * 0x10000;
-            data[0].Position.Z = (destY * tileSize) * 0x10000;
+            data[0].Position.X = FP16_TO(destX * tileSize);
+            data[0].Position.Z = FP16_TO(destY * tileSize);
             data[0].Position.Y = 0;
-            data[0].UV.X       = left_u * 0x10000;
-            data[0].UV.Y       = top_v * 0x10000;
+            data[0].UV.X       = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+            data[0].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
             data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0;
 
-            data[1].Position.X = data[0].Position.X + (tileSize * 0x10000);
+            data[1].Position.X = data[0].Position.X + FP16_TO(tileSize);
             data[1].Position.Z = data[0].Position.Z;
             data[1].Position.Y = 0;
-            data[1].UV.X       = right_u * 0x10000;
-            data[1].UV.Y       = top_v * 0x10000;
+            data[1].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+            data[1].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
             data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0;
 
             data[2].Position.X = data[1].Position.X;
-            data[2].Position.Z = data[1].Position.Z + (tileSize * 0x10000);
+            data[2].Position.Z = data[1].Position.Z + FP16_TO(tileSize);
             data[2].Position.Y = 0;
-            data[2].UV.X       = right_u * 0x10000;
-            data[2].UV.Y       = bottom_v * 0x10000;
+            data[2].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+            data[2].UV.Y       = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
             data[2].Normal.X   = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0;
 
             data[3].Position.X = data[0].Position.X;
             data[3].Position.Z = data[2].Position.Z;
             data[3].Position.Y = 0;
-            data[3].UV.X       = left_u * 0x10000;
-            data[3].UV.Y       = bottom_v * 0x10000;
+            data[3].UV.X       = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+            data[3].UV.Y       = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
             data[3].Normal.X   = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0;
 
             VertexAttribute* vertex = arrayVertexBuffer;

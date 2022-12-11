@@ -1957,9 +1957,9 @@ static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vert
 #define VERTEX_ARGS(num, offset) \
     int argOffset = offset; \
     for (int i = 0; i < num; i++) { \
-        data[i].Position.X = GET_ARG(i * 3 + argOffset,     GetDecimal) * 0x10000; \
-        data[i].Position.Y = GET_ARG(i * 3 + argOffset + 1, GetDecimal) * 0x10000; \
-        data[i].Position.Z = GET_ARG(i * 3 + argOffset + 2, GetDecimal) * 0x10000; \
+        data[i].Position.X = FP16_TO(GET_ARG(i * 3 + argOffset,     GetDecimal)); \
+        data[i].Position.Y = FP16_TO(GET_ARG(i * 3 + argOffset + 1, GetDecimal)); \
+        data[i].Position.Z = FP16_TO(GET_ARG(i * 3 + argOffset + 2, GetDecimal)); \
         data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0; \
         data[i].UV.X       = data[i].UV.Y = 0; \
     } \
@@ -1981,9 +1981,9 @@ static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vert
         if (argCount <= (i * 2) + argOffset) \
             break; \
         if (!IS_NULL(args[(i * 2) + argOffset])) \
-            data[i].UV.X = GET_ARG((i * 2) + argOffset, GetDecimal) * 0x10000; \
+            data[i].UV.X = FP16_TO(GET_ARG((i * 2) + argOffset, GetDecimal)); \
         if (!IS_NULL(args[(i * 2) + 1 + argOffset])) \
-            data[i].UV.Y = GET_ARG((i * 2) + 1 + argOffset, GetDecimal) * 0x10000; \
+            data[i].UV.Y = FP16_TO(GET_ARG((i * 2) + 1 + argOffset, GetDecimal)); \
     } \
     argOffset += num * 2
 
@@ -2063,83 +2063,7 @@ VMValue Draw_Quad3D(int argCount, VMValue* args, Uint32 threadID) {
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
-static void MakeSpritePolygonUVs(
-    VertexAttribute data[4],
-    int flipX, int flipY, float scaleX, float scaleY,
-    Texture* texture, float frameX, float frameY, float frameW, float frameH)
-{
-    float uv_left   = frameX            / texture->Width;
-    float uv_right  = (frameX + frameW) / texture->Width;
-    float uv_top    = frameY            / texture->Height;
-    float uv_bottom = (frameY + frameH) / texture->Height;
 
-    float left_u, right_u, top_v, bottom_v;
-
-    if (flipX) {
-        left_u  = uv_right;
-        right_u = uv_left;
-    } else {
-        left_u  = uv_left;
-        right_u = uv_right;
-    }
-
-    if (flipY) {
-        top_v    = uv_bottom;
-        bottom_v = uv_top;
-    } else {
-        top_v    = uv_top;
-        bottom_v = uv_bottom;
-    }
-
-    // 0--1
-    // |  |
-    // 3--2
-
-    data[3].UV.X       = left_u * 0x10000;
-    data[3].UV.Y       = bottom_v * 0x10000;
-
-    data[2].UV.X       = right_u * 0x10000;
-    data[2].UV.Y       = bottom_v * 0x10000;
-
-    data[1].UV.X       = right_u * 0x10000;
-    data[1].UV.Y       = top_v * 0x10000;
-
-    data[0].UV.X       = left_u * 0x10000;
-    data[0].UV.Y       = top_v * 0x10000;
-}
-static void MakeSpritePolygon(
-    VertexAttribute data[4],
-    float x, float y, float z,
-    int flipX, int flipY, float scaleX, float scaleY,
-    Texture* texture, float frameX, float frameY, float frameW, float frameH)
-{
-    // 0--1
-    // |  |
-    // 3--2
-
-    data[3].Position.X = x * 0x10000;
-    data[3].Position.Y = y * 0x10000;
-    data[3].Position.Z = z * 0x10000;
-
-    data[2].Position.X = (x + (frameW * scaleX)) * 0x10000;
-    data[2].Position.Y = y * 0x10000;
-    data[2].Position.Z = z * 0x10000;
-
-    data[1].Position.X = (x + (frameW * scaleX)) * 0x10000;
-    data[1].Position.Y = (y + (frameH * scaleY)) * 0x10000;
-    data[1].Position.Z = z * 0x10000;
-
-    data[0].Position.X = x * 0x10000;
-    data[0].Position.Y = (y + (frameH * scaleY)) * 0x10000;
-    data[0].Position.Z = z * 0x10000;
-
-    for (int i = 0; i < 4; i++) {
-        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0;
-        data[i].Position.W = 0;
-    }
-
-    MakeSpritePolygonUVs(data, flipX, flipY, scaleX, scaleY, texture, frameX, frameY, frameW, frameH);
-}
 /***
  * Draw.Sprite3D
  * \desc Draws a sprite in 3D space.
@@ -2189,9 +2113,8 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
     x += frameStr.OffsetX * scaleX;
     y += frameStr.OffsetY * scaleY;
 
-    MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-
     return NULL_VAL;
 }
 /***
@@ -2254,9 +2177,8 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
     x += frameStr.OffsetX * scaleX;
     y += frameStr.OffsetY * scaleY;
 
-    MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
+    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-
     return NULL_VAL;
 }
 /***
@@ -2284,7 +2206,7 @@ VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
-    MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
+    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
@@ -2321,7 +2243,7 @@ VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
-    MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
+    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
@@ -2363,7 +2285,7 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexAttribute data[4];
 
-    MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
@@ -2409,10 +2331,10 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
     // | \
     // 1--2
 
-    data[1].UV.X = 0x10000;
+    data[1].UV.X = FP16_TO(1.0f);
 
-    data[2].UV.X = 0x10000;
-    data[2].UV.Y = 0x10000;
+    data[2].UV.X = FP16_TO(1.0f);
+    data[2].UV.Y = FP16_TO(1.0f);
 
     VERTEX_UV_ARGS(3);
 
@@ -2469,12 +2391,12 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
     // |  |
     // 3--2
 
-    data[1].UV.X = 0x10000;
+    data[1].UV.X = FP16_TO(1.0f);
 
-    data[2].UV.X = 0x10000;
-    data[2].UV.Y = 0x10000;
+    data[2].UV.X = FP16_TO(1.0f);
+    data[2].UV.Y = FP16_TO(1.0f);
 
-    data[3].UV.Y = 0x10000;
+    data[3].UV.Y = FP16_TO(1.0f);
 
     VERTEX_UV_ARGS(4);
 
@@ -2533,7 +2455,7 @@ VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(4);
     GET_MATRICES(argOffset);
 
-    MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    SoftwareRenderer::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
@@ -2586,7 +2508,7 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(4);
     GET_MATRICES(argOffset);
 
-    MakeSpritePolygonUVs(data, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    SoftwareRenderer::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
