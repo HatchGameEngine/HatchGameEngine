@@ -6,8 +6,8 @@
 
 class DrawGroupList {
 public:
-    int      EntityCount = 0;
-    int      EntityCapacity = 0x1000;
+    size_t   EntityCount = 0;
+    size_t   EntityCapacity = 0x1000;
     Entity** Entities = NULL;
     bool     NeedsSorting = false;
 };

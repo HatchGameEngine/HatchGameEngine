@@ -200,13 +200,13 @@ void _ObjectList_ResetPerf(Uint32, ObjectList* list) {
     list->AverageRenderItemCount = 0.0;
 }
 void _ObjectList_CallLoads(Uint32, ObjectList* list) {
-    char   entitySpecialFunctions[256];
-    sprintf(entitySpecialFunctions, "%s_Load", list->ObjectName);
+    char   entitySpecialFunctions[sizeof(list->ObjectName) + 5];
+    snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_Load", list->ObjectName);
     BytecodeObjectManager::CallFunction(entitySpecialFunctions);
 }
 void _ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
-    char   entitySpecialFunctions[256];
-    sprintf(entitySpecialFunctions, "%s_GlobalUpdate", list->ObjectName);
+    char   entitySpecialFunctions[sizeof(list->ObjectName) + 13];
+    snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_GlobalUpdate", list->ObjectName);
     BytecodeObjectManager::CallFunction(entitySpecialFunctions);
 }
 void _UpdateObjectEarly(Entity* ent) {
@@ -624,7 +624,7 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
         float view_w = currentView->Width;
         float view_h = currentView->Height;
         Texture* tar = currentView->DrawTarget;
-        if (tar->Width != currentView->Stride || tar->Height != view_h) {
+        if (tar->Width != (size_t)currentView->Stride || tar->Height != view_h) {
             Graphics::DisposeTexture(tar);
             Graphics::SetTextureInterpolation(false);
             currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, _CEILPOW(view_w), view_h);
@@ -764,10 +764,10 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
 
                 DoCheckRender:
                 if (ent->ViewRenderFlag != 0) {
-                    if (ent->ViewRenderFlag & viewRenderFlag == 0)
+                    if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
                         continue;
                 }
-                else if (Scene::ObjectViewRenderFlag & viewRenderFlag == 0)
+                else if ((Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;
 
                 elapsed = Clock::GetTicks();
@@ -801,7 +801,7 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         if (Scene::TileSprites.size() == 0)
             continue;
 
-        if (!(Scene::TileViewRenderFlag & viewRenderFlag))
+        if ((Scene::TileViewRenderFlag & viewRenderFlag) == 0)
             continue;
 
         bool texBlend = Graphics::TextureBlend;
@@ -1907,35 +1907,29 @@ PUBLIC STATIC int  Scene::CollisionAt(int x, int y, int collisionField, int coll
     int checkX;
     int probeXOG = x;
     int probeYOG = y;
-    int tileX, tileY, tileID, tileSize, tileAngle;
-    int flipX, flipY, collisionA, collisionB, collision;
-    int height, hasCollision, isCeiling;
+    int tileX, tileY, tileID, tileAngle;
+    int collisionA, collisionB, collision;
 
-    bool check, checkTop, checkBottom;
+    bool check;
     TileConfig* tileCfg;
 
     bool wallAsFloorFlag = collideSide & 0x10;
 
     collideSide &= 0xF;
 
-    int configIndex = 0, configIndexCopy, configH, configV;
-    configH = configV = false;
+    int configIndex = 0;
     switch (collideSide) {
         case CollideSide::TOP:
             configIndex = 0;
-            configV = true;
             break;
         case CollideSide::LEFT:
             configIndex = 1;
-            configH = true;
             break;
         case CollideSide::RIGHT:
             configIndex = 2;
-            configH = true;
             break;
         case CollideSide::BOTTOM:
             configIndex = 3;
-            configV = true;
             break;
     }
 
@@ -1947,8 +1941,6 @@ PUBLIC STATIC int  Scene::CollisionAt(int x, int y, int collisionField, int coll
         return -1;
     if (!Scene::TileCfgB && collisionField == 1)
         return -1;
-
-    tileSize = 16;
 
     for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
         SceneLayer layer = Layers[l];

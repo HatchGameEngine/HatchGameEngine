@@ -447,7 +447,7 @@ PUBLIC STATIC bool  InputManager::IsKeyPressed(int key) {
 }
 PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
     int scancode = (int)KeyToSDLScancode[key];
-    return !KeyboardState[key] && KeyboardStateLast[key];
+    return !KeyboardState[scancode] && KeyboardStateLast[scancode];
 }
 
 #define GET_CONTROLLER(ret) \
@@ -546,7 +546,7 @@ PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
 PUBLIC STATIC void  InputManager::ControllerStopRumble() {
     for (int i = 0; i < InputManager::NumControllers; i++) {
         Controller* controller = InputManager::Controllers[i];
-        if (!controller || !controller->Rumble);
+        if (!controller || !controller->Rumble)
             continue;
 
         if (controller->Rumble->Active)

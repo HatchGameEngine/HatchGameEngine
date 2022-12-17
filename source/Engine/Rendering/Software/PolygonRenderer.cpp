@@ -200,16 +200,17 @@ int DoFogLighting(int color, float fogCoord) {
 
 #define SCANLINE_STEP_Z_BY(diff) contZ += dxZ * diff
 #define SCANLINE_STEP_RGB_BY(diff) \
-    // contR += dxR * diff; \
-    // contG += dxG * diff; \
-    // contB += dxB * diff
+    contR += dxR * diff; \
+    contG += dxG * diff; \
+    contB += dxB * diff
 #define SCANLINE_STEP_UV_BY(diff) \
     contU += dxU * diff; \
     contV += dxV * diff
 
-#define SCANLINE_GET_MAPZ() \
-    mapZ = 1.0f / contZ; \
-    Uint32 iz = mapZ * 65536
+#define SCANLINE_GET_MAPZ() mapZ = 1.0f / contZ
+#define SCANLINE_GET_INVZ() \
+    Uint32 iz = mapZ * 65536; \
+    (void)iz /* Make compiler shut up */
 #define SCANLINE_GET_RGB() \
     Sint32 colR = contR; \
     Sint32 colG = contG; \
@@ -379,19 +380,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
 
     Sint32 col, contLen;
     float contR, contG, contB, dxR, dxG, dxB;
-    float mapZ;
 
-    #define PX_GET(pixelFunction) \
-        SCANLINE_GET_RGB(); \
-        SCANLINE_GET_COLOR(); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-    #define PX_GET_FOG(pixelFunction) \
-        SCANLINE_GET_RGB(); \
-        SCANLINE_GET_COLOR(); \
-        col = DoFogLighting(col, mapZ); \
-        SCANLINE_WRITE_PIXEL(pixelFunction, col)
-
-    #define DRAW_POLYGONBLEND(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_POLYGONBLEND(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
         contLen = contour.MaxX - contour.MinX; \
         if (contLen <= 0) { \
@@ -404,7 +394,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
             SCANLINE_STEP_RGB_BY(diff); \
         } \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
-            pixelRead(pixelFunction); \
+            SCANLINE_GET_RGB(); \
+            SCANLINE_GET_COLOR(); \
+            SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             SCANLINE_STEP_RGB(); \
         } \
         dst_strideY += dstStride; \
@@ -413,15 +405,29 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-
-    if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET_FOG);
-    } else {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLEND, PX_GET);
+    switch (blendFlag) {
+        case BlendFlag_OPAQUE:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetOpaque);
+            break;
+        case BlendFlag_TRANSPARENT:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetTransparent);
+            break;
+        case BlendFlag_ADDITIVE:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetAdditive);
+            break;
+        case BlendFlag_SUBTRACT:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetSubtract);
+            break;
+        case BlendFlag_MATCH_EQUAL:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetMatchEqual);
+            break;
+        case BlendFlag_MATCH_NOT_EQUAL:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetMatchNotEqual);
+            break;
+        case BlendFlag_FILTER:
+            DRAW_POLYGONBLEND(SoftwareRenderer::PixelNoFiltSetFilter);
+            break;
     }
-
-    #undef PX_GET
-    #undef PX_GET_FOG
 
     #undef DRAW_POLYGONBLEND
 }
@@ -474,6 +480,18 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
             dst_strideY += dstStride; \
             continue; \
         } \
+        for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
+            pixelRead(pixelFunction); \
+        } \
+        dst_strideY += dstStride; \
+    }
+    #define DRAW_POLYGONSHADED_FOG(pixelFunction, pixelRead) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+        Contour contour = ContourField[dst_y]; \
+        contLen = contour.MaxX - contour.MinX; \
+        if (contLen <= 0) { \
+            dst_strideY += dstStride; \
+            continue; \
+        } \
         SCANLINE_INIT_Z(); \
         if (contour.MapLeft < contour.MinX) { \
             SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
@@ -491,7 +509,7 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     int dst_strideY = dst_y1 * dstStride;
 
     if (UseFog) {
-        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET_FOG);
+        POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED_FOG, PX_GET_FOG);
     } else {
         POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET);
     }
@@ -500,6 +518,7 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     #undef PX_GET_FOG
 
     #undef DRAW_POLYGONSHADED
+    #undef DRAW_POLYGONSHADED_FOG
 }
 // Draws a blended polygon with lighting
 PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
@@ -675,6 +694,7 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
+            SCANLINE_GET_INVZ(); \
             if (dpR(iz)) { \
                 SCANLINE_GET_MAPUV(); \
                 SCANLINE_GET_TEXUV(); \
@@ -795,6 +815,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
+            SCANLINE_GET_INVZ(); \
             if (dpR(iz)) { \
                 SCANLINE_GET_RGB(); \
                 SCANLINE_GET_MAPUV(); \
@@ -884,6 +905,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
 #define DO_PERSP_MAPPING(placePixelMacro, pixelFunction, dpR, dpW) \
     for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
         SCANLINE_GET_MAPZ(); \
+        SCANLINE_GET_INVZ(); \
         if (dpR(iz)) { \
             DRAW_PERSP_GET(contU * mapZ, contV * mapZ); \
             placePixelMacro(pixelFunction, dpW); \
@@ -1163,12 +1185,14 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
 
     #define PX_GET(pixelFunction) \
         SCANLINE_GET_MAPZ(); \
+        SCANLINE_GET_INVZ(); \
         if (DEPTH_READ_U32(iz)) { \
             SCANLINE_WRITE_PIXEL(pixelFunction, color); \
             DEPTH_WRITE_U32(iz); \
         }
     #define PX_GET_FOG(pixelFunction) \
         SCANLINE_GET_MAPZ(); \
+        SCANLINE_GET_INVZ(); \
         if (DEPTH_READ_U32(iz)) { \
             col = DoFogLighting(color, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
@@ -1249,6 +1273,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
 
     #define PX_GET(pixelFunction) \
         SCANLINE_GET_MAPZ(); \
+        SCANLINE_GET_INVZ(); \
         if (DEPTH_READ_U32(iz)) { \
             SCANLINE_GET_RGB(); \
             SCANLINE_GET_COLOR(); \
@@ -1257,6 +1282,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
         }
     #define PX_GET_FOG(pixelFunction) \
         SCANLINE_GET_MAPZ(); \
+        SCANLINE_GET_INVZ(); \
         if (DEPTH_READ_U32(iz)) { \
             SCANLINE_GET_RGB(); \
             SCANLINE_GET_COLOR(); \

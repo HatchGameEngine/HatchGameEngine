@@ -324,8 +324,10 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
                 double tilesTotal = 0.0;
                 for (size_t li = 0; li < Scene::Layers.size(); li++) {
                     SceneLayer* layer = &Scene::Layers[li];
-                    sprintf(layerText, "%s""     > %24s:   %8.3f ms\n", layerText,
+                    char temp[128];
+                    snprintf(temp, sizeof(temp), "     > %24s:   %8.3f ms\n",
                         layer->Name, Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
+                    StringUtils::Concat(layerText, temp, sizeof(layerText));
                     tilesTotal += Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
                 }
                 Log::Print(Log::LOG_INFO, "View %d:\n"
@@ -1163,7 +1165,6 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     if (node) {
         XMLNode* parent = node;
 
-        bool anyChanged = false;
         char read[256];
 
         // Read width
@@ -1171,7 +1172,6 @@ PRIVATE STATIC void Application::LoadGameConfig() {
         if (node) {
             XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
             StringUtils::ToNumber(&Application::WindowWidth, read);
-            anyChanged = true;
         }
 
         // Read height

@@ -16,14 +16,14 @@ public:
     static GraphicsFunctions BackendFunctions;
     static Uint32            CompareColor;
     static Sint32            CurrentPalette;
-    static Uint32            CurrentArrayBuffer;
+    static Sint32            CurrentArrayBuffer;
+    static Sint32            CurrentVertexBuffer;
     static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static Uint32            CurrentVertexBuffer;
     static int               MultTable[0x10000];
     static int               MultTableInv[0x10000];
     static int               MultSubTable[0x10000];
@@ -45,14 +45,14 @@ public:
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;
 Sint32            SoftwareRenderer::CurrentPalette = -1;
-Uint32            SoftwareRenderer::CurrentArrayBuffer = -1;
+Sint32            SoftwareRenderer::CurrentArrayBuffer = -1;
+Sint32            SoftwareRenderer::CurrentVertexBuffer = -1;
 Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
 Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-Uint32            SoftwareRenderer::CurrentVertexBuffer = -1;
 int               SoftwareRenderer::MultTable[0x10000];
 int               SoftwareRenderer::MultTableInv[0x10000];
 int               SoftwareRenderer::MultSubTable[0x10000];
@@ -664,7 +664,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_SetViewMatrix(Uint32 arrayB
 PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBufferIndex, Uint32 drawMode) {
     GET_ARRAY_BUFFER();
 
-    int vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
+    Uint32 vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
     FaceInfo* faceInfoPtr;
     VertexAttribute* vertexAttribsPtr;
 
@@ -721,14 +721,14 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
         sortFaces = true;
 
     // Get the face depth and vertices' start index
-    int verticesStartIndex = 0;
-    for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+    Uint32 verticesStartIndex = 0;
+    for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
         vertexCount = faceInfoPtr->NumVertices;
 
         // Average the Z coordinates of the face
         if (sortFaces) {
             Sint64 depth = vertexAttribsPtr[0].Position.Z;
-            for (int i = 1; i < vertexCount; i++)
+            for (Uint32 i = 1; i < vertexCount; i++)
                 depth += vertexAttribsPtr[i].Position.Z;
 
             faceInfoPtr->Depth = depth / vertexCount;
@@ -765,7 +765,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     switch (drawMode & DrawMode_FillTypeMask) {
         // Lines, Solid Colored
         case DrawMode_LINES:
-            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
                 vertexCountPerFaceMinus1 = faceInfoPtr->NumVertices - 1;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -812,14 +812,14 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
         case DrawMode_LINES_FLAT:
         // Lines, Smooth Shading
         case DrawMode_LINES_SMOOTH:
-            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
                 vertexCount = faceInfoPtr->NumVertices;
                 vertexCountPerFaceMinus1 = vertexCount - 1;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 int averageNormalY = vertex[0].Normal.Y;
-                for (int i = 1; i < vertexCount; i++)
+                for (Uint32 i = 1; i < vertexCount; i++)
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
@@ -860,7 +860,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             break;
         // Polygons, Solid Colored
         case DrawMode_POLYGONS:
-            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -869,8 +869,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                int     polygonVertexIndex = 0;
-                int     numOutside = 0;
+                Uint32  polygonVertexIndex = 0;
+                Uint32  numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
@@ -929,13 +929,13 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             break;
         // Polygons, Flat Shading
         case DrawMode_POLYGONS_FLAT:
-            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 int averageNormalY = vertex[0].Normal.Y;
-                for (int i = 1; i < vertexCount; i++)
+                for (Uint32 i = 1; i < vertexCount; i++)
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
@@ -944,8 +944,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                int     polygonVertexIndex = 0;
-                int     numOutside = 0;
+                Uint32  polygonVertexIndex = 0;
+                Uint32  numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
@@ -997,7 +997,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             break;
         // Polygons, Smooth Shading
         case DrawMode_POLYGONS_SMOOTH:
-            for (int f = 0; f < vertexBuffer->FaceCount; f++) {
+            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -1007,8 +1007,8 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
                 Vector3 polygonVertex[MAX_POLYGON_VERTICES];
                 Vector2 polygonUV[MAX_POLYGON_VERTICES];
                 int     polygonVertColor[MAX_POLYGON_VERTICES];
-                int     polygonVertexIndex = 0;
-                int     numOutside = 0;
+                Uint32  polygonVertexIndex = 0;
+                Uint32  numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
@@ -1277,8 +1277,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
     else
         CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
 
-    int arrayVertexCount = vertexBuffer->VertexCount;
-    int maxVertexCount = arrayVertexCount + vertexCount;
+    Uint32 arrayVertexCount = vertexBuffer->VertexCount;
+    Uint32 maxVertexCount = arrayVertexCount + vertexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
         vertexBuffer->Resize(maxVertexCount);
 
@@ -1331,7 +1331,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(VertexAttribute* data, in
             if (vertexCount == 0)
                 return;
 
-            int maxVertexCount = arrayVertexCount + vertexCount;
+            Uint32 maxVertexCount = arrayVertexCount + vertexCount;
             if (maxVertexCount > vertexBuffer->Capacity) {
                 vertexBuffer->Resize(maxVertexCount);
                 arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
@@ -1384,16 +1384,16 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
         textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
     }
 
-    int totalVertexCount = 0;
+    Uint32 totalVertexCount = 0;
     for (int y = sy; y < sh; y++) {
         for (int x = sx; x < sw; x++) {
-            int tileID = (int)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK);
+            Uint32 tileID = (Uint32)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK);
             if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size())
                 totalVertexCount += vertexCountPerFace;
         }
     }
 
-    int maxVertexCount = arrayVertexCount + totalVertexCount;
+    Uint32 maxVertexCount = arrayVertexCount + totalVertexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
         vertexBuffer->Resize(maxVertexCount);
 
@@ -1402,8 +1402,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
 
     for (int y = sy, destY = 0; y < sh; y++, destY++) {
         for (int x = sx, destX = 0; x < sw; x++, destX++) {
-            int tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
-            int tileID = tileAtPos & TILE_IDENT_MASK;
+            Uint32 tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
+            Uint32 tileID = tileAtPos & TILE_IDENT_MASK;
             if (tileID == Scene::EmptyTile || tileID >= Scene::TileSpriteInfos.size())
                 continue;
 
@@ -1491,7 +1491,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
                 vertexIndex++;
             }
 
-            int vertexCount = vertexCountPerFace;
+            Uint32 vertexCount = vertexCountPerFace;
             if (arrayBuffer) {
                 // Check if the polygon is at least partially inside the frustum
                 if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
@@ -1505,7 +1505,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(SceneLayer* layer, int
                     if (vertexCount == 0)
                         continue;
 
-                    int maxVertexCount = arrayVertexCount + vertexCount;
+                    Uint32 maxVertexCount = arrayVertexCount + vertexCount;
                     if (maxVertexCount > vertexBuffer->Capacity) {
                         vertexBuffer->Resize(maxVertexCount);
                         faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
@@ -1611,7 +1611,7 @@ int ModelRenderer::ClipFace(int faceVertexCount) {
         if (faceVertexCount == 0)
             return 0;
 
-        int maxVertexCount = Buffer->VertexCount + faceVertexCount;
+        Uint32 maxVertexCount = Buffer->VertexCount + faceVertexCount;
         if (maxVertexCount > Buffer->Capacity) {
             Buffer->Resize(maxVertexCount);
             FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
@@ -1630,7 +1630,6 @@ int ModelRenderer::ClipFace(int faceVertexCount) {
 void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
     Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
 
-    int modelVertexIndexCount = mesh->VertexIndexCount;
     Sint16* modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
     int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
@@ -1665,7 +1664,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                     Vertex++;
                 }
 
-                if (faceVertexCount = ClipFace(faceVertexCount))
+                if ((faceVertexCount = ClipFace(faceVertexCount)))
                     AddFace(faceVertexCount, material);
             }
             break;
@@ -1689,7 +1688,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1711,7 +1710,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1735,7 +1734,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1757,7 +1756,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1782,7 +1781,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1805,7 +1804,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1831,7 +1830,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1855,7 +1854,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
                         Vertex++;
                     }
 
-                    if (faceVertexCount = ClipFace(faceVertexCount))
+                    if ((faceVertexCount = ClipFace(faceVertexCount)))
                         AddFace(faceVertexCount, material);
                 }
             }
@@ -1914,7 +1913,7 @@ void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
         frame = model->GetKeyFrame(frame) % model->FrameCount;
 
         // Just render every mesh directly
-        for (int i = 0; i < model->MeshCount; i++) {
+        for (size_t i = 0; i < model->MeshCount; i++) {
             Mesh* mesh = model->Meshes[i];
 
             Skeleton *skeletonPtr = nullptr;
@@ -1965,7 +1964,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModel(IModel* model, Uint16 animati
         projMatrix = &arrayBuffer->ProjectionMatrix;
     }
 
-    int maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
         vertexBuffer->Resize(maxVertexCount);
 
@@ -1997,7 +1996,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(IModel* model, Uint16 
         projMatrix = &arrayBuffer->ProjectionMatrix;
     }
 
-    int maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
         vertexBuffer->Resize(maxVertexCount);
 
@@ -2034,7 +2033,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     if (!srcFaceCount || !srcVertexCount)
         return;
 
-    int maxVertexCount = arrayVertexCount + srcVertexCount;
+    Uint32 maxVertexCount = arrayVertexCount + srcVertexCount;
     if (maxVertexCount > destVertexBuffer->Capacity)
         destVertexBuffer->Resize(maxVertexCount);
 
@@ -2079,7 +2078,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
             if (vertexCount == 0)
                 continue;
 
-            int maxVertexCount = arrayVertexCount + vertexCount;
+            Uint32 maxVertexCount = arrayVertexCount + vertexCount;
             if (maxVertexCount > destVertexBuffer->Capacity) {
                 destVertexBuffer->Resize(maxVertexCount);
                 faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];

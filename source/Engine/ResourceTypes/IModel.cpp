@@ -377,12 +377,12 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     // Read UVs
     if (vertexFlag & VertexType_UV) {
         int uvX, uvY;
-        for (int i = 0; i < VertexCount; i++) {
+        for (size_t i = 0; i < VertexCount; i++) {
             Vector2* uv = &mesh->UVBuffer[i];
             uv->X = uvX = (int)(stream->ReadFloat() * 0x10000);
             uv->Y = uvY = (int)(stream->ReadFloat() * 0x10000);
             // Copy the values to other frames
-            for (int f = 1; f < FrameCount; f++) {
+            for (size_t f = 1; f < FrameCount; f++) {
                 uv += VertexCount;
                 uv->X = uvX;
                 uv->Y = uvY;
@@ -392,11 +392,11 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     // Read Colors
     if (vertexFlag & VertexType_Color) {
         Uint32* colorPtr, color;
-        for (int i = 0; i < VertexCount; i++) {
+        for (size_t i = 0; i < VertexCount; i++) {
             colorPtr = &mesh->ColorBuffer[i];
             *colorPtr = color = stream->ReadUInt32();
             // Copy the value to other frames
-            for (int f = 1; f < FrameCount; f++) {
+            for (size_t f = 1; f < FrameCount; f++) {
                 colorPtr += VertexCount;
                 *colorPtr = color;
             }
@@ -413,15 +413,15 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     mesh->VertexIndexCount = VertexIndexCount;
     mesh->VertexIndexBuffer = (Sint16*)Memory::Malloc((VertexIndexCount + 1) * sizeof(Sint16));
 
-    for (int i = 0; i < VertexIndexCount; i++)
+    for (size_t i = 0; i < VertexIndexCount; i++)
         mesh->VertexIndexBuffer[i] = stream->ReadInt16();
     mesh->VertexIndexBuffer[VertexIndexCount] = -1;
 
     if (vertexFlag & VertexType_Normal) {
         Vector3* vert = mesh->PositionBuffer;
         Vector3* norm = mesh->NormalBuffer;
-        int totalVertexCount = VertexCount * FrameCount;
-        for (int v = 0; v < totalVertexCount; v++) {
+        size_t totalVertexCount = VertexCount * FrameCount;
+        for (size_t v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);
             vert->Y = (int)(stream->ReadFloat() * 0x10000);
             vert->Z = (int)(stream->ReadFloat() * 0x10000);
@@ -435,8 +435,8 @@ PUBLIC bool IModel::ReadRSDK(Stream* stream) {
     }
     else {
         Vector3* vert = mesh->PositionBuffer;
-        int totalVertexCount = VertexCount * FrameCount;
-        for (int v = 0; v < totalVertexCount; v++) {
+        size_t totalVertexCount = VertexCount * FrameCount;
+        for (size_t v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);
             vert->Y = (int)(stream->ReadFloat() * 0x10000);
             vert->Z = (int)(stream->ReadFloat() * 0x10000);

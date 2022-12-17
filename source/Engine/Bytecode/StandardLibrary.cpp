@@ -1465,7 +1465,7 @@ VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
     RenderView(threadID, view_index);
 
     Texture* texture = Scene::Views[view_index].DrawTarget;
-    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
+    Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
     return NULL_VAL;
 }
 /***
@@ -1497,7 +1497,6 @@ VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
 
     RenderView(threadID, view_index);
 
-    Texture* texture = Scene::Views[view_index].DrawTarget;
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, sw, sh);
     return NULL_VAL;
 }
@@ -1527,7 +1526,7 @@ VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
     RenderView(threadID, view_index);
 
     Texture* texture = Scene::Views[view_index].DrawTarget;
-    Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, 0, 0, texture->Width, texture->Height, x, y, w, h);
+    Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
     return NULL_VAL;
 }
 /***
@@ -1563,7 +1562,6 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
 
     RenderView(threadID, view_index);
 
-    Texture* texture = Scene::Views[view_index].DrawTarget;
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
@@ -5338,13 +5336,13 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 #define CHECK_ANIMATION_INDEX(animation) \
-    if (animation < 0 || animation >= model->AnimationCount) { \
+    if (animation < 0 || animation >= (signed)model->AnimationCount) { \
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index out of range 0 through %d", model->AnimationCount); \
         return NULL_VAL; \
     }
 
 #define CHECK_ARMATURE_INDEX(armature) \
-    if (armature < 0 || armature >= model->ArmatureCount) { \
+    if (armature < 0 || armature >= (signed)model->ArmatureCount) { \
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index out of range 0 through %d", model->ArmatureCount); \
         return NULL_VAL; \
     }

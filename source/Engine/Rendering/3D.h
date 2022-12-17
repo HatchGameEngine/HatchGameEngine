@@ -43,8 +43,8 @@ struct FaceMaterial {
     void*  Texture;
 };
 struct FaceInfo {
-    int          NumVertices;
-    int          VerticesStartIndex;
+    Uint32       NumVertices;
+    Uint32       VerticesStartIndex;
     bool         UseMaterial;
     FaceMaterial Material;
     Uint8        Opacity;

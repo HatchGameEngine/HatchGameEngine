@@ -338,19 +338,6 @@ enum   OpCode {
     OP_SYNC = 0xFF,
 };
 
-static const char* vmvalue_type_strings[] = {
-    "Error",
-    "Integer",
-    "Float",
-    // "Long",
-    // "Double",
-    "String",
-    "Instance",
-    "Array",
-    "Map",
-    "Pointer",
-};
-
 enum   vmvalue_type {
     VMT_ERROR,
     VMT_INTEGER,

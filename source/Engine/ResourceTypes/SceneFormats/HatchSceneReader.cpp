@@ -98,8 +98,8 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     if (verPatch >= 1)
         r->ReadByte(); // ?
 
-    // Read kits
-    Uint8 numKits = r->ReadByte();
+    // Unused (number of kits)
+    r->ReadByte();
 
     // Read layers
     Uint8 numLayers = r->ReadByte();
@@ -201,7 +201,7 @@ PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
     size_t streamPos = r->Position();
 
-    Uint32 layerCompSize = r->ReadUInt32() - 4;
+    r->ReadUInt32(); // compressed size
     Uint32 layerUncompSize = r->ReadUInt32BE();
 
     r->Seek(streamPos);
@@ -214,7 +214,7 @@ PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) 
 }
 
 PRIVATE STATIC void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
-    for (size_t i = 0; i < layer->Width * layer->Height; i++) {
+    for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
         if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
             layer->Tiles[i] = Scene::EmptyTile;
             continue;
@@ -258,7 +258,7 @@ PRIVATE STATIC void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer
 
     size_t streamPos = r->Position();
 
-    Uint32 layerCompSize = r->ReadUInt32() - 4;
+    r->ReadUInt32(); // compressed size
     Uint32 layerUncompSize = r->ReadUInt32BE();
 
     r->Seek(streamPos);
