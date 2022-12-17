@@ -234,6 +234,16 @@ namespace LOCAL {
 
         return Scene::ImageList[where]->AsImage;
     }
+    inline Texture*       GetTexture(VMValue* args, int index, Uint32 threadID) {
+        int where = GetInteger(args, index, threadID);
+        if (where < 0 || where > (int)Graphics::TextureMap->Count) {
+            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+                "Texture index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
+                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        }
+
+        return Graphics::TextureMap->Get((Uint32)where);
+    }
     inline ISound*         GetSound(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::SoundList.size()) {
@@ -1375,6 +1385,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImageSized
  * \desc Draws an image, but sized.
+ * \param image (Integer): Index of the loaded image.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
@@ -1423,26 +1434,6 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
     Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
-static VMValue RenderView(Uint32 threadID, int view_index) {
-    int currentView = Scene::ViewCurrent;
-    if (view_index == currentView) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw current view!");
-        return NULL_VAL;
-    }
-
-    if (!Scene::Views[view_index].UseDrawTarget) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw view %d if it lacks a draw target!", view_index);
-        return NULL_VAL;
-    }
-
-    // Pushes the graphics state, renders the view, restores the previous view and pops the graphics state.
-    Graphics::PushState();
-    Scene::RenderView(view_index, false);
-    Scene::SetView(currentView);
-    Graphics::PopState();
-
-    return NULL_VAL;
-}
 /***
  * Draw.View
  * \desc Draws a view.
@@ -1451,18 +1442,36 @@ static VMValue RenderView(Uint32 threadID, int view_index) {
  * \param y (Number): Y position of where to draw the view.
  * \ns Draw
  */
+#define CHECK_VIEW_INDEX() \
+    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View index %d out of range. (0 - %d)", view_index, MAX_SCENE_VIEWS - 1); \
+        return NULL_VAL; \
+    }
+#define CHECK_RENDER_VIEW() \
+    if (view_index == Scene::ViewCurrent) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw current view!"); \
+        return NULL_VAL; \
+    } \
+    if (!Scene::Views[view_index].UseDrawTarget) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw view %d if it lacks a draw target!", view_index); \
+        return NULL_VAL; \
+    }
+#define DO_RENDER_VIEW() \
+    Graphics::PushState(); \
+    int current_view = Scene::ViewCurrent; \
+    Scene::RenderView(view_index, false); \
+    Scene::SetView(current_view); \
+    Graphics::PopState()
 VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
 
     int view_index = GET_ARG(0, GetInteger);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
-    RenderView(threadID, view_index);
+    CHECK_RENDER_VIEW();
+    DO_RENDER_VIEW();
 
     Texture* texture = Scene::Views[view_index].DrawTarget;
     Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
@@ -1490,12 +1499,10 @@ VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
     float sy = GET_ARG(4, GetDecimal);
     float sw = GET_ARG(5, GetDecimal);
     float sh = GET_ARG(6, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
-    RenderView(threadID, view_index);
+    CHECK_RENDER_VIEW();
+    DO_RENDER_VIEW();
 
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, sw, sh);
     return NULL_VAL;
@@ -1518,12 +1525,10 @@ VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
     float y = GET_ARG(2, GetDecimal);
     float w = GET_ARG(3, GetDecimal);
     float h = GET_ARG(4, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
-    RenderView(threadID, view_index);
+    CHECK_RENDER_VIEW();
+    DO_RENDER_VIEW();
 
     Texture* texture = Scene::Views[view_index].DrawTarget;
     Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
@@ -1555,12 +1560,10 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
     float sh = GET_ARG(6, GetDecimal);
     float w = GET_ARG(7, GetDecimal);
     float h = GET_ARG(8, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
-    RenderView(threadID, view_index);
+    CHECK_RENDER_VIEW();
+    DO_RENDER_VIEW();
 
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
@@ -2728,14 +2731,16 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Texture
- * \desc
- * \return
+ * \desc Draws a texture.
+ * \param texture (Integer): Texture index.
+ * \param x (Number): X position of where to draw the texture.
+ * \param y (Number): Y position of where to draw the texture.
  * \ns Draw
  */
 VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
 
-    Texture* texture = Graphics::TextureMap->Get((Uint32)GET_ARG(0, GetInteger));
+    Texture* texture = GET_ARG(0, GetTexture);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
 
@@ -2744,14 +2749,18 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TextureSized
- * \desc
- * \return
+ * \desc Draws a texture, but sized.
+ * \param texture (Integer): Texture index.
+ * \param x (Number): X position of where to draw the texture.
+ * \param y (Number): Y position of where to draw the texture.
+ * \param width (Number): Width to draw the texture.
+ * \param height (Number): Height to draw the texture.
  * \ns Draw
  */
 VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
 
-    Texture* texture = Graphics::TextureMap->Get((Uint32)GET_ARG(0, GetInteger));
+    Texture* texture = GET_ARG(0, GetTexture);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float w = GET_ARG(3, GetDecimal);
@@ -2762,14 +2771,20 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TexturePart
- * \desc
- * \return
+ * \desc Draws part of a texture.
+ * \param texture (Integer): Texture index.
+ * \param partX (Integer): X coordinate of part of texture to draw.
+ * \param partY (Integer): Y coordinate of part of texture to draw.
+ * \param partW (Integer): Width of part of texture to draw.
+ * \param partH (Integer): Height of part of texture to draw.
+ * \param x (Number): X position of where to draw the texture.
+ * \param y (Number): Y position of where to draw the texture.
  * \ns Draw
  */
 VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(7);
 
-    Texture* texture = Graphics::TextureMap->Get((Uint32)GET_ARG(0, GetInteger));
+    Texture* texture = GET_ARG(0, GetTexture);
     float sx = GET_ARG(1, GetDecimal);
     float sy = GET_ARG(2, GetDecimal);
     float sw = GET_ARG(3, GetDecimal);
@@ -3645,7 +3660,7 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    Texture* texture = Graphics::TextureMap->Get((Uint32)GET_ARG(0, GetInteger));
+    Texture* texture = GET_ARG(0, GetTexture);
     Graphics::SetRenderTarget(texture);
     return NULL_VAL;
 }
@@ -5337,13 +5352,13 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 
 #define CHECK_ANIMATION_INDEX(animation) \
     if (animation < 0 || animation >= (signed)model->AnimationCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index out of range 0 through %d", model->AnimationCount); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index %d out of range. (0 - %d)", model->AnimationCount); \
         return NULL_VAL; \
     }
 
 #define CHECK_ARMATURE_INDEX(armature) \
     if (armature < 0 || armature >= (signed)model->ArmatureCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index out of range 0 through %d", model->ArmatureCount); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index %d out of range. (0 - %d)", model->ArmatureCount); \
         return NULL_VAL; \
     }
 
@@ -7335,10 +7350,7 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int enabled = !!GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
     int viewRenderFlag = 1 << view_index;
     if (enabled)
@@ -7359,10 +7371,7 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int enabled = !!GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
 
     int viewRenderFlag = 1 << view_index;
     if (enabled)
@@ -7816,10 +7825,9 @@ VMValue Shader_SetUniform4x4(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Shader_SetUniformTexture(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
-    int   uniform_index = GET_ARG(0, GetInteger);
-    int   texture_index = GET_ARG(1, GetInteger);
-    int   slot = GET_ARG(2, GetInteger);
-    Texture* texture = Graphics::TextureMap->Get(texture_index);
+    int      uniform_index = GET_ARG(0, GetInteger);
+    Texture* texture = GET_ARG(1, GetTexture);
+    int      slot = GET_ARG(2, GetInteger);
 
     Graphics::Internal.SetUniformTexture(texture, uniform_index, slot);
     return NULL_VAL;
@@ -9309,10 +9317,7 @@ VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int   view_index = GET_ARG(0, GetInteger);
     float value = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].X = value;
     return NULL_VAL;
 }
@@ -9327,10 +9332,7 @@ VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int   view_index = GET_ARG(0, GetInteger);
     float value = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].Y = value;
     return NULL_VAL;
 }
@@ -9345,10 +9347,7 @@ VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int   view_index = GET_ARG(0, GetInteger);
     float value = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].Z = value;
     return NULL_VAL;
 }
@@ -9364,10 +9363,7 @@ VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(3);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].X = GET_ARG(1, GetDecimal);
     Scene::Views[view_index].Y = GET_ARG(2, GetDecimal);
     if (argCount == 4)
@@ -9386,94 +9382,11 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].RotateX = GET_ARG(1, GetDecimal);
     Scene::Views[view_index].RotateY = GET_ARG(2, GetDecimal);
     Scene::Views[view_index].RotateZ = GET_ARG(3, GetDecimal);
     return NULL_VAL;
-}
-/***
- * View.GetX
- * \desc Gets the x-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
- * \ns View
- */
-VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
-    return DECIMAL_VAL(Scene::Views[view_index].X);
-}
-/***
- * View.GetY
- * \desc Gets the y-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
- * \ns View
- */
-VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
-    return DECIMAL_VAL(Scene::Views[GET_ARG(0, GetInteger)].Y);
-}
-/***
- * View.GetZ
- * \desc Gets the z-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
- * \ns View
- */
-VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
-    return DECIMAL_VAL(Scene::Views[GET_ARG(0, GetInteger)].Z);
-}
-/***
- * View.GetWidth
- * \desc Gets the width of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
- * \ns View
- */
-VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
-    return DECIMAL_VAL(Scene::Views[view_index].Width);
-}
-/***
- * View.GetHeight
- * \desc Gets the height of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
- * \ns View
- */
-VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
-    return DECIMAL_VAL(Scene::Views[view_index].Height);
 }
 /***
  * View.SetSize
@@ -9498,10 +9411,7 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
     int view_index = GET_ARG(0, GetInteger);
     float view_w = GET_ARG(1, GetDecimal);
     float view_h = GET_ARG(2, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].Width = view_w;
     Scene::Views[view_index].Height = view_h;
     Scene::Views[view_index].Stride = _CEILPOW_(view_w);
@@ -9518,10 +9428,7 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int   view_index = GET_ARG(0, GetInteger);
     float value = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].OutputX = value;
     return NULL_VAL;
 }
@@ -9536,10 +9443,7 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int   view_index = GET_ARG(0, GetInteger);
     float value = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].OutputY = value;
     return NULL_VAL;
 }
@@ -9554,10 +9458,7 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(3);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].OutputX = GET_ARG(1, GetDecimal);
     Scene::Views[view_index].OutputY = GET_ARG(2, GetDecimal);
     return NULL_VAL;
@@ -9575,13 +9476,75 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
     int view_index = GET_ARG(0, GetInteger);
     float view_w = GET_ARG(1, GetDecimal);
     float view_h = GET_ARG(2, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].OutputWidth = view_w;
     Scene::Views[view_index].OutputHeight = view_h;
     return NULL_VAL;
+}
+/***
+ * View.GetX
+ * \desc Gets the x-axis position of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[view_index].X);
+}
+/***
+ * View.GetY
+ * \desc Gets the y-axis position of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[GET_ARG(0, GetInteger)].Y);
+}
+/***
+ * View.GetZ
+ * \desc Gets the z-axis position of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[GET_ARG(0, GetInteger)].Z);
+}
+/***
+ * View.GetWidth
+ * \desc Gets the width of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[view_index].Width);
+}
+/***
+ * View.GetHeight
+ * \desc Gets the height of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[view_index].Height);
 }
 /***
  * View.IsUsingDrawTarget
@@ -9593,29 +9556,40 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     return INTEGER_VAL((int)Scene::Views[view_index].UseDrawTarget);
 }
 /***
  * View.SetUseDrawTarget
  * \desc Sets the specified camera to use a draw target.
  * \param viewIndex (Integer): Index of the view.
- * \param useDrawTarget (Boolean):
+ * \param useDrawTarget (Boolean): Whether to use a draw target or not.
  * \ns View
  */
 VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int usedrawtar = GET_ARG(1, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].UseDrawTarget = !!usedrawtar;
     return NULL_VAL;
+}
+/***
+ * View.GetDrawTarget
+ * \desc Gets the specified camera's draw target.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns an Integer value.
+ * \ns View
+ */
+VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    if (!Scene::Views[view_index].UseDrawTarget) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View %d lacks a draw target!", view_index);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)Scene::Views[view_index].DrawTarget->ID);
 }
 /***
  * View.IsUsingSoftwareRenderer
@@ -9627,10 +9601,7 @@ VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     return INTEGER_VAL((int)Scene::Views[view_index].Software);
 }
 /***
@@ -9644,10 +9615,7 @@ VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int usedswrend = GET_ARG(1, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].Software = !!usedswrend;
     return NULL_VAL;
 }
@@ -9663,10 +9631,7 @@ VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
     int useperspec = GET_ARG(1, GetInteger);
     float nearPlane = GET_ARG(2, GetDecimal);
     float farPlane = GET_ARG(3, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].UsePerspective = !!useperspec;
     Scene::Views[view_index].NearPlane = nearPlane;
     Scene::Views[view_index].FarPlane = farPlane;
@@ -9682,10 +9647,7 @@ VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     return INTEGER_VAL(Scene::Views[view_index].Active);
 }
 /***
@@ -9699,10 +9661,7 @@ VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int enabled = !!GET_ARG(1, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::SetViewActive(view_index, enabled);
     return NULL_VAL;
 }
@@ -9716,10 +9675,7 @@ VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     return INTEGER_VAL(Scene::Views[view_index].Visible);
 }
 /***
@@ -9733,10 +9689,7 @@ VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int visible = GET_ARG(1, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].Visible = !!visible;
     return NULL_VAL;
 }
@@ -9750,10 +9703,7 @@ VMValue View_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     float fovy = GET_ARG(1, GetDecimal);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::Views[view_index].FOV = fovy;
     return NULL_VAL;
 }
@@ -9768,10 +9718,7 @@ VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int view_index = GET_ARG(0, GetInteger);
     int priority = GET_ARG(1, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     Scene::SetViewPriority(view_index, priority);
     return NULL_VAL;
 }
@@ -9785,10 +9732,7 @@ VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_GetPriority(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
-    if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View Index out of range 0 through %d", MAX_SCENE_VIEWS - 1);
-        return NULL_VAL;
-    }
+    CHECK_VIEW_INDEX();
     return INTEGER_VAL(Scene::Views[view_index].Priority);
 }
 /***
@@ -10796,20 +10740,21 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(View, SetPosition);
     DEF_NATIVE(View, SetAngle);
     DEF_NATIVE(View, SetSize);
+    DEF_NATIVE(View, SetOutputX);
+    DEF_NATIVE(View, SetOutputY);
+    DEF_NATIVE(View, SetOutputPosition);
+    DEF_NATIVE(View, SetOutputSize);
     DEF_NATIVE(View, GetX);
     DEF_NATIVE(View, GetY);
     DEF_NATIVE(View, GetZ);
     DEF_NATIVE(View, GetWidth);
     DEF_NATIVE(View, GetHeight);
-    DEF_NATIVE(View, SetOutputX);
-    DEF_NATIVE(View, SetOutputY);
-    DEF_NATIVE(View, SetOutputPosition);
-    DEF_NATIVE(View, SetOutputSize);
     DEF_NATIVE(View, IsUsingDrawTarget);
     DEF_NATIVE(View, SetUseDrawTarget);
-    DEF_NATIVE(View, SetUsePerspective);
+    DEF_NATIVE(View, GetDrawTarget);
     DEF_NATIVE(View, IsUsingSoftwareRenderer);
     DEF_NATIVE(View, SetUseSoftwareRenderer);
+    DEF_NATIVE(View, SetUsePerspective);
     DEF_NATIVE(View, IsEnabled);
     DEF_NATIVE(View, SetEnabled);
     DEF_NATIVE(View, IsVisible);

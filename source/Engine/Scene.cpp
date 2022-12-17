@@ -625,6 +625,7 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
         float view_h = currentView->Height;
         Texture* tar = currentView->DrawTarget;
         if (tar->Width != (size_t)currentView->Stride || tar->Height != view_h) {
+            Graphics::GfxFunctions = &Graphics::Internal;
             Graphics::DisposeTexture(tar);
             Graphics::SetTextureInterpolation(false);
             currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, _CEILPOW(view_w), view_h);
