@@ -26,8 +26,6 @@ public:
     static HashMap<char*>*      Tokens;
     static vector<char*>        TokensList;
 
-    static vector<VMValue>      EjectedGlobals;
-
     static SDL_mutex*           GlobalLock;
 };
 #endif
@@ -60,8 +58,6 @@ vector<ObjFunction*> BytecodeObjectManager::AllFunctionList;
 HashMap<Uint8*>*     BytecodeObjectManager::Sources = NULL;
 HashMap<char*>*      BytecodeObjectManager::Tokens = NULL;
 vector<char*>        BytecodeObjectManager::TokensList;
-
-vector<VMValue>      BytecodeObjectManager::EjectedGlobals;
 
 SDL_mutex*           BytecodeObjectManager::GlobalLock = NULL;
 
@@ -116,9 +112,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
 
-    BytecodeObjectManager::EjectedGlobals.clear();
-    BytecodeObjectManager::EjectedGlobals.shrink_to_fit();
-
     GarbageCollector::RootObject = NULL;
     GarbageCollector::NextGC = 0x100000;
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
@@ -157,11 +150,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
     Threads[0].ResetStack();
     ForceGarbageCollection();
 
-    for (size_t i = 0; i < BytecodeObjectManager::EjectedGlobals.size(); i++) {
-        // FreeGlobalValue(0, BytecodeObjectManager::EjectedGlobals[i]);
-    }
-    BytecodeObjectManager::EjectedGlobals.clear();
-
     if (Globals) {
         Log::Print(Log::LOG_VERBOSE, "Freeing values in Globals list...");
         Globals->ForAll(FreeGlobalValue);
@@ -172,7 +160,8 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
     }
 
     for (size_t i = 0; i < AllFunctionList.size(); i++) {
-        FreeGlobalValue(0, OBJECT_VAL(AllFunctionList[i]));
+        ObjFunction* function = AS_FUNCTION(OBJECT_VAL(AllFunctionList[i]));
+        BytecodeObjectManager::FreeFunction(function);
     }
     AllFunctionList.clear();
 
@@ -248,6 +237,26 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValu
         }
     }
 }
+PUBLIC STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function) {
+    /*
+    printf("OBJ_FUNCTION: %p (%s)\n", function,
+        function->Name ?
+            (function->Name->Chars ? function->Name->Chars : "NULL") :
+            "NULL");
+    //*/
+    if (function->Name != NULL)
+        FreeValue(OBJECT_VAL(function->Name));
+
+    for (size_t i = 0; i < function->Chunk.Constants->size(); i++)
+        FreeValue((*function->Chunk.Constants)[i]);
+    function->Chunk.Constants->clear();
+
+    ChunkFree(&function->Chunk);
+
+    assert(GarbageCollector::GarbageSize >= sizeof(ObjFunction));
+    GarbageCollector::GarbageSize -= sizeof(ObjFunction);
+    Memory::Free(function);
+}
 PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         // Log::Print(Log::LOG_VERBOSE, "Freeing object %p of type %s", AS_OBJECT(value), GetTypeString(value));
@@ -270,24 +279,14 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
             }
             case OBJ_FUNCTION: {
                 ObjFunction* function = AS_FUNCTION(value);
-				/*
-				printf("OBJ_FUNCTION: %p (%s)\n", function,
-					function->Name ?
-						(function->Name->Chars ? function->Name->Chars : "NULL") :
-						"NULL");
-				//*/
-                if (function->Name != NULL)
-                    FreeValue(OBJECT_VAL(function->Name));
 
-                for (size_t i = 0; i < function->Chunk.Constants->size(); i++)
-                    FreeValue((*function->Chunk.Constants)[i]);
-                function->Chunk.Constants->clear();
-
-                ChunkFree(&function->Chunk);
-
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjFunction));
-                GarbageCollector::GarbageSize -= sizeof(ObjFunction);
-                Memory::Free(function);
+                // Global functions can be found in AllFunctionList.
+                // If it's not there, then it has already been freed.
+                auto fn = std::find(AllFunctionList.begin(), AllFunctionList.end(), function);
+                if (fn != std::end(AllFunctionList)) {
+                    AllFunctionList.erase(fn);
+                    BytecodeObjectManager::FreeFunction(function);
+                }
                 break;
             }
             case OBJ_NATIVE: {
@@ -748,10 +747,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         }
 
         FunctionList.push_back(function);
-
-        // if (i == 0) {
-            AllFunctionList.push_back(function);
-        // }
+        AllFunctionList.push_back(function);
     }
 
     if (doLineNumbers && Tokens) {

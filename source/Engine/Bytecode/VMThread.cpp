@@ -312,7 +312,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_NEW_MAP),
             VM_ADD_DISPATCH(OP_SWITCH_TABLE),
             VM_ADD_DISPATCH(OP_FAILSAFE),
-			VM_ADD_DISPATCH(OP_EVENT),
+            VM_ADD_DISPATCH(OP_EVENT),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -486,30 +486,11 @@ PUBLIC int     VMThread::RunInstruction() {
                             dst->Methods->Put(hash, value);
                         });
                         src->Methods->Clear();
-
-                        // BytecodeObjectManager::EjectedGlobals.push_back(value);
                     }
                     // Otherwise,
                     else {
                         BytecodeObjectManager::Globals->Put(hash, value);
                     }
-
-                    //     VMValue originalValue = BytecodeObjectManager::Globals->Get(hash);
-                    //     // If the value is a class and original is a class,
-                    //     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
-                    //         ObjClass* src = AS_CLASS(value);
-                    //         ObjClass* dst = AS_CLASS(originalValue);
-                    //         src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
-                    //             dst->Methods->Put(hash, value);
-                    //         });
-                    //         // TODO: free source class here
-                    //         printf("combining classes\n");
-                    //     }
-                    //     // Otherwise,
-                    //     else {
-                    //         BytecodeObjectManager::Globals->Put(hash, value);
-                    //     }
-                    // }
                 }
                 // Otherwise,
                 else {
@@ -519,11 +500,6 @@ PUBLIC int     VMThread::RunInstruction() {
                 BytecodeObjectManager::Unlock();
             }
             VM_BREAK;
-
-            // FAIL_OP_DEFINE_GLOBAL:
-            // Pop();
-            // BytecodeObjectManager::Unlock();
-            // VM_BREAK;
         }
 
         // Object Properties (heap)

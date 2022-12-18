@@ -1961,7 +1961,6 @@ PUBLIC void Compiler::GetMethod() {
 
     int index = GetFunction(type);
 
-    // EmitBytes(OP_METHOD, constant);
     EmitByte(OP_METHOD);
     EmitByte(index);
     EmitStringHash(constantToken);
@@ -2072,10 +2071,7 @@ PUBLIC void Compiler::GetEventDeclaration() {
     // Uint8 constant = IdentifierConstant(&parser.Previous);
     Token constantToken = parser.Previous;
 
-    // If the method is named "init", it's an initializer.
-    int type = TYPE_FUNCTION;
-
-    int index = GetFunction(type);
+    int index = GetFunction(TYPE_FUNCTION);
 
     EmitByte(OP_EVENT);
     EmitByte(index);
