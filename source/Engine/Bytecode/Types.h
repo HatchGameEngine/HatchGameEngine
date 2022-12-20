@@ -44,6 +44,11 @@ struct Chunk {
     bool             OwnsMemory;
 };
 
+struct Bytecode {
+    Uint8* Data;
+    size_t Size;
+};
+
 struct PrintBuffer {
     char** Buffer;
     int WriteIndex;

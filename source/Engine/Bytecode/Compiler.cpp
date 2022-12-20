@@ -10,6 +10,7 @@ public:
     static vector<ObjFunction*> Functions;
     static HashMap<Token>*      TokenMap;
     static const char*          Magic;
+    static vector<const char*>  FunctionNames;
     static bool                 PrettyPrint;
 
     class Compiler* Enclosing = NULL;
@@ -42,6 +43,7 @@ ParseRule*           Compiler::Rules = NULL;
 vector<ObjFunction*> Compiler::Functions;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
+vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
 vector<ObjString*>   Strings;
 
@@ -2914,6 +2916,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
         }
     }
 
+#if 0
     // Output HTML5 here
     bool html5output = false;
     Application::Settings->GetBool("dev", "html5output", &html5output);
@@ -2929,13 +2932,19 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
         Log::Print(Log::LOG_ERROR, "Could not make html5output!");
         exit(-1);
     }
+#endif
 
     // Add tokens
     if (doLineNumbers && TokenMap) {
-        stream->WriteUInt32(TokenMap->Count);
+        Uint32 numTokens = TokenMap->Count + Compiler::FunctionNames.size();
+
+        stream->WriteUInt32(numTokens);
         TokenMap->WithAll([stream](Uint32, Token t) -> void {
             stream->WriteBytes(t.Start, t.Length);
             stream->WriteByte(0); // NULL terminate
+        });
+        std::for_each(Compiler::FunctionNames.begin(), Compiler::FunctionNames.end(), [stream](const char* name) {
+            stream->WriteBytes((void*)name, strlen(name) + 1);
         });
         TokenMap->Clear();
     }

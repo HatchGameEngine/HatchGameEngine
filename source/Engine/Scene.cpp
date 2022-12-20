@@ -496,6 +496,8 @@ PUBLIC STATIC void Scene::Init() {
 
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
     Scene::TileViewRenderFlag = 0xFFFFFFFF;
+
+    BytecodeObjectManager::LoadAllClasses();
 }
 
 PUBLIC STATIC void Scene::ResetPerf() {

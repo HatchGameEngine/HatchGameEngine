@@ -143,6 +143,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     LOG_ME(OBJ_STRING);
     LOG_ME(OBJ_UPVALUE);
 
+    GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+
     // Max GC Size = 1 MiB
     // if (GarbageCollector::NextGC < 1024 * 1024)
         // GarbageCollector::NextGC = GarbageCollector::GarbageSize * GC_HEAP_GROW_FACTOR;

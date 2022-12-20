@@ -143,7 +143,6 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         SourceFileMap::ClassMap->Clear();
     }
 
-    char outFile[256];
     for (size_t i = 0; i < list.size(); i++) {
         char* filename = strrchr(list[i], '/');
         Uint32 filenameHash = 0;
@@ -171,6 +170,7 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         }
         anyChanges |= (newChecksum != oldChecksum);
 
+        char outFile[35];
         sprintf(outFile, "Resources/Objects/%08X.ibc", filenameHash);
         // If changed, then compile.
         if (newChecksum != oldChecksum || !File::Exists(outFile) || !freeTokens) {
@@ -245,13 +245,6 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
                     stream->WriteUInt32((*list)[fn]);
                 }
             });
-
-            /*
-            INFO: filename: Player.hsl (0x03601792)
-            INFO: class hash: 0x1C70FC20    size: 1
-            INFO: filename: PlayerOther.hsl (0x346FC7F9)
-            INFO: class hash: 0x1C70FC20    size: 2
-            */
 
             stream->Close();
         }
