@@ -933,6 +933,5 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadAllClasses() {
     });
 
     GarbageCollector::Collect();
-    GarbageCollector::NextGC = GarbageCollector::GarbageSize;
 }
 // #endregion

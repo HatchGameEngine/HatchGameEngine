@@ -2569,7 +2569,7 @@ PUBLIC STATIC int    Compiler::LocalInstruction(const char* name, Chunk* chunk, 
         printf("%-16s %9d 'this'\n", name, slot);
     return offset + 2; // [debug]
 }
-PUBLIC STATIC int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
+PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
     printf("%-13s %2d", name, slot);
@@ -2582,11 +2582,17 @@ PUBLIC STATIC int    Compiler::InvokeInstruction(const char* name, Chunk* chunk,
     printf("\n");
     return offset + 6; // [debug]
 }
+PUBLIC STATIC int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
+    return Compiler::MethodInstruction(name, chunk, offset) + 1;
+}
 PUBLIC STATIC int    Compiler::JumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
     uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
     jump |= chunk->Code[offset + 2] << 8;
     printf("%-16s %9d -> %d\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
+}
+PUBLIC STATIC int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(name, chunk, offset) + 1;
 }
 PUBLIC STATIC int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
@@ -2710,6 +2716,8 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return JumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
         case OP_CALL:
             return ByteInstruction("OP_CALL", chunk, offset);
+        case OP_EVENT:
+            return ByteInstruction("OP_EVENT", chunk, offset);
         case OP_INVOKE:
             return InvokeInstruction("OP_INVOKE", chunk, offset);
 
@@ -2735,11 +2743,11 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
         case OP_WITH:
             return WithInstruction("OP_WITH", chunk, offset);
         case OP_CLASS:
-            return HashInstruction("OP_CLASS", chunk, offset);
+            return ClassInstruction("OP_CLASS", chunk, offset);
         case OP_INHERIT:
             return SimpleInstruction("OP_INHERIT", offset);
         case OP_METHOD:
-            return InvokeInstruction("OP_METHOD", chunk, offset);
+            return MethodInstruction("OP_METHOD", chunk, offset);
         default:
             printf("\x1b[1;93mUnknown opcode %d\x1b[m\n", instruction);
             return offset + 1;
@@ -2757,14 +2765,6 @@ PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int ar
         printf(" %2d '", (int)i);
         PrintValue(NULL, NULL, (*chunk->Constants)[i]);
         printf("'\n");
-    }
-}
-
-PUBLIC STATIC void   Compiler::HTML5ConvertChunk(Chunk* chunk, const char* name, int arity) {
-    printf("== %s (argCount: %d) ==\n", name, arity);
-    printf("byte   ln\n");
-    for (int offset = 0; offset < chunk->Count;) {
-        offset = DebugInstruction(chunk, offset);
     }
 }
 
@@ -2805,11 +2805,6 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
         // In a method, it holds the receiver, "this".
         local->Name.Start = (char*)"this";
         local->Name.Length = 4;
-
-        // local = &Locals[LocalCount++];
-        // local->Depth = ScopeDepth;
-        // local->Name.Start = (char*)"super";
-        // local->Name.Length = 5;
     }
     else {
         // In a function, it holds the function, but cannot be referenced,
@@ -2835,9 +2830,6 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     AdvanceToken();
     while (!MatchToken(TOKEN_EOF)) {
-        // if (PeekToken().Type == TOKEN_EOF) break;
-        // AdvanceToken();
-        // GetExpression();
         GetDeclaration();
     }
 
@@ -2853,8 +2845,6 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
             printf("\n");
         }
     }
-
-    // return false;
 
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
     if (!stream) return false;
@@ -2887,11 +2877,11 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
         }
 
         int constSize = (int)chunk->Constants->size();
-        stream->WriteUInt32(constSize); // fwrite(&constSize, 1, sizeof(constSize), f);
+        stream->WriteUInt32(constSize);
         for (int i = 0; i < constSize; i++) {
             VMValue constt = (*chunk->Constants)[i];
             Uint8 type = (Uint8)constt.Type;
-            stream->WriteByte(type); // fwrite(&type, 1, sizeof(type), f);
+            stream->WriteByte(type);
 
             switch (type) {
                 case VAL_INTEGER:
@@ -2910,41 +2900,18 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
                     }
                     break;
             }
-            // printf(" %2d '", i);
-            // PrintValue(NULL, NULL, (*chunk->Constants)[i]);
-            // printf("'\n");
         }
     }
 
-#if 0
-    // Output HTML5 here
-    bool html5output = false;
-    Application::Settings->GetBool("dev", "html5output", &html5output);
-    html5output = false;
-    if (html5output) {
-        Log::Print(Log::LOG_IMPORTANT, "Filename: %s", filename);
-        // for (size_t c = 0; c < Compiler::Functions.size(); c++) {
-        int c = 1;
-            Chunk* chunk = &Compiler::Functions[c]->Chunk;
-            HTML5ConvertChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->Arity);
-        //     printf("\n");
-        // }
-        Log::Print(Log::LOG_ERROR, "Could not make html5output!");
-        exit(-1);
-    }
-#endif
-
     // Add tokens
     if (doLineNumbers && TokenMap) {
-        Uint32 numTokens = TokenMap->Count + Compiler::FunctionNames.size();
-
-        stream->WriteUInt32(numTokens);
+        stream->WriteUInt32(TokenMap->Count + Compiler::FunctionNames.size());
+        std::for_each(Compiler::FunctionNames.begin(), Compiler::FunctionNames.end(), [stream](const char* name) {
+            stream->WriteBytes((void*)name, strlen(name) + 1);
+        });
         TokenMap->WithAll([stream](Uint32, Token t) -> void {
             stream->WriteBytes(t.Start, t.Length);
             stream->WriteByte(0); // NULL terminate
-        });
-        std::for_each(Compiler::FunctionNames.begin(), Compiler::FunctionNames.end(), [stream](const char* name) {
-            stream->WriteBytes((void*)name, strlen(name) + 1);
         });
         TokenMap->Clear();
     }
