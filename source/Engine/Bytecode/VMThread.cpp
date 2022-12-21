@@ -120,7 +120,7 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
                 functionName = "top-level function";
             else if (functionName != "<anonymous-fn>")
                 functionName = "event " + functionName;
-            buffer_printf(&buffer, "In %s of object %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
+            buffer_printf(&buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
         }
         else {
             buffer_printf(&buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);

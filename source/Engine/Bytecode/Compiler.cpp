@@ -2541,19 +2541,8 @@ PUBLIC STATIC int    Compiler::ConstantInstruction(const char* name, Chunk* chun
     printf("'\n");
     return offset + 5;
 }
-PUBLIC STATIC int    Compiler::ConstantInstructionN(const char* name, int n, Chunk* chunk, int offset) {
-    int constant = *(int*)&chunk->Code[offset + 1];
-    printf("%s_%-*d %9d '", name, 15 - (int)strlen(name), n, constant);
-    PrintValue(NULL, NULL, (*chunk->Constants)[constant]);
-    printf("'\n");
-    return offset + 5;
-}
 PUBLIC STATIC int    Compiler::SimpleInstruction(const char* name, int offset) {
     printf("%s\n", name);
-    return offset + 1;
-}
-PUBLIC STATIC int    Compiler::SimpleInstructionN(const char* name, int n, int offset) {
-    printf("%s_%d\n", name, n);
     return offset + 1;
 }
 PUBLIC STATIC int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
@@ -2850,13 +2839,16 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     if (!stream) return false;
 
     bool doLineNumbers = false;
+    bool hasSourceFilename = false;
+
     // #ifdef DEBUG
     doLineNumbers = true;
+    hasSourceFilename = true;
     // #endif
 
     stream->WriteBytes((char*)Compiler::Magic, 4);
     stream->WriteByte(0x00);
-    stream->WriteByte(doLineNumbers);
+    stream->WriteByte((hasSourceFilename << 1) | doLineNumbers);
     stream->WriteByte(0x00);
     stream->WriteByte(0x00);
 
@@ -2915,6 +2907,9 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
         });
         TokenMap->Clear();
     }
+
+    if (hasSourceFilename)
+        stream->WriteBytes((void*)filename, strlen(filename) + 1);
 
     stream->Close();
 

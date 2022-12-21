@@ -686,7 +686,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, size_t size) {
+PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, size_t size, Uint32 filenameHash) {
     FunctionList.clear();
 
     Uint8 magic[4];
@@ -696,13 +696,14 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         return;
     }
 
-    bool doLineNumbers;
+    // Uint8 version = stream->ReadByte();
+    stream->Skip(1);
+    Uint8 opts = stream->ReadByte();
+    stream->Skip(1);
+    stream->Skip(1);
 
-    // Uint8 opts;
-    stream->Skip(1); // opts = stream->ReadByte();
-    doLineNumbers = stream->ReadByte();
-    stream->Skip(1); // opts = stream->ReadByte();
-    stream->Skip(1); // opts = stream->ReadByte();
+    bool doLineNumbers = opts & 1;
+    bool hasSourceFilename = opts & 2;
 
     int chunkCount = stream->ReadInt32();
     for (int i = 0; i < chunkCount; i++) {
@@ -714,12 +715,6 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         function->Arity = arity;
         function->NameHash = hash;
         function->Chunk.Count = count;
-
-        if (CurrentObjectName[0])
-            StringUtils::Copy(function->SourceFilename, CurrentObjectName, sizeof(function->SourceFilename));
-        else
-            snprintf(function->SourceFilename, sizeof(function->SourceFilename), "%08X", CurrentObjectHash);
-
         function->Chunk.OwnsMemory = false;
 
         function->Chunk.Code = stream->pointer;
@@ -772,10 +767,19 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         }
     }
 
+    char sourceFilename[256];
+    if (hasSourceFilename) {
+        char* fn = stream->ReadString();
+        StringUtils::Copy(sourceFilename, fn, sizeof(sourceFilename));
+        Memory::Free(fn);
+    }
+    else
+        snprintf(sourceFilename, sizeof(sourceFilename), "Objects/%08X.ibc", filenameHash);
+
+    for (ObjFunction* function : FunctionList)
+        StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
+
     Threads[0].RunFunction(FunctionList[0], 0);
-}
-PUBLIC STATIC void    BytecodeObjectManager::SetCurrentObjectHash(Uint32 hash) {
-    CurrentObjectHash = hash;
 }
 PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     if (!Globals->Exists(functionName))
@@ -817,11 +821,8 @@ PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32
     bytecode.Data = nullptr;
     bytecode.Size = 0;
 
-    CurrentObjectHash = filenameHash;
-    CurrentObjectName[0] = '\0';
-
     char filename[64];
-    snprintf(filename, sizeof filename, "Objects/%08X.ibc", CurrentObjectHash);
+    snprintf(filename, sizeof filename, "Objects/%08X.ibc", filenameHash);
 
     if (!ResourceManager::ResourceExists(filename)) {
         return bytecode;
@@ -876,7 +877,7 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
 
             MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
             if (bytecodeStream) {
-                RunFromIBC(bytecodeStream, bytecode.Size);
+                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
                 bytecodeStream->Close();
             }
         }
@@ -909,7 +910,7 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
         }
     }
 
-    BytecodeObjectManager::SetCurrentObjectHash(Globals->HashFunction(objectName, strlen(objectName)));
+    CurrentObjectHash = Globals->HashFunction(objectName, strlen(objectName));
     return (void*)BytecodeObjectManager::SpawnFunction;
 }
 PUBLIC STATIC void    BytecodeObjectManager::LoadAllClasses() {
@@ -926,7 +927,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadAllClasses() {
             // Load the object class
             MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
             if (bytecodeStream) {
-                RunFromIBC(bytecodeStream, bytecode.Size);
+                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
                 bytecodeStream->Close();
             }
         }
