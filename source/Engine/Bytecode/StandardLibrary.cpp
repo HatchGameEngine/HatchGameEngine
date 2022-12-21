@@ -364,6 +364,16 @@ VMValue ReturnString(char* str) {
 
 // #region Application
 /***
+ * Application.GetFPS
+ * \desc Gets the current FPS.
+ * \return Returns a Decimal value.
+ * \ns Application
+ */
+VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return DECIMAL_VAL(Application::FPS);
+}
+/***
  * Application.GetKeyBind
  * \desc Gets a keybind. <br/>\
 </br>Keybind IDs:<ul>\
@@ -10052,6 +10062,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Application
     INIT_CLASS(Application);
+    DEF_NATIVE(Application, GetFPS);
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
