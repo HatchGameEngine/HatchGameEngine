@@ -699,7 +699,7 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
             break;
 
         DrawGroupList* drawGroupList = &PriorityLists[l];
-        if (drawGroupList->NeedsSorting) {
+        if (drawGroupList->NeedsSorting && drawGroupList->UseEntityDepth) {
             drawGroupList->Sort();
         }
         for (Entity* ent : *drawGroupList->Entities) {
@@ -1251,6 +1251,23 @@ PUBLIC STATIC void Scene::AddManagers() {
 
 #undef ADD_OBJECT_CLASS
 }
+PUBLIC STATIC void Scene::InitPriorityLists(){
+    if (Scene::PriorityLists) {
+        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
+            Scene::PriorityLists[i].Dispose();
+    }
+    else {
+        Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc("Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
+
+        if (!Scene::PriorityLists) {
+            Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
+            exit(-1);
+        }
+    }
+
+    for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
+        Scene::PriorityLists[i].Init();
+}
 PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename) {
     Stream* tileColReader;
     if (!ResourceManager::ResourceExists(filename)) {
@@ -1787,6 +1804,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::SpriteList.clear();
     Scene::SoundList.clear();
     Scene::MusicList.clear();
+    Scene::ModelList.clear();
     Scene::MediaList.clear();
 
     if (StaticObject) {

@@ -6706,6 +6706,18 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(-1);
 }
 /***
+ * Scene.GetLayerVisible
+ * \desc Gets the visibility of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(!!Scene::Layers[index].Visible);
+}
+/***
  * Scene.GetName
  * \desc Gets the name of the active scene.
  * \return Returns the name of the active scene.
@@ -6819,6 +6831,39 @@ VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_TILE_LAYER_POS_BOUNDS();
 
     return INTEGER_VAL(!!(Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)] & TILE_FLIPY_MASK));
+}
+/***
+ * Scene.GetDrawGroupCount
+ * \desc Gets the amount of draw groups in the active scene.
+ * \return Returns the amount of draw groups in the active scene.
+ * \ns Scene
+ */
+VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::PriorityPerLayer);
+}
+/***
+ * Scene.GetDrawGroupUseEntityDepth
+ * \desc Gets if the specified draw group sorts entities by depth.
+ * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetDrawGroupUseEntityDepth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+    if (!Scene::PriorityLists)
+        return INTEGER_VAL(0);
+    return INTEGER_VAL(!!Scene::PriorityLists[drawg].UseEntityDepth);
+}
+/***
+ * Scene.IsPaused
+ * \desc Gets whether or not the scene is paused.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
+    return INTEGER_VAL((int)Scene::Paused);
 }
 /***
  * Scene.SetTile
@@ -7014,6 +7059,21 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
     return NULL_VAL;
 }
 /***
+ * Scene.SetDrawGroupUseEntityDepth
+ * \desc Sets the specified draw group to sort entities by depth.
+ * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
+ * \param useEntityDepth (Boolean): Whether or not to sort entities by depth.
+ * \ns Scene
+ */
+VMValue Scene_SetDrawGroupUseEntityDepth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+    int useEntityDepth = !!GET_ARG(1, GetInteger);
+    if (Scene::PriorityLists)
+        Scene::PriorityLists[drawg].UseEntityDepth = useEntityDepth;
+    return NULL_VAL;
+}
+/***
  * Scene.SetLayerBlend
  * \desc Sets whether or not to use color and alpha blending on this layer. <br/>\
 </br>Blend Modes:<ul>\
@@ -7179,47 +7239,9 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
     int length16 = layer->HeightData * 16;
     if (layer->WidthData > layer->HeightData)
         length16 = layer->WidthData * 16;
-    // int splitCount, lastValue, lastY, sliceLen;
 
     layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
     memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
-
-	/*
-
-    // Count first
-    splitCount = 0, lastValue = layer->ScrollIndexes[0], lastY = 0;
-    for (int y = 0; y < length16; y++) {
-        if ((y > 0 && ((y & 0xF) == 0)) || lastValue != layer->ScrollIndexes[y]) {
-            splitCount++;
-            lastValue = layer->ScrollIndexes[y];
-        }
-    }
-    splitCount++;
-
-    layer->ScrollInfosSplitIndexes = (Uint16*)Memory::Malloc(splitCount * sizeof(Uint16));
-
-    splitCount = 0, lastValue = layer->ScrollIndexes[0], lastY = 0;
-    for (int y = 0; y < length16; y++) {
-        if ((y > 0 && ((y & 0xF) == 0)) || lastValue != layer->ScrollIndexes[y]) {
-            // Do slice
-            sliceLen = y - lastY;
-            layer->ScrollInfosSplitIndexes[splitCount] = (sliceLen << 8) | lastValue;
-            splitCount++;
-
-            // Iterate
-            lastValue = layer->ScrollIndexes[y];
-            lastY = y;
-        }
-    }
-
-    // Do slice
-    sliceLen = length16 - lastY;
-    layer->ScrollInfosSplitIndexes[splitCount] = (sliceLen << 8) | lastValue;
-    splitCount++;
-
-    layer->ScrollInfosSplitIndexesCount = splitCount;
-
-	//*/
 
     // Cleanup
     BufferedScrollInfos.clear();
@@ -7338,7 +7360,6 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 
     return NULL_VAL;
 }
-
 /***
  * Scene.SetObjectViewRender
  * \desc Sets whether or not objects can render on the specified view.
@@ -7380,16 +7401,6 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
         Scene::TileViewRenderFlag &= ~viewRenderFlag;
 
     return NULL_VAL;
-}
-
-/***
- * Scene.IsPaused
- * \desc Gets whether or not the scene is in Paused mode.
- * \return Returns whether or not the scene is in Paused mode.
- * \ns Scene
- */
-VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
-    return INTEGER_VAL((int)Scene::Paused);
 }
 // #endregion
 
@@ -10530,6 +10541,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, Restart);
     DEF_NATIVE(Scene, GetLayerCount);
     DEF_NATIVE(Scene, GetLayerIndex);
+    DEF_NATIVE(Scene, GetLayerVisible);
     DEF_NATIVE(Scene, GetName);
     DEF_NATIVE(Scene, GetWidth);
     DEF_NATIVE(Scene, GetHeight);
@@ -10537,6 +10549,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);
+    DEF_NATIVE(Scene, GetDrawGroupCount);
+    DEF_NATIVE(Scene, GetDrawGroupUseEntityDepth);
+    DEF_NATIVE(Scene, IsPaused);
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
@@ -10546,6 +10561,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerOffsetPosition);
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
+    DEF_NATIVE(Scene, SetDrawGroupUseEntityDepth);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);
     DEF_NATIVE(Scene, SetLayerScroll);
@@ -10559,7 +10575,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileScanline);
     DEF_NATIVE(Scene, SetObjectViewRender);
     DEF_NATIVE(Scene, SetTileViewRender);
-    DEF_NATIVE(Scene, IsPaused);
 
     DEF_ENUM(DrawBehavior_HorizontalParallax);
     DEF_ENUM(DrawBehavior_VerticalParallax);

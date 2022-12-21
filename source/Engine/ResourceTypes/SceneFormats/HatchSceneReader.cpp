@@ -124,22 +124,7 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Free classes
     HatchSceneReader::FreeClasses();
 
-    if (Scene::PriorityLists) {
-        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
-            Scene::PriorityLists[i].Dispose();
-    }
-    else {
-        Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc("Scene::PriorityLists",
-            Scene::PriorityPerLayer, sizeof(DrawGroupList));
-
-        if (!Scene::PriorityLists) {
-            Log::Print(Log::LOG_ERROR, "Out of memory!");
-            exit(-1);
-        }
-    }
-
-    for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
-        Scene::PriorityLists[i].Init();
+    Scene::InitPriorityLists();
 
     return true;
 }

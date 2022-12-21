@@ -364,12 +364,7 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
         Scene::Layers[i] = layer;
     }
 
-    if (!Scene::PriorityLists) {
-        Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc("Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
-        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
-            Scene::PriorityLists[i].Init();
-        }
-    }
+    Scene::InitPriorityLists();
 
     ticks = Clock::GetTicks() - ticks;
     Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);

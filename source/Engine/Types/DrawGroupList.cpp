@@ -7,6 +7,7 @@
 class DrawGroupList {
 public:
     vector<Entity*>* Entities = nullptr;
+    bool             UseEntityDepth = true;
     bool             NeedsSorting = false;
 };
 #endif
