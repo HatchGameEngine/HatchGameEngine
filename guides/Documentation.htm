@@ -90,6 +90,7 @@
                 <h2>Application</h2>
                 <i>Functions:</i>
                 <ul>
+                    <li><a href="#Reference_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_Application_SetKeyBind">Application.SetKeyBind</a></li>
                     <li><a href="#Reference_Application_Quit">Application.Quit</a></li>
@@ -508,6 +509,7 @@
                     <li><a href="#Reference_Scene_Restart">Scene.Restart</a></li>
                     <li><a href="#Reference_Scene_GetLayerCount">Scene.GetLayerCount</a></li>
                     <li><a href="#Reference_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
+                    <li><a href="#Reference_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_Scene_GetName">Scene.GetName</a></li>
                     <li><a href="#Reference_Scene_GetWidth">Scene.GetWidth</a></li>
                     <li><a href="#Reference_Scene_GetHeight">Scene.GetHeight</a></li>
@@ -515,6 +517,9 @@
                     <li><a href="#Reference_Scene_GetTileID">Scene.GetTileID</a></li>
                     <li><a href="#Reference_Scene_GetTileFlipX">Scene.GetTileFlipX</a></li>
                     <li><a href="#Reference_Scene_GetTileFlipY">Scene.GetTileFlipY</a></li>
+                    <li><a href="#Reference_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></li>
+                    <li><a href="#Reference_Scene_GetDrawGroupUseEntityDepth">Scene.GetDrawGroupUseEntityDepth</a></li>
+                    <li><a href="#Reference_Scene_IsPaused">Scene.IsPaused</a></li>
                     <li><a href="#Reference_Scene_SetTile">Scene.SetTile</a></li>
                     <li><a href="#Reference_Scene_SetTileCollisionSides">Scene.SetTileCollisionSides</a></li>
                     <li><a href="#Reference_Scene_SetPaused">Scene.SetPaused</a></li>
@@ -524,6 +529,7 @@
                     <li><a href="#Reference_Scene_SetLayerOffsetPosition">Scene.SetLayerOffsetPosition</a></li>
                     <li><a href="#Reference_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
+                    <li><a href="#Reference_Scene_SetDrawGroupUseEntityDepth">Scene.SetDrawGroupUseEntityDepth</a></li>
                     <li><a href="#Reference_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
                     <li><a href="#Reference_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
@@ -537,7 +543,6 @@
                     <li><a href="#Reference_Scene_SetTileScanline">Scene.SetTileScanline</a></li>
                     <li><a href="#Reference_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></li>
                     <li><a href="#Reference_Scene_SetTileViewRender">Scene.SetTileViewRender</a></li>
-                    <li><a href="#Reference_Scene_IsPaused">Scene.IsPaused</a></li>
                 </ul>
             </p>
             <p id="Reference_Settings">
@@ -737,18 +742,19 @@
                     <li><a href="#Reference_View_SetZ">View.SetZ</a></li>
                     <li><a href="#Reference_View_SetPosition">View.SetPosition</a></li>
                     <li><a href="#Reference_View_SetAngle">View.SetAngle</a></li>
-                    <li><a href="#Reference_View_GetX">View.GetX</a></li>
-                    <li><a href="#Reference_View_GetY">View.GetY</a></li>
-                    <li><a href="#Reference_View_GetZ">View.GetZ</a></li>
-                    <li><a href="#Reference_View_GetWidth">View.GetWidth</a></li>
-                    <li><a href="#Reference_View_GetHeight">View.GetHeight</a></li>
                     <li><a href="#Reference_View_SetSize">View.SetSize</a></li>
                     <li><a href="#Reference_View_SetOutputX">View.SetOutputX</a></li>
                     <li><a href="#Reference_View_SetOutputY">View.SetOutputY</a></li>
                     <li><a href="#Reference_View_SetOutputPosition">View.SetOutputPosition</a></li>
                     <li><a href="#Reference_View_SetOutputSize">View.SetOutputSize</a></li>
+                    <li><a href="#Reference_View_GetX">View.GetX</a></li>
+                    <li><a href="#Reference_View_GetY">View.GetY</a></li>
+                    <li><a href="#Reference_View_GetZ">View.GetZ</a></li>
+                    <li><a href="#Reference_View_GetWidth">View.GetWidth</a></li>
+                    <li><a href="#Reference_View_GetHeight">View.GetHeight</a></li>
                     <li><a href="#Reference_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
+                    <li><a href="#Reference_View_GetDrawTarget">View.GetDrawTarget</a></li>
                     <li><a href="#Reference_View_IsUsingSoftwareRenderer">View.IsUsingSoftwareRenderer</a></li>
                     <li><a href="#Reference_View_SetUseSoftwareRenderer">View.SetUseSoftwareRenderer</a></li>
                     <li><a href="#Reference_View_SetUsePerspective">View.SetUsePerspective</a></li>
@@ -789,6 +795,14 @@
             </p>
         <h3>Functions</h3>
         <p>Note: Please use Find (Ctrl+F) there are way too many functions</p>
+        <p id="Reference_Application_GetFPS">
+        <h2 style="margin-bottom: 8px;">Application.GetFPS</h2>
+        <code>Application.GetFPS()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current FPS.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
         <p id="Reference_Application_GetKeyBind">
         <h2 style="margin-bottom: 8px;">Application.GetKeyBind</h2>
         <code>Application.GetKeyBind(keyBind)</code>
@@ -1401,10 +1415,11 @@
         <hr/>
         <p id="Reference_Draw_ImageSized">
         <h2 style="margin-bottom: 8px;">Draw.ImageSized</h2>
-        <code>Draw.ImageSized(x, y, width, height)</code>
+        <code>Draw.ImageSized(image, x, y, width, height)</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
@@ -2033,21 +2048,45 @@
         </p>
         <hr/>
         <p id="Reference_Draw_Texture">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Texture</h2>
-        <code>Draw.Texture()</code>
-        <div style="margin-top: 8px; font-size: 14px;"></div>
+        <h2 style="margin-bottom: 8px;">Draw.Texture</h2>
+        <code>Draw.Texture(texture, x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a texture.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>texture (Integer): Texture index.</li>
+        <li>x (Number): X position of where to draw the texture.</li>
+        <li>y (Number): Y position of where to draw the texture.</li>
+        </ul>
         </p>
         <hr/>
         <p id="Reference_Draw_TextureSized">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.TextureSized</h2>
-        <code>Draw.TextureSized()</code>
-        <div style="margin-top: 8px; font-size: 14px;"></div>
+        <h2 style="margin-bottom: 8px;">Draw.TextureSized</h2>
+        <code>Draw.TextureSized(texture, x, y, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a texture, but sized.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>texture (Integer): Texture index.</li>
+        <li>x (Number): X position of where to draw the texture.</li>
+        <li>y (Number): Y position of where to draw the texture.</li>
+        <li>width (Number): Width to draw the texture.</li>
+        <li>height (Number): Height to draw the texture.</li>
+        </ul>
         </p>
         <hr/>
         <p id="Reference_Draw_TexturePart">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.TexturePart</h2>
-        <code>Draw.TexturePart()</code>
-        <div style="margin-top: 8px; font-size: 14px;"></div>
+        <h2 style="margin-bottom: 8px;">Draw.TexturePart</h2>
+        <code>Draw.TexturePart(texture, partX, partY, partW, partH, x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a texture.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>texture (Integer): Texture index.</li>
+        <li>partX (Integer): X coordinate of part of texture to draw.</li>
+        <li>partY (Integer): Y coordinate of part of texture to draw.</li>
+        <li>partW (Integer): Width of part of texture to draw.</li>
+        <li>partH (Integer): Height of part of texture to draw.</li>
+        <li>x (Number): X position of where to draw the texture.</li>
+        <li>y (Number): Y position of where to draw the texture.</li>
+        </ul>
         </p>
         <hr/>
         <p id="Reference_Draw_SetFont">
@@ -4225,6 +4264,18 @@
         <div style="font-size: 14px;">Returns the layer index, or <code>-1</code> if the layer could not be found.</div>
         </p>
         <hr/>
+        <p id="Reference_Scene_GetLayerVisible">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerVisible</h2>
+        <code>Scene.GetLayerVisible(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
         <p id="Reference_Scene_GetName">
         <h2 style="margin-bottom: 8px;">Scene.GetName</h2>
         <code>Scene.GetName()</code>
@@ -4297,6 +4348,34 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the tile's vertically flipped.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetDrawGroupCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetDrawGroupCount</h2>
+        <code>Scene.GetDrawGroupCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of draw groups in the active scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of draw groups in the active scene.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetDrawGroupUseEntityDepth">
+        <h2 style="margin-bottom: 8px;">Scene.GetDrawGroupUseEntityDepth</h2>
+        <code>Scene.GetDrawGroupUseEntityDepth(drawGroup)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets if the specified draw group sorts entities by depth.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_IsPaused">
+        <h2 style="margin-bottom: 8px;">Scene.IsPaused</h2>
+        <code>Scene.IsPaused()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the scene is paused.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <hr/>
         <p id="Reference_Scene_SetTile">
@@ -4399,6 +4478,17 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>drawBehavior (Integer): Draw behavior.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetDrawGroupUseEntityDepth">
+        <h2 style="margin-bottom: 8px;">Scene.SetDrawGroupUseEntityDepth</h2>
+        <code>Scene.SetDrawGroupUseEntityDepth(drawGroup, useEntityDepth)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the specified draw group to sort entities by depth.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>useEntityDepth (Boolean): Whether or not to sort entities by depth.</li>
         </ul>
         </p>
         <hr/>
@@ -4551,14 +4641,6 @@
         <li>viewIndex (Integer): Index of the view.</li>
         <li>enableViewRender (Boolean):</li>
         </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Scene_IsPaused">
-        <h2 style="margin-bottom: 8px;">Scene.IsPaused</h2>
-        <code>Scene.IsPaused()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the scene is in Paused mode.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the scene is in Paused mode.</div>
         </p>
         <hr/>
         <p id="Reference_Settings_Load">
@@ -5637,6 +5719,64 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_View_SetSize">
+        <h2 style="margin-bottom: 8px;">View.SetSize</h2>
+        <code>View.SetSize(viewIndex, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the size of the camera for the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>width (Number): Desired width.</li>
+        <li>height (Number): Desired height.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_View_SetOutputX">
+        <h2 style="margin-bottom: 8px;">View.SetOutputX</h2>
+        <code>View.SetOutputX(viewIndex, x)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the x-axis output position of the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): Desired X position</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_View_SetOutputY">
+        <h2 style="margin-bottom: 8px;">View.SetOutputY</h2>
+        <code>View.SetOutputY(viewIndex, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the y-axis output position of the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>y (Number): Desired Y position</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_View_SetOutputPosition">
+        <h2 style="margin-bottom: 8px;">View.SetOutputPosition</h2>
+        <code>View.SetOutputPosition(viewIndex, x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the output position of the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): Desired X position</li>
+        <li>y (Number): Desired Y position</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_View_SetOutputSize">
+        <h2 style="margin-bottom: 8px;">View.SetOutputSize</h2>
+        <code>View.SetOutputSize(viewIndex, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the output size of the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>width (Number): Desired width.</li>
+        <li>height (Number): Desired height.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_View_GetX">
         <h2 style="margin-bottom: 8px;">View.GetX</h2>
         <code>View.GetX(viewIndex)</code>
@@ -5697,64 +5837,6 @@
         <div style="font-size: 14px;">Returns a Number value.</div>
         </p>
         <hr/>
-        <p id="Reference_View_SetSize">
-        <h2 style="margin-bottom: 8px;">View.SetSize</h2>
-        <code>View.SetSize(viewIndex, width, height)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the size of the camera for the specified view.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>viewIndex (Integer): Index of the view.</li>
-        <li>width (Number): Desired width.</li>
-        <li>height (Number): Desired height.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_View_SetOutputX">
-        <h2 style="margin-bottom: 8px;">View.SetOutputX</h2>
-        <code>View.SetOutputX(viewIndex, x)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the x-axis output position of the specified view.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X position</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_View_SetOutputY">
-        <h2 style="margin-bottom: 8px;">View.SetOutputY</h2>
-        <code>View.SetOutputY(viewIndex, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the y-axis output position of the specified view.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>viewIndex (Integer): Index of the view.</li>
-        <li>y (Number): Desired Y position</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_View_SetOutputPosition">
-        <h2 style="margin-bottom: 8px;">View.SetOutputPosition</h2>
-        <code>View.SetOutputPosition(viewIndex, x, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the output position of the specified view.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X position</li>
-        <li>y (Number): Desired Y position</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_View_SetOutputSize">
-        <h2 style="margin-bottom: 8px;">View.SetOutputSize</h2>
-        <code>View.SetOutputSize(viewIndex, width, height)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the output size of the specified view.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>viewIndex (Integer): Index of the view.</li>
-        <li>width (Number): Desired width.</li>
-        <li>height (Number): Desired height.</li>
-        </ul>
-        </p>
-        <hr/>
         <p id="Reference_View_IsUsingDrawTarget">
         <h2 style="margin-bottom: 8px;">View.IsUsingDrawTarget</h2>
         <code>View.IsUsingDrawTarget(viewIndex)</code>
@@ -5774,8 +5856,20 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>useDrawTarget (Boolean):</li>
+        <li>useDrawTarget (Boolean): Whether to use a draw target or not.</li>
         </ul>
+        </p>
+        <hr/>
+        <p id="Reference_View_GetDrawTarget">
+        <h2 style="margin-bottom: 8px;">View.GetDrawTarget</h2>
+        <code>View.GetDrawTarget(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the specified camera's draw target.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <hr/>
         <p id="Reference_View_IsUsingSoftwareRenderer">
@@ -6009,6 +6103,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>395 out of 467 functions have descriptions. </p>
+        <p>404 out of 473 functions have descriptions. </p>
     </body>
 </html>
