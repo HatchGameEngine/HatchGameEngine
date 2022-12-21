@@ -414,13 +414,8 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
     obj->List->Remove(obj);
 
     // Remove from DrawGroups
-    for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-        DrawGroupList* drawGroupList = &PriorityLists[l];
-        for (size_t o = 0; o < drawGroupList->EntityCapacity; o++) {
-            if (drawGroupList->Entities[o] == obj)
-                drawGroupList->Entities[o] = NULL;
-        }
-    }
+    for (int l = 0; l < Scene::PriorityPerLayer; l++)
+        PriorityLists[l].Remove(obj);
 
     obj->Dispose();
     delete obj;
@@ -600,11 +595,6 @@ PRIVATE STATIC void Scene::ResetViews() {
     Scene::SetViewActive(0, true);
 }
 
-static int ViewSortFunction(const void *a, const void *b) {
-    View* viewA = &Scene::Views[*(const int *)a];
-    View* viewB = &Scene::Views[*(const int *)b];
-    return viewA->Priority - viewB->Priority;
-}
 PUBLIC STATIC void Scene::SortViews() {
     int count = 0;
 
@@ -613,8 +603,13 @@ PUBLIC STATIC void Scene::SortViews() {
             ViewRenderList[count++] = i;
     }
 
-    if (count > 1)
-        qsort(ViewRenderList, count, sizeof(int), ViewSortFunction);
+    if (count > 1) {
+        std::stable_sort(ViewRenderList, ViewRenderList + count, [](int a, int b) {
+            View* viewA = &Scene::Views[a];
+            View* viewB = &Scene::Views[b];
+            return viewA->Priority < viewB->Priority;
+        });
+    }
 }
 
 PUBLIC STATIC void Scene::SetView(int viewIndex) {
@@ -707,9 +702,9 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         if (drawGroupList->NeedsSorting) {
             drawGroupList->Sort();
         }
-        for (size_t o = 0; o < drawGroupList->EntityCapacity; o++) {
-            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
-                drawGroupList->Entities[o]->RenderEarly();
+        for (Entity* ent : *drawGroupList->Entities) {
+            if (ent->Active)
+                ent->RenderEarly();
         }
     }
     PERF_END(ObjectRenderEarlyTime);
@@ -722,8 +717,6 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
     double objectTimeTotal = 0.0;
     DrawGroupList* drawGroupList;
     for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-        size_t oSz = PriorityLists[l].EntityCapacity;
-
         if (DEV_NoObjectRender)
             goto DEV_NoTilesCheck;
 
@@ -736,10 +729,8 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         objectTime = Clock::GetTicks();
 
         drawGroupList = &PriorityLists[l];
-        for (size_t o = 0; o < oSz; o++) {
-            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active) {
-                Entity* ent = drawGroupList->Entities[o];
-
+        for (Entity* ent : *drawGroupList->Entities) {
+            if (ent->Active) {
                 if (ent->RenderRegionW == 0.0f || ent->RenderRegionH == 0.0f)
                     goto DoCheckRender;
 
@@ -847,10 +838,9 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
             break;
 
         DrawGroupList* drawGroupList = &PriorityLists[l];
-        size_t oSz = drawGroupList->EntityCapacity;
-        for (size_t o = 0; o < oSz; o++) {
-            if (drawGroupList->Entities[o] && drawGroupList->Entities[o]->Active)
-                drawGroupList->Entities[o]->RenderLate();
+        for (Entity* ent : *drawGroupList->Entities) {
+            if (ent->Active)
+                ent->RenderLate();
         }
     }
     PERF_END(ObjectRenderLateTime);
@@ -866,9 +856,6 @@ PUBLIC STATIC void Scene::Render() {
         return;
 
     Graphics::ResetViewport();
-
-    // DEV_NoTiles = true;
-    // DEV_NoObjectRender = true;
 
     int win_w, win_h, ren_w, ren_h;
     SDL_GetWindowSize(Application::Window, &win_w, &win_h);

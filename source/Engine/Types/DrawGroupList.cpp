@@ -6,17 +6,14 @@
 
 class DrawGroupList {
 public:
-    size_t   EntityCount = 0;
-    size_t   EntityCapacity = 0x1000;
-    Entity** Entities = NULL;
-    bool     NeedsSorting = false;
+    vector<Entity*>* Entities = nullptr;
+    bool             NeedsSorting = false;
 };
 #endif
 
 #include <Engine/Types/DrawGroupList.h>
 
 #include <Engine/Application.h>
-#include <Engine/Diagnostics/Memory.h>
 
 PUBLIC         DrawGroupList::DrawGroupList() {
     Init();
@@ -24,59 +21,41 @@ PUBLIC         DrawGroupList::DrawGroupList() {
 
 // Double linked-list functions
 PUBLIC int    DrawGroupList::Add(Entity* obj) {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        if (Entities[i] == NULL) {
-            Entities[i] = obj;
-            EntityCount++;
-            NeedsSorting = true;
-            return i;
-        }
-    }
-    return -1;
+    Entities->push_back(obj);
+    NeedsSorting = true;
+    return Entities->size() - 1;
 }
 PUBLIC void    DrawGroupList::Remove(Entity* obj) {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        if (Entities[i] == obj) {
-            Entities[i] = NULL;
-            EntityCount--;
-            NeedsSorting = true;
+    for (size_t i = 0, iSz = Entities->size(); i < iSz; i++) {
+        if ((*Entities)[i] == obj) {
+            Entities->erase(Entities->begin() + i);
             return;
         }
     }
 }
 PUBLIC void    DrawGroupList::Clear() {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        Entities[i] = NULL;
-    }
-    EntityCount = 0;
+    Entities->clear();
     NeedsSorting = false;
 }
 
-PRIVATE STATIC int DrawGroupList::SortFunc(const void *a, const void *b) {
-    const Entity* entA = *(const Entity **)a;
-    const Entity* entB = *(const Entity **)b;
-    if (entA == NULL && entB == NULL) return 0;
-    else if (entA == NULL) return 1;
-    else if (entB == NULL) return -1;
-    return entA->Depth - entB->Depth;
-}
 PUBLIC void    DrawGroupList::Sort() {
-    qsort(Entities, EntityCapacity, sizeof(Entity*), DrawGroupList::SortFunc);
+    std::stable_sort(Entities->begin(), Entities->end(), [](const Entity* entA, const Entity* entB) {
+        return entA->Depth < entB->Depth;
+    });
     NeedsSorting = false;
 }
 
 PUBLIC void    DrawGroupList::Init() {
-    EntityCapacity = 0x1000;
-    Entities = (Entity**)Memory::TrackedCalloc("DrawGroupList", sizeof(Entity*), EntityCapacity);
-    EntityCount = 0;
+    Entities = new vector<Entity*>();
 }
 PUBLIC void    DrawGroupList::Dispose() {
-    Memory::Free(Entities);
+    delete Entities;
+    Entities = nullptr;
 }
 PUBLIC         DrawGroupList::~DrawGroupList() {
     // Dispose();
 }
 
 PUBLIC int     DrawGroupList::Count() {
-    return EntityCount;
+    return Entities->size();
 }
