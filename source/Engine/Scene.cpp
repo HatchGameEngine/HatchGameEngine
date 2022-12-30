@@ -23,6 +23,8 @@ public:
     static int                   ShowTileCollisionFlag;
     static int                   ShowObjectRegions;
 
+    static HashMap<VMValue>*     Properties;
+
     static HashMap<ObjectList*>* ObjectLists;
     static HashMap<ObjectList*>* ObjectRegistries;
 
@@ -119,6 +121,9 @@ DrawGroupList*        Scene::PriorityLists = NULL;
 // Rendering variables
 int                   Scene::ShowTileCollisionFlag = 0;
 int                   Scene::ShowObjectRegions = 0;
+
+// Property variables
+HashMap<VMValue>*     Scene::Properties = NULL;
 
 // Object variables
 HashMap<ObjectList*>* Scene::ObjectLists = NULL;
@@ -1120,10 +1125,14 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::TileCfgA = NULL;
     Scene::TileCfgB = NULL;
 
+    // Dispose of properties
+    if (Scene::Properties)
+        delete Scene::Properties;
+    Scene::Properties = NULL;
+
     // Force garbage collect
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::ForceGarbageCollection();
-    ////
 
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_STRING);
@@ -1886,6 +1895,10 @@ PUBLIC STATIC void Scene::Dispose() {
     }
     Scene::TileCfgA = NULL;
     Scene::TileCfgB = NULL;
+
+    if (Scene::Properties)
+        delete Scene::Properties;
+    Scene::Properties = NULL;
 
     BytecodeObjectManager::Dispose();
     SourceFileMap::Dispose();

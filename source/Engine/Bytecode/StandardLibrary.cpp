@@ -6690,6 +6690,34 @@ VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Scene.PropertyExists
+ * \desc Checks if a property exists.
+ * \param property (String): Name of property to check.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* property = GET_ARG(0, GetString);
+    if (!Scene::Properties)
+        return INTEGER_VAL(0);
+    return INTEGER_VAL(Scene::Properties->Exists(property));
+}
+/***
+ * Scene.GetProperty
+ * \desc Gets a property.
+ * \param property (String): Name of property.
+ * \return Returns the property.
+ * \ns Scene
+ */
+VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* property = GET_ARG(0, GetString);
+    if (!Scene::Properties || !Scene::Properties->Exists(property))
+        return NULL_VAL;
+    return Scene::Properties->Get(property);
+}
+/***
  * Scene.GetLayerCount
  * \desc Gets the amount of layers in the active scene.
  * \return Returns the amount of layers in the active scene.
@@ -6726,6 +6754,46 @@ VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
     return INTEGER_VAL(!!Scene::Layers[index].Visible);
+}
+/***
+ * Scene.GetLayerOpacity
+ * \desc Gets the opacity of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(!!Scene::Layers[index].Opacity);
+}
+/***
+ * Scene.GetLayerProperty
+ * \desc Gets a property of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param property (String): Name of property.
+ * \return Returns the property.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    char* property = GET_ARG(1, GetString);
+    return Scene::Layers[index].PropertyGet(property);
+}
+/***
+ * Scene.LayerPropertyExists
+ * \desc Checks if a property exists in the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param property (String): Name of property to check.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    char* property = GET_ARG(1, GetString);
+    return INTEGER_VAL(!!Scene::Layers[index].PropertyExists(property));
 }
 /***
  * Scene.GetName
@@ -10554,9 +10622,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, LoadTileCollisions);
     DEF_NATIVE(Scene, AreTileCollisionsLoaded);
     DEF_NATIVE(Scene, Restart);
+    DEF_NATIVE(Scene, PropertyExists);
+    DEF_NATIVE(Scene, GetProperty);
     DEF_NATIVE(Scene, GetLayerCount);
     DEF_NATIVE(Scene, GetLayerIndex);
     DEF_NATIVE(Scene, GetLayerVisible);
+    DEF_NATIVE(Scene, GetLayerOpacity);
+    DEF_NATIVE(Scene, GetLayerProperty);
+    DEF_NATIVE(Scene, LayerPropertyExists);
     DEF_NATIVE(Scene, GetName);
     DEF_NATIVE(Scene, GetWidth);
     DEF_NATIVE(Scene, GetHeight);

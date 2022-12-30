@@ -507,9 +507,14 @@
                     <li><a href="#Reference_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
                     <li><a href="#Reference_Scene_Restart">Scene.Restart</a></li>
+                    <li><a href="#Reference_Scene_PropertyExists">Scene.PropertyExists</a></li>
+                    <li><a href="#Reference_Scene_GetProperty">Scene.GetProperty</a></li>
                     <li><a href="#Reference_Scene_GetLayerCount">Scene.GetLayerCount</a></li>
                     <li><a href="#Reference_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
+                    <li><a href="#Reference_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
+                    <li><a href="#Reference_Scene_LayerPropertyExists">Scene.LayerPropertyExists</a></li>
                     <li><a href="#Reference_Scene_GetName">Scene.GetName</a></li>
                     <li><a href="#Reference_Scene_GetWidth">Scene.GetWidth</a></li>
                     <li><a href="#Reference_Scene_GetHeight">Scene.GetHeight</a></li>
@@ -4244,6 +4249,30 @@
         <div style="margin-top: 8px; font-size: 14px;">Restarts the active scene.</div>
         </p>
         <hr/>
+        <p id="Reference_Scene_PropertyExists">
+        <h2 style="margin-bottom: 8px;">Scene.PropertyExists</h2>
+        <code>Scene.PropertyExists(property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a property exists.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>property (String): Name of property to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetProperty">
+        <h2 style="margin-bottom: 8px;">Scene.GetProperty</h2>
+        <code>Scene.GetProperty(property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>property (String): Name of property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property.</div>
+        </p>
+        <hr/>
         <p id="Reference_Scene_GetLayerCount">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerCount</h2>
         <code>Scene.GetLayerCount()</code>
@@ -4271,6 +4300,44 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetLayerOpacity">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerOpacity</h2>
+        <code>Scene.GetLayerOpacity(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the opacity of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetLayerProperty">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerProperty</h2>
+        <code>Scene.GetLayerProperty(layerIndex, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>property (String): Name of property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the property.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_LayerPropertyExists">
+        <h2 style="margin-bottom: 8px;">Scene.LayerPropertyExists</h2>
+        <code>Scene.LayerPropertyExists(layerIndex, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a property exists in the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>property (String): Name of property to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -6103,6 +6170,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>404 out of 473 functions have descriptions. </p>
+        <p>409 out of 478 functions have descriptions. </p>
     </body>
 </html>
