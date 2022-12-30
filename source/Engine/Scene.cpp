@@ -497,6 +497,8 @@ PUBLIC STATIC void Scene::Init() {
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
     Scene::TileViewRenderFlag = 0xFFFFFFFF;
 
+    Application::Settings->GetBool("dev", "loadAllClasses", &BytecodeObjectManager::LoadAllClasses);
+
     if (BytecodeObjectManager::LoadAllClasses)
         BytecodeObjectManager::LoadClasses();
 }
