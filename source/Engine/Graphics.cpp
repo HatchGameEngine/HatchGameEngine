@@ -55,6 +55,7 @@ public:
     static bool                 NoInternalTextures;
     static int                  BlendMode;
     static bool                 UsePalettes;
+    static bool                 UseSoftwareRenderer;
 
     // Rendering functions
     static GraphicsFunctions    Internal;
@@ -117,6 +118,7 @@ float                Graphics::PixelOffset = 0.0f;
 bool                 Graphics::NoInternalTextures = false;
 int                  Graphics::BlendMode = 0;
 bool                 Graphics::UsePalettes = false;
+bool                 Graphics::UseSoftwareRenderer = false;
 
 GraphicsFunctions    Graphics::Internal;
 GraphicsFunctions*   Graphics::GfxFunctions = &Graphics::Internal;

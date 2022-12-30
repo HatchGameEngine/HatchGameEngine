@@ -55,7 +55,9 @@ PUBLIC STATIC bool File::Exists(const char* path) {
 
         return false;
     #else
+#ifndef LINUX
         Log::Print(Log::LOG_WARN, "FALLBACK access \"%s\".", path);
+#endif
         return access(path, F_OK) != -1;
     #endif
 }

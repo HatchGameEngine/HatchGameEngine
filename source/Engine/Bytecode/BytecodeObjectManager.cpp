@@ -11,6 +11,8 @@ need_t BytecodeObject;
 
 class BytecodeObjectManager {
 public:
+    static bool                 LoadAllClasses;
+
     static HashMap<VMValue>*    Globals;
     static HashMap<VMValue>*    Strings;
 
@@ -22,7 +24,8 @@ public:
     static vector<ObjFunction*> FunctionList;
     static vector<ObjFunction*> AllFunctionList;
 
-    static HashMap<Uint8*>*     Sources;
+    static HashMap<Bytecode>*   Sources;
+    static HashMap<ObjClass*>*  Classes;
     static HashMap<char*>*      Tokens;
     static vector<char*>        TokensList;
 
@@ -44,6 +47,8 @@ public:
 
 #include <Engine/Bytecode/Compiler.h>
 
+bool                 BytecodeObjectManager::LoadAllClasses = false;
+
 VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;
 
@@ -55,7 +60,8 @@ Uint32               BytecodeObjectManager::CurrentObjectHash;
 vector<ObjFunction*> BytecodeObjectManager::FunctionList;
 vector<ObjFunction*> BytecodeObjectManager::AllFunctionList;
 
-HashMap<Uint8*>*     BytecodeObjectManager::Sources = NULL;
+HashMap<Bytecode>*   BytecodeObjectManager::Sources = NULL;
+HashMap<ObjClass*>*  BytecodeObjectManager::Classes = NULL;
 HashMap<char*>*      BytecodeObjectManager::Tokens = NULL;
 vector<char*>        BytecodeObjectManager::TokensList;
 
@@ -106,7 +112,9 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     if (Globals == NULL)
         Globals = new HashMap<VMValue>(NULL, 8);
     if (Sources == NULL)
-        Sources = new HashMap<Uint8*>(NULL, 8);
+        Sources = new HashMap<Bytecode>(NULL, 8);
+    if (Classes == NULL)
+        Classes = new HashMap<ObjClass*>(NULL, 8);
     if (Strings == NULL)
         Strings = new HashMap<VMValue>(NULL, 8);
     if (Tokens == NULL)
@@ -166,17 +174,19 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
     AllFunctionList.clear();
 
     if (Sources) {
-        Sources->WithAll([](Uint32 hash, Uint8* ptr) -> void {
-            Memory::Free(ptr);
+        Sources->WithAll([](Uint32 hash, Bytecode bytecode) -> void {
+            Memory::Free(bytecode.Data);
         });
         Sources->Clear();
         delete Sources;
         Sources = NULL;
     }
+    if (Classes) {
+        Classes->Clear();
+        delete Classes;
+        Classes = NULL;
+    }
     if (Strings) {
-        // Strings->WithAll([](Uint32 hash, VMValue* ptr) -> void {
-        //     Memory::Free(ptr);
-        // });
         Strings->Clear();
         delete Strings;
         Strings = NULL;
@@ -680,7 +690,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, size_t size) {
+PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, size_t size, Uint32 filenameHash) {
     FunctionList.clear();
 
     Uint8 magic[4];
@@ -690,13 +700,14 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         return;
     }
 
-    bool doLineNumbers;
+    // Uint8 version = stream->ReadByte();
+    stream->Skip(1);
+    Uint8 opts = stream->ReadByte();
+    stream->Skip(1);
+    stream->Skip(1);
 
-    // Uint8 opts;
-    stream->Skip(1); // opts = stream->ReadByte();
-    doLineNumbers = stream->ReadByte();
-    stream->Skip(1); // opts = stream->ReadByte();
-    stream->Skip(1); // opts = stream->ReadByte();
+    bool doLineNumbers = opts & 1;
+    bool hasSourceFilename = opts & 2;
 
     int chunkCount = stream->ReadInt32();
     for (int i = 0; i < chunkCount; i++) {
@@ -708,11 +719,6 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         function->Arity = arity;
         function->NameHash = hash;
         function->Chunk.Count = count;
-
-        size_t srcFnLen = strlen(CurrentObjectName);
-        strncpy(function->SourceFilename, CurrentObjectName, sizeof(function->SourceFilename));
-        function->SourceFilename[srcFnLen] = 0;
-
         function->Chunk.OwnsMemory = false;
 
         function->Chunk.Code = stream->pointer;
@@ -765,10 +771,19 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         }
     }
 
+    char sourceFilename[256];
+    if (hasSourceFilename) {
+        char* fn = stream->ReadString();
+        StringUtils::Copy(sourceFilename, fn, sizeof(sourceFilename));
+        Memory::Free(fn);
+    }
+    else
+        snprintf(sourceFilename, sizeof(sourceFilename), "Objects/%08X.ibc", filenameHash);
+
+    for (ObjFunction* function : FunctionList)
+        StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
+
     Threads[0].RunFunction(FunctionList[0], 0);
-}
-PUBLIC STATIC void    BytecodeObjectManager::SetCurrentObjectHash(Uint32 hash) {
-    CurrentObjectHash = hash;
 }
 PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     if (!Globals->Exists(functionName))
@@ -800,28 +815,41 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction() {
     ObjInstance* instance = NewInstance(klass);
     object->Link(instance);
 
-    /*
-    char* badbadbadbad = (char*)malloc(256);
-    if (Tokens && Tokens->Exists(CurrentObjectHash))
-        sprintf(badbadbadbad, "BytecodeObject::Instance [%s]", Tokens->Get(CurrentObjectHash));
-    else
-        sprintf(badbadbadbad, "BytecodeObject::Instance [%08X]", CurrentObjectHash);
-
-    Memory::Track(instance, badbadbadbad);
-    // Memory::Track(instance, "BytecodeObject::Instance");
-    Memory::Track(instance->Fields->Data, "BytecodeObject::Instance::Fields::Data");
-    Memory::Track(object->Properties->Data, "BytecodeObject::Properties::Data");
-    //*/
-
     return object;
 }
+PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
+    if (Sources->Exists(filenameHash))
+        return Sources->Get(filenameHash);
+
+    Bytecode bytecode;
+    bytecode.Data = nullptr;
+    bytecode.Size = 0;
+
+    char filename[64];
+    snprintf(filename, sizeof filename, "Objects/%08X.ibc", filenameHash);
+
+    if (!ResourceManager::ResourceExists(filename)) {
+        return bytecode;
+    }
+
+    ResourceStream* stream = ResourceStream::New(filename);
+    if (!stream) {
+        // Object doesn't exist?
+        return bytecode;
+    }
+
+    bytecode.Size = stream->Length();
+    bytecode.Data = (Uint8*)Memory::TrackedMalloc("Bytecode::Data", bytecode.Size);
+    stream->ReadBytes(bytecode.Data, bytecode.Size);
+    stream->Close();
+
+    Sources->Put(filenameHash, bytecode);
+
+    return bytecode;
+}
 PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameHash, const char* objectName) {
-    Uint8* bytecode;
     if (!objectName || !*objectName)
         return NULL;
-
-    memset(CurrentObjectName, 0, 256);
-    strncpy(CurrentObjectName, objectName, 256);
 
     if (!SourceFileMap::ClassMap->Exists(objectName)) {
         Log::Print(Log::LOG_VERBOSE, "Could not find classmap for %s%s%s! (Hash: 0x%08X)", FG_YELLOW, objectName, FG_RESET, SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
@@ -833,44 +861,34 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
 
     for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
         Uint32 filenameHash = (*filenameHashList)[fn];
-        // Uint32 filenameHash = objectNameHash;
 
         if (!Sources->Exists(filenameHash)) {
-            char filename[64];
-            sprintf(filename, "Objects/%08X.ibc", filenameHash);
-
-            if (!ResourceManager::ResourceExists(filename)) {
+            Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
+            if (!bytecode.Data) {
                 Log::Print(Log::LOG_WARN, "Object \"%s\" does not exist!", objectName);
                 return NULL;
             }
 
-            ResourceStream* stream = ResourceStream::New(filename);
-            if (!stream) {
-                // Object doesn't exist?
-                return NULL;
-            }
-
-            size_t size = stream->Length();
-            bytecode = (Uint8*)Memory::TrackedMalloc("BytecodeObjectManager::GetSpawnFunction::bytecode", size + 1); bytecode[size] = 0;
-            stream->ReadBytes(bytecode, size);
-            stream->Close();
-
-            Sources->Put(filenameHash, bytecode);
-
             // Load the object class
-            if (fn == 0)
+            if (fn == 0) {
                 Log::Print(Log::LOG_VERBOSE, "Loading the object %s%s%s class, %d filenames...",
                     Log::WriteToFile ? "" : FG_YELLOW, objectName, Log::WriteToFile ? "" : FG_RESET,
                     (int)filenameHashList->size());
 
-            MemoryStream* bytecodeStream = MemoryStream::New(bytecode, size);
-            if (bytecodeStream) {
-                RunFromIBC(bytecodeStream, size);
-                bytecodeStream->Close();
+                memset(CurrentObjectName, 0, 256);
+                strncpy(CurrentObjectName, objectName, 256);
             }
 
-            // Set native functions for that new object class
-            // Log::Print(Log::LOG_VERBOSE, "Setting native functions for that new object class...");
+            MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
+            if (bytecodeStream) {
+                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
+                bytecodeStream->Close();
+            }
+        }
+
+        // Set native functions for that new object class
+        if (!Classes->Exists(objectName)) {
+            // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
             ObjClass* klass = AS_CLASS(Globals->Get(objectName));
             if (!klass) {
                 Log::Print(Log::LOG_ERROR, "Could not find class of: %s", objectName);
@@ -892,13 +910,33 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
                 BytecodeObjectManager::DefineNative(klass, "PropertyGet", BytecodeObject::VM_PropertyGet);
                 BytecodeObjectManager::DefineNative(klass, "PropertyExists", BytecodeObject::VM_PropertyExists);
             }
+            Classes->Put(objectName, klass);
         }
     }
-    // else {
-    //     bytecode = Sources->Get(objectNameHash);
-    // }
 
-    BytecodeObjectManager::SetCurrentObjectHash(Globals->HashFunction(objectName, strlen(objectName)));
+    CurrentObjectHash = Globals->HashFunction(objectName, strlen(objectName));
     return (void*)BytecodeObjectManager::SpawnFunction;
+}
+PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
+    SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
+        for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
+            Uint32 filenameHash = (*filenameHashList)[fn];
+
+            Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
+            if (!bytecode.Data) {
+                Log::Print(Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
+                continue;
+            }
+
+            // Load the object class
+            MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
+            if (bytecodeStream) {
+                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
+                bytecodeStream->Close();
+            }
+        }
+    });
+
+    GarbageCollector::Collect();
 }
 // #endregion
