@@ -771,17 +771,22 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         }
     }
 
-    char sourceFilename[256];
-    if (hasSourceFilename) {
+    if (CurrentObjectName[0]) {
+        for (ObjFunction* function : FunctionList)
+            StringUtils::Copy(function->SourceFilename, CurrentObjectName, sizeof(function->SourceFilename));
+    }
+    else if (hasSourceFilename) {
         char* fn = stream->ReadString();
-        StringUtils::Copy(sourceFilename, fn, sizeof(sourceFilename));
+        for (ObjFunction* function : FunctionList)
+            StringUtils::Copy(function->SourceFilename, fn, sizeof(function->SourceFilename));
         Memory::Free(fn);
     }
-    else
+    else {
+        char sourceFilename[256];
         snprintf(sourceFilename, sizeof(sourceFilename), "Objects/%08X.ibc", filenameHash);
-
-    for (ObjFunction* function : FunctionList)
-        StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
+        for (ObjFunction* function : FunctionList)
+            StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
+    }
 
     Threads[0].RunFunction(FunctionList[0], 0);
 }
@@ -918,6 +923,8 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
     return (void*)BytecodeObjectManager::SpawnFunction;
 }
 PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
+    memset(CurrentObjectName, 0, 256);
+
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
         for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
             Uint32 filenameHash = (*filenameHashList)[fn];
