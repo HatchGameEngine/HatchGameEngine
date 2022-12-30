@@ -6765,7 +6765,7 @@ VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(!!Scene::Layers[index].Opacity);
+    return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
  * Scene.GetLayerProperty
