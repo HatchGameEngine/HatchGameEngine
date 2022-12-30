@@ -7079,8 +7079,12 @@ VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
     CHECK_ARGCOUNT(2);
     int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
     bool useEntityDepth = !!GET_ARG(1, GetInteger);
-    if (Scene::PriorityLists)
-        Scene::PriorityLists[drawg].EntityDepthSortingEnabled = useEntityDepth;
+    if (Scene::PriorityLists) {
+        DrawGroupList* drawGroupList = &Scene::PriorityLists[drawg];
+        if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth)
+            drawGroupList->NeedsSorting = true;
+        drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
+    }
     return NULL_VAL;
 }
 /***
