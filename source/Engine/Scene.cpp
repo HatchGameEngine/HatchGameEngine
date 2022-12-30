@@ -704,9 +704,10 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
             break;
 
         DrawGroupList* drawGroupList = &PriorityLists[l];
-        if (drawGroupList->NeedsSorting && drawGroupList->UseEntityDepth) {
+
+        if (drawGroupList->NeedsSorting)
             drawGroupList->Sort();
-        }
+
         for (Entity* ent : *drawGroupList->Entities) {
             if (ent->Active)
                 ent->RenderEarly();

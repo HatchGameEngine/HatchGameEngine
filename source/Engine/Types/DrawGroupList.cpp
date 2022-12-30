@@ -7,7 +7,7 @@
 class DrawGroupList {
 public:
     vector<Entity*>* Entities = nullptr;
-    bool             UseEntityDepth = true;
+    bool             EntityDepthSortingEnabled = false;
     bool             NeedsSorting = false;
 };
 #endif
@@ -23,7 +23,8 @@ PUBLIC         DrawGroupList::DrawGroupList() {
 // Double linked-list functions
 PUBLIC int    DrawGroupList::Add(Entity* obj) {
     Entities->push_back(obj);
-    NeedsSorting = true;
+    if (EntityDepthSortingEnabled)
+        NeedsSorting = true;
     return Entities->size() - 1;
 }
 PUBLIC void    DrawGroupList::Remove(Entity* obj) {

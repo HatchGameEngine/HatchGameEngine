@@ -6853,18 +6853,18 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(Scene::PriorityPerLayer);
 }
 /***
- * Scene.GetDrawGroupUseEntityDepth
+ * Scene.GetDrawGroupEntityDepthSorting
  * \desc Gets if the specified draw group sorts entities by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
  * \return Returns a Boolean value.
  * \ns Scene
  */
-VMValue Scene_GetDrawGroupUseEntityDepth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
     if (!Scene::PriorityLists)
         return INTEGER_VAL(0);
-    return INTEGER_VAL(!!Scene::PriorityLists[drawg].UseEntityDepth);
+    return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
 }
 /***
  * Scene.IsPaused
@@ -7069,18 +7069,18 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
     return NULL_VAL;
 }
 /***
- * Scene.SetDrawGroupUseEntityDepth
+ * Scene.SetDrawGroupEntityDepthSorting
  * \desc Sets the specified draw group to sort entities by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
  * \param useEntityDepth (Boolean): Whether or not to sort entities by depth.
  * \ns Scene
  */
-VMValue Scene_SetDrawGroupUseEntityDepth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
-    int useEntityDepth = !!GET_ARG(1, GetInteger);
+    bool useEntityDepth = !!GET_ARG(1, GetInteger);
     if (Scene::PriorityLists)
-        Scene::PriorityLists[drawg].UseEntityDepth = useEntityDepth;
+        Scene::PriorityLists[drawg].EntityDepthSortingEnabled = useEntityDepth;
     return NULL_VAL;
 }
 /***
@@ -10561,7 +10561,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);
     DEF_NATIVE(Scene, GetDrawGroupCount);
-    DEF_NATIVE(Scene, GetDrawGroupUseEntityDepth);
+    DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, IsPaused);
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
@@ -10572,7 +10572,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerOffsetPosition);
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
-    DEF_NATIVE(Scene, SetDrawGroupUseEntityDepth);
+    DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);
     DEF_NATIVE(Scene, SetLayerScroll);
