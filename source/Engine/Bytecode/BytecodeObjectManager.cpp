@@ -11,6 +11,8 @@ need_t BytecodeObject;
 
 class BytecodeObjectManager {
 public:
+    static bool                 LoadAllClasses;
+
     static HashMap<VMValue>*    Globals;
     static HashMap<VMValue>*    Strings;
 
@@ -44,6 +46,8 @@ public:
 #include <Engine/TextFormats/XML/XMLParser.h>
 
 #include <Engine/Bytecode/Compiler.h>
+
+bool                 BytecodeObjectManager::LoadAllClasses = false;
 
 VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;
@@ -913,14 +917,14 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
     CurrentObjectHash = Globals->HashFunction(objectName, strlen(objectName));
     return (void*)BytecodeObjectManager::SpawnFunction;
 }
-PUBLIC STATIC void    BytecodeObjectManager::LoadAllClasses() {
+PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
         for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
             Uint32 filenameHash = (*filenameHashList)[fn];
 
             Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
-                Log::Print(Log::LOG_WARN, "Class 0x%08X does not exist!", filenameHash);
+                Log::Print(Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
                 continue;
             }
 

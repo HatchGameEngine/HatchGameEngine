@@ -458,6 +458,10 @@ PRIVATE STATIC void Application::Restart() {
     });
     Graphics::SpriteSheetTextureMap->Clear();
 
+    BytecodeObjectManager::LoadAllClasses = false;
+    Graphics::UseSoftwareRenderer = false;
+    Graphics::UsePalettes = false;
+
     Application::LoadGameConfig();
     Application::ReloadSettings();
     Application::DisposeGameConfig();
@@ -1151,6 +1155,25 @@ PUBLIC STATIC void Application::Cleanup() {
 #endif
 }
 
+static void ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
+    XMLNode* node = XMLParser::SearchNode(parent, option);
+    if (!node)
+        return;
+
+    char read[32];
+    XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
+    StringUtils::ToNumber(&val, read);
+}
+static void ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
+    node = XMLParser::SearchNode(node, option);
+    if (!node)
+        return;
+
+    char read[5];
+    XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
+    val = !strcmp(read, "true");
+}
+
 PRIVATE STATIC void Application::LoadGameConfig() {
     StartingScene[0] = '\0';
 
@@ -1160,28 +1183,22 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     XMLNode* root = Application::GameConfig->children[0];
     XMLNode* node;
 
+    // Read engine settings
+    node = XMLParser::SearchNode(root, "engine");
+    if (node) {
+        ParseGameConfigBool(node, "loadAllClasses", BytecodeObjectManager::LoadAllClasses);
+        ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
+        ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
+    }
+
     // Read display defaults
     node = XMLParser::SearchNode(root, "display");
     if (node) {
-        XMLNode* parent = node;
-
-        char read[256];
-
-        // Read width
-        node = XMLParser::SearchNode(parent, "width");
-        if (node) {
-            XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
-            StringUtils::ToNumber(&Application::WindowWidth, read);
-        }
-
-        // Read height
-        node = XMLParser::SearchNode(parent, "height");
-        if (node) {
-            XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
-            StringUtils::ToNumber(&Application::WindowHeight, read);
-        }
+        ParseGameConfigInt(node, "width", Application::WindowWidth);
+        ParseGameConfigInt(node, "height", Application::WindowHeight);
     }
 
+    // Read audio defaults
 #define GET_VOLUME(node, func) \
     if (node->attributes.Exists("volume")) { \
         int volume; \
@@ -1190,7 +1207,6 @@ PRIVATE STATIC void Application::LoadGameConfig() {
         if (StringUtils::ToNumber(&volume, xmlTokStr)) \
             Application::func(volume); \
     }
-    // Read audio defaults
     node = XMLParser::SearchNode(root, "audio");
     if (node) {
         // Get master audio volume
