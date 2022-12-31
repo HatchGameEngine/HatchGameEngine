@@ -353,7 +353,7 @@ void _UpdateObject(Entity* ent) {
         ent->PriorityListIndex = Scene::PriorityLists[ent->Priority].Add(ent);
     }
     // Sort list.
-    else if (ent->Depth != ent->OldDepth) {
+    if (ent->Depth != ent->OldDepth) {
         Scene::PriorityLists[ent->Priority].NeedsSorting = true;
     }
     ent->PriorityOld = ent->Priority;
