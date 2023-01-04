@@ -4416,11 +4416,11 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
 // #region Instance
 /***
  * Instance.Create
- * \desc Creates a new instance of an object class and calls it's <code>Create</code> event with the flag.
+ * \desc Creates a new instance of an object class, and calls its <code>Create</code> event with the flag.
  * \param className (String): Name of the object class.
  * \param x (Number): X position of where to place the new instance.
  * \param y (Number): Y position of where to place the new instance.
- * \paramOpt flag (Integer): Integer value to pass to the <code>Create</code> event. (Default: 0)
+ * \paramOpt flag (Any): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)
  * \return Returns the new instance.
  * \ns Instance
  */
@@ -4430,7 +4430,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
     char* objectName = GET_ARG(0, GetString);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
-    int flag = argCount == 4 ? GET_ARG(3, GetInteger) : 0;
+    VMValue flag = argCount == 4 ? args[3] : INTEGER_VAL(0);
 
     ObjectList* objectList = NULL;
     if (!Scene::ObjectLists->Exists(objectName)) {
@@ -4460,7 +4460,6 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
     ObjInstance* instance = obj->Instance;
 
     obj->Create(flag);
-
 
     return OBJECT_VAL(instance);
 }

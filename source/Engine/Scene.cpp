@@ -1049,7 +1049,7 @@ PUBLIC STATIC void Scene::Restart() {
     // Run "Create" on all objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-        ent->Create(0);
+        ent->Create();
     }
     // NOTE: We don't need to do dynamic objects here since we cleared out the list.
     // TODO: We should do this for any persistent dynamic objects.

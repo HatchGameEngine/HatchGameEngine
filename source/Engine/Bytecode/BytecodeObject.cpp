@@ -128,7 +128,7 @@ PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
 
     return false;
 }
-PUBLIC bool BytecodeObject::RunCreateFunction(int flag) {
+PUBLIC bool BytecodeObject::RunCreateFunction(VMValue flag) {
     // NOTE:
     // If the function doesn't exist, this is not an error VM side,
     // treat whatever we call from C++ as a virtual-like function.
@@ -144,7 +144,7 @@ PUBLIC bool BytecodeObject::RunCreateFunction(int flag) {
 
     if (func->Arity == 1) {
         thread->Push(OBJECT_VAL(Instance));
-        thread->Push(INTEGER_VAL(flag));
+        thread->Push(flag);
         thread->RunInvoke(hash, func->Arity);
     }
     else {
@@ -152,16 +152,7 @@ PUBLIC bool BytecodeObject::RunCreateFunction(int flag) {
         thread->RunInvoke(hash, 0);
     }
 
-    int stackChange = (int)(thread->StackTop - StackTop);
-    if (stackChange) {
-        // printf("BytecodeObject::RunFunction(%s) Stack Change: %d\n", f, stackChange);
-        // BytecodeObjectManager::PrintStack();
-    }
     thread->StackTop = StackTop;
-
-    // NOTE: The ObjInstance* value is left on the stack after this.
-    // BytecodeObjectManager::ResetStack();
-    // BytecodeObjectManager::PrintStack();
 
     return false;
 }
@@ -177,7 +168,7 @@ PUBLIC void BytecodeObject::Setup() {
 
     // RunFunction(Hash_Setup);
 }
-PUBLIC void BytecodeObject::Create(int flag) {
+PUBLIC void BytecodeObject::Create(VMValue flag) {
     if (!Instance) return;
 
     // Set defaults
@@ -227,6 +218,9 @@ PUBLIC void BytecodeObject::Create(int flag) {
     if (Sprite >= 0 && CurrentAnimation < 0) {
         SetAnimation(0, 0);
     }
+}
+PUBLIC void BytecodeObject::Create() {
+    Create(INTEGER_VAL(0));
 }
 PUBLIC void BytecodeObject::UpdateEarly() {
     if (!Active) return;
