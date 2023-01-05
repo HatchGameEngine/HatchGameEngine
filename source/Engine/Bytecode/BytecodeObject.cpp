@@ -284,7 +284,7 @@ PUBLIC void BytecodeObject::Dispose() {
 
 // Events/methods called from VM
 bool _TestCollision(BytecodeObject* other, BytecodeObject* self) {
-    if (!other->Active) return false;
+    if (!other->Active || other->Removed) return false;
     // if (!other->Instance) return false;
     if (other->HitboxW == 0.0f ||
         other->HitboxH == 0.0f) return false;

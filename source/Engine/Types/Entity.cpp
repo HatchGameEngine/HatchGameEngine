@@ -18,6 +18,8 @@ public:
     float        InitialY = 0;
     int          Active = true;
     int          Pauseable = true;
+    int          Persistent = false;
+    int          Interactable = true;
 
     float        X = 0.0f;
     float        Y = 0.0f;
@@ -68,8 +70,7 @@ public:
     int          SensorCollided = false;
     int          SensorAngle = 0;
 
-    int          Persistent = false;
-    int          Interactable = true;
+    bool         Removed = false;
 
     Entity*      PrevEntity = NULL;
     Entity*      NextEntity = NULL;

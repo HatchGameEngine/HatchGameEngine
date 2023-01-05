@@ -493,7 +493,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
             case OBJ_INSTANCE: {
                 ObjInstance* instance = AS_INSTANCE(value);
 
-                // An instance does not own it's values, so it's not allowed
+                // An instance does not own its values, so it's not allowed
                 // to free them.
                 delete instance->Fields;
 
@@ -519,7 +519,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
             case OBJ_ARRAY: {
                 ObjArray* array = AS_ARRAY(value);
 
-                // An array does not own it's values, so it's not allowed
+                // An array does not own its values, so it's not allowed
                 // to free them.
 
                 array->Values->clear();

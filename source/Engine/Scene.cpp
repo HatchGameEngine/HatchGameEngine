@@ -362,6 +362,7 @@ PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity*
 }
 PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
     if (obj == NULL) return;
+    if (obj->Removed) return;
 
     if ((*first) == obj)
         (*first) = obj->NextEntity;
@@ -376,20 +377,20 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
         obj->NextEntity->PrevEntity = obj->PrevEntity;
 
     (*count)--;
-}
-PUBLIC STATIC void Scene::Delete(Entity** first, Entity** last, int* count, Entity* obj) {
-    Scene::Remove(first, last, count, obj);
 
     // Remove from proper list
     if (obj->List)
         obj->List->Remove(obj);
 
-    // Remove from DrawGroups
+    // Remove from draw groups
     for (int l = 0; l < Scene::PriorityPerLayer; l++)
         PriorityLists[l].Remove(obj);
 
-    obj->Dispose();
-    delete obj;
+    // If this object is unreachable script-side, that means it can
+    // be deleted during garbage collection.
+    // It doesn't really matter if it's still active or not, since it
+    // won't be in any object list or draw groups at this point.
+    obj->Removed = true;
 }
 PUBLIC STATIC void Scene::Clear(Entity** first, Entity** last, int* count) {
     (*first) = NULL;
@@ -403,6 +404,13 @@ PUBLIC STATIC void Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 }
 PUBLIC STATIC void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
     Scene::Add(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, obj);
+}
+PUBLIC STATIC void Scene::DeleteRemoved(Entity* obj) {
+    if (!obj->Removed)
+        return;
+
+    obj->Dispose();
+    delete obj;
 }
 
 PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
@@ -520,8 +528,9 @@ PUBLIC STATIC void Scene::Update() {
         next = ent->NextEntity;
         UpdateObjectLate(ent);
 
+        // Removes the object from the scene, but doesn't delete it yet.
         if (!ent->Active)
-            Scene::Delete(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, ent);
+            Scene::Remove(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, ent);
     }
 
     #ifdef USING_FFMPEG
@@ -935,10 +944,10 @@ PUBLIC STATIC void Scene::AfterScene() {
     bool& doRestart = Scene::DoRestart;
 
     if (Scene::NextScene[0]) {
-        BytecodeObjectManager::ForceGarbageCollection();
-
         if (Scene::NoPersistency)
             Scene::DeleteAllObjects();
+
+        BytecodeObjectManager::ForceGarbageCollection();
 
         Scene::LoadScene(Scene::NextScene);
         Scene::NextScene[0] = '\0';
@@ -1009,7 +1018,7 @@ PUBLIC STATIC void Scene::Restart() {
     }
 
     // Dispose of all dynamic objects
-    Scene::DeleteNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+    Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
     // Run "Setup" on all objects
     Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
@@ -1049,11 +1058,11 @@ PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* cou
     });
     Scene::Clear(first, last, count);
 }
-PRIVATE STATIC void Scene::DeleteNonPersistentObjects(Entity** first, Entity** last, int* count) {
+PRIVATE STATIC void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count) {
     for (Entity* ent = *first, *next; ent; ent = next) {
         next = ent->NextEntity;
         if (!ent->Persistent)
-            Scene::Delete(first, last, count, ent);
+            Scene::Remove(first, last, count, ent);
     }
 }
 PRIVATE STATIC void Scene::DeleteAllObjects() {
@@ -1104,8 +1113,9 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Graphics::SpriteSheetTextureMap->Clear();*/
 
     // Clear and dispose of non-persistent objects
-    Scene::DeleteNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
-    Scene::DeleteNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+    // We force garbage collection right after, meaning that non-persistent objects may get deleted.
+    Scene::RemoveNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
+    Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
     // Clear PriorityLists
     Scene::ClearPriorityLists();

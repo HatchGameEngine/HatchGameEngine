@@ -125,7 +125,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
             Obj* unreached = *object;
             *object = unreached->Next;
 
-            BytecodeObjectManager::FreeValue(OBJECT_VAL(unreached));
+            GarbageCollector::FreeValue(OBJECT_VAL(unreached));
         }
         else {
             // This object was reached, so unmark it (for the next GC) and
@@ -160,11 +160,25 @@ PUBLIC STATIC void GarbageCollector::Collect() {
         // GarbageCollector::NextGC = GarbageCollector::GarbageSize * GC_HEAP_GROW_FACTOR;
 }
 
-PUBLIC STATIC void GarbageCollector::GrayValue(VMValue value) {
+PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
+    if (!IS_OBJECT(value)) return;
+
+    // If this object is an instance associated with an entity, then
+    // delete the latter
+    if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
+        ObjInstance* instance = AS_INSTANCE(value);
+        if (instance->EntityPtr)
+            Scene::DeleteRemoved((Entity*)instance->EntityPtr);
+    }
+
+    BytecodeObjectManager::FreeValue(value);
+}
+
+PRIVATE STATIC void GarbageCollector::GrayValue(VMValue value) {
     if (!IS_OBJECT(value)) return;
     GrayObject(AS_OBJECT(value));
 }
-PUBLIC STATIC void GarbageCollector::GrayObject(void* obj) {
+PRIVATE STATIC void GarbageCollector::GrayObject(void* obj) {
     if (obj == NULL) return;
 
     Obj* object = (Obj*)obj;
@@ -174,15 +188,15 @@ PUBLIC STATIC void GarbageCollector::GrayObject(void* obj) {
 
     GrayList.push_back(object);
 }
-PUBLIC STATIC void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
+PRIVATE STATIC void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
     GrayValue(value);
 }
-PUBLIC STATIC void GarbageCollector::GrayHashMap(void* pointer) {
+PRIVATE STATIC void GarbageCollector::GrayHashMap(void* pointer) {
     if (!pointer) return;
     ((HashMap<VMValue>*)pointer)->ForAll(GrayHashMapItem);
 }
 
-PUBLIC STATIC void GarbageCollector::BlackenObject(Obj* object) {
+PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
     switch (object->Type) {
         case OBJ_BOUND_METHOD: {
             ObjBoundMethod* bound = (ObjBoundMethod*)object;
@@ -232,11 +246,11 @@ PUBLIC STATIC void GarbageCollector::BlackenObject(Obj* object) {
     }
 }
 
-PUBLIC STATIC void GarbageCollector::RemoveWhiteHashMapItem(Uint32, VMValue value) {
+PRIVATE STATIC void GarbageCollector::RemoveWhiteHashMapItem(Uint32, VMValue value) {
     // seems in the craftinginterpreters book this removes the ObjString used
     // for hashing, but we don't use that, so...
 }
-PUBLIC STATIC void GarbageCollector::RemoveWhiteHashMap(void* pointer) {
+PRIVATE STATIC void GarbageCollector::RemoveWhiteHashMap(void* pointer) {
     if (!pointer) return;
     ((HashMap<VMValue>*)pointer)->ForAll(RemoveWhiteHashMapItem);
 }
