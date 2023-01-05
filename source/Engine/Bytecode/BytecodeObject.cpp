@@ -96,6 +96,7 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
 
     LINK_BOOL(Active);
     LINK_BOOL(Pauseable);
+    LINK_BOOL(Persistent);
     LINK_BOOL(Interactable);
 }
 
@@ -275,9 +276,6 @@ PUBLIC void BytecodeObject::Dispose() {
         delete Properties;
     }
     if (Instance) {
-        // Instance->Fields->ForAll(BytecodeObjectManager::FreeValue);
-        // delete Instance->Fields;
-        // Memory::Free(Instance);
         Instance = NULL;
     }
 }

@@ -77,6 +77,7 @@ public:
     static char                  NextScene[256];
     static char                  CurrentScene[256];
     static bool                  DoRestart;
+    static bool                  NoPersistency;
 };
 #endif
 
@@ -161,6 +162,7 @@ Perf_ViewRender       Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 char                  Scene::NextScene[256];
 char                  Scene::CurrentScene[256];
 bool                  Scene::DoRestart = false;
+bool                  Scene::NoPersistency = false;
 
 // Resource managing variables
 HashMap<ISprite*>*    Scene::SpriteMap = NULL;
@@ -179,42 +181,18 @@ bool                  DEV_NoObjectRender = false;
 const char*           DEBUG_lastTileColFilename = NULL;
 
 int ViewRenderList[MAX_SCENE_VIEWS];
-int TileBatchMaxSize = 8;
 
-void _ObjectList_RemoveNonPersistentDynamicFromLists(Uint32, ObjectList* list) {
-    // NOTE: We don't use any list clearing functions so that
-    //   we can support persistent objects later.
-    for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-        // Store the "next" so that when/if the current is removed,
-        // it can still be used to point at the end of the loop.
-        next = ent->NextEntity;
-
-        // Remove the current
-        if (ent->List == list)
-            list->Remove(ent);
-    }
-}
-void _ObjectList_Clear(Uint32, ObjectList* list) {
-    list->Clear();
-}
-void _ObjectList_ResetPerf(Uint32, ObjectList* list) {
-    // list->AverageUpdateTime = 0.0;
-    list->AverageUpdateItemCount = 0.0;
-    list->AverageUpdateEarlyItemCount = 0.0;
-    list->AverageUpdateLateItemCount = 0.0;
-    list->AverageRenderItemCount = 0.0;
-}
-void _ObjectList_CallLoads(Uint32, ObjectList* list) {
+void ObjectList_CallLoads(Uint32, ObjectList* list) {
     char   entitySpecialFunctions[sizeof(list->ObjectName) + 5];
     snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_Load", list->ObjectName);
     BytecodeObjectManager::CallFunction(entitySpecialFunctions);
 }
-void _ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
+void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
     char   entitySpecialFunctions[sizeof(list->ObjectName) + 13];
     snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_GlobalUpdate", list->ObjectName);
     BytecodeObjectManager::CallFunction(entitySpecialFunctions);
 }
-void _UpdateObjectEarly(Entity* ent) {
+void UpdateObjectEarly(Entity* ent) {
     if (Scene::Paused && ent->Pauseable)
         return;
     if (!ent->Active)
@@ -242,7 +220,7 @@ void _UpdateObjectEarly(Entity* ent) {
         }
     }
 }
-void _UpdateObjectLate(Entity* ent) {
+void UpdateObjectLate(Entity* ent) {
     if (Scene::Paused && ent->Pauseable)
         return;
     if (!ent->Active)
@@ -270,7 +248,7 @@ void _UpdateObjectLate(Entity* ent) {
         }
     }
 }
-void _UpdateObject(Entity* ent) {
+void UpdateObject(Entity* ent) {
     if (Scene::Paused && ent->Pauseable)
         return;
 
@@ -359,15 +337,6 @@ void _UpdateObject(Entity* ent) {
     ent->PriorityOld = ent->Priority;
     ent->OldDepth = ent->Depth;
 }
-inline int _CEILPOW(int n) {
-    n--;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 16;
-    n++;
-    return n;
-}
 
 // Double linked-list functions
 PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
@@ -389,7 +358,7 @@ PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity*
 
     // Add to proper list
     if (!obj->List) {
-        Log::Print(Log::LOG_IMPORTANT, "obj->List = NULL");
+        Log::Print(Log::LOG_ERROR, "obj->List == NULL");
         exit(-1);
     }
     obj->List->Add(obj);
@@ -410,13 +379,13 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
         obj->NextEntity->PrevEntity = obj->PrevEntity;
 
     (*count)--;
+}
+PUBLIC STATIC void Scene::Delete(Entity** first, Entity** last, int* count, Entity* obj) {
+    Scene::Remove(first, last, count, obj);
 
     // Remove from proper list
-    if (!obj->List) {
-        Log::Print(Log::LOG_IMPORTANT, "obj->List = NULL");
-        exit(-1);
-    }
-    obj->List->Remove(obj);
+    if (obj->List)
+        obj->List->Remove(obj);
 
     // Remove from DrawGroups
     for (int l = 0; l < Scene::PriorityPerLayer; l++)
@@ -483,7 +452,7 @@ PUBLIC STATIC void Scene::Init() {
         Scene::Views[i].Height = Application::WindowHeight;
         Scene::Views[i].OutputWidth = Application::WindowWidth;
         Scene::Views[i].OutputHeight = Application::WindowHeight;
-        Scene::Views[i].Stride = _CEILPOW(Scene::Views[i].Width);
+        Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
         Scene::Views[i].FOV = 45.0f;
         Scene::Views[i].UsePerspective = false;
         Scene::Views[i].DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, Scene::Views[i].Stride, Scene::Views[i].Height);
@@ -504,22 +473,25 @@ PUBLIC STATIC void Scene::Init() {
 }
 
 PUBLIC STATIC void Scene::ResetPerf() {
-    if (Scene::ObjectLists)
-        Scene::ObjectLists->ForAll(_ObjectList_ResetPerf);
+    if (Scene::ObjectLists) {
+        Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
+            list->ResetPerf();
+        });
+    }
 }
 PUBLIC STATIC void Scene::Update() {
     // Call global updates
     if (Scene::ObjectLists)
-        Scene::ObjectLists->ForAllOrdered(_ObjectList_CallGlobalUpdates);
+        Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 
     // Early Update
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-        _UpdateObjectEarly(ent);
+        UpdateObjectEarly(ent);
     }
     for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-        _UpdateObjectEarly(ent);
+        UpdateObjectEarly(ent);
     }
 
     // Update objects
@@ -529,26 +501,24 @@ PUBLIC STATIC void Scene::Update() {
         next = ent->NextEntity;
 
         // Execute whatever on object
-        _UpdateObject(ent);
+        UpdateObject(ent);
     }
     for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-
-        _UpdateObject(ent);
+        UpdateObject(ent);
     }
 
     // Late Update
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-        _UpdateObjectLate(ent);
+        UpdateObjectLate(ent);
     }
     for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
-        _UpdateObjectLate(ent);
+        UpdateObjectLate(ent);
 
-        if (!ent->Active) {
-            Scene::Remove(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, ent);
-        }
+        if (!ent->Active)
+            Scene::Delete(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, ent);
     }
 
     #ifdef USING_FFMPEG
@@ -633,7 +603,7 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
             Graphics::GfxFunctions = &Graphics::Internal;
             Graphics::DisposeTexture(tar);
             Graphics::SetTextureInterpolation(false);
-            currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, _CEILPOW(view_w), view_h);
+            currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, Math::CeilPOT(view_w), view_h);
         }
 
         Graphics::SetRenderTarget(currentView->DrawTarget);
@@ -959,23 +929,40 @@ PUBLIC STATIC void Scene::AfterScene() {
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::RequestGarbageCollection();
 
+    bool& doRestart = Scene::DoRestart;
+
     if (Scene::NextScene[0]) {
         BytecodeObjectManager::ForceGarbageCollection();
 
-        Scene::LoadScene(Scene::NextScene);
-        Scene::Restart();
+        if (Scene::NoPersistency)
+            Scene::DeleteAllObjects();
 
+        Scene::LoadScene(Scene::NextScene);
         Scene::NextScene[0] = '\0';
-        Scene::DoRestart = false;
+
+        doRestart = true;
     }
 
-    if (Scene::DoRestart) {
-        // BytecodeObjectManager::ForceGarbageCollection();
-
+    if (doRestart) {
         Scene::Restart();
-        Scene::DoRestart = false;
+        Scene::NoPersistency = false;
+
+        doRestart = false;
     }
 }
+
+PRIVATE STATIC void Scene::Iterate(Entity* first, std::function<void(Entity* e)> func) {
+    for (Entity* ent = first, *next; ent; ent = next) {
+        next = ent->NextEntity;
+        func(ent);
+    }
+}
+PRIVATE STATIC void Scene::ResetPriorityListIndex(Entity* first) {
+    Scene::Iterate(first, [](Entity* ent) -> void {
+        ent->PriorityListIndex = -1;
+    });
+}
+
 PUBLIC STATIC void Scene::Restart() {
     Scene::ViewCurrent = 0;
 
@@ -1001,73 +988,107 @@ PUBLIC STATIC void Scene::Restart() {
         }
         Scene::AnyLayerTileChange = false;
     }
-    Scene::UpdateTileBatchAll();
 
-    if (Scene::PriorityLists) {
-        for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-            Scene::PriorityLists[l].Clear();
-        }
+    Scene::ClearPriorityLists();
+
+    // Remove all non-persistent objects from lists
+    if (Scene::ObjectLists) {
+        Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+        });
     }
 
-    // Remove all non-persistent objects from lists
-	if (Scene::ObjectLists)
-		Scene::ObjectLists->ForAll(_ObjectList_RemoveNonPersistentDynamicFromLists);
-
-    // Remove all non-persistent objects from lists
-	if (Scene::ObjectRegistries)
-		Scene::ObjectRegistries->ForAll(_ObjectList_Clear);
+    // Remove all non-persistent objects from registries
+    if (Scene::ObjectRegistries) {
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+            registry->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+        });
+    }
 
     // Dispose of all dynamic objects
-    for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-        // Store the "next" so that when/if the current is removed,
-        // it can still be used to point at the end of the loop.
-        next = ent->NextEntity;
-
-        // Dispose of object
-        ent->Dispose();
-    }
-
-    Scene::Clear(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+    Scene::DeleteNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
     // Run "Setup" on all objects
-    for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-        // Store the "next" so that when/if the current is removed,
-        // it can still be used to point at the end of the loop.
-        next = ent->NextEntity;
-
+    Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
         ent->X = ent->InitialX;
         ent->Y = ent->InitialY;
-
-        // Execute whatever on object
         ent->Setup();
-    }
+    });
 
     // Run "Load" on all object classes
     if (Scene::ObjectLists)
-		Scene::ObjectLists->ForAllOrdered(_ObjectList_CallLoads);
+        Scene::ObjectLists->ForAllOrdered(ObjectList_CallLoads);
 
     // Run "Create" on all objects
-    for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
+    Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
         ent->Create();
-    }
-    // NOTE: We don't need to do dynamic objects here since we cleared out the list.
-    // TODO: We should do this for any persistent dynamic objects.
+    });
 
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::RequestGarbageCollection();
 }
-PUBLIC STATIC void Scene::LoadScene(const char* filename) {
-    /// Reset everything
+PRIVATE STATIC void Scene::ClearPriorityLists() {
+    if (!Scene::PriorityLists)
+        return;
+
+    int layerSize = Scene::PriorityPerLayer;
+    for (int l = 0; l < layerSize; l++)
+        Scene::PriorityLists[l].Clear();
+
+    // Reset the priority list indexes of all persistent objects
+    ResetPriorityListIndex(Scene::StaticObjectFirst);
+    ResetPriorityListIndex(Scene::DynamicObjectFirst);
+}
+PRIVATE STATIC void Scene::RemoveNonPersistentFromObjectLists(HashMap<ObjectList*>* objectLists) {
+    if (!objectLists)
+        return;
+
+    objectLists->ForAll([](Uint32, ObjectList* list) -> void {
+        list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
+        list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+    });
+}
+PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
+    Scene::Iterate(*first, [](Entity* ent) -> void {
+        ent->Dispose();
+        delete ent;
+    });
+    Scene::Clear(first, last, count);
+}
+PRIVATE STATIC void Scene::DeleteNonPersistentObjects(Entity** first, Entity** last, int* count) {
+    for (Entity* ent = *first, *next; ent; ent = next) {
+        next = ent->NextEntity;
+        if (!ent->Persistent)
+            Scene::Delete(first, last, count, ent);
+    }
+}
+PRIVATE STATIC void Scene::DeleteAllObjects() {
     // Clear lists
     if (Scene::ObjectLists) {
-        Scene::ObjectLists->ForAll(_ObjectList_Clear);
-        Scene::ObjectLists->Clear();
+        Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
+            list->Clear();
+        });
     }
+
+    // Clear registries
     if (Scene::ObjectRegistries) {
-        Scene::ObjectRegistries->ForAll(_ObjectList_Clear);
-        Scene::ObjectRegistries->Clear();
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+            registry->Clear();
+        });
     }
+
+    // Dispose and clear Static objects
+    Scene::DeleteObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
+
+    // Dispose and clear Dynamic objects
+    Scene::DeleteObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+}
+PUBLIC STATIC void Scene::LoadScene(const char* filename) {
+    // Remove non-persistent objects from lists
+    Scene::RemoveNonPersistentFromObjectLists(Scene::ObjectLists);
+
+    // Remove non-persistent objects from registries
+    Scene::RemoveNonPersistentFromObjectLists(Scene::ObjectRegistries);
 
     // Dispose of resources in SCOPE_SCENE
     Scene::DisposeInScope(SCOPE_SCENE);
@@ -1078,39 +1099,12 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     });
     Graphics::SpriteSheetTextureMap->Clear();*/
 
-    // Clear and dispose of objects
-    // TODO: Alter this for persistency
-    for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-        if (!ent->Persistent) {
-            ent->Dispose();
-            delete ent;
-
-            // Don't remove since we're clearing anyways, until persistence works
-            // Scene::Remove(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount, ent);
-        }
-    }
-    Scene::Clear(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
-
-    for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-        if (!ent->Persistent) {
-            ent->Dispose();
-            delete ent;
-
-            // Don't remove since we're clearing anyways, until persistence works
-            // Scene::Remove(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, ent);
-        }
-    }
-    Scene::Clear(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+    // Clear and dispose of non-persistent objects
+    Scene::DeleteNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
+    Scene::DeleteNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
     // Clear PriorityLists
-    if (Scene::PriorityLists) {
-        int layerSize = Scene::PriorityPerLayer;
-        for (int l = 0; l < layerSize; l++) {
-            Scene::PriorityLists[l].Clear();
-        }
-    }
+    Scene::ClearPriorityLists();
 
     // Dispose of layers
     for (size_t i = 0; i < Scene::Layers.size(); i++) {
@@ -1829,20 +1823,10 @@ PUBLIC STATIC void Scene::Dispose() {
     }
 
     // Dispose and clear Static objects
-    for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-        ent->Dispose();
-        delete ent;
-    }
-    Scene::Clear(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
+    Scene::DeleteObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
 
     // Dispose and clear Dynamic objects
-    for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-        ent->Dispose();
-        delete ent;
-    }
-    Scene::Clear(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+    Scene::DeleteObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
     // Free Priority Lists
     if (Scene::PriorityLists) {
@@ -1874,8 +1858,8 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::ObjectLists = NULL;
 
     if (Scene::ObjectRegistries) {
-        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* list) -> void {
-            delete list;
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+            delete registry;
         });
         delete Scene::ObjectRegistries;
     }
@@ -1909,9 +1893,6 @@ PUBLIC STATIC void Scene::Exit() {
 }
 
 // Tile Batching
-PUBLIC STATIC void Scene::UpdateTileBatchAll() {
-
-}
 PUBLIC STATIC void Scene::SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB) {
     Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
 
@@ -1922,8 +1903,6 @@ PUBLIC STATIC void Scene::SetTile(int layer, int x, int y, int tileID, int flip_
         *tile |= TILE_FLIPY_MASK;
     *tile |= collA << 28;
     *tile |= collB << 26;
-
-    // UpdateTileBatch(layer, x / TileBatchMaxSize, y / TileBatchMaxSize);
 }
 
 // Tile Collision

@@ -6653,6 +6653,23 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 
     strcpy(Scene::NextScene, filename);
     Scene::NextScene[strlen(filename)] = 0;
+    Scene::NoPersistency = false;
+
+    return NULL_VAL;
+}
+/***
+ * Scene.LoadNoPersistency
+ * \desc Changes active scene to the one in the specified resource file, without keeping any persistent objects.
+ * \param filename (String): Filename of scene.
+ * \ns Scene
+ */
+VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* filename = GET_ARG(0, GetString);
+
+    strcpy(Scene::NextScene, filename);
+    Scene::NextScene[strlen(filename)] = 0;
+    Scene::NoPersistency = true;
 
     return NULL_VAL;
 }
@@ -9489,15 +9506,6 @@ VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns View
  */
-inline int _CEILPOW_(int n) {
-    n--;
-    n |= n >> 1;
-    n |= n >> 2;
-    n |= n >> 4;
-    n |= n >> 16;
-    n++;
-    return n;
-}
 VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
     int view_index = GET_ARG(0, GetInteger);
@@ -9506,7 +9514,7 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_VIEW_INDEX();
     Scene::Views[view_index].Width = view_w;
     Scene::Views[view_index].Height = view_h;
-    Scene::Views[view_index].Stride = _CEILPOW_(view_w);
+    Scene::Views[view_index].Stride = Math::CeilPOT(view_w);
     return NULL_VAL;
 }
 /***
@@ -10618,6 +10626,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Scene
     INIT_CLASS(Scene);
     DEF_NATIVE(Scene, Load);
+    DEF_NATIVE(Scene, LoadNoPersistency);
     DEF_NATIVE(Scene, LoadTileCollisions);
     DEF_NATIVE(Scene, AreTileCollisionsLoaded);
     DEF_NATIVE(Scene, Restart);

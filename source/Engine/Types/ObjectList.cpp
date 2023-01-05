@@ -56,6 +56,17 @@ PUBLIC void    ObjectList::Add(Entity* obj) {
 
     EntityCount++;
 }
+PUBLIC bool    ObjectList::Contains(Entity* obj) {
+    if (Registry)
+        return std::find(List.begin(), List.end(), obj) != List.end();
+
+    for (Entity* search = EntityFirst; search != NULL; search = search->NextEntityInList) {
+        if (search == obj)
+            return true;
+    }
+
+    return false;
+}
 PUBLIC void    ObjectList::Remove(Entity* obj) {
     if (obj == NULL) return;
 
@@ -63,12 +74,14 @@ PUBLIC void    ObjectList::Remove(Entity* obj) {
         for (int i = 0, iSz = (int)List.size(); i < iSz; i++) {
             if (List[i] == obj) {
                 List.erase(List.begin() + i);
+                EntityCount--;
                 break;
             }
         }
-        EntityCount--;
         return;
     }
+
+    obj->List = NULL;
 
     if (EntityFirst == obj)
         EntityFirst = obj->NextEntityInList;
@@ -78,20 +91,22 @@ PUBLIC void    ObjectList::Remove(Entity* obj) {
 
     if (obj->PrevEntityInList)
         obj->PrevEntityInList->NextEntityInList = obj->NextEntityInList;
+    obj->PrevEntityInList = NULL;
 
     if (obj->NextEntityInList)
         obj->NextEntityInList->PrevEntityInList = obj->PrevEntityInList;
+    obj->NextEntityInList = NULL;
 
     EntityCount--;
 }
 PUBLIC void    ObjectList::Clear() {
+    EntityCount = 0;
+
     if (Registry) {
         List.clear();
-        EntityCount = 0;
         return;
     }
 
-    EntityCount = 0;
     EntityFirst = NULL;
     EntityLast = NULL;
 
@@ -102,50 +117,69 @@ PUBLIC void    ObjectList::Clear() {
 }
 
 // ObjectList functions
-PUBLIC void    ObjectList::ReserveStatic(int count) {
-    // StaticEntities.reserve(count);
-}
-PUBLIC Entity* ObjectList::AddStatic(Entity* obj) {
-    // StaticEntities.push_back(obj);
-    Add(obj);
-    return obj;
-}
-PUBLIC Entity* ObjectList::AddDynamic(Entity* obj) {
-    // DynamicEntities.push_back(obj);
-    return AddStatic(obj);
-}
-PUBLIC bool    ObjectList::RemoveDynamic(Entity* obj) {
-    Remove(obj);
-    // NOTE: The scene does it's own removal before this function,
-    //       and then calls ObjectList::RemoveDynamic.
-    return true;
-}
+PRIVATE void ObjectList::Iterate(std::function<void(Entity* e)> func) {
+    if (Registry) {
+        std::for_each(List.begin(), List.end(), func);
+        return;
+    }
 
+    for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList)
+        func(ent);
+}
+PRIVATE void ObjectList::IterateLinkedList(Entity* first, std::function<void(Entity* e)> func) {
+    for (Entity* ent = first, *next; ent; ent = next) {
+        // Store the "next" so that when/if the current is removed,
+        // it can still be used to point at the end of the loop.
+        next = ent->NextEntity;
+
+        if (ent->List == this)
+            func(ent);
+    }
+}
+PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
+    IterateLinkedList(first, [this](Entity* ent) -> void {
+        if (!ent->Persistent)
+            Remove(ent);
+    });
+}
+PUBLIC void ObjectList::ResetPerf() {
+    // AverageUpdateTime = 0.0;
+    AverageUpdateItemCount = 0.0;
+    AverageUpdateEarlyItemCount = 0.0;
+    AverageUpdateLateItemCount = 0.0;
+    AverageRenderItemCount = 0.0;
+}
 PUBLIC Entity* ObjectList::GetNth(int n) {
-    if (Registry)
+    if (Registry) {
+        if (n < 0 || n >= EntityCount)
+            return NULL;
         return List[n];
+    }
 
     Entity* ent = EntityFirst;
     for (ent = EntityFirst; ent != NULL && n > 0; ent = ent->NextEntityInList, n--);
     return ent;
 }
 PUBLIC Entity* ObjectList::GetClosest(int x, int y) {
-    if (EntityCount == 1)
+    if (!EntityCount)
+        return NULL;
+    else if (EntityCount == 1) {
+        if (Registry)
+            return List[0];
         return EntityFirst;
+    }
 
     Entity* closest = NULL;
-
-    int xD, yD;
     int smallestDistance = 0x7FFFFFFF;
 
-    for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList) {
-        xD = ent->X - x; xD *= xD;
-        yD = ent->Y - y; yD *= yD;
+    Iterate([x, y, &closest, &smallestDistance](Entity* ent) -> void {
+        int xD = ent->X - x; xD *= xD;
+        int yD = ent->Y - y; yD *= yD;
         if (smallestDistance > xD + yD) {
             smallestDistance = xD + yD;
             closest = ent;
         }
-    }
+    });
 
     return closest;
 }
@@ -153,15 +187,6 @@ PUBLIC Entity* ObjectList::GetClosest(int x, int y) {
 PUBLIC void    ObjectList::Dispose() {
     List.clear();
     List.shrink_to_fit();
-
-    // for (Uint32 i = 0; i < StaticEntities.size(); i++) {
-    //     // obj->Dispose();
-    //     Memory::Free(StaticEntities[i]);
-    // }
-    // for (Uint32 i = 0; i < DynamicEntities.size(); i++) {
-    //     // obj->Dispose();
-    //     Memory::Free(DynamicEntities[i]);
-    // }
 }
 PUBLIC         ObjectList::~ObjectList() {
     Dispose();

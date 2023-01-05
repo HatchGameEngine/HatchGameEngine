@@ -77,6 +77,16 @@ PUBLIC STATIC void GarbageCollector::Collect() {
         GrayHashMap(bobj->Properties);
     }
 
+    // Mark Scene properties
+    if (Scene::Properties)
+        GrayHashMap(Scene::Properties);
+
+    // Mark Layer properties
+    for (size_t i = 0; i < Scene::Layers.size(); i++) {
+        if (Scene::Layers[i].Properties)
+            GrayHashMap(Scene::Layers[i].Properties);
+    }
+
     // Mark functions
     for (size_t i = 0; i < BytecodeObjectManager::AllFunctionList.size(); i++) {
         GrayObject(BytecodeObjectManager::AllFunctionList[i]);
