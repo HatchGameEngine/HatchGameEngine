@@ -36,7 +36,7 @@ PUBLIC void    ObjectList::Add(Entity* obj) {
     obj->PrevEntityInList = EntityLast;
     obj->NextEntityInList = NULL;
 
-    // If the last exists, set that ones "next" to obj
+    // If the last exists, set that one's "next" to obj
     if (EntityLast)
         EntityLast->NextEntityInList = obj;
 
@@ -69,10 +69,11 @@ PUBLIC void    ObjectList::Remove(Entity* obj) {
 
     if (obj->PrevEntityInList)
         obj->PrevEntityInList->NextEntityInList = obj->NextEntityInList;
-    obj->PrevEntityInList = NULL;
 
     if (obj->NextEntityInList)
         obj->NextEntityInList->PrevEntityInList = obj->PrevEntityInList;
+
+    obj->PrevEntityInList = NULL;
     obj->NextEntityInList = NULL;
 
     EntityCount--;
