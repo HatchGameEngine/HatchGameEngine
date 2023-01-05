@@ -100,7 +100,9 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_BOOL(Interactable);
 }
 
-#undef LINK
+#undef LINK_INT
+#undef LINK_DEC
+#undef LINK_BOOL
 
 PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
     // NOTE:
@@ -352,17 +354,16 @@ PUBLIC STATIC VMValue BytecodeObject::VM_AddToRegistry(int argCount, VMValue* ar
     Entity* self     = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
     char*   registry = AS_CSTRING(args[1]);
 
-    ObjectList* objectList;
+    ObjectRegistry* objectRegistry;
     if (!Scene::ObjectRegistries->Exists(registry)) {
-        objectList = new ObjectList();
-        objectList->Registry = true;
-        Scene::ObjectRegistries->Put(registry, objectList);
+        objectRegistry = new ObjectRegistry();
+        Scene::ObjectRegistries->Put(registry, objectRegistry);
     }
     else {
-        objectList = Scene::ObjectRegistries->Get(registry);
+        objectRegistry = Scene::ObjectRegistries->Get(registry);
     }
 
-    objectList->Add(self);
+    objectRegistry->Add(self);
 
     return NULL_VAL;
 }
@@ -370,13 +371,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromRegistry(int argCount, VMValu
     Entity* self     = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
     char*   registry = AS_CSTRING(args[1]);
 
-    ObjectList* objectList;
+    ObjectRegistry* objectRegistry;
     if (!Scene::ObjectRegistries->Exists(registry)) {
         return NULL_VAL;
     }
-    objectList = Scene::ObjectRegistries->Get(registry);
+    objectRegistry = Scene::ObjectRegistries->Get(registry);
 
-    objectList->Remove(self);
+    objectRegistry->Remove(self);
 
     return NULL_VAL;
 }

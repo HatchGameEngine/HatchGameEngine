@@ -198,10 +198,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     int layer_width = (int)XMLParser::TokenToNumber(map->attributes.Get("width"));
     int layer_height = (int)XMLParser::TokenToNumber(map->attributes.Get("height"));
 
-    if (Scene::ObjectLists == NULL) {
-        Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
-        Scene::ObjectRegistries = new HashMap<ObjectList*>(CombinedHash::EncryptData, 16);
-    }
+    Scene::InitObjectListsAndRegistries();
 
     for (size_t i = 0; i < Scene::Layers.size(); i++) {
         Scene::Layers[i].Dispose();
@@ -397,7 +394,6 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
             for (size_t o = 0; o < objectgroup->children.size(); o++) {
                 XMLNode* object = objectgroup->children[o];
                 Token    object_type = object->attributes.Get("name");
-                Uint32   object_type_hash = CombinedHash::EncryptData(object_type.Start, object_type.Length);
                 float    object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
                 float    object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
                 char     object_type_string[256];
@@ -405,24 +401,9 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                 strncpy(object_type_string, object_type.Start, object_type.Length);
                 object_type_string[object_type.Length] = 0;
 
-                ObjectList* objectList;
-                if (Scene::ObjectLists->Exists(object_type_hash)) {
-                    objectList = Scene::ObjectLists->Get(object_type_hash);
-                    objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(object_type_hash, object_type_string);
-                }
-                else {
-                    objectList = new ObjectList();
-                    strcpy(objectList->ObjectName, object_type_string);
-                    Scene::ObjectLists->Put(object_type_hash, objectList);
-                    objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(object_type_hash, object_type_string);
-
-                    char   entitySpecialFunctions[256];
-                    sprintf(entitySpecialFunctions, "%s_Load", objectList->ObjectName);
-                    BytecodeObjectManager::CallFunction(entitySpecialFunctions);
-                }
-
+                ObjectList* objectList = Scene::GetObjectList(object_type_string);
                 if (objectList->SpawnFunction) {
-                    BytecodeObject* obj = (BytecodeObject*)objectList->SpawnFunction();
+                    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
                     obj->X = object_x;
                     obj->Y = object_y;
                     obj->InitialX = obj->X;

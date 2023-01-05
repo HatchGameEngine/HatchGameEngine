@@ -54,25 +54,22 @@ PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* pare
 }
 
 PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
-    // Init scene
-    Scene::TileSize = 16;
-    Scene::EmptyTile = 0;
-
-    if (Scene::ObjectLists == NULL) {
-        Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
-        Scene::ObjectRegistries = new HashMap<ObjectList*>(CombinedHash::EncryptData, 16);
-    }
-
-    for (size_t i = 0; i < Scene::Layers.size(); i++)
-        Scene::Layers[i].Dispose();
-    Scene::Layers.clear();
-
     // Start reading
     if (r->ReadUInt32() != HatchSceneReader::Magic) {
         Log::Print(Log::LOG_ERROR, "Not a Hatch scene!");
         r->Close();
         return false;
     }
+
+    // Init scene
+    Scene::TileSize = 16;
+    Scene::EmptyTile = 0;
+
+    Scene::InitObjectListsAndRegistries();
+
+    for (size_t i = 0; i < Scene::Layers.size(); i++)
+        Scene::Layers[i].Dispose();
+    Scene::Layers.clear();
 
     // Read scene version
     Uint8 verMajor = r->ReadByte();
@@ -440,25 +437,11 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         // Get the correct object list from the class name
         Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
         char* objectName = scnClass->Name;
-        ObjectList* objectList;
-
-        if (Scene::ObjectLists->Exists(objectHash)) {
-            objectList = Scene::ObjectLists->Get(objectHash);
-            objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectHash, objectName);
-        } else {
-            objectList = new ObjectList();
-            StringUtils::Copy(objectList->ObjectName, objectName, sizeof(objectList->ObjectName));
-            Scene::ObjectLists->Put(objectHash, objectList);
-            objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectHash, objectName);
-
-            char objLoadFunc[sizeof(objectList->ObjectName) + 6];
-            snprintf(objLoadFunc, sizeof(objLoadFunc), "%s_Load", objectList->ObjectName);
-            BytecodeObjectManager::CallFunction(objLoadFunc);
-        }
 
         // Spawn the object, if the class exists
+        ObjectList* objectList = Scene::GetObjectList(objectName);
         if (objectList->SpawnFunction) {
-            BytecodeObject* obj = (BytecodeObject*)objectList->SpawnFunction();
+            BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
             obj->X = posX;
             obj->Y = posY;
             obj->InitialX = posX;

@@ -8,6 +8,7 @@
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Types/ObjectList.h>
+#include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/DrawGroupList.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileConfig.h>
@@ -20,64 +21,61 @@ need_t Entity;
 
 class Scene {
 public:
-    static int                   ShowTileCollisionFlag;
-    static int                   ShowObjectRegions;
+    static int                       ShowTileCollisionFlag;
+    static int                       ShowObjectRegions;
 
-    static HashMap<VMValue>*     Properties;
+    static HashMap<VMValue>*         Properties;
 
-    static HashMap<ObjectList*>* ObjectLists;
-    static HashMap<ObjectList*>* ObjectRegistries;
+    static HashMap<ObjectList*>*     ObjectLists;
+    static HashMap<ObjectRegistry*>* ObjectRegistries;
 
-    static int                   StaticObjectCount;
-    static Entity*               StaticObjectFirst;
-    static Entity*               StaticObjectLast;
-    static int                   DynamicObjectCount;
-    static Entity*               DynamicObjectFirst;
-    static Entity*               DynamicObjectLast;
+    static int                       StaticObjectCount;
+    static Entity*                   StaticObjectFirst;
+    static Entity*                   StaticObjectLast;
+    static int                       DynamicObjectCount;
+    static Entity*                   DynamicObjectFirst;
+    static Entity*                   DynamicObjectLast;
 
-    static int                   PriorityPerLayer;
-    static DrawGroupList*        PriorityLists;
+    static int                       PriorityPerLayer;
+    static DrawGroupList*            PriorityLists;
 
-    static vector<ISprite*>      TileSprites;
-    static vector<TileSpriteInfo>TileSpriteInfos;
-    static Uint16                EmptyTile;
+    static vector<ISprite*>          TileSprites;
+    static vector<TileSpriteInfo>    TileSpriteInfos;
+    static Uint16                    EmptyTile;
 
-    static float                 CameraX;
-    static float                 CameraY;
-    static vector<SceneLayer>    Layers;
-    static bool                  AnyLayerTileChange;
+    static float                     CameraX;
+    static float                     CameraY;
+    static vector<SceneLayer>        Layers;
+    static bool                      AnyLayerTileChange;
 
-    static int                   TileCount;
-    static int                   TileSize;
-    static TileConfig*           TileCfgA;
-    static TileConfig*           TileCfgB;
-    static Uint32*               ExtraPalettes;
+    static int                       TileCount;
+    static int                       TileSize;
+    static TileConfig*               TileCfgA;
+    static TileConfig*               TileCfgB;
 
-    static HashMap<ISprite*>*    SpriteMap;
+    static vector<ResourceType*>     SpriteList;
+    static vector<ResourceType*>     ImageList;
+    static vector<ResourceType*>     SoundList;
+    static vector<ResourceType*>     MusicList;
+    static vector<ResourceType*>     ShaderList;
+    static vector<ResourceType*>     ModelList;
+    static vector<ResourceType*>     MediaList;
 
-    static vector<ResourceType*> SpriteList;
-    static vector<ResourceType*> ImageList;
-    static vector<ResourceType*> SoundList;
-    static vector<ResourceType*> MusicList;
-    static vector<ResourceType*> ShaderList;
-    static vector<ResourceType*> ModelList;
-    static vector<ResourceType*> MediaList;
+    static int                       Frame;
+    static bool                      Paused;
+    static int                       MainLayer;
 
-    static int                   Frame;
-    static bool                  Paused;
-    static int                   MainLayer;
+    static View                      Views[MAX_SCENE_VIEWS];
+    static int                       ViewCurrent;
+    static int                       ViewsActive;
+    static int                       ObjectViewRenderFlag;
+    static int                       TileViewRenderFlag;
+    static Perf_ViewRender           PERF_ViewRender[MAX_SCENE_VIEWS];
 
-    static View                  Views[MAX_SCENE_VIEWS];
-    static int                   ViewCurrent;
-    static int                   ViewsActive;
-    static int                   ObjectViewRenderFlag;
-    static int                   TileViewRenderFlag;
-    static Perf_ViewRender       PERF_ViewRender[MAX_SCENE_VIEWS];
-
-    static char                  NextScene[256];
-    static char                  CurrentScene[256];
-    static bool                  DoRestart;
-    static bool                  NoPersistency;
+    static char                      NextScene[256];
+    static char                      CurrentScene[256];
+    static bool                      DoRestart;
+    static bool                      NoPersistency;
 };
 #endif
 
@@ -110,75 +108,74 @@ public:
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/ObjectList.h>
+#include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Utilities/StringUtils.h>
 
 // Layering variables
-vector<SceneLayer>    Scene::Layers;
-bool                  Scene::AnyLayerTileChange = false;
-int                   Scene::MainLayer = 0;
-int                   Scene::PriorityPerLayer = 16;
-DrawGroupList*        Scene::PriorityLists = NULL;
+vector<SceneLayer>        Scene::Layers;
+bool                      Scene::AnyLayerTileChange = false;
+int                       Scene::MainLayer = 0;
+int                       Scene::PriorityPerLayer = 16;
+DrawGroupList*            Scene::PriorityLists = NULL;
 
 // Rendering variables
-int                   Scene::ShowTileCollisionFlag = 0;
-int                   Scene::ShowObjectRegions = 0;
+int                       Scene::ShowTileCollisionFlag = 0;
+int                       Scene::ShowObjectRegions = 0;
 
 // Property variables
-HashMap<VMValue>*     Scene::Properties = NULL;
+HashMap<VMValue>*         Scene::Properties = NULL;
 
 // Object variables
-HashMap<ObjectList*>* Scene::ObjectLists = NULL;
-HashMap<ObjectList*>* Scene::ObjectRegistries = NULL;
+HashMap<ObjectList*>*     Scene::ObjectLists = NULL;
+HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
 
-int                   Scene::StaticObjectCount = 0;
-Entity*               Scene::StaticObjectFirst = NULL;
-Entity*               Scene::StaticObjectLast = NULL;
-int                   Scene::DynamicObjectCount = 0;
-Entity*               Scene::DynamicObjectFirst = NULL;
-Entity*               Scene::DynamicObjectLast = NULL;
+int                       Scene::StaticObjectCount = 0;
+Entity*                   Scene::StaticObjectFirst = NULL;
+Entity*                   Scene::StaticObjectLast = NULL;
+int                       Scene::DynamicObjectCount = 0;
+Entity*                   Scene::DynamicObjectFirst = NULL;
+Entity*                   Scene::DynamicObjectLast = NULL;
 
 // Tile variables
-vector<ISprite*>      Scene::TileSprites;
-vector<TileSpriteInfo>Scene::TileSpriteInfos;
-int                   Scene::TileCount = 0;
-int                   Scene::TileSize = 16;
-TileConfig*           Scene::TileCfgA = NULL;
-TileConfig*           Scene::TileCfgB = NULL;
-Uint16                Scene::EmptyTile = 0x000;
-Uint32*               Scene::ExtraPalettes = NULL;
+vector<ISprite*>          Scene::TileSprites;
+vector<TileSpriteInfo>    Scene::TileSpriteInfos;
+int                       Scene::TileCount = 0;
+int                       Scene::TileSize = 16;
+TileConfig*               Scene::TileCfgA = NULL;
+TileConfig*               Scene::TileCfgB = NULL;
+Uint16                    Scene::EmptyTile = 0x000;
 
 // View variables
-int                   Scene::Frame = 0;
-bool                  Scene::Paused = false;
-float                 Scene::CameraX = 0.0f;
-float                 Scene::CameraY = 0.0f;
-View                  Scene::Views[MAX_SCENE_VIEWS];
-int                   Scene::ViewCurrent = 0;
-int                   Scene::ViewsActive = 1;
-int                   Scene::ObjectViewRenderFlag;
-int                   Scene::TileViewRenderFlag;
-Perf_ViewRender       Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
+int                       Scene::Frame = 0;
+bool                      Scene::Paused = false;
+float                     Scene::CameraX = 0.0f;
+float                     Scene::CameraY = 0.0f;
+View                      Scene::Views[MAX_SCENE_VIEWS];
+int                       Scene::ViewCurrent = 0;
+int                       Scene::ViewsActive = 1;
+int                       Scene::ObjectViewRenderFlag;
+int                       Scene::TileViewRenderFlag;
+Perf_ViewRender           Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 
-char                  Scene::NextScene[256];
-char                  Scene::CurrentScene[256];
-bool                  Scene::DoRestart = false;
-bool                  Scene::NoPersistency = false;
+char                      Scene::NextScene[256];
+char                      Scene::CurrentScene[256];
+bool                      Scene::DoRestart = false;
+bool                      Scene::NoPersistency = false;
 
 // Resource managing variables
-HashMap<ISprite*>*    Scene::SpriteMap = NULL;
-vector<ResourceType*> Scene::SpriteList;
-vector<ResourceType*> Scene::ImageList;
-vector<ResourceType*> Scene::SoundList;
-vector<ResourceType*> Scene::MusicList;
-vector<ResourceType*> Scene::ShaderList;
-vector<ResourceType*> Scene::ModelList;
-vector<ResourceType*> Scene::MediaList;
+vector<ResourceType*>     Scene::SpriteList;
+vector<ResourceType*>     Scene::ImageList;
+vector<ResourceType*>     Scene::SoundList;
+vector<ResourceType*>     Scene::MusicList;
+vector<ResourceType*>     Scene::ShaderList;
+vector<ResourceType*>     Scene::ModelList;
+vector<ResourceType*>     Scene::MediaList;
 
-Entity*               StaticObject = NULL;
-ObjectList*           StaticObjectList = NULL;
-bool                  DEV_NoTiles = false;
-bool                  DEV_NoObjectRender = false;
-const char*           DEBUG_lastTileColFilename = NULL;
+Entity*                   StaticObject = NULL;
+ObjectList*               StaticObjectList = NULL;
+bool                      DEV_NoTiles = false;
+bool                      DEV_NoObjectRender = false;
+const char*               DEBUG_lastTileColFilename = NULL;
 
 int ViewRenderList[MAX_SCENE_VIEWS];
 
@@ -470,6 +467,12 @@ PUBLIC STATIC void Scene::Init() {
 
     if (BytecodeObjectManager::LoadAllClasses)
         BytecodeObjectManager::LoadClasses();
+}
+PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
+    if (Scene::ObjectLists == NULL)
+        Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
+    if (Scene::ObjectRegistries == NULL)
+        Scene::ObjectRegistries = new HashMap<ObjectRegistry*>(CombinedHash::EncryptData, 16);
 }
 
 PUBLIC STATIC void Scene::ResetPerf() {
@@ -1000,7 +1003,7 @@ PUBLIC STATIC void Scene::Restart() {
 
     // Remove all non-persistent objects from registries
     if (Scene::ObjectRegistries) {
-        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
             registry->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
         });
     }
@@ -1039,15 +1042,6 @@ PRIVATE STATIC void Scene::ClearPriorityLists() {
     ResetPriorityListIndex(Scene::StaticObjectFirst);
     ResetPriorityListIndex(Scene::DynamicObjectFirst);
 }
-PRIVATE STATIC void Scene::RemoveNonPersistentFromObjectLists(HashMap<ObjectList*>* objectLists) {
-    if (!objectLists)
-        return;
-
-    objectLists->ForAll([](Uint32, ObjectList* list) -> void {
-        list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
-        list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
-    });
-}
 PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
     Scene::Iterate(*first, [](Entity* ent) -> void {
         ent->Dispose();
@@ -1072,7 +1066,7 @@ PRIVATE STATIC void Scene::DeleteAllObjects() {
 
     // Clear registries
     if (Scene::ObjectRegistries) {
-        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
             registry->Clear();
         });
     }
@@ -1085,10 +1079,20 @@ PRIVATE STATIC void Scene::DeleteAllObjects() {
 }
 PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Remove non-persistent objects from lists
-    Scene::RemoveNonPersistentFromObjectLists(Scene::ObjectLists);
+    if (Scene::ObjectLists) {
+        Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
+            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+        });
+    }
 
     // Remove non-persistent objects from registries
-    Scene::RemoveNonPersistentFromObjectLists(Scene::ObjectRegistries);
+    if (Scene::ObjectRegistries) {
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* list) -> void {
+            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+        });
+    }
 
     // Dispose of resources in SCOPE_SCENE
     Scene::DisposeInScope(SCOPE_SCENE);
@@ -1185,80 +1189,66 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
 
     Scene::AddStaticClass();
 }
+PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
+    ObjectList* objectList = new (nothrow) ObjectList(objectName);
+    if (BytecodeObjectManager::LoadClass(objectName))
+        objectList->SpawnFunction = BytecodeObjectManager::SpawnFunction;
+    return objectList;
+}
 PUBLIC STATIC void Scene::AddStaticClass() {
-    // Add "Static" class
-    if (Application::GameStart) {
-        Entity* obj = NULL;
-        const char* objectName;
-        Uint32 objectNameHash;
+    if (!Application::GameStart)
+        return;
 
-        objectName = "Static";
-        objectNameHash = CombinedHash::EncryptString(objectName);
-        StaticObjectList = new ObjectList();
-        strcpy(StaticObjectList->ObjectName, objectName);
-        StaticObjectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectNameHash, (char*)objectName);
-        // Scene::ObjectLists->Put(objectNameHash, objectList);
+    StaticObjectList = Scene::NewObjectList("Static");
+    if (!StaticObjectList->SpawnFunction)
+        return;
 
-        if (StaticObjectList->SpawnFunction) {
-            obj = StaticObjectList->SpawnFunction();
-            if (obj) {
-                obj->X = 0.0f;
-                obj->Y = 0.0f;
-                obj->InitialX = obj->X;
-                obj->InitialY = obj->Y;
-                obj->List = StaticObjectList;
-                obj->Persistent = true;
-                // Scene::AddStatic(objectList, obj);
+    Entity* obj = StaticObjectList->Spawn();
+    if (obj) {
+        obj->X = 0.0f;
+        obj->Y = 0.0f;
+        obj->InitialX = obj->X;
+        obj->InitialY = obj->Y;
+        obj->List = StaticObjectList;
+        obj->Persistent = true;
 
-                BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
+        BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
 
-                if (Application::GameStart) {
-                    if (StaticObject) {
-                        StaticObject->Dispose();
-                        delete StaticObject;
-                        StaticObject = NULL;
-                    }
+        obj->GameStart();
+        Application::GameStart = false;
+    }
 
-                    obj->GameStart();
-                    Application::GameStart = false;
-                }
-            }
-        }
+    StaticObject = obj;
+}
+PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
+    Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-        StaticObject = obj;
+    ObjectList* objectList;
+    if (Scene::ObjectLists->Exists(objectNameHash))
+        objectList = Scene::ObjectLists->Get(objectNameHash);
+    else {
+        objectList = Scene::NewObjectList(objectName);
+        Scene::ObjectLists->Put(objectNameHash, objectList);
+    }
+
+    return objectList;
+}
+PRIVATE STATIC void Scene::SpawnStaticObject(const char* objectName) {
+    ObjectList* objectList = Scene::GetObjectList(objectName);
+    if (objectList->SpawnFunction) {
+        Entity* obj = objectList->Spawn();
+        obj->X = 0.0f;
+        obj->Y = 0.0f;
+        obj->InitialX = obj->X;
+        obj->InitialY = obj->Y;
+        obj->List = objectList;
+        Scene::AddStatic(objectList, obj);
     }
 }
 PUBLIC STATIC void Scene::AddManagers() {
-    ObjectList* objectList;
-    Uint32 objectNameHash;
-
-#define ADD_OBJECT_CLASS(objectName) \
-    objectNameHash = CombinedHash::EncryptString(objectName); \
-    if (Scene::ObjectLists->Exists(objectNameHash)) \
-        objectList = Scene::ObjectLists->Get(objectNameHash); \
-    else { \
-        objectList = new ObjectList(); \
-        strcpy(objectList->ObjectName, objectName); \
-        objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectNameHash, objectName); \
-        Scene::ObjectLists->Put(objectNameHash, objectList); \
-    } \
- \
-    if (objectList->SpawnFunction) { \
-        Entity* obj = objectList->SpawnFunction(); \
-        obj->X = 0.0f; \
-        obj->Y = 0.0f; \
-        obj->InitialX = obj->X; \
-        obj->InitialY = obj->Y; \
-        obj->List = objectList; \
-        Scene::AddStatic(objectList, obj); \
-    }
-
-    ADD_OBJECT_CLASS("WindowManager");
-    ADD_OBJECT_CLASS("InputManager");
-    ADD_OBJECT_CLASS("PauseManager");
-    ADD_OBJECT_CLASS("FadeManager");
-
-#undef ADD_OBJECT_CLASS
+    Scene::SpawnStaticObject("WindowManager");
+    Scene::SpawnStaticObject("InputManager");
+    Scene::SpawnStaticObject("FadeManager");
 }
 PUBLIC STATIC void Scene::InitPriorityLists(){
     if (Scene::PriorityLists) {
@@ -1858,7 +1848,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::ObjectLists = NULL;
 
     if (Scene::ObjectRegistries) {
-        Scene::ObjectRegistries->ForAll([](Uint32, ObjectList* registry) -> void {
+        Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
             delete registry;
         });
         delete Scene::ObjectRegistries;
@@ -1870,13 +1860,8 @@ PUBLIC STATIC void Scene::Dispose() {
         StaticObjectList = NULL;
     }
 
-    if (Scene::ExtraPalettes)
-        Memory::Free(Scene::ExtraPalettes);
-    Scene::ExtraPalettes = NULL;
-
-    if (Scene::TileCfgA) {
+    if (Scene::TileCfgA)
         Memory::Free(Scene::TileCfgA);
-    }
     Scene::TileCfgA = NULL;
     Scene::TileCfgB = NULL;
 

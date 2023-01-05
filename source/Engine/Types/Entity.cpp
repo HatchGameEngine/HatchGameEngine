@@ -9,6 +9,7 @@
 #include <Engine/Includes/HashMap.h>
 
 need_t ObjectList;
+need_t ObjectRegistry;
 need_t DrawGroupList;
 
 class Entity {

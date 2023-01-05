@@ -246,7 +246,7 @@ struct WithIter {
     void* entity;
     void* entityNext;
     int   index;
-    void* list;
+    void* registry;
 };
 
 struct CallFrame {

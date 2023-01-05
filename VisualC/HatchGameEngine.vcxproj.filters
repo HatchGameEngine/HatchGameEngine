@@ -294,6 +294,9 @@
     <ClCompile Include="..\source\engine\types\ObjectList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

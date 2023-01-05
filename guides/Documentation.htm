@@ -504,6 +504,7 @@
                     <li><a href="#Reference_Draw_UseSpriteDeform">Draw.UseSpriteDeform</a></li>
                     <li><a href="#Reference_Draw_SetSpriteDeformLine">Draw.SetSpriteDeformLine</a></li>
                     <li><a href="#Reference_Scene_Load">Scene.Load</a></li>
+                    <li><a href="#Reference_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></li>
                     <li><a href="#Reference_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
                     <li><a href="#Reference_Scene_Restart">Scene.Restart</a></li>
@@ -4225,6 +4226,16 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Scene_LoadNoPersistency">
+        <h2 style="margin-bottom: 8px;">Scene.LoadNoPersistency</h2>
+        <code>Scene.LoadNoPersistency(filename)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filename of scene.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Scene_LoadTileCollisions">
         <h2 style="margin-bottom: 8px;">Scene.LoadTileCollisions</h2>
         <code>Scene.LoadTileCollisions(filename)</code>
@@ -4428,7 +4439,7 @@
         <p id="Reference_Scene_GetDrawGroupEntityDepthSorting">
         <h2 style="margin-bottom: 8px;">Scene.GetDrawGroupEntityDepthSorting</h2>
         <code>Scene.GetDrawGroupEntityDepthSorting(drawGroup)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets if the specified draw group sorts entities by depth.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets if the specified draw group sorts objects by depth.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
@@ -4551,11 +4562,11 @@
         <p id="Reference_Scene_SetDrawGroupEntityDepthSorting">
         <h2 style="margin-bottom: 8px;">Scene.SetDrawGroupEntityDepthSorting</h2>
         <code>Scene.SetDrawGroupEntityDepthSorting(drawGroup, useEntityDepth)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the specified draw group to sort entities by depth.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the specified draw group to sort objects by depth.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
-        <li>useEntityDepth (Boolean): Whether or not to sort entities by depth.</li>
+        <li>useEntityDepth (Boolean): Whether or not to sort objects by depth.</li>
         </ul>
         </p>
         <hr/>
@@ -6170,6 +6181,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>409 out of 478 functions have descriptions. </p>
+        <p>410 out of 479 functions have descriptions. </p>
     </body>
 </html>

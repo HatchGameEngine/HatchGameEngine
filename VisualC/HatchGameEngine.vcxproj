@@ -242,6 +242,7 @@ CD ..</Command>
     <ClCompile Include="..\source\Engine\Types\DrawGroupList.cpp" />
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectList.cpp" />
+    <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />

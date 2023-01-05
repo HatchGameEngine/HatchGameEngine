@@ -20,7 +20,6 @@ public:
     static Uint32               ThreadCount;
 
     static char                 CurrentObjectName[256];
-    static Uint32               CurrentObjectHash;
     static vector<ObjFunction*> FunctionList;
     static vector<ObjFunction*> AllFunctionList;
 
@@ -56,7 +55,6 @@ HashMap<VMValue>*    BytecodeObjectManager::Globals = NULL;
 HashMap<VMValue>*    BytecodeObjectManager::Strings = NULL;
 
 char                 BytecodeObjectManager::CurrentObjectName[256];
-Uint32               BytecodeObjectManager::CurrentObjectHash;
 vector<ObjFunction*> BytecodeObjectManager::FunctionList;
 vector<ObjFunction*> BytecodeObjectManager::AllFunctionList;
 
@@ -805,13 +803,11 @@ PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     Threads[0].RunFunction(function, 0);
     return true;
 }
-PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction() {
-    ObjClass* klass = AS_CLASS(Globals->Get(CurrentObjectHash));
+PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName) {
+    Uint32 hash = Globals->HashFunction(objectName, strlen(objectName));
+    ObjClass* klass = AS_CLASS(Globals->Get(hash));
     if (!klass) {
-        if (Tokens && Tokens->Exists(CurrentObjectHash))
-            Log::Print(Log::LOG_ERROR, "No class! Can't find: %s\n", Tokens->Get(CurrentObjectHash));
-        else
-            Log::Print(Log::LOG_ERROR, "No class! Can't find: %X\n", CurrentObjectHash);
+        Log::Print(Log::LOG_ERROR, "No class! Can't find: %s\n", objectName);
         exit(-1);
     }
 
@@ -852,13 +848,13 @@ PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32
 
     return bytecode;
 }
-PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameHash, const char* objectName) {
+PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
     if (!objectName || !*objectName)
-        return NULL;
+        return false;
 
     if (!SourceFileMap::ClassMap->Exists(objectName)) {
         Log::Print(Log::LOG_VERBOSE, "Could not find classmap for %s%s%s! (Hash: 0x%08X)", FG_YELLOW, objectName, FG_RESET, SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
-        return NULL;
+        return false;
     }
 
     // On first load:
@@ -871,7 +867,7 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
             Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
                 Log::Print(Log::LOG_WARN, "Object \"%s\" does not exist!", objectName);
-                return NULL;
+                return false;
             }
 
             // Load the object class
@@ -890,37 +886,39 @@ PUBLIC STATIC void*   BytecodeObjectManager::GetSpawnFunction(Uint32 objectNameH
                 bytecodeStream->Close();
             }
         }
-
-        // Set native functions for that new object class
-        if (!Classes->Exists(objectName)) {
-            // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
-            ObjClass* klass = AS_CLASS(Globals->Get(objectName));
-            if (!klass) {
-                Log::Print(Log::LOG_ERROR, "Could not find class of: %s", objectName);
-                return NULL;
-            }
-            if (klass->Extended == 0) {
-                BytecodeObjectManager::DefineNative(klass, "InView", BytecodeObject::VM_InView);
-                BytecodeObjectManager::DefineNative(klass, "Animate", BytecodeObject::VM_Animate);
-                BytecodeObjectManager::DefineNative(klass, "ApplyPhysics", BytecodeObject::VM_ApplyPhysics);
-                BytecodeObjectManager::DefineNative(klass, "SetAnimation", BytecodeObject::VM_SetAnimation);
-                BytecodeObjectManager::DefineNative(klass, "ResetAnimation", BytecodeObject::VM_ResetAnimation);
-                BytecodeObjectManager::DefineNative(klass, "GetHitboxFromSprite", BytecodeObject::VM_GetHitboxFromSprite);
-                BytecodeObjectManager::DefineNative(klass, "AddToRegistry", BytecodeObject::VM_AddToRegistry);
-                BytecodeObjectManager::DefineNative(klass, "RemoveFromRegistry", BytecodeObject::VM_RemoveFromRegistry);
-                BytecodeObjectManager::DefineNative(klass, "CollidedWithObject", BytecodeObject::VM_CollidedWithObject);
-                BytecodeObjectManager::DefineNative(klass, "CollideWithObject", BytecodeObject::VM_CollideWithObject);
-                BytecodeObjectManager::DefineNative(klass, "SolidCollideWithObject", BytecodeObject::VM_SolidCollideWithObject);
-                BytecodeObjectManager::DefineNative(klass, "TopSolidCollideWithObject", BytecodeObject::VM_TopSolidCollideWithObject);
-                BytecodeObjectManager::DefineNative(klass, "PropertyGet", BytecodeObject::VM_PropertyGet);
-                BytecodeObjectManager::DefineNative(klass, "PropertyExists", BytecodeObject::VM_PropertyExists);
-            }
-            Classes->Put(objectName, klass);
-        }
     }
 
-    CurrentObjectHash = Globals->HashFunction(objectName, strlen(objectName));
-    return (void*)BytecodeObjectManager::SpawnFunction;
+    // Set native functions for that new object class
+    if (!Classes->Exists(objectName)) {
+        // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
+        ObjClass* klass = AS_CLASS(Globals->Get(objectName));
+        if (!klass) {
+            Log::Print(Log::LOG_ERROR, "Could not find class of: %s", objectName);
+            return false;
+        }
+        if (klass->Extended == 0) {
+            BytecodeObjectManager::DefineNative(klass, "InView", BytecodeObject::VM_InView);
+            BytecodeObjectManager::DefineNative(klass, "Animate", BytecodeObject::VM_Animate);
+            BytecodeObjectManager::DefineNative(klass, "ApplyPhysics", BytecodeObject::VM_ApplyPhysics);
+            BytecodeObjectManager::DefineNative(klass, "SetAnimation", BytecodeObject::VM_SetAnimation);
+            BytecodeObjectManager::DefineNative(klass, "ResetAnimation", BytecodeObject::VM_ResetAnimation);
+            BytecodeObjectManager::DefineNative(klass, "GetHitboxFromSprite", BytecodeObject::VM_GetHitboxFromSprite);
+            BytecodeObjectManager::DefineNative(klass, "AddToRegistry", BytecodeObject::VM_AddToRegistry);
+            BytecodeObjectManager::DefineNative(klass, "RemoveFromRegistry", BytecodeObject::VM_RemoveFromRegistry);
+            BytecodeObjectManager::DefineNative(klass, "CollidedWithObject", BytecodeObject::VM_CollidedWithObject);
+            BytecodeObjectManager::DefineNative(klass, "CollideWithObject", BytecodeObject::VM_CollideWithObject);
+            BytecodeObjectManager::DefineNative(klass, "SolidCollideWithObject", BytecodeObject::VM_SolidCollideWithObject);
+            BytecodeObjectManager::DefineNative(klass, "TopSolidCollideWithObject", BytecodeObject::VM_TopSolidCollideWithObject);
+            BytecodeObjectManager::DefineNative(klass, "PropertyGet", BytecodeObject::VM_PropertyGet);
+            BytecodeObjectManager::DefineNative(klass, "PropertyExists", BytecodeObject::VM_PropertyExists);
+        }
+        Classes->Put(objectName, klass);
+    }
+
+    return true;
+}
+PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction(const char* objectName) {
+    return BytecodeObjectManager::SpawnObject(objectName);
 }
 PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
     memset(CurrentObjectName, 0, 256);

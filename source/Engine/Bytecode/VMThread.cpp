@@ -957,30 +957,29 @@ PUBLIC int     VMThread::RunInstruction() {
                         // iterate through objectlist
                         char* objectNameChar = AS_CSTRING(receiver);
                         ObjectList* objectList = NULL;
+                        ObjectRegistry* registry = NULL;
                         if (Scene::ObjectRegistries->Exists(objectNameChar))
-                            objectList = Scene::ObjectRegistries->Get(objectNameChar);
+                            registry = Scene::ObjectRegistries->Get(objectNameChar);
                         else if (Scene::ObjectLists->Exists(objectNameChar))
-                            objectList = Scene::ObjectLists->Get(AS_CSTRING(receiver));
+                            objectList = Scene::ObjectLists->Get(objectNameChar);
 
                         Pop(); // pop receiver
 
-                        if (!objectList) {
-                            // ThrowRuntimeError(false, "Cannot find object class of name \"%s\".", AS_CSTRING(receiver));
-                            frame->IP += offset;
-                            break;
-                        }
-
-                        int objectListCount = objectList->Count();
-                        if (objectListCount == 0) {
+                        if (!objectList && !registry) {
                             frame->IP += offset;
                             break;
                         }
 
                         BytecodeObject* objectStart = NULL;
-                        int objectListStartIndex = 0;
+                        int startIndex = 0;
 
                         // If in list,
-                        if (!objectList->Registry) {
+                        if (objectList) {
+                            if (objectList->Count() == 0) {
+                                frame->IP += offset;
+                                break;
+                            }
+
                             for (Entity* ent = objectList->EntityFirst; ent; ent = ent->NextEntityInList) {
                                 if (ent->Active && ent->Interactable) {
                                     objectStart = (BytecodeObject*)ent;
@@ -990,11 +989,17 @@ PUBLIC int     VMThread::RunInstruction() {
                         }
                         // Otherwise in registry,
                         else {
-                            for (int o = 0; o < objectListCount; o++) {
-                                Entity* ent = objectList->GetNth(o);
+                            int count = registry->Count();
+                            if (count == 0) {
+                                frame->IP += offset;
+                                break;
+                            }
+
+                            for (int o = 0; o < count; o++) {
+                                Entity* ent = registry->GetNth(o);
                                 if (ent && ent->Active && ent->Interactable) {
                                     objectStart = (BytecodeObject*)ent;
-                                    objectListStartIndex = o;
+                                    startIndex = o;
                                     break;
                                 }
                             }
@@ -1006,10 +1011,10 @@ PUBLIC int     VMThread::RunInstruction() {
                         }
 
                         // Add iterator
-                        if (objectList->Registry)
-                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { NULL, NULL, objectListStartIndex, objectList };
+                        if (registry)
+                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { NULL, NULL, startIndex, registry };
                         else
-                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { objectStart, objectStart->NextEntityInList, objectListStartIndex, objectList };
+                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { objectStart, objectStart->NextEntityInList, 0, NULL };
                         frame->WithIteratorStackTop++;
 
                         // Backup original receiver
@@ -1046,36 +1051,20 @@ PUBLIC int     VMThread::RunInstruction() {
 
                     WithIter it = frame->WithIteratorStackTop[-1];
 
-                    ObjectList* list = (ObjectList*)it.list;
-                    if (list) {
-                        // If in list,
-                        if (!list->Registry) {
-                            Entity* objectNext = NULL;
-                            for (Entity* ent = (Entity*)it.entityNext; ent; ent = ent->NextEntityInList) {
-                                if (ent->Active && ent->Interactable) {
-                                    objectNext = (BytecodeObject*)ent;
-                                    break;
-                                }
-                            }
-
-                            if (objectNext) {
-                                it.entity = objectNext;
-                                it.entityNext = objectNext->NextEntityInList;
-
-                                frame->IP -= offset;
-
-                                // Put iterator back onto stack
-                                frame->WithIteratorStackTop[-1] = it;
-
-                                // Backup original receiver
-                                frame->WithReceiverStackTop[-1] = originalReceiver;
-                                // Replace receiver
-                                BytecodeObject* object = (BytecodeObject*)it.entity;
-                                frame->Slots[0] = OBJECT_VAL(object->Instance);
-                                BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
+                    // If in list,
+                    if (it.entity) {
+                        Entity* objectNext = NULL;
+                        for (Entity* ent = (Entity*)it.entityNext; ent; ent = ent->NextEntityInList) {
+                            if (ent->Active && ent->Interactable) {
+                                objectNext = (BytecodeObject*)ent;
+                                break;
                             }
                         }
-                        else if (list->Registry && ++it.index < list->Count()) {
+
+                        if (objectNext) {
+                            it.entity = objectNext;
+                            it.entityNext = objectNext->NextEntityInList;
+
                             frame->IP -= offset;
 
                             // Put iterator back onto stack
@@ -1084,12 +1073,26 @@ PUBLIC int     VMThread::RunInstruction() {
                             // Backup original receiver
                             frame->WithReceiverStackTop[-1] = originalReceiver;
                             // Replace receiver
-                            BytecodeObject* object = (BytecodeObject*)list->GetNth(it.index);
+                            BytecodeObject* object = (BytecodeObject*)it.entity;
                             frame->Slots[0] = OBJECT_VAL(object->Instance);
                             BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
                         }
-                        else {
-                            // If we are done
+                    }
+                    // Otherwise in registry,
+                    else if (it.registry) {
+                        ObjectRegistry* registry = (ObjectRegistry*)it.registry;
+                        if (++it.index < registry->Count()) {
+                            frame->IP -= offset;
+
+                            // Put iterator back onto stack
+                            frame->WithIteratorStackTop[-1] = it;
+
+                            // Backup original receiver
+                            frame->WithReceiverStackTop[-1] = originalReceiver;
+                            // Replace receiver
+                            BytecodeObject* object = (BytecodeObject*)registry->GetNth(it.index);
+                            frame->Slots[0] = OBJECT_VAL(object->Instance);
+                            BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
                         }
                     }
                     else {

@@ -4432,24 +4432,13 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
     float y = GET_ARG(2, GetDecimal);
     VMValue flag = argCount == 4 ? args[3] : INTEGER_VAL(0);
 
-    ObjectList* objectList = NULL;
-    if (!Scene::ObjectLists->Exists(objectName)) {
-        objectList = new (nothrow) ObjectList();
-        strcpy(objectList->ObjectName, objectName);
-        objectList->SpawnFunction = (Entity* (*)())BytecodeObjectManager::GetSpawnFunction(CombinedHash::EncryptString(objectName), objectName);
-        Scene::ObjectLists->Put(objectName, objectList);
-    }
-    else {
-        objectList = Scene::ObjectLists->Get(objectName);
-        objectList->SpawnFunction = (Entity* (*)())BytecodeObjectManager::GetSpawnFunction(CombinedHash::EncryptString(objectName), objectName);
-    }
-
-    if (!objectList->SpawnFunction) {
+    ObjectList* objectList = Scene::GetObjectList(objectName);
+    if (!objectList || !objectList->SpawnFunction) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Object \"%s\" does not exist.", objectName);
         return NULL_VAL;
     }
 
-    BytecodeObject* obj = (BytecodeObject*)objectList->SpawnFunction();
+    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
     obj->X = x;
     obj->Y = y;
     obj->InitialX = x;
@@ -6938,7 +6927,7 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetDrawGroupEntityDepthSorting
- * \desc Gets if the specified draw group sorts entities by depth.
+ * \desc Gets if the specified draw group sorts objects by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
  * \return Returns a Boolean value.
  * \ns Scene
@@ -7154,9 +7143,9 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Scene.SetDrawGroupEntityDepthSorting
- * \desc Sets the specified draw group to sort entities by depth.
+ * \desc Sets the specified draw group to sort objects by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
- * \param useEntityDepth (Boolean): Whether or not to sort entities by depth.
+ * \param useEntityDepth (Boolean): Whether or not to sort objects by depth.
  * \ns Scene
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
