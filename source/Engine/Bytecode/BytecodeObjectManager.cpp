@@ -67,14 +67,6 @@ SDL_mutex*           BytecodeObjectManager::GlobalLock = NULL;
 
 // #define DEBUG_STRESS_GC
 
-PUBLIC STATIC bool    BytecodeObjectManager::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
-    va_list args;
-    va_start(args, errorMessage);
-    bool result = Threads[0].ThrowRuntimeError(fatal, errorMessage, args);
-    va_end(args);
-    return result;
-}
-
 PUBLIC STATIC void    BytecodeObjectManager::RequestGarbageCollection() {
 #ifndef DEBUG_STRESS_GC
     if (GarbageCollector::GarbageSize > GarbageCollector::NextGC)
@@ -821,6 +813,18 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
 
     ObjInstance* instance = NewInstance(klass);
     object->Link(instance);
+
+    // Call the initializer, if there is one.
+    if (HasInitializer(instance->Class)) {
+        ObjFunction* initializer = AS_FUNCTION(instance->Class->Initializer);
+        if (initializer->Arity != 0) {
+            Threads[0].ThrowRuntimeError(false, "Initializer of %s must have no parameters.", objectName);
+            return object;
+        }
+        Threads[0].Push(OBJECT_VAL(instance));
+        Threads[0].RunFunction(initializer, 0);
+        Threads[0].Pop();
+    }
 
     return object;
 }

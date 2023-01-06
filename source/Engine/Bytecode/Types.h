@@ -244,6 +244,10 @@ static inline bool IsObjectType(VMValue value, ObjType type) {
     return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
 
+static inline bool HasInitializer(ObjClass* klass) {
+    return klass->Initializer.Type != VAL_NULL;
+}
+
 struct WithIter {
     void* entity;
     void* entityNext;

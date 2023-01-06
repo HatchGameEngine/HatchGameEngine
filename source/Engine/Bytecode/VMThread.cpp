@@ -1449,7 +1449,7 @@ PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
             result = true;
 
             // Call the initializer, if there is one.
-            if (klass->Initializer.Type != VAL_NULL)
+            if (HasInitializer(klass))
                 result = Call(AS_FUNCTION(klass->Initializer), argCount);
             else if (argCount != 0) {
                 ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
