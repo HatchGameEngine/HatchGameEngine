@@ -197,6 +197,7 @@ struct ObjClass {
     ObjString* Name;
     Uint32     Hash;
     Table*     Methods;
+    Table*     Fields;
     Uint8      Extended;
     Uint32     ParentHash;
     ObjClass*  Parent;

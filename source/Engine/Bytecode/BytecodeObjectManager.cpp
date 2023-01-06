@@ -277,6 +277,10 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
                 klass->Methods->ForAll(FreeNativeValue);
                 delete klass->Methods;
 
+                // A class does not own its values, so it's not allowed
+                // to free them.
+                delete klass->Fields;
+
                 if (klass->Name)
                     FreeValue(OBJECT_VAL(klass->Name));
 

@@ -122,6 +122,7 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->Name = NULL;
     klass->Hash = hash;
     klass->Methods = new Table(NULL, 4);
+    klass->Fields = new Table(NULL, 16);
     klass->Extended = false;
     klass->ParentHash = 0;
     klass->Parent = NULL;

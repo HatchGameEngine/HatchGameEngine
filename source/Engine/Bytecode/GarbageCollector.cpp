@@ -208,6 +208,7 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
             ObjClass* klass = (ObjClass*)object;
             GrayObject(klass->Name);
             GrayHashMap(klass->Methods);
+            GrayHashMap(klass->Fields);
             break;
         }
         case OBJ_FUNCTION: {

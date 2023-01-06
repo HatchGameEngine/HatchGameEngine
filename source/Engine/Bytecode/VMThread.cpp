@@ -511,48 +511,78 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_GET_PROPERTY): {
             Uint32 hash = ReadUInt32(frame);
 
-            VMValue object;
-            ObjInstance* instance;
+            VMValue object = Peek(0);
 
-            object = Peek(0);
-            if (!IS_INSTANCE(object)) {
-                if (ThrowRuntimeError(false, "Only instances have properties.") == ERROR_RES_CONTINUE)
-                    goto FAIL_OP_GET_PROPERTY;
-            }
-            instance = AS_INSTANCE(object);
+            // If it's an instance,
+            if (IS_INSTANCE(object)) {
+                ObjInstance* instance = AS_INSTANCE(object);
 
-            if (BytecodeObjectManager::Lock()) {
-                if (instance->Fields->Exists(hash)) {
-                    Pop();
-                    Push(BytecodeObjectManager::DelinkValue(instance->Fields->Get(hash)));
-                    BytecodeObjectManager::Unlock();
-                    VM_BREAK;
-                }
-
-                ObjClass* klass = instance->Class;
-                if (klass->ParentHash && !klass->Parent) {
-                    Uint32 shash = klass->ParentHash;
-                    if (BytecodeObjectManager::Globals->Exists(shash)) {
-                        VMValue val = BytecodeObjectManager::Globals->Get(shash);
-                        if (IS_CLASS(val))
-                            klass->Parent = AS_CLASS(val);
+                if (BytecodeObjectManager::Lock()) {
+                    // Fields have priority over methods
+                    if (instance->Fields->Exists(hash)) {
+                        Pop();
+                        Push(BytecodeObjectManager::DelinkValue(instance->Fields->Get(hash)));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
                     }
-                }
 
-                if (BindMethod(instance->Class, hash)) {
-                    BytecodeObjectManager::Unlock();
-                    VM_BREAK;
-                }
+                    ObjClass* klass = instance->Class;
+                    if (klass->ParentHash && !klass->Parent) {
+                        SetClassParent(klass);
+                    }
 
-                if (__Tokens__ && __Tokens__->Exists(hash)) {
-                    if (ThrowRuntimeError(false, "Could not find %s in instance!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
-                        goto FAIL_OP_GET_PROPERTY;
+                    if (BindMethod(instance->Class, hash)) {
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    if (__Tokens__ && __Tokens__->Exists(hash)) {
+                        if (ThrowRuntimeError(false, "Could not find %s in instance!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_GET_PROPERTY;
+                    }
+                    else {
+                        if (ThrowRuntimeError(false, "Could not find %X in instance!", hash) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_GET_PROPERTY;
+                    }
+                    goto FAIL_OP_GET_PROPERTY;
                 }
-                else {
-                    if (ThrowRuntimeError(false, "Could not find %X in instance!", hash) == ERROR_RES_CONTINUE)
-                        goto FAIL_OP_GET_PROPERTY;
+            }
+            // Otherwise, if it's a class,
+            else if (IS_CLASS(object)) {
+                ObjClass* klass = AS_CLASS(object);
+
+                if (BytecodeObjectManager::Lock()) {
+                    // Fields have priority over methods
+                    if (klass->Fields->Exists(hash)) {
+                        Pop();
+                        Push(BytecodeObjectManager::DelinkValue(klass->Fields->Get(hash)));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    if (klass->ParentHash && !klass->Parent) {
+                        SetClassParent(klass);
+                    }
+
+                    if (BindMethod(klass, hash)) {
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    if (__Tokens__ && __Tokens__->Exists(hash)) {
+                        if (ThrowRuntimeError(false, "Could not find %s in class!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_GET_PROPERTY;
+                    }
+                    else {
+                        if (ThrowRuntimeError(false, "Could not find %X in class!", hash) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_GET_PROPERTY;
+                    }
+                    goto FAIL_OP_GET_PROPERTY;
                 }
-                goto FAIL_OP_GET_PROPERTY;
+            }
+            else {
+                if (ThrowRuntimeError(false, "Only instances and classes have properties.") == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_GET_PROPERTY;
             }
             VM_BREAK;
 
@@ -567,22 +597,29 @@ PUBLIC int     VMThread::RunInstruction() {
             VMValue field;
             VMValue value;
             VMValue object;
-            ObjInstance* instance;
+            Table* fields;
 
             object = Peek(1);
 
-            if (!IS_INSTANCE(object)) {
-                if (ThrowRuntimeError(false, "Only instances have properties.") == ERROR_RES_CONTINUE)
+            if (IS_INSTANCE(object)) {
+                ObjInstance* instance = AS_INSTANCE(object);
+                fields = instance->Fields;
+            }
+            else if (IS_CLASS(object)) {
+                ObjClass* klass = AS_CLASS(object);
+                fields = klass->Fields;
+            }
+            else {
+                if (ThrowRuntimeError(false, "Only instances and classes have properties.") == ERROR_RES_CONTINUE)
                     goto FAIL_OP_SET_PROPERTY;
             }
-            instance = AS_INSTANCE(object);
 
             if (BytecodeObjectManager::Lock()) {
                 hash = ReadUInt32(frame);
 
                 value = Pop();
-                if (instance->Fields->Exists(hash)) {
-                    field = instance->Fields->Get(hash);
+                if (fields->Exists(hash)) {
+                    field = fields->Get(hash);
                     switch (field.Type) {
                         case VAL_LINKED_INTEGER:
                             AS_LINKED_INTEGER(field) = AS_INTEGER(BytecodeObjectManager::CastValueAsInteger(value));
@@ -591,14 +628,14 @@ PUBLIC int     VMThread::RunInstruction() {
                             AS_LINKED_DECIMAL(field) = AS_DECIMAL(BytecodeObjectManager::CastValueAsDecimal(value));
                             break;
                         default:
-                            instance->Fields->Put(hash, value);
+                            fields->Put(hash, value);
                     }
                 }
                 else {
-                    instance->Fields->Put(hash, value);
+                    fields->Put(hash, value);
                 }
 
-                Pop(); // Instance
+                Pop(); // Instance / Class
                 Push(value);
                 BytecodeObjectManager::Unlock();
             }
@@ -606,7 +643,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
             FAIL_OP_SET_PROPERTY:
             Pop();
-            Pop(); // Instance
+            Pop(); // Instance / Class
             Push(NULL_VAL);
             BytecodeObjectManager::Unlock();
             VM_BREAK;
@@ -1195,15 +1232,15 @@ PUBLIC int     VMThread::RunInstruction() {
             ObjClass* klass = NewClass(hash);
             klass->Extended = ReadByte(frame);
 
-            // if (!__Tokens__ || !__Tokens__->Exists(hash)) {
-                char name[256];
+            if (!__Tokens__ || !__Tokens__->Exists(hash)) {
+                char name[9];
                 sprintf(name, "%8X", hash);
                 klass->Name = CopyString(name, strlen(name));
-            // }
-            // else {
-            //     char* t = __Tokens__->Get(hash);
-            //     klass->Name = CopyString(t, strlen(t));
-            // }
+            }
+            else {
+                char* t = __Tokens__->Get(hash);
+                klass->Name = CopyString(t, strlen(t));
+            }
 
             Push(OBJECT_VAL(klass));
 
@@ -1437,12 +1474,7 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
         VMValue method;
 
         if (klass->ParentHash && !klass->Parent) {
-            Uint32 shash = klass->ParentHash;
-            if (BytecodeObjectManager::Globals->Exists(shash)) {
-                VMValue val = BytecodeObjectManager::Globals->Get(shash);
-                if (IS_CLASS(val))
-                    klass->Parent = AS_CLASS(val);
-            }
+            SetClassParent(klass);
         }
 
         if (klass->Methods->Exists(hash)) {
@@ -1511,12 +1543,7 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
     if (isSuper) {
         ObjClass* klass = instance->Class;
         if (klass->ParentHash && !klass->Parent) {
-            Uint32 shash = klass->ParentHash;
-            if (BytecodeObjectManager::Globals->Exists(shash)) {
-                VMValue val = BytecodeObjectManager::Globals->Get(shash);
-                if (IS_CLASS(val))
-                    klass->Parent = AS_CLASS(val);
-            }
+            SetClassParent(klass);
         }
 
         if (instance->Class->Parent) {
@@ -1527,6 +1554,14 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
         return false;
     }
     return InvokeFromClass(instance->Class, hash, argCount);
+}
+PUBLIC void    VMThread::SetClassParent(ObjClass* klass) {
+    Uint32 shash = klass->ParentHash;
+    if (BytecodeObjectManager::Globals->Exists(shash)) {
+        VMValue val = BytecodeObjectManager::Globals->Get(shash);
+        if (IS_CLASS(val))
+            klass->Parent = AS_CLASS(val);
+    }
 }
 
 // #region Value Operations
