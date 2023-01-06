@@ -69,6 +69,7 @@ enum TokenTYPE {
     TOKEN_LOGICAL_NOT, // (!)
     TOKEN_BITWISE_NOT, // (~)
     TOKEN_TYPEOF,
+    TOKEN_NEW,
     // Precedence 5
     TOKEN_MULTIPLY,
     TOKEN_DIVISION,
@@ -147,9 +148,6 @@ enum TokenTYPE {
     TOKEN_SWITCH,
     TOKEN_DEFAULT,
     TOKEN_CONTINUE,
-
-    // HeaderReader token types.
-    // TOKEN_STRUCT, TOKEN_PUBLIC, TOKEN_PRIVATE, TOKEN_PROTECTED, TOKEN_LEFT_HOOK, TOKEN_RIGHT_HOOK, TOKEN_UNION,
 
     TOKEN_PRINT,
 
@@ -337,37 +335,27 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                 switch (*(scanner.Start + 1)) {
                     case 'a': return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
                     case 'o': return CheckKeyword(2, 1, "r", TOKEN_FOR);
-                    // case 'u': return CheckKeyword(2, 1, "n", TOKEN_FUN);
                 }
             }
             break;
         case 'i':
             return CheckKeyword(1, 1, "f", TOKEN_IF);
         case 'n':
-            return CheckKeyword(1, 3, "ull", TOKEN_NULL);
+            if (scanner.Current - scanner.Start > 1) {
+                switch (*(scanner.Start + 1)) {
+                    case 'u': return CheckKeyword(2, 2, "ll", TOKEN_NULL);
+                    case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
+                }
+            }
         case 'o':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'r': return CheckKeyword(2, 0, NULL, TOKEN_OR);
-                    // case 'b': return CheckKeyword(2, 4, "ject", TOKEN_OBJECT);
                 }
             }
             break;
         case 'p':
             return CheckKeyword(1, 4, "rint", TOKEN_PRINT);
-            // if (scanner.Current - scanner.Start > 1) {
-            //     switch (*(scanner.Start + 1)) {
-            //         case 'r':
-            //             if (scanner.Current - scanner.Start > 2) {
-            //                 switch (*(scanner.Start + 2)) {
-            //                     case 'i': return CheckKeyword(3, 4, "vate", TOKEN_PRIVATE);
-            //                     case 'o': return CheckKeyword(3, 6, "tected", TOKEN_PROTECTED);
-            //                 }
-            //             }
-            //             break;
-            //         case 'u': return CheckKeyword(2, 4, "blic", TOKEN_PUBLIC);
-            //     }
-            // }
             break;
         case 'r':
             if (scanner.Current - scanner.Start > 1) {
@@ -386,11 +374,9 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 's':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
-                    // case 't': return CheckKeyword(2, 4, "ruct", TOKEN_STRUCT);
                     case 'u':
                         if (scanner.Current - scanner.Start > 2) {
                             switch (*(scanner.Start + 2)) {
-                                // case 'b': return CheckKeyword(3, 5, "class", TOKEN_SUBCLASS);
                                 case 'p': return CheckKeyword(3, 2, "er", TOKEN_SUPER);
                             }
                         }
@@ -1115,9 +1101,6 @@ PUBLIC void  Compiler::GetElement(bool canAssign) {
     }
     else if (MatchToken(TOKEN_LEFT_PAREN)) {
         EmitGetOperation(OP_GET_ELEMENT, -1, blank);
-        // uint8_t argCount = GetArgumentList();
-        // EmitBytes(OP_INVOKE, argCount);
-        // EmitStringHash(nameToken);
     }
     else {
         EmitGetOperation(OP_GET_ELEMENT, -1, blank);
@@ -1325,6 +1308,15 @@ PUBLIC void Compiler::GetUnary(bool canAssign) {
         default:
             return; // Unreachable.
     }
+}
+PUBLIC void Compiler::GetNew(bool canAssign) {
+    ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
+    NamedVariable(parser.Previous, false);
+
+    uint8_t argCount = 0;
+    if (MatchToken(TOKEN_LEFT_PAREN))
+        argCount = GetArgumentList();
+    EmitBytes(OP_NEW, argCount);
 }
 PUBLIC void Compiler::GetBinary(bool canAssign) {
     // printf("GetBinary()\n");
@@ -1950,16 +1942,15 @@ PUBLIC int  Compiler::GetFunction(int type) {
 
     return index;
 }
-PUBLIC void Compiler::GetMethod() {
+PUBLIC void Compiler::GetMethod(Token className) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect method name.");
     // Uint8 constant = IdentifierConstant(&parser.Previous);
     Token constantToken = parser.Previous;
 
-    // If the method is named "init", it's an initializer.
+    // If the method has the same name as its class, it's an initializer.
     int type = TYPE_METHOD;
-    if (parser.Previous.Length == 4 && memcmp(parser.Previous.Start, "init", 4) == 0) {
+    if (IdentifiersEqual(&className, &parser.Previous))
         type = TYPE_CONSTRUCTOR;
-    }
 
     int index = GetFunction(type);
 
@@ -2053,11 +2044,11 @@ PUBLIC void Compiler::GetClassDeclaration() {
     while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
         if (MatchToken(TOKEN_EVENT)) {
             NamedVariable(className, false);
-            GetMethod();
+            GetMethod(className);
         }
         else {
             NamedVariable(className, false);
-            GetMethod();
+            GetMethod(className);
         }
     }
 
@@ -2155,6 +2146,7 @@ PUBLIC STATIC void   Compiler::MakeRules() {
     Rules[TOKEN_LOGICAL_OR] = ParseRule { NULL, &Compiler::GetLogicalOR, NULL, PREC_OR };
     Rules[TOKEN_LOGICAL_NOT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
     Rules[TOKEN_TYPEOF] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_NEW] = ParseRule { &Compiler::GetNew, NULL, NULL, PREC_UNARY };
     Rules[TOKEN_NOT_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_GREATER] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
@@ -2705,6 +2697,8 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return JumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
         case OP_CALL:
             return ByteInstruction("OP_CALL", chunk, offset);
+        case OP_NEW:
+            return ByteInstruction("OP_NEW", chunk, offset);
         case OP_EVENT:
             return ByteInstruction("OP_EVENT", chunk, offset);
         case OP_INVOKE:

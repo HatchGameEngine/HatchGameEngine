@@ -197,7 +197,8 @@ struct ObjClass {
     ObjString* Name;
     Uint32     Hash;
     Table*     Methods;
-    Table*     Fields;
+    Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
+    VMValue    Initializer;
     Uint8      Extended;
     Uint32     ParentHash;
     ObjClass*  Parent;
@@ -205,7 +206,7 @@ struct ObjClass {
 struct ObjInstance {
     Obj       Object;
     ObjClass* Class;
-    Table*    Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjInstance value around
+    Table*    Fields;
     void*     EntityPtr;
 };
 struct ObjBoundMethod {
@@ -340,6 +341,7 @@ enum   OpCode {
     OP_FAILSAFE,
     OP_EVENT,
     OP_TYPEOF,
+    OP_NEW,
 
     OP_SYNC = 0xFF,
 };

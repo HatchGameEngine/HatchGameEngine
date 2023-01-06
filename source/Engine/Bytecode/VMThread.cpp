@@ -306,7 +306,6 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_LESS),
             VM_ADD_DISPATCH(OP_LESS_EQUAL),
             VM_ADD_DISPATCH(OP_PRINT),
-            VM_ADD_DISPATCH(OP_TYPEOF),
             VM_ADD_DISPATCH_NULL(OP_ENUM),
             VM_ADD_DISPATCH(OP_SAVE_VALUE),
             VM_ADD_DISPATCH(OP_LOAD_VALUE),
@@ -318,6 +317,8 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_SWITCH_TABLE),
             VM_ADD_DISPATCH(OP_FAILSAFE),
             VM_ADD_DISPATCH(OP_EVENT),
+            VM_ADD_DISPATCH(OP_TYPEOF),
+            VM_ADD_DISPATCH(OP_NEW),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -402,6 +403,8 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_NEW_ARRAY)
                 PRINT_CASE(OP_NEW_MAP)
                 PRINT_CASE(OP_SWITCH_TABLE)
+                PRINT_CASE(OP_TYPEOF)
+                PRINT_CASE(OP_NEW)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -1234,7 +1237,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
             if (!__Tokens__ || !__Tokens__->Exists(hash)) {
                 char name[9];
-                sprintf(name, "%8X", hash);
+                snprintf(name, sizeof(name), "%8X", hash);
                 klass->Name = CopyString(name, strlen(name));
             }
             else {
@@ -1257,6 +1260,19 @@ PUBLIC int     VMThread::RunInstruction() {
             // PrintStack();
 
             klass->ParentHash = hashSuper;
+            VM_BREAK;
+        }
+        VM_CASE(OP_NEW): {
+            int argCount = ReadByte(frame);
+            if (!InstantiateClass(Peek(argCount), argCount)) {
+                if (ThrowRuntimeError(false, "Could not instantiate class!") == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_NEW;
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            frame = &Frames[FrameCount - 1];
+            VM_BREAK;
+
+            FAIL_OP_NEW:
             VM_BREAK;
         }
         VM_CASE(OP_EVENT): {
@@ -1385,26 +1401,6 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
                     BytecodeObjectManager::Unlock();
                     return result;
                 }
-                /*
-                case OBJ_CLASS: {
-                    ObjClass* klass = AS_CLASS(callee);
-
-                    // Create the instance.
-                    StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
-
-                    // Call the initializer, if there is one.
-                    VMValue initializer;
-                    if (klass->Methods->Exists(klass->Hash)) {
-                        initializer = klass->Methods->Get(klass->Hash);
-                        return Call(AS_FUNCTION(initializer), argCount);
-                    }
-                    else if (argCount != 0) {
-                        ThrowRuntimeError(true, "Expected no arguments to initializer, got %d.", argCount);
-                        return false;
-                    }
-                    return true;
-                }
-                //*/
                 case OBJ_FUNCTION:
                     result = Call(AS_FUNCTION(callee), argCount);
                     BytecodeObjectManager::Unlock();
@@ -1413,11 +1409,6 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
                     NativeFn native = AS_NATIVE(callee);
 
                     VMValue result = NULL_VAL;
-                    
-                    /*
-                    if (setjmp(VMThread::JumpBuffer) == 0) {
-                        result = native(argCount, StackTop - argCount, ID);
-                    }// */
 
                     try {
                         result = native(argCount, StackTop - argCount, ID);
@@ -1441,7 +1432,35 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
         BytecodeObjectManager::Unlock();
     }
 
-    // runtimeError("Can only call functions and classes.");
+    return false;
+}
+PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
+    if (BytecodeObjectManager::Lock()) {
+        bool result = false;
+        if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
+            ThrowRuntimeError(false, "Cannot instantiate non-class.");
+        }
+        else {
+            ObjClass* klass = AS_CLASS(callee);
+
+            // Create the instance.
+            StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
+
+            result = true;
+
+            // Call the initializer, if there is one.
+            if (klass->Initializer.Type != VAL_NULL)
+                result = Call(AS_FUNCTION(klass->Initializer), argCount);
+            else if (argCount != 0) {
+                ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
+                result = false;
+            }
+        }
+
+        BytecodeObjectManager::Unlock();
+        return result;
+    }
+
     return false;
 }
 PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {

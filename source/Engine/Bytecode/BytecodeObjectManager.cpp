@@ -573,6 +573,8 @@ PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(int index, Uint32 hash
     VMValue method = OBJECT_VAL(FunctionList[index]);
     ObjClass* klass = AS_CLASS(Threads[0].Peek(0)); // AS_CLASS(Peek(1));
     klass->Methods->Put(hash, method);
+    if (hash == klass->Hash)
+        klass->Initializer = method;
     Threads[0].Pop();
     // Pop();
 }
