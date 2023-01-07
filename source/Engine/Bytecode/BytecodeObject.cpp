@@ -104,49 +104,73 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
 #undef LINK_DEC
 #undef LINK_BOOL
 
+PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
+    // First look for a field which may shadow a method.
+    if (Instance->Fields->Exists(hash)) {
+        value = Instance->Fields->Get(hash);
+        return true;
+    }
+
+    ObjClass* klass = Instance->Class;
+    if (klass->Methods->Exists(hash)) {
+        value = klass->Methods->Get(hash);
+        return true;
+    }
+    else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
+        value = klass->Parent->Methods->Get(hash);
+        return true;
+    }
+
+    return false;
+}
+PRIVATE ObjFunction* BytecodeObject::GetCallableFunction(Uint32 hash) {
+    ObjClass* klass = Instance->Class;
+    if (klass->Methods->Exists(hash))
+        return AS_FUNCTION(klass->Methods->Get(hash));
+    return NULL;
+}
 PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
     // NOTE:
     // If the function doesn't exist, this is not an error VM side,
     // treat whatever we call from C++ as a virtual-like function.
-    if (!Instance->Class->Methods->Exists(hash))
+    VMValue value;
+    if (!BytecodeObject::GetCallableValue(hash, value))
         return true;
 
     VMThread* thread = BytecodeObjectManager::Threads + 0;
 
-    VMValue* StackTop = thread->StackTop;
+    VMValue* stackTop = thread->StackTop;
 
     thread->Push(OBJECT_VAL(Instance));
-    thread->RunInvoke(hash, 0 /* arity */);
+    thread->InvokeForEntity(value, 0);
 
-    thread->StackTop = StackTop;
+    thread->StackTop = stackTop;
 
-    return false;
+    return true;
 }
 PUBLIC bool BytecodeObject::RunCreateFunction(VMValue flag) {
     // NOTE:
     // If the function doesn't exist, this is not an error VM side,
     // treat whatever we call from C++ as a virtual-like function.
-    Uint32 hash = Hash_Create;
-    if (!Instance->Class->Methods->Exists(hash))
+    ObjFunction* func = BytecodeObject::GetCallableFunction(Hash_Create);
+    if (!func)
         return true;
-
-    ObjFunction* func = AS_FUNCTION(Instance->Class->Methods->Get(hash));
 
     VMThread* thread = BytecodeObjectManager::Threads + 0;
 
-    VMValue* StackTop = thread->StackTop;
+    VMValue* stackTop = thread->StackTop;
 
     if (func->Arity == 1) {
         thread->Push(OBJECT_VAL(Instance));
         thread->Push(flag);
-        thread->RunInvoke(hash, func->Arity);
+        thread->RunEntityFunction(func, 1);
     }
     else {
         thread->Push(OBJECT_VAL(Instance));
-        thread->RunInvoke(hash, 0);
+        thread->RunEntityFunction(func, 0);
     }
 
-    thread->StackTop = StackTop;
+    thread->StackTop = stackTop;
 
     return false;
 }
@@ -156,20 +180,13 @@ PUBLIC bool BytecodeObject::RunInitializer() {
 
     VMThread* thread = BytecodeObjectManager::Threads + 0;
 
-    ObjFunction* initializer = AS_FUNCTION(Instance->Class->Initializer);
-
-    if (initializer->Arity != 0) {
-        thread->ThrowRuntimeError(false, "Initializer must have no parameters.");
-        return false;
-    }
-
-    VMValue* StackTop = thread->StackTop;
+    VMValue* stackTop = thread->StackTop;
 
     thread->Push(OBJECT_VAL(Instance)); // Pushes this instance into the stack so that 'this' can work
-    thread->RunFunction(initializer, 0); // Calls it with no arguments
+    thread->CallInitializer(Instance->Class->Initializer);
     thread->Pop(); // Pops it
 
-    thread->StackTop = StackTop;
+    thread->StackTop = stackTop;
 
     return true;
 }

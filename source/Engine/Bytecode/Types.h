@@ -245,7 +245,7 @@ static inline bool IsObjectType(VMValue value, ObjType type) {
 }
 
 static inline bool HasInitializer(ObjClass* klass) {
-    return klass->Initializer.Type != VAL_NULL;
+    return !IS_NULL(klass->Initializer);
 }
 
 struct WithIter {

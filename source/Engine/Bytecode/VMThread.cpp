@@ -12,6 +12,8 @@ public:
     Uint32    FrameCount;
     Uint32    ReturnFrame;
 
+    VMValue   FunctionToInvoke;
+
     enum ThreadState {
         CREATED = 0,
         RUNNING = 1,
@@ -48,22 +50,16 @@ std::jmp_buf VMThread::JumpBuffer;
 // #region Error Handling & Debug Info
 char GetTokenBuffer[16];
 
-#define THROW_ERROR_START() if (VMThread::InstructionIgnoreMap[000000000]) \
-        return ERROR_RES_CONTINUE; \
-    CallFrame* frame = &Frames[FrameCount - 1]; \
-    va_list args; \
-    char errorString[512]; \
+#define THROW_ERROR_START() va_list args; \
+    char errorString[2048]; \
     va_start(args, errorMessage); \
-    vsnprintf(errorString, 512, errorMessage, args); \
+    vsnprintf(errorString, sizeof(errorString), errorMessage, args); \
     va_end(args); \
-    int line; \
-    char* source; \
-    ObjFunction* function = frame->Function; \
     char* textBuffer = (char*)malloc(512); \
     PrintBuffer buffer; \
     buffer.Buffer = &textBuffer; \
     buffer.WriteIndex = 0; \
-    buffer.BufferSize = 512;
+    buffer.BufferSize = 512
 #define THROW_ERROR_END() Log::Print(Log::LOG_ERROR, textBuffer); \
     PrintStack(); \
     const SDL_MessageBoxButtonData buttonsError[] = { \
@@ -113,8 +109,12 @@ PUBLIC char*   VMThread::GetToken(Uint32 hash) {
     snprintf(GetTokenBuffer, 15, "%X", hash);
     return &GetTokenBuffer[0];
 }
-PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
-    THROW_ERROR_START();
+PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
+    int line;
+    char* source;
+
+    CallFrame* frame = &Frames[FrameCount - 1];
+    ObjFunction* function = frame->Function;
 
     if (function) {
         if (function->Chunk.Lines) {
@@ -122,17 +122,17 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
             line = function->Chunk.Lines[bpos] & 0xFFFF;
 
             GET_FUNCTION_NAME(function->NameHash);
-            buffer_printf(&buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
+            buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
         }
         else {
-            buffer_printf(&buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
+            buffer_printf(buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
         }
     }
     else {
-        buffer_printf(&buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
+        buffer_printf(buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
     }
 
-    buffer_printf(&buffer, "\nCall Trace (Thread %d):\n", ID);
+    buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
     for (Uint32 i = 0; i < FrameCount; i++) {
         CallFrame* fr = &Frames[i];
         function = fr->Function;
@@ -143,14 +143,49 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
             line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
         }
         GET_FUNCTION_NAME(function->NameHash);
-        buffer_printf(&buffer, "    called \"%s\" of \"%s\"", functionName.c_str(), source);
+        buffer_printf(buffer, "    called \"%s\" of \"%s\"", functionName.c_str(), source);
 
         if (line > 0) {
-            buffer_printf(&buffer, " on Line %d", line);
+            buffer_printf(buffer, " on Line %d", line);
         }
         if (i < FrameCount - 1)
-            buffer_printf(&buffer, ", then");
-        buffer_printf(&buffer, "\n");
+            buffer_printf(buffer, ", then");
+        buffer_printf(buffer, "\n");
+    }
+}
+PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
+    if (VMThread::InstructionIgnoreMap[000000000])
+        return ERROR_RES_CONTINUE;
+
+    THROW_ERROR_START();
+
+    if (FrameCount > 0)
+        PrintStackTrace(&buffer, errorString);
+    else if (IS_OBJECT(FunctionToInvoke)) {
+        if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE) {
+            buffer_printf(&buffer, "While calling native function:\n\n    %s\n", errorString);
+        } else {
+            ObjFunction* function = NULL;
+
+            if (OBJECT_TYPE(FunctionToInvoke) == OBJ_BOUND_METHOD) {
+                ObjBoundMethod* bound = AS_BOUND_METHOD(FunctionToInvoke);
+                function = bound->Method;
+            }
+            else if (OBJECT_TYPE(FunctionToInvoke) == OBJ_FUNCTION) {
+                function = AS_FUNCTION(FunctionToInvoke);
+            }
+
+            if (function) {
+                GET_FUNCTION_NAME(function->NameHash);
+                buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->SourceFilename, errorString);
+            }
+            else {
+                buffer_printf(&buffer, "While calling value: %s\n", errorString);
+            }
+        }
+    }
+    else {
+        buffer_printf(&buffer, "%s\n", errorString);
     }
 
     THROW_ERROR_END();
@@ -530,7 +565,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
                     ObjClass* klass = instance->Class;
                     if (klass->ParentHash && !klass->Parent) {
-                        SetClassParent(klass);
+                        BytecodeObjectManager::SetClassParent(klass);
                     }
 
                     if (BindMethod(instance->Class, hash)) {
@@ -563,7 +598,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     if (klass->ParentHash && !klass->Parent) {
-                        SetClassParent(klass);
+                        BytecodeObjectManager::SetClassParent(klass);
                     }
 
                     if (BindMethod(klass, hash)) {
@@ -1353,6 +1388,63 @@ PUBLIC void    VMThread::RunInvoke(Uint32 hash, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
+PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
+    VMValue* lastStackTop = StackTop;
+    int      lastReturnFrame = ReturnFrame;
+
+    FunctionToInvoke = value;
+    ReturnFrame = FrameCount;
+
+    if (CallValue(value, argCount)) {
+        switch (OBJECT_TYPE(value)) {
+            case OBJ_BOUND_METHOD:
+            case OBJ_FUNCTION:
+                RunInstructionSet();
+            default:
+                // Do nothing for native functions
+                break;
+        }
+    }
+
+    FunctionToInvoke = NULL_VAL;
+    ReturnFrame = lastReturnFrame;
+    StackTop = lastStackTop;
+}
+PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
+    VMValue* lastStackTop = StackTop;
+    int      lastReturnFrame = ReturnFrame;
+
+    FunctionToInvoke = OBJECT_VAL(function);
+    ReturnFrame = FrameCount;
+
+    Call(function, argCount);
+    RunInstructionSet();
+
+    FunctionToInvoke = NULL_VAL;
+    ReturnFrame = lastReturnFrame;
+    StackTop = lastStackTop;
+}
+PUBLIC void    VMThread::CallInitializer(VMValue value) {
+    FunctionToInvoke = value;
+
+    ObjFunction* initializer = AS_FUNCTION(value);
+    if (initializer->Arity != 0) {
+        ThrowRuntimeError(false, "Initializer must have no parameters.");
+    }
+    else {
+        VMValue* lastStackTop = StackTop;
+        int      lastReturnFrame = ReturnFrame;
+
+        ReturnFrame = FrameCount;
+
+        RunFunction(initializer, 0);
+
+        ReturnFrame = lastReturnFrame;
+        StackTop = lastStackTop;
+    }
+
+    FunctionToInvoke = NULL_VAL;
+}
 
 PUBLIC bool    VMThread::BindMethod(ObjClass* klass, Uint32 hash) {
     if (BytecodeObjectManager::Lock()) {
@@ -1492,7 +1584,7 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
         VMValue method;
 
         if (klass->ParentHash && !klass->Parent) {
-            SetClassParent(klass);
+            BytecodeObjectManager::SetClassParent(klass);
         }
 
         if (klass->Methods->Exists(hash)) {
@@ -1543,25 +1635,15 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
                 value = instance->Fields->Get(hash);
 
             BytecodeObjectManager::Unlock();
-
-            // if (IS_OBJECT(value)) {
-            //     printf("instance.%s: ", __Tokens__->Get(hash));
-            //     Compiler::PrintValue(value);
-            //     printf(" exists: %d argCount: %d\n", exists, argCount);
-            //
-            //     PrintStack();
-            // }
         }
         if (exists) {
-            // StackTop[-argCount] = value;
             return CallValue(value, argCount);
         }
     }
-
-    if (isSuper) {
+    else {
         ObjClass* klass = instance->Class;
         if (klass->ParentHash && !klass->Parent) {
-            SetClassParent(klass);
+            BytecodeObjectManager::SetClassParent(klass);
         }
 
         if (instance->Class->Parent) {
@@ -1572,14 +1654,6 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
         return false;
     }
     return InvokeFromClass(instance->Class, hash, argCount);
-}
-PUBLIC void    VMThread::SetClassParent(ObjClass* klass) {
-    Uint32 shash = klass->ParentHash;
-    if (BytecodeObjectManager::Globals->Exists(shash)) {
-        VMValue val = BytecodeObjectManager::Globals->Get(shash);
-        if (IS_CLASS(val))
-            klass->Parent = AS_CLASS(val);
-    }
 }
 
 // #region Value Operations

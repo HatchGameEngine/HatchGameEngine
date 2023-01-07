@@ -612,6 +612,14 @@ PUBLIC STATIC void    BytecodeObjectManager::GlobalConstDecimal(ObjClass* klass,
     else
         klass->Methods->Put(name, DECIMAL_VAL(value));
 }
+PUBLIC STATIC void    BytecodeObjectManager::SetClassParent(ObjClass* klass) {
+    Uint32 shash = klass->ParentHash;
+    if (BytecodeObjectManager::Globals->Exists(shash)) {
+        VMValue val = BytecodeObjectManager::Globals->Get(shash);
+        if (IS_CLASS(val))
+            klass->Parent = AS_CLASS(val);
+    }
+}
 
 PUBLIC STATIC void    BytecodeObjectManager::LinkStandardLibrary() {
     StandardLibrary::Link();
@@ -798,7 +806,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     if (!function)
         return false;
 
-    Threads[0].RunFunction(function, 0);
+    Threads[0].RunEntityFunction(function, 0);
     return true;
 }
 PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName) {
