@@ -118,16 +118,7 @@ PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
     thread->Push(OBJECT_VAL(Instance));
     thread->RunInvoke(hash, 0 /* arity */);
 
-    int stackChange = (int)(thread->StackTop - StackTop);
-    if (stackChange) {
-        // printf("BytecodeObject::RunFunction(%s) Stack Change: %d\n", f, stackChange);
-        // BytecodeObjectManager::PrintStack();
-    }
     thread->StackTop = StackTop;
-
-    // NOTE: The ObjInstance* value is left on the stack after this.
-    // BytecodeObjectManager::ResetStack();
-    // BytecodeObjectManager::PrintStack();
 
     return false;
 }
@@ -159,6 +150,29 @@ PUBLIC bool BytecodeObject::RunCreateFunction(VMValue flag) {
 
     return false;
 }
+PUBLIC bool BytecodeObject::RunInitializer() {
+    if (!HasInitializer(Instance->Class))
+        return true;
+
+    VMThread* thread = BytecodeObjectManager::Threads + 0;
+
+    ObjFunction* initializer = AS_FUNCTION(Instance->Class->Initializer);
+
+    if (initializer->Arity != 0) {
+        thread->ThrowRuntimeError(false, "Initializer must have no parameters.");
+        return false;
+    }
+
+    VMValue* StackTop = thread->StackTop;
+
+    thread->Push(OBJECT_VAL(Instance)); // Pushes this instance into the stack so that 'this' can work
+    thread->RunFunction(initializer, 0); // Calls it with no arguments
+    thread->Pop(); // Pops it
+
+    thread->StackTop = StackTop;
+
+    return true;
+}
 
 // Events called from C++
 PUBLIC void BytecodeObject::GameStart() {
@@ -166,10 +180,10 @@ PUBLIC void BytecodeObject::GameStart() {
 
     RunFunction(Hash_GameStart);
 }
-PUBLIC void BytecodeObject::Setup() {
+PUBLIC void BytecodeObject::Initialize() {
     if (!Instance) return;
 
-    // RunFunction(Hash_Setup);
+    RunInitializer();
 }
 PUBLIC void BytecodeObject::Create(VMValue flag) {
     if (!Instance) return;
@@ -224,6 +238,11 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
 }
 PUBLIC void BytecodeObject::Create() {
     Create(INTEGER_VAL(0));
+}
+PUBLIC void BytecodeObject::Setup() {
+    if (!Instance) return;
+
+    // RunFunction(Hash_Setup);
 }
 PUBLIC void BytecodeObject::UpdateEarly() {
     if (!Active) return;

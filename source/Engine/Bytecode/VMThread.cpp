@@ -99,6 +99,12 @@ char GetTokenBuffer[16];
             VMThread::InstructionIgnoreMap[000000000] = true; \
             return ERROR_RES_CONTINUE; \
     }
+#define GET_FUNCTION_NAME(hash) \
+    std::string functionName(GetToken(hash)); \
+    if (functionName == "main") \
+        functionName = "top-level function"; \
+    else if (functionName != "<anonymous-fn>") \
+        functionName = "event " + functionName
 
 PUBLIC char*   VMThread::GetToken(Uint32 hash) {
     if (__Tokens__ && __Tokens__->Exists(hash))
@@ -115,11 +121,7 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
             size_t bpos = (frame->IPLast - frame->IPStart);
             line = function->Chunk.Lines[bpos] & 0xFFFF;
 
-            std::string functionName(GetToken(function->NameHash));
-            if (functionName == "main")
-                functionName = "top-level function";
-            else if (functionName != "<anonymous-fn>")
-                functionName = "event " + functionName;
+            GET_FUNCTION_NAME(function->NameHash);
             buffer_printf(&buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
         }
         else {
@@ -130,9 +132,7 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
         buffer_printf(&buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
     }
 
-    // buffer_printf(&buffer, "\nCall Backtrace (Thread %d):\n", ID);
     buffer_printf(&buffer, "\nCall Trace (Thread %d):\n", ID);
-    // for (int i = FrameCount - 1; i >= 0; i--) {
     for (Uint32 i = 0; i < FrameCount; i++) {
         CallFrame* fr = &Frames[i];
         function = fr->Function;
@@ -140,11 +140,10 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
         line = -1;
         if (i > 0) {
             CallFrame* fr2 = &Frames[i - 1];
-            // function = fr2->Function;
-            // source = function->SourceFilename;
             line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
         }
-        buffer_printf(&buffer, "    called \"%s\" of \"%s\"", GetToken(function->NameHash), source);
+        GET_FUNCTION_NAME(function->NameHash);
+        buffer_printf(&buffer, "    called \"%s\" of \"%s\"", functionName.c_str(), source);
 
         if (line > 0) {
             buffer_printf(&buffer, " on Line %d", line);

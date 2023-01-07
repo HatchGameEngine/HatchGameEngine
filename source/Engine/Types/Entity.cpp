@@ -381,6 +381,9 @@ PUBLIC VIRTUAL void Entity::GameStart() {
 
 }
 
+PUBLIC VIRTUAL void Entity::Initialize() {
+
+}
 PUBLIC VIRTUAL void Entity::Create() {
 
 }

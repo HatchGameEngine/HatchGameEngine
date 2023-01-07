@@ -814,18 +814,6 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
     ObjInstance* instance = NewInstance(klass);
     object->Link(instance);
 
-    // Call the initializer, if there is one.
-    if (HasInitializer(instance->Class)) {
-        ObjFunction* initializer = AS_FUNCTION(instance->Class->Initializer);
-        if (initializer->Arity != 0) {
-            Threads[0].ThrowRuntimeError(false, "Initializer of %s must have no parameters.", objectName);
-            return object;
-        }
-        Threads[0].Push(OBJECT_VAL(instance));
-        Threads[0].RunFunction(initializer, 0);
-        Threads[0].Pop();
-    }
-
     return object;
 }
 PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {

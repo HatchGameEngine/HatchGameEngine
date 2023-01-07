@@ -1020,11 +1020,11 @@ PUBLIC STATIC void Scene::Restart() {
     // Dispose of all dynamic objects
     Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
-    // Run "Setup" on all objects
+    // Run "Initialize" on all objects
     Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
         ent->X = ent->InitialX;
         ent->Y = ent->InitialY;
-        ent->Setup();
+        ent->Initialize();
     });
 
     // Run "Load" on all object classes
