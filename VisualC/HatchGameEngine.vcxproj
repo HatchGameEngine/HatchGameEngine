@@ -175,6 +175,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\hashing\MD5.cpp" />
     <ClCompile Include="..\source\engine\hashing\Murmur.cpp" />
     <ClCompile Include="..\source\engine\InputManager.cpp" />
+    <ClCompile Include="..\source\engine\input\Controller.cpp" />
     <ClCompile Include="..\source\engine\io\compression\Huffman.cpp" />
     <ClCompile Include="..\source\engine\io\compression\LZ11.cpp" />
     <ClCompile Include="..\source\engine\io\compression\LZSS.cpp" />
@@ -246,6 +247,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />
+    <ClCompile Include="..\source\Libraries\spng.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\engine\audio\StackNode.h" />
@@ -284,6 +286,7 @@ CD ..</Command>
     <ClInclude Include="..\source\Libraries\miniz.h" />
     <ClInclude Include="..\source\Libraries\stb_image.h" />
     <ClInclude Include="..\source\Libraries\stb_vorbis.h" />
+    <ClInclude Include="..\source\Libraries\spng.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\meta\win\icon.rc" />
