@@ -547,8 +547,8 @@ PRIVATE STATIC void Application::LoadKeyBinds() {
 
     GET_KEY("fullscreen",            Fullscreen,       Key_F4);
     GET_KEY("devRestartApp",         DevRestartApp,    Key_F1);
-    GET_KEY("devRestartScene",       DevRestartScene,  Key_F5);
-    GET_KEY("devRecompile",          DevRecompile,     Key_F6);
+    GET_KEY("devRestartScene",       DevRestartScene,  Key_F6);
+    GET_KEY("devRecompile",          DevRecompile,     Key_F5);
     GET_KEY("devPerfSnapshot",       DevPerfSnapshot,  Key_F3);
     GET_KEY("devLogLayerInfo",       DevLayerInfo,     Key_F2);
     GET_KEY("devFastForward",        DevFastForward,   Key_BACKSPACE);
@@ -673,7 +673,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         TakeSnapshot = true;
                         break;
                     }
-                    // Restart scene (dev)
+                    // Recompile and restart scene (dev)
                     else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
                         Application::Restart();
 
@@ -689,7 +689,7 @@ PRIVATE STATIC void Application::PollEvents() {
                         Application::UpdateWindowTitle();
                         break;
                     }
-                    // Restart scene without recompiling (dev)
+                    // Restart scene (dev)
                     else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
                         // Reset FPS timer
                         BenchmarkFrameCount = 0;

@@ -218,7 +218,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     OnScreen = true;
     OnScreenHitboxW = 0.0f;
     OnScreenHitboxH = 0.0f;
-    ViewRenderFlag = 0;
+    ViewRenderFlag = 0xFFFFFFFF;
     RenderRegionW = 0.0f;
     RenderRegionH = 0.0f;
 

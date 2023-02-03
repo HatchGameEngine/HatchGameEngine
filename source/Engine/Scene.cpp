@@ -748,11 +748,9 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
                 }
 
                 DoCheckRender:
-                if (ent->ViewRenderFlag != 0) {
-                    if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
-                        continue;
-                }
-                else if ((Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
+                if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
+                    continue;
+                if ((Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;
 
                 elapsed = Clock::GetTicks();
