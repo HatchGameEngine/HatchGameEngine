@@ -910,6 +910,8 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
             BytecodeObjectManager::DefineNative(klass, "TopSolidCollideWithObject", BytecodeObject::VM_TopSolidCollideWithObject);
             BytecodeObjectManager::DefineNative(klass, "PropertyGet", BytecodeObject::VM_PropertyGet);
             BytecodeObjectManager::DefineNative(klass, "PropertyExists", BytecodeObject::VM_PropertyExists);
+            BytecodeObjectManager::DefineNative(klass, "SetViewVisibility", BytecodeObject::VM_SetViewVisibility);
+            BytecodeObjectManager::DefineNative(klass, "SetViewOverride", BytecodeObject::VM_SetViewOverride);
         }
         Classes->Put(objectName, klass);
     }

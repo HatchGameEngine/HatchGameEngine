@@ -77,6 +77,7 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_DEC(OnScreenHitboxW);
     LINK_DEC(OnScreenHitboxH);
     LINK_INT(ViewRenderFlag);
+    LINK_INT(ViewOverrideFlag);
 
     Instance->Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
     Instance->Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
@@ -219,6 +220,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     OnScreenHitboxW = 0.0f;
     OnScreenHitboxH = 0.0f;
     ViewRenderFlag = 0xFFFFFFFF;
+    ViewOverrideFlag = 0;
     RenderRegionW = 0.0f;
     RenderRegionH = 0.0f;
 
@@ -547,6 +549,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ApplyPhysics(int argCount, VMValue* arg
 }
 
 PUBLIC STATIC VMValue BytecodeObject::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
     char* property = AS_CSTRING(args[1]);
     if (self->Properties->Exists(property))
@@ -554,9 +557,35 @@ PUBLIC STATIC VMValue BytecodeObject::VM_PropertyExists(int argCount, VMValue* a
     return INTEGER_VAL(0);
 }
 PUBLIC STATIC VMValue BytecodeObject::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
     char* property = AS_CSTRING(args[1]);
     if (!self->Properties->Exists(property))
         return NULL_VAL;
     return self->Properties->Get(property);
+}
+
+PUBLIC STATIC VMValue BytecodeObject::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 3);
+    BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
+    int viewIndex = AS_INTEGER(args[1]);
+    bool visible = AS_INTEGER(args[2]);
+    int flag = 1 << viewIndex;
+    if (visible)
+        self->ViewRenderFlag |= flag;
+    else
+        self->ViewRenderFlag &= ~flag;
+    return NULL_VAL;
+}
+PUBLIC STATIC VMValue BytecodeObject::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 3);
+    BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
+    int viewIndex = AS_INTEGER(args[1]);
+    bool override = AS_INTEGER(args[2]);
+    int flag = 1 << viewIndex;
+    if (override)
+        self->ViewOverrideFlag |= flag;
+    else
+        self->ViewOverrideFlag &= ~flag;
+    return NULL_VAL;
 }
