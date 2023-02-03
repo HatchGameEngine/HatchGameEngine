@@ -157,11 +157,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
         Globals = NULL;
     }
 
-    for (size_t i = 0; i < AllFunctionList.size(); i++) {
-        ObjFunction* function = AS_FUNCTION(OBJECT_VAL(AllFunctionList[i]));
-        BytecodeObjectManager::FreeFunction(function);
-    }
-    AllFunctionList.clear();
+    FreeFunctions();
 
     if (Sources) {
         Sources->WithAll([](Uint32 hash, Bytecode bytecode) -> void {
@@ -281,18 +277,6 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
                 Memory::Free(klass);
                 break;
             }
-            case OBJ_FUNCTION: {
-                ObjFunction* function = AS_FUNCTION(value);
-
-                // Global functions can be found in AllFunctionList.
-                // If it's not there, then it has already been freed.
-                auto fn = std::find(AllFunctionList.begin(), AllFunctionList.end(), function);
-                if (fn != std::end(AllFunctionList)) {
-                    AllFunctionList.erase(fn);
-                    BytecodeObjectManager::FreeFunction(function);
-                }
-                break;
-            }
             case OBJ_NATIVE: {
                 assert(GarbageCollector::GarbageSize >= sizeof(ObjNative));
                 GarbageCollector::GarbageSize -= sizeof(ObjNative);
@@ -303,6 +287,15 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
                 break;
         }
     }
+}
+PRIVATE STATIC void    BytecodeObjectManager::FreeFunctions() {
+    Log::Print(Log::LOG_VERBOSE, "Freeing %d functions...", AllFunctionList.size());
+    for (size_t i = 0; i < AllFunctionList.size(); i++) {
+        ObjFunction* function = AS_FUNCTION(OBJECT_VAL(AllFunctionList[i]));
+        BytecodeObjectManager::FreeFunction(function);
+    }
+    AllFunctionList.clear();
+    Log::Print(Log::LOG_VERBOSE, "Done!");
 }
 PUBLIC STATIC void    BytecodeObjectManager::PrintHashTableValues(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {

@@ -378,6 +378,9 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
 
     (*count)--;
 
+    Scene::RemoveObject(obj);
+}
+PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     // Remove from proper list
     if (obj->List)
         obj->List->Remove(obj);
@@ -1051,8 +1054,8 @@ PRIVATE STATIC void Scene::ClearPriorityLists() {
 }
 PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
     Scene::Iterate(*first, [](Entity* ent) -> void {
-        ent->Dispose();
-        delete ent;
+        // Garbage collection will take care of it later.
+        Scene::RemoveObject(ent);
     });
     Scene::Clear(first, last, count);
 }
@@ -1153,8 +1156,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
         }
     }
 
-    strcpy(Scene::CurrentScene, filename);
-    Scene::CurrentScene[strlen(filename)] = 0;
+    memmove(Scene::CurrentScene, filename, strlen(filename) + 1);
 
     for (size_t i = 0; i < Scene::TileSprites.size(); i++) {
         Scene::TileSprites[i]->Dispose();
@@ -1815,8 +1817,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::MediaList.clear();
 
     if (StaticObject) {
-        StaticObject->Dispose();
-        delete StaticObject;
+        StaticObject->Active = false;
         StaticObject = NULL;
     }
 
