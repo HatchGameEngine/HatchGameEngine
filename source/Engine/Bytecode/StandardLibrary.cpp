@@ -8314,6 +8314,54 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
     int animation = GET_ARG(1, GetInteger);
     return INTEGER_VAL(sprite->Animations[animation].AnimationSpeed);
 }
+/***
+ * Sprite.GetFrameWidth
+ * \desc Gets the frame width of the specified sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame width (in pixels) of the specified sprite frame.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Width);
+}
+/***
+ * Sprite.GetFrameHeight
+ * \desc Gets the frame height of the specified sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame height (in pixels) of the specified sprite frame.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Height);
+}
+/***
+ * Sprite.GetFrameID
+ * \desc Gets the frame ID of the specified sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame ID (in pixels) of the specified sprite frame.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
+}
 // #endregion
 
 // #region String
@@ -10739,6 +10787,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameCount);
     DEF_NATIVE(Sprite, GetFrameDuration);
     DEF_NATIVE(Sprite, GetFrameSpeed);
+    DEF_NATIVE(Sprite, GetFrameWidth);
+    DEF_NATIVE(Sprite, GetFrameHeight);
+    DEF_NATIVE(Sprite, GetFrameID);
     // #endregion
 
     // #region String
