@@ -56,10 +56,16 @@ if(NOT ENABLE_SCRIPT_COMPILING)
   add_definitions(-DNO_SCRIPT_COMPILING)
 endif()
 
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  set(MAKEHEADERS_BINARY makeheaders.exe)
+else()
+  set(MAKEHEADERS_BINARY lmakeheaders)
+endif()
+
 add_custom_target(makeheaders ALL
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/lmakeheaders source/
+  COMMAND ${CMAKE_SOURCE_DIR}/tools/${MAKEHEADERS_BINARY} source/
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  BYPRODUCTS "${CMAKE_SOURCE_DIR}/makeheaders.bin" "${CMAKE_SOURCE_DIR}/include/Engine"
+  BYPRODUCTS "${CMAKE_SOURCE_DIR}/include/makeheaders.bin" "${CMAKE_SOURCE_DIR}/include/Engine"
   COMMENT "Generating header files")
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})

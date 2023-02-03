@@ -6,15 +6,13 @@
 #ifndef _WIN32
     #include <dirent.h>
     #include <unistd.h>
-    #include "crc32.h"
 #else
     #include <stdlib.h>
-    #include <stdafx.h>
-    #include <dirent.h>
-    #include <direct.h>
-    #include <io.h>
-    #include <crc32.h>
+    #include <windows.h>
+    #include "dirent.c"
 #endif
+
+#include "crc32.h"
 
 using namespace std;
 
@@ -74,7 +72,7 @@ static ssize_t getline(char** string, size_t* n, FILE* f) {
     size_t baseSize = 128;
 
     if (*string == NULL) {
-        *string = malloc(baseSize);
+        *string = (char*)malloc(baseSize);
         if (!*string)
             abort();
         *n = baseSize;
@@ -83,7 +81,7 @@ static ssize_t getline(char** string, size_t* n, FILE* f) {
     for (; c != EOF; c = getc(f)) {
         if (pos + 1 >= *n) {
             size_t size = max(*n + (*n >> 2), baseSize);
-            *string = realloc(*string, size);
+            *string = (char*)realloc(*string, size);
             if (!*string)
                 abort();
             *n = size;
@@ -305,8 +303,13 @@ public:
 
 static void MakeDir(const char *dir) {
     struct stat st = {0};
-    if (stat(dir, &st) == -1)
+    if (stat(dir, &st) == -1) {
+#ifdef _WIN32
+        mkdir(dir);
+#else
         mkdir(dir, 0700);
+#endif
+    }
 }
 
 static void RecursiveMakeDir(const char *path) {
@@ -892,6 +895,15 @@ bool CheckExtension(const char* filename, const char* extension) {
     return dot && !strcmp(dot, extension);
 }
 
+#ifdef _WIN32
+bool IsPathDir(const char *path) {
+    struct stat fstat;
+    if (stat(path, &fstat) < 0)
+        return false;
+    return (fstat.st_mode & S_IFMT) == S_IFDIR;
+}
+#endif
+
 bool FindClasses(const char* name, int depth) {
     DIR *dir;
     struct dirent *entry;
@@ -900,20 +912,23 @@ bool FindClasses(const char* name, int depth) {
         return false;
 
     while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_DIR) {
+        char path[4096 + 256];
+        snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
+
+#ifdef _WIN32
+        if (IsPathDir(path))
+#else
+        if (entry->d_type == DT_DIR)
+#endif
+        {
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
 
-            char path[4096 + 256];
-            snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
             FindClasses(path, depth + 1);
         }
         else if (depth == 0)
             continue;
         else if (CheckExtension(entry->d_name, ".cpp")) {
-            char path[4096];
-            snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
-
             string class_name = FindClassName(path);
             if (class_name != "")
                 ClassNames.push_back(class_name);
@@ -1084,7 +1099,11 @@ bool ListClassDir(const char* name, const char* parent) {
         char path[4096];
         snprintf(path, sizeof(path), "%s/%s", name, entry->d_name);
 
+#ifdef _WIN32
+        if (IsPathDir(path))
+#else
         if (entry->d_type == DT_DIR)
+#endif
             ListClassDir(path, parent);
         else if (CheckExtension(entry->d_name, ".cpp") && MakeHeaderCheck(path)) {
             char parentFolder[4096];
