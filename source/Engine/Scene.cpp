@@ -1260,7 +1260,7 @@ PUBLIC STATIC void Scene::AddManagers() {
     Scene::SpawnStaticObject("InputManager");
     Scene::SpawnStaticObject("FadeManager");
 }
-PUBLIC STATIC void Scene::InitPriorityLists(){
+PUBLIC STATIC void Scene::InitPriorityLists() {
     if (Scene::PriorityLists) {
         for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
             Scene::PriorityLists[i].Dispose();

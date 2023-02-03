@@ -734,7 +734,8 @@ CLASSFILE ReadClass(char* filename) {
             if (scanner.isDone) {
                 throw_err("Unexpected end of file after 'private:'");
             }
-            in_variables = 1;
+            if (in_variables)
+                in_variables = 1;
         }
         else if (token.rfind("public", 0) == 0) {
             if (token.find(":") == std::string::npos && !scanner.matchToken(":")) {
@@ -743,7 +744,8 @@ CLASSFILE ReadClass(char* filename) {
             if (scanner.isDone) {
                 throw_err("Unexpected end of file after 'public:'");
             }
-            in_variables = 2;
+            if (in_variables)
+                in_variables = 2;
         }
         else if (token.rfind("protected", 0) == 0) {
             if (token.find(":") == std::string::npos && !scanner.matchToken(":")) {
@@ -752,7 +754,8 @@ CLASSFILE ReadClass(char* filename) {
             if (scanner.isDone) {
                 throw_err("Unexpected end of file after 'protected:'");
             }
-            in_variables = 3;
+            if (in_variables)
+                in_variables = 3;
         }
         else if (in_variables) {
             if (token == "") {
@@ -765,10 +768,12 @@ CLASSFILE ReadClass(char* filename) {
                 in_struct_or_enum++;
                 token_is_struct = true;
             }
-            else for (size_t i = 0; i < ClassNames.size(); i++) {
-                if (token == ClassNames[i]) {
-                    test.classes_needed.push_back(token);
-                    break;
+            else if (in_interface) {
+                for (size_t i = 0; i < ClassNames.size(); i++) {
+                    if (token == ClassNames[i]) {
+                        test.classes_needed.push_back(token);
+                        break;
+                    }
                 }
             }
 
@@ -820,11 +825,11 @@ CLASSFILE ReadClass(char* filename) {
 
             std::string type = "";
             do {
-                if (token.find("{") != std::string::npos) {
+                if (token.find(":") != std::string::npos)
+                    break;
+                else if (token.find("{") != std::string::npos) {
                     throw_err("Malformed source code");
                 }
-                else if (token.find(":") != std::string::npos)
-                    break;
 
                 type += token + " ";
 
@@ -848,7 +853,15 @@ CLASSFILE ReadClass(char* filename) {
             }
 
             std::string function_name = rest_of_line.substr(where + 2);
-            function_name.erase(function_name.find_last_not_of(" {")+1);
+
+            // Remove the {
+            function_name.erase(function_name.find_first_of("{"));
+
+            // Trim whitespace
+            size_t last_of_whitespace = function_name.find_last_not_of(" ");
+            if (last_of_whitespace != std::string::npos)
+                function_name.erase(last_of_whitespace + 1);
+
             function_name = type + function_name + ";";
             if (statik)
                 function_name = "static " + function_name;
