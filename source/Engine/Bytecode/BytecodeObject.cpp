@@ -508,7 +508,11 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
     AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
     if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        self->HitboxW = 0;
+        self->HitboxH = 0;
+        self->HitboxOffX = 0;
+        self->HitboxOffY = 0;
         return NULL_VAL;
     }
 
