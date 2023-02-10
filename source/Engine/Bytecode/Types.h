@@ -172,6 +172,7 @@ struct ObjFunction {
     int          Arity;
     int          UpvalueCount;
     struct Chunk Chunk;
+    int          FunctionListOffset;
     ObjString*   Name;
     char         SourceFilename[256];
     Uint32       NameHash;
@@ -261,6 +262,7 @@ struct CallFrame {
     Uint8*       IPLast;
     Uint8*       IPStart;
     VMValue*     Slots;
+    int          FunctionListOffset;
 
     VMValue   WithReceiverStack[16];
     VMValue*  WithReceiverStackTop = WithReceiverStack;
@@ -346,6 +348,7 @@ enum   OpCode {
     OP_EVENT,
     OP_TYPEOF,
     OP_NEW,
+    OP_IMPORT,
 
     OP_SYNC = 0xFF,
 };

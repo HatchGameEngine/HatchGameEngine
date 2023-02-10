@@ -353,6 +353,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_EVENT),
             VM_ADD_DISPATCH(OP_TYPEOF),
             VM_ADD_DISPATCH(OP_NEW),
+            VM_ADD_DISPATCH(OP_IMPORT),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -439,6 +440,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_SWITCH_TABLE)
                 PRINT_CASE(OP_TYPEOF)
                 PRINT_CASE(OP_NEW)
+                PRINT_CASE(OP_IMPORT)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -1311,14 +1313,26 @@ PUBLIC int     VMThread::RunInstruction() {
         }
         VM_CASE(OP_EVENT): {
             int index = ReadByte(frame);
-            VMValue method = OBJECT_VAL(BytecodeObjectManager::FunctionList[index]);
+            VMValue method = OBJECT_VAL(BytecodeObjectManager::AllFunctionList[frame->FunctionListOffset + index]);
             Push(method);
             VM_BREAK;
         }
         VM_CASE(OP_METHOD): {
             int index = ReadByte(frame);
             Uint32 hash = ReadUInt32(frame);
-            BytecodeObjectManager::DefineMethod(index, hash);
+            BytecodeObjectManager::DefineMethod(frame->FunctionListOffset + index, hash);
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_IMPORT): {
+            VMValue value = ReadConstant(frame);
+            if (!Import(value)) {
+                if (ThrowRuntimeError(false, "Could not import class!") == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_IMPORT;
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            FAIL_OP_IMPORT:
             VM_BREAK;
         }
 
@@ -1575,6 +1589,7 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
     frame->Slots = StackTop - (function->Arity + 1);
     frame->WithReceiverStackTop = frame->WithReceiverStack;
     frame->WithIteratorStackTop = frame->WithIteratorStack;
+    frame->FunctionListOffset = function->FunctionListOffset;
     BytecodeObjectManager::Globals->Remove("this");
 
     return true;
@@ -1654,6 +1669,27 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
         return false;
     }
     return InvokeFromClass(instance->Class, hash, argCount);
+}
+PUBLIC bool    VMThread::Import(VMValue value) {
+    bool result = false;
+    if (BytecodeObjectManager::Lock()) {
+        if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
+            ThrowRuntimeError(false, "Cannot import from a %s.", GetTypeString(value));
+        }
+        else {
+            char* className = AS_CSTRING(value);
+            if (BytecodeObjectManager::ClassExists(className)) {
+                if (!BytecodeObjectManager::Classes->Exists(className))
+                    BytecodeObjectManager::LoadClass(className);
+                result = true;
+            }
+            else {
+                ThrowRuntimeError(false, "Could not import %s!", className);
+            }
+        }
+    }
+    BytecodeObjectManager::Unlock();
+    return result;
 }
 
 // #region Value Operations

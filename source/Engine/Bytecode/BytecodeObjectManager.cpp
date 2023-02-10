@@ -555,7 +555,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Unlock() {
 }
 
 PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(int index, Uint32 hash) {
-    VMValue method = OBJECT_VAL(FunctionList[index]);
+    VMValue method = OBJECT_VAL(AllFunctionList[index]);
     ObjClass* klass = AS_CLASS(Threads[0].Peek(0)); // AS_CLASS(Peek(1));
     klass->Methods->Put(hash, method);
     if (hash == klass->Hash)
@@ -687,13 +687,18 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, size_t size, Uint32 filenameHash) {
+PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint32 filenameHash) {
+    MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
+    if (!stream)
+        return;
+
     FunctionList.clear();
 
     Uint8 magic[4];
     stream->ReadBytes(magic, 4);
     if (memcmp(Compiler::Magic, magic, 4) != 0) {
         printf("Incorrect magic!\n");
+        stream->Close();
         return;
     }
 
@@ -706,6 +711,8 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
     bool doLineNumbers = opts & 1;
     bool hasSourceFilename = opts & 2;
 
+    int functionListOffset = AllFunctionList.size();
+
     int chunkCount = stream->ReadInt32();
     for (int i = 0; i < chunkCount; i++) {
         int   count = stream->ReadInt32();
@@ -715,6 +722,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
         ObjFunction* function = NewFunction();
         function->Arity = arity;
         function->NameHash = hash;
+        function->FunctionListOffset = functionListOffset;
         function->Chunk.Count = count;
         function->Chunk.OwnsMemory = false;
 
@@ -785,6 +793,8 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(MemoryStream* stream, si
             StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
     }
 
+    stream->Close();
+
     Threads[0].RunFunction(FunctionList[0], 0);
 }
 PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
@@ -847,11 +857,14 @@ PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32
 
     return bytecode;
 }
+PUBLIC STATIC bool    BytecodeObjectManager::ClassExists(const char* objectName) {
+    return SourceFileMap::ClassMap->Exists(objectName);
+}
 PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
     if (!objectName || !*objectName)
         return false;
 
-    if (!SourceFileMap::ClassMap->Exists(objectName)) {
+    if (!BytecodeObjectManager::ClassExists(objectName)) {
         Log::Print(Log::LOG_VERBOSE, "Could not find classmap for %s%s%s! (Hash: 0x%08X)", FG_YELLOW, objectName, FG_RESET, SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
         return false;
     }
@@ -879,11 +892,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
                 strncpy(CurrentObjectName, objectName, 256);
             }
 
-            MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
-            if (bytecodeStream) {
-                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
-                bytecodeStream->Close();
-            }
+            RunFromIBC(bytecode, filenameHash);
         }
     }
 
@@ -934,12 +943,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
                 continue;
             }
 
-            // Load the object class
-            MemoryStream* bytecodeStream = MemoryStream::New(bytecode.Data, bytecode.Size);
-            if (bytecodeStream) {
-                RunFromIBC(bytecodeStream, bytecode.Size, filenameHash);
-                bytecodeStream->Close();
-            }
+            RunFromIBC(bytecode, filenameHash);
         }
     });
 
