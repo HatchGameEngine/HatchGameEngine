@@ -1037,6 +1037,16 @@ PUBLIC STATIC void Scene::Restart() {
         ent->Create();
     });
 
+    // Clean up object lists
+    if (Scene::ObjectLists) {
+        Scene::ObjectLists->ForAll([](Uint32 key, ObjectList* list) -> void {
+            if (list->EntityCount == 0) {
+                Scene::ObjectLists->Remove(key);
+                delete list;
+            }
+        });
+    }
+
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::RequestGarbageCollection();
 }
@@ -1816,8 +1826,10 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::ModelList.clear();
     Scene::MediaList.clear();
 
+    // Dispose of StaticObject
     if (StaticObject) {
         StaticObject->Active = false;
+        StaticObject->Removed = true;
         StaticObject = NULL;
     }
 
