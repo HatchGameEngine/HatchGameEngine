@@ -33,6 +33,7 @@ public:
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
+#include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/IO/FileStream.h>
 
 #include <Engine/Application.h>
@@ -2904,10 +2905,8 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     stream->Close();
 
-    for (size_t s = 0; s < Strings.size(); s++) {
-        Memory::Free(Strings[s]->Chars);
-        Memory::Free(Strings[s]);
-    }
+    for (size_t s = 0; s < Strings.size(); s++)
+        BytecodeObjectManager::FreeString(Strings[s]);
     Strings.clear();
 
     return !parser.HadError;
@@ -2920,14 +2919,8 @@ PUBLIC VIRTUAL       Compiler::~Compiler() {
 
 }
 PUBLIC STATIC void   Compiler::Dispose(bool freeTokens) {
-    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
-        ChunkFree(&Compiler::Functions[c]->Chunk);
-        Memory::Free(Compiler::Functions[c]->Name->Chars);
-        Memory::Free(Compiler::Functions[c]->Name);
-        Memory::Free(Compiler::Functions[c]);
-        if (GarbageCollector::GarbageSize >= sizeof(ObjFunction))
-            GarbageCollector::GarbageSize -= sizeof(ObjFunction);
-    }
+    for (size_t c = 0; c < Compiler::Functions.size(); c++)
+        BytecodeObjectManager::FreeFunction(Compiler::Functions[c]);
     Memory::Free(Rules);
 
     if (TokenMap && freeTokens) {

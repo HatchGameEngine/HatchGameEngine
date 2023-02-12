@@ -172,7 +172,7 @@ struct ObjFunction {
     int          Arity;
     int          UpvalueCount;
     struct Chunk Chunk;
-    int          FunctionListOffset;
+    size_t       FunctionListOffset;
     ObjString*   Name;
     char         SourceFilename[256];
     Uint32       NameHash;

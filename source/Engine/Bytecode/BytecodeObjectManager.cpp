@@ -120,10 +120,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
         memset(&Threads[i].Stack, 0, sizeof(Threads[i].Stack));
         memset(&Threads[i].RegisterValue, 0, sizeof(Threads[i].RegisterValue));
         memset(&Threads[i].Frames, 0, sizeof(Threads[i].Frames));
-
-        // memset(&Threads[i].WithReceiverStack, 0, sizeof(Threads[i].WithReceiverStack));
-        // memset(&Threads[i].WithIteratorStack, 0, sizeof(Threads[i].WithIteratorStack));
-
         memset(&Threads[i].Name, 0, sizeof(Threads[i].Name));
 
         Threads[i].FrameCount = 0;
@@ -133,8 +129,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
 
         Threads[i].ID = i;
         Threads[i].StackTop = Threads[i].Stack;
-        // Threads[i].WithReceiverStackTop = Threads[i].WithReceiverStack;
-        // Threads[i].WithIteratorStackTop = Threads[i].WithIteratorStack;
     }
     ThreadCount = 1;
 }
@@ -189,21 +183,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
 
     SDL_DestroyMutex(GlobalLock);
 }
-PUBLIC STATIC void    BytecodeObjectManager::RemoveGlobalableValue(Uint32 hash, VMValue value) {
-    if (IS_OBJECT(value)) {
-        switch (OBJECT_TYPE(value)) {
-            case OBJ_CLASS:
-            case OBJ_FUNCTION:
-            case OBJ_NATIVE: {
-                if (hash)
-                    Globals->Remove(hash);
-                break;
-            }
-            default:
-                break;
-        }
-    }
-}
 PUBLIC STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
@@ -253,28 +232,39 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function)
     GarbageCollector::GarbageSize -= sizeof(ObjFunction);
     Memory::Free(function);
 }
+PUBLIC STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
+    // Subfunctions are already freed as a byproduct of the AllFunctionList,
+    // so just do natives.
+    klass->Methods->ForAll(FreeNativeValue);
+    delete klass->Methods;
+
+    // A class does not own its values, so it's not allowed
+    // to free them.
+    delete klass->Fields;
+
+    if (klass->Name)
+        FreeValue(OBJECT_VAL(klass->Name));
+
+    assert(GarbageCollector::GarbageSize >= sizeof(ObjClass));
+    GarbageCollector::GarbageSize -= sizeof(ObjClass);
+    Memory::Free(klass);
+}
+PUBLIC STATIC void    BytecodeObjectManager::FreeString(ObjString* string) {
+    if (string->Chars != NULL)
+        Memory::Free(string->Chars);
+    string->Chars = NULL;
+
+    assert(GarbageCollector::GarbageSize >= sizeof(ObjString));
+    GarbageCollector::GarbageSize -= sizeof(ObjString);
+    Memory::Free(string);
+}
 PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         // Log::Print(Log::LOG_VERBOSE, "Freeing object %p of type %s", AS_OBJECT(value), GetTypeString(value));
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS: {
                 ObjClass* klass = AS_CLASS(value);
-
-                // Subfunctions are already freed as a byproduct of the AllFunctionList,
-                // so just do natives.
-                klass->Methods->ForAll(FreeNativeValue);
-                delete klass->Methods;
-
-                // A class does not own its values, so it's not allowed
-                // to free them.
-                delete klass->Fields;
-
-                if (klass->Name)
-                    FreeValue(OBJECT_VAL(klass->Name));
-
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjClass));
-                GarbageCollector::GarbageSize -= sizeof(ObjClass);
-                Memory::Free(klass);
+                FreeClass(klass);
                 break;
             }
             case OBJ_NATIVE: {
@@ -291,8 +281,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
 PRIVATE STATIC void    BytecodeObjectManager::FreeFunctions() {
     Log::Print(Log::LOG_VERBOSE, "Freeing %d functions...", AllFunctionList.size());
     for (size_t i = 0; i < AllFunctionList.size(); i++) {
-        ObjFunction* function = AS_FUNCTION(OBJECT_VAL(AllFunctionList[i]));
-        BytecodeObjectManager::FreeFunction(function);
+        FreeFunction(AllFunctionList[i]);
     }
     AllFunctionList.clear();
     Log::Print(Log::LOG_VERBOSE, "Done!");
@@ -493,16 +482,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
             }
             case OBJ_STRING: {
                 ObjString* string = AS_STRING(value);
-                if (string->Chars != NULL)
-                    Memory::Free(string->Chars);
-                string->Chars = NULL;
-
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjString));
-                GarbageCollector::GarbageSize -= sizeof(ObjString);
-                Memory::Free(string);
-                break;
-            }
-            case OBJ_FUNCTION: {
+                FreeString(string);
                 break;
             }
             case OBJ_ARRAY: {
@@ -510,7 +490,6 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
 
                 // An array does not own its values, so it's not allowed
                 // to free them.
-
                 array->Values->clear();
                 delete array->Values;
 
@@ -522,21 +501,25 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
             case OBJ_MAP: {
                 ObjMap* map = AS_MAP(value);
 
-                //// Free keys
+                // Free keys
                 map->Keys->WithAll([](Uint32, char* ptr) -> void {
                     free(ptr);
                 });
+
                 // Free Keys table
-                //map->Keys->Clear();
                 delete map->Keys;
+
                 // Free Values table
-                //map->Values->Clear();
                 delete map->Values;
-                //
 
                 assert(GarbageCollector::GarbageSize >= sizeof(ObjMap));
                 GarbageCollector::GarbageSize -= sizeof(ObjMap);
                 Memory::Free(map);
+                break;
+            }
+            case OBJ_CLASS: {
+                ObjClass* klass = AS_CLASS(value);
+                FreeClass(klass);
                 break;
             }
             default:
@@ -711,7 +694,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
     bool doLineNumbers = opts & 1;
     bool hasSourceFilename = opts & 2;
 
-    int functionListOffset = AllFunctionList.size();
+    size_t functionListOffset = AllFunctionList.size();
 
     int chunkCount = stream->ReadInt32();
     for (int i = 0; i < chunkCount; i++) {
