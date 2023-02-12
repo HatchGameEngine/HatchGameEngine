@@ -37,6 +37,10 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/Values.h>
 
+#ifndef _MSC_VER
+#define USING_VM_DISPATCH_TABLE
+#endif
+
 // Locks are only in 3 places:
 // Heap, which contains object memory and globals
 // Bytecode area, which contains function bytecode
@@ -428,7 +432,6 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_LESS)
                 PRINT_CASE(OP_LESS_EQUAL)
                 PRINT_CASE(OP_PRINT)
-                PRINT_CASE(OP_TYPEOF)
                 PRINT_CASE(OP_ENUM)
                 PRINT_CASE(OP_SAVE_VALUE)
                 PRINT_CASE(OP_LOAD_VALUE)
