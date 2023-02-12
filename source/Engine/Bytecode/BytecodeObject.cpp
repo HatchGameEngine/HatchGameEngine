@@ -117,9 +117,14 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
         value = klass->Methods->Get(hash);
         return true;
     }
-    else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
-        value = klass->Parent->Methods->Get(hash);
-        return true;
+    else {
+        if (!klass->Parent && klass->ParentHash) {
+            BytecodeObjectManager::SetClassParent(klass);
+        }
+        if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
+            value = klass->Parent->Methods->Get(hash);
+            return true;
+        }
     }
 
     return false;

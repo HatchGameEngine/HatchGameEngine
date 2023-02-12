@@ -180,14 +180,13 @@ const char*               DEBUG_lastTileColFilename = NULL;
 int ViewRenderList[MAX_SCENE_VIEWS];
 
 void ObjectList_CallLoads(Uint32, ObjectList* list) {
-    char   entitySpecialFunctions[sizeof(list->ObjectName) + 5];
-    snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_Load", list->ObjectName);
-    BytecodeObjectManager::CallFunction(entitySpecialFunctions);
+    // This is called before object lists are cleared, so we need to check
+    // if there are any entities in the list.
+    if (list->EntityCount > 0)
+        BytecodeObjectManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
-    char   entitySpecialFunctions[sizeof(list->ObjectName) + 13];
-    snprintf(entitySpecialFunctions, sizeof entitySpecialFunctions, "%s_GlobalUpdate", list->ObjectName);
-    BytecodeObjectManager::CallFunction(entitySpecialFunctions);
+    BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
     if (Scene::Paused && ent->Pauseable)

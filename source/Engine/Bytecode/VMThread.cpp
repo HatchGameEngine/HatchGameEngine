@@ -573,7 +573,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         BytecodeObjectManager::SetClassParent(klass);
                     }
 
-                    if (BindMethod(instance->Class, hash)) {
+                    if (GetMethod(instance->Class, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
                     }
@@ -606,7 +606,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         BytecodeObjectManager::SetClassParent(klass);
                     }
 
-                    if (BindMethod(klass, hash)) {
+                    if (GetMethod(klass, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
                     }
@@ -1285,19 +1285,11 @@ PUBLIC int     VMThread::RunInstruction() {
             }
 
             Push(OBJECT_VAL(klass));
-
-            // printf("OP_CLASS:\n");
-            // PrintStack();
             VM_BREAK;
         }
         VM_CASE(OP_INHERIT): {
             ObjClass* klass = AS_CLASS(Peek(0));
-            // Uint32 hashClass = ReadUInt32(frame);
             Uint32 hashSuper = ReadUInt32(frame);
-
-            // printf("OP_INHERIT:    hashSuper %08X\n", hashSuper);
-            // PrintStack();
-
             klass->ParentHash = hashSuper;
             VM_BREAK;
         }
@@ -1393,18 +1385,6 @@ PUBLIC void    VMThread::RunFunction(ObjFunction* func, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC void    VMThread::RunInvoke(Uint32 hash, int argCount) {
-    VMValue* lastStackTop = StackTop;
-    int      lastReturnFrame = ReturnFrame;
-
-    ReturnFrame = FrameCount;
-
-    Invoke(hash, argCount, false);
-    RunInstructionSet();
-
-    ReturnFrame = lastReturnFrame;
-    StackTop = lastStackTop;
-}
 PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
@@ -1463,7 +1443,7 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = NULL_VAL;
 }
 
-PUBLIC bool    VMThread::BindMethod(ObjClass* klass, Uint32 hash) {
+PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
     if (BytecodeObjectManager::Lock()) {
         VMValue method;
         if (klass->Methods->Exists(hash)) {
@@ -1482,14 +1462,17 @@ PUBLIC bool    VMThread::BindMethod(ObjClass* klass, Uint32 hash) {
             return false;
         }
 
-        // ObjBoundMethod* bound = NewBoundMethod(Peek(0), AS_FUNCTION(method));
         Pop(); // Instance.
-        // Push(OBJECT_VAL(bound));
         Push(method);
         BytecodeObjectManager::Unlock();
         return true;
     }
     return false;
+}
+PUBLIC bool    VMThread::BindMethod(VMValue receiver, VMValue method) {
+    ObjBoundMethod* bound = NewBoundMethod(receiver, AS_FUNCTION(method));
+    Push(OBJECT_VAL(bound));
+    return true;
 }
 PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
     if (BytecodeObjectManager::Lock()) {
@@ -1612,10 +1595,6 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
             method = klass->Parent->Methods->Get(hash);
         }
         else {
-            // if (!__Tokens__ || !__Tokens__->Exists(hash))
-            //     ThrowRuntimeError(true, "Undefined property $[%08X].", hash);
-            // else
-            //     ThrowRuntimeError(true, "Undefined property \"%s\".", __Tokens__->Get(hash));
             BytecodeObjectManager::Unlock();
             return false;
         }

@@ -789,7 +789,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
         return false;
 
     ObjFunction* function = AS_FUNCTION(functionValue);
-    if (!function)
+    if (!function) // Does this need to be checked?
         return false;
 
     Threads[0].RunEntityFunction(function, 0);

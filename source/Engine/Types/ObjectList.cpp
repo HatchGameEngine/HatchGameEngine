@@ -9,6 +9,8 @@ public:
     Entity* EntityLast = NULL;
 
     char ObjectName[256];
+    char LoadFunctionName[256 + 5];
+    char GlobalUpdateFunctionName[256 + 13];
     double AverageUpdateEarlyTime = 0.0;
     double AverageUpdateTime = 0.0;
     double AverageUpdateLateTime = 0.0;
@@ -28,6 +30,8 @@ public:
 
 PUBLIC         ObjectList::ObjectList(const char* name) {
     StringUtils::Copy(ObjectName, name, sizeof(ObjectName));
+    snprintf(LoadFunctionName, sizeof LoadFunctionName, "%s_Load", ObjectName);
+    snprintf(GlobalUpdateFunctionName, sizeof GlobalUpdateFunctionName, "%s_GlobalUpdate", ObjectName);
 }
 
 // Double linked-list functions
