@@ -6816,8 +6816,8 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetWidth
- * \desc Gets the width of the scene in tiles.
- * \return Returns the width of the scene in tiles.
+ * \desc Gets the width of the scene (in tiles).
+ * \return Returns the width of the scene (in tiles).
  * \ns Scene
  */
 VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -6835,8 +6835,8 @@ VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetHeight
- * \desc Gets the height of the scene in tiles.
- * \return Returns the height of the scene in tiles.
+ * \desc Gets the height of the scene (in tiles).
+ * \return Returns the height of the scene (in tiles).
  * \ns Scene
  */
 VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -6851,6 +6851,58 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     return INTEGER_VAL(v);
+}
+/***
+ * Scene.GetLayerWidth
+ * \desc Gets the width of a layer index (in tiles).
+ * \return Returns the width of the layer index (in tiles).
+ * \ns Scene
+ */
+VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int layer = GET_ARG(0, GetInteger);
+    int v = 0;
+    if (Scene::Layers.size() > 0)
+        v = Scene::Layers[layer].Width;
+
+    return INTEGER_VAL(v);
+}
+/***
+ * Scene.GetLayerHeight
+ * \desc Gets the height of a layer index (in tiles).
+ * \return Returns the height of a layer index (in tiles).
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int layer = GET_ARG(0, GetInteger);
+    int v = 0;
+    if (Scene::Layers.size() > 0)
+        v = Scene::Layers[layer].Height;
+
+    return INTEGER_VAL(v);
+}
+/***
+ * Scene.GetLayerOffsetX
+ * \desc Gets the X offset of a layer index.
+ * \return Returns the X offset of a layer index.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].OffsetX);
+}
+/***
+ * Scene.GetLayerOffsetY
+ * \desc Gets the Y offset of a layer index.
+ * \return Returns the Y offset of a layer index.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].OffsetY);
 }
 /***
  * Scene.GetTileSize
@@ -10682,6 +10734,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetName);
     DEF_NATIVE(Scene, GetWidth);
     DEF_NATIVE(Scene, GetHeight);
+    DEF_NATIVE(Scene, GetLayerWidth);
+    DEF_NATIVE(Scene, GetLayerHeight);
+    DEF_NATIVE(Scene, GetLayerOffsetX);
+    DEF_NATIVE(Scene, GetLayerOffsetY);
     DEF_NATIVE(Scene, GetTileSize);
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
