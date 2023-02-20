@@ -525,6 +525,40 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
     return NULL_VAL;
 }
 
+PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 5);
+    Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
+    ISprite* sprite = StandardLibrary::GetSprite(args, 1);
+    int animation = StandardLibrary::GetInteger(args, 2);
+    int frame = StandardLibrary::GetInteger(args, 3);
+    int hitbox = StandardLibrary::GetInteger(args, 4);
+
+    if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        return NULL_VAL;
+    }
+    if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        return NULL_VAL;
+    }
+
+    AnimFrame frameO = sprite->Animations[animation].Frames[frame];
+
+    if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        return NULL_VAL;
+    }
+
+    CollisionBox box = frameO.Boxes[hitbox];
+
+    ObjArray* array = NewArray();
+    array->Values->push_back(DECIMAL_VAL(box.Right - box.Left));
+    array->Values->push_back(DECIMAL_VAL(box.Bottom - box.Top));
+    array->Values->push_back(DECIMAL_VAL(box.Left - (box.Right - box.Left) * 0.5f));
+    array->Values->push_back(DECIMAL_VAL(box.Top - (box.Bottom - box.Top) * 0.5f));
+    return OBJECT_VAL(array);
+}
+
 /*
 bool Entity::CollideWithObject
 int  Entity::SolidCollideWithObject
