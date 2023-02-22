@@ -71,6 +71,13 @@ public:
     int          SensorCollided = false;
     int          SensorAngle = 0;
 
+    float        VelocityX = 0.0f;
+    float        VelocityY = 0.0f;
+    float        GroundVel = 0.0f;
+    float        GravityStrength = 0.0f;
+    int          OnGround = false;
+    int          Direction = 0;
+
     bool         Removed = false;
 
     Entity*      PrevEntity = NULL;
