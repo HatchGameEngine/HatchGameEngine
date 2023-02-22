@@ -499,12 +499,26 @@ PUBLIC int     VMThread::RunInstruction() {
                 VMValue LHS = BytecodeObjectManager::Globals->Get(hash);
                 VMValue value = Peek(0);
                 switch (LHS.Type) {
-                    case VAL_LINKED_INTEGER:
-                        AS_LINKED_INTEGER(LHS) = AS_INTEGER(value);
+                    case VAL_LINKED_INTEGER: {
+                        VMValue result = BytecodeObjectManager::CastValueAsInteger(value);
+                        if (IS_NULL(result)) {
+                            // Conversion failed
+                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Integer", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                goto FAIL_OP_SET_PROPERTY;
+                        }
+                        AS_LINKED_INTEGER(LHS) = AS_INTEGER(result);
                         break;
-                    case VAL_LINKED_DECIMAL:
-                        AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(BytecodeObjectManager::CastValueAsDecimal(value));
+                    }
+                    case VAL_LINKED_DECIMAL: {
+                        VMValue result = BytecodeObjectManager::CastValueAsDecimal(value);
+                        if (IS_NULL(result)) {
+                            // Conversion failed
+                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Decimal", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                goto FAIL_OP_SET_PROPERTY;
+                        }
+                        AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(result);
                         break;
+                    }
                     default:
                         BytecodeObjectManager::Globals->Put(hash, value);
                 }
@@ -638,6 +652,7 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash;
             VMValue field;
             VMValue value;
+            VMValue result;
             VMValue object;
             Table* fields;
 
@@ -664,10 +679,22 @@ PUBLIC int     VMThread::RunInstruction() {
                     field = fields->Get(hash);
                     switch (field.Type) {
                         case VAL_LINKED_INTEGER:
-                            AS_LINKED_INTEGER(field) = AS_INTEGER(BytecodeObjectManager::CastValueAsInteger(value));
+                            result = BytecodeObjectManager::CastValueAsInteger(value);
+                            if (IS_NULL(result)) {
+                                // Conversion failed
+                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Integer", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                    goto FAIL_OP_SET_PROPERTY;
+                            }
+                            AS_LINKED_INTEGER(field) = AS_INTEGER(result);
                             break;
                         case VAL_LINKED_DECIMAL:
-                            AS_LINKED_DECIMAL(field) = AS_DECIMAL(BytecodeObjectManager::CastValueAsDecimal(value));
+                            result = BytecodeObjectManager::CastValueAsDecimal(value);
+                            if (IS_NULL(result)) {
+                                // Conversion failed
+                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Decimal", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                    goto FAIL_OP_SET_PROPERTY;
+                            }
+                            AS_LINKED_DECIMAL(field) = AS_DECIMAL(result);
                             break;
                         default:
                             fields->Put(hash, value);
