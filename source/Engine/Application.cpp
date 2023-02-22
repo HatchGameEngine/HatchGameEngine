@@ -97,7 +97,7 @@ bool        Application::GameStart = false;
 
 SDL_Window* Application::Window = NULL;
 char        Application::WindowTitle[256];
-int         Application::WindowWidth = 640;
+int         Application::WindowWidth = 848;
 int         Application::WindowHeight = 480;
 int         Application::DefaultMonitor = 0;
 
