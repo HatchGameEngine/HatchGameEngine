@@ -552,8 +552,8 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
     CollisionBox box = frameO.Boxes[hitbox];
 
     ObjArray* array = NewArray();
-    array->Values->push_back(DECIMAL_VAL(box.Right - box.Left));
-    array->Values->push_back(DECIMAL_VAL(box.Bottom - box.Top));
+    array->Values->push_back(DECIMAL_VAL((float)(box.Right - box.Left)));
+    array->Values->push_back(DECIMAL_VAL((float)(box.Bottom - box.Top)));
     array->Values->push_back(DECIMAL_VAL(box.Left - (box.Right - box.Left) * 0.5f));
     array->Values->push_back(DECIMAL_VAL(box.Top - (box.Bottom - box.Top) * 0.5f));
     return OBJECT_VAL(array);
