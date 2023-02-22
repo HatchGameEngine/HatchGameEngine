@@ -10199,7 +10199,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_LINK_DECIMAL(a, b)  BytecodeObjectManager::GlobalLinkDecimal(NULL, a, b)
 #define DEF_ENUM(a)             DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b)    DEF_CONST_INT(#a "_" #b, (int)a::b)
-#define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(#a "_" #c, (int)b::c)
+#define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
 PUBLIC STATIC void StandardLibrary::Link() {
     VMValue val;
