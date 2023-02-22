@@ -90,6 +90,13 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_DEC(HitboxOffY);
     LINK_INT(FlipFlag);
 
+
+    LINK_DEC(VelocityX);
+    LINK_DEC(VelocityY);
+    LINK_DEC(GroundVel);
+    LINK_INT(Direction);
+    LINK_INT(OnGround);
+
     LINK_DEC(SensorX);
     LINK_DEC(SensorY);
     LINK_INT(SensorCollided);
@@ -251,6 +258,13 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     HitboxOffX = 0.0f;
     HitboxOffY = 0.0f;
     FlipFlag = 0;
+
+    VelocityX = 0.0f;
+    VelocityY = 0.0f;
+    GroundVel = 0.0f;
+    GravityStrength = 0.0f;
+    OnGround = false;
+    Direction = 0;
 
     Persistent = false;
     Interactable = true;
@@ -545,17 +559,16 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
     AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
     if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
         return NULL_VAL;
     }
 
     CollisionBox box = frameO.Boxes[hitbox];
-
     ObjArray* array = NewArray();
-    array->Values->push_back(DECIMAL_VAL((float)(box.Right - box.Left)));
-    array->Values->push_back(DECIMAL_VAL((float)(box.Bottom - box.Top)));
-    array->Values->push_back(DECIMAL_VAL(box.Left - (box.Right - box.Left) * 0.5f));
-    array->Values->push_back(DECIMAL_VAL(box.Top - (box.Bottom - box.Top) * 0.5f));
+    array->Values->push_back(DECIMAL_VAL(box.Top));
+    array->Values->push_back(DECIMAL_VAL(box.Left));
+    array->Values->push_back(DECIMAL_VAL(box.Right));
+    array->Values->push_back(DECIMAL_VAL(box.Bottom));
     return OBJECT_VAL(array);
 }
 
