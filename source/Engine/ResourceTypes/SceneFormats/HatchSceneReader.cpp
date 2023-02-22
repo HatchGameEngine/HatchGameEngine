@@ -439,7 +439,7 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         char* objectName = scnClass->Name;
 
         // Spawn the object, if the class exists
-        ObjectList* objectList = Scene::GetObjectList(objectName);
+        ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
             BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
             obj->X = posX;

@@ -401,7 +401,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                 strncpy(object_type_string, object_type.Start, object_type.Length);
                 object_type_string[object_type.Length] = 0;
 
-                ObjectList* objectList = Scene::GetObjectList(object_type_string);
+                ObjectList* objectList = Scene::GetStaticObjectList(object_type_string);
                 if (objectList->SpawnFunction) {
                     BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
                     obj->X = object_x;

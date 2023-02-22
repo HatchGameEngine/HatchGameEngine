@@ -326,7 +326,7 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
         Log::Print(Log::LOG_VERBOSE, "Could not find object name with hash: 0x%08X", objectNameHash);
     }
 
-    ObjectList* objectList = Scene::NewObjectList(objectName);
+    ObjectList* objectList = Scene::GetStaticObjectList(objectName);
     if (!objectList) {
         if (objectName != NULL)
             Log::Print(Log::LOG_ERROR, "Could not create object list for '%s'!", objectName);
@@ -335,8 +335,6 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
         r->Close();
         return false;
     }
-
-    Scene::ObjectLists->Put(objectNameHash2, objectList);
 
     // Read arguments
     int    argumentCount = r->ReadByte();

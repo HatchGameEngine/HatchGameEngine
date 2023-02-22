@@ -29,6 +29,8 @@ public:
     static HashMap<ObjectList*>*     ObjectLists;
     static HashMap<ObjectRegistry*>* ObjectRegistries;
 
+    static HashMap<ObjectList*>*     StaticObjectLists;
+
     static int                       StaticObjectCount;
     static Entity*                   StaticObjectFirst;
     static Entity*                   StaticObjectLast;
@@ -129,6 +131,8 @@ HashMap<VMValue>*         Scene::Properties = NULL;
 HashMap<ObjectList*>*     Scene::ObjectLists = NULL;
 HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
 
+HashMap<ObjectList*>*     Scene::StaticObjectLists = NULL;
+
 int                       Scene::StaticObjectCount = 0;
 Entity*                   Scene::StaticObjectFirst = NULL;
 Entity*                   Scene::StaticObjectLast = NULL;
@@ -179,11 +183,13 @@ const char*               DEBUG_lastTileColFilename = NULL;
 
 int ViewRenderList[MAX_SCENE_VIEWS];
 
-void ObjectList_CallLoads(Uint32, ObjectList* list) {
+void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
     // This is called before object lists are cleared, so we need to check
     // if there are any entities in the list.
-    if (list->EntityCount > 0)
-        BytecodeObjectManager::CallFunction(list->LoadFunctionName);
+    if (!list->Count() && !Scene::StaticObjectLists->Exists(key))
+        return;
+
+    BytecodeObjectManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
     BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
@@ -483,6 +489,8 @@ PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
         Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
     if (Scene::ObjectRegistries == NULL)
         Scene::ObjectRegistries = new HashMap<ObjectRegistry*>(CombinedHash::EncryptData, 16);
+    if (Scene::StaticObjectLists == NULL)
+        Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 }
 
 PUBLIC STATIC void Scene::ResetPerf() {
@@ -1037,9 +1045,10 @@ PUBLIC STATIC void Scene::Restart() {
     });
 
     // Clean up object lists
-    if (Scene::ObjectLists) {
+    // Done after all objects are created.
+    if (Scene::ObjectLists && Scene::StaticObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32 key, ObjectList* list) -> void {
-            if (list->EntityCount == 0) {
+            if (!list->Count() && !Scene::StaticObjectLists->Exists(key)) {
                 Scene::ObjectLists->Remove(key);
                 delete list;
             }
@@ -1076,6 +1085,12 @@ PRIVATE STATIC void Scene::RemoveNonPersistentObjects(Entity** first, Entity** l
     }
 }
 PRIVATE STATIC void Scene::DeleteAllObjects() {
+    // Dispose and clear Static objects
+    Scene::DeleteObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
+
+    // Dispose and clear Dynamic objects
+    Scene::DeleteObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+
     // Clear lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1089,12 +1104,6 @@ PRIVATE STATIC void Scene::DeleteAllObjects() {
             registry->Clear();
         });
     }
-
-    // Dispose and clear Static objects
-    Scene::DeleteObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
-
-    // Dispose and clear Dynamic objects
-    Scene::DeleteObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 }
 PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Remove non-persistent objects from lists
@@ -1127,7 +1136,11 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::RemoveNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
     Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
-    // Clear PriorityLists
+    // Clear static object lists (but don't delete them)
+    if (Scene::StaticObjectLists)
+        Scene::StaticObjectLists->Clear();
+
+    // Clear priority lists
     Scene::ClearPriorityLists();
 
     // Dispose of layers
@@ -1210,7 +1223,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
 }
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (nothrow) ObjectList(objectName);
-    if (BytecodeObjectManager::LoadClass(objectName))
+    if (objectList && BytecodeObjectManager::LoadClass(objectName))
         objectList->SpawnFunction = BytecodeObjectManager::SpawnFunction;
     return objectList;
 }
@@ -1248,6 +1261,29 @@ PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
     else {
         objectList = Scene::NewObjectList(objectName);
         Scene::ObjectLists->Put(objectNameHash, objectList);
+    }
+
+    return objectList;
+}
+PUBLIC STATIC ObjectList* Scene::GetStaticObjectList(const char* objectName) {
+    ObjectList* objectList;
+
+    if (Scene::StaticObjectLists->Exists(objectName)) {
+        objectList = Scene::StaticObjectLists->Get(objectName);
+    }
+    else if (Scene::ObjectLists->Exists(objectName)) {
+        // There isn't a static object list with this name, but we can check
+        // if there's a regular one. If so, we just use it, and then put it
+        // in the static object list hash map. This is all so that object
+        // persistency can work.
+        objectList = Scene::ObjectLists->Get(objectName);
+        Scene::StaticObjectLists->Put(objectName, objectList);
+    }
+    else {
+        // Create a new object list
+        objectList = Scene::NewObjectList(objectName);
+        Scene::StaticObjectLists->Put(objectName, objectList);
+        Scene::ObjectLists->Put(objectName, objectList);
     }
 
     return objectList;
