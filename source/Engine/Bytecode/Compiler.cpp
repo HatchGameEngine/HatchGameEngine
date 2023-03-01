@@ -2431,6 +2431,9 @@ PUBLIC STATIC void   Compiler::PrintObject(char** buffer, int* buf_start, VMValu
         case OBJ_NATIVE:
             justin_print(buffer, buf_start, "<native fn>");
             break;
+        case OBJ_STREAM:
+            justin_print(buffer, buf_start, "<stream>");
+            break;
         case OBJ_STRING:
             justin_print(buffer, buf_start, "\"%s\"", AS_CSTRING(value));
             break;

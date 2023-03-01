@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
+#include <Engine/IO/Stream.h>
 
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
@@ -129,6 +130,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define IS_STRING(value)        IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value)         IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value)           IsObjectType(value, OBJ_MAP)
+#define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -140,6 +142,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define AS_CSTRING(value)       (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value)         ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value)           ((ObjMap*)AS_OBJECT(value))
+#define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -152,6 +155,7 @@ enum ObjType {
     OBJ_UPVALUE,
     OBJ_ARRAY,
     OBJ_MAP,
+    OBJ_STREAM
 };
 
 typedef HashMap<VMValue> Table;
@@ -224,9 +228,17 @@ struct ObjMap {
     HashMap<VMValue>* Values;
     HashMap<char*>*   Keys;
 };
+struct ObjStream {
+    Obj               Object;
+    Stream*           StreamPtr;
+    bool              Writable;
+    bool              Closed;
+};
 
 ObjString*         TakeString(char* chars, size_t length);
+ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
+ObjString*         CopyString(const char* chars);
 ObjString*         AllocString(size_t length);
 char*              HeapCopyString(const char* str, size_t len);
 ObjFunction*       NewFunction();
@@ -238,6 +250,7 @@ ObjInstance*       NewInstance(ObjClass* klass);
 ObjBoundMethod*    NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray*          NewArray();
 ObjMap*            NewMap();
+ObjStream*         NewStream(Stream* streamPtr, bool writable);
 
 bool               ValuesEqual(VMValue a, VMValue b);
 

@@ -37,6 +37,7 @@ public:
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/TextFormats/JSON/jsmn.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -209,6 +210,24 @@ namespace LOCAL {
         }
         return value;
     }
+    inline ObjStream*    GetStream(VMValue* args, int index, Uint32 threadID) {
+        ObjStream* value = NULL;
+        if (BytecodeObjectManager::Lock()) {
+            if (!IS_STREAM(args[index]))
+                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Stream", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+
+            value = (ObjStream*)(AS_OBJECT(args[index]));
+            BytecodeObjectManager::Unlock();
+        }
+        if (!value) {
+            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+                "Stream"))
+                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        }
+        return value;
+    }
 
     inline ISprite*        GetSprite(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
@@ -355,7 +374,7 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
 
 VMValue ReturnString(char* str) {
     if (str && BytecodeObjectManager::Lock()) {
-        ObjString* string = CopyString(str, strlen(str));
+        ObjString* string = CopyString(str);
         BytecodeObjectManager::Unlock();
         return OBJECT_VAL(string);
     }
@@ -1190,7 +1209,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
     if (BytecodeObjectManager::Lock()) {
         array = NewArray();
         for (size_t i = 0; i < fileList.size(); i++) {
-            ObjString* part = CopyString(fileList[i], strlen(fileList[i]));
+            ObjString* part = CopyString(fileList[i]);
             array->Values->push_back(OBJECT_VAL(part));
             free(fileList[i]);
         }
@@ -1221,7 +1240,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
     if (BytecodeObjectManager::Lock()) {
         array = NewArray();
         for (size_t i = 0; i < fileList.size(); i++) {
-            ObjString* part = CopyString(fileList[i], strlen(fileList[i]));
+            ObjString* part = CopyString(fileList[i]);
             array->Values->push_back(OBJECT_VAL(part));
             free(fileList[i]);
         }
@@ -5781,7 +5800,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
 
             VMValue strng = NULL_VAL;
             if (BytecodeObjectManager::Lock()) {
-                strng = OBJECT_VAL(CopyString(temp, strlen(temp)));
+                strng = OBJECT_VAL(CopyString(temp));
                 BytecodeObjectManager::Unlock();
             }
             return strng;
@@ -5797,7 +5816,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
 
             VMValue strng = NULL_VAL;
             if (BytecodeObjectManager::Lock()) {
-                strng = OBJECT_VAL(CopyString(temp, strlen(temp)));
+                strng = OBJECT_VAL(CopyString(temp));
                 BytecodeObjectManager::Unlock();
             }
             return strng;
@@ -6574,9 +6593,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char*  filename = GET_ARG(0, GetString);
-    Stream* reader = ResourceStream::New(filename);
-    if (reader) {
-        reader->Close();
+    if (ResourceManager::ResourceExists(filename)) {
         return INTEGER_VAL(true);
     }
     return INTEGER_VAL(false);
@@ -6812,7 +6829,7 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentScene, strlen(Scene::CurrentScene)));
+    return OBJECT_VAL(CopyString(Scene::CurrentScene));
 }
 /***
  * Scene.GetWidth
@@ -7609,7 +7626,7 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
     if (!result)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(result, strlen(result)));
+    return OBJECT_VAL(CopyString(result));
 }
 /***
  * Settings.GetNumber
@@ -8416,6 +8433,530 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Stream
+/***
+ * Stream.FromResource
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    if (BytecodeObjectManager::Lock()) {
+        char* filename = GET_ARG(0, GetString);
+        ResourceStream* streamPtr = ResourceStream::New(filename);
+        if (!streamPtr) {
+            BytecodeObjectManager::Unlock();
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not open resource stream \"%s\"!", filename);
+            return NULL_VAL;
+        }
+        ObjStream* stream = NewStream(streamPtr, false);
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(stream);
+    }
+    return NULL_VAL;
+}
+/***
+ * Stream.FromFile
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    if (BytecodeObjectManager::Lock()) {
+        char* filename = GET_ARG(0, GetString);
+        int access = GET_ARG(1, GetInteger);
+        FileStream* streamPtr = FileStream::New(filename, access);
+        if (!streamPtr) {
+            BytecodeObjectManager::Unlock();
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not open file stream \"%s\"!", filename);
+            return NULL_VAL;
+        }
+        ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(stream);
+    }
+    return NULL_VAL;
+}
+/***
+ * Stream.Close
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot close already closed stream!");
+        return NULL_VAL;
+    }
+    stream->StreamPtr->Close();
+    stream->Closed = true;
+    return NULL_VAL;
+}
+/***
+ * Stream.Seek
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint64 offset = GET_ARG(1, GetInteger);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot seek closed stream!");
+        return NULL_VAL;
+    }
+    stream->StreamPtr->Seek(offset);
+    return NULL_VAL;
+}
+/***
+ * Stream.SeekEnd
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint64 offset = GET_ARG(1, GetInteger);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot seek closed stream!");
+        return NULL_VAL;
+    }
+    stream->StreamPtr->SeekEnd(offset);
+    return NULL_VAL;
+}
+/***
+ * Stream.Skip
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint64 offset = GET_ARG(1, GetInteger);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot skip closed stream!");
+        return NULL_VAL;
+    }
+    stream->StreamPtr->Skip(offset);
+    return NULL_VAL;
+}
+/***
+ * Stream.Position
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot get position of closed stream!");
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)stream->StreamPtr->Position());
+}
+/***
+ * Stream.Length
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    if (stream->Closed) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot get length of closed stream!");
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)stream->StreamPtr->Length());
+}
+#define CHECK_READ_STREAM \
+    if (stream->Closed) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
+        return NULL_VAL; \
+    }
+/***
+ * Stream.ReadByte
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadByte());
+}
+/***
+ * Stream.ReadUInt16
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadUInt16());
+}
+/***
+ * Stream.ReadUInt16BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadUInt16BE());
+}
+/***
+ * Stream.ReadUInt32
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadUInt32());
+}
+/***
+ * Stream.ReadUInt32BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadUInt32BE());
+}
+/***
+ * Stream.ReadUInt64
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadUInt64());
+}
+/***
+ * Stream.ReadInt16
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadInt16());
+}
+/***
+ * Stream.ReadInt16BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadInt16BE());
+}
+/***
+ * Stream.ReadInt32
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadInt32());
+}
+/***
+ * Stream.ReadInt32BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadInt32BE());
+}
+/***
+ * Stream.ReadInt64
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return INTEGER_VAL((int)stream->StreamPtr->ReadInt64());
+}
+/***
+ * Stream.ReadFloat
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    return DECIMAL_VAL((float)stream->StreamPtr->ReadFloat());
+}
+/***
+ * Stream.ReadString
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    VMValue obj = NULL_VAL;
+    if (BytecodeObjectManager::Lock()) {
+        char* line = stream->StreamPtr->ReadString();
+        obj = OBJECT_VAL(TakeString(line));
+        BytecodeObjectManager::Unlock();
+    }
+    return obj;
+}
+/***
+ * Stream.ReadLine
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    VMValue obj = NULL_VAL;
+    if (BytecodeObjectManager::Lock()) {
+        char* line = stream->StreamPtr->ReadLine();
+        obj = OBJECT_VAL(TakeString(line));
+        BytecodeObjectManager::Unlock();
+    }
+    return obj;
+}
+#undef CHECK_READ_STREAM
+#define CHECK_WRITE_STREAM \
+    if (stream->Closed) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
+        return NULL_VAL; \
+    } \
+    if (!stream->Writable) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to read-only stream!"); \
+        return NULL_VAL; \
+    }
+/***
+ * Stream.WriteByte
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint8 byte = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteByte(byte);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteUInt16
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint16 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteUInt16(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteUInt16BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint16 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteUInt16BE(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteUInt32
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint32 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteUInt32(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteUInt32BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint32 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteUInt32BE(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteUInt64
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Uint64 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteUInt64(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteInt16
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint16 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteInt16(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteInt16BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint16 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteInt16BE(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteInt32
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint32 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteInt32(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteInt32BE
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint32 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteInt32BE(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteInt64
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    Sint64 val = GET_ARG(1, GetInteger);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteInt64(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteFloat
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    float val = GET_ARG(1, GetDecimal);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteFloat(val);
+    return NULL_VAL;
+}
+/***
+ * Stream.WriteString
+ * \desc
+ * \return
+ * \ns Stream
+ */
+VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    char* string = GET_ARG(1, GetString);
+    CHECK_WRITE_STREAM;
+    stream->StreamPtr->WriteString(string);
+    return NULL_VAL;
+}
+#undef CHECK_WRITE_STREAM
+// #endregion
+
 // #region String
 /***
  * String.Split
@@ -8551,7 +9092,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 
     VMValue obj = NULL_VAL;
     if (BytecodeObjectManager::Lock()) {
-        ObjString* objStr = CopyString(string, strlen(string));
+        ObjString* objStr = CopyString(string);
         for (char* a = objStr->Chars; *a; a++) {
             if (*a >= 'a' && *a <= 'z')
                 *a += 'A' - 'a';
@@ -8576,7 +9117,7 @@ VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
 
     VMValue obj = NULL_VAL;
     if (BytecodeObjectManager::Lock()) {
-        ObjString* objStr = CopyString(string, strlen(string));
+        ObjString* objStr = CopyString(string);
         for (char* a = objStr->Chars; *a; a++) {
             if (*a >= 'A' && *a <= 'Z')
                 *a += 'a' - 'A';
@@ -10153,7 +10694,7 @@ static VMValue _XML_FillMap(XMLNode* parent) {
 
         keyHash = map->Keys->HashFunction(attrName, strlen(attrName));
         map->Keys->Put(keyHash, HeapCopyString(attrName, strlen(attrName)));
-        map->Values->Put(keyHash, OBJECT_VAL(CopyString(value, strlen(value))));
+        map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
     }
 
     free(attrName);
@@ -10846,6 +11387,45 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameWidth);
     DEF_NATIVE(Sprite, GetFrameHeight);
     DEF_NATIVE(Sprite, GetFrameID);
+    // #endregion
+
+    // #region Stream
+    INIT_CLASS(Stream);
+    DEF_NATIVE(Stream, FromResource);
+    DEF_NATIVE(Stream, FromFile);
+    DEF_NATIVE(Stream, Close);
+    DEF_NATIVE(Stream, Seek);
+    DEF_NATIVE(Stream, SeekEnd);
+    DEF_NATIVE(Stream, Skip);
+    DEF_NATIVE(Stream, Position);
+    DEF_NATIVE(Stream, Length);
+    DEF_NATIVE(Stream, ReadByte);
+    DEF_NATIVE(Stream, ReadUInt16);
+    DEF_NATIVE(Stream, ReadUInt16BE);
+    DEF_NATIVE(Stream, ReadUInt32);
+    DEF_NATIVE(Stream, ReadUInt32BE);
+    DEF_NATIVE(Stream, ReadUInt64);
+    DEF_NATIVE(Stream, ReadInt16);
+    DEF_NATIVE(Stream, ReadInt16BE);
+    DEF_NATIVE(Stream, ReadInt32);
+    DEF_NATIVE(Stream, ReadInt32BE);
+    DEF_NATIVE(Stream, ReadInt64);
+    DEF_NATIVE(Stream, ReadFloat);
+    DEF_NATIVE(Stream, ReadString);
+    DEF_NATIVE(Stream, ReadLine);
+    DEF_NATIVE(Stream, WriteByte);
+    DEF_NATIVE(Stream, WriteUInt16);
+    DEF_NATIVE(Stream, WriteUInt16BE);
+    DEF_NATIVE(Stream, WriteUInt32);
+    DEF_NATIVE(Stream, WriteUInt32BE);
+    DEF_NATIVE(Stream, WriteUInt64);
+    DEF_NATIVE(Stream, WriteInt16);
+    DEF_NATIVE(Stream, WriteInt16BE);
+    DEF_NATIVE(Stream, WriteInt32);
+    DEF_NATIVE(Stream, WriteInt32BE);
+    DEF_NATIVE(Stream, WriteInt64);
+    DEF_NATIVE(Stream, WriteFloat);
+    DEF_NATIVE(Stream, WriteString);
     // #endregion
 
     // #region String

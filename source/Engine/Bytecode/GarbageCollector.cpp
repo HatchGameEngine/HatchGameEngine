@@ -106,10 +106,10 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     double freeElapsed = Clock::GetTicks();
 
     int objectTypeFreed[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
     int objectTypeCounts[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
 
     // Collect the white objects
@@ -152,6 +152,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     LOG_ME(OBJ_NATIVE);
     LOG_ME(OBJ_STRING);
     LOG_ME(OBJ_UPVALUE);
+    LOG_ME(OBJ_STREAM);
 
     GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 

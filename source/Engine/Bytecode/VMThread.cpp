@@ -1304,11 +1304,11 @@ PUBLIC int     VMThread::RunInstruction() {
             if (!__Tokens__ || !__Tokens__->Exists(hash)) {
                 char name[9];
                 snprintf(name, sizeof(name), "%8X", hash);
-                klass->Name = CopyString(name, strlen(name));
+                klass->Name = CopyString(name);
             }
             else {
                 char* t = __Tokens__->Get(hash);
-                klass->Name = CopyString(t, strlen(t));
+                klass->Name = CopyString(t);
             }
 
             Push(OBJECT_VAL(klass));
@@ -2118,10 +2118,13 @@ PUBLIC VMValue VMThread::Value_TypeOf() {
                 case OBJ_MAP:
                     valueType = "map";
                     break;
+                case OBJ_STREAM:
+                    valueType = "stream";
+                    break;
             }
         }
     }
 
-    return OBJECT_VAL(CopyString(valueType, strlen(valueType)));
+    return OBJECT_VAL(CopyString(valueType));
 }
 // #endregion

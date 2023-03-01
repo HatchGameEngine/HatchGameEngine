@@ -35,37 +35,27 @@ static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     string->Length = length;
     string->Chars = chars;
     string->Hash = hash;
-    // BytecodeObjectManager::Push(OBJECT_VAL(string));
-    // BytecodeObjectManager::Strings->Put(hash, OBJECT_VAL(string));
-    // BytecodeObjectManager::Pop();
     return string;
 }
 
 ObjString*        TakeString(char* chars, size_t length) {
     Uint32 hash = FNV1A::EncryptData(chars, length);
-    // ObjString* interned = AS_STRING(BytecodeObjectManager::Strings->Get(hash));
-    // if (interned != NULL) {
-    //     // FREE_ARRAY(char, chars, length + 1);
-    //     free(chars);
-    //     return interned;
-    // }
     return AllocateString(chars, length, hash);
+}
+ObjString*        TakeString(char* chars) {
+    return TakeString(chars, strlen(chars));
 }
 ObjString*        CopyString(const char* chars, size_t length) {
     Uint32 hash = FNV1A::EncryptData(chars, length);
-    // if (BytecodeObjectManager::Strings->Exists(hash)) {
-    //     ObjString* interned = AS_STRING(BytecodeObjectManager::Strings->Get(hash));
-    //     if (interned != NULL) {
-    //         printf("interned: %p\n", interned);
-    //         return interned;
-    //     }
-    // }
 
     char* heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
 
     return AllocateString(heapChars, length, hash);
+}
+ObjString*        CopyString(const char* chars) {
+    return CopyString(chars, strlen(chars));
 }
 ObjString*        AllocString(size_t length) {
     char* heapChars = ALLOCATE(char, length + 1);
@@ -157,6 +147,14 @@ ObjMap*           NewMap() {
     map->Keys = new HashMap<char*>(NULL, 4);
     return map;
 }
+ObjStream*        NewStream(Stream* streamPtr, bool writable) {
+    ObjStream* stream = ALLOCATE_OBJ(ObjStream, OBJ_STREAM);
+    Memory::Track(stream, "NewStream");
+    stream->StreamPtr = streamPtr;
+    stream->Writable = writable;
+    stream->Closed = false;
+    return stream;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -200,6 +198,8 @@ const char*       GetTypeString(VMValue value) {
                     return "Array";
                 case OBJ_MAP:
                     return "Map";
+                case OBJ_STREAM:
+                    return "Stream";
                 default:
                     return "Unknown Object Type";
             }

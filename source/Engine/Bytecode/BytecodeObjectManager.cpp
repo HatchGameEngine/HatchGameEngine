@@ -522,6 +522,17 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
                 FreeClass(klass);
                 break;
             }
+            case OBJ_STREAM: {
+                ObjStream* stream = AS_STREAM(value);
+
+                if (!stream->Closed)
+                    stream->StreamPtr->Close();
+
+                assert(GarbageCollector::GarbageSize >= sizeof(ObjStream));
+                GarbageCollector::GarbageSize -= sizeof(ObjStream);
+                Memory::Free(stream);
+                break;
+            }
             default:
                 break;
         }
@@ -730,7 +741,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
                 case VAL_OBJECT:
                     // if (OBJECT_TYPE(constt) == OBJ_STRING) {
                         char* str = stream->ReadString();
-                        ChunkAddConstant(&function->Chunk, OBJECT_VAL(CopyString(str, strlen(str))));
+                        ChunkAddConstant(&function->Chunk, OBJECT_VAL(CopyString(str)));
                         Memory::Free(str);
                     // }
                     // else {

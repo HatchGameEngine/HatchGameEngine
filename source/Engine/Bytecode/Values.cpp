@@ -98,6 +98,9 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
         case OBJ_NATIVE:
             buffer_printf(buffer, "<native fn>");
             break;
+        case OBJ_STREAM:
+            buffer_printf(buffer, "<stream>");
+            break;
         case OBJ_STRING:
             buffer_printf(buffer, "\"%s\"", AS_CSTRING(value));
             break;

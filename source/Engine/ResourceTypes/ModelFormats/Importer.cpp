@@ -54,7 +54,7 @@ static void CopyColors(float dest[4], aiColor4D& src) {
     dest[3] = src.a;
 }
 
-static char* CopyString(aiString src) {
+static char* GetString(aiString src) {
     return StringUtils::Duplicate(src.C_Str());
 }
 
@@ -130,7 +130,7 @@ PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* ames
     size_t numVertices = amesh->mNumVertices;
 
     Mesh* mesh = new Mesh;
-    mesh->Name = CopyString(amesh->mName);
+    mesh->Name = GetString(amesh->mName);
     mesh->NumVertices = numVertices;
 
     mesh->VertexIndexCount = numFaces * 3;
@@ -243,7 +243,7 @@ PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMa
 PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode) {
     ModelNode* node = new ModelNode;
 
-    node->Name = CopyString(anode->mName);
+    node->Name = GetString(anode->mName);
     node->Parent = parent;
     node->LocalTransform = Matrix4x4::Create();
     node->GlobalTransform = Matrix4x4::Create();
@@ -279,7 +279,7 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
         struct aiBone* abone = amesh->mBones[i];
 
         MeshBone* bone = new MeshBone;
-        bone->Name = CopyString(abone->mName);
+        bone->Name = GetString(abone->mName);
         bone->InverseBindMatrix = CopyMatrix(abone->mOffsetMatrix);
 
         for (size_t w = 0; w < abone->mNumWeights; w++) {
@@ -311,7 +311,7 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
 
 PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimation* aanim) {
     ModelAnim* anim = new ModelAnim;
-    anim->Name = CopyString(aanim->mName);
+    anim->Name = GetString(aanim->mName);
     anim->Channels.resize(aanim->mNumChannels);
     anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
 
@@ -331,7 +331,7 @@ PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct ai
         struct aiNodeAnim* channel = aanim->mChannels[i];
         NodeAnim* nodeAnim = new NodeAnim;
 
-        nodeAnim->NodeName = CopyString(channel->mNodeName);
+        nodeAnim->NodeName = GetString(channel->mNodeName);
         nodeAnim->PostState = ConvertPrePostState(channel->mPostState);
         nodeAnim->PreState = ConvertPrePostState(channel->mPreState);
 
