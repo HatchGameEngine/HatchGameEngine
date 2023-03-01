@@ -74,6 +74,7 @@
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
             <li><a href="#Reference_Sound">Sound</a></li>
             <li><a href="#Reference_Sprite">Sprite</a></li>
+            <li><a href="#Reference_Stream">Stream</a></li>
             <li><a href="#Reference_String">String</a></li>
             <li><a href="#Reference_Texture">Texture</a></li>
             <li><a href="#Reference_Thread">Thread</a></li>
@@ -637,6 +638,47 @@
                     <li><a href="#Reference_Sprite_GetFrameWidth">Sprite.GetFrameWidth</a></li>
                     <li><a href="#Reference_Sprite_GetFrameHeight">Sprite.GetFrameHeight</a></li>
                     <li><a href="#Reference_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Stream">
+                <h2>Stream</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Stream_FromResource">Stream.FromResource</a></li>
+                    <li><a href="#Reference_Stream_FromFile">Stream.FromFile</a></li>
+                    <li><a href="#Reference_Stream_Close">Stream.Close</a></li>
+                    <li><a href="#Reference_Stream_Seek">Stream.Seek</a></li>
+                    <li><a href="#Reference_Stream_SeekEnd">Stream.SeekEnd</a></li>
+                    <li><a href="#Reference_Stream_Skip">Stream.Skip</a></li>
+                    <li><a href="#Reference_Stream_Position">Stream.Position</a></li>
+                    <li><a href="#Reference_Stream_Length">Stream.Length</a></li>
+                    <li><a href="#Reference_Stream_ReadByte">Stream.ReadByte</a></li>
+                    <li><a href="#Reference_Stream_ReadUInt16">Stream.ReadUInt16</a></li>
+                    <li><a href="#Reference_Stream_ReadUInt16BE">Stream.ReadUInt16BE</a></li>
+                    <li><a href="#Reference_Stream_ReadUInt32">Stream.ReadUInt32</a></li>
+                    <li><a href="#Reference_Stream_ReadUInt32BE">Stream.ReadUInt32BE</a></li>
+                    <li><a href="#Reference_Stream_ReadUInt64">Stream.ReadUInt64</a></li>
+                    <li><a href="#Reference_Stream_ReadInt16">Stream.ReadInt16</a></li>
+                    <li><a href="#Reference_Stream_ReadInt16BE">Stream.ReadInt16BE</a></li>
+                    <li><a href="#Reference_Stream_ReadInt32">Stream.ReadInt32</a></li>
+                    <li><a href="#Reference_Stream_ReadInt32BE">Stream.ReadInt32BE</a></li>
+                    <li><a href="#Reference_Stream_ReadInt64">Stream.ReadInt64</a></li>
+                    <li><a href="#Reference_Stream_ReadFloat">Stream.ReadFloat</a></li>
+                    <li><a href="#Reference_Stream_ReadString">Stream.ReadString</a></li>
+                    <li><a href="#Reference_Stream_ReadLine">Stream.ReadLine</a></li>
+                    <li><a href="#Reference_Stream_WriteByte">Stream.WriteByte</a></li>
+                    <li><a href="#Reference_Stream_WriteUInt16">Stream.WriteUInt16</a></li>
+                    <li><a href="#Reference_Stream_WriteUInt16BE">Stream.WriteUInt16BE</a></li>
+                    <li><a href="#Reference_Stream_WriteUInt32">Stream.WriteUInt32</a></li>
+                    <li><a href="#Reference_Stream_WriteUInt32BE">Stream.WriteUInt32BE</a></li>
+                    <li><a href="#Reference_Stream_WriteUInt64">Stream.WriteUInt64</a></li>
+                    <li><a href="#Reference_Stream_WriteInt16">Stream.WriteInt16</a></li>
+                    <li><a href="#Reference_Stream_WriteInt16BE">Stream.WriteInt16BE</a></li>
+                    <li><a href="#Reference_Stream_WriteInt32">Stream.WriteInt32</a></li>
+                    <li><a href="#Reference_Stream_WriteInt32BE">Stream.WriteInt32BE</a></li>
+                    <li><a href="#Reference_Stream_WriteInt64">Stream.WriteInt64</a></li>
+                    <li><a href="#Reference_Stream_WriteFloat">Stream.WriteFloat</a></li>
+                    <li><a href="#Reference_Stream_WriteString">Stream.WriteString</a></li>
                 </ul>
             </p>
             <p id="Reference_String">
@@ -5272,6 +5314,409 @@
         <div style="font-size: 14px;">Returns the frame ID (in pixels) of the specified sprite frame.</div>
         </p>
         <hr/>
+        <p id="Reference_Stream_FromResource">
+        <h2 style="margin-bottom: 8px;">Stream.FromResource</h2>
+        <code>Stream.FromResource(filename)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Opens a stream from a resource.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filename of the resource.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the newly opened stream.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_FromFile">
+        <h2 style="margin-bottom: 8px;">Stream.FromFile</h2>
+        <code>Stream.FromFile(filename, mode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Opens a stream from a file. <br/></br>File access modes:<ul><li><code>FileStream_READ_ACCESS</code></li><li><code>FileStream_WRITE_ACCESS</code></li><li><code>FileStream_APPEND_ACCESS</code></li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Path of the file.</li>
+        <li>mode (Integer): File access mode.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the newly opened stream.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_Close">
+        <h2 style="margin-bottom: 8px;">Stream.Close</h2>
+        <code>Stream.Close(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Closes a stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream to close.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_Seek">
+        <h2 style="margin-bottom: 8px;">Stream.Seek</h2>
+        <code>Stream.Seek(stream, offset)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Seeks a stream, relative to the start of the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream to seek.</li>
+        <li>offset (Integer): Offset to seek to.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_SeekEnd">
+        <h2 style="margin-bottom: 8px;">Stream.SeekEnd</h2>
+        <code>Stream.SeekEnd(stream, offset)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Seeks a stream, relative to the end.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream to seek.</li>
+        <li>offset (Integer): Offset to seek to.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_Skip">
+        <h2 style="margin-bottom: 8px;">Stream.Skip</h2>
+        <code>Stream.Skip(stream, offset)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Seeks a stream, relative to the current position.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream to skip.</li>
+        <li>offset (Integer): How many bytes to skip.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_Position">
+        <h2 style="margin-bottom: 8px;">Stream.Position</h2>
+        <code>Stream.Position(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the current position of the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The current position of the stream.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_Length">
+        <h2 style="margin-bottom: 8px;">Stream.Length</h2>
+        <code>Stream.Length(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the length of the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The length of the stream.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadByte">
+        <h2 style="margin-bottom: 8px;">Stream.ReadByte</h2>
+        <code>Stream.ReadByte(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned 8-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned 8-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadUInt16">
+        <h2 style="margin-bottom: 8px;">Stream.ReadUInt16</h2>
+        <code>Stream.ReadUInt16(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned 16-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned 16-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadUInt16BE">
+        <h2 style="margin-bottom: 8px;">Stream.ReadUInt16BE</h2>
+        <code>Stream.ReadUInt16BE(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned big-endian 16-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned big-endian 16-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadUInt32">
+        <h2 style="margin-bottom: 8px;">Stream.ReadUInt32</h2>
+        <code>Stream.ReadUInt32(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned 32-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned 32-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadUInt32BE">
+        <h2 style="margin-bottom: 8px;">Stream.ReadUInt32BE</h2>
+        <code>Stream.ReadUInt32BE(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned big-endian 32-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned big-endian 32-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadUInt64">
+        <h2 style="margin-bottom: 8px;">Stream.ReadUInt64</h2>
+        <code>Stream.ReadUInt64(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads an unsigned 64-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an unsigned 64-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadInt16">
+        <h2 style="margin-bottom: 8px;">Stream.ReadInt16</h2>
+        <code>Stream.ReadInt16(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a signed 16-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a signed 16-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadInt16BE">
+        <h2 style="margin-bottom: 8px;">Stream.ReadInt16BE</h2>
+        <code>Stream.ReadInt16BE(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a signed big-endian 16-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a signed big-endian 16-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadInt32">
+        <h2 style="margin-bottom: 8px;">Stream.ReadInt32</h2>
+        <code>Stream.ReadInt32(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a signed 32-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a signed 32-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadInt32BE">
+        <h2 style="margin-bottom: 8px;">Stream.ReadInt32BE</h2>
+        <code>Stream.ReadInt32BE(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a signed big-endian 32-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a signed big-endian 32-bit number as an Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadInt64">
+        <h2 style="margin-bottom: 8px;">Stream.ReadInt64</h2>
+        <code>Stream.ReadInt64(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a signed 64-bit number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a signed 64-bit Integer value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadFloat">
+        <h2 style="margin-bottom: 8px;">Stream.ReadFloat</h2>
+        <code>Stream.ReadFloat(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a floating point number from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadString">
+        <h2 style="margin-bottom: 8px;">Stream.ReadString</h2>
+        <code>Stream.ReadString(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a null-terminated string from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_ReadLine">
+        <h2 style="margin-bottom: 8px;">Stream.ReadLine</h2>
+        <code>Stream.ReadLine(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reads a line from the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteByte">
+        <h2 style="margin-bottom: 8px;">Stream.WriteByte</h2>
+        <code>Stream.WriteByte(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned 8-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteUInt16">
+        <h2 style="margin-bottom: 8px;">Stream.WriteUInt16</h2>
+        <code>Stream.WriteUInt16(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned 16-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteUInt16BE">
+        <h2 style="margin-bottom: 8px;">Stream.WriteUInt16BE</h2>
+        <code>Stream.WriteUInt16BE(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned big-endian 16-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteUInt32">
+        <h2 style="margin-bottom: 8px;">Stream.WriteUInt32</h2>
+        <code>Stream.WriteUInt32(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned 32-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteUInt32BE">
+        <h2 style="margin-bottom: 8px;">Stream.WriteUInt32BE</h2>
+        <code>Stream.WriteUInt32BE(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned big-endian 32-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteUInt64">
+        <h2 style="margin-bottom: 8px;">Stream.WriteUInt64</h2>
+        <code>Stream.WriteUInt64(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes an unsigned 64-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteInt16">
+        <h2 style="margin-bottom: 8px;">Stream.WriteInt16</h2>
+        <code>Stream.WriteInt16(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a signed 16-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteInt16BE">
+        <h2 style="margin-bottom: 8px;">Stream.WriteInt16BE</h2>
+        <code>Stream.WriteInt16BE(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a signed big-endian 16-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteInt32">
+        <h2 style="margin-bottom: 8px;">Stream.WriteInt32</h2>
+        <code>Stream.WriteInt32(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a signed 32-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteInt32BE">
+        <h2 style="margin-bottom: 8px;">Stream.WriteInt32BE</h2>
+        <code>Stream.WriteInt32BE(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a signed big-endian 32-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteInt64">
+        <h2 style="margin-bottom: 8px;">Stream.WriteInt64</h2>
+        <code>Stream.WriteInt64(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a signed 64-bit number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Integer): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteFloat">
+        <h2 style="margin-bottom: 8px;">Stream.WriteFloat</h2>
+        <code>Stream.WriteFloat(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a floating point number to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (Decimal): The value to write.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Stream_WriteString">
+        <h2 style="margin-bottom: 8px;">Stream.WriteString</h2>
+        <code>Stream.WriteString(stream, string)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Writes a null-terminated string to the stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>string (String): The string to write.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_String_Split">
         <h2 style="margin-bottom: 8px; color: red;">String.Split</h2>
         <code>String.Split()</code>
@@ -6262,6 +6707,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>417 out of 486 functions have descriptions. </p>
+        <p>452 out of 521 functions have descriptions. </p>
     </body>
 </html>

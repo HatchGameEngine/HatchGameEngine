@@ -601,24 +601,22 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
             int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
-                contour->MinX = linePointX;
+                contour->MinX = contour->MapLeft = linePointX;
                 contour->MinR = colorBegRED;
                 contour->MinG = colorBegGREEN;
                 contour->MinB = colorBegBLUE;
                 contour->MinZ = invZStart;
                 contour->MinU = texBegU;
                 contour->MinV = texBegV;
-                contour->MapLeft = linePointX;
             }
             else if (linePointX >= maxX) {
-                contour->MaxX = linePointX;
+                contour->MaxX = contour->MapRight = linePointX;
                 contour->MaxR = colorBegRED;
                 contour->MaxG = colorBegGREEN;
                 contour->MaxB = colorBegBLUE;
                 contour->MaxZ = invZStart;
                 contour->MaxU = texBegU;
                 contour->MaxV = texBegV;
-                contour->MapRight = linePointX;
             }
             else {
                 if (linePointX < contour->MinX) {

@@ -8436,8 +8436,9 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 // #region Stream
 /***
  * Stream.FromResource
- * \desc
- * \return
+ * \desc Opens a stream from a resource.
+ * \param filename (String): Filename of the resource.
+ * \return Returns the newly opened stream.
  * \ns Stream
  */
 VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
@@ -8458,8 +8459,15 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.FromFile
- * \desc
- * \return
+ * \desc Opens a stream from a file. <br/>\
+</br>File access modes:<ul>\
+<li><code>FileStream_READ_ACCESS</code></li>\
+<li><code>FileStream_WRITE_ACCESS</code></li>\
+<li><code>FileStream_APPEND_ACCESS</code></li>\
+</ul>
+ * \param filename (String): Path of the file.
+ * \param mode (Integer): File access mode.
+ * \return Returns the newly opened stream.
  * \ns Stream
  */
 VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
@@ -8481,15 +8489,15 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Close
- * \desc
- * \return
+ * \desc Closes a stream.
+ * \param stream (Stream): The stream to close.
  * \ns Stream
  */
 VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjStream* stream = GET_ARG(0, GetStream);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot close already closed stream!");
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot close a stream that was already closed!");
         return NULL_VAL;
     }
     stream->StreamPtr->Close();
@@ -8498,8 +8506,9 @@ VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Seek
- * \desc
- * \return
+ * \desc Seeks a stream, relative to the start of the stream.
+ * \param stream (Stream): The stream to seek.
+ * \param offset (Integer): Offset to seek to.
  * \ns Stream
  */
 VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
@@ -8515,8 +8524,9 @@ VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.SeekEnd
- * \desc
- * \return
+ * \desc Seeks a stream, relative to the end.
+ * \param stream (Stream): The stream to seek.
+ * \param offset (Integer): Offset to seek to.
  * \ns Stream
  */
 VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
@@ -8532,8 +8542,9 @@ VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Skip
- * \desc
- * \return
+ * \desc Seeks a stream, relative to the current position.
+ * \param stream (Stream): The stream to skip.
+ * \param offset (Integer): How many bytes to skip.
  * \ns Stream
  */
 VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
@@ -8549,8 +8560,9 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Position
- * \desc
- * \return
+ * \desc Returns the current position of the stream.
+ * \param stream (Stream): The stream.
+ * \return The current position of the stream.
  * \ns Stream
  */
 VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
@@ -8564,8 +8576,9 @@ VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.Length
- * \desc
- * \return
+ * \desc Returns the length of the stream.
+ * \param stream (Stream): The stream.
+ * \return The length of the stream.
  * \ns Stream
  */
 VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
@@ -8584,8 +8597,9 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
     }
 /***
  * Stream.ReadByte
- * \desc
- * \return
+ * \desc Reads an unsigned 8-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned 8-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
@@ -8596,8 +8610,9 @@ VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadUInt16
- * \desc
- * \return
+ * \desc Reads an unsigned 16-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned 16-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -8608,8 +8623,9 @@ VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadUInt16BE
- * \desc
- * \return
+ * \desc Reads an unsigned big-endian 16-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned big-endian 16-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8620,8 +8636,9 @@ VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadUInt32
- * \desc
- * \return
+ * \desc Reads an unsigned 32-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned 32-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -8632,8 +8649,9 @@ VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadUInt32BE
- * \desc
- * \return
+ * \desc Reads an unsigned big-endian 32-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned big-endian 32-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8644,8 +8662,9 @@ VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadUInt64
- * \desc
- * \return
+ * \desc Reads an unsigned 64-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns an unsigned 64-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -8656,8 +8675,9 @@ VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadInt16
- * \desc
- * \return
+ * \desc Reads a signed 16-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a signed 16-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -8668,8 +8688,9 @@ VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadInt16BE
- * \desc
- * \return
+ * \desc Reads a signed big-endian 16-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a signed big-endian 16-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8680,8 +8701,9 @@ VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadInt32
- * \desc
- * \return
+ * \desc Reads a signed 32-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a signed 32-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -8692,8 +8714,9 @@ VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadInt32BE
- * \desc
- * \return
+ * \desc Reads a signed big-endian 32-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a signed big-endian 32-bit number as an Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8704,8 +8727,9 @@ VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadInt64
- * \desc
- * \return
+ * \desc Reads a signed 64-bit number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a signed 64-bit Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -8716,8 +8740,9 @@ VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadFloat
- * \desc
- * \return
+ * \desc Reads a floating point number from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a Decimal value.
  * \ns Stream
  */
 VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
@@ -8728,8 +8753,9 @@ VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadString
- * \desc
- * \return
+ * \desc Reads a null-terminated string from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a String value.
  * \ns Stream
  */
 VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
@@ -8746,8 +8772,9 @@ VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.ReadLine
- * \desc
- * \return
+ * \desc Reads a line from the stream.
+ * \param stream (Stream): The stream.
+ * \return Returns a String value.
  * \ns Stream
  */
 VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
@@ -8774,8 +8801,9 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
     }
 /***
  * Stream.WriteByte
- * \desc
- * \return
+ * \desc Writes an unsigned 8-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
@@ -8788,8 +8816,9 @@ VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteUInt16
- * \desc
- * \return
+ * \desc Writes an unsigned 16-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -8802,8 +8831,9 @@ VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteUInt16BE
- * \desc
- * \return
+ * \desc Writes an unsigned big-endian 16-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8816,8 +8846,9 @@ VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteUInt32
- * \desc
- * \return
+ * \desc Writes an unsigned 32-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -8830,8 +8861,9 @@ VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteUInt32BE
- * \desc
- * \return
+ * \desc Writes an unsigned big-endian 32-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8844,8 +8876,9 @@ VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteUInt64
- * \desc
- * \return
+ * \desc Writes an unsigned 64-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -8858,8 +8891,9 @@ VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteInt16
- * \desc
- * \return
+ * \desc Writes a signed 16-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -8872,8 +8906,9 @@ VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteInt16BE
- * \desc
- * \return
+ * \desc Writes a signed big-endian 16-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8886,8 +8921,9 @@ VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteInt32
- * \desc
- * \return
+ * \desc Writes a signed 32-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -8900,8 +8936,9 @@ VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteInt32BE
- * \desc
- * \return
+ * \desc Writes a signed big-endian 32-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -8914,8 +8951,9 @@ VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteInt64
- * \desc
- * \return
+ * \desc Writes a signed 64-bit number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -8928,8 +8966,9 @@ VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteFloat
- * \desc
- * \return
+ * \desc Writes a floating point number to the stream.
+ * \param stream (Stream): The stream.
+ * \param value (Decimal): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
@@ -8942,8 +8981,9 @@ VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.WriteString
- * \desc
- * \return
+ * \desc Writes a null-terminated string to the stream.
+ * \param stream (Stream): The stream.
+ * \param string (String): The string to write.
  * \ns Stream
  */
 VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
@@ -11426,6 +11466,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Stream, WriteInt64);
     DEF_NATIVE(Stream, WriteFloat);
     DEF_NATIVE(Stream, WriteString);
+    DEF_ENUM_CLASS(FileStream, READ_ACCESS);
+    DEF_ENUM_CLASS(FileStream, WRITE_ACCESS);
+    DEF_ENUM_CLASS(FileStream, APPEND_ACCESS);
     // #endregion
 
     // #region String
