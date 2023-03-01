@@ -357,20 +357,18 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
             int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
-                contour->MinX = minX;
+                contour->MinX = contour->MapLeft = minX;
                 contour->MinZ = invZStart;
                 contour->MinR = colorBegRED;
                 contour->MinG = colorBegGREEN;
                 contour->MinB = colorBegBLUE;
-                contour->MapLeft = linePointX;
             }
             else if (linePointX >= maxX) {
-                contour->MaxX = maxX;
+                contour->MaxX = contour->MapRight = maxX;
                 contour->MaxZ = invZStart;
                 contour->MaxR = colorBegRED;
                 contour->MaxG = colorBegGREEN;
                 contour->MaxB = colorBegBLUE;
-                contour->MapRight = linePointX;
             }
             else {
                 if (linePointX < contour->MinX) {
@@ -472,18 +470,16 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
             int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
-                contour->MinX = minX;
+                contour->MinX = contour->MapLeft = linePointX;
                 contour->MinZ = invZStart;
                 contour->MinU = texBegU;
                 contour->MinV = texBegV;
-                contour->MapLeft = linePointX;
             }
             else if (linePointX >= maxX) {
-                contour->MaxX = maxX;
+                contour->MaxX = contour->MapRight = linePointX;
                 contour->MaxZ = invZStart;
                 contour->MaxU = texBegU;
                 contour->MaxV = texBegV;
-                contour->MapRight = linePointX;
             }
             else {
                 if (linePointX < contour->MinX) {
@@ -605,7 +601,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
             int linePointX = linePointSubpxX / 0x10000;
 
             if (linePointX <= minX) {
-                contour->MinX = minX;
+                contour->MinX = linePointX;
                 contour->MinR = colorBegRED;
                 contour->MinG = colorBegGREEN;
                 contour->MinB = colorBegBLUE;
@@ -615,7 +611,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
                 contour->MapLeft = linePointX;
             }
             else if (linePointX >= maxX) {
-                contour->MaxX = maxX;
+                contour->MaxX = linePointX;
                 contour->MaxR = colorBegRED;
                 contour->MaxG = colorBegGREEN;
                 contour->MaxB = colorBegBLUE;

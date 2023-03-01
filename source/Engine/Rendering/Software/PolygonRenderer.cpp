@@ -223,8 +223,8 @@ int DoFogLighting(int color, float fogCoord) {
     float mapU = contU; \
     float mapV = contV
 #define SCANLINE_GET_TEXUV() \
-    int texU = ((int)(mapU * texture->Width) >> 16) % texture->Width; \
-    int texV = ((int)(mapV * texture->Height) >> 16) % texture->Height
+    int texU = ((int)((mapU + 1) * texture->Width) >> 16) % texture->Width; \
+    int texV = ((int)((mapV + 1) * texture->Height) >> 16) % texture->Height
 #define SCANLINE_GET_COLOR() \
     CLAMP_VAL(colR, 0x00, 0xFF0000); \
     CLAMP_VAL(colG, 0x00, 0xFF0000); \
@@ -647,6 +647,16 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     float dxZ, dxU, dxV;
     float mapZ;
 
+    int min_x, max_x;
+    if (Graphics::CurrentClip.Enabled) {
+        min_x = Graphics::CurrentClip.X;
+        max_x = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
+    }
+    else {
+        min_x = 0;
+        max_x = (int)Graphics::CurrentRenderTarget->Width;
+    }
+
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             col = ColorTint(color, texCol); \
@@ -686,11 +696,14 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
         } \
         SCANLINE_INIT_Z(); \
         SCANLINE_INIT_UV(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
+        if (contour.MinX < min_x) { \
+            int diff = min_x - contour.MinX; \
             SCANLINE_STEP_Z_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
+            contour.MinX = min_x; \
         } \
+        if (contour.MaxX > max_x) \
+            contour.MaxX = max_x; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
@@ -762,6 +775,16 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     float dxZ, dxU, dxV, dxR, dxG, dxB;
     float mapZ;
 
+    int min_x, max_x;
+    if (Graphics::CurrentClip.Enabled) {
+        min_x = Graphics::CurrentClip.X;
+        max_x = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
+    }
+    else {
+        min_x = 0;
+        max_x = (int)Graphics::CurrentRenderTarget->Width;
+    }
+
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
@@ -806,12 +829,15 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         SCANLINE_INIT_Z(); \
         SCANLINE_INIT_UV(); \
         SCANLINE_INIT_RGB(); \
-        if (contour.MapLeft < contour.MinX) { \
-            int diff = contour.MinX - contour.MapLeft; \
+        if (contour.MinX < min_x) { \
+            int diff = min_x - contour.MinX; \
             SCANLINE_STEP_Z_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
             SCANLINE_STEP_RGB_BY(diff); \
+            contour.MinX = min_x; \
         } \
+        if (contour.MaxX > max_x) \
+            contour.MaxX = max_x; \
         index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
