@@ -96,48 +96,6 @@ int DoFogLighting(int color, float fogCoord) {
         drawPolygonMacro(SoftwareRenderer::PixelTintSetMatchNotEqual, pixelMacro); \
         break \
 
-// Cases for PixelTintDestSet
-#define PIXEL_TINT_DEST_CASES(drawPolygonMacro, pixelMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetOpaque, pixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetTransparent, pixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetAdditive, pixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetSubtract, pixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchEqual, pixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual, pixelMacro); \
-        break \
-
-// Cases for PixelFiltSet
-#define PIXEL_FILTER_CASES(drawPolygonMacro, pixelMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetOpaque, pixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetTransparent, pixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetAdditive, pixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetSubtract, pixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchEqual, pixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual, pixelMacro); \
-        break \
-
 // Cases for PixelNoFiltSet (solid color)
 #define PIXEL_NO_FILT_CASES_SOLID(drawPolygonMacro) \
     case BlendFlag_OPAQUE: \
@@ -198,48 +156,6 @@ int DoFogLighting(int color, float fogCoord) {
         drawPolygonMacro(SoftwareRenderer::PixelTintSetMatchNotEqual); \
         break \
 
-// Cases for PixelTintDestSet (with depth, solid color)
-#define PIXEL_TINT_DEST_CASES_SOLID(drawPolygonMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual); \
-        break \
-
-// Cases for PixelFiltSet (solid color)
-#define PIXEL_FILTER_CASES_SOLID(drawPolygonMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual); \
-        break \
-
 // Cases for PixelNoFiltSet (with depth, solid color)
 #define PIXEL_NO_FILT_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
     case BlendFlag_OPAQUE: \
@@ -280,48 +196,6 @@ int DoFogLighting(int color, float fogCoord) {
         break; \
     case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
         drawPolygonMacro(SoftwareRenderer::PixelTintSetMatchNotEqual, dpR, dpW); \
-        break \
-
-// Cases for PixelTintDestSet (with depth, solid color)
-#define PIXEL_TINT_DEST_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetOpaque, dpR, dpW); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetTransparent, dpR, dpW); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetAdditive, dpR, dpW); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetSubtract, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchEqual, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual, dpR, dpW); \
-        break \
-
-// Cases for PixelFiltSet (with depth, solid color)
-#define PIXEL_FILTER_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetOpaque, dpR, dpW); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetTransparent, dpR, dpW); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetAdditive, dpR, dpW); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetSubtract, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchEqual, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual, dpR, dpW); \
         break \
 
 // Cases for PixelNoFiltSet (with depth)
@@ -366,67 +240,22 @@ int DoFogLighting(int color, float fogCoord) {
         drawPolygonMacro(SoftwareRenderer::PixelTintSetMatchNotEqual, placePixelMacro, dpR, dpW); \
         break \
 
-// Cases for PixelTintDestSet (with depth)
-#define PIXEL_TINT_DEST_CASES_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetOpaque, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetTransparent, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetAdditive, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetSubtract, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchEqual, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual, placePixelMacro, dpR, dpW); \
-        break \
-
-// Cases for PixelFiltSet (with depth)
-#define PIXEL_FILTER_CASES_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetOpaque, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetTransparent, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetAdditive, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetSubtract, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchEqual, placePixelMacro, dpR, dpW); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawPolygonMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual, placePixelMacro, dpR, dpW); \
-        break \
-
 #define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro, pixelMacro) \
-    switch (blendFlag) { \
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
         PIXEL_NO_FILT_CASES(drawPolygonMacro, pixelMacro); \
         PIXEL_TINT_CASES(drawPolygonMacro, pixelMacro); \
-        PIXEL_FILTER_CASES(drawPolygonMacro, pixelMacro); \
     }
 
 #define POLYGON_BLENDFLAGS_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
-    switch (blendFlag) { \
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
         PIXEL_NO_FILT_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW); \
         PIXEL_TINT_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW); \
-        PIXEL_FILTER_CASES_SOLID_DEPTH(drawPolygonMacro, dpR, dpW); \
     }
 
 #define POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
-    switch (blendFlag) { \
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
         PIXEL_NO_FILT_CASES_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW); \
         PIXEL_TINT_CASES_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW); \
-        PIXEL_FILTER_CASES_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW); \
     }
 
 #define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
@@ -586,10 +415,13 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
+
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
         case BlendFlag_OPAQUE:
             for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
                 Contour contour = ContourField[dst_y];
@@ -604,7 +436,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
             break;
         PIXEL_NO_FILT_CASES_SOLID_NO_OPAQUE(DRAW_POLYGON);
         PIXEL_TINT_CASES_SOLID(DRAW_POLYGON);
-        PIXEL_FILTER_CASES_SOLID(DRAW_POLYGON);
     }
 
     #undef DRAW_POLYGON
@@ -667,13 +498,15 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
+
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
         PIXEL_NO_FILT_CASES_SOLID(DRAW_POLYGONBLEND);
         PIXEL_TINT_CASES_SOLID(DRAW_POLYGONBLEND);
-        PIXEL_FILTER_CASES_SOLID(DRAW_POLYGONBLEND);
     }
 
     #undef DRAW_POLYGONBLEND
@@ -750,6 +583,9 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
@@ -837,6 +673,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
@@ -965,6 +804,9 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     Uint32* index;
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
@@ -1101,6 +943,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     Uint32* index;
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
@@ -1284,6 +1129,9 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
+
     Uint32* index;
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
@@ -1405,6 +1253,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
+
     Uint32* index;
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
@@ -1489,6 +1340,9 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
@@ -1585,6 +1439,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
         } \
         dst_strideY += dstStride; \
     }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];

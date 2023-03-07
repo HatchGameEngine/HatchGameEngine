@@ -99,6 +99,7 @@ int ColB = 0xFF;
 Uint32 ColRGB = 0xFFFFFF;
 Uint32 TintColor = 0xFFFFFFFF;
 Uint16 TintAmount = 0x100;
+Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32) = NULL;
 
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
@@ -439,7 +440,6 @@ PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, f
 
 PUBLIC STATIC bool     SoftwareRenderer::AlterBlendFlag(int& blendFlag, int& opacity) {
     int blendMode = blendFlag & BlendFlag_MODE_MASK;
-    int otherBits = blendFlag & ~BlendFlag_MODE_MASK;
 
     // Not visible
     if (opacity == 0 && blendMode == BlendFlag_TRANSPARENT)
@@ -451,17 +451,13 @@ PUBLIC STATIC bool     SoftwareRenderer::AlterBlendFlag(int& blendFlag, int& opa
     else if (opacity == 0xFF && blendMode == BlendFlag_TRANSPARENT)
         blendMode = BlendFlag_OPAQUE;
 
+    blendFlag = blendMode;
+
+    // Apply tint/filter flags
     if (Graphics::UseTinting && TintAmount != 0)
-        otherBits |= BlendFlag_TINT_BIT;
-    else
-        otherBits &= ~BlendFlag_TINT_BIT;
-
+        blendFlag |= BlendFlag_TINT_BIT;
     if (FilterTable != &FilterColor[0])
-        otherBits = BlendFlag_FILTER_BIT;
-    else
-        otherBits &= ~BlendFlag_FILTER_BIT;
-
-    blendFlag = blendMode | otherBits;
+        blendFlag |= BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT;
 
     return true;
 }
@@ -553,65 +549,29 @@ static void (*PixelNoFiltFunctions[])(Uint32*, Uint32*, int, int*, int*) = {
     SoftwareRenderer::PixelNoFiltSetMatchNotEqual
 };
 
-// Filter versions
-#define GET_FILTER_COLOR(col) ((col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3)
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = *dst;
-    *dst = FilterTable[GET_FILTER_COLOR(col)];
-}
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = FilterTable[GET_FILTER_COLOR(*dst)];
-    PixelNoFiltSetTransparent(&col, dst, opacity, multTableAt, multSubTableAt);
-}
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = FilterTable[GET_FILTER_COLOR(*dst)];
-    PixelNoFiltSetAdditive(&col, dst, opacity, multTableAt, multSubTableAt);
-}
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = FilterTable[GET_FILTER_COLOR(*dst)];
-    PixelNoFiltSetSubtract(&col, dst, opacity, multTableAt, multSubTableAt);
-}
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = FilterTable[GET_FILTER_COLOR(*src)];
-}
-PUBLIC STATIC void SoftwareRenderer::PixelFiltSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = FilterTable[GET_FILTER_COLOR(*src)];
-}
-
-static void (*PixelFiltFunctions[])(Uint32*, Uint32*, int, int*, int*) = {
-    SoftwareRenderer::PixelFiltSetOpaque,
-    SoftwareRenderer::PixelFiltSetTransparent,
-    SoftwareRenderer::PixelFiltSetAdditive,
-    SoftwareRenderer::PixelFiltSetSubtract,
-    SoftwareRenderer::PixelFiltSetMatchEqual,
-    SoftwareRenderer::PixelFiltSetMatchNotEqual
-};
-
 // Tinted versions
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    *dst = ColorTint(*src, TintColor, TintAmount);
+    *dst = TintFunction(src, dst, TintColor, TintAmount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*src, TintColor, TintAmount);
+    Uint32 col = TintFunction(src, dst, TintColor, TintAmount);
     PixelNoFiltSetTransparent(&col, dst, opacity, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*src, TintColor, TintAmount);
+    Uint32 col = TintFunction(src, dst, TintColor, TintAmount);
     PixelNoFiltSetAdditive(&col, dst, opacity, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*src, TintColor, TintAmount);
+    Uint32 col = TintFunction(src, dst, TintColor, TintAmount);
     PixelNoFiltSetSubtract(&col, dst, opacity, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = ColorTint(*src, TintColor, TintAmount);
+        *dst = TintFunction(src, dst, TintColor, TintAmount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = ColorTint(*src, TintColor, TintAmount);
+        *dst = TintFunction(src, dst, TintColor, TintAmount);
 }
 
 static void (*PixelTintFunctions[])(Uint32*, Uint32*, int, int*, int*) = {
@@ -623,28 +583,32 @@ static void (*PixelTintFunctions[])(Uint32*, Uint32*, int, int*, int*) = {
     SoftwareRenderer::PixelTintSetMatchNotEqual
 };
 
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetOpaque(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    *dst = ColorTint(*dst, TintColor, TintAmount);
+#define GET_FILTER_COLOR(col) ((col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3)
+
+static Uint32 TintNormalSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return SoftwareRenderer::ColorTint(*src, tintColor, tintAmount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetTransparent(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*dst, TintColor, TintAmount);
-    PixelNoFiltSetTransparent(&col, dst, opacity, multTableAt, multSubTableAt);
+static Uint32 TintNormalDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return SoftwareRenderer::ColorTint(*dst, tintColor, tintAmount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetAdditive(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*dst, TintColor, TintAmount);
-    PixelNoFiltSetAdditive(&col, dst, opacity, multTableAt, multSubTableAt);
+static Uint32 TintBlendSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return SoftwareRenderer::ColorBlend(*src, tintColor, tintAmount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetSubtract(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = ColorTint(*dst, TintColor, TintAmount);
-    PixelNoFiltSetSubtract(&col, dst, opacity, multTableAt, multSubTableAt);
+static Uint32 TintBlendDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return SoftwareRenderer::ColorBlend(*dst, tintColor, tintAmount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetMatchEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = ColorTint(*dst, TintColor, TintAmount);
+static Uint32 TintFilterSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return FilterTable[GET_FILTER_COLOR(*src)];
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetMatchNotEqual(Uint32* src, Uint32* dst, int opacity, int* multTableAt, int* multSubTableAt) {
-    if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = ColorTint(*dst, TintColor, TintAmount);
+static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+    return FilterTable[GET_FILTER_COLOR(*dst)];
+}
+
+PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlag) {
+    if (blendFlag & BlendFlag_FILTER_BIT)
+        TintFunction = TintFilterDest;
+    else if (blendFlag & BlendFlag_TINT_BIT)
+        TintFunction = TintNormalSource;
 }
 
 // Cases for PixelNoFiltSet
@@ -707,48 +671,6 @@ PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetMatchNotEqual(Uint32* src, 
         drawMacro(SoftwareRenderer::PixelTintSetMatchNotEqual); \
         break \
 
-// Cases for PixelTintDestSet
-#define PIXEL_TINT_DEST_CASES(drawMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual); \
-        break \
-
-// Cases for PixelFiltSet
-#define PIXEL_FILTER_CASES(drawMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual); \
-        break \
-
 // Cases for PixelNoFiltSet (for sprite images)
 #define SPRITE_PIXEL_NO_FILT_CASES(drawMacro, placePixelMacro) \
     case BlendFlag_OPAQUE: \
@@ -789,48 +711,6 @@ PUBLIC STATIC void SoftwareRenderer::PixelTintDestSetMatchNotEqual(Uint32* src, 
         break; \
     case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
         drawMacro(SoftwareRenderer::PixelTintSetMatchNotEqual, placePixelMacro); \
-        break \
-
-// Cases for PixelTintDestSet (for sprite images)
-#define SPRITE_PIXEL_TINT_DEST_CASES(drawMacro, placePixelMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetOpaque, placePixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetTransparent, placePixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetAdditive, placePixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetSubtract, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetMatchEqua, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintDestSetMatchNotEqual, placePixelMacro); \
-        break \
-
-// Cases for PixelFiltSet (for sprite images)
-#define SPRITE_PIXEL_FILTER_CASES(drawMacro, placePixelMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetOpaque, placePixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetTransparent, placePixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetAdditive, placePixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetSubtract, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetMatchEqual, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_FILTER_BIT: \
-        drawMacro(SoftwareRenderer::PixelFiltSetMatchNotEqual, placePixelMacro); \
         break \
 
 // TODO: Material support
@@ -2512,12 +2392,14 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
         if (e2 <  dy) { err += dx; dst_y1 += sy; } \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
-    switch (blendFlag) {
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
         PIXEL_NO_FILT_CASES(DRAW_LINE);
-        PIXEL_TINT_DEST_CASES(DRAW_LINE);
-        PIXEL_FILTER_CASES(DRAW_LINE);
+        PIXEL_TINT_CASES(DRAW_LINE);
     }
 
     #undef DRAW_LINE
@@ -2638,10 +2520,13 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
         case BlendFlag_OPAQUE:
             for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
                 Contour contour = ContourBuffer[dst_y];
@@ -2662,8 +2547,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
 
             break;
         PIXEL_NO_FILT_CASES_NO_OPAQUE(DRAW_CIRCLE);
-        PIXEL_TINT_DEST_CASES(DRAW_CIRCLE);
-        PIXEL_FILTER_CASES(DRAW_CIRCLE);
+        PIXEL_TINT_CASES(DRAW_CIRCLE);
     }
 
     #undef DRAW_CIRCLE
@@ -2732,10 +2616,13 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
         dst_strideY += dstStride; \
     }
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag) {
+    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
         case BlendFlag_OPAQUE:
             for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
                 Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
@@ -2743,8 +2630,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
             }
             break;
         PIXEL_NO_FILT_CASES_NO_OPAQUE(DRAW_RECT);
-        PIXEL_TINT_DEST_CASES(DRAW_RECT);
-        PIXEL_FILTER_CASES(DRAW_RECT);
+        PIXEL_TINT_CASES(DRAW_RECT);
     }
 
     #undef DRAW_RECT
@@ -2977,11 +2863,13 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     }
 
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
-        switch (blendFlag) { \
+        switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
             SPRITE_PIXEL_NO_FILT_CASES(flipMacro, placePixelMacro); \
             SPRITE_PIXEL_TINT_CASES(flipMacro, placePixelMacro); \
-            SPRITE_PIXEL_FILTER_CASES(flipMacro, placePixelMacro); \
         }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     Uint32 color;
     Uint32* index;
@@ -3318,11 +3206,13 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     }
 
     #define BLENDFLAGS(flipMacro, placePixelMacro) \
-        switch (blendFlag) { \
+        switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
             SPRITE_PIXEL_NO_FILT_CASES(flipMacro, placePixelMacro); \
             SPRITE_PIXEL_TINT_CASES(flipMacro, placePixelMacro); \
-            SPRITE_PIXEL_FILTER_CASES(flipMacro, placePixelMacro); \
         }
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SoftwareRenderer::SetTintFunction(blendFlag);
 
     Uint32 color;
     Uint32* index;
@@ -3701,6 +3591,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     if (!AlterBlendFlag(blendFlag, opacity))
         return;
 
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
 
@@ -3733,8 +3626,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     void (*pixelFunction)(Uint32*, Uint32*, int, int*, int*) = NULL;
     if (blendFlag & BlendFlag_TINT_BIT)
         pixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
-    else if (blendFlag & BlendFlag_FILTER_BIT)
-        pixelFunction = PixelFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
     else
         pixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
@@ -4080,10 +3971,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         if (!AlterBlendFlag(blendFlag, opacity))
             goto scanlineDone;
 
-        if (blendFlag & BlendFlag_TINT_BIT)
+        if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
             linePixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
-        else if (blendFlag & BlendFlag_FILTER_BIT)
-            linePixelFunction = PixelFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+            SetTintFunction(blendFlag);
+        }
         else
             linePixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
@@ -4102,7 +3993,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
                 sourceTileCellY %= maxVertCells;
 
             tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)] & TILE_IDENT_MASK;
-			// printf("tile: %X (%s), sourceTileCellX: %d, sourceTileCellY: %d\n", tile, layer->Name, sourceTileCellX, sourceTileCellY);
             if (tile != Scene::EmptyTile) {
                 color = tileSources[tile][(srcTX & 15) + (srcTY & 15) * srcStrides[tile]];
                 if (isPalettedSources[tile]) {
