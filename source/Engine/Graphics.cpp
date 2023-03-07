@@ -113,8 +113,8 @@ ClipArea             Graphics::BackupClip;
 float                Graphics::BlendColors[4];
 float                Graphics::TintColors[4];
 
-int                  Graphics::BlendMode = 0;
-int                  Graphics::TintMode = 0;
+int                  Graphics::BlendMode = BlendMode_NORMAL;
+int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
 Texture*             Graphics::CurrentRenderTarget = NULL;
 
@@ -606,6 +606,7 @@ PUBLIC STATIC void     Graphics::SetTintColor(float r, float g, float b, float a
     Graphics::GfxFunctions->SetTintColor(r, g, b, a);
 }
 PUBLIC STATIC void     Graphics::SetTintMode(int mode) {
+    Graphics::TintMode = mode;
     Graphics::GfxFunctions->SetTintMode(mode);
 }
 PUBLIC STATIC void     Graphics::SetLineWidth(float n) {

@@ -52,6 +52,7 @@ struct FaceInfo {
     bool         UseTinting;
     Uint32       TintColor;
     Uint32       TintAmount;
+    Uint8        TintMode;
     int          Depth;
 };
 struct Frustum {

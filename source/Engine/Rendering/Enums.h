@@ -24,6 +24,13 @@ enum {
 };
 
 enum {
+    TintMode_SRC_NORMAL,
+    TintMode_DST_NORMAL,
+    TintMode_SRC_BLEND,
+    TintMode_DST_BLEND
+};
+
+enum {
     DrawBehavior_HorizontalParallax = 0,
     DrawBehavior_VerticalParallax = 1,
     DrawBehavior_CustomTileScanLines = 2,

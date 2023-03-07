@@ -3296,7 +3296,12 @@ VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Graphics::SetBlendMode(GET_ARG(0, GetInteger));
+    int blendMode = GET_ARG(0, GetInteger);
+    if (blendMode < 0 || blendMode > BlendMode_MATCH_NOT_EQUAL) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Blend mode %d out of range. (0 - %d)", BlendMode_MATCH_NOT_EQUAL);
+        return NULL_VAL;
+    }
+    Graphics::SetBlendMode(blendMode);
     return NULL_VAL;
 }
 /***
@@ -3390,6 +3395,29 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
     }
     CHECK_ARGCOUNT(4);
     Graphics::SetTintColor(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetTintMode
+ * \desc Sets the tint mode used for drawing. <br/>\
+</br>Tint Modes:<ul>\
+<li><code>TintMode_SRC_NORMAL</code>: Tints the source pixel with the tint color.</li>\
+<li><code>TintMode_DST_NORMAL</code>: Tints the destination pixel with the tint color.</li>\
+<li><code>TintMode_SRC_BLEND</code>: Blends the source pixel with the tint color.</li>\
+<li><code>TintMode_DST_BLEND</code>: Blends the destination pixel with the tint color.</li>\
+</ul>
+ * \param tintMode (Integer): The desired tint mode.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tintMode = GET_ARG(0, GetInteger);
+    if (tintMode < 0 || tintMode > TintMode_DST_BLEND) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tint mode %d out of range. (0 - %d)", TintMode_DST_BLEND);
+        return NULL_VAL;
+    }
+    Graphics::SetTintMode(tintMode);
     return NULL_VAL;
 }
 /***
@@ -5406,13 +5434,13 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 
 #define CHECK_ANIMATION_INDEX(animation) \
     if (animation < 0 || animation >= (signed)model->AnimationCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index %d out of range. (0 - %d)", model->AnimationCount); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index %d out of range. (0 - %d)", model->AnimationCount - 1); \
         return NULL_VAL; \
     }
 
 #define CHECK_ARMATURE_INDEX(armature) \
     if (armature < 0 || armature >= (signed)model->ArmatureCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index %d out of range. (0 - %d)", model->ArmatureCount); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index %d out of range. (0 - %d)", model->ArmatureCount - 1); \
         return NULL_VAL; \
     }
 
@@ -11074,6 +11102,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetBlendFactorExtended);
     DEF_NATIVE(Draw, SetCompareColor);
     DEF_NATIVE(Draw, SetTintColor);
+    DEF_NATIVE(Draw, SetTintMode);
     DEF_NATIVE(Draw, UseTinting);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
@@ -11122,6 +11151,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(BlendMode_SUBTRACT);
     DEF_ENUM(BlendMode_MATCH_EQUAL);
     DEF_ENUM(BlendMode_MATCH_NOT_EQUAL);
+
+    DEF_ENUM(TintMode_SRC_NORMAL);
+    DEF_ENUM(TintMode_DST_NORMAL);
+    DEF_ENUM(TintMode_SRC_BLEND);
+    DEF_ENUM(TintMode_DST_BLEND);
 
     DEF_ENUM(BlendFactor_ZERO);
     DEF_ENUM(BlendFactor_ONE);

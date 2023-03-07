@@ -99,6 +99,7 @@ int ColB = 0xFF;
 Uint32 ColRGB = 0xFFFFFF;
 Uint32 TintColor = 0xFFFFFFFF;
 Uint16 TintAmount = 0x100;
+Uint8 TintMode = TintMode_SRC_NORMAL;
 Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32) = NULL;
 
 #define TRIG_TABLE_BITS 11
@@ -338,14 +339,15 @@ PUBLIC STATIC void     SoftwareRenderer::SetBlendColor(float r, float g, float b
     ColG = (int)(g * 0xFF);
     ColB = (int)(b * 0xFF);
 
+    CLAMP_VAL(ColR, 0x00, 0xFF);
+    CLAMP_VAL(ColG, 0x00, 0xFF);
+    CLAMP_VAL(ColB, 0x00, 0xFF);
+
     ColRGB = 0xFF000000U | ColR << 16 | ColG << 8 | ColB;
     SoftwareRenderer::ConvertFromARGBtoNative(&ColRGB, 1);
 
-    if (a >= 1.0) {
-        Alpha = 0xFF;
-        return;
-    }
     Alpha = (int)(a * 0xFF);
+    CLAMP_VAL(Alpha, 0x00, 0xFF);
 }
 PUBLIC STATIC void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     switch (Graphics::BlendMode) {
@@ -383,7 +385,7 @@ PUBLIC STATIC void     SoftwareRenderer::SetTintColor(float r, float g, float b,
     SoftwareRenderer::ConvertFromARGBtoNative(&TintColor, 1);
 }
 PUBLIC STATIC void     SoftwareRenderer::SetTintMode(int mode) {
-
+    TintMode = mode;
 }
 
 PUBLIC STATIC void     SoftwareRenderer::Resize(int width, int height) {
@@ -454,7 +456,7 @@ PUBLIC STATIC bool     SoftwareRenderer::AlterBlendFlag(int& blendFlag, int& opa
     blendFlag = blendMode;
 
     // Apply tint/filter flags
-    if (Graphics::UseTinting && TintAmount != 0)
+    if (Graphics::UseTinting)
         blendFlag |= BlendFlag_TINT_BIT;
     if (FilterTable != &FilterColor[0])
         blendFlag |= BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT;
@@ -605,10 +607,22 @@ static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlag) {
+    Uint32 (*tintFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+        TintNormalSource,
+        TintNormalDest,
+        TintBlendSource,
+        TintBlendDest
+    };
+
+    Uint32 (*filterFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+        TintFilterSource,
+        TintFilterDest
+    };
+
     if (blendFlag & BlendFlag_FILTER_BIT)
-        TintFunction = TintFilterDest;
+        TintFunction = filterFunctions[TintMode & 1];
     else if (blendFlag & BlendFlag_TINT_BIT)
-        TintFunction = TintNormalSource;
+        TintFunction = tintFunctions[TintMode];
 }
 
 // Cases for PixelNoFiltSet
@@ -884,6 +898,7 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
 
     int opacity;
     int blendFlag;
+    int backupTintMode = TintMode;
     bool doDepthTest = drawMode & DrawMode_DEPTH_TEST;
 
 #define SET_BLENDFLAG_AND_OPACITY(face) \
@@ -899,10 +914,12 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             if (face->UseTinting) { \
                 TintColor = face->TintColor; \
                 TintAmount = face->TintAmount; \
+                TintMode = face->TintMode; \
             } \
             else { \
                 TintColor = 0xFFFFFF; \
                 TintAmount = 0; \
+                TintMode = TintMode_SRC_NORMAL; \
             } \
         } \
     } \
@@ -1279,6 +1296,9 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
             break;
     }
 
+    // TODO: lol
+    TintMode = backupTintMode;
+
 #undef SET_BLENDFLAG_AND_OPACITY
 #undef CHECK_TEXTURE
 
@@ -1338,6 +1358,7 @@ static void SetFaceInfoOpacityAndBlendFlag(FaceInfo* face) {
     if (face->UseTinting) {
         face->TintColor = TintColor;
         face->TintAmount = TintAmount;
+        face->TintMode = TintMode;
     }
 }
 
