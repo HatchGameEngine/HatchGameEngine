@@ -8,7 +8,10 @@ enum BlendFlags {
     BlendFlag_SUBTRACT,
     BlendFlag_MATCH_EQUAL,
     BlendFlag_MATCH_NOT_EQUAL,
-    BlendFlag_FILTER
+
+    BlendFlag_MODE_MASK = 7,
+    BlendFlag_TINT_BIT = 8,
+    BlendFlag_FILTER_BIT = 16
 };
 
 #endif /* SOFTWAREENUMS_H */

@@ -99,6 +99,8 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     // Draw mode setting functions
     Graphics::Internal.SetBlendColor = SDL2Renderer::SetBlendColor;
     Graphics::Internal.SetBlendMode = SDL2Renderer::SetBlendMode;
+    Graphics::Internal.SetTintColor = SDL2Renderer::SetTintColor;
+    Graphics::Internal.SetTintMode = SDL2Renderer::SetTintMode;
     Graphics::Internal.SetLineWidth = SDL2Renderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -251,9 +253,13 @@ PUBLIC STATIC void     SDL2Renderer::SetBlendColor(float r, float g, float b, fl
 
 }
 PUBLIC STATIC void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
-    // glBlendFuncSeparate(
-    //     GL_GetBlendFactorFromHatchEnum(srcC), GL_GetBlendFactorFromHatchEnum(dstC),
-    //     GL_GetBlendFactorFromHatchEnum(srcA), GL_GetBlendFactorFromHatchEnum(dstA)); CHECK_GL();
+
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
+
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintMode(int mode) {
+
 }
 PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
 

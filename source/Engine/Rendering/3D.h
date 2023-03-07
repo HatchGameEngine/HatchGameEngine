@@ -49,6 +49,9 @@ struct FaceInfo {
     FaceMaterial Material;
     Uint8        Opacity;
     Uint8        BlendFlag;
+    bool         UseTinting;
+    Uint32       TintColor;
+    Uint32       TintAmount;
     int          Depth;
 };
 struct Frustum {

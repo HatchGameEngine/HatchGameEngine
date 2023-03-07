@@ -3370,7 +3370,40 @@ VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
     SoftwareRenderer::CompareColor = 0xFF000000U | (hex & 0xFFFFFF);
     return NULL_VAL;
 }
-
+/***
+ * Draw.SetTintColor
+ * \desc Sets the color to be used for tinting.
+ * \param hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
+ * \param alpha (Number): Opacity to use for drawing, 0.0 to 1.0.
+ * \ns Draw
+ */
+VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
+    if (argCount <= 2) {
+        CHECK_ARGCOUNT(2);
+        int hex = GET_ARG(0, GetInteger);
+        float alpha = GET_ARG(1, GetDecimal);
+        Graphics::SetTintColor(
+            (hex >> 16 & 0xFF) / 255.f,
+            (hex >> 8 & 0xFF) / 255.f,
+            (hex & 0xFF) / 255.f, alpha);
+        return NULL_VAL;
+    }
+    CHECK_ARGCOUNT(4);
+    Graphics::SetTintColor(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal));
+    return NULL_VAL;
+}
+/***
+ * Draw.UseTinting
+ * \desc Sets whether or not to use color tinting when drawing.
+ * \param useDeform (Boolean): Whether or not to use color tinting when drawing.
+ * \ns Scene
+ */
+VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int useTinting = GET_ARG(0, GetInteger);
+    Graphics::UseTinting = useTinting;
+    return NULL_VAL;
+}
 /***
  * Draw.Line
  * \desc Draws a line.
@@ -11040,6 +11073,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetBlendFactor);
     DEF_NATIVE(Draw, SetBlendFactorExtended);
     DEF_NATIVE(Draw, SetCompareColor);
+    DEF_NATIVE(Draw, SetTintColor);
+    DEF_NATIVE(Draw, UseTinting);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
     DEF_NATIVE(Draw, Ellipse);

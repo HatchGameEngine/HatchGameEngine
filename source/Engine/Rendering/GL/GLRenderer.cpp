@@ -542,6 +542,8 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     // Draw mode setting functions
     Graphics::Internal.SetBlendColor = GLRenderer::SetBlendColor;
     Graphics::Internal.SetBlendMode = GLRenderer::SetBlendMode;
+    Graphics::Internal.SetTintColor = GLRenderer::SetTintColor;
+    Graphics::Internal.SetTintMode = GLRenderer::SetTintMode;
     Graphics::Internal.SetLineWidth = GLRenderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -946,6 +948,12 @@ PUBLIC STATIC void     GLRenderer::SetBlendMode(int srcC, int dstC, int srcA, in
     glBlendFuncSeparate(
         GL_GetBlendFactorFromHatchEnum(srcC), GL_GetBlendFactorFromHatchEnum(dstC),
         GL_GetBlendFactorFromHatchEnum(srcA), GL_GetBlendFactorFromHatchEnum(dstA)); CHECK_GL();
+}
+PUBLIC STATIC void     GLRenderer::SetTintColor(float r, float g, float b, float a) {
+
+}
+PUBLIC STATIC void     GLRenderer::SetTintMode(int mode) {
+
 }
 PUBLIC STATIC void     GLRenderer::SetLineWidth(float n) {
     glLineWidth(n); CHECK_GL();

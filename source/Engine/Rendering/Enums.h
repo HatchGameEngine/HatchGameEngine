@@ -89,8 +89,11 @@ struct GraphicsState {
     Viewport           CurrentViewport;
     ClipArea           CurrentClip;
     float              BlendColors[4];
+    float              TintColors[4];
     int                BlendMode;
+    int                TintMode;
     bool               TextureBlend;
+    bool               UseTinting;
     bool               UsePalettes;
 };
 
@@ -129,6 +132,8 @@ struct GraphicsFunctions {
 
 	void     (*SetBlendColor)(float r, float g, float b, float a);
 	void     (*SetBlendMode)(int srcC, int dstC, int srcA, int dstA);
+	void     (*SetTintColor)(float r, float g, float b, float a);
+	void     (*SetTintMode)(int mode);
 	void     (*SetLineWidth)(float n);
 
 	void     (*StrokeLine)(float x1, float y1, float x2, float y2);

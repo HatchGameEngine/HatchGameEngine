@@ -44,6 +44,10 @@ public:
     static ClipArea             BackupClip;
 
     static float                BlendColors[4];
+    static float                TintColors[4];
+
+    static int                  BlendMode;
+    static int                  TintMode;
 
     static Texture*             CurrentRenderTarget;
 
@@ -53,8 +57,8 @@ public:
 
     static float                PixelOffset;
     static bool                 NoInternalTextures;
-    static int                  BlendMode;
     static bool                 UsePalettes;
+    static bool                 UseTinting;
     static bool                 UseSoftwareRenderer;
 
     // Rendering functions
@@ -107,6 +111,10 @@ ClipArea             Graphics::CurrentClip;
 ClipArea             Graphics::BackupClip;
 
 float                Graphics::BlendColors[4];
+float                Graphics::TintColors[4];
+
+int                  Graphics::BlendMode = 0;
+int                  Graphics::TintMode = 0;
 
 Texture*             Graphics::CurrentRenderTarget = NULL;
 
@@ -116,8 +124,8 @@ bool                 Graphics::SmoothStroke = false;
 
 float                Graphics::PixelOffset = 0.0f;
 bool                 Graphics::NoInternalTextures = false;
-int                  Graphics::BlendMode = 0;
 bool                 Graphics::UsePalettes = false;
+bool                 Graphics::UseTinting = false;
 bool                 Graphics::UseSoftwareRenderer = false;
 
 GraphicsFunctions    Graphics::Internal;
@@ -138,6 +146,11 @@ PUBLIC STATIC void     Graphics::Init() {
 	Graphics::BlendColors[1] =
 	Graphics::BlendColors[2] =
 	Graphics::BlendColors[3] = 1.0;
+
+	Graphics::TintColors[0] =
+	Graphics::TintColors[1] =
+	Graphics::TintColors[2] =
+	Graphics::TintColors[3] = 1.0;
 
 	int w, h;
 	SDL_GetWindowSize(Application::Window, &w, &h);
@@ -509,10 +522,13 @@ PUBLIC STATIC void     Graphics::PushState() {
     state.CurrentViewport = Graphics::CurrentViewport;
     state.CurrentClip     = Graphics::CurrentClip;
     state.BlendMode       = Graphics::BlendMode;
+    state.TintMode        = Graphics::TintMode;
     state.TextureBlend    = Graphics::TextureBlend;
     state.UsePalettes     = Graphics::UsePalettes;
+    state.UseTinting      = Graphics::UseTinting;
 
     memcpy(state.BlendColors, Graphics::BlendColors, sizeof(Graphics::BlendColors));
+    memcpy(state.TintColors, Graphics::TintColors, sizeof(Graphics::TintColors));
 
     StateStack.push(state);
 
@@ -526,10 +542,14 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::SetBlendMode(state.BlendMode);
     Graphics::SetBlendColor(state.BlendColors[0], state.BlendColors[1], state.BlendColors[2], state.BlendColors[3]);
 
+    Graphics::SetTintMode(state.TintMode);
+    Graphics::SetTintColor(state.TintColors[0], state.TintColors[1], state.TintColors[2], state.TintColors[3]);
+
     Graphics::CurrentViewport = state.CurrentViewport;
     Graphics::CurrentClip     = state.CurrentClip;
     Graphics::TextureBlend    = state.TextureBlend;
     Graphics::UsePalettes     = state.UsePalettes;
+    Graphics::UseTinting      = state.UseTinting;
 
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();
@@ -577,6 +597,16 @@ PUBLIC STATIC void     Graphics::SetBlendMode(int blendMode) {
 }
 PUBLIC STATIC void     Graphics::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
+}
+PUBLIC STATIC void     Graphics::SetTintColor(float r, float g, float b, float a) {
+    Graphics::TintColors[0] = r;
+    Graphics::TintColors[1] = g;
+    Graphics::TintColors[2] = b;
+    Graphics::TintColors[3] = a;
+    Graphics::GfxFunctions->SetTintColor(r, g, b, a);
+}
+PUBLIC STATIC void     Graphics::SetTintMode(int mode) {
+    Graphics::GfxFunctions->SetTintMode(mode);
 }
 PUBLIC STATIC void     Graphics::SetLineWidth(float n) {
     Graphics::GfxFunctions->SetLineWidth(n);
