@@ -253,6 +253,10 @@
                     <li><a href="#Reference_Draw_SetBlendFactor">Draw.SetBlendFactor</a></li>
                     <li><a href="#Reference_Draw_SetBlendFactorExtended">Draw.SetBlendFactorExtended</a></li>
                     <li><a href="#Reference_Draw_SetCompareColor">Draw.SetCompareColor</a></li>
+                    <li><a href="#Reference_Draw_SetTintColor">Draw.SetTintColor</a></li>
+                    <li><a href="#Reference_Draw_SetTintMode">Draw.SetTintMode</a></li>
+                    <li><a href="#Reference_Draw_UseTinting">Draw.UseTinting</a></li>
+                    <li><a href="#Reference_Draw_SetFilter">Draw.SetFilter</a></li>
                     <li><a href="#Reference_Draw_Line">Draw.Line</a></li>
                     <li><a href="#Reference_Draw_Circle">Draw.Circle</a></li>
                     <li><a href="#Reference_Draw_Ellipse">Draw.Ellipse</a></li>
@@ -276,6 +280,8 @@
                     <li><a href="#Reference_Draw_SetTextureTarget">Draw.SetTextureTarget</a></li>
                     <li><a href="#Reference_Draw_Clear">Draw.Clear</a></li>
                     <li><a href="#Reference_Draw_ResetTextureTarget">Draw.ResetTextureTarget</a></li>
+                    <li><a href="#Reference_Draw_UseSpriteDeform">Draw.UseSpriteDeform</a></li>
+                    <li><a href="#Reference_Draw_SetSpriteDeformLine">Draw.SetSpriteDeformLine</a></li>
                 </ul>
             </p>
             <p id="Reference_Ease">
@@ -502,8 +508,6 @@
                 <h2>Scene</h2>
                 <i>Functions:</i>
                 <ul>
-                    <li><a href="#Reference_Draw_UseSpriteDeform">Draw.UseSpriteDeform</a></li>
-                    <li><a href="#Reference_Draw_SetSpriteDeformLine">Draw.SetSpriteDeformLine</a></li>
                     <li><a href="#Reference_Scene_Load">Scene.Load</a></li>
                     <li><a href="#Reference_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></li>
                     <li><a href="#Reference_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
@@ -2316,6 +2320,47 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetTintColor">
+        <h2 style="margin-bottom: 8px;">Draw.SetTintColor</h2>
+        <code>Draw.SetTintColor(hex, amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the color to be used for tinting.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)</li>
+        <li>amount (Number): Tint amount, from 0.0 to 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetTintMode">
+        <h2 style="margin-bottom: 8px;">Draw.SetTintMode</h2>
+        <code>Draw.SetTintMode(tintMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tint mode used for drawing. <br/></br>Tint Modes:<ul><li><code>TintMode_SRC_NORMAL</code>: Tints the source pixel with the tint color.</li><li><code>TintMode_DST_NORMAL</code>: Tints the destination pixel with the tint color.</li><li><code>TintMode_SRC_BLEND</code>: Blends the source pixel with the tint color.</li><li><code>TintMode_DST_BLEND</code>: Blends the destination pixel with the tint color.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tintMode (Integer): The desired tint mode.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_UseTinting">
+        <h2 style="margin-bottom: 8px;">Draw.UseTinting</h2>
+        <code>Draw.UseTinting(useDeform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color tinting when drawing.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useDeform (Boolean): Whether or not to use color tinting when drawing.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetFilter">
+        <h2 style="margin-bottom: 8px;">Draw.SetFilter</h2>
+        <code>Draw.SetFilter(filterType)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a filter. <br/></br>Filters:<ul><li><code>Filter_NONE</code>: Disables the current filter.</li><li><code>Filter_BLACK_AND_WHITE</code>: Black and white filter.</li><li><code>Filter_INVERT</code>: Invert filter.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filterType (Integer): Filter type.</li>
         </ul>
         </p>
         <hr/>
@@ -6707,6 +6752,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>452 out of 521 functions have descriptions. </p>
+        <p>456 out of 525 functions have descriptions. </p>
     </body>
 </html>

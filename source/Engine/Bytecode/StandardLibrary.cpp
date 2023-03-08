@@ -3379,7 +3379,7 @@ VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.SetTintColor
  * \desc Sets the color to be used for tinting.
  * \param hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
- * \param alpha (Number): Opacity to use for drawing, 0.0 to 1.0.
+ * \param amount (Number): Tint amount, from 0.0 to 1.0.
  * \ns Draw
  */
 VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -3424,12 +3424,33 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.UseTinting
  * \desc Sets whether or not to use color tinting when drawing.
  * \param useDeform (Boolean): Whether or not to use color tinting when drawing.
- * \ns Scene
+ * \ns Draw
  */
 VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int useTinting = GET_ARG(0, GetInteger);
     Graphics::SetTintEnabled(useTinting);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetFilter
+ * \desc Sets a filter. <br/>\
+</br>Filters:<ul>\
+<li><code>Filter_NONE</code>: Disables the current filter.</li>\
+<li><code>Filter_BLACK_AND_WHITE</code>: Black and white filter.</li>\
+<li><code>Filter_INVERT</code>: Invert filter.</li>\
+</ul>
+ * \param filterType (Integer): Filter type.
+ * \ns Draw
+ */
+VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int filterType = GET_ARG(0, GetInteger);
+    if (filterType < 0 || filterType > Filter_INVERT) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Filter %d out of range. (0 - %d)", Filter_INVERT);
+        return NULL_VAL;
+    }
+    SoftwareRenderer::SetFilter(filterType);
     return NULL_VAL;
 }
 /***
@@ -3788,7 +3809,7 @@ VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.UseSpriteDeform
  * \desc Sets whether or not to use sprite deform when drawing.
  * \param useDeform (Boolean): Whether or not to use sprite deform when drawing.
- * \ns Scene
+ * \ns Draw
  */
 VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -3801,7 +3822,7 @@ VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Sets the sprite deform line at the specified line index.
  * \param deformIndex (Integer): Index of deform line. (0 = top of screen, 1 = the line below it, 2 = etc.)
  * \param deformValue (Decimal): Deform value.
- * \ns Scene
+ * \ns Draw
  */
 VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -3809,27 +3830,6 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
     int deformValue = (int)GET_ARG(1, GetDecimal);
 
     SoftwareRenderer::SpriteDeformBuffer[lineIndex] = deformValue;
-    return NULL_VAL;
-}
-/***
- * Draw.SetFilter
- * \desc Sets a filter. <br/>\
-</br>Filters:<ul>\
-<li><code>Filter_NONE</code>: Disables the current filter.</li>\
-<li><code>Filter_BLACK_AND_WHITE</code>: Black and white filter.</li>\
-<li><code>Filter_INVERT</code>: Invert filter.</li>\
-</ul>
- * \param filterType (Integer): Filter type.
- * \ns Scene
- */
-VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int filterType = GET_ARG(0, GetInteger);
-    if (filterType < 0 || filterType > Filter_INVERT) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Filter %d out of range. (0 - %d)", Filter_INVERT);
-        return NULL_VAL;
-    }
-    SoftwareRenderer::SetFilter(filterType);
     return NULL_VAL;
 }
 // #endregion
@@ -11124,6 +11124,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetTintColor);
     DEF_NATIVE(Draw, SetTintMode);
     DEF_NATIVE(Draw, UseTinting);
+    DEF_NATIVE(Draw, SetFilter);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
     DEF_NATIVE(Draw, Ellipse);
@@ -11149,7 +11150,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ResetTextureTarget);
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
-    DEF_NATIVE(Draw, SetFilter);
 
     DEF_ENUM(DrawMode_FillTypeMask);
     DEF_ENUM(DrawMode_LINES);
