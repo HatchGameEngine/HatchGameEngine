@@ -3570,11 +3570,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneL
         }
         case DrawBehavior_CustomTileScanLines: {
             Sint64 scrollOffset = Scene::Frame * layer->ConstantY;
-            Sint64 scrollPositionX = ((scrollOffset + (((int)currentView->X + layer->OffsetX) * layer->RelativeY)) >> 8) & 0xFFFF;
-                   scrollPositionX %= layer->Width;
+            Sint64 scrollPositionX = ((scrollOffset + (((int)currentView->X + layer->OffsetX) * layer->RelativeY)) >> 8);
+                   scrollPositionX %= layer->Width * 16;
                    scrollPositionX <<= 16;
-            Sint64 scrollPositionY = ((scrollOffset + (((int)currentView->Y + layer->OffsetY) * layer->RelativeY)) >> 8) & 0xFFFF;
-                   scrollPositionY %= layer->Height;
+            Sint64 scrollPositionY = ((scrollOffset + (((int)currentView->Y + layer->OffsetY) * layer->RelativeY)) >> 8);
+                   scrollPositionY %= layer->Height * 16;
                    scrollPositionY <<= 16;
 
             TileScanLine* scanLine = &TileScanLineBuffer[0];
