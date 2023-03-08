@@ -341,7 +341,7 @@ int DoFogLighting(int color, float fogCoord) {
     col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
 
 #define SCANLINE_WRITE_PIXEL(pixelFunction, px) \
-    pixelFunction((Uint32*)&px, &dstPx[dst_x + dst_strideY], opacity, multTableAt, multSubTableAt)
+    pixelFunction((Uint32*)&px, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt)
 
 Contour *ContourField = SoftwareRenderer::ContourBuffer;
 
@@ -373,7 +373,7 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
         dst_y1 = 0
 
 // Draws a polygon
-PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -382,7 +382,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
@@ -415,6 +415,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -441,7 +443,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
     #undef DRAW_POLYGON
 }
 // Draws a blended polygon
-PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colors, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -450,7 +452,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
@@ -498,6 +500,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -512,7 +516,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     #undef DRAW_POLYGONBLEND
 }
 // Draws a polygon with lighting
-PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -521,7 +525,7 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -584,6 +588,8 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -604,7 +610,7 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     #undef DRAW_POLYGONSHADED_FOG
 }
 // Draws a blended polygon with lighting
-PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -613,7 +619,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -674,6 +680,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -693,7 +701,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
     #undef DRAW_POLYGONBLENDSHADED
 }
 // Draws an affine texture mapped polygon
-PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -704,7 +712,7 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -805,6 +813,8 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -822,7 +832,7 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     #undef DRAW_POLYGONAFFINE
 }
 // Draws an affine texture mapped polygon with blending
-PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -833,7 +843,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -944,6 +954,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1033,7 +1045,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         DRAW_PERSP_STEP(); \
     }
 #endif
-PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1044,7 +1056,7 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1129,6 +1141,8 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1148,7 +1162,7 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
     #undef DRAW_POLYGONPERSP
 }
 // Draws a perspective-correct texture mapped polygon with blending
-PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1159,7 +1173,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1253,6 +1267,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1272,7 +1288,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #undef DRAW_POLYGONBLENDPERSP
 }
 // Draws a polygon with depth testing
-PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1281,7 +1297,7 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1341,6 +1357,8 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1360,7 +1378,7 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
     #undef DRAW_POLYGONDEPTH
 }
 // Draws a blended polygon with depth testing
-PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colors, int count, int opacity, int blendFlag) {
+PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1369,7 +1387,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlag(blendFlag, opacity))
+    if (!SoftwareRenderer::AlterBlendFlags(blendState))
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1440,6 +1458,8 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
         dst_strideY += dstStride; \
     }
 
+    int blendFlag = blendState.Flags;
+    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 

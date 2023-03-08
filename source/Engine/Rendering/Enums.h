@@ -141,6 +141,7 @@ struct GraphicsFunctions {
 	void     (*SetBlendMode)(int srcC, int dstC, int srcA, int dstA);
 	void     (*SetTintColor)(float r, float g, float b, float a);
 	void     (*SetTintMode)(int mode);
+	void     (*SetTintEnabled)(bool enabled);
 	void     (*SetLineWidth)(float n);
 
 	void     (*StrokeLine)(float x1, float y1, float x2, float y2);

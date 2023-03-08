@@ -542,6 +542,7 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::SetBlendMode(state.BlendMode);
     Graphics::SetBlendColor(state.BlendColors[0], state.BlendColors[1], state.BlendColors[2], state.BlendColors[3]);
 
+    Graphics::SetTintEnabled(state.UseTinting);
     Graphics::SetTintMode(state.TintMode);
     Graphics::SetTintColor(state.TintColors[0], state.TintColors[1], state.TintColors[2], state.TintColors[3]);
 
@@ -549,7 +550,6 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::CurrentClip     = state.CurrentClip;
     Graphics::TextureBlend    = state.TextureBlend;
     Graphics::UsePalettes     = state.UsePalettes;
-    Graphics::UseTinting      = state.UseTinting;
 
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();
@@ -608,6 +608,10 @@ PUBLIC STATIC void     Graphics::SetTintColor(float r, float g, float b, float a
 PUBLIC STATIC void     Graphics::SetTintMode(int mode) {
     Graphics::TintMode = mode;
     Graphics::GfxFunctions->SetTintMode(mode);
+}
+PUBLIC STATIC void     Graphics::SetTintEnabled(bool enabled) {
+    Graphics::UseTinting = enabled;
+    Graphics::GfxFunctions->SetTintEnabled(enabled);
 }
 PUBLIC STATIC void     Graphics::SetLineWidth(float n) {
     Graphics::GfxFunctions->SetLineWidth(n);

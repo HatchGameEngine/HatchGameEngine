@@ -3429,7 +3429,7 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int useTinting = GET_ARG(0, GetInteger);
-    Graphics::UseTinting = useTinting;
+    Graphics::SetTintEnabled(useTinting);
     return NULL_VAL;
 }
 /***

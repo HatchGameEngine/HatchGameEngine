@@ -544,6 +544,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.SetBlendMode = GLRenderer::SetBlendMode;
     Graphics::Internal.SetTintColor = GLRenderer::SetTintColor;
     Graphics::Internal.SetTintMode = GLRenderer::SetTintMode;
+    Graphics::Internal.SetTintEnabled = GLRenderer::SetTintEnabled;
     Graphics::Internal.SetLineWidth = GLRenderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -953,6 +954,9 @@ PUBLIC STATIC void     GLRenderer::SetTintColor(float r, float g, float b, float
 
 }
 PUBLIC STATIC void     GLRenderer::SetTintMode(int mode) {
+
+}
+PUBLIC STATIC void     GLRenderer::SetTintEnabled(bool enabled) {
 
 }
 PUBLIC STATIC void     GLRenderer::SetLineWidth(float n) {

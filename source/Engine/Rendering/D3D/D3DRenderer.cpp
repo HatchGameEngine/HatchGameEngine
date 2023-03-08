@@ -880,7 +880,8 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.SetBlendColor = D3DRenderer::SetBlendColor;
     Graphics::Internal.SetBlendMode = D3DRenderer::SetBlendMode;
     Graphics::Internal.SetTintColor = D3DRenderer::SetTintColor;
-    Graphics::Internal.SetTintColor = D3DRenderer::SetTintMode;
+    Graphics::Internal.SetTintMode = D3DRenderer::SetTintMode;
+    Graphics::Internal.SetTintEnabled = D3DRenderer::SetTintEnabled;
     Graphics::Internal.SetLineWidth = D3DRenderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -1226,6 +1227,9 @@ PUBLIC STATIC void     D3DRenderer::SetTintColor(float r, float g, float b, floa
 
 }
 PUBLIC STATIC void     D3DRenderer::SetTintMode(int mode) {
+
+}
+PUBLIC STATIC void     D3DRenderer::SetTintEnabled(bool enabled) {
 
 }
 PUBLIC STATIC void     D3DRenderer::SetLineWidth(float n) {

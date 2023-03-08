@@ -101,6 +101,7 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::Internal.SetBlendMode = SDL2Renderer::SetBlendMode;
     Graphics::Internal.SetTintColor = SDL2Renderer::SetTintColor;
     Graphics::Internal.SetTintMode = SDL2Renderer::SetTintMode;
+    Graphics::Internal.SetTintEnabled = SDL2Renderer::SetTintEnabled;
     Graphics::Internal.SetLineWidth = SDL2Renderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -259,6 +260,9 @@ PUBLIC STATIC void     SDL2Renderer::SetTintColor(float r, float g, float b, flo
 
 }
 PUBLIC STATIC void     SDL2Renderer::SetTintMode(int mode) {
+
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintEnabled(bool enabled) {
 
 }
 PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
