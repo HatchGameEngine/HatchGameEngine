@@ -323,6 +323,20 @@ PUBLIC STATIC void     SoftwareRenderer::SetUniformTexture(Texture* texture, int
 
 }
 
+PUBLIC STATIC void     SoftwareRenderer::SetFilter(int filter) {
+    switch (filter) {
+    case Filter_NONE:
+        CurrentBlendState.FilterTable = &FilterColor[0];
+        break;
+    case Filter_BLACK_AND_WHITE:
+        CurrentBlendState.FilterTable = &FilterBlackAndWhite[0];
+        break;
+    case Filter_INVERT:
+        CurrentBlendState.FilterTable = &FilterInvert[0];
+        break;
+    }
+}
+
 // These guys
 PUBLIC STATIC void     SoftwareRenderer::Clear() {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;

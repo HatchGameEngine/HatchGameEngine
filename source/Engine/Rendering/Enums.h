@@ -31,6 +31,12 @@ enum {
 };
 
 enum {
+    Filter_NONE,
+    Filter_BLACK_AND_WHITE,
+    Filter_INVERT
+};
+
+enum {
     DrawBehavior_HorizontalParallax = 0,
     DrawBehavior_VerticalParallax = 1,
     DrawBehavior_CustomTileScanLines = 2,

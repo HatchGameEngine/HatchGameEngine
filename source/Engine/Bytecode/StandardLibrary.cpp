@@ -3784,7 +3784,6 @@ VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 	Graphics::UpdateProjectionMatrix();
     return NULL_VAL;
 }
-
 /***
  * Draw.UseSpriteDeform
  * \desc Sets whether or not to use sprite deform when drawing.
@@ -3810,6 +3809,27 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
     int deformValue = (int)GET_ARG(1, GetDecimal);
 
     SoftwareRenderer::SpriteDeformBuffer[lineIndex] = deformValue;
+    return NULL_VAL;
+}
+/***
+ * Draw.SetFilter
+ * \desc Sets a filter. <br/>\
+</br>Filters:<ul>\
+<li><code>Filter_NONE</code>: Disables the current filter.</li>\
+<li><code>Filter_BLACK_AND_WHITE</code>: Black and white filter.</li>\
+<li><code>Filter_INVERT</code>: Invert filter.</li>\
+</ul>
+ * \param filterType (Integer): Filter type.
+ * \ns Scene
+ */
+VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int filterType = GET_ARG(0, GetInteger);
+    if (filterType < 0 || filterType > Filter_INVERT) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Filter %d out of range. (0 - %d)", Filter_INVERT);
+        return NULL_VAL;
+    }
+    SoftwareRenderer::SetFilter(filterType);
     return NULL_VAL;
 }
 // #endregion
@@ -11129,6 +11149,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ResetTextureTarget);
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
+    DEF_NATIVE(Draw, SetFilter);
 
     DEF_ENUM(DrawMode_FillTypeMask);
     DEF_ENUM(DrawMode_LINES);
@@ -11156,6 +11177,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(TintMode_DST_NORMAL);
     DEF_ENUM(TintMode_SRC_BLEND);
     DEF_ENUM(TintMode_DST_BLEND);
+
+    DEF_ENUM(Filter_NONE);
+    DEF_ENUM(Filter_BLACK_AND_WHITE);
+    DEF_ENUM(Filter_INVERT);
 
     DEF_ENUM(BlendFactor_ZERO);
     DEF_ENUM(BlendFactor_ONE);
