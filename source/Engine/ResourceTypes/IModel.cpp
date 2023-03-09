@@ -338,6 +338,21 @@ PUBLIC void IModel::Dispose() {
 
     delete BaseArmature;
     delete GlobalInverseMatrix;
+
+    Meshes = nullptr;
+    MeshCount = 0;
+
+    Materials = nullptr;
+    MaterialCount = 0;
+
+    Animations = nullptr;
+    AnimationCount = 0;
+
+    ArmatureList = nullptr;
+    ArmatureCount = 0;
+
+    BaseArmature = nullptr;
+    GlobalInverseMatrix = nullptr;
 }
 
 PUBLIC IModel::~IModel() {

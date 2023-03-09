@@ -296,9 +296,6 @@ struct Mesh {
     int                MaterialIndex;
     int                SkeletonIndex;
 
-    Vector3*           TransformedPositions;
-    Vector3*           TransformedNormals;
-
     Mesh() {
         NumVertices = 0;
         VertexFlag = 0;
@@ -318,9 +315,6 @@ struct Mesh {
         Memory::Free(UVBuffer);
         Memory::Free(ColorBuffer);
         Memory::Free(VertexIndexBuffer);
-
-        Memory::Free(TransformedPositions);
-        Memory::Free(TransformedNormals);
     }
 };
 

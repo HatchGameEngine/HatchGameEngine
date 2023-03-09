@@ -4665,10 +4665,10 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region JSON
-static int _JSON_FillMap(ObjMap*, const char*, jsmntok_t*, size_t);
-static int _JSON_FillArray(ObjArray*, const char*, jsmntok_t*, size_t);
+static int JSON_FillMap(ObjMap*, const char*, jsmntok_t*, size_t);
+static int JSON_FillArray(ObjArray*, const char*, jsmntok_t*, size_t);
 
-static int _JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t count) {
+static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t count) {
     jsmntok_t* key;
     jsmntok_t* value;
     if (count == 0) {
@@ -4755,14 +4755,14 @@ static int _JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t cou
                 // /*
                 case JSMN_OBJECT: {
                     ObjMap* subMap = NewMap();
-                    tokcount += _JSON_FillMap(subMap, text, value, count - tokcount);
+                    tokcount += JSON_FillMap(subMap, text, value, count - tokcount);
                     val = OBJECT_VAL(subMap);
                     break;
                 }
                 //*/
                 case JSMN_ARRAY: {
                     ObjArray* subArray = NewArray();
-                    tokcount += _JSON_FillArray(subArray, text, value, count - tokcount);
+                    tokcount += JSON_FillArray(subArray, text, value, count - tokcount);
                     val = OBJECT_VAL(subArray);
                     break;
                 }
@@ -4774,7 +4774,7 @@ static int _JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t cou
     }
     return tokcount + 1;
 }
-static int _JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t count) {
+static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t count) {
     jsmntok_t* value;
     if (count == 0) {
         return 0;
@@ -4854,13 +4854,13 @@ static int _JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t
             }
             case JSMN_OBJECT: {
                 ObjMap* subMap = NewMap();
-                tokcount += _JSON_FillMap(subMap, text, value, count - tokcount);
+                tokcount += JSON_FillMap(subMap, text, value, count - tokcount);
                 val = OBJECT_VAL(subMap);
                 break;
             }
             case JSMN_ARRAY: {
                 ObjArray* subArray = NewArray();
-                tokcount += _JSON_FillArray(subArray, text, value, count - tokcount);
+                tokcount += JSON_FillArray(subArray, text, value, count - tokcount);
                 val = OBJECT_VAL(subArray);
                 break;
             }
@@ -4908,7 +4908,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
                 }
             }
             else {
-                _JSON_FillMap(map, string->Chars, tok, p.toknext);
+                JSON_FillMap(map, string->Chars, tok, p.toknext);
             }
             break;
         }
@@ -6307,7 +6307,7 @@ bool    GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
  * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return Returns the index of the Resource.
  * \ns Resources
  */
@@ -6334,7 +6334,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return Returns the index of the Resource.
  * \ns Resources
  */
@@ -6483,7 +6483,7 @@ VMValue Resources_LoadShader(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return Returns the index of the Resource.
  * \ns Resources
  */
@@ -6512,7 +6512,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
     resource->AsModel = new (nothrow) IModel();
     if (!resource->AsModel->Load(stream, filename)) {
         delete resource->AsModel;
-        resource->AsModel = NULL;
+        delete resource;
         list->pop_back();
         stream->Close();
         return INTEGER_VAL(-1);
@@ -6525,7 +6525,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadMusic
  * \desc Loads a Music resource, returning its Music index.
  * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return Returns the index of the Resource.
  * \ns Resources
  */
@@ -6551,7 +6551,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.LoadSound
  * \desc Loads a Sound resource, returning its Sound index.
  * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether or not to unload the resource at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return Returns the index of the Resource.
  * \ns Resources
  */
@@ -10744,7 +10744,7 @@ VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region XML
-static VMValue _XML_FillMap(XMLNode* parent) {
+static VMValue XML_FillMap(XMLNode* parent) {
     ObjMap* map = NewMap();
     Uint32 keyHash;
 
@@ -10786,11 +10786,11 @@ static VMValue _XML_FillMap(XMLNode* parent) {
                     thisArray = AS_ARRAY(thisVal);
                 }
 
-                thisArray->Values->push_back(_XML_FillMap(node));
+                thisArray->Values->push_back(XML_FillMap(node));
             }
             else {
                 map->Keys->Put(keyHash, HeapCopyString(nodeName->Start, nodeName->Length));
-                map->Values->Put(keyHash, _XML_FillMap(node));
+                map->Values->Put(keyHash, XML_FillMap(node));
             }
         }
     }
@@ -10839,7 +10839,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
             XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
 
             if (xmlRoot) {
-                VMValue mapValue = _XML_FillMap(xmlRoot);
+                VMValue mapValue = XML_FillMap(xmlRoot);
                 BytecodeObjectManager::Unlock();
                 return mapValue;
             }

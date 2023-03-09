@@ -340,7 +340,7 @@ PUBLIC void BytecodeObject::Dispose() {
 }
 
 // Events/methods called from VM
-bool _TestCollision(BytecodeObject* other, BytecodeObject* self) {
+bool TestEntityCollision(BytecodeObject* other, BytecodeObject* self) {
     if (!other->Active || other->Removed) return false;
     // if (!other->Instance) return false;
     if (other->HitboxW == 0.0f ||
@@ -451,15 +451,6 @@ PUBLIC STATIC VMValue BytecodeObject::VM_InView(int argCount, VMValue* args, Uin
     float w      = StandardLibrary::GetDecimal(args, 4);
     float h      = StandardLibrary::GetDecimal(args, 5);
 
-    // printf("InView: view %d x %.1f y %.1f w %.1f h %.1f\n        entity x %.1f y %.1f w %.1f h %.1f\n%s\n",
-    //     view,
-    //     Scene::Views[view].X, Scene::Views[view].Y, Scene::Views[view].Width, Scene::Views[view].Height,
-    //     x, y, w, h,
-    //     (x + w >= Scene::Views[view].X &&
-    //     y + h >= Scene::Views[view].Y &&
-    //     x      < Scene::Views[view].X + Scene::Views[view].Width &&
-    //     y      < Scene::Views[view].Y + Scene::Views[view].Height) ? "TRUE" : "FALSE");
-
     if (x + w >= Scene::Views[view].X &&
         y + h >= Scene::Views[view].Y &&
         x      < Scene::Views[view].X + Scene::Views[view].Width &&
@@ -474,7 +465,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValu
     if (IS_INSTANCE(args[1])) {
         BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
         BytecodeObject* other = (BytecodeObject*)AS_INSTANCE(args[1])->EntityPtr;
-        return INTEGER_VAL(_TestCollision(other, self));
+        return INTEGER_VAL(TestEntityCollision(other, self));
     }
 
     if (!Scene::ObjectLists) return INTEGER_VAL(false);
@@ -496,7 +487,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValu
     other = (BytecodeObject*)objectList->EntityFirst;
     for (Entity* next; other; other = (BytecodeObject*)next) {
         next = other->NextEntityInList;
-        if (_TestCollision(other, self))
+        if (TestEntityCollision(other, self))
             return INTEGER_VAL(true);
     }
 
@@ -565,18 +556,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
 
     CollisionBox box = frameO.Boxes[hitbox];
     ObjArray* array = NewArray();
-    array->Values->push_back(DECIMAL_VAL(box.Top));
-    array->Values->push_back(DECIMAL_VAL(box.Left));
-    array->Values->push_back(DECIMAL_VAL(box.Right));
-    array->Values->push_back(DECIMAL_VAL(box.Bottom));
+    array->Values->push_back(DECIMAL_VAL((float)box.Top));
+    array->Values->push_back(DECIMAL_VAL((float)box.Left));
+    array->Values->push_back(DECIMAL_VAL((float)box.Right));
+    array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
     return OBJECT_VAL(array);
 }
 
-/*
-bool Entity::CollideWithObject
-int  Entity::SolidCollideWithObject
-bool Entity::TopSolidCollideWithObject
-*/
 PUBLIC STATIC VMValue BytecodeObject::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = (BytecodeObject*)AS_INSTANCE(args[0])->EntityPtr;
