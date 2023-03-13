@@ -86,6 +86,7 @@ public:
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -439,6 +440,8 @@ PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
 PUBLIC STATIC void Scene::Init() {
     Scene::NextScene[0] = '\0';
     Scene::CurrentScene[0] = '\0';
+
+    GarbageCollector::Init();
 
     SourceFileMap::CheckForUpdate();
 

@@ -16,7 +16,6 @@
 static Obj*       AllocateObject(size_t size, ObjType type) {
     // Only do this when allocating more memory
     GarbageCollector::GarbageSize += size;
-    // BytecodeObjectManager::RequestGarbageCollection();
 
     Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
     object->Type = type;

@@ -46,7 +46,6 @@ HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
-vector<ObjString*>   Strings;
 
 Enum            Enums[0x100];
 int             EnumsCount = 0;
@@ -1184,7 +1183,6 @@ PUBLIC ObjString* Compiler::MakeString(Token token) {
 PUBLIC void Compiler::GetString(bool canAssign) {
     ObjString* string = Compiler::MakeString(parser.Previous);
     EmitConstant(OBJECT_VAL(string));
-    Strings.push_back(string);
 }
 PUBLIC void Compiler::GetArray(bool canAssign) {
     Uint32 count = 0;
@@ -2809,7 +2807,6 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     EnumsCount = 0;
 
-    Compiler::Functions.clear();
     Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
     AdvanceToken();
@@ -2908,10 +2905,6 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     stream->Close();
 
-    // Strings don't need to be freed here, since they are constants.
-    // When functions are deleted, the constants that their chunks own are freed too.
-    Strings.clear();
-
     return !parser.HadError;
 }
 PUBLIC void          Compiler::FinishCompiler() {
@@ -2922,8 +2915,8 @@ PUBLIC VIRTUAL       Compiler::~Compiler() {
 
 }
 PUBLIC STATIC void   Compiler::Dispose(bool freeTokens) {
-    for (size_t c = 0; c < Compiler::Functions.size(); c++)
-        BytecodeObjectManager::FreeFunction(Compiler::Functions[c]);
+    Compiler::Functions.clear();
+
     Memory::Free(Rules);
 
     if (TokenMap && freeTokens) {

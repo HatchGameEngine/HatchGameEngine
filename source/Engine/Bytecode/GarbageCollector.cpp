@@ -39,6 +39,11 @@ bool         GarbageCollector::Print = false;
 bool         GarbageCollector::FilterSweepEnabled = false;
 int          GarbageCollector::FilterSweepType = 0;
 
+PUBLIC STATIC void GarbageCollector::Init() {
+    GarbageCollector::RootObject = NULL;
+    GarbageCollector::NextGC = 0x100000;
+}
+
 PUBLIC STATIC void GarbageCollector::Collect() {
     GrayList.clear();
 

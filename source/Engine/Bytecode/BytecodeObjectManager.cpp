@@ -110,8 +110,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
 
-    GarbageCollector::RootObject = NULL;
-    GarbageCollector::NextGC = 0x100000;
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
     GlobalLock = SDL_CreateMutex();
@@ -942,6 +940,6 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
         }
     });
 
-    GarbageCollector::Collect();
+    BytecodeObjectManager::ForceGarbageCollection();
 }
 // #endregion
