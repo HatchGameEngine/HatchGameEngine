@@ -2908,8 +2908,8 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     stream->Close();
 
-    for (size_t s = 0; s < Strings.size(); s++)
-        BytecodeObjectManager::FreeString(Strings[s]);
+    // Strings don't need to be freed here, since they are constants.
+    // When functions are deleted, the constants that their chunks own are freed too.
     Strings.clear();
 
     return !parser.HadError;
