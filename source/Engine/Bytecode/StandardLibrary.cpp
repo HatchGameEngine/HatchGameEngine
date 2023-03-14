@@ -8873,7 +8873,7 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
 #undef CHECK_READ_STREAM
 #define CHECK_WRITE_STREAM \
     if (stream->Closed) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to closed stream!"); \
         return NULL_VAL; \
     } \
     if (!stream->Writable) { \
