@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include <Engine/Rendering/3D.h>
+#include <Engine/Math/Matrix4x4.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Math/FixedPoint.h>
 #include <Engine/Math/Vector.h>

@@ -1,23 +1,9 @@
 #ifndef I3D_H
 #define I3D_H
 
-#include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Enums.h>
+#include <Engine/Math/VectorTypes.h>
 
-struct Vector2 {
-    int X;
-    int Y;
-};
-struct Vector3 {
-    Sint64 X;
-    Sint64 Y;
-    Sint64 Z;
-};
-struct Vector4 {
-    Sint64 X;
-    Sint64 Y;
-    Sint64 Z;
-    Sint64 W;
-};
 enum VertexType {
     VertexType_Position = 0,
     VertexType_Normal = 1,
@@ -49,10 +35,8 @@ struct FaceInfo {
     FaceMaterial Material;
     Uint8        Opacity;
     Uint8        BlendFlag;
-    bool         UseTinting;
-    Uint32       TintColor;
-    Uint32       TintAmount;
-    Uint8        TintMode;
+    TintState    Tint;
+    int*         FilterTable;
     int          Depth;
 };
 struct Frustum {

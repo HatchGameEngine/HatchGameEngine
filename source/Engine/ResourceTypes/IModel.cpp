@@ -286,7 +286,7 @@ PUBLIC int IModel::NewArmature() {
 
     // Initialize
     if (ArmatureList == nullptr) {
-        ArmatureList = (Armature**)Memory::Malloc(sizeof(Armature*));
+        ArmatureList = (Armature**)Memory::Calloc(1, sizeof(Armature*));
         ArmatureCount = 1;
     }
 

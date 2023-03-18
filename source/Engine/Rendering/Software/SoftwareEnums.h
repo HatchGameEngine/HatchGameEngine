@@ -1,6 +1,8 @@
 #ifndef SOFTWAREENUMS_H
 #define SOFTWAREENUMS_H
 
+#include <Engine/Rendering/Enums.h>
+
 enum BlendFlags {
     BlendFlag_OPAQUE = 0,
     BlendFlag_TRANSPARENT,
@@ -17,12 +19,7 @@ enum BlendFlags {
 struct BlendState {
     int Opacity;
     int Flags;
-    struct {
-        bool Enabled;
-        Uint32 Color;
-        Uint16 Amount;
-        Uint8 Mode;
-    } Tint;
+    TintState Tint;
     int *FilterTable;
 };
 

@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
+#include <Engine/Math/VectorTypes.h>
+#include <Engine/Math/Matrix4x4.h>
 
 class Vector {
 public:

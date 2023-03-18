@@ -933,14 +933,11 @@ PUBLIC STATIC void     SoftwareRenderer::ArrayBuffer_DrawFinish(Uint32 arrayBuff
     } else { \
         blendState.Flags = face->BlendFlag; \
         blendState.Opacity = face->Opacity; \
-        blendState.Tint.Enabled = Graphics::UseTinting && face->UseTinting; \
-        if (blendState.Tint.Enabled) { \
-            blendState.Tint.Color = face->TintColor; \
-            blendState.Tint.Amount = face->TintAmount; \
-            blendState.Tint.Mode = face->TintMode; \
-            blendState.Tint.Enabled = true; \
-        } \
+        blendState.Tint.Enabled = Graphics::UseTinting && face->Tint.Enabled; \
+        if (blendState.Tint.Enabled) \
+            blendState.Tint = face->Tint; \
     } \
+    blendState.FilterTable = face->FilterTable; \
     bool useDepthBuffer; \
     if ((blendState.Flags & BlendFlag_MODE_MASK) != BlendFlag_OPAQUE) \
         useDepthBuffer = false; \
@@ -1368,13 +1365,7 @@ static void SetFaceBlendInfo(FaceInfo* face) {
 
     face->BlendFlag = state.Flags;
     face->Opacity = state.Opacity;
-    face->UseTinting = state.Tint.Enabled;
-
-    if (face->UseTinting) {
-        face->TintColor = state.Tint.Color;
-        face->TintAmount = state.Tint.Amount;
-        face->TintMode = state.Tint.Mode;
-    }
+    face->Tint = state.Tint;
 }
 
 #define APPLY_MAT4X4(vec4out, vec3in, M) { \

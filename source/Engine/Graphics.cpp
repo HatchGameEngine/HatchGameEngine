@@ -10,6 +10,7 @@
 #include <Engine/Scene/View.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Rendering/Enums.h>
+#include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/VertexBuffer.h>
 
 need_t ISprite;
