@@ -16,11 +16,4 @@ enum BlendFlags {
     BlendFlag_FILTER_BIT = 16
 };
 
-struct BlendState {
-    int Opacity;
-    int Flags;
-    TintState Tint;
-    int *FilterTable;
-};
-
 #endif /* SOFTWAREENUMS_H */

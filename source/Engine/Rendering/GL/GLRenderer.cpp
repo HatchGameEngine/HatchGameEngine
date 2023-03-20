@@ -400,7 +400,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
         exit(-1);
     }
 
-    #ifdef WIN32
+    #ifdef USING_GLEW
     glewExperimental = GL_TRUE;
     GLenum res = glewInit(); CHECK_GL();
     if (res != GLEW_OK) {
@@ -528,6 +528,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.UpdateOrtho = GLRenderer::UpdateOrtho;
     Graphics::Internal.UpdatePerspective = GLRenderer::UpdatePerspective;
     Graphics::Internal.UpdateProjectionMatrix = GLRenderer::UpdateProjectionMatrix;
+    Graphics::Internal.MakePerspectiveMatrix = GLRenderer::MakePerspectiveMatrix;
 
     // Shader-related functions
     Graphics::Internal.UseShader = GLRenderer::UseShader;
@@ -561,6 +562,18 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawTexture = GLRenderer::DrawTexture;
     Graphics::Internal.DrawSprite = GLRenderer::DrawSprite;
     Graphics::Internal.DrawSpritePart = GLRenderer::DrawSpritePart;
+
+    // 3D drawing functions
+    Graphics::Internal.DrawPolygon3D = GLRenderer::DrawPolygon3D;
+    Graphics::Internal.DrawSceneLayer3D = GLRenderer::DrawSceneLayer3D;
+    Graphics::Internal.DrawModel = GLRenderer::DrawModel;
+    Graphics::Internal.DrawModelSkinned = GLRenderer::DrawModelSkinned;
+    Graphics::Internal.DrawVertexBuffer = GLRenderer::DrawVertexBuffer;
+    Graphics::Internal.BindVertexBuffer = GLRenderer::BindVertexBuffer;
+    Graphics::Internal.UnbindVertexBuffer = GLRenderer::UnbindVertexBuffer;
+    Graphics::Internal.BindArrayBuffer = GLRenderer::BindArrayBuffer;
+    Graphics::Internal.DrawArrayBuffer = GLRenderer::DrawArrayBuffer;
+
     Graphics::Internal.MakeFrameBufferID = GLRenderer::MakeFrameBufferID;
 }
 PUBLIC STATIC void     GLRenderer::Dispose() {
@@ -883,11 +896,14 @@ PUBLIC STATIC void     GLRenderer::UpdateOrtho(float left, float top, float righ
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 PUBLIC STATIC void     GLRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
-    Matrix4x4::Perspective(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, aspect, nearv, farv);
+    MakePerspectiveMatrix(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 PUBLIC STATIC void     GLRenderer::UpdateProjectionMatrix() {
 
+}
+PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+    Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
 // Shader-related functions
@@ -1178,6 +1194,34 @@ PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation
         sw, sh,
         x + fX * (sx + animframe.OffsetX),
         y + fY * (sy + animframe.OffsetY), fX * sw, fY * sh);
+}
+// 3D drawing functions
+PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     GLRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+
+}
+PUBLIC STATIC void     GLRenderer::UnbindVertexBuffer() {
+
+}
+PUBLIC STATIC void     GLRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
+
+}
+PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
+
 }
 
 PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {

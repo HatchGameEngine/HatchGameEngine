@@ -80,7 +80,7 @@ PUBLIC STATIC void RSDKSceneReader::StageConfig_GetColors(const char* filename) 
 
                                 SoftwareRenderer::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                             }
-                            SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
+                            Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
                         }
                     }
                 }
@@ -134,7 +134,7 @@ PUBLIC STATIC void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
 
                                 SoftwareRenderer::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                             }
-                            SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
+                            Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
                         }
                     }
                 }

@@ -865,6 +865,7 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.UpdateOrtho = D3DRenderer::UpdateOrtho;
     Graphics::Internal.UpdatePerspective = D3DRenderer::UpdatePerspective;
     Graphics::Internal.UpdateProjectionMatrix = D3DRenderer::UpdateProjectionMatrix;
+    Graphics::Internal.MakePerspectiveMatrix = D3DRenderer::MakePerspectiveMatrix;
 
     // Shader-related functions
     Graphics::Internal.UseShader = D3DRenderer::UseShader;
@@ -898,6 +899,17 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
     Graphics::Internal.DrawSprite = D3DRenderer::DrawSprite;
     Graphics::Internal.DrawSpritePart = D3DRenderer::DrawSpritePart;
+
+    // 3D drawing functions
+    Graphics::Internal.DrawPolygon3D = D3DRenderer::DrawPolygon3D;
+    Graphics::Internal.DrawSceneLayer3D = D3DRenderer::DrawSceneLayer3D;
+    Graphics::Internal.DrawModel = D3DRenderer::DrawModel;
+    Graphics::Internal.DrawModelSkinned = D3DRenderer::DrawModelSkinned;
+    Graphics::Internal.DrawVertexBuffer = D3DRenderer::DrawVertexBuffer;
+    Graphics::Internal.BindVertexBuffer = D3DRenderer::BindVertexBuffer;
+    Graphics::Internal.UnbindVertexBuffer = D3DRenderer::UnbindVertexBuffer;
+    Graphics::Internal.BindArrayBuffer = D3DRenderer::BindArrayBuffer;
+    Graphics::Internal.DrawArrayBuffer = D3DRenderer::DrawArrayBuffer;
 }
 PUBLIC STATIC void     D3DRenderer::Dispose() {
     Memory::Free(D3D_BufferCircleFill);
@@ -1089,13 +1101,16 @@ PUBLIC STATIC void     D3DRenderer::UpdateOrtho(float left, float top, float rig
     }
 }
 PUBLIC STATIC void     D3DRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
-    Matrix4x4::Perspective(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, aspect, nearv, farv);
+    MakePerspectiveMatrix(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 PUBLIC STATIC void     D3DRenderer::UpdateProjectionMatrix() {
     D3DMATRIX matrix;
     memcpy(&matrix.m, Scene::Views[Scene::ViewCurrent].ProjectionMatrix->Values, sizeof(float) * 16);
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_PROJECTION, &matrix);
+}
+PUBLIC STATIC void     D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+    Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
 // Shader-related functions
@@ -1392,6 +1407,34 @@ PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animatio
             sw, sh,
             flipX, flipY);
     Graphics::Restore();
+}
+// 3D drawing functions
+PUBLIC STATIC void     D3DRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+
+}
+PUBLIC STATIC void     D3DRenderer::UnbindVertexBuffer() {
+
+}
+PUBLIC STATIC void     D3DRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
+
 }
 
 /*

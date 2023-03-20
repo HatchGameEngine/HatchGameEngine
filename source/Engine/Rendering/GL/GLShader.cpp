@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/GL/Includes.h>
+#include <Engine/Math/Matrix4x4.h>
 
 #include <Engine/IO/Stream.h>
 

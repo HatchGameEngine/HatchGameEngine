@@ -4,14 +4,14 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Rendering/Material.h>
 
-class Rasterizer {
+class Scanline {
 public:
 
 };
 #endif
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
-#include <Engine/Rendering/Software/Rasterizer.h>
+#include <Engine/Rendering/Software/Scanline.h>
 #include <Engine/Rendering/Software/Contour.h>
 
 #define GET_SCANLINE_CLIP_BOUNDS(x1, y1, x2, y2) \
@@ -28,7 +28,7 @@ public:
         y2 = (int)Graphics::CurrentRenderTarget->Height; \
     }
 
-PUBLIC STATIC void Rasterizer::Prepare(int y1, int y2) {
+PUBLIC STATIC void Scanline::Prepare(int y1, int y2) {
     int scanLineCount = y2 - y1;
     Contour* contourPtr = &SoftwareRenderer::ContourBuffer[y1];
     while (scanLineCount--) {
@@ -39,7 +39,7 @@ PUBLIC STATIC void Rasterizer::Prepare(int y1, int y2) {
 }
 
 // Simple
-PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
+PUBLIC STATIC void Scanline::Process(int x1, int y1, int x2, int y2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -97,7 +97,7 @@ PUBLIC STATIC void Rasterizer::Scanline(int x1, int y1, int x2, int y2) {
 }
 
 // Blended
-PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, int x2, int y2) {
+PUBLIC STATIC void Scanline::Process(int color1, int color2, int x1, int y1, int x2, int y2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -199,7 +199,7 @@ PUBLIC STATIC void Rasterizer::Scanline(int color1, int color2, int x1, int y1, 
 }
 
 // With depth
-PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -281,7 +281,7 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int x1, int y1, int z1, int x2, int
 }
 
 // With depth and blending
-PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessDepth(int color1, int color2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -398,7 +398,7 @@ PUBLIC STATIC void Rasterizer::ScanlineDepth(int color1, int color2, int x1, int
 }
 
 // Textured affine
-PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessUVAffine(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -506,7 +506,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(Vector2 uv1, Vector2 uv2, int x1
 }
 
 // Textured affine with blending
-PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessUVAffine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -652,7 +652,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUVAffine(int color1, int color2, Vector2 
 }
 
 // Perspective correct
-PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -766,7 +766,7 @@ PUBLIC STATIC void Rasterizer::ScanlineUV(Vector2 uv1, Vector2 uv2, int x1, int 
 }
 
 // Perspective correct with blending
-PUBLIC STATIC void Rasterizer::ScanlineUV(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+PUBLIC STATIC void Scanline::ProcessUV(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;

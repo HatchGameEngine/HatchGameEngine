@@ -22,21 +22,20 @@ public:
 
 PUBLIC Material::Material() {
     for (int i = 0; i < 3; i++) {
-        Diffuse[i] = 0.0f;
-        Specular[i] = 0.0f;
-        Ambient[i] = 0.0f;
+        Diffuse[i] =
+        Specular[i] =
+        Ambient[i] =
         Emissive[i] = 0.0f;
     }
 
-    Diffuse[3] = 1.0f;
-    Specular[3] = 1.0f;
-    Ambient[3] = 1.0f;
+    Diffuse[3] =
+    Specular[3] =
+    Ambient[3] =
     Emissive[3] = 1.0f;
 
     Shininess = 0.0f;
     ShininessStrength = 1.0f;
     Opacity = 1.0f;
-    IndexOfRefraction = 1.0f;
 
     ImagePtr = nullptr;
 }

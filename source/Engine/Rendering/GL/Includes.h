@@ -2,9 +2,7 @@
 #define ENGINE_RENDERER_GL_INCLUDES
 
 // OpenGL bindings
-#if WIN32
-    #include <GL/glew.h>
-#elif MACOSX
+#if MACOSX
     #include <OpenGL/gl3.h>
     #include <OpenGL/gl3ext.h>
 #elif SWITCH
@@ -16,6 +14,9 @@
     #include <OpenGLES/ES3/glext.h>
 #elif ANDROID
     #include <SDL_opengles2.h>
+#else
+    #include <GL/glew.h>
+    #define USING_GLEW
 #endif
 
 #endif /* ENGINE_RENDERER_GL_INCLUDES */

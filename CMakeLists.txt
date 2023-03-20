@@ -44,12 +44,26 @@ endif()
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
 option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
 
+# Renderers
+option(USING_OPENGL "Use OpenGL" OFF)
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+  option(USING_DIRECT3D "Use Direct3D" OFF)
+endif()
+
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   add_definitions(-DUSING_ASSIMP)
 endif()
 
 if(USE_FREETYPE_LIBRARY)
   add_definitions(-DUSING_FREETYPE)
+endif()
+
+if(USING_OPENGL)
+  add_definitions(-DUSING_OPENGL)
+endif()
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows" AND USING_DIRECT3D)
+  add_definitions(-DUSING_DIRECT3D)
 endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
@@ -159,4 +173,7 @@ IF(PNG_FOUND)
 endif()
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
+endif()
+if(USING_OPENGL)
+  target_link_libraries(${PROJECT_NAME} -lGL -lGLEW)
 endif()

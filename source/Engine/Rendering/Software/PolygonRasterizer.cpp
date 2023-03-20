@@ -4,7 +4,7 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Rendering/Material.h>
 
-class PolygonRenderer {
+class PolygonRasterizer {
 public:
     static bool    DepthTest;
     static size_t  DepthBufferSize;
@@ -19,26 +19,27 @@ public:
 #endif
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
-#include <Engine/Rendering/Software/PolygonRenderer.h>
+#include <Engine/Rendering/Software/PolygonRasterizer.h>
 #include <Engine/Rendering/Software/SoftwareEnums.h>
-#include <Engine/Rendering/Software/Rasterizer.h>
+#include <Engine/Rendering/Software/Scanline.h>
 #include <Engine/Rendering/Software/Contour.h>
+#include <Engine/Utilities/ColorUtils.h>
 
-bool    PolygonRenderer::DepthTest = false;
-size_t  PolygonRenderer::DepthBufferSize = 0;
-Uint32* PolygonRenderer::DepthBuffer = NULL;
+bool    PolygonRasterizer::DepthTest = false;
+size_t  PolygonRasterizer::DepthBufferSize = 0;
+Uint32* PolygonRasterizer::DepthBuffer = NULL;
 
-bool    PolygonRenderer::UseDepthBuffer = false;
+bool    PolygonRasterizer::UseDepthBuffer = false;
 
-bool    PolygonRenderer::UseFog = false;
-float   PolygonRenderer::FogDensity = 1.0f;
-int     PolygonRenderer::FogColor = 0x000000;
+bool    PolygonRasterizer::UseFog = false;
+float   PolygonRasterizer::FogDensity = 1.0f;
+int     PolygonRasterizer::FogColor = 0x000000;
 
 #define DEPTH_READ_DUMMY(depth) true
 #define DEPTH_WRITE_DUMMY(depth)
 
-#define DEPTH_READ_U32(depth)  (depth < PolygonRenderer::DepthBuffer[dst_x + dst_strideY])
-#define DEPTH_WRITE_U32(depth) PolygonRenderer::DepthBuffer[dst_x + dst_strideY] = depth
+#define DEPTH_READ_U32(depth)  (depth < PolygonRasterizer::DepthBuffer[dst_x + dst_strideY])
+#define DEPTH_WRITE_U32(depth) PolygonRasterizer::DepthBuffer[dst_x + dst_strideY] = depth
 
 #define CLAMP_VAL(v, a, b) if (v < a) v = a; else if (v > b) v = b
 
@@ -48,10 +49,13 @@ int FogEquation(float density, float coord) {
     return 0x100 - result;
 }
 int DoFogLighting(int color, float fogCoord) {
-    int fogValue = FogEquation(PolygonRenderer::FogDensity, fogCoord / 192.0f);
+    int fogValue = FogEquation(PolygonRasterizer::FogDensity, fogCoord / 192.0f);
     if (fogValue != 0)
-        return SoftwareRenderer::ColorBlend(color, PolygonRenderer::FogColor, fogValue);
+        return ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
     return color;
+}
+Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
+    return ColorUtils::Tint(color, colorMult);
 }
 
 // Cases for PixelNoFiltSet
@@ -373,7 +377,7 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
         dst_y1 = 0
 
 // Draws a polygon
-PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -382,7 +386,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
@@ -391,17 +397,17 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     Vector2* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
+            Scanline::Process(lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
             lastVector++;
         }
     }
-    Rasterizer::Scanline(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
+    Scanline::Process(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
 
     #define DRAW_POLYGON(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         Contour contour = ContourField[dst_y]; \
@@ -415,8 +421,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -443,7 +447,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasic(Vector2* positions, Uint32 color, 
     #undef DRAW_POLYGON
 }
 // Draws a blended polygon
-PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -452,7 +456,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
@@ -461,20 +467,20 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     int* lastColor = colors;
     Vector2* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::Scanline(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
+            Scanline::Process(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
             lastVector++;
             lastColor++;
         }
     }
 
-    Rasterizer::Scanline(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
+    Scanline::Process(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
 
     Sint32 col, contLen;
     float contR, contG, contB, dxR, dxG, dxB;
@@ -500,8 +506,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -516,7 +520,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBasicBlend(Vector2* positions, int* colo
     #undef DRAW_POLYGONBLEND
 }
 // Draws a polygon with lighting
-PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -525,7 +529,9 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -534,18 +540,18 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
         }
     }
 
-    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, contLen;
     float contZ, dxZ;
@@ -588,8 +594,6 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -610,7 +614,7 @@ PUBLIC STATIC void PolygonRenderer::DrawShaded(Vector3* positions, Uint32 color,
     #undef DRAW_POLYGONSHADED_FOG
 }
 // Draws a blended polygon with lighting
-PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -619,7 +623,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -628,20 +634,20 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     int* lastColor = colors;
     Vector3* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
             lastColor++;
         }
     }
 
-    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, contLen;
     float contZ, contR, contG, contB;
@@ -680,8 +686,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -701,7 +705,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendShaded(Vector3* positions, int* col
     #undef DRAW_POLYGONBLENDSHADED
 }
 // Draws an affine texture mapped polygon
-PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -712,7 +716,9 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -721,20 +727,20 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
     Vector2* lastUV = uvs;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineUVAffine(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessUVAffine(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
             lastUV++;
         }
     }
 
-    Rasterizer::ScanlineUVAffine(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessUVAffine(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV;
@@ -753,21 +759,21 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = SoftwareRenderer::ColorTint(color, texCol); \
+            col = DoColorTint(color, texCol); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = SoftwareRenderer::ColorTint(color, index[texCol]); \
+            col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
 
     #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = SoftwareRenderer::ColorTint(color, texCol); \
+            col = DoColorTint(color, texCol); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -775,7 +781,7 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
 
     #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = SoftwareRenderer::ColorTint(color, index[texCol]); \
+            col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -813,8 +819,6 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -832,7 +836,7 @@ PUBLIC STATIC void PolygonRenderer::DrawAffine(Texture* texture, Vector3* positi
     #undef DRAW_POLYGONAFFINE
 }
 // Draws an affine texture mapped polygon with blending
-PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -843,7 +847,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -852,7 +858,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     int*     lastColor = colors;
     Vector3* lastPosition = positions;
@@ -860,14 +866,14 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineUVAffine(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
+            Scanline::ProcessUVAffine(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
             lastPosition++;
             lastColor++;
             lastUV++;
         }
     }
 
-    Rasterizer::ScanlineUVAffine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessUVAffine(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV, contR, contG, contB;
@@ -887,7 +893,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, texCol); \
+            col = DoColorTint(col, texCol); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
@@ -895,7 +901,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, index[texCol]); \
+            col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
@@ -903,7 +909,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, texCol); \
+            col = DoColorTint(col, texCol); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -912,7 +918,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
     #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, index[texCol]); \
+            col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -954,8 +960,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1045,7 +1049,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendAffine(Texture* texture, Vector3* p
         DRAW_PERSP_STEP(); \
     }
 #endif
-PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1056,7 +1060,9 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1065,20 +1071,20 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
     Vector2* lastUV = uvs;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineUV(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessUV(lastUV[0], lastUV[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
             lastUV++;
         }
     }
 
-    Rasterizer::ScanlineUV(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessUV(lastUV[0], uvs[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV;
@@ -1087,21 +1093,21 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
 
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = SoftwareRenderer::ColorTint(color, texCol); \
+            col = DoColorTint(color, texCol); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
 
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = SoftwareRenderer::ColorTint(color, index[texCol]); \
+            col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         } \
 
     #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
-            col = SoftwareRenderer::ColorTint(color, texCol); \
+            col = DoColorTint(color, texCol); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -1109,7 +1115,7 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
 
     #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
-            col = SoftwareRenderer::ColorTint(color, index[texCol]); \
+            col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -1141,8 +1147,6 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1162,7 +1166,7 @@ PUBLIC STATIC void PolygonRenderer::DrawPerspective(Texture* texture, Vector3* p
     #undef DRAW_POLYGONPERSP
 }
 // Draws a perspective-correct texture mapped polygon with blending
-PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1173,7 +1177,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1182,7 +1188,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     int*     lastColor = colors;
     Vector3* lastPosition = positions;
@@ -1190,14 +1196,14 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineUV(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
+            Scanline::ProcessUV(lastColor[0], lastColor[1], lastUV[0], lastUV[1], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, lastPosition[1].X, lastPosition[1].Y, lastPosition[1].Z);
             lastPosition++;
             lastColor++;
             lastUV++;
         }
     }
 
-    Rasterizer::ScanlineUV(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessUV(lastColor[0], colors[0], lastUV[0], uvs[0], lastPosition[0].X, lastPosition[0].Y, lastPosition[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, texCol, contLen;
     float contZ, contU, contV, contR, contG, contB;
@@ -1207,7 +1213,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #define DRAW_PLACEPIXEL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, texCol); \
+            col = DoColorTint(col, texCol); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
@@ -1215,7 +1221,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #define DRAW_PLACEPIXEL_PAL(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, index[texCol]); \
+            col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
         }
@@ -1223,7 +1229,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #define DRAW_PLACEPIXEL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, texCol); \
+            col = DoColorTint(col, texCol); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -1232,7 +1238,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #define DRAW_PLACEPIXEL_PAL_FOG(pixelFunction, dpW) \
         if ((texCol = srcPx[(texV * srcStride) + texU])) { \
             SCANLINE_GET_COLOR(); \
-            col = SoftwareRenderer::ColorTint(col, index[texCol]); \
+            col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(pixelFunction, col); \
             dpW(iz); \
@@ -1267,8 +1273,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1288,7 +1292,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendPerspective(Texture* texture, Vecto
     #undef DRAW_POLYGONBLENDPERSP
 }
 // Draws a polygon with depth testing
-PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1297,7 +1301,9 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1306,18 +1312,18 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
         }
     }
 
-    Rasterizer::ScanlineDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessDepth(lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, contLen;
     float contZ, dxZ;
@@ -1357,8 +1363,6 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1378,7 +1382,7 @@ PUBLIC STATIC void PolygonRenderer::DrawDepth(Vector3* positions, Uint32 color, 
     #undef DRAW_POLYGONDEPTH
 }
 // Draws a blended polygon with depth testing
-PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
+PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1387,7 +1391,9 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
     if (count == 0)
         return;
 
-    if (!SoftwareRenderer::AlterBlendFlags(blendState))
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+    if (opacity == 0 && blendFlag == BlendFlag_TRANSPARENT)
         return;
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
@@ -1396,20 +1402,20 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
     if (dst_y1 >= dst_y2)
         return;
 
-    Rasterizer::Prepare(dst_y1, dst_y2);
+    Scanline::Prepare(dst_y1, dst_y2);
 
     int* lastColor = colors;
     Vector3* lastVector = positions;
     if (count > 1) {
         int countRem = count - 1;
         while (countRem--) {
-            Rasterizer::ScanlineDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
+            Scanline::ProcessDepth(lastColor[0], lastColor[1], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, lastVector[1].X, lastVector[1].Y, lastVector[1].Z);
             lastVector++;
             lastColor++;
         }
     }
 
-    Rasterizer::ScanlineDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
+    Scanline::ProcessDepth(lastColor[0], colors[0], lastVector[0].X, lastVector[0].Y, lastVector[0].Z, positions[0].X, positions[0].Y, positions[0].Z);
 
     Sint32 col, contLen;
     float contZ, contR, contG, contB;
@@ -1458,8 +1464,6 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
         dst_strideY += dstStride; \
     }
 
-    int blendFlag = blendState.Flags;
-    int opacity = blendState.Opacity;
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
 
@@ -1479,7 +1483,7 @@ PUBLIC STATIC void PolygonRenderer::DrawBlendDepth(Vector3* positions, int* colo
     #undef DRAW_POLYGONBLENDDEPTH
 }
 
-PUBLIC STATIC void     PolygonRenderer::SetDepthTest(bool enabled) {
+PUBLIC STATIC void     PolygonRasterizer::SetDepthTest(bool enabled) {
     DepthTest = enabled;
     if (!DepthTest)
         return;
@@ -1493,21 +1497,21 @@ PUBLIC STATIC void     PolygonRenderer::SetDepthTest(bool enabled) {
 
     memset(DepthBuffer, 0xFF, dpSize * sizeof(*DepthBuffer));
 }
-PUBLIC STATIC void     PolygonRenderer::FreeDepthBuffer(void) {
+PUBLIC STATIC void     PolygonRasterizer::FreeDepthBuffer(void) {
     Memory::Free(DepthBuffer);
     DepthBuffer = NULL;
 }
 
-PUBLIC STATIC void     PolygonRenderer::SetUseDepthBuffer(bool enabled) {
+PUBLIC STATIC void     PolygonRasterizer::SetUseDepthBuffer(bool enabled) {
     UseDepthBuffer = enabled;
 }
 
-PUBLIC STATIC void     PolygonRenderer::SetUseFog(bool enabled) {
+PUBLIC STATIC void     PolygonRasterizer::SetUseFog(bool enabled) {
     UseFog = enabled;
 }
-PUBLIC STATIC void     PolygonRenderer::SetFogColor(Uint8 r, Uint8 g, Uint8 b) {
+PUBLIC STATIC void     PolygonRasterizer::SetFogColor(Uint8 r, Uint8 g, Uint8 b) {
     FogColor = r << 16 | g << 8 | b;
 }
-PUBLIC STATIC void     PolygonRenderer::SetFogDensity(float density) {
+PUBLIC STATIC void     PolygonRasterizer::SetFogDensity(float density) {
     FogDensity = density;
 }

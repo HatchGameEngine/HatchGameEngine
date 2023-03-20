@@ -115,5 +115,11 @@ struct TintState {
     Uint16 Amount;
     Uint8  Mode;
 };
+struct BlendState {
+    int Opacity;
+    int Mode;
+    TintState Tint;
+    int *FilterTable;
+};
 
 #endif /* ENGINE_RENDERING_ENUMS */

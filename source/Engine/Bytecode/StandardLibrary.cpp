@@ -40,6 +40,7 @@ public:
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/TextFormats/JSON/jsmn.h>
+#include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #ifdef USING_FREETYPE
@@ -1597,6 +1598,12 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
+#define GET_ARRAY_BUFFER() \
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_ARRAY_BUFFERS); \
+        return NULL_VAL; \
+    } \
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex]
 /***
  * Draw.InitArrayBuffer
  * \desc Initializes an array buffer. There are 32 array buffers.
@@ -1609,7 +1616,16 @@ VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
     Uint32 numVertices = GET_ARG(1, GetInteger);
-    SoftwareRenderer::ArrayBuffer_Init(arrayBufferIndex, numVertices);
+    GET_ARRAY_BUFFER();
+
+    Matrix4x4 projMat, viewMat;
+    Graphics::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
+    Matrix4x4::Identity(&viewMat);
+
+    arrayBuffer->Init(numVertices);
+    arrayBuffer->SetProjectionMatrix(&projMat);
+    arrayBuffer->SetViewMatrix(&viewMat);
+
     return NULL_VAL;
 }
 /***
@@ -1628,12 +1644,18 @@ VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
 
     Matrix4x4 matrix4x4;
+    int arrSize = (int)projMatrix->Values->size();
+    if (arrSize != 16) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
+        return NULL_VAL;
+    }
 
     // Yeah just copy it directly
     for (int i = 0; i < 16; i++)
         matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
 
-    SoftwareRenderer::ArrayBuffer_SetProjectionMatrix(arrayBufferIndex, &matrix4x4);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetProjectionMatrix(&matrix4x4);
     return NULL_VAL;
 }
 /***
@@ -1656,7 +1678,8 @@ VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
     for (int i = 0; i < 16; i++)
         matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
 
-    SoftwareRenderer::ArrayBuffer_SetViewMatrix(arrayBufferIndex, &matrix4x4);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetViewMatrix(&matrix4x4);
     return NULL_VAL;
 }
 /***
@@ -1675,7 +1698,8 @@ VMValue Draw_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0x100);
     Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0x100);
     Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0x100);
-    SoftwareRenderer::ArrayBuffer_SetAmbientLighting(arrayBufferIndex, r, g, b);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetAmbientLighting(r, g, b);
     return NULL_VAL;
 }
 /***
@@ -1709,7 +1733,8 @@ VMValue Draw_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
     while (b) { b >>= 1; v++; }
     b = --v;
 
-    SoftwareRenderer::ArrayBuffer_SetDiffuseLighting(arrayBufferIndex, (Uint32)r, (Uint32)g, (Uint32)b);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetDiffuseLighting((Uint32)r, (Uint32)g, (Uint32)b);
     return NULL_VAL;
 }
 /***
@@ -1743,7 +1768,8 @@ VMValue Draw_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
     while (b) { b >>= 1; v++; }
     b = --v;
 
-    SoftwareRenderer::ArrayBuffer_SetSpecularLighting(arrayBufferIndex, r, g, b);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetSpecularLighting(r, g, b);
     return NULL_VAL;
 }
 /***
@@ -1760,7 +1786,8 @@ VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::ArrayBuffer_SetFogDensity(arrayBufferIndex, GET_ARG(1, GetDecimal));
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetFogDensity(GET_ARG(1, GetDecimal));
     return NULL_VAL;
 }
 /***
@@ -1779,7 +1806,8 @@ VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0xFF);
     Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0xFF);
     Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0xFF);
-    SoftwareRenderer::ArrayBuffer_SetFogColor(arrayBufferIndex, r, g, b);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetFogColor(r, g, b);
     return NULL_VAL;
 }
 /***
@@ -1794,7 +1822,8 @@ VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
     bool clipPolygons = !!GET_ARG(1, GetInteger);
-    SoftwareRenderer::ArrayBuffer_SetClipPolygons(arrayBufferIndex, clipPolygons);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->SetClipPolygons(clipPolygons);
     return NULL_VAL;
 }
 /***
@@ -1810,7 +1839,7 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::ArrayBuffer_Bind(arrayBufferIndex);
+    Graphics::BindArrayBuffer(arrayBufferIndex);
     return NULL_VAL;
 }
 /***
@@ -1826,7 +1855,7 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return NULL_VAL;
 
-    SoftwareRenderer::BindVertexBuffer(vertexBufferIndex);
+    Graphics::BindVertexBuffer(vertexBufferIndex);
     return NULL_VAL;
 }
 /***
@@ -1837,7 +1866,7 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    SoftwareRenderer::UnbindVertexBuffer();
+    Graphics::UnbindVertexBuffer();
     return NULL_VAL;
 }
 static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
@@ -1882,7 +1911,7 @@ VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
         PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
 
-    SoftwareRenderer::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+    Graphics::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -1916,7 +1945,7 @@ VMValue Draw_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
         PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
 
-    SoftwareRenderer::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+    Graphics::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -1962,7 +1991,7 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
     Matrix4x4::IdentityRotationXYZ(&matrixNormal, 0, ry, rz);
     Matrix4x4::Multiply(&matrixNormal, &matrixNormal, &matrixRotationX);
 
-    SoftwareRenderer::DrawModel(model, animation, frame, &matrixModel, &matrixNormal);
+    Graphics::DrawModel(model, animation, frame, &matrixModel, &matrixNormal);
     return NULL_VAL;
 }
 
@@ -1979,9 +2008,9 @@ VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
         PrepareMatrix(matrixNormal, matrixNormalArr); \
     }
 
-static void DrawPolygonSoftware(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
+static void DrawPolygon3D(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
     PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
-    SoftwareRenderer::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
+    Graphics::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
 }
 
 #define VERTEX_ARGS(num, offset) \
@@ -2054,7 +2083,7 @@ VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(3);
     GET_MATRICES(argOffset);
 
-    DrawPolygonSoftware(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
+    DrawPolygon3D(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2090,7 +2119,7 @@ VMValue Draw_Quad3D(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(4);
     GET_MATRICES(argOffset);
 
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 
@@ -2143,8 +2172,8 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
     x += frameStr.OffsetX * scaleX;
     y += frameStr.OffsetY * scaleY;
 
-    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2207,8 +2236,8 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
     x += frameStr.OffsetX * scaleX;
     y += frameStr.OffsetY * scaleY;
 
-    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2236,8 +2265,8 @@ VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
-    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2273,8 +2302,8 @@ VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
-    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2315,8 +2344,8 @@ VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
 
     VertexAttribute data[4];
 
-    SoftwareRenderer::MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2370,7 +2399,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     GET_MATRICES(argOffset);
 
-    DrawPolygonSoftware(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    DrawPolygon3D(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2432,7 +2461,7 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     GET_MATRICES(argOffset);
 
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2485,8 +2514,8 @@ VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(4);
     GET_MATRICES(argOffset);
 
-    SoftwareRenderer::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2538,8 +2567,8 @@ VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
     VERTEX_COLOR_ARGS(4);
     GET_MATRICES(argOffset);
 
-    SoftwareRenderer::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygonSoftware(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -2559,7 +2588,7 @@ VMValue Draw_SceneLayer3D(int argCount, VMValue* args, Uint32 threadID) {
     PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
 
     SceneLayer* layer = &Scene::Layers[layerID];
-    SoftwareRenderer::DrawSceneLayer3D(layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
+    Graphics::DrawSceneLayer3D(layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
     return NULL_VAL;
 }
 /***
@@ -2600,7 +2629,7 @@ VMValue Draw_SceneLayerPart3D(int argCount, VMValue* args, Uint32 threadID) {
     if (sx >= sw || sy >= sh)
         return NULL_VAL;
 
-    SoftwareRenderer::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
+    Graphics::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
     return NULL_VAL;
 }
 /***
@@ -2621,7 +2650,7 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     GET_MATRICES(1);
     PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
 
-    SoftwareRenderer::DrawVertexBuffer(vertexBufferIndex, matrixModel, matrixNormal);
+    Graphics::DrawVertexBuffer(vertexBufferIndex, matrixModel, matrixNormal);
     return NULL_VAL;
 }
 #undef PREPARE_MATRICES
@@ -2650,9 +2679,11 @@ VMValue Draw_RenderArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
     Uint32 drawMode = GET_ARG(1, GetInteger);
-    SoftwareRenderer::ArrayBuffer_DrawFinish(arrayBufferIndex, drawMode);
+    GET_ARRAY_BUFFER();
+    Graphics::DrawArrayBuffer(arrayBufferIndex, drawMode);
     return NULL_VAL;
 }
+#undef GET_ARRAY_BUFFER
 /***
  * Draw.Video
  * \desc
@@ -5991,7 +6022,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                             memoryReader->ReadBytes(Color, 3);
                             SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                         }
-                        SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
+                        Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
                     } while (false);
                 }
                 // COL file
@@ -6005,7 +6036,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         memoryReader->ReadBytes(Color, 3);
                         SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                     }
-                    SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
+                    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
                 }
                 // HPAL file
                 else if (StringUtils::StrCaseStr(filename, ".hpal") || StringUtils::StrCaseStr(filename, ".HPAL")) {
@@ -6030,7 +6061,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                         memoryReader->ReadBytes(Color, 3);
                                         SoftwareRenderer::PaletteColors[i][lineStart | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                                     }
-                                    SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][lineStart], 16);
+                                    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][lineStart], 16);
                                 }
                             }
                         }
@@ -6144,7 +6175,7 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     int colorIndex = GET_ARG(1, GetInteger);
     Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     SoftwareRenderer::PaletteColors[palIndex][colorIndex] = (hex & 0xFFFFFFU) | 0xFF000000U;
-    SoftwareRenderer::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][colorIndex], 1);
+    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][colorIndex], 1);
     return NULL_VAL;
 }
 /***

@@ -1,5 +1,6 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
+#include <Engine/Rendering/FaceInfo.h>
 #include <Engine/Rendering/3D.h>
 
 class VertexBuffer {
