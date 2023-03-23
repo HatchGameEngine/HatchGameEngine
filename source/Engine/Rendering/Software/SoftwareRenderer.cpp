@@ -17,8 +17,6 @@ public:
     static GraphicsFunctions BackendFunctions;
     static Uint32            CompareColor;
     static Sint32            CurrentPalette;
-    static Sint32            CurrentArrayBuffer;
-    static Sint32            CurrentVertexBuffer;
     static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -49,8 +47,6 @@ public:
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;
 Sint32            SoftwareRenderer::CurrentPalette = -1;
-Sint32            SoftwareRenderer::CurrentArrayBuffer = -1;
-Sint32            SoftwareRenderer::CurrentVertexBuffer = -1;
 Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -762,31 +758,22 @@ static int SortPolygonFaces(const void *a, const void *b) {
 
 // Drawing 3D
 PUBLIC STATIC void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
-        UnbindVertexBuffer();
-        return;
-    }
 
-    CurrentVertexBuffer = vertexBufferIndex;
 }
 PUBLIC STATIC void     SoftwareRenderer::UnbindVertexBuffer() {
-    CurrentVertexBuffer = -1;
+
 }
 PUBLIC STATIC void     SoftwareRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
 
     ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    arrayBuffer->Clear();
-
     if (arrayBuffer->ClipPolygons) {
         polygonRenderer.BuildFrustumPlanes(arrayBuffer->NearClippingPlane, arrayBuffer->FarClippingPlane);
         polygonRenderer.ClipPolygonsByFrustum = true;
     }
     else
         polygonRenderer.ClipPolygonsByFrustum = false;
-
-    CurrentArrayBuffer = arrayBufferIndex;
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
     if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
@@ -830,7 +817,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
         useDepthBuffer = doDepthTest; \
     PolygonRasterizer::SetUseDepthBuffer(useDepthBuffer)
 
-    VertexBuffer* vertexBuffer = &arrayBuffer->Buffer;
+    VertexBuffer* vertexBuffer = arrayBuffer->Buffer;
     bool useFog = drawMode & DrawMode_FOG;
 
     PolygonRasterizer::SetDepthTest(doDepthTest);
@@ -1208,19 +1195,20 @@ PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelM
     ArrayBuffer* arrayBuffer = nullptr;
     VertexBuffer* vertexBuffer = nullptr;
 
-    if (CurrentVertexBuffer != -1) {
-        vertexBuffer = Graphics::VertexBuffers[CurrentVertexBuffer];
+    if (Graphics::CurrentVertexBuffer != -1) {
+        vertexBuffer = Graphics::VertexBuffers[Graphics::CurrentVertexBuffer];
         if (!vertexBuffer)
             return false;
     }
     else {
-        if (CurrentArrayBuffer == -1)
+        if (Graphics::CurrentArrayBuffer == -1)
             return false;
 
-        arrayBuffer = &Graphics::ArrayBuffers[CurrentArrayBuffer];
-        vertexBuffer = &arrayBuffer->Buffer;
+        arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
         if (!arrayBuffer->Initialized)
             return false;
+
+        vertexBuffer = arrayBuffer->Buffer;
     }
 
     polygonRenderer.ArrayBuf = arrayBuffer;
@@ -1249,10 +1237,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(void* model, Uint16 ar
         polygonRenderer.DrawModelSkinned((IModel*)model, armature);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    if (CurrentArrayBuffer < 0)
+    if (Graphics::CurrentArrayBuffer < 0)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[CurrentArrayBuffer];
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
     if (!arrayBuffer->Initialized)
         return;
 

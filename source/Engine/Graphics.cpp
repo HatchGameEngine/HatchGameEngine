@@ -55,6 +55,8 @@ public:
     static int                  TintMode;
 
     static Texture*             CurrentRenderTarget;
+    static Sint32               CurrentArrayBuffer;
+    static Sint32               CurrentVertexBuffer;
 
     static void*                CurrentShader;
     static bool                 SmoothFill;
@@ -123,6 +125,8 @@ int                  Graphics::BlendMode = BlendMode_NORMAL;
 int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
 Texture*             Graphics::CurrentRenderTarget = NULL;
+Sint32               Graphics::CurrentArrayBuffer = -1;
+Sint32               Graphics::CurrentVertexBuffer = -1;
 
 void*                Graphics::CurrentShader = NULL;
 bool                 Graphics::SmoothFill = false;
@@ -245,6 +249,19 @@ PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
     Graphics::GfxFunctions->SetVSync(enabled);
 }
 PUBLIC STATIC void     Graphics::Dispose() {
+    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++)
+        Graphics::DeleteVertexBuffer(i);
+
+    for (Uint32 i = 0; i < MAX_ARRAY_BUFFERS; i++) {
+        ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[i];
+        if (arrayBuffer->Initialized) {
+            if (Graphics::GfxFunctions->DeleteVertexBuffer)
+                Graphics::GfxFunctions->DeleteVertexBuffer(arrayBuffer->Buffer);
+            else
+                delete arrayBuffer->Buffer;
+        }
+    }
+
 	for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;
         Graphics::DisposeTexture(texture);
@@ -358,7 +375,14 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
 PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
         if (Graphics::VertexBuffers[i] == NULL) {
-            Graphics::VertexBuffers[i] = new VertexBuffer(maxVertices, unloadPolicy);
+            VertexBuffer* vtxbuf;
+            if (Graphics::GfxFunctions->CreateVertexBuffer)
+                vtxbuf = (VertexBuffer*)Graphics::GfxFunctions->CreateVertexBuffer(maxVertices);
+            else
+                vtxbuf = new VertexBuffer(maxVertices);
+
+            vtxbuf->UnloadPolicy = unloadPolicy;
+            Graphics::VertexBuffers[i] = vtxbuf;
             return i;
         }
     }
@@ -368,8 +392,13 @@ PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unlo
 PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
         return;
+    if (!Graphics::VertexBuffers[vertexBufferIndex])
+        return;
 
-    delete Graphics::VertexBuffers[vertexBufferIndex];
+    if (Graphics::GfxFunctions->DeleteVertexBuffer)
+        Graphics::GfxFunctions->DeleteVertexBuffer(Graphics::VertexBuffers[vertexBufferIndex]);
+    else
+        delete Graphics::VertexBuffers[vertexBufferIndex];
     Graphics::VertexBuffers[vertexBufferIndex] = NULL;
 }
 
@@ -1019,16 +1048,65 @@ PUBLIC STATIC void     Graphics::DrawVertexBuffer(Uint32 vertexBufferIndex, Matr
     Graphics::GfxFunctions->DrawVertexBuffer(vertexBufferIndex, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+        UnbindVertexBuffer();
+        return;
+    }
+
     Graphics::GfxFunctions->BindVertexBuffer(vertexBufferIndex);
+    CurrentVertexBuffer = vertexBufferIndex;
 }
 PUBLIC STATIC void     Graphics::UnbindVertexBuffer() {
     Graphics::GfxFunctions->UnbindVertexBuffer();
+    CurrentVertexBuffer = -1;
 }
 PUBLIC STATIC void     Graphics::BindArrayBuffer(Uint32 arrayBufferIndex) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
+    arrayBuffer->Clear();
+
     Graphics::GfxFunctions->BindArrayBuffer(arrayBufferIndex);
+    CurrentArrayBuffer = arrayBufferIndex;
 }
 PUBLIC STATIC void     Graphics::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
     Graphics::GfxFunctions->DrawArrayBuffer(arrayBufferIndex, drawMode);
+}
+
+PUBLIC STATIC void     Graphics::InitArrayBuffer(Uint32 arrayBufferIndex, Uint32 numVertices) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
+
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
+
+    Matrix4x4 projMat, viewMat;
+    Graphics::Internal.MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
+    Matrix4x4::Identity(&viewMat);
+
+    arrayBuffer->SetProjectionMatrix(&projMat);
+    arrayBuffer->SetViewMatrix(&viewMat);
+
+    if (Graphics::Internal.CreateVertexBuffer)
+        arrayBuffer->Buffer = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(numVertices);
+    else
+        arrayBuffer->Buffer = new VertexBuffer(numVertices);
+
+    arrayBuffer->ClipPolygons = true;
+    arrayBuffer->Initialized = true;
+}
+PUBLIC STATIC void*    Graphics::GetCurrentVertexBuffer() {
+    if (Graphics::CurrentVertexBuffer >= 0)
+        return Graphics::VertexBuffers[CurrentVertexBuffer];
+
+    if (Graphics::CurrentArrayBuffer < 0)
+        return nullptr;
+
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
+    if (!arrayBuffer->Initialized)
+        return nullptr;
+
+    return arrayBuffer->Buffer;
 }
 
 PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
@@ -1098,6 +1176,11 @@ PUBLIC STATIC void     Graphics::MakeSpritePolygonUVs(VertexAttribute data[4], i
 PUBLIC STATIC void     Graphics::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     if (Graphics::GfxFunctions->MakeFrameBufferID)
         Graphics::GfxFunctions->MakeFrameBufferID(sprite, frame);
+}
+
+PUBLIC STATIC void     Graphics::SetDepthTesting(bool enabled) {
+    if (Graphics::GfxFunctions->SetDepthTesting)
+        Graphics::GfxFunctions->SetDepthTesting(enabled);
 }
 
 PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {

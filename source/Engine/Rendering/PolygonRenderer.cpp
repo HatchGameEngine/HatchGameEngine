@@ -370,7 +370,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
 
     // destination
-    VertexBuffer* destVertexBuffer = &arrayBuffer->Buffer;
+    VertexBuffer* destVertexBuffer = arrayBuffer->Buffer;
     int arrayFaceCount = destVertexBuffer->FaceCount;
     int arrayVertexCount = destVertexBuffer->VertexCount;
 

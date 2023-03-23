@@ -301,9 +301,8 @@ PUBLIC STATIC void       Matrix4x4::Transpose(Matrix4x4* out) {
     Matrix4x4 transposed;
 
     for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < 4; j++)
             transposed.Values[(i*4)+j] = out->Values[(j*4)+i];
-        }
     }
 
     Matrix4x4::Copy(out, &transposed);

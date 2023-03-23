@@ -45,7 +45,7 @@ option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
 option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
 
 # Renderers
-option(USING_OPENGL "Use OpenGL" OFF)
+option(USING_OPENGL "Use OpenGL" ON)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(USING_DIRECT3D "Use Direct3D" OFF)
 endif()

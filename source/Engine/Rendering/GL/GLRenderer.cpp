@@ -17,6 +17,8 @@ public:
     static GLShader*          ShaderShape;
     static GLShader*          ShaderTexturedShape;
     static GLShader*          ShaderTexturedShapeYUV;
+    static GLShader*          ShaderShape3D;
+    static GLShader*          ShaderTexturedShape3D;
 
     static GLint              DefaultFramebuffer;
     static GLint              DefaultRenderbuffer;
@@ -33,7 +35,12 @@ public:
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Rendering/ArrayBuffer.h>
+#include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/Rendering/ModelRenderer.h>
+#include <Engine/Utilities/ColorUtils.h>
 
 SDL_GLContext      GLRenderer::Context = NULL;
 
@@ -43,6 +50,8 @@ GLShader*          GLRenderer::SelectedShader = NULL;
 GLShader*          GLRenderer::ShaderShape = NULL;
 GLShader*          GLRenderer::ShaderTexturedShape = NULL;
 GLShader*          GLRenderer::ShaderTexturedShapeYUV = NULL;
+GLShader*          GLRenderer::ShaderShape3D = NULL;
+GLShader*          GLRenderer::ShaderTexturedShape3D = NULL;
 
 GLint              GLRenderer::DefaultFramebuffer;
 GLint              GLRenderer::DefaultRenderbuffer;
@@ -88,6 +97,26 @@ struct   GL_TextureData {
     GLenum PixelDataType;
     int    Slot;
 };
+struct   GL_VertexBufferFace {
+    Uint32       NumVertices;
+    bool         UseMaterial;
+    FaceMaterial MaterialInfo;
+    BlendState   Blend;
+};
+struct   GL_VertexBufferEntry {
+    float X, Y, Z;
+    float TextureU, TextureV;
+    float ColorR, ColorG, ColorB, ColorA;
+    float NormalX, NormalY, NormalZ;
+};
+struct   GL_VertexBuffer {
+    GL_VertexBufferFace*  Faces;
+    GL_VertexBufferEntry* Entries;
+    Uint32                Capacity;
+    Uint32                FaceCapacity;
+    Uint32                NumFaces;
+    bool                  Changed;
+};
 
 #define GL_SUPPORTS_MULTISAMPLING
 #define GL_SUPPORTS_SMOOTHING
@@ -107,7 +136,9 @@ void   GL_MakeShaders() {
     const GLchar* vertexShaderSource[] = {
         "attribute vec3    i_position;\n",
         "attribute vec2    i_uv;\n",
+        "attribute vec4    i_color;\n",
         "varying vec2      o_uv;\n",
+        "varying vec4      o_color;\n",
 
         "uniform mat4      u_projectionMatrix;\n",
         "uniform mat4      u_modelViewMatrix;\n",
@@ -116,6 +147,7 @@ void   GL_MakeShaders() {
         "    gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n",
 
         "    o_uv = i_uv;\n",
+        "    o_color = i_color;\n",
         "}",
     };
     const GLchar* fragmentShaderSource_Shape[] = {
@@ -140,7 +172,6 @@ void   GL_MakeShaders() {
         "uniform sampler2D u_texture;\n",
 
         "void main() {\n",
-        // #ifdef GL_ES
         "    vec4 base = texture2D(u_texture, o_uv);\n",
         "    if (base.a == 0.0) discard;\n",
         "    gl_FragColor = base * u_color;\n",
@@ -177,10 +208,40 @@ void   GL_MakeShaders() {
         "    gl_FragColor = vec4(rgb, 1.0) * u_color;\n",
         "}",
     };
+    const GLchar* fragmentShaderSource_Shape3D[] = {
+        #ifdef GL_ES
+        "precision mediump float;\n",
+        #endif
+        "varying vec2      o_uv;\n",
+        "varying vec4      o_color;\n",
+
+        "void main() {",
+        "    if (o_color.a == 0.0) discard;\n",
+        "    gl_FragColor = o_color;",
+        "}",
+    };
+    const GLchar* fragmentShaderSource_TexturedShape3D[] = {
+        #ifdef GL_ES
+        "precision mediump float;\n",
+        #endif
+        "varying vec2      o_uv;\n",
+        "varying vec4      o_color;\n",
+
+        "uniform sampler2D u_texture;\n",
+
+        "void main() {\n",
+        "    if (o_color.a == 0.0) discard;\n",
+        "    vec4 base = texture2D(u_texture, o_uv);\n",
+        "    if (base.a == 0.0) discard;\n",
+        "    gl_FragColor = base * o_color;\n",
+        "}",
+    };
 
     GLRenderer::ShaderShape             = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_Shape, sizeof(fragmentShaderSource_Shape));
     GLRenderer::ShaderTexturedShape     = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShape, sizeof(fragmentShaderSource_TexturedShape));
     GLRenderer::ShaderTexturedShapeYUV  = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShapeYUV, sizeof(fragmentShaderSource_TexturedShapeYUV));
+    GLRenderer::ShaderShape3D           = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_Shape3D, sizeof(fragmentShaderSource_Shape3D));
+    GLRenderer::ShaderTexturedShape3D   = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShape3D, sizeof(fragmentShaderSource_TexturedShape3D));
 }
 void   GL_MakeShapeBuffers() {
     GL_Vec2 verticesSquareFill[4];
@@ -216,7 +277,22 @@ void   GL_MakeShapeBuffers() {
     // Reset buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
 }
-void   GL_Predraw(Texture* texture) {
+void   GL_BindTexture(Texture* texture) {
+    // Do texture (re-)binding if necessary
+    if (GL_LastTexture != texture) {
+        if (texture) {
+            GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+
+            glActiveTexture(GL_TEXTURE0); CHECK_GL();
+            glBindTexture(GL_TEXTURE_2D, textureData->TextureID); CHECK_GL();
+        }
+        else {
+            glBindTexture(GL_TEXTURE_2D, 0); CHECK_GL();
+        }
+    }
+    GL_LastTexture = texture;
+}
+void   GL_SetTexture(Texture* texture) {
     // Use appropriate shader if changed
     if (texture) {
         GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
@@ -242,26 +318,39 @@ void   GL_Predraw(Texture* texture) {
         glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
     }
     else {
-        if (GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShapeYUV) {
+        if (GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape
+        || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape3D
+        || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShapeYUV) {
             glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
         }
 
         GLRenderer::UseShader(GLRenderer::ShaderShape);
     }
 
-    // Do texture (re-)binding if necessary
-    if (GL_LastTexture != texture) {
-        if (texture) {
-            GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+    GL_BindTexture(texture);
+}
+void   GL_SetProjectionMatrix(Matrix4x4* projMat) {
+    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedProjectionMatrix, projMat)) {
+        if (!GLRenderer::CurrentShader->CachedProjectionMatrix)
+            GLRenderer::CurrentShader->CachedProjectionMatrix = Matrix4x4::Create();
 
-            glActiveTexture(GL_TEXTURE0); CHECK_GL();
-            glBindTexture(GL_TEXTURE_2D, textureData->TextureID); CHECK_GL();
-        }
-        else {
-            glBindTexture(GL_TEXTURE_2D, 0); CHECK_GL();
-        }
+        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedProjectionMatrix, projMat);
+
+        glUniformMatrix4fv(GLRenderer::CurrentShader->LocProjectionMatrix, 1, false, GLRenderer::CurrentShader->CachedProjectionMatrix->Values); CHECK_GL();
     }
-    GL_LastTexture = texture;
+}
+void   GL_SetModelViewMatrix(Matrix4x4* modelViewMatrix) {
+    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix)) {
+        if (!GLRenderer::CurrentShader->CachedModelViewMatrix)
+            GLRenderer::CurrentShader->CachedModelViewMatrix = Matrix4x4::Create();
+
+        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix);
+
+        glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelViewMatrix, 1, false, GLRenderer::CurrentShader->CachedModelViewMatrix->Values); CHECK_GL();
+    }
+}
+void   GL_Predraw(Texture* texture) {
+    GL_SetTexture(texture);
 
     // Update color if needed
     if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0], &Graphics::BlendColors[0], sizeof(float) * 4) != 0) {
@@ -271,22 +360,8 @@ void   GL_Predraw(Texture* texture) {
     }
 
     // Update matrices
-    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedProjectionMatrix, Scene::Views[Scene::ViewCurrent].ProjectionMatrix)) {
-        if (!GLRenderer::CurrentShader->CachedProjectionMatrix)
-            GLRenderer::CurrentShader->CachedProjectionMatrix = Matrix4x4::Create();
-
-        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedProjectionMatrix, Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
-
-        glUniformMatrix4fv(GLRenderer::CurrentShader->LocProjectionMatrix, 1, false, GLRenderer::CurrentShader->CachedProjectionMatrix->Values); CHECK_GL();
-    }
-    if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix)) {
-        if (!GLRenderer::CurrentShader->CachedModelViewMatrix)
-            GLRenderer::CurrentShader->CachedModelViewMatrix = Matrix4x4::Create();
-
-        Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, Graphics::ModelViewMatrix);
-
-        glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelViewMatrix, 1, false, GLRenderer::CurrentShader->CachedModelViewMatrix->Values); CHECK_GL();
-    }
+    GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
+    GL_SetModelViewMatrix(Graphics::ModelViewMatrix);
 }
 void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int flip) {
     GL_Predraw(texture);
@@ -368,6 +443,142 @@ GLenum GL_GetBlendFactorFromHatchEnum(int factor) {
             return GL_ONE_MINUS_DST_ALPHA;
     }
     return 0;
+}
+void GL_SetBlendFuncByMode(int mode) {
+    switch (mode) {
+        case BlendMode_NORMAL:
+            GLRenderer::SetBlendMode(
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA,
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+            break;
+        case BlendMode_ADD:
+            GLRenderer::SetBlendMode(
+                BlendFactor_SRC_ALPHA, BlendFactor_ONE,
+                BlendFactor_SRC_ALPHA, BlendFactor_ONE);
+            break;
+        case BlendMode_MAX:
+            GLRenderer::SetBlendMode(
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_COLOR,
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_COLOR);
+            break;
+        case BlendMode_SUBTRACT:
+            GLRenderer::SetBlendMode(
+                BlendFactor_ZERO, BlendFactor_INV_SRC_COLOR,
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+            break;
+        default:
+            GLRenderer::SetBlendMode(
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA,
+                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+    }
+}
+void GL_ReallocVertexBuffer(GL_VertexBuffer* vtxbuf, Uint32 maxVertices) {
+    vtxbuf->Capacity = maxVertices;
+
+    if (vtxbuf->Faces == nullptr) {
+        vtxbuf->FaceCapacity = 256;
+        vtxbuf->NumFaces = 0;
+        vtxbuf->Faces = (GL_VertexBufferFace*)Memory::TrackedCalloc("GL_VertexBuffer::Faces",
+            vtxbuf->FaceCapacity, sizeof(GL_VertexBufferFace));
+    }
+
+    if (vtxbuf->Entries == nullptr) {
+        vtxbuf->Entries = (GL_VertexBufferEntry*)Memory::TrackedCalloc("GL_VertexBuffer::Entries",
+            maxVertices, sizeof(GL_VertexBufferEntry));
+    }
+    else
+        vtxbuf->Entries = (GL_VertexBufferEntry*)Memory::Realloc(vtxbuf->Entries, maxVertices * sizeof(GL_VertexBufferEntry));
+}
+void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer) {
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
+    if (driverData->Capacity != vertexBuffer->Capacity)
+        GL_ReallocVertexBuffer(driverData, vertexBuffer->Capacity);
+
+    GL_VertexBufferEntry* entry = driverData->Entries;
+    VertexAttribute* vertex = vertexBuffer->Vertices;
+    VertexAttribute* lastVertex = nullptr;
+    GL_VertexBufferFace* glFace = nullptr;
+    FaceInfo* lastFace = nullptr;
+
+    memset(driverData->Faces, 0x00, sizeof(GL_VertexBufferFace) * driverData->NumFaces);
+    driverData->NumFaces = 0;
+
+    for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+        FaceInfo* face = &vertexBuffer->FaceInfoBuffer[f];
+        glFace = &driverData->Faces[driverData->NumFaces];
+
+#if 1
+        bool newFace = f > 0;
+#else
+        bool newFace = false;
+        if (lastFace) {
+            if (lastFace->UseMaterial != face->UseMaterial)
+                newFace = true;
+            else if (lastFace->MaterialInfo.Texture != face->MaterialInfo.Texture) {
+                // We don't care about materials right now because the GL renderer doesn't support it
+                newFace = true;
+            }
+
+            if (lastFace->Blend.Opacity != face->Blend.Opacity
+            || lastFace->Blend.Mode != face->Blend.Mode) {
+                // Don't care about tinting either
+                newFace = true;
+            }
+        }
+#endif
+
+        if (newFace) {
+            glFace->UseMaterial = lastFace->UseMaterial;
+            glFace->MaterialInfo = lastFace->MaterialInfo;
+            glFace->Blend = lastFace->Blend;
+            driverData->NumFaces++;
+
+            if (driverData->NumFaces == driverData->FaceCapacity) {
+                driverData->FaceCapacity += 256;
+                driverData->Faces = (GL_VertexBufferFace*)Memory::Realloc(driverData->Faces,
+                    driverData->FaceCapacity * sizeof(GL_VertexBufferFace));
+                memset(&driverData->Faces[driverData->NumFaces], 0x00,
+                    sizeof(GL_VertexBufferFace) * (driverData->FaceCapacity - driverData->NumFaces));
+            }
+
+            glFace = &driverData->Faces[driverData->NumFaces];
+            glFace->NumVertices = 0;
+        }
+
+        for (Uint32 v = 0; v < face->NumVertices; v++) {
+            entry->X = FP16_FROM(vertex->Position.X);
+            entry->Y = -FP16_FROM(vertex->Position.Y);
+            entry->Z = -FP16_FROM(vertex->Position.Z);
+
+            entry->NormalX = FP16_FROM(vertex->Normal.X);
+            entry->NormalY = FP16_FROM(vertex->Normal.Y);
+            entry->NormalZ = FP16_FROM(vertex->Normal.Z);
+
+            entry->TextureU = FP16_FROM(vertex->UV.X);
+            entry->TextureV = FP16_FROM(vertex->UV.Y);
+
+            float rgba[4];
+            ColorUtils::Separate(vertex->Color, rgba);
+            entry->ColorR = rgba[0];
+            entry->ColorG = rgba[1];
+            entry->ColorB = rgba[2];
+            entry->ColorA = face->Blend.Opacity / 255.0f;
+
+            lastVertex = vertex;
+            vertex++;
+            entry++;
+        }
+
+        glFace->NumVertices += face->NumVertices;
+        lastFace = face;
+    }
+
+    if (glFace && lastFace) {
+        glFace->UseMaterial = lastFace->UseMaterial;
+        glFace->MaterialInfo = lastFace->MaterialInfo;
+        glFace->Blend = lastFace->Blend;
+        driverData->NumFaces++;
+    }
 }
 
 // Initialization and disposal functions
@@ -574,7 +785,11 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.BindArrayBuffer = GLRenderer::BindArrayBuffer;
     Graphics::Internal.DrawArrayBuffer = GLRenderer::DrawArrayBuffer;
 
+    Graphics::Internal.CreateVertexBuffer = GLRenderer::CreateVertexBuffer;
+    Graphics::Internal.DeleteVertexBuffer = GLRenderer::DeleteVertexBuffer;
     Graphics::Internal.MakeFrameBufferID = GLRenderer::MakeFrameBufferID;
+
+    Graphics::Internal.SetDepthTesting = GLRenderer::SetDepthTesting;
 }
 PUBLIC STATIC void     GLRenderer::Dispose() {
     glDeleteBuffers(1, &BufferCircleFill); CHECK_GL();
@@ -903,7 +1118,28 @@ PUBLIC STATIC void     GLRenderer::UpdateProjectionMatrix() {
 
 }
 PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
-    Matrix4x4::Perspective(out, fov, aspect, near, far);
+    float f = tan(fov / 2.0f);
+    float delta = near - far;
+
+    out->Values[0]  = 1.0 / (aspect * f);
+    out->Values[1]  = 0.0f;
+    out->Values[2]  = 0.0f;
+    out->Values[3]  = 0.0f;
+
+    out->Values[4]  = 0.0f;
+    out->Values[5]  = -1.0 / f;
+    out->Values[6]  = 0.0f;
+    out->Values[7]  = 0.0f;
+
+    out->Values[8]  = 0.0f;
+    out->Values[9]  = 0.0f;
+    out->Values[10] = -near / (far - near);
+    out->Values[11] = -1.0f;
+
+    out->Values[12] = 0.0f;
+    out->Values[13] = 0.0f;
+    out->Values[14] = -(near * far) / (far - near);
+    out->Values[15] = 0.0f;
 }
 
 // Shader-related functions
@@ -1157,6 +1393,7 @@ PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, in
     // /*
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
     Graphics::Save();
+        // Graphics::Rotate(0.0f, 0.0f, rotation);
         Graphics::Translate(x, y, 0.0f);
         GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber], animframe.ID, ((int)flipY << 1) | (int)flipX);
     Graphics::Restore();
@@ -1197,19 +1434,182 @@ PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation
 }
 // 3D drawing functions
 PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
+    if (!vertexBuffer)
+        return;
 
+    Matrix4x4 mvpMatrix;
+    Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+
+    Uint32 arrayVertexCount = vertexBuffer->VertexCount;
+    Uint32 maxVertexCount = arrayVertexCount + vertexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
+
+    Uint32 colRGB = ColorUtils::ToRGB(Graphics::BlendColors);
+
+    VertexAttribute* vertex = &vertexBuffer->Vertices[arrayVertexCount];
+    VertexAttribute* src = (VertexAttribute*)data;
+    int numVertices = vertexCount;
+    while (numVertices--) {
+        // Calculate position
+        APPLY_MAT4X4(vertex->Position, src->Position, mvpMatrix.Values);
+
+        // Calculate normals
+        if (vertexFlag & VertexType_Normal) {
+            if (normalMatrix) {
+                APPLY_MAT4X4(vertex->Normal, src->Normal, normalMatrix->Values);
+            }
+            else {
+                COPY_NORMAL(vertex->Normal, src->Normal);
+            }
+        }
+        else
+            vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
+
+        if (vertexFlag & VertexType_UV)
+            vertex->UV = src->UV;
+
+        if (vertexFlag & VertexType_Color)
+            vertex->Color = ColorUtils::Multiply(src->Color, colRGB);
+        else
+            vertex->Color = colRGB;
+
+        vertex++;
+        src++;
+    }
+
+    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
+    faceInfoItem->NumVertices = vertexCount;
+    faceInfoItem->SetMaterial(texture);
+    faceInfoItem->SetBlendState(Graphics::GetBlendState());
+
+    vertexBuffer->VertexCount += vertexCount;
+    vertexBuffer->FaceCount++;
+
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
+    driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     GLRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    IModel *model = (IModel*)inModel;
+    if (animation < 0 || frame < 0)
+        return;
+    else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
+        return;
 
+    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
+
+    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+    rend.ClipFaces = false;
+    rend.SetMatrices(modelMatrix, nullptr, nullptr, normalMatrix);
+    rend.DrawModel(model, animation, frame);
 }
-PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    IModel *model = (IModel*)inModel;
+    if (model->UseVertexAnimation) {
+        DrawModel(model, 0, 0, modelMatrix, normalMatrix);
+        return;
+    }
 
+    if (armature >= model->ArmatureCount)
+        return;
+
+    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
+
+    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > vertexBuffer->Capacity)
+        vertexBuffer->Resize(maxVertexCount);
+
+    ModelRenderer rend = ModelRenderer(vertexBuffer);
+
+    rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+    rend.ClipFaces = false;
+    rend.ArmaturePtr = model->ArmatureList[armature];
+    rend.SetMatrices(modelMatrix, nullptr, nullptr, normalMatrix);
+    rend.DrawModel(model, 0);
 }
 PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    if (Graphics::CurrentArrayBuffer < 0)
+        return;
 
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
+    if (!vertexBuffer)
+        return;
+
+    Matrix4x4 mvpMatrix;
+    Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+
+    // destination
+    VertexBuffer* destVertexBuffer = arrayBuffer->Buffer;
+    int arrayFaceCount = destVertexBuffer->FaceCount;
+    int arrayVertexCount = destVertexBuffer->VertexCount;
+
+    // source
+    int srcFaceCount = vertexBuffer->FaceCount;
+    int srcVertexCount = vertexBuffer->VertexCount;
+    if (!srcFaceCount || !srcVertexCount)
+        return;
+
+    Uint32 maxVertexCount = arrayVertexCount + srcVertexCount;
+    if (maxVertexCount > destVertexBuffer->Capacity)
+        destVertexBuffer->Resize(maxVertexCount);
+
+    FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+    VertexAttribute* arrayVertexItem = &destVertexBuffer->Vertices[arrayVertexCount];
+
+    // Copy the vertices into the vertex buffer
+    VertexAttribute* srcVertexItem = &vertexBuffer->Vertices[0];
+
+    for (int f = 0; f < srcFaceCount; f++) {
+        FaceInfo* srcFaceInfoItem = &vertexBuffer->FaceInfoBuffer[f];
+        int vertexCount = srcFaceInfoItem->NumVertices;
+        int vertexCountPerFace = vertexCount;
+        while (vertexCountPerFace--) {
+            APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
+
+            if (normalMatrix) {
+                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix->Values);
+            }
+            else {
+                COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
+            }
+
+            arrayVertexItem->Color = srcVertexItem->Color;
+            arrayVertexItem->UV = srcVertexItem->UV;
+            arrayVertexItem++;
+            srcVertexItem++;
+        }
+
+        faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
+        if (faceInfoItem->UseMaterial)
+            faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;
+        faceInfoItem->SetBlendState(Graphics::GetBlendState());
+        faceInfoItem->NumVertices = vertexCount;
+        faceInfoItem++;
+        srcFaceInfoItem++;
+
+        arrayVertexCount += vertexCount;
+        arrayFaceCount++;
+    }
+
+    destVertexBuffer->VertexCount = arrayVertexCount;
+    destVertexBuffer->FaceCount = arrayFaceCount;
+
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
+    driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
@@ -1218,12 +1618,125 @@ PUBLIC STATIC void     GLRenderer::UnbindVertexBuffer() {
 
 }
 PUBLIC STATIC void     GLRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
-
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
+    GL_VertexBuffer *driverData = (GL_VertexBuffer*)arrayBuffer->Buffer->DriverData;
+    driverData->NumFaces = 0;
+    driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
+    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+        return;
 
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
+    if (!arrayBuffer->Initialized)
+        return;
+
+    GL_Predraw(NULL);
+
+    VertexBuffer* vertexBuffer = arrayBuffer->Buffer;
+    GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
+    if (driverData->Changed) {
+        GL_UpdateVertexBuffer(vertexBuffer);
+        driverData->Changed = false;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
+
+    // should transpose this
+    Matrix4x4 viewMat = arrayBuffer->ViewMatrix;
+    Matrix4x4::Transpose(&viewMat);
+
+    GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
+    glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
+    glEnableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor); CHECK_GL();
+
+    GLShader* lastShader = GLRenderer::CurrentShader;
+
+    GL_SetProjectionMatrix(&arrayBuffer->ProjectionMatrix);
+    GL_SetModelViewMatrix(&viewMat);
+
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), driverData->Entries); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 3); CHECK_GL();
+
+    if (Graphics::TextureBlend) {
+        glVertexAttribPointer(GLRenderer::CurrentShader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 5); CHECK_GL();
+    }
+    else {
+        glDisableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor); CHECK_GL();
+    }
+
+    // TODO
+    // glVertexAttribPointer(GLRenderer::CurrentShader->LocNormal, 3, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 9); CHECK_GL();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+
+    // sas
+    GL_VertexBufferFace* faceInfoPtr = driverData->Faces;
+    Uint32 curVertexIndex = 0;
+    for (Uint32 f = 0; f < driverData->NumFaces; f++) {
+        // Change shader if needed and set texture
+        if (drawMode & DrawMode_TEXTURED && faceInfoPtr->UseMaterial) {
+            GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
+            glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
+            GL_BindTexture((Texture*)faceInfoPtr->MaterialInfo.Texture);
+        }
+        else {
+            if (GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape
+            || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape3D
+            || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShapeYUV) {
+                glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
+            }
+            GLRenderer::UseShader(GLRenderer::ShaderShape3D);
+            GL_BindTexture(NULL);
+        }
+
+        GL_SetBlendFuncByMode(faceInfoPtr->Blend.Mode);
+
+        // Update matrices
+        if (GLRenderer::CurrentShader != lastShader) {
+            GL_SetProjectionMatrix(&arrayBuffer->ProjectionMatrix);
+            GL_SetModelViewMatrix(&viewMat);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+
+            lastShader = GLRenderer::CurrentShader;
+        }
+
+        glDrawArrays(GL_TRIANGLE_FAN, curVertexIndex, faceInfoPtr->NumVertices); CHECK_GL();
+        curVertexIndex += faceInfoPtr->NumVertices;
+
+        faceInfoPtr++;
+    }
+
+    GL_Predraw(NULL);
+
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); CHECK_GL();
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); CHECK_GL();
 }
 
+PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
+    VertexBuffer* vtxBuf = new VertexBuffer(maxVertices);
+    vtxBuf->DriverData = Memory::TrackedCalloc("VertexBuffer::DriverData", 1, sizeof(GL_VertexBuffer));
+
+    GL_VertexBuffer *driverData = (GL_VertexBuffer*)vtxBuf->DriverData;
+    GL_ReallocVertexBuffer(driverData, maxVertices);
+
+    return (void*)vtxBuf;
+}
+PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
+    VertexBuffer* vertexBuffer = (VertexBuffer*)vtxBuf;
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
+    if (!driverData)
+        return;
+
+    Memory::Free(driverData->Faces);
+    Memory::Free(driverData->Entries);
+    Memory::Free(driverData);
+
+    delete vertexBuffer;
+}
 PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     frame->ID = 0;
 
@@ -1266,6 +1779,17 @@ PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame*
     glGenBuffers(1, (GLuint*)&frame->ID); CHECK_GL();
     glBindBuffer(GL_ARRAY_BUFFER, frame->ID); CHECK_GL();
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); CHECK_GL();
+}
+
+PUBLIC STATIC void     GLRenderer::SetDepthTesting(bool enable) {
+    if (UseDepthTesting) {
+        if (enable) {
+            glEnable(GL_DEPTH_TEST); CHECK_GL();
+        }
+        else {
+            glDisable(GL_DEPTH_TEST); CHECK_GL();
+        }
+    }
 }
 
 #endif /* USING_OPENGL */

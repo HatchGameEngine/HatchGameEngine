@@ -6,7 +6,7 @@
 #include <Engine/Math/Matrix4x4.h>
 
 struct ArrayBuffer {
-    VertexBuffer     Buffer;
+    VertexBuffer*    Buffer = nullptr;
     Uint32           LightingAmbientR;
     Uint32           LightingAmbientG;
     Uint32           LightingAmbientB;
@@ -24,16 +24,12 @@ struct ArrayBuffer {
     float            FarClippingPlane;
     Matrix4x4        ProjectionMatrix;
     Matrix4x4        ViewMatrix;
-    bool             ClipPolygons;
-    bool             Initialized;
+    bool             ClipPolygons = false;
+    bool             Initialized = false;
 
-    void Init(Uint32 numVertices) {
-        Buffer.Init(numVertices);
-        Initialized = true;
-        ClipPolygons = true;
-    }
     void Clear() {
-        Buffer.Clear();
+        if (Buffer)
+            Buffer->Clear();
     }
     void SetAmbientLighting(Uint32 r, Uint32 g, Uint32 b) {
         LightingAmbientR = r;

@@ -7,6 +7,7 @@ class VertexBuffer {
 public:
     VertexAttribute* Vertices       = nullptr; // count = max vertex count
     FaceInfo*        FaceInfoBuffer = nullptr; // count = max face count
+    void*            DriverData     = nullptr;
     Uint32           Capacity       = 0;
     Uint32           VertexCount    = 0;
     Uint32           FaceCount      = 0;
@@ -20,9 +21,7 @@ public:
 PUBLIC               VertexBuffer::VertexBuffer() {
 
 }
-PUBLIC               VertexBuffer::VertexBuffer(Uint32 numVertices, int unloadPolicy) {
-    UnloadPolicy = unloadPolicy;
-
+PUBLIC               VertexBuffer::VertexBuffer(Uint32 numVertices) {
     Init(numVertices);
     Clear();
 }

@@ -1618,13 +1618,7 @@ VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 numVertices = GET_ARG(1, GetInteger);
     GET_ARRAY_BUFFER();
 
-    Matrix4x4 projMat, viewMat;
-    Graphics::MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
-    Matrix4x4::Identity(&viewMat);
-
-    arrayBuffer->Init(numVertices);
-    arrayBuffer->SetProjectionMatrix(&projMat);
-    arrayBuffer->SetViewMatrix(&viewMat);
+    Graphics::InitArrayBuffer(arrayBufferIndex, numVertices);
 
     return NULL_VAL;
 }
@@ -5296,7 +5290,7 @@ VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
     float aspect = GET_ARG(4, GetDecimal);
 
     Matrix4x4 matrix4x4;
-    SoftwareRenderer::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip, aspect);
+    Graphics::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip, aspect);
 
     for (int i = 0; i < 16; i++)
         (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);

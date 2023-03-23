@@ -34,15 +34,26 @@ public:
 #include <Engine/Rendering/PolygonRenderer.h>
 #include <Engine/Utilities/ColorUtils.h>
 
-PUBLIC ModelRenderer::ModelRenderer(PolygonRenderer* polyRenderer) {
-    PolyRenderer = polyRenderer;
-    Buffer = PolyRenderer->VertexBuf;
-
+PRIVATE void ModelRenderer::Init() {
     FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
     AttribBuffer = Vertex = &Buffer->Vertices[Buffer->VertexCount];
 
     ClipFaces = false;
     ArmaturePtr = nullptr;
+}
+
+PUBLIC ModelRenderer::ModelRenderer(PolygonRenderer* polyRenderer) {
+    PolyRenderer = polyRenderer;
+    Buffer = PolyRenderer->VertexBuf;
+
+    Init();
+}
+
+PUBLIC ModelRenderer::ModelRenderer(VertexBuffer* buffer) {
+    PolyRenderer = nullptr;
+    Buffer = buffer;
+
+    Init();
 }
 
 PUBLIC void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
@@ -75,7 +86,7 @@ PRIVATE int ModelRenderer::ClipFace(int faceVertexCount) {
 
     if (!PolygonRenderer::CheckPolygonVisible(Vertex, faceVertexCount))
         return 0;
-    else if (PolyRenderer->ClipPolygonsByFrustum) {
+    else if (PolyRenderer && PolyRenderer->ClipPolygonsByFrustum) {
         PolygonClipBuffer clipper;
 
         faceVertexCount = PolyRenderer->ClipPolygon(clipper, Vertex, faceVertexCount);

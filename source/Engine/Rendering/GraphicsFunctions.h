@@ -65,7 +65,11 @@ struct GraphicsFunctions {
     void     (*BindArrayBuffer)(Uint32 arrayBufferIndex);
     void     (*DrawArrayBuffer)(Uint32 arrayBufferIndex, Uint32 drawMode);
 
+    void*    (*CreateVertexBuffer)(Uint32 maxVertices);
+    void     (*DeleteVertexBuffer)(void* vtxBuf);
     void     (*MakeFrameBufferID)(ISprite* sprite, AnimFrame* frame);
+
+    void     (*SetDepthTesting)(bool enabled);
 };
 
 #endif /* ENGINE_RENDERING_GRAPHICSFUNCTIONS */
