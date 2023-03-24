@@ -66,7 +66,7 @@ Texture*           GL_LastTexture = NULL;
 
 // TODO:
 // RetinaScale should belong to the texture (specifically TARGET_TEXTURES),
-// and drawing functions should scale basded on the current render target.
+// and drawing functions should scale based on the current render target.
 
 struct   GL_Vec3 {
     float x;
@@ -1337,23 +1337,16 @@ PUBLIC STATIC void     GLRenderer::FillRectangle(float x, float y, float w, floa
         }
     #endif
 
-    Graphics::Save();
-    // Graphics::Translate(x, y, 0.0f);
-    // Graphics::Scale(w, h, 1.0f);
-        GL_Predraw(NULL);
+    GL_Predraw(NULL);
 
-        GL_Vec2 v[4];
-        v[0] = GL_Vec2 { x, y };
-        v[1] = GL_Vec2 { x + w, y };
-        v[2] = GL_Vec2 { x, y + h };
-        v[3] = GL_Vec2 { x + w, y + h };
-        glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
-        glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v); CHECK_GL();
-        // glBindBuffer(GL_ARRAY_BUFFER, BufferSquareFill); CHECK_GL();
-        // glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, 0); CHECK_GL();
-
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); CHECK_GL();
-    Graphics::Restore();
+    GL_Vec2 v[4];
+    v[0] = GL_Vec2 { x, y };
+    v[1] = GL_Vec2 { x + w, y };
+    v[2] = GL_Vec2 { x, y + h };
+    v[3] = GL_Vec2 { x + w, y + h };
+    glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v); CHECK_GL();
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); CHECK_GL();
 
     #ifdef GL_SUPPORTS_SMOOTHING
         if (Graphics::SmoothFill) {
@@ -1649,6 +1642,12 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
     GL_Predraw(NULL);
     glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
 
+    #ifdef GL_SUPPORTS_SMOOTHING
+        if (Graphics::SmoothFill) {
+            glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
+        }
+    #endif
+
     Matrix4x4 projMat = arrayBuffer->ProjectionMatrix;
     Matrix4x4 viewMat = arrayBuffer->ViewMatrix;
 
@@ -1660,6 +1659,8 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
     Matrix4x4 identity;
     Matrix4x4::Identity(&identity);
     Matrix4x4::Translate(&identity, &identity, cx, cy, 0.0f);
+    if (currentView->UseDrawTarget)
+        Matrix4x4::Scale(&identity, &identity, 1.0f, -1.0f, 1.0f);
     Matrix4x4::Multiply(&projMat, &identity, &projMat);
 
     // should transpose this
@@ -1722,6 +1723,12 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
     }
 
     GL_Predraw(NULL);
+
+    #ifdef GL_SUPPORTS_SMOOTHING
+        if (Graphics::SmoothFill) {
+            glDisable(GL_POLYGON_SMOOTH); CHECK_GL();
+        }
+    #endif
 }
 
 PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {

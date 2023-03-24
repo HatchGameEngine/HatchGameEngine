@@ -145,6 +145,7 @@ PUBLIC STATIC Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access,
     SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 
     *textureData = SDL_CreateTexture(Renderer, format, access, width, height);
+    SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
 
     texture->ID = Graphics::TextureMap->Count;
     Graphics::TextureMap->Put(texture->ID, texture);
@@ -267,10 +268,43 @@ PUBLIC STATIC void     SDL2Renderer::Present() {
 
 // Draw mode setting functions
 PUBLIC STATIC void     SDL2Renderer::SetBlendColor(float r, float g, float b, float a) {
+    SDL_SetRenderDrawColor(Renderer, r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+}
+PRIVATE STATIC SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA) {
+    SDL_BlendFactor blendFactorToSDL[] = {
+        SDL_BLENDFACTOR_ZERO,
+        SDL_BLENDFACTOR_ONE,
+        SDL_BLENDFACTOR_SRC_COLOR,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR,
+        SDL_BLENDFACTOR_SRC_ALPHA,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+        SDL_BLENDFACTOR_DST_COLOR,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_COLOR,
+        SDL_BLENDFACTOR_DST_ALPHA,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+    };
 
+    return SDL_ComposeCustomBlendMode(
+        blendFactorToSDL[srcC], blendFactorToSDL[dstC], SDL_BLENDOPERATION_ADD,
+        blendFactorToSDL[srcA], blendFactorToSDL[srcA], SDL_BLENDOPERATION_ADD
+    );
 }
 PUBLIC STATIC void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+    SDL_BlendMode customBlendMode = GetCustomBlendMode(srcC, dstC, srcA, dstA);
+    if (SDL_SetRenderDrawBlendMode(Renderer, customBlendMode) == 0)
+        return;
 
+    // That failed, so just use regular blend modes and hope they match
+    switch (Graphics::BlendMode) {
+        case BlendMode_NORMAL:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+            break;
+        case BlendMode_ADD:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_ADD);
+            break;
+        default:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_NONE);
+    }
 }
 PUBLIC STATIC void     SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
 

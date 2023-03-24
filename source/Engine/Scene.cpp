@@ -470,7 +470,7 @@ PUBLIC STATIC void Scene::Init() {
         Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
         Scene::Views[i].FOV = 45.0f;
         Scene::Views[i].UsePerspective = false;
-        Scene::Views[i].DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, Scene::Views[i].Stride, Scene::Views[i].Height);
+        Scene::Views[i].DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, Scene::Views[i].Width, Scene::Views[i].Height);
         Scene::Views[i].UseDrawTarget = true;
         Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
         Scene::Views[i].BaseProjectionMatrix = Matrix4x4::Create();
@@ -623,11 +623,13 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
         float view_w = currentView->Width;
         float view_h = currentView->Height;
         Texture* tar = currentView->DrawTarget;
-        if (tar->Width != (size_t)currentView->Stride || tar->Height != view_h) {
+
+        size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
+        if (tar->Width != stride || tar->Height != view_h) {
             Graphics::GfxFunctions = &Graphics::Internal;
             Graphics::DisposeTexture(tar);
             Graphics::SetTextureInterpolation(false);
-            currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, Math::CeilPOT(view_w), view_h);
+            currentView->DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, stride, view_h);
         }
 
         Graphics::SetRenderTarget(currentView->DrawTarget);
