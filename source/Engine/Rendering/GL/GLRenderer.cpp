@@ -587,6 +587,19 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
         driverData->Faces->push_back(glFace);
     }
 }
+PolygonRenderer* GL_GetPolygonRenderer() {
+    static PolygonRenderer renderer;
+    if (!renderer.SetBuffers())
+        return nullptr;
+
+    renderer.DrawMode = renderer.ArrayBuf ? renderer.ArrayBuf->DrawMode : 0;
+    renderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)renderer.VertexBuf->DriverData;
+    driverData->Changed = true;
+
+    return &renderer;
+}
 
 // Initialization and disposal functions
 PUBLIC STATIC void     GLRenderer::Init() {
@@ -1434,127 +1447,36 @@ PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation
 }
 // 3D drawing functions
 PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
-    if (arrayBuffer == nullptr)
-        return;
-
-    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
-    if (vertexBuffer == nullptr)
-        return;
-
-    Matrix4x4 mvpMatrix;
-    Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
-
-    Uint32 arrayVertexCount = vertexBuffer->VertexCount;
-    Uint32 maxVertexCount = arrayVertexCount + vertexCount;
-    if (maxVertexCount > vertexBuffer->Capacity)
-        vertexBuffer->Resize(maxVertexCount);
-
-    Uint32 colRGB = ColorUtils::ToRGB(Graphics::BlendColors);
-
-    VertexAttribute* vertex = &vertexBuffer->Vertices[arrayVertexCount];
-    VertexAttribute* src = (VertexAttribute*)data;
-    int numVertices = vertexCount;
-    while (numVertices--) {
-        // Calculate position
-        APPLY_MAT4X4(vertex->Position, src->Position, mvpMatrix.Values);
-
-        // Calculate normals
-        if (vertexFlag & VertexType_Normal) {
-            if (normalMatrix) {
-                APPLY_MAT4X4(vertex->Normal, src->Normal, normalMatrix->Values);
-            }
-            else {
-                COPY_NORMAL(vertex->Normal, src->Normal);
-            }
-        }
-        else
-            vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
-
-        if (vertexFlag & VertexType_UV)
-            vertex->UV = src->UV;
-
-        if (vertexFlag & VertexType_Color)
-            vertex->Color = ColorUtils::Multiply(src->Color, colRGB);
-        else
-            vertex->Color = colRGB;
-
-        vertex++;
-        src++;
+    PolygonRenderer *renderer = GL_GetPolygonRenderer();
+    if (renderer != nullptr) {
+        renderer->ModelMatrix = modelMatrix;
+        renderer->NormalMatrix = normalMatrix;
+        renderer->DrawPolygon3D((VertexAttribute*)data, vertexCount, vertexFlag, texture);
     }
-
-    FaceInfo* face = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
-    face->DrawMode = arrayBuffer->DrawMode;
-    face->NumVertices = vertexCount;
-    face->SetMaterial(texture);
-    face->SetBlendState(Graphics::GetBlendState());
-
-    vertexBuffer->VertexCount += vertexCount;
-    vertexBuffer->FaceCount++;
-
-    GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
-    driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
+    PolygonRenderer *renderer = GL_GetPolygonRenderer();
+    if (renderer != nullptr) {
+        renderer->ModelMatrix = modelMatrix;
+        renderer->NormalMatrix = normalMatrix;
+        renderer->DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+    }
 }
 PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
-    if (arrayBuffer == nullptr)
-        return;
-
-    IModel *model = (IModel*)inModel;
-    if (animation < 0 || frame < 0)
-        return;
-    else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
-        return;
-
-    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
-    if (vertexBuffer == nullptr)
-        return;
-
-    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
-    if (maxVertexCount > vertexBuffer->Capacity)
-        vertexBuffer->Resize(maxVertexCount);
-
-    ModelRenderer rend = ModelRenderer(vertexBuffer);
-
-    rend.DrawMode = arrayBuffer->DrawMode;
-    rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
-    rend.ClipFaces = false;
-    rend.SetMatrices(modelMatrix, nullptr, nullptr, normalMatrix);
-    rend.DrawModel(model, animation, frame);
+    PolygonRenderer *renderer = GL_GetPolygonRenderer();
+    if (renderer != nullptr) {
+        renderer->ModelMatrix = modelMatrix;
+        renderer->NormalMatrix = normalMatrix;
+        renderer->DrawModel((IModel*)inModel, animation, frame);
+    }
 }
 PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
-    if (arrayBuffer == nullptr)
-        return;
-
-    IModel *model = (IModel*)inModel;
-    if (model->UseVertexAnimation) {
-        DrawModel(model, 0, 0, modelMatrix, normalMatrix);
-        return;
+    PolygonRenderer *renderer = GL_GetPolygonRenderer();
+    if (renderer != nullptr) {
+        renderer->ModelMatrix = modelMatrix;
+        renderer->NormalMatrix = normalMatrix;
+        renderer->DrawModelSkinned((IModel*)inModel, armature);
     }
-
-    if (armature >= model->ArmatureCount)
-        return;
-
-    VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
-    if (vertexBuffer == nullptr)
-        return;
-
-    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
-    if (maxVertexCount > vertexBuffer->Capacity)
-        vertexBuffer->Resize(maxVertexCount);
-
-    ModelRenderer rend = ModelRenderer(vertexBuffer);
-
-    rend.DrawMode = arrayBuffer->DrawMode;
-    rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
-    rend.ClipFaces = false;
-    rend.ArmaturePtr = model->ArmatureList[armature];
-    rend.SetMatrices(modelMatrix, nullptr, nullptr, normalMatrix);
-    rend.DrawModel(model, 0);
 }
 PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();

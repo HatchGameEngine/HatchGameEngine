@@ -10,15 +10,20 @@
 
 class PolygonRenderer {
 public:
-    ArrayBuffer*  ArrayBuf;
-    VertexBuffer* VertexBuf;
-    Matrix4x4*    ModelMatrix;
-    Matrix4x4*    NormalMatrix;
+    ArrayBuffer*  ArrayBuf = nullptr;
+    VertexBuffer* VertexBuf = nullptr;
+    Matrix4x4*    ModelMatrix = nullptr;
+    Matrix4x4*    NormalMatrix = nullptr;
+    Matrix4x4*    ViewMatrix = nullptr;
+    Matrix4x4*    ProjectionMatrix = nullptr;
 
-    Uint32        CurrentColor;
+    Uint32        DrawMode = 0;
+    Uint32        CurrentColor = 0;
 
-    bool          ClipPolygonsByFrustum;
-    int           NumFrustumPlanes;
+    bool          DoProjection = false;
+    bool          DoClipping = false;
+    bool          ClipPolygonsByFrustum = false;
+    int           NumFrustumPlanes = 0;
     Frustum       ViewFrustum[NUM_FRUSTUM_PLANES];
 };
 #endif
@@ -48,17 +53,43 @@ PUBLIC void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float f
     NumFrustumPlanes = 2;
 }
 
-PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture, Uint32 colRGB) {
-    ArrayBuffer* arrayBuffer = ArrayBuf;
+PUBLIC bool PolygonRenderer::SetBuffers() {
+    VertexBuf = nullptr;
+    ArrayBuf = nullptr;
+    ViewMatrix = nullptr;
+    ProjectionMatrix = nullptr;
+
+    if (Graphics::CurrentVertexBuffer != -1) {
+        VertexBuf = Graphics::VertexBuffers[Graphics::CurrentVertexBuffer];
+        if (VertexBuf == nullptr)
+            return false;
+    }
+    else {
+        if (Graphics::CurrentArrayBuffer == -1)
+            return false;
+
+        ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
+        if (!arrayBuffer->Initialized)
+            return false;
+
+        VertexBuf = arrayBuffer->Buffer;
+        ArrayBuf = arrayBuffer;
+        ViewMatrix = &arrayBuffer->ViewMatrix;
+        ProjectionMatrix = &arrayBuffer->ProjectionMatrix;
+    }
+
+    return true;
+}
+
+PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture) {
     VertexBuffer* vertexBuffer = VertexBuf;
-    Matrix4x4* modelMatrix = ModelMatrix;
-    Matrix4x4* normalMatrix = NormalMatrix;
+    Uint32 colRGB = CurrentColor;
 
     Matrix4x4 mvpMatrix;
-    if (arrayBuffer)
-        Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+    if (DoProjection)
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
-        Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, NULL, NULL);
 
     Uint32 arrayVertexCount = vertexBuffer->VertexCount;
     Uint32 maxVertexCount = arrayVertexCount + vertexCount;
@@ -75,8 +106,8 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
 
         // Calculate normals
         if (vertexFlag & VertexType_Normal) {
-            if (normalMatrix) {
-                APPLY_MAT4X4(vertex->Normal, data->Normal, normalMatrix->Values);
+            if (NormalMatrix) {
+                APPLY_MAT4X4(vertex->Normal, data->Normal, NormalMatrix->Values);
             }
             else {
                 COPY_NORMAL(vertex->Normal, data->Normal);
@@ -93,7 +124,7 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
         if (vertexFlag & VertexType_UV)
             vertex->UV = data->UV;
 
-        if (arrayBuffer && vertex->Position.Z <= 0x10000)
+        if (DoClipping && vertex->Position.Z <= 0x10000)
             numBehind++;
 
         vertex++;
@@ -101,7 +132,7 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
     }
 
     // Don't clip polygons if drawing into a vertex buffer, since the vertices are not in clip space
-    if (arrayBuffer) {
+    if (DoClipping) {
         // Check if the polygon is at least partially inside the frustum
         if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
             return;
@@ -125,30 +156,27 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
             return;
     }
 
-    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
-    faceInfoItem->NumVertices = vertexCount;
-    faceInfoItem->SetMaterial(texture);
-    if (arrayBuffer)
-        faceInfoItem->SetBlendState(Graphics::GetBlendState());
+    FaceInfo* face = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
+    face->DrawMode = DrawMode;
+    face->NumVertices = vertexCount;
+    face->SetMaterial(texture);
+    face->SetBlendState(Graphics::GetBlendState());
 
     vertexBuffer->VertexCount += vertexCount;
     vertexBuffer->FaceCount++;
 }
-PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh, Uint32 colRGB) {
+PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
     int vertexCountPerFace = 4;
     int tileSize = 16;
-
-    ArrayBuffer* arrayBuffer = ArrayBuf;
-    VertexBuffer* vertexBuffer = VertexBuf;
-    Matrix4x4* modelMatrix = ModelMatrix;
-    Matrix4x4* normalMatrix = NormalMatrix;
+    Uint32 colRGB = CurrentColor;
 
     Matrix4x4 mvpMatrix;
-    if (arrayBuffer)
-        Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+    if (DoProjection)
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
-        Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, NULL, NULL);
 
+    VertexBuffer* vertexBuffer = VertexBuf;
     int arrayVertexCount = vertexBuffer->VertexCount;
     int arrayFaceCount = vertexBuffer->FaceCount;
 
@@ -255,8 +283,8 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
                 APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix.Values);
 
                 // Calculate normals
-                if (normalMatrix) {
-                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, normalMatrix->Values);
+                if (NormalMatrix) {
+                    APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, NormalMatrix->Values);
                 }
                 else {
                     COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
@@ -270,7 +298,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
             }
 
             Uint32 vertexCount = vertexCountPerFace;
-            if (arrayBuffer) {
+            if (DoClipping) {
                 // Check if the polygon is at least partially inside the frustum
                 if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
                     continue;
@@ -313,27 +341,17 @@ PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 f
     else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
         return;
 
-    ArrayBuffer* arrayBuffer = ArrayBuf;
-    VertexBuffer* vertexBuffer = VertexBuf;
-
-    Matrix4x4* viewMatrix = nullptr;
-    Matrix4x4* projMatrix = nullptr;
-
-    if (arrayBuffer) {
-        viewMatrix = &arrayBuffer->ViewMatrix;
-        projMatrix = &arrayBuffer->ProjectionMatrix;
-    }
-
-    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
-    if (maxVertexCount > vertexBuffer->Capacity)
-        vertexBuffer->Resize(maxVertexCount);
+    Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > VertexBuf->Capacity)
+        VertexBuf->Resize(maxVertexCount);
 
     ModelRenderer rend = ModelRenderer(this);
 
-    rend.DrawMode = arrayBuffer != nullptr ? arrayBuffer->DrawMode : 0;
+    rend.DrawMode = ArrayBuf != nullptr ? ArrayBuf->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
-    rend.ClipFaces = arrayBuffer != nullptr;
-    rend.SetMatrices(ModelMatrix, viewMatrix, projMatrix, NormalMatrix);
+    rend.DoProjection = DoProjection;
+    rend.ClipFaces = DoProjection;
+    rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
     rend.DrawModel(model, animation, frame);
 }
 PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
@@ -345,28 +363,18 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     if (armature >= model->ArmatureCount)
         return;
 
-    ArrayBuffer* arrayBuffer = ArrayBuf;
-    VertexBuffer* vertexBuffer = VertexBuf;
-
-    Matrix4x4* viewMatrix = nullptr;
-    Matrix4x4* projMatrix = nullptr;
-
-    if (arrayBuffer) {
-        viewMatrix = &arrayBuffer->ViewMatrix;
-        projMatrix = &arrayBuffer->ProjectionMatrix;
-    }
-
-    Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
-    if (maxVertexCount > vertexBuffer->Capacity)
-        vertexBuffer->Resize(maxVertexCount);
+    Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
+    if (maxVertexCount > VertexBuf->Capacity)
+        VertexBuf->Resize(maxVertexCount);
 
     ModelRenderer rend = ModelRenderer(this);
 
-    rend.DrawMode = arrayBuffer != nullptr ? arrayBuffer->DrawMode : 0;
+    rend.DrawMode = ArrayBuf != nullptr ? ArrayBuf->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
-    rend.ClipFaces = arrayBuffer != nullptr;
+    rend.DoProjection = DoProjection;
+    rend.ClipFaces = DoProjection;
     rend.ArmaturePtr = model->ArmatureList[armature];
-    rend.SetMatrices(ModelMatrix, viewMatrix, projMatrix, NormalMatrix);
+    rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
     rend.DrawModel(model, 0);
 }
 PUBLIC void PolygonRenderer::DrawVertexBuffer() {
@@ -421,26 +429,28 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
 
         arrayVertexItem = arrayVertexBuffer;
 
-        // Check if the polygon is at least partially inside the frustum
-        if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
-            continue;
-
-        // Vertices are now in clip space, which means that the polygon can be frustum clipped
-        if (ClipPolygonsByFrustum) {
-            PolygonClipBuffer clipper;
-
-            vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
-            if (vertexCount == 0)
+        if (DoClipping) {
+            // Check if the polygon is at least partially inside the frustum
+            if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount))
                 continue;
 
-            Uint32 maxVertexCount = arrayVertexCount + vertexCount;
-            if (maxVertexCount > destVertexBuffer->Capacity) {
-                destVertexBuffer->Resize(maxVertexCount);
-                faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
-                arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
-            }
+            // Vertices are now in clip space, which means that the polygon can be frustum clipped
+            if (ClipPolygonsByFrustum) {
+                PolygonClipBuffer clipper;
 
-            CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
+                vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
+                if (vertexCount == 0)
+                    continue;
+
+                Uint32 maxVertexCount = arrayVertexCount + vertexCount;
+                if (maxVertexCount > destVertexBuffer->Capacity) {
+                    destVertexBuffer->Resize(maxVertexCount);
+                    faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+                    arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
+                }
+
+                CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
+            }
         }
 
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;

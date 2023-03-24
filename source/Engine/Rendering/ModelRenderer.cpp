@@ -23,6 +23,7 @@ public:
 
     Matrix4x4        MVPMatrix;
 
+    bool             DoProjection;
     bool             ClipFaces;
     Armature*        ArmaturePtr;
 
@@ -361,7 +362,7 @@ PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* 
             DrawMesh(model, mesh, ArmaturePtr->Skeletons[mesh->SkeletonIndex], MVPMatrix);
         else {
             if (!madeMatrix) {
-                if (ViewMatrix && ProjectionMatrix) {
+                if (DoProjection) {
                     Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
                     Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ViewMatrix);
                     Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ProjectionMatrix);
@@ -380,7 +381,7 @@ PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* 
 }
 
 PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
-    if (ViewMatrix && ProjectionMatrix)
+    if (DoProjection)
         Graphics::CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
         Graphics::CalculateMVPMatrix(&MVPMatrix, ModelMatrix, NULL, NULL);

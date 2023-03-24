@@ -1186,27 +1186,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
 }
 
 PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    ArrayBuffer* arrayBuffer = nullptr;
-    VertexBuffer* vertexBuffer = nullptr;
+    if (!polygonRenderer.SetBuffers())
+        return false;
 
-    if (Graphics::CurrentVertexBuffer != -1) {
-        vertexBuffer = Graphics::VertexBuffers[Graphics::CurrentVertexBuffer];
-        if (!vertexBuffer)
-            return false;
-    }
-    else {
-        if (Graphics::CurrentArrayBuffer == -1)
-            return false;
-
-        arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
-        if (!arrayBuffer->Initialized)
-            return false;
-
-        vertexBuffer = arrayBuffer->Buffer;
-    }
-
-    polygonRenderer.ArrayBuf = arrayBuffer;
-    polygonRenderer.VertexBuf = vertexBuffer;
+    polygonRenderer.DoProjection = true;
+    polygonRenderer.DoClipping = true;
     polygonRenderer.ModelMatrix = modelMatrix;
     polygonRenderer.NormalMatrix = normalMatrix;
     polygonRenderer.CurrentColor = GetBlendColor();
@@ -1216,11 +1200,11 @@ PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelM
 
 PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
-        polygonRenderer.DrawPolygon3D((VertexAttribute*)data, vertexCount, vertexFlag, texture, GetBlendColor());
+        polygonRenderer.DrawPolygon3D((VertexAttribute*)data, vertexCount, vertexFlag, texture);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
-        polygonRenderer.DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh, GetBlendColor());
+        polygonRenderer.DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
@@ -1242,6 +1226,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     if (!vertexBuffer)
         return;
 
+    polygonRenderer.DoClipping = true;
     polygonRenderer.ArrayBuf = arrayBuffer;
     polygonRenderer.VertexBuf = vertexBuffer;
     polygonRenderer.ModelMatrix = modelMatrix;
