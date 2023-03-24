@@ -200,6 +200,7 @@
                     <li><a href="#Reference_Draw_ViewSized">Draw.ViewSized</a></li>
                     <li><a href="#Reference_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
                     <li><a href="#Reference_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
+                    <li><a href="#Reference_Draw_SetArrayBufferDrawMode">Draw.SetArrayBufferDrawMode</a></li>
                     <li><a href="#Reference_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
                     <li><a href="#Reference_Draw_SetViewMatrix">Draw.SetViewMatrix</a></li>
                     <li><a href="#Reference_Draw_SetAmbientLighting">Draw.SetAmbientLighting</a></li>
@@ -208,6 +209,7 @@
                     <li><a href="#Reference_Draw_SetFogDensity">Draw.SetFogDensity</a></li>
                     <li><a href="#Reference_Draw_SetFogColor">Draw.SetFogColor</a></li>
                     <li><a href="#Reference_Draw_SetClipPolygons">Draw.SetClipPolygons</a></li>
+                    <li><a href="#Reference_Draw_SetPointSize">Draw.SetPointSize</a></li>
                     <li><a href="#Reference_Draw_BindArrayBuffer">Draw.BindArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
                     <li><a href="#Reference_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
@@ -1575,6 +1577,17 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Draw_SetArrayBufferDrawMode">
+        <h2 style="margin-bottom: 8px;">Draw.SetArrayBufferDrawMode</h2>
+        <code>Draw.SetArrayBufferDrawMode(arrayBufferIndex, drawMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the array buffer. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Draw_SetProjectionMatrix">
         <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
         <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
@@ -1663,11 +1676,22 @@
         <p id="Reference_Draw_SetClipPolygons">
         <h2 style="margin-bottom: 8px;">Draw.SetClipPolygons</h2>
         <code>Draw.SetClipPolygons(arrayBufferIndex, clipPolygons)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer. (software-renderer only)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
         <li>clipPolygons (Boolean): Whether or not to clip polygons.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetPointSize">
+        <h2 style="margin-bottom: 8px;">Draw.SetPointSize</h2>
+        <code>Draw.SetPointSize(arrayBufferIndex, pointSize)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the array buffer. (hardware-renderer only)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>pointSize (Decimal): The point size.</li>
         </ul>
         </p>
         <hr/>
@@ -2059,8 +2083,8 @@
         <hr/>
         <p id="Reference_Draw_RenderArrayBuffer">
         <h2 style="margin-bottom: 8px;">Draw.RenderArrayBuffer</h2>
-        <code>Draw.RenderArrayBuffer(arrayBufferIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer with the specified draw mode. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_FLAT</code>: Draws the faces with lines, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_LINES_SMOOTH</code>: Draws the faces with lines, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_FLAT</code>: Draws the faces with polygons, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
+        <code>Draw.RenderArrayBuffer(arrayBufferIndex[, drawMode])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>arrayBufferIndex (Integer): The array buffer at the index to draw.</li>
@@ -6752,6 +6776,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>456 out of 525 functions have descriptions. </p>
+        <p>458 out of 527 functions have descriptions. </p>
     </body>
 </html>

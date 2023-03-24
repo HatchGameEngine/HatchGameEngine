@@ -1623,6 +1623,34 @@ VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.SetArrayBufferDrawMode
+ * \desc Sets the draw mode of the array buffer. <br/>\
+</br>Draw Modes:<ul>\
+<li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
+<li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
+<li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
+<li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li>\
+<li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li>\
+</ul>
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetArrayBufferDrawMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    Uint32 drawMode = GET_ARG(1, GetInteger);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->DrawMode = drawMode;
+    return NULL_VAL;
+}
+/***
  * Draw.SetProjectionMatrix
  * \desc Sets the projection matrix.
  * \param arrayBufferIndex (Integer): The index of the array buffer.
@@ -2666,28 +2694,16 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 #undef PREPARE_MATRICES
 /***
  * Draw.RenderArrayBuffer
- * \desc Draws everything in the array buffer with the specified draw mode. <br/>\
-</br>Draw Modes:<ul>\
-<li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
-<li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
-<li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
-<li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li>\
-<li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li>\
-</ul>
+ * \desc Draws everything in the array buffer.
  * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
- * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
+ * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
  * \return
  * \ns Draw
  */
 VMValue Draw_RenderArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
+    CHECK_AT_LEAST_ARGCOUNT(1);
     Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG(1, GetInteger);
+    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
     GET_ARRAY_BUFFER();
     Graphics::DrawArrayBuffer(arrayBufferIndex, drawMode);
     return NULL_VAL;
@@ -11111,6 +11127,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, BindArrayBuffer);
     DEF_NATIVE(Draw, BindVertexBuffer);
     DEF_NATIVE(Draw, UnbindVertexBuffer);
+    DEF_NATIVE(Draw, SetArrayBufferDrawMode);
     DEF_NATIVE(Draw, SetProjectionMatrix);
     DEF_NATIVE(Draw, SetViewMatrix);
     DEF_NATIVE(Draw, SetAmbientLighting);

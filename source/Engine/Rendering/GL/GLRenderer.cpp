@@ -580,7 +580,7 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
         glFace.MaterialInfo = face->MaterialInfo;
         glFace.Opacity = face->Blend.Opacity;
         glFace.BlendMode = face->Blend.Mode;
-        glFace.DrawMode = face->DrawMode;
+        glFace.DrawMode = face->DrawMode | drawMode;
 
         verticesStartIndex += vertexCount;
 
@@ -1654,20 +1654,6 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
         driverData->Changed = false;
     }
 
-    int mode;
-    switch (drawMode & DrawMode_PrimitiveMask) {
-    case DrawMode_POLYGONS:
-        mode = GL_TRIANGLE_FAN;
-        break;
-    case DrawMode_LINES:
-        mode = GL_LINE_LOOP;
-        break;
-    default:
-        mode = GL_POINTS;
-        glPointSize(arrayBuffer->PointSize);
-        break;
-    }
-
     GL_Predraw(NULL);
     glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
 
@@ -1676,6 +1662,8 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
             glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
         }
     #endif
+
+    glPointSize(arrayBuffer->PointSize);
 
     Matrix4x4 projMat = arrayBuffer->ProjectionMatrix;
     Matrix4x4 viewMat = arrayBuffer->ViewMatrix;
@@ -1720,7 +1708,7 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
         GL_VertexBufferFace& face = (*driverData->Faces)[f];
 
         // Change shader if needed and set texture
-        if (drawMode & DrawMode_TEXTURED && face.UseMaterial) {
+        if (face.DrawMode & DrawMode_TEXTURED && face.UseMaterial) {
             GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
             glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
             GL_BindTexture((Texture*)face.MaterialInfo.Texture);
@@ -1748,7 +1736,7 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
             lastShader = GLRenderer::CurrentShader;
         }
 
-        glDrawArrays(mode, face.VertexIndex, face.NumVertices); CHECK_GL();
+        glDrawArrays(GetPrimitiveType(face.DrawMode), face.VertexIndex, face.NumVertices); CHECK_GL();
     }
 
     GL_Predraw(NULL);
@@ -1760,6 +1748,16 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
     #endif
 
     glPointSize(1.0f);
+}
+PRIVATE STATIC int     GLRenderer::GetPrimitiveType(Uint32 drawMode) {
+    switch (drawMode & DrawMode_PrimitiveMask) {
+    case DrawMode_POLYGONS:
+        return GL_TRIANGLE_FAN;
+    case DrawMode_LINES:
+        return GL_LINE_LOOP;
+    default:
+        return GL_POINTS;
+    }
 }
 
 PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
