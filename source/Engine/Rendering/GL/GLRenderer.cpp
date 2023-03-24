@@ -102,7 +102,9 @@ struct   GL_VertexBufferFace {
     Uint32       VertexIndex;
     bool         UseMaterial;
     FaceMaterial MaterialInfo;
-    BlendState   Blend;
+    Uint8        Opacity;
+    Uint8        BlendMode;
+    Uint32       DrawMode;
 };
 struct   GL_VertexBufferEntry {
     float X, Y, Z;
@@ -576,7 +578,9 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
         glFace.NumVertices = vertexCount;
         glFace.UseMaterial = face->UseMaterial;
         glFace.MaterialInfo = face->MaterialInfo;
-        glFace.Blend = face->Blend;
+        glFace.Opacity = face->Blend.Opacity;
+        glFace.BlendMode = face->Blend.Mode;
+        glFace.DrawMode = face->DrawMode;
 
         verticesStartIndex += vertexCount;
 
@@ -1430,8 +1434,12 @@ PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation
 }
 // 3D drawing functions
 PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
+    if (arrayBuffer == nullptr)
+        return;
+
     VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
-    if (!vertexBuffer)
+    if (vertexBuffer == nullptr)
         return;
 
     Matrix4x4 mvpMatrix;
@@ -1475,10 +1483,11 @@ PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, in
         src++;
     }
 
-    FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
-    faceInfoItem->NumVertices = vertexCount;
-    faceInfoItem->SetMaterial(texture);
-    faceInfoItem->SetBlendState(Graphics::GetBlendState());
+    FaceInfo* face = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
+    face->DrawMode = arrayBuffer->DrawMode;
+    face->NumVertices = vertexCount;
+    face->SetMaterial(texture);
+    face->SetBlendState(Graphics::GetBlendState());
 
     vertexBuffer->VertexCount += vertexCount;
     vertexBuffer->FaceCount++;
@@ -1490,6 +1499,10 @@ PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy,
 
 }
 PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
+    if (arrayBuffer == nullptr)
+        return;
+
     IModel *model = (IModel*)inModel;
     if (animation < 0 || frame < 0)
         return;
@@ -1497,6 +1510,8 @@ PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Ui
         return;
 
     VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
+    if (vertexBuffer == nullptr)
+        return;
 
     Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
@@ -1504,12 +1519,17 @@ PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Ui
 
     ModelRenderer rend = ModelRenderer(vertexBuffer);
 
+    rend.DrawMode = arrayBuffer->DrawMode;
     rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
     rend.ClipFaces = false;
     rend.SetMatrices(modelMatrix, nullptr, nullptr, normalMatrix);
     rend.DrawModel(model, animation, frame);
 }
 PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
+    if (arrayBuffer == nullptr)
+        return;
+
     IModel *model = (IModel*)inModel;
     if (model->UseVertexAnimation) {
         DrawModel(model, 0, 0, modelMatrix, normalMatrix);
@@ -1520,6 +1540,8 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
         return;
 
     VertexBuffer* vertexBuffer = (VertexBuffer*)Graphics::GetCurrentVertexBuffer();
+    if (vertexBuffer == nullptr)
+        return;
 
     Uint32 maxVertexCount = vertexBuffer->VertexCount + model->VertexIndexCount;
     if (maxVertexCount > vertexBuffer->Capacity)
@@ -1527,6 +1549,7 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
 
     ModelRenderer rend = ModelRenderer(vertexBuffer);
 
+    rend.DrawMode = arrayBuffer->DrawMode;
     rend.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
     rend.ClipFaces = false;
     rend.ArmaturePtr = model->ArmatureList[armature];
@@ -1534,15 +1557,12 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
     rend.DrawModel(model, 0);
 }
 PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    if (Graphics::CurrentArrayBuffer < 0)
-        return;
-
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
-    if (!arrayBuffer->Initialized)
+    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
+    if (arrayBuffer == nullptr)
         return;
 
     VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
-    if (!vertexBuffer)
+    if (vertexBuffer == nullptr)
         return;
 
     Matrix4x4 mvpMatrix;
@@ -1589,6 +1609,7 @@ PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Ma
             srcVertexItem++;
         }
 
+        faceInfoItem->DrawMode = arrayBuffer->DrawMode;
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
         if (faceInfoItem->UseMaterial)
             faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;
@@ -1634,10 +1655,18 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
     }
 
     int mode;
-    if ((drawMode & DrawMode_PrimitiveMask) == DrawMode_LINES)
-        mode = GL_LINES;
-    else
+    switch (drawMode & DrawMode_PrimitiveMask) {
+    case DrawMode_POLYGONS:
         mode = GL_TRIANGLE_FAN;
+        break;
+    case DrawMode_LINES:
+        mode = GL_LINE_LOOP;
+        break;
+    default:
+        mode = GL_POINTS;
+        glPointSize(arrayBuffer->PointSize);
+        break;
+    }
 
     GL_Predraw(NULL);
     glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
@@ -1706,7 +1735,7 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
             GL_BindTexture(NULL);
         }
 
-        GL_SetBlendFuncByMode(face.Blend.Mode);
+        GL_SetBlendFuncByMode(face.BlendMode);
 
         // Update matrices
         if (GLRenderer::CurrentShader != lastShader) {
@@ -1729,6 +1758,8 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
             glDisable(GL_POLYGON_SMOOTH); CHECK_GL();
         }
     #endif
+
+    glPointSize(1.0f);
 }
 
 PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {

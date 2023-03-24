@@ -1806,7 +1806,7 @@ VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetClipPolygons
- * \desc Enables or disables polygon clipping by the view frustum of the array buffer.
+ * \desc Enables or disables polygon clipping by the view frustum of the array buffer. (software-renderer only)
  * \param arrayBufferIndex (Integer): The index of the array buffer.
  * \param clipPolygons (Boolean): Whether or not to clip polygons.
  * \return
@@ -1818,6 +1818,22 @@ VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
     bool clipPolygons = !!GET_ARG(1, GetInteger);
     GET_ARRAY_BUFFER();
     arrayBuffer->SetClipPolygons(clipPolygons);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetPointSize
+ * \desc Sets the point size of the array buffer. (hardware-renderer only)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param pointSize (Decimal): The point size.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    float pointSize = !!GET_ARG(1, GetDecimal);
+    GET_ARRAY_BUFFER();
+    arrayBuffer->PointSize = pointSize;
     return NULL_VAL;
 }
 /***
@@ -2653,11 +2669,10 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Draws everything in the array buffer with the specified draw mode. <br/>\
 </br>Draw Modes:<ul>\
 <li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_LINES_FLAT</code>: Draws the faces with lines, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_LINES_SMOOTH</code>: Draws the faces with lines, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POLYGONS_FLAT</code>: Draws the faces with polygons, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
 <li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
 <li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
@@ -11104,6 +11119,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetFogDensity);
     DEF_NATIVE(Draw, SetFogColor);
     DEF_NATIVE(Draw, SetClipPolygons);
+    DEF_NATIVE(Draw, SetPointSize);
     DEF_NATIVE(Draw, Model);
     DEF_NATIVE(Draw, ModelSkinned);
     DEF_NATIVE(Draw, ModelSimple);
@@ -11176,20 +11192,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
 
-    DEF_ENUM(DrawMode_FillTypeMask);
     DEF_ENUM(DrawMode_LINES);
     DEF_ENUM(DrawMode_POLYGONS);
+    DEF_ENUM(DrawMode_POINTS);
     DEF_ENUM(DrawMode_FLAT_LIGHTING);
     DEF_ENUM(DrawMode_SMOOTH_LIGHTING);
-    DEF_ENUM(DrawMode_LINES_FLAT);
-    DEF_ENUM(DrawMode_LINES_SMOOTH);
-    DEF_ENUM(DrawMode_POLYGONS_FLAT);
-    DEF_ENUM(DrawMode_POLYGONS_SMOOTH);
     DEF_ENUM(DrawMode_TEXTURED);
     DEF_ENUM(DrawMode_AFFINE);
     DEF_ENUM(DrawMode_DEPTH_TEST);
     DEF_ENUM(DrawMode_FOG);
     DEF_ENUM(DrawMode_ORTHOGRAPHIC);
+    DEF_ENUM(DrawMode_LINES_FLAT);
+    DEF_ENUM(DrawMode_LINES_SMOOTH);
+    DEF_ENUM(DrawMode_POLYGONS_FLAT);
+    DEF_ENUM(DrawMode_POLYGONS_SMOOTH);
+    DEF_ENUM(DrawMode_PrimitiveMask);
+    DEF_ENUM(DrawMode_LightingMask);
+    DEF_ENUM(DrawMode_FillTypeMask);
+    DEF_ENUM(DrawMode_FlagsMask);
 
     DEF_ENUM(BlendMode_ADD);
     DEF_ENUM(BlendMode_MAX);

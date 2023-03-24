@@ -7,6 +7,7 @@
 
 struct ArrayBuffer {
     VertexBuffer*    Buffer = nullptr;
+    Uint32           DrawMode;
     Uint32           LightingAmbientR;
     Uint32           LightingAmbientG;
     Uint32           LightingAmbientB;
@@ -24,6 +25,7 @@ struct ArrayBuffer {
     float            FarClippingPlane;
     Matrix4x4        ProjectionMatrix;
     Matrix4x4        ViewMatrix;
+    float            PointSize = 1.0f;
     bool             ClipPolygons = false;
     bool             Initialized = false;
 

@@ -6,6 +6,7 @@
 
 class FaceInfo {
 public:
+    Uint32       DrawMode;
     Uint32       NumVertices;
     Uint32       VerticesStartIndex;
     bool         UseMaterial;

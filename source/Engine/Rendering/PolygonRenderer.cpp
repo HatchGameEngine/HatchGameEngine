@@ -330,6 +330,7 @@ PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 f
 
     ModelRenderer rend = ModelRenderer(this);
 
+    rend.DrawMode = arrayBuffer != nullptr ? arrayBuffer->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
     rend.ClipFaces = arrayBuffer != nullptr;
     rend.SetMatrices(ModelMatrix, viewMatrix, projMatrix, NormalMatrix);
@@ -361,6 +362,7 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
 
     ModelRenderer rend = ModelRenderer(this);
 
+    rend.DrawMode = arrayBuffer != nullptr ? arrayBuffer->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
     rend.ClipFaces = arrayBuffer != nullptr;
     rend.ArmaturePtr = model->ArmatureList[armature];

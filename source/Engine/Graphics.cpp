@@ -1095,15 +1095,22 @@ PUBLIC STATIC void     Graphics::InitArrayBuffer(Uint32 arrayBufferIndex, Uint32
     arrayBuffer->ClipPolygons = true;
     arrayBuffer->Initialized = true;
 }
-PUBLIC STATIC void*    Graphics::GetCurrentVertexBuffer() {
-    if (Graphics::CurrentVertexBuffer >= 0)
-        return Graphics::VertexBuffers[CurrentVertexBuffer];
-
+PUBLIC STATIC void*    Graphics::GetCurrentArrayBuffer() {
     if (Graphics::CurrentArrayBuffer < 0)
         return nullptr;
 
     ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
     if (!arrayBuffer->Initialized)
+        return nullptr;
+
+    return arrayBuffer;
+}
+PUBLIC STATIC void*    Graphics::GetCurrentVertexBuffer() {
+    if (Graphics::CurrentVertexBuffer >= 0)
+        return Graphics::VertexBuffers[CurrentVertexBuffer];
+
+    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
+    if (arrayBuffer == nullptr)
         return nullptr;
 
     return arrayBuffer->Buffer;

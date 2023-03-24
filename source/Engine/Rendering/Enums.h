@@ -44,13 +44,14 @@ enum {
 };
 
 enum {
-    DrawMode_LINES           = 0,
-    DrawMode_POLYGONS        = 1,
-    DrawMode_PrimitiveMask   = 0x1,
+    DrawMode_POLYGONS        = 0x0, // 0b0000
+    DrawMode_LINES           = 0x1, // 0b0001
+    DrawMode_POINTS          = 0x2, // 0b0010
+    DrawMode_PrimitiveMask   = 0x3, // 0b0011
 
-    DrawMode_FillTypeMask    = 0x7,
-    DrawMode_FLAT_LIGHTING   = 1<<1,
-    DrawMode_SMOOTH_LIGHTING = 1<<2,
+    DrawMode_FLAT_LIGHTING   = 0x4, // 0b0100
+    DrawMode_SMOOTH_LIGHTING = 0x8, // 0b1000
+    DrawMode_LightingMask    = 0xC, // 0b1100
 
     DrawMode_LINES_FLAT      = DrawMode_LINES | DrawMode_FLAT_LIGHTING,
     DrawMode_LINES_SMOOTH    = DrawMode_LINES | DrawMode_SMOOTH_LIGHTING,
@@ -58,11 +59,14 @@ enum {
     DrawMode_POLYGONS_FLAT   = DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
     DrawMode_POLYGONS_SMOOTH = DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
 
-    DrawMode_TEXTURED        = 1<<3,
-    DrawMode_AFFINE          = 1<<4,
-    DrawMode_DEPTH_TEST      = 1<<5,
-    DrawMode_FOG             = 1<<6,
-    DrawMode_ORTHOGRAPHIC    = 1<<7
+    DrawMode_FillTypeMask    = 0xF, // 0b1111
+
+    DrawMode_TEXTURED        = 1<<4,
+    DrawMode_AFFINE          = 1<<5,
+    DrawMode_DEPTH_TEST      = 1<<6,
+    DrawMode_FOG             = 1<<7,
+    DrawMode_ORTHOGRAPHIC    = 1<<8,
+    DrawMode_FlagsMask       = ~0xF
 };
 
 #define TILE_FLIPX_MASK 0x80000000U
