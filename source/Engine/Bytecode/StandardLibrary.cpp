@@ -2659,10 +2659,10 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 <li><code>DrawMode_POLYGONS_FLAT</code>: Draws the faces with polygons, using a color for the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_POLYGONS_SMOOTH</code>: Draws the faces with polygons, using a color smoothly spread across the face calculated with the vertex normals, the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
-<li><code>DrawMode_AFFINE</code>: Uses affine texture mapping.</li>\
+<li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
 <li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
-<li><code>DrawMode_FOG</code>: Enables fog.</li>\
-<li><code>DrawMode_ORTHOGRAPHIC</code>: Uses orthographic perspective projection.</li>\
+<li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li>\
+<li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li>\
 </ul>
  * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
  * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.

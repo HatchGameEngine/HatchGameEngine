@@ -750,12 +750,6 @@ static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, in
     return col_r << 16 | col_g << 8 | col_b;
 }
 
-static int SortPolygonFaces(const void *a, const void *b) {
-    const FaceInfo* faceA = (const FaceInfo *)a;
-    const FaceInfo* faceB = (const FaceInfo *)b;
-    return faceB->Depth - faceA->Depth;
-}
-
 // Drawing 3D
 PUBLIC STATIC void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
@@ -861,7 +855,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
 
     // Sort face infos by depth
     if (sortFaces)
-        qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), SortPolygonFaces);
+        qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), PolygonRenderer::FaceSortFunction);
 
     // sas
     VertexAttribute *vertex, *vertexFirst;

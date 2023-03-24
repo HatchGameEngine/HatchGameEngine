@@ -30,6 +30,12 @@ public:
 #include <Engine/Rendering/Material.h>
 #include <Engine/Graphics.h>
 
+PUBLIC STATIC int PolygonRenderer::FaceSortFunction(const void *a, const void *b) {
+    const FaceInfo* faceA = (const FaceInfo *)a;
+    const FaceInfo* faceB = (const FaceInfo *)b;
+    return faceB->Depth - faceA->Depth;
+}
+
 PUBLIC void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float farClippingPlane) {
     // Near
     ViewFrustum[0].Plane.Z = nearClippingPlane * 0x10000;

@@ -44,9 +44,11 @@ enum {
 };
 
 enum {
-    DrawMode_FillTypeMask    = 7,
     DrawMode_LINES           = 0,
-    DrawMode_POLYGONS        = 1<<0,
+    DrawMode_POLYGONS        = 1,
+    DrawMode_PrimitiveMask   = 0x1,
+
+    DrawMode_FillTypeMask    = 0x7,
     DrawMode_FLAT_LIGHTING   = 1<<1,
     DrawMode_SMOOTH_LIGHTING = 1<<2,
 
