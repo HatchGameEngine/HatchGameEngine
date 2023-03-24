@@ -274,7 +274,7 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
             png->Colors[i] |= plte.entries[i].blue;
         }
 
-        SoftwareRenderer::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
+        Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
     }
     else {
         png->ReadPixelDataARGB((Uint32*)pixelData, 4);

@@ -591,21 +591,21 @@ PUBLIC STATIC void     GLRenderer::Init() {
 
     Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2); CHECK_GL();
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1); CHECK_GL();
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1); CHECK_GL();
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     #ifdef GL_SUPPORTS_MULTISAMPLING
     if (Graphics::MultisamplingEnabled) {
-        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1); CHECK_GL();
-        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, Graphics::MultisamplingEnabled); CHECK_GL();
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, Graphics::MultisamplingEnabled);
     }
     #endif
 
 	if (Application::Platform == Platforms::iOS) {
-		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0); CHECK_GL();
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0); CHECK_GL();
+		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 	}
 
     Context = SDL_GL_CreateContext(Application::Window); CHECK_GL();
