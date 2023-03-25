@@ -66,6 +66,7 @@ public:
     static bool                 NoInternalTextures;
     static bool                 UsePalettes;
     static bool                 UseTinting;
+    static bool                 UseDepthTesting;
     static bool                 UseSoftwareRenderer;
 
     // Rendering functions
@@ -136,6 +137,7 @@ float                Graphics::PixelOffset = 0.0f;
 bool                 Graphics::NoInternalTextures = false;
 bool                 Graphics::UsePalettes = false;
 bool                 Graphics::UseTinting = false;
+bool                 Graphics::UseDepthTesting = false;
 bool                 Graphics::UseSoftwareRenderer = false;
 
 GraphicsFunctions    Graphics::Internal;
@@ -598,6 +600,7 @@ PUBLIC STATIC void     Graphics::PushState() {
     state.TextureBlend    = Graphics::TextureBlend;
     state.UsePalettes     = Graphics::UsePalettes;
     state.UseTinting      = Graphics::UseTinting;
+    state.UseDepthTesting = Graphics::UseDepthTesting;
 
     memcpy(state.BlendColors, Graphics::BlendColors, sizeof(Graphics::BlendColors));
     memcpy(state.TintColors, Graphics::TintColors, sizeof(Graphics::TintColors));
@@ -622,6 +625,9 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::CurrentClip     = state.CurrentClip;
     Graphics::TextureBlend    = state.TextureBlend;
     Graphics::UsePalettes     = state.UsePalettes;
+    Graphics::UseDepthTesting = state.UseDepthTesting;
+
+    Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();

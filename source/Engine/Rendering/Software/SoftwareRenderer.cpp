@@ -823,6 +823,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     BlendState blendState;
 
 #define SET_BLENDFLAG_AND_OPACITY(face) \
+    blendState = {0}; \
     if (!Graphics::TextureBlend) { \
         blendState.Mode = BlendFlag_OPAQUE; \
         blendState.Opacity = 0xFF; \
@@ -845,6 +846,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     bool sortFaces = !doDepthTest && vertexBuffer->FaceCount > 1;
     if (Graphics::TextureBlend)
         sortFaces = true;
+
+    // Convert vertex colors to native format
+    if (Graphics::PreferredPixelFormat != SDL_PIXELFORMAT_ARGB8888) {
+        VertexAttribute* vertex = vertexAttribsPtr;
+        for (Uint32 i = 0; i < vertexBuffer->VertexCount; i++, vertex++)
+            Graphics::ConvertFromARGBtoNative(&vertex->Color, 1);
+    }
 
     // Get the face depth and vertices' start index
     Uint32 verticesStartIndex = 0;
@@ -893,8 +901,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
         int widthHalfSubpx = widthSubpx >> 1;
         int heightHalfSubpx = heightSubpx >> 1;
 
-#define PROJECT_X(pointX) ((pointX * currentView->Width * 0x10000) / vertexZ) - (cx << 16) + widthHalfSubpx
-#define PROJECT_Y(pointY) ((pointY * currentView->Height * 0x10000) / vertexZ) - (cy << 16) + heightHalfSubpx
+#define PROJECT_X_WITH_Z(pointX, pointZ) ((pointX * currentView->Width * 0x10000) / pointZ) - (cx << 16) + widthHalfSubpx
+#define PROJECT_Y_WITH_Z(pointY, pointZ) ((pointY * currentView->Height * 0x10000) / pointZ) - (cy << 16) + heightHalfSubpx
+
+#define PROJECT_X(pointX) PROJECT_X_WITH_Z(pointX, vertexZ)
+#define PROJECT_Y(pointY) PROJECT_Y_WITH_Z(pointY, vertexZ)
 
 #define ORTHO_X(pointX) pointX - (cx << 16) + widthHalfSubpx
 #define ORTHO_Y(pointY) pointY - (cy << 16) + heightHalfSubpx
@@ -918,22 +929,30 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
                 CurrentBlendState = blendState;
 
                 if (usePerspective) {
-                    #define LINE_X(pos) ((float)PROJECT_X(pos)) / 0x10000
-                    #define LINE_Y(pos) ((float)PROJECT_Y(pos)) / 0x10000
+                    #define LINE_X(pos, z) ((float)PROJECT_X_WITH_Z(pos, z)) / 0x10000
+                    #define LINE_Y(pos, z) ((float)PROJECT_Y_WITH_Z(pos, z)) / 0x10000
                     while (vertexCountPerFaceMinus1--) {
                         int vertexZ = vertex->Position.Z;
                         if (vertexZ < 0x10000)
                             goto mrt_line_solid_NEXT_FACE;
 
                         SetColor(vertex->Color);
-                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(
+                            LINE_X(vertex[0].Position.X, vertex[0].Position.Z),
+                            LINE_Y(vertex[0].Position.Y, vertex[0].Position.Z),
+                            LINE_X(vertex[1].Position.X, vertex[1].Position.Z),
+                            LINE_Y(vertex[1].Position.Y, vertex[1].Position.Z));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
                     if (vertexZ < 0x10000)
                         goto mrt_line_solid_NEXT_FACE;
                     SetColor(vertex->Color);
-                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
+                    SoftwareRenderer::StrokeLine(
+                        LINE_X(vertex->Position.X, vertex->Position.Z),
+                        LINE_Y(vertex->Position.Y, vertex->Position.Z),
+                        LINE_X(vertexFirst->Position.X, vertexFirst->Position.Z),
+                        LINE_Y(vertexFirst->Position.Y, vertexFirst->Position.Z));
                 }
                 else {
                     #define LINE_ORTHO_X(pos) ((float)ORTHO_X(pos)) / 0x10000
@@ -974,13 +993,21 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
                         if (vertexZ < 0x10000)
                             goto mrt_line_smooth_NEXT_FACE;
 
-                        SoftwareRenderer::StrokeLine(LINE_X(vertex[0].Position.X), LINE_Y(vertex[0].Position.Y), LINE_X(vertex[1].Position.X), LINE_Y(vertex[1].Position.Y));
+                        SoftwareRenderer::StrokeLine(
+                            LINE_X(vertex[0].Position.X, vertex[0].Position.Z),
+                            LINE_Y(vertex[0].Position.Y, vertex[0].Position.Z),
+                            LINE_X(vertex[1].Position.X, vertex[1].Position.Z),
+                            LINE_Y(vertex[1].Position.Y, vertex[1].Position.Z));
                         vertex++;
                     }
                     int vertexZ = vertex->Position.Z;
                     if (vertexZ < 0x10000)
                         goto mrt_line_smooth_NEXT_FACE;
-                    SoftwareRenderer::StrokeLine(LINE_X(vertex->Position.X), LINE_Y(vertex->Position.Y), LINE_X(vertexFirst->Position.X), LINE_Y(vertexFirst->Position.Y));
+                    SoftwareRenderer::StrokeLine(
+                        LINE_X(vertex->Position.X, vertex->Position.Z),
+                        LINE_Y(vertex->Position.Y, vertex->Position.Z),
+                        LINE_X(vertexFirst->Position.X, vertexFirst->Position.Z),
+                        LINE_Y(vertexFirst->Position.Y, vertexFirst->Position.Z));
                     #undef LINE_X
                     #undef LINE_Y
                 }

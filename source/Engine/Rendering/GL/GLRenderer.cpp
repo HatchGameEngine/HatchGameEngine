@@ -671,9 +671,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
 
     // Enable/Disable GL features
     glEnable(GL_BLEND); CHECK_GL();
-    if (UseDepthTesting) {
-        glEnable(GL_DEPTH_TEST); CHECK_GL();
-    }
+    GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
     glDepthMask(GL_TRUE); CHECK_GL();
 
     #ifdef GL_SUPPORTS_MULTISAMPLING
@@ -1139,27 +1137,29 @@ PUBLIC STATIC void     GLRenderer::UpdateProjectionMatrix() {
 
 }
 PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
-    float f = tan(fov / 2.0f);
-    float delta = near - far;
+    float f = 1.0f / tanf(fov / 2.0f);
+    float delta = far - near;
 
-    out->Values[0]  = 1.0 / (aspect * f);
+    f *= 2.0f;
+
+    out->Values[0]  = f / aspect;
     out->Values[1]  = 0.0f;
     out->Values[2]  = 0.0f;
     out->Values[3]  = 0.0f;
 
     out->Values[4]  = 0.0f;
-    out->Values[5]  = -1.0 / f;
+    out->Values[5]  = -f;
     out->Values[6]  = 0.0f;
     out->Values[7]  = 0.0f;
 
     out->Values[8]  = 0.0f;
     out->Values[9]  = 0.0f;
-    out->Values[10] = -near / (far - near);
+    out->Values[10] = -near / delta;
     out->Values[11] = -1.0f;
 
     out->Values[12] = 0.0f;
     out->Values[13] = 0.0f;
-    out->Values[14] = -(near * far) / (far - near);
+    out->Values[14] = -(near * far) / delta;
     out->Values[15] = 0.0f;
 }
 
@@ -1578,6 +1578,8 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
 
+    GLRenderer::SetDepthTesting(true);
+
     // sas
     size_t numFaces = driverData->Faces->size();
     for (size_t f = 0; f < numFaces; f++) {
@@ -1624,6 +1626,8 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     #endif
 
     glPointSize(1.0f);
+
+    GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
 }
 PRIVATE STATIC int     GLRenderer::GetPrimitiveType(Uint32 drawMode) {
     switch (drawMode & DrawMode_PrimitiveMask) {

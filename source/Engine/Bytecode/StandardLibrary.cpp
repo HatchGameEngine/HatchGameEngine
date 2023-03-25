@@ -3876,6 +3876,19 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
     SoftwareRenderer::SpriteDeformBuffer[lineIndex] = deformValue;
     return NULL_VAL;
 }
+/***
+ * Draw.UseDepthTesting
+ * \desc Sets whether or not to do depth tests when drawing.
+ * \param useDepthTesting (Boolean): Whether or not to do depth tests when drawing.
+ * \ns Draw
+ */
+VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int useDepthTesting = GET_ARG(0, GetInteger);
+    Graphics::UseDepthTesting = useDepthTesting;
+    Graphics::SetDepthTesting(useDepthTesting);
+    return NULL_VAL;
+}
 // #endregion
 
 // #region Ease
@@ -11481,6 +11494,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ResetTextureTarget);
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
+    DEF_NATIVE(Draw, UseDepthTesting);
 
     DEF_ENUM(DrawMode_LINES);
     DEF_ENUM(DrawMode_POLYGONS);

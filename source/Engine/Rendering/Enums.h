@@ -113,6 +113,7 @@ struct GraphicsState {
     int                TintMode;
     bool               TextureBlend;
     bool               UseTinting;
+    bool               UseDepthTesting;
     bool               UsePalettes;
 };
 struct TintState {

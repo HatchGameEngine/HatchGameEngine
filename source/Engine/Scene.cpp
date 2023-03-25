@@ -940,7 +940,7 @@ PUBLIC STATIC void Scene::Render() {
                 Graphics::DrawTexture(currentView->DrawTarget,
                     0.0, 0.0, currentView->Width, currentView->Height,
                     out_x, out_y + Graphics::PixelOffset, out_w, out_h + Graphics::PixelOffset);
-                Graphics::SetDepthTesting(true);
+                Graphics::SetDepthTesting(Graphics::UseDepthTesting);
             }
         }
         renderFinishTime = Clock::GetTicks() - renderFinishTime;
