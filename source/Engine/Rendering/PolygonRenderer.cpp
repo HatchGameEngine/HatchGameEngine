@@ -391,12 +391,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     int arrayVertexCount = destVertexBuffer->VertexCount;
 
     // source
-    int srcFaceCount = VertexBuf->FaceCount;
-    int srcVertexCount = VertexBuf->VertexCount;
-    if (!srcFaceCount || !srcVertexCount)
-        return;
-
-    Uint32 maxVertexCount = arrayVertexCount + srcVertexCount;
+    Uint32 maxVertexCount = arrayVertexCount + VertexBuf->VertexCount;
     if (maxVertexCount > destVertexBuffer->Capacity)
         destVertexBuffer->Resize(maxVertexCount + 256);
 
@@ -407,7 +402,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     // Copy the vertices into the vertex buffer
     VertexAttribute* srcVertexItem = &VertexBuf->Vertices[0];
 
-    for (int f = 0; f < srcFaceCount; f++) {
+    for (int f = 0; f < VertexBuf->FaceCount; f++) {
         FaceInfo* srcFaceInfoItem = &VertexBuf->FaceInfoBuffer[f];
         int vertexCount = srcFaceInfoItem->NumVertices;
         int vertexCountPerFace = vertexCount;

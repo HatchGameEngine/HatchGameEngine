@@ -1229,9 +1229,9 @@ PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelM
     if (!polygonRenderer.SetBuffers())
         return false;
 
-    polygonRenderer.DrawMode = polygonRenderer.ScenePtr ? polygonRenderer.ScenePtr->DrawMode : 0;
-    polygonRenderer.DoProjection = true;
-    polygonRenderer.DoClipping = true;
+    polygonRenderer.DrawMode = polygonRenderer.ScenePtr != nullptr ? polygonRenderer.ScenePtr->DrawMode : 0;
+    polygonRenderer.DoProjection = polygonRenderer.ScenePtr != nullptr;
+    polygonRenderer.DoClipping = polygonRenderer.ScenePtr != nullptr;
     polygonRenderer.ModelMatrix = modelMatrix;
     polygonRenderer.NormalMatrix = normalMatrix;
     polygonRenderer.CurrentColor = GetBlendColor();
@@ -1256,7 +1256,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(void* model, Uint16 ar
         polygonRenderer.DrawModelSkinned((IModel*)model, armature);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    if (Graphics::CurrentScene3D < 0)
+    if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return;
 
     Scene3D* scene = &Graphics::Scene3Ds[Graphics::CurrentScene3D];
@@ -1264,20 +1264,22 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
         return;
 
     VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
-    if (!vertexBuffer)
+    if (!vertexBuffer || !vertexBuffer->FaceCount || !vertexBuffer->VertexCount)
         return;
 
-    polygonRenderer.DoClipping = true;
-    polygonRenderer.ScenePtr = scene;
-    polygonRenderer.VertexBuf = vertexBuffer;
-    polygonRenderer.ModelMatrix = modelMatrix;
-    polygonRenderer.NormalMatrix = normalMatrix;
-    polygonRenderer.CurrentColor = GetBlendColor();
-
-    polygonRenderer.DrawVertexBuffer();
+    PolygonRenderer& rend = polygonRenderer;
+    rend.ScenePtr = scene;
+    rend.VertexBuf = vertexBuffer;
+    rend.DoProjection = true;
+    rend.DoClipping = true;
+    rend.ViewMatrix = &scene->ViewMatrix;
+    rend.ProjectionMatrix = &scene->ProjectionMatrix;
+    rend.ModelMatrix = modelMatrix;
+    rend.NormalMatrix = normalMatrix;
+    rend.DrawMode = scene->DrawMode;
+    rend.CurrentColor = GetBlendColor();
+    rend.DrawVertexBuffer();
 }
-
-#undef SETUP_POLYGON_RENDERER
 
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
 

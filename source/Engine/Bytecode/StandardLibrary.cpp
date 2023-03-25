@@ -1608,8 +1608,10 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Vertex index %d out of range. (0 - %d)", vertexBufferIndex, MAX_VERTEX_BUFFERS);
         return NULL_VAL;
+    }
 
     Graphics::BindVertexBuffer(vertexBufferIndex);
     return NULL_VAL;
@@ -1627,7 +1629,7 @@ VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 }
 #define GET_SCENE_3D() \
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_3D_SCENES); \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES); \
         return NULL_VAL; \
     } \
     Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
@@ -1855,7 +1857,7 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_3D_SCENES);
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES);
         return NULL_VAL;
     }
 

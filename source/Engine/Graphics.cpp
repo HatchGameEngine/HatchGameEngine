@@ -371,8 +371,8 @@ PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unlo
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
         if (Graphics::VertexBuffers[i] == NULL) {
             VertexBuffer* vtxbuf;
-            if (Graphics::GfxFunctions->CreateVertexBuffer)
-                vtxbuf = (VertexBuffer*)Graphics::GfxFunctions->CreateVertexBuffer(maxVertices);
+            if (Graphics::Internal.CreateVertexBuffer)
+                vtxbuf = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(maxVertices);
             else
                 vtxbuf = new VertexBuffer(maxVertices);
 
@@ -390,8 +390,8 @@ PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
     if (!Graphics::VertexBuffers[vertexBufferIndex])
         return;
 
-    if (Graphics::GfxFunctions->DeleteVertexBuffer)
-        Graphics::GfxFunctions->DeleteVertexBuffer(Graphics::VertexBuffers[vertexBufferIndex]);
+    if (Graphics::Internal.DeleteVertexBuffer)
+        Graphics::Internal.DeleteVertexBuffer(Graphics::VertexBuffers[vertexBufferIndex]);
     else
         delete Graphics::VertexBuffers[vertexBufferIndex];
     Graphics::VertexBuffers[vertexBufferIndex] = NULL;
