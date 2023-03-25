@@ -573,6 +573,7 @@
                     <li><a href="#Reference_Scene3D_Create">Scene3D.Create</a></li>
                     <li><a href="#Reference_Scene3D_Delete">Scene3D.Delete</a></li>
                     <li><a href="#Reference_Scene3D_SetDrawMode">Scene3D.SetDrawMode</a></li>
+                    <li><a href="#Reference_Scene3D_SetFaceCullMode">Scene3D.SetFaceCullMode</a></li>
                     <li><a href="#Reference_Scene3D_SetFieldOfView">Scene3D.SetFieldOfView</a></li>
                     <li><a href="#Reference_Scene3D_SetFarClippingPlane">Scene3D.SetFarClippingPlane</a></li>
                     <li><a href="#Reference_Scene3D_SetNearClippingPlane">Scene3D.SetNearClippingPlane</a></li>
@@ -4951,11 +4952,22 @@
         <p id="Reference_Scene3D_SetDrawMode">
         <h2 style="margin-bottom: 8px;">Scene3D.SetDrawMode</h2>
         <code>Scene3D.SetDrawMode(scene3DIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of 3D scene. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the 3D scene. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
         <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFaceCullMode">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFaceCullMode</h2>
+        <code>Scene3D.SetFaceCullMode(scene3DIndex, cullMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the face culling mode of the 3D scene. (hardware-renderer only) <br/></br>Face Cull Modes:<ul><li><code>FaceCull_None</code>: Disables face culling.</li><li><code>FaceCull_Back</code>: Culls back faces.</li><li><code>FaceCull_Front</code>: Culls front faces.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>cullMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
         </ul>
         </p>
         <hr/>
@@ -6993,6 +7005,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>475 out of 544 functions have descriptions. </p>
+        <p>476 out of 545 functions have descriptions. </p>
     </body>
 </html>

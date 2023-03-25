@@ -7741,7 +7741,7 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene3D.SetDrawMode
- * \desc Sets the draw mode of 3D scene. <br/>\
+ * \desc Sets the draw mode of the 3D scene. <br/>\
 </br>Draw Modes:<ul>\
 <li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
 <li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
@@ -7765,6 +7765,27 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 drawMode = GET_ARG(1, GetInteger);
     GET_SCENE_3D();
     scene3D->DrawMode = drawMode;
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFaceCullMode
+ * \desc Sets the face culling mode of the 3D scene. (hardware-renderer only) <br/>\
+</br>Face Cull Modes:<ul>\
+<li><code>FaceCull_None</code>: Disables face culling.</li>\
+<li><code>FaceCull_Back</code>: Culls back faces.</li>\
+<li><code>FaceCull_Front</code>: Culls front faces.</li>\
+</ul>
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param cullMode (Integer): The type of drawing to use for the vertices in the 3D scene.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 cullMode = GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+    scene3D->FaceCullMode = cullMode;
     return NULL_VAL;
 }
 /***
@@ -11805,6 +11826,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, Create);
     DEF_NATIVE(Scene3D, Delete);
     DEF_NATIVE(Scene3D, SetDrawMode);
+    DEF_NATIVE(Scene3D, SetFaceCullMode);
     DEF_NATIVE(Scene3D, SetFieldOfView);
     DEF_NATIVE(Scene3D, SetFarClippingPlane);
     DEF_NATIVE(Scene3D, SetNearClippingPlane);
@@ -11816,6 +11838,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, SetFogDensity);
     DEF_NATIVE(Scene3D, SetFogColor);
     DEF_NATIVE(Scene3D, SetPointSize);
+
+    DEF_ENUM(FaceCull_None);
+    DEF_ENUM(FaceCull_Back);
+    DEF_ENUM(FaceCull_Front);
     // #endregion
 
     // #region Settings

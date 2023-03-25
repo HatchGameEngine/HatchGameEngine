@@ -11,6 +11,12 @@ enum VertexType {
     VertexType_Color = 4,
 };
 
+enum {
+    FaceCull_None,
+    FaceCull_Back,
+    FaceCull_Front
+};
+
 #define MAX_3D_SCENES 0x20
 #define MAX_VERTEX_BUFFERS 256
 #define MAX_POLYGON_VERTICES 16

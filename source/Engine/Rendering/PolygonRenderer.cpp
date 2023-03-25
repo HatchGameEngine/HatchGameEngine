@@ -18,6 +18,7 @@ public:
     Matrix4x4*    ProjectionMatrix = nullptr;
 
     Uint32        DrawMode = 0;
+    Uint8         FaceCullMode = 0;
     Uint32        CurrentColor = 0;
 
     bool          DoProjection = false;
@@ -159,6 +160,7 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
     FaceInfo* face = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
     face->DrawMode = DrawMode;
     face->NumVertices = vertexCount;
+    face->CullMode = FaceCullMode;
     face->SetMaterial(texture);
     face->SetBlendState(Graphics::GetBlendState());
 
@@ -323,6 +325,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
             }
 
             faceInfoItem->DrawMode = DrawMode;
+            faceInfoItem->CullMode = FaceCullMode;
             faceInfoItem->SetMaterial(texture);
             faceInfoItem->SetBlendState(Graphics::GetBlendState());
             faceInfoItem->NumVertices = vertexCount;
@@ -349,6 +352,7 @@ PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 f
     ModelRenderer rend = ModelRenderer(this);
 
     rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
+    rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
     rend.CurrentColor = CurrentColor;
     rend.DoProjection = DoProjection;
     rend.ClipFaces = DoProjection;
@@ -371,6 +375,7 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     ModelRenderer rend = ModelRenderer(this);
 
     rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
+    rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
     rend.CurrentColor = CurrentColor;
     rend.DoProjection = DoProjection;
     rend.ClipFaces = DoProjection;
@@ -449,6 +454,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
         }
 
         faceInfoItem->DrawMode = DrawMode;
+        faceInfoItem->CullMode = FaceCullMode;
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
         if (faceInfoItem->UseMaterial)
             faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;

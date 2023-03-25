@@ -12,6 +12,7 @@ public:
     bool         UseMaterial;
     FaceMaterial MaterialInfo;
     BlendState   Blend;
+    Uint8        CullMode;
     int          Depth;
 };
 #endif

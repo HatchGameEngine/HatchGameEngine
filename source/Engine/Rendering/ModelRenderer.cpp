@@ -28,6 +28,7 @@ public:
     Armature*        ArmaturePtr;
 
     Uint32           DrawMode;
+    Uint8            FaceCullMode;
     Uint32           CurrentColor;
 };
 #endif
@@ -67,6 +68,7 @@ PUBLIC void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix
 
 PRIVATE void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
     FaceItem->DrawMode = DrawMode;
+    FaceItem->CullMode = FaceCullMode;
     FaceItem->NumVertices = faceVertexCount;
     FaceItem->SetBlendState(Graphics::GetBlendState());
 

@@ -8,6 +8,7 @@
 struct Scene3D {
     VertexBuffer*    Buffer = nullptr;
     Uint32           DrawMode;
+    Uint8            FaceCullMode;
 
     float            FOV = 90.0f;
     float            NearClippingPlane = 1.0f;

@@ -107,6 +107,8 @@ struct   GL_VertexBufferFace {
     Uint8        Opacity;
     Uint8        BlendMode;
     Uint32       DrawMode;
+    bool         UseCulling;
+    GLenum       CullMode;
 };
 struct   GL_VertexBufferEntry {
     float X, Y, Z;
@@ -452,27 +454,27 @@ void GL_SetBlendFuncByMode(int mode) {
         case BlendMode_NORMAL:
             GLRenderer::SetBlendMode(
                 BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA,
-                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+                BlendFactor_ONE, BlendFactor_ONE);
             break;
         case BlendMode_ADD:
             GLRenderer::SetBlendMode(
                 BlendFactor_SRC_ALPHA, BlendFactor_ONE,
-                BlendFactor_SRC_ALPHA, BlendFactor_ONE);
+                BlendFactor_ONE, BlendFactor_ONE);
             break;
         case BlendMode_MAX:
             GLRenderer::SetBlendMode(
                 BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_COLOR,
-                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_COLOR);
+                BlendFactor_ONE, BlendFactor_ONE);
             break;
         case BlendMode_SUBTRACT:
             GLRenderer::SetBlendMode(
                 BlendFactor_ZERO, BlendFactor_INV_SRC_COLOR,
-                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+                BlendFactor_ONE, BlendFactor_ONE);
             break;
         default:
             GLRenderer::SetBlendMode(
                 BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA,
-                BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
+                BlendFactor_ONE, BlendFactor_ONE);
     }
 }
 void GL_ReallocVertexBuffer(GL_VertexBuffer* vtxbuf, Uint32 maxVertices) {
@@ -488,7 +490,18 @@ void GL_ReallocVertexBuffer(GL_VertexBuffer* vtxbuf, Uint32 maxVertices) {
     else
         vtxbuf->Entries = (GL_VertexBufferEntry*)Memory::Realloc(vtxbuf->Entries, maxVertices * sizeof(GL_VertexBufferEntry));
 }
-void GL_PrepareVertexBufferUpdate(VertexBuffer* vertexBuffer, Uint32 drawMode) {
+float GL_ProjectPointDepth(VertexAttribute* vertex, Matrix4x4* projMatrix) {
+    float *M   = projMatrix->Values;
+    float vecX = FP16_FROM(vertex->Position.X);
+    float vecY = FP16_FROM(vertex->Position.Y);
+    float vecZ = FP16_FROM(vertex->Position.Z);
+    // float z = M[11] + (vecX * M[ 8]) + (vecY * M[ 9]) + (vecZ * M[10]);
+    float w = M[15] + (vecX * M[12]) + (vecY * M[13]) + (vecZ * M[14]);
+
+    // FIXME: ouch
+    return -w;
+}
+void GL_PrepareVertexBufferUpdate(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode) {
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData->Capacity != vertexBuffer->Capacity)
         GL_ReallocVertexBuffer(driverData, vertexBuffer->Capacity);
@@ -511,21 +524,25 @@ void GL_PrepareVertexBufferUpdate(VertexBuffer* vertexBuffer, Uint32 drawMode) {
 
     // Sort face infos by depth
     if (sortFaces) {
+        Matrix4x4 matrix;
+        Matrix4x4 projMat = scene->ProjectionMatrix;
+        Matrix4x4::Multiply(&matrix, &scene->ViewMatrix, &projMat);
+
         // Get the face depth and average the Z coordinates of the faces
         for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
             FaceInfo* face = &vertexBuffer->FaceInfoBuffer[f];
             VertexAttribute* vertex = &vertexBuffer->Vertices[face->VerticesStartIndex];
-            Sint64 depth = vertex[0].Position.Z;
+            float depth = GL_ProjectPointDepth(&vertex[0], &matrix);
             for (Uint32 i = 1; i < face->NumVertices; i++)
-                depth += vertex[i].Position.Z;
-            face->Depth = depth / face->NumVertices;
+                depth += GL_ProjectPointDepth(&vertex[i], &matrix);
+            face->Depth = (Sint64)((depth * 0x10000) / face->NumVertices);
         }
 
         qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), PolygonRenderer::FaceSortFunction);
     }
 }
-void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
-    GL_PrepareVertexBufferUpdate(vertexBuffer, drawMode);
+void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode) {
+    GL_PrepareVertexBufferUpdate(scene, vertexBuffer, drawMode);
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     GL_VertexBufferEntry* entry = driverData->Entries;
@@ -583,6 +600,8 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
         glFace.Opacity = face->Blend.Opacity;
         glFace.BlendMode = face->Blend.Mode;
         glFace.DrawMode = faceDrawMode;
+        glFace.UseCulling = face->CullMode != FaceCull_None;
+        glFace.CullMode = face->CullMode == FaceCull_Front ? GL_FRONT : GL_BACK;
 
         verticesStartIndex += vertexCount;
 
@@ -594,6 +613,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
         return nullptr;
 
     polyRenderer.DrawMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->DrawMode : 0;
+    polyRenderer.FaceCullMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->FaceCullMode : FaceCull_None;
     polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
@@ -1498,6 +1518,7 @@ PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Ma
     polyRenderer.ModelMatrix = modelMatrix;
     polyRenderer.NormalMatrix = normalMatrix;
     polyRenderer.DrawMode = scene->DrawMode;
+    polyRenderer.FaceCullMode = scene->FaceCullMode;
     polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
     polyRenderer.DrawVertexBuffer();
 
@@ -1526,7 +1547,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     VertexBuffer* vertexBuffer = scene->Buffer;
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData->Changed) {
-        GL_UpdateVertexBuffer(vertexBuffer, drawMode);
+        GL_UpdateVertexBuffer(scene, vertexBuffer, drawMode);
         driverData->Changed = false;
     }
 
@@ -1601,6 +1622,18 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
             GL_BindTexture(NULL);
         }
 
+        if (face.UseCulling) {
+            glEnable(GL_CULL_FACE); CHECK_GL();
+            glCullFace(face.CullMode); CHECK_GL();
+            glFrontFace(currentView->UseDrawTarget ? GL_CCW : GL_CW); CHECK_GL();
+        }
+        else {
+            glDisable(GL_CULL_FACE); CHECK_GL();
+            glFrontFace(GL_CCW); CHECK_GL();
+        }
+
+        glDepthMask(face.Opacity == 0xFF ? GL_TRUE : GL_FALSE); CHECK_GL();
+
         GL_SetBlendFuncByMode(face.BlendMode);
 
         // Update matrices
@@ -1625,7 +1658,10 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         }
     #endif
 
-    glPointSize(1.0f);
+    glPointSize(1.0f); CHECK_GL();
+    glDisable(GL_CULL_FACE); CHECK_GL();
+    glDepthMask(GL_TRUE); CHECK_GL();
+    glFrontFace(GL_CCW); CHECK_GL();
 
     GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
 }
