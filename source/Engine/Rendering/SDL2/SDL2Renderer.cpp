@@ -120,17 +120,6 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawSprite = SDL2Renderer::DrawSprite;
     Graphics::Internal.DrawSpritePart = SDL2Renderer::DrawSpritePart;
 
-    // 3D drawing functions
-    Graphics::Internal.DrawPolygon3D = SDL2Renderer::DrawPolygon3D;
-    Graphics::Internal.DrawSceneLayer3D = SDL2Renderer::DrawSceneLayer3D;
-    Graphics::Internal.DrawModel = SDL2Renderer::DrawModel;
-    Graphics::Internal.DrawModelSkinned = SDL2Renderer::DrawModelSkinned;
-    Graphics::Internal.DrawVertexBuffer = SDL2Renderer::DrawVertexBuffer;
-    Graphics::Internal.BindVertexBuffer = SDL2Renderer::BindVertexBuffer;
-    Graphics::Internal.UnbindVertexBuffer = SDL2Renderer::UnbindVertexBuffer;
-    Graphics::Internal.BindArrayBuffer = SDL2Renderer::BindArrayBuffer;
-    Graphics::Internal.DrawArrayBuffer = SDL2Renderer::DrawArrayBuffer;
-
     Graphics::Internal.MakeFrameBufferID = SDL2Renderer::MakeFrameBufferID;
 }
 PUBLIC STATIC void     SDL2Renderer::Dispose() {
@@ -409,34 +398,6 @@ PUBLIC STATIC void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animati
         sw, sh,
         x + fX * (sx + animframe.OffsetX),
         y + fY * (sy + animframe.OffsetY), fX * sw, fY * sh);
-}
-// 3D drawing functions
-PUBLIC STATIC void     SDL2Renderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::UnbindVertexBuffer() {
-
-}
-PUBLIC STATIC void     SDL2Renderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
-
-}
-PUBLIC STATIC void     SDL2Renderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
-
 }
 
 PUBLIC STATIC void     SDL2Renderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {

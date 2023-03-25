@@ -1598,288 +1598,6 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
-#define GET_ARRAY_BUFFER() \
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_ARRAY_BUFFERS); \
-        return NULL_VAL; \
-    } \
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex]
-/***
- * Draw.InitArrayBuffer
- * \desc Initializes an array buffer. There are 32 array buffers.
- * \param arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)
- * \param numVertices (Integer): The initial capacity of this array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 numVertices = GET_ARG(1, GetInteger);
-    GET_ARRAY_BUFFER();
-
-    Graphics::InitArrayBuffer(arrayBufferIndex, numVertices);
-
-    return NULL_VAL;
-}
-/***
- * Draw.SetArrayBufferDrawMode
- * \desc Sets the draw mode of the array buffer. <br/>\
-</br>Draw Modes:<ul>\
-<li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
-<li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
-<li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
-<li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
-<li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li>\
-<li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li>\
-</ul>
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetArrayBufferDrawMode(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG(1, GetInteger);
-    GET_ARRAY_BUFFER();
-    arrayBuffer->DrawMode = drawMode;
-    return NULL_VAL;
-}
-/***
- * Draw.SetProjectionMatrix
- * \desc Sets the projection matrix.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param projMatrix (Matrix): The projection matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    ObjArray* projMatrix = GET_ARG(1, GetArray);
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return NULL_VAL;
-
-    Matrix4x4 matrix4x4;
-    int arrSize = (int)projMatrix->Values->size();
-    if (arrSize != 16) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
-        return NULL_VAL;
-    }
-
-    // Yeah just copy it directly
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
-
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetProjectionMatrix(&matrix4x4);
-    return NULL_VAL;
-}
-/***
- * Draw.SetViewMatrix
- * \desc Sets the view matrix.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param viewMatrix (Matrix): The view matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    ObjArray* viewMatrix = GET_ARG(1, GetArray);
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return NULL_VAL;
-
-    Matrix4x4 matrix4x4;
-
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
-
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetViewMatrix(&matrix4x4);
-    return NULL_VAL;
-}
-/***
- * Draw.SetAmbientLighting
- * \desc Sets the ambient lighting of the array buffer.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0x100);
-    Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0x100);
-    Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0x100);
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetAmbientLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetDiffuseLighting
- * \desc Sets the diffuse lighting of the array buffer.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    int r = Math::CeilPOT((int)(GET_ARG(1, GetDecimal) * 0x100));
-    int g = Math::CeilPOT((int)(GET_ARG(2, GetDecimal) * 0x100));
-    int b = Math::CeilPOT((int)(GET_ARG(3, GetDecimal) * 0x100));
-
-    int v;
-
-    v = 0;
-    while (r) { r >>= 1; v++; }
-    r = --v;
-
-    v = 0;
-    while (g) { g >>= 1; v++; }
-    g = --v;
-
-    v = 0;
-    while (b) { b >>= 1; v++; }
-    b = --v;
-
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetDiffuseLighting((Uint32)r, (Uint32)g, (Uint32)b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetSpecularLighting
- * \desc Sets the specular lighting of the array buffer.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    int r = Math::CeilPOT((int)(GET_ARG(1, GetDecimal) * 0x10000));
-    int g = Math::CeilPOT((int)(GET_ARG(2, GetDecimal) * 0x10000));
-    int b = Math::CeilPOT((int)(GET_ARG(3, GetDecimal) * 0x10000));
-
-    int v;
-
-    v = 0;
-    while (r) { r >>= 1; v++; }
-    r = --v;
-
-    v = 0;
-    while (g) { g >>= 1; v++; }
-    g = --v;
-
-    v = 0;
-    while (b) { b >>= 1; v++; }
-    b = --v;
-
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetSpecularLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogDensity
- * \desc Sets the density of the array buffer's fog.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param density (Number): The fog density.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return NULL_VAL;
-
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetFogDensity(GET_ARG(1, GetDecimal));
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogColor
- * \desc Sets the fog color of the array buffer.
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0xFF);
-    Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0xFF);
-    Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0xFF);
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetFogColor(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetClipPolygons
- * \desc Enables or disables polygon clipping by the view frustum of the array buffer. (software-renderer only)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param clipPolygons (Boolean): Whether or not to clip polygons.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    bool clipPolygons = !!GET_ARG(1, GetInteger);
-    GET_ARRAY_BUFFER();
-    arrayBuffer->SetClipPolygons(clipPolygons);
-    return NULL_VAL;
-}
-/***
- * Draw.SetPointSize
- * \desc Sets the point size of the array buffer. (hardware-renderer only)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param pointSize (Decimal): The point size.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    float pointSize = !!GET_ARG(1, GetDecimal);
-    GET_ARRAY_BUFFER();
-    arrayBuffer->PointSize = pointSize;
-    return NULL_VAL;
-}
-/***
- * Draw.BindArrayBuffer
- * \desc Binds an array buffer for drawing polygons in 3D space.
- * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
- * \return
- * \ns Draw
- */
-VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
-        return NULL_VAL;
-
-    Graphics::BindArrayBuffer(arrayBufferIndex);
-    return NULL_VAL;
-}
 /***
  * Draw.BindVertexBuffer
  * \desc Binds a vertex buffer.
@@ -1905,6 +1623,261 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     Graphics::UnbindVertexBuffer();
+    return NULL_VAL;
+}
+#define GET_SCENE_3D() \
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_3D_SCENES); \
+        return NULL_VAL; \
+    } \
+    Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
+/***
+ * Draw.InitArrayBuffer
+ * \desc Initializes an array buffer. There are 32 array buffers. (Deprecated; use <code>Scene3D.Create</code> instead.)
+ * \param arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)
+ * \param numVertices (Integer): The initial capacity of this array buffer.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 numVertices = GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+
+    Graphics::InitScene3D(scene3DIndex, numVertices);
+
+    return NULL_VAL;
+}
+/***
+ * Draw.SetArrayBufferDrawMode
+ * \desc Sets the draw mode of the array buffer. (Deprecated; use <code>Scene3D.SetDrawMode</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetArrayBufferDrawMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 drawMode = GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+    scene3D->DrawMode = drawMode;
+    return NULL_VAL;
+}
+/***
+ * Draw.SetProjectionMatrix
+ * \desc Sets the projection matrix. (Deprecated; use <code>Scene3D.SetProjectionMatrix</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param projMatrix (Matrix): The projection matrix.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    ObjArray* projMatrix = GET_ARG(1, GetArray);
+
+    Matrix4x4 matrix4x4;
+    int arrSize = (int)projMatrix->Values->size();
+    if (arrSize != 16) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
+        return NULL_VAL;
+    }
+
+    // Yeah just copy it directly
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
+
+    GET_SCENE_3D();
+    scene3D->SetProjectionMatrix(&matrix4x4);
+    scene3D->SetClippingPlanes();
+    return NULL_VAL;
+}
+/***
+ * Draw.SetViewMatrix
+ * \desc Sets the view matrix. (Deprecated; use <code>Scene3D.SetViewMatrix</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param viewMatrix (Matrix): The view matrix.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    ObjArray* viewMatrix = GET_ARG(1, GetArray);
+
+    Matrix4x4 matrix4x4;
+
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
+
+    GET_SCENE_3D();
+    scene3D->SetViewMatrix(&matrix4x4);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetAmbientLighting
+ * \desc Sets the ambient lighting of the array buffer. (Deprecated; use <code>Scene3D.SetAmbientLighting</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetAmbientLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetDiffuseLighting
+ * \desc Sets the diffuse lighting of the array buffer. (Deprecated; use <code>Scene3D.SetDiffuseLighting</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetDiffuseLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetSpecularLighting
+ * \desc Sets the specular lighting of the array buffer. (Deprecated; use <code>Scene3D.SetSpecularLighting</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetSpecularLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetFogDensity
+ * \desc Sets the density of the array buffer's fog. (Deprecated; use <code>Scene3D.SetFogDensity</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param density (Number): The fog density.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+
+    GET_SCENE_3D();
+    scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetFogColor
+ * \desc Sets the fog color of the array buffer. (Deprecated; use <code>Scene3D.SetFogColor</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0xFF);
+    Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0xFF);
+    Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0xFF);
+    GET_SCENE_3D();
+    scene3D->SetFogColor(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetClipPolygons
+ * \desc Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param clipPolygons (Boolean): Whether or not to clip polygons.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    bool clipPolygons = !!GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+    scene3D->SetClipPolygons(clipPolygons);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetPointSize
+ * \desc Sets the point size of the array buffer. (Deprecated; use <code>Scene3D.SetPointSize</code> instead.)
+ * \param arrayBufferIndex (Integer): The index of the array buffer.
+ * \param pointSize (Decimal): The point size.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float pointSize = !!GET_ARG(1, GetDecimal);
+    GET_SCENE_3D();
+    scene3D->PointSize = pointSize;
+    return NULL_VAL;
+}
+/***
+ * Draw.BindArrayBuffer
+ * \desc Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <code>Draw.BindScene3D</code> instead.)
+ * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", MAX_3D_SCENES);
+        return NULL_VAL;
+    }
+
+    Graphics::BindScene3D(scene3DIndex);
+    return NULL_VAL;
+}
+/***
+ * Draw.BindScene3D
+ * \desc Binds a 3D scene for drawing polygons in 3D space.
+ * \param scene3DIndex (Integer): Sets the 3D scene to bind.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_BindScene3D(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", MAX_3D_SCENES);
+        return NULL_VAL;
+    }
+
+    Graphics::BindScene3D(scene3DIndex);
     return NULL_VAL;
 }
 static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
@@ -2694,7 +2667,7 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 #undef PREPARE_MATRICES
 /***
  * Draw.RenderArrayBuffer
- * \desc Draws everything in the array buffer.
+ * \desc Draws everything in the array buffer. (Deprecated; use <code>Draw.RenderScene3D</code> instead.)
  * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
  * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
  * \return
@@ -2702,13 +2675,28 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_RenderArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
-    Uint32 arrayBufferIndex = GET_ARG(0, GetInteger);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
-    GET_ARRAY_BUFFER();
-    Graphics::DrawArrayBuffer(arrayBufferIndex, drawMode);
+    GET_SCENE_3D();
+    Graphics::DrawScene3D(scene3DIndex, drawMode);
     return NULL_VAL;
 }
-#undef GET_ARRAY_BUFFER
+/***
+ * Draw.RenderScene3D
+ * \desc Draws everything in the 3D scene.
+ * \param scene3DIndex (Integer): The 3D scene at the index to draw.
+ * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.
+ * \return
+ * \ns Draw
+ */
+VMValue Draw_RenderScene3D(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
+    GET_SCENE_3D();
+    Graphics::DrawScene3D(scene3DIndex, drawMode);
+    return NULL_VAL;
+}
 /***
  * Draw.Video
  * \desc
@@ -5321,7 +5309,7 @@ VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
     float aspect = GET_ARG(4, GetDecimal);
 
     Matrix4x4 matrix4x4;
-    Graphics::MakePerspectiveMatrix(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip, aspect);
+    Matrix4x4::Perspective(&matrix4x4, fov * M_PI / 180.0f, nearClip, farClip, aspect);
 
     for (int i = 0; i < 16; i++)
         (*array->Values)[i] = DECIMAL_VAL(matrix4x4.Values[i]);
@@ -7699,6 +7687,289 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
 
     return NULL_VAL;
 }
+// #endregion
+
+// #region Scene3D
+/***
+ * Scene3D.Create
+ * \desc Creates a 3D scene.
+ * \param unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.
+ * \return The index of the created 3D scene.
+ * \ns Scene3D
+ */
+VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 unloadPolicy = GET_ARG(0, GetInteger);
+    Uint32 scene3DIndex = Graphics::CreateScene3D(unloadPolicy);
+    if (scene3DIndex == 0xFFFFFFFF) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more 3D scenes available.");
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)scene3DIndex);
+}
+/***
+ * Scene3D.Delete
+ * \desc Deletes a 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene to delete.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", MAX_3D_SCENES);
+        return NULL_VAL;
+    }
+    Graphics::DeleteScene3D(scene3DIndex);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetDrawMode
+ * \desc Sets the draw mode of 3D scene. <br/>\
+</br>Draw Modes:<ul>\
+<li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li>\
+<li><code>DrawMode_TEXTURED</code>: Enables texturing.</li>\
+<li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li>\
+<li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li>\
+<li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li>\
+<li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li>\
+</ul>
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 drawMode = GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+    scene3D->DrawMode = drawMode;
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFieldOfView
+ * \desc Sets the field of view of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param fieldOfView (Matrix): The field of view value.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float fieldOfView = GET_ARG(1, GetDecimal);
+    GET_SCENE_3D();
+    scene3D->FOV = fieldOfView;
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFarClippingPlane
+ * \desc Sets the far clipping plane of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param farClippingPlane (Matrix): The far clipping plane value.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float farClippingPlane = GET_ARG(1, GetDecimal);
+    GET_SCENE_3D();
+    scene3D->FarClippingPlane = farClippingPlane;
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetNearClippingPlane
+ * \desc Sets the near clipping plane of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param farClippingPlane (Matrix): The near clipping plane value.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float nearClippingPlane = GET_ARG(1, GetDecimal);
+    GET_SCENE_3D();
+    scene3D->NearClippingPlane = nearClippingPlane;
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetViewMatrix
+ * \desc Sets the view matrix of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param viewMatrix (Matrix): The view matrix.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    ObjArray* viewMatrix = GET_ARG(1, GetArray);
+
+    Matrix4x4 matrix4x4;
+
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
+
+    GET_SCENE_3D();
+    scene3D->SetViewMatrix(&matrix4x4);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetCustomProjectionMatrix
+ * \desc Sets a custom projection matrix.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param projMatrix (Matrix): The projection matrix.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    ObjArray* projMatrix;
+    if (IS_NULL(args[1])) {
+        GET_SCENE_3D();
+        scene3D->SetCustomProjectionMatrix(nullptr);
+        return NULL_VAL;
+    }
+    else
+        projMatrix = GET_ARG(1, GetArray);
+
+    Matrix4x4 matrix4x4;
+    int arrSize = (int)projMatrix->Values->size();
+    if (arrSize != 16) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
+        return NULL_VAL;
+    }
+
+    // Yeah just copy it directly
+    for (int i = 0; i < 16; i++)
+        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
+
+    GET_SCENE_3D();
+    scene3D->SetCustomProjectionMatrix(&matrix4x4);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetAmbientLighting
+ * \desc Sets the ambient lighting of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetAmbientLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetDiffuseLighting
+ * \desc Sets the diffuse lighting of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetDiffuseLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetSpecularLighting
+ * \desc Sets the specular lighting of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetSpecularLighting(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFogDensity
+ * \desc Sets the density of the 3D scene's fog.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param density (Number): The fog density.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+
+    GET_SCENE_3D();
+    scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFogColor
+ * \desc Sets the fog color of the 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param red (Number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (Number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetFogColor(r, g, b);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetPointSize
+ * \desc Sets the point size of the 3D scene. (hardware-renderer only)
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param pointSize (Decimal): The point size.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float pointSize = !!GET_ARG(1, GetDecimal);
+    GET_SCENE_3D();
+    scene3D->PointSize = pointSize;
+    return NULL_VAL;
+}
+#undef GET_SCENE_3D
 // #endregion
 
 // #region Settings
@@ -11123,20 +11394,21 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ViewPart);
     DEF_NATIVE(Draw, ViewSized);
     DEF_NATIVE(Draw, ViewPartSized);
-    DEF_NATIVE(Draw, InitArrayBuffer);
-    DEF_NATIVE(Draw, BindArrayBuffer);
     DEF_NATIVE(Draw, BindVertexBuffer);
     DEF_NATIVE(Draw, UnbindVertexBuffer);
-    DEF_NATIVE(Draw, SetArrayBufferDrawMode);
-    DEF_NATIVE(Draw, SetProjectionMatrix);
-    DEF_NATIVE(Draw, SetViewMatrix);
-    DEF_NATIVE(Draw, SetAmbientLighting);
-    DEF_NATIVE(Draw, SetDiffuseLighting);
-    DEF_NATIVE(Draw, SetSpecularLighting);
-    DEF_NATIVE(Draw, SetFogDensity);
-    DEF_NATIVE(Draw, SetFogColor);
-    DEF_NATIVE(Draw, SetClipPolygons);
-    DEF_NATIVE(Draw, SetPointSize);
+    DEF_NATIVE(Draw, BindScene3D);
+    DEF_NATIVE(Draw, InitArrayBuffer); // deprecated
+    DEF_NATIVE(Draw, BindArrayBuffer); // deprecated
+    DEF_NATIVE(Draw, SetArrayBufferDrawMode); // deprecated
+    DEF_NATIVE(Draw, SetProjectionMatrix); // deprecated
+    DEF_NATIVE(Draw, SetViewMatrix); // deprecated
+    DEF_NATIVE(Draw, SetAmbientLighting); // deprecated
+    DEF_NATIVE(Draw, SetDiffuseLighting); // deprecated
+    DEF_NATIVE(Draw, SetSpecularLighting); // deprecated
+    DEF_NATIVE(Draw, SetFogDensity); // deprecated
+    DEF_NATIVE(Draw, SetFogColor); // deprecated
+    DEF_NATIVE(Draw, SetClipPolygons); // deprecated
+    DEF_NATIVE(Draw, SetPointSize); // deprecated
     DEF_NATIVE(Draw, Model);
     DEF_NATIVE(Draw, ModelSkinned);
     DEF_NATIVE(Draw, ModelSimple);
@@ -11154,7 +11426,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SceneLayer3D);
     DEF_NATIVE(Draw, SceneLayerPart3D);
     DEF_NATIVE(Draw, VertexBuffer);
-    DEF_NATIVE(Draw, RenderArrayBuffer);
+    DEF_NATIVE(Draw, RenderArrayBuffer); // deprecated
+    DEF_NATIVE(Draw, RenderScene3D);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);
     DEF_NATIVE(Draw, VideoSized);
@@ -11314,12 +11587,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsKeyDown);
     DEF_NATIVE(Input, IsKeyPressed);
     DEF_NATIVE(Input, IsKeyReleased);
-    DEF_NATIVE(Input, GetControllerCount);
-    DEF_NATIVE(Input, GetControllerAttached);
-    DEF_NATIVE(Input, GetControllerHat);
-    DEF_NATIVE(Input, GetControllerAxis);
-    DEF_NATIVE(Input, GetControllerButton);
-    DEF_NATIVE(Input, GetControllerName);
+    DEF_NATIVE(Input, GetControllerCount); // deprecated
+    DEF_NATIVE(Input, GetControllerAttached); // deprecated
+    DEF_NATIVE(Input, GetControllerHat); // deprecated
+    DEF_NATIVE(Input, GetControllerAxis); // deprecated
+    DEF_NATIVE(Input, GetControllerButton); // deprecated
+    DEF_NATIVE(Input, GetControllerName); // deprecated
     DEF_NATIVE(Input, GetKeyName);
     DEF_NATIVE(Input, GetButtonName);
     DEF_NATIVE(Input, GetAxisName);
@@ -11509,6 +11782,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(DrawBehavior_HorizontalParallax);
     DEF_ENUM(DrawBehavior_VerticalParallax);
     DEF_ENUM(DrawBehavior_CustomTileScanLines);
+    // #endregion
+
+    // #region Scene
+    INIT_CLASS(Scene3D);
+    DEF_NATIVE(Scene3D, Create);
+    DEF_NATIVE(Scene3D, Delete);
+    DEF_NATIVE(Scene3D, SetDrawMode);
+    DEF_NATIVE(Scene3D, SetFieldOfView);
+    DEF_NATIVE(Scene3D, SetFarClippingPlane);
+    DEF_NATIVE(Scene3D, SetNearClippingPlane);
+    DEF_NATIVE(Scene3D, SetViewMatrix);
+    DEF_NATIVE(Scene3D, SetCustomProjectionMatrix);
+    DEF_NATIVE(Scene3D, SetAmbientLighting);
+    DEF_NATIVE(Scene3D, SetDiffuseLighting);
+    DEF_NATIVE(Scene3D, SetSpecularLighting);
+    DEF_NATIVE(Scene3D, SetFogDensity);
+    DEF_NATIVE(Scene3D, SetFogColor);
+    DEF_NATIVE(Scene3D, SetPointSize);
     // #endregion
 
     // #region Settings

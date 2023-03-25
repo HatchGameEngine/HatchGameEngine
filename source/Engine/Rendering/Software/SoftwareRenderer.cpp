@@ -33,7 +33,7 @@ public:
 #include <Engine/Rendering/Software/PolygonRasterizer.h>
 #include <Engine/Rendering/Software/SoftwareEnums.h>
 #include <Engine/Rendering/FaceInfo.h>
-#include <Engine/Rendering/ArrayBuffer.h>
+#include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/PolygonRenderer.h>
 #include <Engine/Rendering/ModelRenderer.h>
 
@@ -215,8 +215,8 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.DrawVertexBuffer = SoftwareRenderer::DrawVertexBuffer;
     SoftwareRenderer::BackendFunctions.BindVertexBuffer = SoftwareRenderer::BindVertexBuffer;
     SoftwareRenderer::BackendFunctions.UnbindVertexBuffer = SoftwareRenderer::UnbindVertexBuffer;
-    SoftwareRenderer::BackendFunctions.BindArrayBuffer = SoftwareRenderer::BindArrayBuffer;
-    SoftwareRenderer::BackendFunctions.DrawArrayBuffer = SoftwareRenderer::DrawArrayBuffer;
+    SoftwareRenderer::BackendFunctions.BindScene3D = SoftwareRenderer::BindScene3D;
+    SoftwareRenderer::BackendFunctions.DrawScene3D = SoftwareRenderer::DrawScene3D;
 
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
@@ -714,34 +714,62 @@ PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlags) {
         break \
 
 // TODO: Material support
-static int CalcVertexColor(ArrayBuffer* arrayBuffer, VertexAttribute *vertex, int normalY) {
+static int CalcVertexColor(Scene3D* scene, VertexAttribute *vertex, int normalY) {
     int col_r = GET_R(vertex->Color);
     int col_g = GET_G(vertex->Color);
     int col_b = GET_B(vertex->Color);
     int specularR = 0, specularG = 0, specularB = 0;
 
+    Uint32 lightingAmbientR = (Uint32)(scene->Lighting.Ambient.R * 0x100);
+    Uint32 lightingAmbientG = (Uint32)(scene->Lighting.Ambient.G * 0x100);
+    Uint32 lightingAmbientB = (Uint32)(scene->Lighting.Ambient.B * 0x100);
+
+    Uint32 lightingDiffuseR = Math::CeilPOT((int)(scene->Lighting.Diffuse.R * 0x100));
+    Uint32 lightingDiffuseG = Math::CeilPOT((int)(scene->Lighting.Diffuse.G * 0x100));
+    Uint32 lightingDiffuseB = Math::CeilPOT((int)(scene->Lighting.Diffuse.B * 0x100));
+
+    Uint32 lightingSpecularR = Math::CeilPOT((int)(scene->Lighting.Specular.R * 0x100));
+    Uint32 lightingSpecularG = Math::CeilPOT((int)(scene->Lighting.Specular.G * 0x100));
+    Uint32 lightingSpecularB = Math::CeilPOT((int)(scene->Lighting.Specular.B * 0x100));
+
+#define SHIFT_COL(color) { \
+    int v = 0; \
+    while (color) { color >>= 1; v++; } \
+    color = --v; \
+}
+
+    SHIFT_COL(lightingDiffuseR);
+    SHIFT_COL(lightingDiffuseG);
+    SHIFT_COL(lightingDiffuseB);
+
+    SHIFT_COL(lightingSpecularR);
+    SHIFT_COL(lightingSpecularG);
+    SHIFT_COL(lightingSpecularB);
+
+#undef SHIFT_COL
+
     int ambientNormalY = normalY >> 10;
     int reweightedNormal = (normalY >> 2) * (abs(normalY) >> 2);
 
     // r
-    col_r = (col_r * (ambientNormalY + arrayBuffer->LightingAmbientR)) >> arrayBuffer->LightingDiffuseR;
-    specularR = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularR;
+    col_r = (col_r * (ambientNormalY + lightingAmbientR)) >> lightingDiffuseR;
+    specularR = reweightedNormal >> 6 >> lightingSpecularR;
     CLAMP_VAL(specularR, 0x00, 0xFF);
     specularR += col_r;
     CLAMP_VAL(specularR, 0x00, 0xFF);
     col_r = specularR;
 
     // g
-    col_g = (col_g * (ambientNormalY + arrayBuffer->LightingAmbientG)) >> arrayBuffer->LightingDiffuseG;
-    specularG = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularG;
+    col_g = (col_g * (ambientNormalY + lightingAmbientG)) >> lightingDiffuseG;
+    specularG = reweightedNormal >> 6 >> lightingSpecularG;
     CLAMP_VAL(specularG, 0x00, 0xFF);
     specularG += col_g;
     CLAMP_VAL(specularG, 0x00, 0xFF);
     col_g = specularG;
 
     // b
-    col_b = (col_b * (ambientNormalY + arrayBuffer->LightingAmbientB)) >> arrayBuffer->LightingDiffuseB;
-    specularB = reweightedNormal >> 6 >> arrayBuffer->LightingSpecularB;
+    col_b = (col_b * (ambientNormalY + lightingAmbientB)) >> lightingDiffuseB;
+    specularB = reweightedNormal >> 6 >> lightingSpecularB;
     CLAMP_VAL(specularB, 0x00, 0xFF);
     specularB += col_b;
     CLAMP_VAL(specularB, 0x00, 0xFF);
@@ -757,29 +785,25 @@ PUBLIC STATIC void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferInd
 PUBLIC STATIC void     SoftwareRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC void     SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    if (arrayBuffer->ClipPolygons) {
-        polygonRenderer.BuildFrustumPlanes(arrayBuffer->NearClippingPlane, arrayBuffer->FarClippingPlane);
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    if (scene->ClipPolygons) {
+        polygonRenderer.BuildFrustumPlanes(scene->NearClippingPlane, scene->FarClippingPlane);
         polygonRenderer.ClipPolygonsByFrustum = true;
     }
     else
         polygonRenderer.ClipPolygonsByFrustum = false;
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    if (!scene->Initialized)
         return;
-
-    Uint32 vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
-    FaceInfo* faceInfoPtr;
-    VertexAttribute* vertexAttribsPtr;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
     int cx = (int)std::floor(currentView->X);
@@ -791,8 +815,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
     x -= cx;
     y -= cy;
 
-    BlendState blendState;
     bool doDepthTest = drawMode & DrawMode_DEPTH_TEST;
+    bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
+
+    PolygonRasterizer::SetDepthTest(doDepthTest);
+
+    BlendState blendState;
 
 #define SET_BLENDFLAG_AND_OPACITY(face) \
     if (!Graphics::TextureBlend) { \
@@ -804,38 +832,24 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
         if (!Graphics::UseTinting) \
             blendState.Tint.Enabled = false; \
     } \
-    bool useDepthBuffer; \
     if ((blendState.Mode & BlendFlag_MODE_MASK) != BlendFlag_OPAQUE) \
         useDepthBuffer = false; \
     else \
         useDepthBuffer = doDepthTest; \
     PolygonRasterizer::SetUseDepthBuffer(useDepthBuffer)
 
-    VertexBuffer* vertexBuffer = arrayBuffer->Buffer;
-    bool useFog = drawMode & DrawMode_FOG;
+    VertexBuffer* vertexBuffer = scene->Buffer;
+    VertexAttribute* vertexAttribsPtr = vertexBuffer->Vertices; // R
+    FaceInfo* faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
 
-    PolygonRasterizer::SetDepthTest(doDepthTest);
-    PolygonRasterizer::SetUseFog(useFog);
-
-    if (useFog) {
-        PolygonRasterizer::SetFogColor(arrayBuffer->FogColorR, arrayBuffer->FogColorG, arrayBuffer->FogColorB);
-        PolygonRasterizer::SetFogDensity(arrayBuffer->FogDensity);
-    }
-
-    vertexAttribsPtr = vertexBuffer->Vertices; // R
-    faceInfoPtr = vertexBuffer->FaceInfoBuffer; // RW
-
-    bool doAffineMapping = drawMode & DrawMode_AFFINE;
-    bool usePerspective = !(drawMode & DrawMode_ORTHOGRAPHIC);
     bool sortFaces = !doDepthTest && vertexBuffer->FaceCount > 1;
-
     if (Graphics::TextureBlend)
         sortFaces = true;
 
     // Get the face depth and vertices' start index
     Uint32 verticesStartIndex = 0;
     for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
-        vertexCount = faceInfoPtr->NumVertices;
+        Uint32 vertexCount = faceInfoPtr->NumVertices;
 
         // Average the Z coordinates of the face
         if (sortFaces) {
@@ -847,6 +861,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
             vertexAttribsPtr += vertexCount;
         }
 
+        faceInfoPtr->DrawMode |= drawMode;
         faceInfoPtr->VerticesStartIndex = verticesStartIndex;
         verticesStartIndex += vertexCount;
 
@@ -858,15 +873,25 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
         qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), PolygonRenderer::FaceSortFunction);
 
     // sas
-    VertexAttribute *vertex, *vertexFirst;
-    faceInfoPtr = vertexBuffer->FaceInfoBuffer;
+    for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+        Vector3 polygonVertex[MAX_POLYGON_VERTICES];
+        Vector2 polygonUV[MAX_POLYGON_VERTICES];
+        Uint32  polygonVertexIndex = 0;
+        Uint32  numOutside = 0;
 
-    Texture *texturePtr;
+        faceInfoPtr = &vertexBuffer->FaceInfoBuffer[f];
 
-    int widthSubpx = (int)(currentView->Width) << 16;
-    int heightSubpx = (int)(currentView->Height) << 16;
-    int widthHalfSubpx = widthSubpx >> 1;
-    int heightHalfSubpx = heightSubpx >> 1;
+        bool doAffineMapping = faceInfoPtr->DrawMode & DrawMode_AFFINE;
+        bool useDepthBuffer;
+
+        VertexAttribute *vertex, *vertexFirst;
+        Uint32 vertexCount, vertexCountPerFace, vertexCountPerFaceMinus1;
+        Texture *texturePtr;
+
+        int widthSubpx = (int)(currentView->Width) << 16;
+        int heightSubpx = (int)(currentView->Height) << 16;
+        int widthHalfSubpx = widthSubpx >> 1;
+        int heightHalfSubpx = heightSubpx >> 1;
 
 #define PROJECT_X(pointX) ((pointX * currentView->Width * 0x10000) / vertexZ) - (cx << 16) + widthHalfSubpx
 #define PROJECT_Y(pointY) ((pointY * currentView->Height * 0x10000) / vertexZ) - (cy << 16) + heightHalfSubpx
@@ -874,10 +899,17 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
 #define ORTHO_X(pointX) pointX - (cx << 16) + widthHalfSubpx
 #define ORTHO_Y(pointY) pointY - (cy << 16) + heightHalfSubpx
 
-    switch (drawMode & DrawMode_FillTypeMask) {
-        // Lines, Solid Colored
-        case DrawMode_LINES:
-            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+        if (faceInfoPtr->DrawMode & DrawMode_FOG) {
+            PolygonRasterizer::SetUseFog(true);
+            PolygonRasterizer::SetFogColor(scene->Fog.Color.R, scene->Fog.Color.G, scene->Fog.Color.B);
+            PolygonRasterizer::SetFogDensity(scene->Fog.Density);
+        }
+        else
+            PolygonRasterizer::SetUseFog(false);
+
+        switch (faceInfoPtr->DrawMode & DrawMode_FillTypeMask) {
+            // Lines, Solid Colored
+            case DrawMode_LINES:
                 vertexCountPerFaceMinus1 = faceInfoPtr->NumVertices - 1;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -917,13 +949,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
 
                 mrt_line_solid_NEXT_FACE:
                 faceInfoPtr++;
-            }
-            break;
-        // Lines, Flat Shading
-        case DrawMode_LINES_FLAT:
-        // Lines, Smooth Shading
-        case DrawMode_LINES_SMOOTH:
-            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+                break;
+            // Lines, Flat Shading
+            case DrawMode_LINES | DrawMode_FLAT_LIGHTING:
+            // Lines, Smooth Shading
+            case DrawMode_LINES | DrawMode_SMOOTH_LIGHTING: {
                 vertexCount = faceInfoPtr->NumVertices;
                 vertexCountPerFaceMinus1 = vertexCount - 1;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
@@ -934,7 +964,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
-                SetColor(CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8));
+                SetColor(CalcVertexColor(scene, vertex, averageNormalY >> 8));
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
                 CurrentBlendState = blendState;
 
@@ -965,22 +995,16 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 mrt_line_smooth_NEXT_FACE:
-                faceInfoPtr++;
+                break;
             }
-            break;
-        // Polygons, Solid Colored
-        case DrawMode_POLYGONS:
-            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+            // Polygons, Solid Colored
+            case DrawMode_POLYGONS:
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
 
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
-                Vector3 polygonVertex[MAX_POLYGON_VERTICES];
-                Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                Uint32  polygonVertexIndex = 0;
-                Uint32  numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
@@ -1009,15 +1033,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 if (numOutside == vertexCount)
-                    goto mrt_poly_solid_NEXT_FACE;
+                    break;
 
-                #define CHECK_TEXTURE(face) \
-                    if (face->UseMaterial) \
-                        texturePtr = (Texture*)face->MaterialInfo.Texture
-
-                texturePtr = NULL;
-                if (drawMode & DrawMode_TEXTURED) {
-                    CHECK_TEXTURE(faceInfoPtr);
+                texturePtr = nullptr;
+                if (faceInfoPtr->DrawMode & DrawMode_TEXTURED) {
+                    if (faceInfoPtr->UseMaterial)
+                        texturePtr = (Texture*)faceInfoPtr->MaterialInfo.Texture;
                 }
 
                 if (texturePtr) {
@@ -1034,12 +1055,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 mrt_poly_solid_NEXT_FACE:
-                faceInfoPtr++;
-            }
-            break;
-        // Polygons, Flat Shading
-        case DrawMode_POLYGONS_FLAT:
-            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+                break;
+            // Polygons, Flat Shading
+            case DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING: {
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -1049,13 +1067,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                     averageNormalY += vertex[i].Normal.Y;
                 averageNormalY /= vertexCount;
 
-                int color = CalcVertexColor(arrayBuffer, vertex, averageNormalY >> 8);
+                int color = CalcVertexColor(scene, vertex, averageNormalY >> 8);
                 SET_BLENDFLAG_AND_OPACITY(faceInfoPtr);
 
-                Vector3 polygonVertex[MAX_POLYGON_VERTICES];
-                Vector2 polygonUV[MAX_POLYGON_VERTICES];
-                Uint32  polygonVertexIndex = 0;
-                Uint32  numOutside = 0;
                 while (vertexCountPerFace--) {
                     int vertexZ = vertex->Position.Z;
                     if (usePerspective) {
@@ -1081,11 +1095,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 if (numOutside == vertexCount)
-                    goto mrt_poly_flat_NEXT_FACE;
+                    break;
 
-                texturePtr = NULL;
-                if (drawMode & DrawMode_TEXTURED) {
-                    CHECK_TEXTURE(faceInfoPtr);
+                texturePtr = nullptr;
+                if (faceInfoPtr->DrawMode & DrawMode_TEXTURED) {
+                    if (faceInfoPtr->UseMaterial)
+                        texturePtr = (Texture*)faceInfoPtr->MaterialInfo.Texture;
                 }
 
                 if (texturePtr) {
@@ -1102,12 +1117,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 mrt_poly_flat_NEXT_FACE:
-                faceInfoPtr++;
+                break;
             }
-            break;
-        // Polygons, Smooth Shading
-        case DrawMode_POLYGONS_SMOOTH:
-            for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
+            // Polygons, Smooth Shading
+            case DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING:
                 vertexCount = vertexCountPerFace = faceInfoPtr->NumVertices;
                 vertexFirst = &vertexBuffer->Vertices[faceInfoPtr->VerticesStartIndex];
                 vertex = vertexFirst;
@@ -1141,19 +1154,20 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                     polygonUV[polygonVertexIndex].X = vertex->UV.X;
                     polygonUV[polygonVertexIndex].Y = vertex->UV.Y;
 
-                    polygonVertColor[polygonVertexIndex] = CalcVertexColor(arrayBuffer, vertex, vertex->Normal.Y >> 8);
+                    polygonVertColor[polygonVertexIndex] = CalcVertexColor(scene, vertex, vertex->Normal.Y >> 8);
                     polygonVertexIndex++;
                     vertex++;
                 }
 
                 if (numOutside == vertexCount)
-                    goto mrt_poly_smooth_NEXT_FACE;
+                    break;
 
 #undef POINT_IS_OUTSIDE
 
-                texturePtr = NULL;
-                if (drawMode & DrawMode_TEXTURED) {
-                    CHECK_TEXTURE(faceInfoPtr);
+                texturePtr = nullptr;
+                if (faceInfoPtr->DrawMode & DrawMode_TEXTURED) {
+                    if (faceInfoPtr->UseMaterial)
+                        texturePtr = (Texture*)faceInfoPtr->MaterialInfo.Texture;
                 }
 
                 if (texturePtr) {
@@ -1170,9 +1184,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex
                 }
 
                 mrt_poly_smooth_NEXT_FACE:
-                faceInfoPtr++;
+                break;
             }
-            break;
     }
 
 #undef SET_BLENDFLAG_AND_OPACITY
@@ -1189,6 +1202,7 @@ PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelM
     if (!polygonRenderer.SetBuffers())
         return false;
 
+    polygonRenderer.DrawMode = polygonRenderer.ScenePtr ? polygonRenderer.ScenePtr->DrawMode : 0;
     polygonRenderer.DoProjection = true;
     polygonRenderer.DoClipping = true;
     polygonRenderer.ModelMatrix = modelMatrix;
@@ -1215,11 +1229,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(void* model, Uint16 ar
         polygonRenderer.DrawModelSkinned((IModel*)model, armature);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    if (Graphics::CurrentArrayBuffer < 0)
+    if (Graphics::CurrentScene3D < 0)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
-    if (!arrayBuffer->Initialized)
+    Scene3D* scene = &Graphics::Scene3Ds[Graphics::CurrentScene3D];
+    if (!scene->Initialized)
         return;
 
     VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
@@ -1227,7 +1241,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
         return;
 
     polygonRenderer.DoClipping = true;
-    polygonRenderer.ArrayBuf = arrayBuffer;
+    polygonRenderer.ScenePtr = scene;
     polygonRenderer.VertexBuf = vertexBuffer;
     polygonRenderer.ModelMatrix = modelMatrix;
     polygonRenderer.NormalMatrix = normalMatrix;

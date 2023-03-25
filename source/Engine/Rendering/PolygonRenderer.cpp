@@ -2,7 +2,7 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/ArrayBuffer.h>
+#include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Scene/SceneLayer.h>
@@ -10,7 +10,7 @@
 
 class PolygonRenderer {
 public:
-    ArrayBuffer*  ArrayBuf = nullptr;
+    Scene3D*      ScenePtr = nullptr;
     VertexBuffer* VertexBuf = nullptr;
     Matrix4x4*    ModelMatrix = nullptr;
     Matrix4x4*    NormalMatrix = nullptr;
@@ -55,7 +55,7 @@ PUBLIC void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float f
 
 PUBLIC bool PolygonRenderer::SetBuffers() {
     VertexBuf = nullptr;
-    ArrayBuf = nullptr;
+    ScenePtr = nullptr;
     ViewMatrix = nullptr;
     ProjectionMatrix = nullptr;
 
@@ -65,17 +65,17 @@ PUBLIC bool PolygonRenderer::SetBuffers() {
             return false;
     }
     else {
-        if (Graphics::CurrentArrayBuffer == -1)
+        if (Graphics::CurrentScene3D == -1)
             return false;
 
-        ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
-        if (!arrayBuffer->Initialized)
+        Scene3D* scene = &Graphics::Scene3Ds[Graphics::CurrentScene3D];
+        if (!scene->Initialized)
             return false;
 
-        VertexBuf = arrayBuffer->Buffer;
-        ArrayBuf = arrayBuffer;
-        ViewMatrix = &arrayBuffer->ViewMatrix;
-        ProjectionMatrix = &arrayBuffer->ProjectionMatrix;
+        VertexBuf = scene->Buffer;
+        ScenePtr = scene;
+        ViewMatrix = &scene->ViewMatrix;
+        ProjectionMatrix = &scene->ProjectionMatrix;
     }
 
     return true;
@@ -322,6 +322,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
                 }
             }
 
+            faceInfoItem->DrawMode = DrawMode;
             faceInfoItem->SetMaterial(texture);
             faceInfoItem->SetBlendState(Graphics::GetBlendState());
             faceInfoItem->NumVertices = vertexCount;
@@ -347,7 +348,7 @@ PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 f
 
     ModelRenderer rend = ModelRenderer(this);
 
-    rend.DrawMode = ArrayBuf != nullptr ? ArrayBuf->DrawMode : 0;
+    rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
     rend.DoProjection = DoProjection;
     rend.ClipFaces = DoProjection;
@@ -369,7 +370,7 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
 
     ModelRenderer rend = ModelRenderer(this);
 
-    rend.DrawMode = ArrayBuf != nullptr ? ArrayBuf->DrawMode : 0;
+    rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
     rend.CurrentColor = CurrentColor;
     rend.DoProjection = DoProjection;
     rend.ClipFaces = DoProjection;
@@ -385,7 +386,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
         Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 
     // destination
-    VertexBuffer* destVertexBuffer = ArrayBuf->Buffer;
+    VertexBuffer* destVertexBuffer = ScenePtr->Buffer;
     int arrayFaceCount = destVertexBuffer->FaceCount;
     int arrayVertexCount = destVertexBuffer->VertexCount;
 
@@ -397,7 +398,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
 
     Uint32 maxVertexCount = arrayVertexCount + srcVertexCount;
     if (maxVertexCount > destVertexBuffer->Capacity)
-        destVertexBuffer->Resize(maxVertexCount);
+        destVertexBuffer->Resize(maxVertexCount + 256);
 
     FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
     VertexAttribute* arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
@@ -443,7 +444,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
 
                 Uint32 maxVertexCount = arrayVertexCount + vertexCount;
                 if (maxVertexCount > destVertexBuffer->Capacity) {
-                    destVertexBuffer->Resize(maxVertexCount);
+                    destVertexBuffer->Resize(maxVertexCount + 256);
                     faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
                     arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
                 }

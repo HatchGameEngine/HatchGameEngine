@@ -11,7 +11,7 @@ enum VertexType {
     VertexType_Color = 4,
 };
 
-#define MAX_ARRAY_BUFFERS 0x20
+#define MAX_3D_SCENES 0x20
 #define MAX_VERTEX_BUFFERS 256
 #define MAX_POLYGON_VERTICES 16
 #define NUM_FRUSTUM_PLANES 6

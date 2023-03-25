@@ -12,7 +12,7 @@
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/GraphicsFunctions.h>
-#include <Engine/Rendering/ArrayBuffer.h>
+#include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -36,7 +36,7 @@ public:
     static Texture*             TextureHead;
 
     static VertexBuffer*        VertexBuffers[MAX_VERTEX_BUFFERS];
-    static ArrayBuffer          ArrayBuffers[MAX_ARRAY_BUFFERS];
+    static Scene3D              Scene3Ds[MAX_3D_SCENES];
 
     static stack<GraphicsState> StateStack;
     static stack<Matrix4x4*>    MatrixStack;
@@ -55,7 +55,7 @@ public:
     static int                  TintMode;
 
     static Texture*             CurrentRenderTarget;
-    static Sint32               CurrentArrayBuffer;
+    static Sint32               CurrentScene3D;
     static Sint32               CurrentVertexBuffer;
 
     static void*                CurrentShader;
@@ -106,7 +106,7 @@ Uint32               Graphics::MaxTextureHeight = 1;
 Texture*             Graphics::TextureHead = NULL;
 
 VertexBuffer*        Graphics::VertexBuffers[MAX_VERTEX_BUFFERS];
-ArrayBuffer          Graphics::ArrayBuffers[MAX_ARRAY_BUFFERS];
+Scene3D              Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
 stack<Matrix4x4*>    Graphics::MatrixStack;
@@ -125,7 +125,7 @@ int                  Graphics::BlendMode = BlendMode_NORMAL;
 int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
 Texture*             Graphics::CurrentRenderTarget = NULL;
-Sint32               Graphics::CurrentArrayBuffer = -1;
+Sint32               Graphics::CurrentScene3D = -1;
 Sint32               Graphics::CurrentVertexBuffer = -1;
 
 void*                Graphics::CurrentShader = NULL;
@@ -252,15 +252,8 @@ PUBLIC STATIC void     Graphics::Dispose() {
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++)
         Graphics::DeleteVertexBuffer(i);
 
-    for (Uint32 i = 0; i < MAX_ARRAY_BUFFERS; i++) {
-        ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[i];
-        if (arrayBuffer->Initialized) {
-            if (Graphics::GfxFunctions->DeleteVertexBuffer)
-                Graphics::GfxFunctions->DeleteVertexBuffer(arrayBuffer->Buffer);
-            else
-                delete arrayBuffer->Buffer;
-        }
-    }
+    for (Uint32 i = 0; i < MAX_3D_SCENES; i++)
+        Graphics::DeleteScene3D(i);
 
 	for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;
@@ -390,7 +383,7 @@ PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unlo
     return 0xFFFFFFFF;
 }
 PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_ARRAY_BUFFERS)
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_3D_SCENES)
         return;
     if (!Graphics::VertexBuffers[vertexBufferIndex])
         return;
@@ -434,6 +427,14 @@ PUBLIC STATIC void     Graphics::UnloadSceneData() {
             continue;
 
         Graphics::DeleteVertexBuffer(i);
+    }
+
+    for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+        Scene3D* scene = &Graphics::Scene3Ds[i];
+        if (!scene->Initialized || scene->UnloadPolicy > SCOPE_SCENE)
+            continue;
+
+        Graphics::DeleteScene3D(i);
     }
 }
 
@@ -1033,19 +1034,24 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
 
 // 3D drawing
 PUBLIC STATIC void     Graphics::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    Graphics::GfxFunctions->DrawPolygon3D(data, vertexCount, vertexFlag, texture, modelMatrix, normalMatrix);
+    if (Graphics::GfxFunctions->DrawPolygon3D)
+        Graphics::GfxFunctions->DrawPolygon3D(data, vertexCount, vertexFlag, texture, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    Graphics::GfxFunctions->DrawSceneLayer3D(layer, sx, sy, sw, sh, modelMatrix, normalMatrix);
+    if (Graphics::GfxFunctions->DrawSceneLayer3D)
+        Graphics::GfxFunctions->DrawSceneLayer3D(layer, sx, sy, sw, sh, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    Graphics::GfxFunctions->DrawModel(model, animation, frame, modelMatrix, normalMatrix);
+    if (Graphics::GfxFunctions->DrawModel)
+        Graphics::GfxFunctions->DrawModel(model, animation, frame, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    Graphics::GfxFunctions->DrawModelSkinned(model, armature, modelMatrix, normalMatrix);
+    if (Graphics::GfxFunctions->DrawModelSkinned)
+        Graphics::GfxFunctions->DrawModelSkinned(model, armature, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    Graphics::GfxFunctions->DrawVertexBuffer(vertexBufferIndex, modelMatrix, normalMatrix);
+    if (Graphics::GfxFunctions->DrawVertexBuffer)
+        Graphics::GfxFunctions->DrawVertexBuffer(vertexBufferIndex, modelMatrix, normalMatrix);
 }
 PUBLIC STATIC void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
@@ -1053,47 +1059,84 @@ PUBLIC STATIC void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
         return;
     }
 
-    Graphics::GfxFunctions->BindVertexBuffer(vertexBufferIndex);
+    if (Graphics::GfxFunctions->BindVertexBuffer)
+        Graphics::GfxFunctions->BindVertexBuffer(vertexBufferIndex);
     CurrentVertexBuffer = vertexBufferIndex;
 }
 PUBLIC STATIC void     Graphics::UnbindVertexBuffer() {
-    Graphics::GfxFunctions->UnbindVertexBuffer();
+    if (Graphics::GfxFunctions->UnbindVertexBuffer)
+        Graphics::GfxFunctions->UnbindVertexBuffer();
     CurrentVertexBuffer = -1;
 }
-PUBLIC STATIC void     Graphics::BindArrayBuffer(Uint32 arrayBufferIndex) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    arrayBuffer->Clear();
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    scene->Clear();
 
-    Graphics::GfxFunctions->BindArrayBuffer(arrayBufferIndex);
-    CurrentArrayBuffer = arrayBufferIndex;
+    if (!scene->UseCustomProjectionMatrix) {
+        View* currentView = &Scene::Views[Scene::ViewCurrent];
+        float fov = scene->FOV * M_PI / 180.0f;
+        float aspect = currentView->Width / currentView->Height;
+        Graphics::MakePerspectiveMatrix(&scene->ProjectionMatrix, fov, scene->NearClippingPlane, scene->FarClippingPlane, aspect);
+    }
+
+    if (Graphics::GfxFunctions->BindScene3D)
+        Graphics::GfxFunctions->BindScene3D(sceneIndex);
+    CurrentScene3D = sceneIndex;
 }
-PUBLIC STATIC void     Graphics::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
-    Graphics::GfxFunctions->DrawArrayBuffer(arrayBufferIndex, drawMode);
+PUBLIC STATIC void     Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+    if (Graphics::GfxFunctions->DrawScene3D)
+        Graphics::GfxFunctions->DrawScene3D(sceneIndex, drawMode);
 }
 
-PUBLIC STATIC void     Graphics::InitArrayBuffer(Uint32 arrayBufferIndex, Uint32 numVertices) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC Uint32   Graphics::CreateScene3D(int unloadPolicy) {
+    for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+        if (!Graphics::Scene3Ds[i].Initialized) {
+            Graphics::InitScene3D(i, 0);
+            Graphics::Scene3Ds[i].UnloadPolicy = unloadPolicy;
+            return i;
+        }
+    }
+
+    return 0xFFFFFFFF;
+}
+PUBLIC STATIC void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    if (scene->Initialized) {
+        if (Graphics::GfxFunctions->DeleteVertexBuffer)
+            Graphics::GfxFunctions->DeleteVertexBuffer(scene->Buffer);
+        else
+            delete scene->Buffer;
 
-    Matrix4x4 projMat, viewMat;
-    Graphics::Internal.MakePerspectiveMatrix(&projMat, 90.0f * M_PI / 180.0f, 1.0f, 32768.0f, 1.0f);
+        scene->Initialized = false;
+    }
+}
+PUBLIC STATIC void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertices) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
+        return;
+
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+
+    Matrix4x4 viewMat;
     Matrix4x4::Identity(&viewMat);
+    scene->SetViewMatrix(&viewMat);
 
-    arrayBuffer->SetProjectionMatrix(&projMat);
-    arrayBuffer->SetViewMatrix(&viewMat);
+    if (!numVertices)
+        numVertices = 192;
 
     if (Graphics::Internal.CreateVertexBuffer)
-        arrayBuffer->Buffer = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(numVertices);
+        scene->Buffer = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(numVertices);
     else
-        arrayBuffer->Buffer = new VertexBuffer(numVertices);
+        scene->Buffer = new VertexBuffer(numVertices);
 
-    arrayBuffer->ClipPolygons = true;
-    arrayBuffer->Initialized = true;
+    scene->ClipPolygons = true;
+    scene->Initialized = true;
+    scene->UnloadPolicy = SCOPE_GAME;
 }
 
 PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {

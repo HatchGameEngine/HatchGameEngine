@@ -62,8 +62,8 @@ struct GraphicsFunctions {
     void     (*DrawVertexBuffer)(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
     void     (*BindVertexBuffer)(Uint32 vertexBufferIndex);
     void     (*UnbindVertexBuffer)();
-    void     (*BindArrayBuffer)(Uint32 arrayBufferIndex);
-    void     (*DrawArrayBuffer)(Uint32 arrayBufferIndex, Uint32 drawMode);
+    void     (*BindScene3D)(Uint32 sceneIndex);
+    void     (*DrawScene3D)(Uint32 sceneIndex, Uint32 drawMode);
 
     void*    (*CreateVertexBuffer)(Uint32 maxVertices);
     void     (*DeleteVertexBuffer)(void* vtxBuf);

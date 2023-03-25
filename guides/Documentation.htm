@@ -69,6 +69,7 @@
             <li><a href="#Reference_Palette">Palette</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
+            <li><a href="#Reference_Scene3D">Scene3D</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
@@ -199,6 +200,8 @@
                     <li><a href="#Reference_Draw_ViewPart">Draw.ViewPart</a></li>
                     <li><a href="#Reference_Draw_ViewSized">Draw.ViewSized</a></li>
                     <li><a href="#Reference_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
+                    <li><a href="#Reference_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
+                    <li><a href="#Reference_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
                     <li><a href="#Reference_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
                     <li><a href="#Reference_Draw_SetArrayBufferDrawMode">Draw.SetArrayBufferDrawMode</a></li>
                     <li><a href="#Reference_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
@@ -211,8 +214,7 @@
                     <li><a href="#Reference_Draw_SetClipPolygons">Draw.SetClipPolygons</a></li>
                     <li><a href="#Reference_Draw_SetPointSize">Draw.SetPointSize</a></li>
                     <li><a href="#Reference_Draw_BindArrayBuffer">Draw.BindArrayBuffer</a></li>
-                    <li><a href="#Reference_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
-                    <li><a href="#Reference_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
+                    <li><a href="#Reference_Draw_BindScene3D">Draw.BindScene3D</a></li>
                     <li><a href="#Reference_Draw_Model">Draw.Model</a></li>
                     <li><a href="#Reference_Draw_ModelSkinned">Draw.ModelSkinned</a></li>
                     <li><a href="#Reference_Draw_ModelSimple">Draw.ModelSimple</a></li>
@@ -231,6 +233,7 @@
                     <li><a href="#Reference_Draw_SceneLayerPart3D">Draw.SceneLayerPart3D</a></li>
                     <li><a href="#Reference_Draw_VertexBuffer">Draw.VertexBuffer</a></li>
                     <li><a href="#Reference_Draw_RenderArrayBuffer">Draw.RenderArrayBuffer</a></li>
+                    <li><a href="#Reference_Draw_RenderScene3D">Draw.RenderScene3D</a></li>
                     <li><a href="#Reference_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_Draw_VideoPart">Draw.VideoPart</a></li>
                     <li><a href="#Reference_Draw_VideoSized">Draw.VideoSized</a></li>
@@ -560,6 +563,26 @@
                     <li><a href="#Reference_Scene_SetTileScanline">Scene.SetTileScanline</a></li>
                     <li><a href="#Reference_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></li>
                     <li><a href="#Reference_Scene_SetTileViewRender">Scene.SetTileViewRender</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Scene3D">
+                <h2>Scene3D</h2>
+                <i>Functions:</i>
+                <ul>
+                    <li><a href="#Reference_Scene3D_Create">Scene3D.Create</a></li>
+                    <li><a href="#Reference_Scene3D_Delete">Scene3D.Delete</a></li>
+                    <li><a href="#Reference_Scene3D_SetDrawMode">Scene3D.SetDrawMode</a></li>
+                    <li><a href="#Reference_Scene3D_SetFieldOfView">Scene3D.SetFieldOfView</a></li>
+                    <li><a href="#Reference_Scene3D_SetFarClippingPlane">Scene3D.SetFarClippingPlane</a></li>
+                    <li><a href="#Reference_Scene3D_SetNearClippingPlane">Scene3D.SetNearClippingPlane</a></li>
+                    <li><a href="#Reference_Scene3D_SetViewMatrix">Scene3D.SetViewMatrix</a></li>
+                    <li><a href="#Reference_Scene3D_SetCustomProjectionMatrix">Scene3D.SetCustomProjectionMatrix</a></li>
+                    <li><a href="#Reference_Scene3D_SetAmbientLighting">Scene3D.SetAmbientLighting</a></li>
+                    <li><a href="#Reference_Scene3D_SetDiffuseLighting">Scene3D.SetDiffuseLighting</a></li>
+                    <li><a href="#Reference_Scene3D_SetSpecularLighting">Scene3D.SetSpecularLighting</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogDensity">Scene3D.SetFogDensity</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogColor">Scene3D.SetFogColor</a></li>
+                    <li><a href="#Reference_Scene3D_SetPointSize">Scene3D.SetPointSize</a></li>
                 </ul>
             </p>
             <p id="Reference_Settings">
@@ -1566,145 +1589,6 @@
         </ul>
         </p>
         <hr/>
-        <p id="Reference_Draw_InitArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.InitArrayBuffer</h2>
-        <code>Draw.InitArrayBuffer(arrayBufferIndex, numVertices)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Initializes an array buffer. There are 32 array buffers.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)</li>
-        <li>numVertices (Integer): The initial capacity of this array buffer.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetArrayBufferDrawMode">
-        <h2 style="margin-bottom: 8px;">Draw.SetArrayBufferDrawMode</h2>
-        <code>Draw.SetArrayBufferDrawMode(arrayBufferIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the array buffer. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetProjectionMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
-        <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the projection matrix.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>projMatrix (Matrix): The projection matrix.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetViewMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetViewMatrix</h2>
-        <code>Draw.SetViewMatrix(arrayBufferIndex, viewMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>viewMatrix (Matrix): The view matrix.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetAmbientLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetAmbientLighting</h2>
-        <code>Draw.SetAmbientLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the ambient lighting of the array buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetDiffuseLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetDiffuseLighting</h2>
-        <code>Draw.SetDiffuseLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the diffuse lighting of the array buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetSpecularLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetSpecularLighting</h2>
-        <code>Draw.SetSpecularLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the specular lighting of the array buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetFogDensity">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogDensity</h2>
-        <code>Draw.SetFogDensity(arrayBufferIndex, density)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the array buffer's fog.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>density (Number): The fog density.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetFogColor">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogColor</h2>
-        <code>Draw.SetFogColor(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the array buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetClipPolygons">
-        <h2 style="margin-bottom: 8px;">Draw.SetClipPolygons</h2>
-        <code>Draw.SetClipPolygons(arrayBufferIndex, clipPolygons)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer. (software-renderer only)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>clipPolygons (Boolean): Whether or not to clip polygons.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_SetPointSize">
-        <h2 style="margin-bottom: 8px;">Draw.SetPointSize</h2>
-        <code>Draw.SetPointSize(arrayBufferIndex, pointSize)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the array buffer. (hardware-renderer only)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>pointSize (Decimal): The point size.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Draw_BindArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.BindArrayBuffer</h2>
-        <code>Draw.BindArrayBuffer(arrayBufferIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds an array buffer for drawing polygons in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): Sets the array buffer to bind.</li>
-        </ul>
-        </p>
-        <hr/>
         <p id="Reference_Draw_BindVertexBuffer">
         <h2 style="margin-bottom: 8px;">Draw.BindVertexBuffer</h2>
         <code>Draw.BindVertexBuffer(vertexBufferIndex)</code>
@@ -1719,6 +1603,155 @@
         <h2 style="margin-bottom: 8px;">Draw.UnbindVertexBuffer</h2>
         <code>Draw.UnbindVertexBuffer()</code>
         <div style="margin-top: 8px; font-size: 14px;">Unbinds the currently bound vertex buffer.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_InitArrayBuffer">
+        <h2 style="margin-bottom: 8px;">Draw.InitArrayBuffer</h2>
+        <code>Draw.InitArrayBuffer(arrayBufferIndex, numVertices)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Initializes an array buffer. There are 32 array buffers. (Deprecated; use <code>Scene3D.Create</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)</li>
+        <li>numVertices (Integer): The initial capacity of this array buffer.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetArrayBufferDrawMode">
+        <h2 style="margin-bottom: 8px;">Draw.SetArrayBufferDrawMode</h2>
+        <code>Draw.SetArrayBufferDrawMode(arrayBufferIndex, drawMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the array buffer. (Deprecated; use <code>Scene3D.SetDrawMode</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetProjectionMatrix">
+        <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
+        <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the projection matrix. (Deprecated; use <code>Scene3D.SetProjectionMatrix</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>projMatrix (Matrix): The projection matrix.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetViewMatrix">
+        <h2 style="margin-bottom: 8px;">Draw.SetViewMatrix</h2>
+        <code>Draw.SetViewMatrix(arrayBufferIndex, viewMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix. (Deprecated; use <code>Scene3D.SetViewMatrix</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>viewMatrix (Matrix): The view matrix.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetAmbientLighting">
+        <h2 style="margin-bottom: 8px;">Draw.SetAmbientLighting</h2>
+        <code>Draw.SetAmbientLighting(arrayBufferIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the ambient lighting of the array buffer. (Deprecated; use <code>Scene3D.SetAmbientLighting</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetDiffuseLighting">
+        <h2 style="margin-bottom: 8px;">Draw.SetDiffuseLighting</h2>
+        <code>Draw.SetDiffuseLighting(arrayBufferIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the diffuse lighting of the array buffer. (Deprecated; use <code>Scene3D.SetDiffuseLighting</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetSpecularLighting">
+        <h2 style="margin-bottom: 8px;">Draw.SetSpecularLighting</h2>
+        <code>Draw.SetSpecularLighting(arrayBufferIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the specular lighting of the array buffer. (Deprecated; use <code>Scene3D.SetSpecularLighting</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetFogDensity">
+        <h2 style="margin-bottom: 8px;">Draw.SetFogDensity</h2>
+        <code>Draw.SetFogDensity(arrayBufferIndex, density)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the array buffer's fog. (Deprecated; use <code>Scene3D.SetFogDensity</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>density (Number): The fog density.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetFogColor">
+        <h2 style="margin-bottom: 8px;">Draw.SetFogColor</h2>
+        <code>Draw.SetFogColor(arrayBufferIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the array buffer. (Deprecated; use <code>Scene3D.SetFogColor</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetClipPolygons">
+        <h2 style="margin-bottom: 8px;">Draw.SetClipPolygons</h2>
+        <code>Draw.SetClipPolygons(arrayBufferIndex, clipPolygons)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>clipPolygons (Boolean): Whether or not to clip polygons.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_SetPointSize">
+        <h2 style="margin-bottom: 8px;">Draw.SetPointSize</h2>
+        <code>Draw.SetPointSize(arrayBufferIndex, pointSize)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the array buffer. (Deprecated; use <code>Scene3D.SetPointSize</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
+        <li>pointSize (Decimal): The point size.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_BindArrayBuffer">
+        <h2 style="margin-bottom: 8px;">Draw.BindArrayBuffer</h2>
+        <code>Draw.BindArrayBuffer(arrayBufferIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <code>Draw.BindScene3D</code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>arrayBufferIndex (Integer): Sets the array buffer to bind.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_BindScene3D">
+        <h2 style="margin-bottom: 8px;">Draw.BindScene3D</h2>
+        <code>Draw.BindScene3D(scene3DIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds a 3D scene for drawing polygons in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): Sets the 3D scene to bind.</li>
+        </ul>
         </p>
         <hr/>
         <p id="Reference_Draw_Model">
@@ -2084,11 +2117,22 @@
         <p id="Reference_Draw_RenderArrayBuffer">
         <h2 style="margin-bottom: 8px;">Draw.RenderArrayBuffer</h2>
         <code>Draw.RenderArrayBuffer(arrayBufferIndex[, drawMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer. (Deprecated; use <code>Draw.RenderScene3D</code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>arrayBufferIndex (Integer): The array buffer at the index to draw.</li>
         <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Draw_RenderScene3D">
+        <h2 style="margin-bottom: 8px;">Draw.RenderScene3D</h2>
+        <code>Draw.RenderScene3D(scene3DIndex[, drawMode])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The 3D scene at the index to draw.</li>
+        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
         </ul>
         </p>
         <hr/>
@@ -4871,6 +4915,168 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Scene3D_Create">
+        <h2 style="margin-bottom: 8px;">Scene3D.Create</h2>
+        <code>Scene3D.Create(unloadPolicy)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The index of the created 3D scene.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_Delete">
+        <h2 style="margin-bottom: 8px;">Scene3D.Delete</h2>
+        <code>Scene3D.Delete(scene3DIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Deletes a 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene to delete.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetDrawMode">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetDrawMode</h2>
+        <code>Scene3D.SetDrawMode(scene3DIndex, drawMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of 3D scene. <br/></br>Draw Modes:<ul><li><code>DrawMode_LINES</code>: Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POLYGONS</code>: Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_POINTS</code>: (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)</li><li><code>DrawMode_FLAT_LIGHTING</code>: Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_SMOOTH_LIGHTING</code>: Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)</li><li><code>DrawMode_TEXTURED</code>: Enables texturing.</li><li><code>DrawMode_AFFINE</code>: (software-renderer only) Uses affine texture mapping.</li><li><code>DrawMode_DEPTH_TEST</code>: Enables depth testing.</li><li><code>DrawMode_FOG</code>: (software-renderer only) Enables fog.</li><li><code>DrawMode_ORTHOGRAPHIC</code>: (software-renderer only) Uses orthographic perspective projection.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFieldOfView">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFieldOfView</h2>
+        <code>Scene3D.SetFieldOfView(scene3DIndex, fieldOfView)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the field of view of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>fieldOfView (Matrix): The field of view value.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFarClippingPlane">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFarClippingPlane</h2>
+        <code>Scene3D.SetFarClippingPlane(scene3DIndex, farClippingPlane)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the far clipping plane of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>farClippingPlane (Matrix): The far clipping plane value.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetNearClippingPlane">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetNearClippingPlane</h2>
+        <code>Scene3D.SetNearClippingPlane(scene3DIndex, farClippingPlane)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the near clipping plane of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>farClippingPlane (Matrix): The near clipping plane value.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetViewMatrix">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetViewMatrix</h2>
+        <code>Scene3D.SetViewMatrix(scene3DIndex, viewMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>viewMatrix (Matrix): The view matrix.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetCustomProjectionMatrix">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetCustomProjectionMatrix</h2>
+        <code>Scene3D.SetCustomProjectionMatrix(scene3DIndex, projMatrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a custom projection matrix.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>projMatrix (Matrix): The projection matrix.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetAmbientLighting">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetAmbientLighting</h2>
+        <code>Scene3D.SetAmbientLighting(scene3DIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the ambient lighting of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetDiffuseLighting">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetDiffuseLighting</h2>
+        <code>Scene3D.SetDiffuseLighting(scene3DIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the diffuse lighting of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetSpecularLighting">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetSpecularLighting</h2>
+        <code>Scene3D.SetSpecularLighting(scene3DIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the specular lighting of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFogDensity">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogDensity</h2>
+        <code>Scene3D.SetFogDensity(scene3DIndex, density)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the 3D scene's fog.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>density (Number): The fog density.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFogColor">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogColor</h2>
+        <code>Scene3D.SetFogColor(scene3DIndex, red, green, blue)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
+        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
+        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetPointSize">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetPointSize</h2>
+        <code>Scene3D.SetPointSize(scene3DIndex, pointSize)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the 3D scene. (hardware-renderer only)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>pointSize (Decimal): The point size.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Settings_Load">
         <h2 style="margin-bottom: 8px;">Settings.Load</h2>
         <code>Settings.Load(filename)</code>
@@ -6776,6 +6982,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>458 out of 527 functions have descriptions. </p>
+        <p>474 out of 543 functions have descriptions. </p>
     </body>
 </html>

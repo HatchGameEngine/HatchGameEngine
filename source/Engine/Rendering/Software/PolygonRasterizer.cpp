@@ -52,10 +52,10 @@ int DoFogLighting(int color, float fogCoord) {
     int fogValue = FogEquation(PolygonRasterizer::FogDensity, fogCoord / 192.0f);
     if (fogValue != 0)
         return ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
-    return color;
+    return color | 0xFF000000U;
 }
 Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
-    return ColorUtils::Tint(color, colorMult);
+    return ColorUtils::Tint(color, colorMult) | 0xFF000000U;
 }
 
 // Cases for PixelNoFiltSet
@@ -342,7 +342,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
     CLAMP_VAL(colR, 0x00, 0xFF0000); \
     CLAMP_VAL(colG, 0x00, 0xFF0000); \
     CLAMP_VAL(colB, 0x00, 0xFF0000); \
-    col = ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
+    col = 0xFF000000U | ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
 
 #define SCANLINE_WRITE_PIXEL(pixelFunction, px) \
     pixelFunction((Uint32*)&px, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt)
@@ -556,6 +556,8 @@ PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 colo
     Sint32 col, contLen;
     float contZ, dxZ;
     float mapZ;
+
+    color |= 0xFF000000U;
 
     #define PX_GET(pixelFunction) \
         SCANLINE_WRITE_PIXEL(pixelFunction, color)
@@ -1329,6 +1331,8 @@ PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color
     float contZ, dxZ;
     float mapZ;
 
+    color |= 0xFF000000U;
+
     #define PX_GET(pixelFunction) \
         SCANLINE_GET_MAPZ(); \
         SCANLINE_GET_INVZ(); \
@@ -1509,8 +1513,11 @@ PUBLIC STATIC void     PolygonRasterizer::SetUseDepthBuffer(bool enabled) {
 PUBLIC STATIC void     PolygonRasterizer::SetUseFog(bool enabled) {
     UseFog = enabled;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogColor(Uint8 r, Uint8 g, Uint8 b) {
-    FogColor = r << 16 | g << 8 | b;
+PUBLIC STATIC void     PolygonRasterizer::SetFogColor(float r, float g, float b) {
+    Uint8 colorR = (Uint32)(r * 0xFF);
+    Uint8 colorG = (Uint32)(g * 0xFF);
+    Uint8 colorB = (Uint32)(b * 0xFF);
+    FogColor = colorR << 16 | colorG << 8 | colorB;
 }
 PUBLIC STATIC void     PolygonRasterizer::SetFogDensity(float density) {
     FogDensity = density;

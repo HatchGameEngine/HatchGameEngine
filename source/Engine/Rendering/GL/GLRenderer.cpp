@@ -37,7 +37,7 @@ public:
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Texture.h>
-#include <Engine/Rendering/ArrayBuffer.h>
+#include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Utilities/ColorUtils.h>
@@ -543,11 +543,11 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
             continue;
 
         VertexAttribute* vertex = &vertexBuffer->Vertices[face->VerticesStartIndex];
+        Uint32 faceDrawMode = face->DrawMode | drawMode;
 
         float rgba[4];
-        if ((drawMode & DrawMode_SMOOTH_LIGHTING) == 0) {
+        if ((faceDrawMode & DrawMode_SMOOTH_LIGHTING) == 0)
             ColorUtils::Separate(vertex->Color, rgba);
-        }
 
         for (Uint32 v = 0; v < vertexCount; v++) {
             entry->X = FP16_FROM(vertex->Position.X);
@@ -561,7 +561,7 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
             entry->TextureU = FP16_FROM(vertex->UV.X);
             entry->TextureV = FP16_FROM(vertex->UV.Y);
 
-            if (drawMode & DrawMode_SMOOTH_LIGHTING)
+            if (faceDrawMode & DrawMode_SMOOTH_LIGHTING)
                 ColorUtils::Separate(vertex->Color, rgba);
             entry->ColorR = rgba[0];
             entry->ColorG = rgba[1];
@@ -582,7 +582,7 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
         glFace.MaterialInfo = face->MaterialInfo;
         glFace.Opacity = face->Blend.Opacity;
         glFace.BlendMode = face->Blend.Mode;
-        glFace.DrawMode = face->DrawMode | drawMode;
+        glFace.DrawMode = faceDrawMode;
 
         verticesStartIndex += vertexCount;
 
@@ -593,7 +593,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
         return nullptr;
 
-    polyRenderer.DrawMode = polyRenderer.ArrayBuf ? polyRenderer.ArrayBuf->DrawMode : 0;
+    polyRenderer.DrawMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->DrawMode : 0;
     polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
@@ -803,8 +803,8 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawVertexBuffer = GLRenderer::DrawVertexBuffer;
     Graphics::Internal.BindVertexBuffer = GLRenderer::BindVertexBuffer;
     Graphics::Internal.UnbindVertexBuffer = GLRenderer::UnbindVertexBuffer;
-    Graphics::Internal.BindArrayBuffer = GLRenderer::BindArrayBuffer;
-    Graphics::Internal.DrawArrayBuffer = GLRenderer::DrawArrayBuffer;
+    Graphics::Internal.BindScene3D = GLRenderer::BindScene3D;
+    Graphics::Internal.DrawScene3D = GLRenderer::DrawScene3D;
 
     Graphics::Internal.CreateVertexBuffer = GLRenderer::CreateVertexBuffer;
     Graphics::Internal.DeleteVertexBuffer = GLRenderer::DeleteVertexBuffer;
@@ -1480,24 +1480,24 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
     }
 }
 PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    if (Graphics::CurrentArrayBuffer < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+    if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
-    if (!arrayBuffer->Initialized)
+    Scene3D* scene = &Graphics::Scene3Ds[Graphics::CurrentScene3D];
+    if (!scene->Initialized)
         return;
 
     VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
     if (!vertexBuffer || !vertexBuffer->FaceCount || !vertexBuffer->VertexCount)
         return;
 
-    polyRenderer.ArrayBuf = arrayBuffer;
+    polyRenderer.ScenePtr = scene;
     polyRenderer.VertexBuf = vertexBuffer;
     polyRenderer.DoProjection = false;
     polyRenderer.DoClipping = false;
     polyRenderer.ModelMatrix = modelMatrix;
     polyRenderer.NormalMatrix = normalMatrix;
-    polyRenderer.DrawMode = arrayBuffer->DrawMode;
+    polyRenderer.DrawMode = scene->DrawMode;
     polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
     polyRenderer.DrawVertexBuffer();
 
@@ -1510,20 +1510,20 @@ PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 PUBLIC STATIC void     GLRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     GLRenderer::BindArrayBuffer(Uint32 arrayBufferIndex) {
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    GL_VertexBuffer *driverData = (GL_VertexBuffer*)arrayBuffer->Buffer->DriverData;
+PUBLIC STATIC void     GLRenderer::BindScene3D(Uint32 sceneIndex) {
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    GL_VertexBuffer *driverData = (GL_VertexBuffer*)scene->Buffer->DriverData;
     driverData->Changed = true;
 }
-PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint32 drawMode) {
-    if (arrayBufferIndex < 0 || arrayBufferIndex >= MAX_ARRAY_BUFFERS)
+PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
-    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[arrayBufferIndex];
-    if (!arrayBuffer->Initialized)
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    if (!scene->Initialized)
         return;
 
-    VertexBuffer* vertexBuffer = arrayBuffer->Buffer;
+    VertexBuffer* vertexBuffer = scene->Buffer;
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData->Changed) {
         GL_UpdateVertexBuffer(vertexBuffer, drawMode);
@@ -1539,10 +1539,10 @@ PUBLIC STATIC void     GLRenderer::DrawArrayBuffer(Uint32 arrayBufferIndex, Uint
         }
     #endif
 
-    glPointSize(arrayBuffer->PointSize);
+    glPointSize(scene->PointSize);
 
-    Matrix4x4 projMat = arrayBuffer->ProjectionMatrix;
-    Matrix4x4 viewMat = arrayBuffer->ViewMatrix;
+    Matrix4x4 projMat = scene->ProjectionMatrix;
+    Matrix4x4 viewMat = scene->ViewMatrix;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
     Matrix4x4* out = Graphics::ModelViewMatrix;
