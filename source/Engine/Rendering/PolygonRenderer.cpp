@@ -89,7 +89,7 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
-        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, NULL, NULL);
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 
     Uint32 arrayVertexCount = vertexBuffer->VertexCount;
     Uint32 maxVertexCount = arrayVertexCount + vertexCount;
@@ -174,7 +174,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
-        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, NULL, NULL);
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 
     VertexBuffer* vertexBuffer = VertexBuf;
     int arrayVertexCount = vertexBuffer->VertexCount;
@@ -378,21 +378,20 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     rend.DrawModel(model, 0);
 }
 PUBLIC void PolygonRenderer::DrawVertexBuffer() {
-    ArrayBuffer* arrayBuffer = ArrayBuf;
-    VertexBuffer* vertexBuffer = VertexBuf;
-    Matrix4x4* normalMatrix = NormalMatrix;
-
     Matrix4x4 mvpMatrix;
-    Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, &arrayBuffer->ViewMatrix, &arrayBuffer->ProjectionMatrix);
+    if (DoProjection)
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
+    else
+        Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 
     // destination
-    VertexBuffer* destVertexBuffer = arrayBuffer->Buffer;
+    VertexBuffer* destVertexBuffer = ArrayBuf->Buffer;
     int arrayFaceCount = destVertexBuffer->FaceCount;
     int arrayVertexCount = destVertexBuffer->VertexCount;
 
     // source
-    int srcFaceCount = vertexBuffer->FaceCount;
-    int srcVertexCount = vertexBuffer->VertexCount;
+    int srcFaceCount = VertexBuf->FaceCount;
+    int srcVertexCount = VertexBuf->VertexCount;
     if (!srcFaceCount || !srcVertexCount)
         return;
 
@@ -405,17 +404,17 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     VertexAttribute* arrayVertexItem = arrayVertexBuffer;
 
     // Copy the vertices into the vertex buffer
-    VertexAttribute* srcVertexItem = &vertexBuffer->Vertices[0];
+    VertexAttribute* srcVertexItem = &VertexBuf->Vertices[0];
 
     for (int f = 0; f < srcFaceCount; f++) {
-        FaceInfo* srcFaceInfoItem = &vertexBuffer->FaceInfoBuffer[f];
+        FaceInfo* srcFaceInfoItem = &VertexBuf->FaceInfoBuffer[f];
         int vertexCount = srcFaceInfoItem->NumVertices;
         int vertexCountPerFace = vertexCount;
         while (vertexCountPerFace--) {
             APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
 
-            if (normalMatrix) {
-                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix->Values);
+            if (NormalMatrix) {
+                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, NormalMatrix->Values);
             }
             else {
                 COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
@@ -453,6 +452,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
             }
         }
 
+        faceInfoItem->DrawMode = DrawMode;
         faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
         if (faceInfoItem->UseMaterial)
             faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;

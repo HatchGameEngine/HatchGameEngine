@@ -64,6 +64,8 @@ bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
 Texture*           GL_LastTexture = NULL;
 
+PolygonRenderer    polyRenderer;
+
 // TODO:
 // RetinaScale should belong to the texture (specifically TARGET_TEXTURES),
 // and drawing functions should scale based on the current render target.
@@ -588,17 +590,16 @@ void GL_UpdateVertexBuffer(VertexBuffer* vertexBuffer, Uint32 drawMode) {
     }
 }
 PolygonRenderer* GL_GetPolygonRenderer() {
-    static PolygonRenderer renderer;
-    if (!renderer.SetBuffers())
+    if (!polyRenderer.SetBuffers())
         return nullptr;
 
-    renderer.DrawMode = renderer.ArrayBuf ? renderer.ArrayBuf->DrawMode : 0;
-    renderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+    polyRenderer.DrawMode = polyRenderer.ArrayBuf ? polyRenderer.ArrayBuf->DrawMode : 0;
+    polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
 
-    GL_VertexBuffer* driverData = (GL_VertexBuffer*)renderer.VertexBuf->DriverData;
+    GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
     driverData->Changed = true;
 
-    return &renderer;
+    return &polyRenderer;
 }
 
 // Initialization and disposal functions
@@ -1479,73 +1480,26 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
     }
 }
 PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
-    ArrayBuffer* arrayBuffer = (ArrayBuffer*)Graphics::GetCurrentArrayBuffer();
-    if (arrayBuffer == nullptr)
+    if (Graphics::CurrentArrayBuffer < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return;
+
+    ArrayBuffer* arrayBuffer = &Graphics::ArrayBuffers[Graphics::CurrentArrayBuffer];
+    if (!arrayBuffer->Initialized)
         return;
 
     VertexBuffer* vertexBuffer = Graphics::VertexBuffers[vertexBufferIndex];
-    if (vertexBuffer == nullptr)
+    if (!vertexBuffer || !vertexBuffer->FaceCount || !vertexBuffer->VertexCount)
         return;
 
-    Matrix4x4 mvpMatrix;
-    Graphics::CalculateMVPMatrix(&mvpMatrix, modelMatrix, NULL, NULL);
-
-    // destination
-    VertexBuffer* destVertexBuffer = arrayBuffer->Buffer;
-    int arrayFaceCount = destVertexBuffer->FaceCount;
-    int arrayVertexCount = destVertexBuffer->VertexCount;
-
-    // source
-    int srcFaceCount = vertexBuffer->FaceCount;
-    int srcVertexCount = vertexBuffer->VertexCount;
-    if (!srcFaceCount || !srcVertexCount)
-        return;
-
-    Uint32 maxVertexCount = arrayVertexCount + srcVertexCount;
-    if (maxVertexCount > destVertexBuffer->Capacity)
-        destVertexBuffer->Resize(maxVertexCount);
-
-    FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
-    VertexAttribute* arrayVertexItem = &destVertexBuffer->Vertices[arrayVertexCount];
-
-    // Copy the vertices into the vertex buffer
-    VertexAttribute* srcVertexItem = &vertexBuffer->Vertices[0];
-
-    for (int f = 0; f < srcFaceCount; f++) {
-        FaceInfo* srcFaceInfoItem = &vertexBuffer->FaceInfoBuffer[f];
-        int vertexCount = srcFaceInfoItem->NumVertices;
-        int vertexCountPerFace = vertexCount;
-        while (vertexCountPerFace--) {
-            APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
-
-            if (normalMatrix) {
-                APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, normalMatrix->Values);
-            }
-            else {
-                COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
-            }
-
-            arrayVertexItem->Color = srcVertexItem->Color;
-            arrayVertexItem->UV = srcVertexItem->UV;
-            arrayVertexItem++;
-            srcVertexItem++;
-        }
-
-        faceInfoItem->DrawMode = arrayBuffer->DrawMode;
-        faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
-        if (faceInfoItem->UseMaterial)
-            faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;
-        faceInfoItem->SetBlendState(Graphics::GetBlendState());
-        faceInfoItem->NumVertices = vertexCount;
-        faceInfoItem++;
-        srcFaceInfoItem++;
-
-        arrayVertexCount += vertexCount;
-        arrayFaceCount++;
-    }
-
-    destVertexBuffer->VertexCount = arrayVertexCount;
-    destVertexBuffer->FaceCount = arrayFaceCount;
+    polyRenderer.ArrayBuf = arrayBuffer;
+    polyRenderer.VertexBuf = vertexBuffer;
+    polyRenderer.DoProjection = false;
+    polyRenderer.DoClipping = false;
+    polyRenderer.ModelMatrix = modelMatrix;
+    polyRenderer.NormalMatrix = normalMatrix;
+    polyRenderer.DrawMode = arrayBuffer->DrawMode;
+    polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+    polyRenderer.DrawVertexBuffer();
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     driverData->Changed = true;
