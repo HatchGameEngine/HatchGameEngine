@@ -6109,8 +6109,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (gif->Colors) {
                             for (int p = 0; p < 256; p++)
                                 SoftwareRenderer::PaletteColors[palIndex][p] = gif->Colors[p];
-                            if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
-                                ColorUtils::ConvertFromABGRtoARGB(SoftwareRenderer::PaletteColors[palIndex], 256);
                             Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
