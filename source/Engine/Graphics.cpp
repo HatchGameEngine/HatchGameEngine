@@ -145,39 +145,37 @@ GraphicsFunctions*   Graphics::GfxFunctions = &Graphics::Internal;
 const char*          Graphics::Renderer = "default";
 
 PUBLIC STATIC void     Graphics::Init() {
-	Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
+    Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
     Graphics::SpriteSheetTextureMap = new HashMap<Texture*>(NULL, 32);
 
     Graphics::ModelViewMatrix = Matrix4x4::Create();
     Graphics::MatrixStack.push(Graphics::ModelViewMatrix);
 
-	Graphics::CurrentClip.Enabled = false;
-	Graphics::BackupClip.Enabled = false;
+    Graphics::CurrentClip.Enabled = false;
+    Graphics::BackupClip.Enabled = false;
 
-	Graphics::BlendColors[0] =
-	Graphics::BlendColors[1] =
-	Graphics::BlendColors[2] =
-	Graphics::BlendColors[3] = 1.0;
+    Graphics::BlendColors[0] =
+    Graphics::BlendColors[1] =
+    Graphics::BlendColors[2] =
+    Graphics::BlendColors[3] = 1.0;
 
-	Graphics::TintColors[0] =
-	Graphics::TintColors[1] =
-	Graphics::TintColors[2] =
-	Graphics::TintColors[3] = 1.0;
+    Graphics::TintColors[0] =
+    Graphics::TintColors[1] =
+    Graphics::TintColors[2] =
+    Graphics::TintColors[3] = 1.0;
 
-	int w, h;
-	SDL_GetWindowSize(Application::Window, &w, &h);
+    int w, h;
+    SDL_GetWindowSize(Application::Window, &w, &h);
 
-	Viewport* vp = &Graphics::CurrentViewport;
-	vp->X =
-	vp->Y = 0.0f;
-	vp->Width = w;
-	vp->Height = h;
-	Graphics::BackupViewport = Graphics::CurrentViewport;
+    Viewport* vp = &Graphics::CurrentViewport;
+    vp->X =
+    vp->Y = 0.0f;
+    vp->Width = w;
+    vp->Height = h;
+    Graphics::BackupViewport = Graphics::CurrentViewport;
 
-	Graphics::GfxFunctions->Init();
+    Graphics::GfxFunctions->Init();
 
-    Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
-	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
     Log::Print(Log::LOG_VERBOSE, "Window Size: %d x %d", w, h);
     Log::Print(Log::LOG_INFO, "Window Pixel Format: %s", SDL_GetPixelFormatName(SDL_GetWindowPixelFormat(Application::Window)));
     Log::Print(Log::LOG_INFO, "VSync: %s", Graphics::VsyncEnabled ? "true" : "false");
@@ -257,17 +255,17 @@ PUBLIC STATIC void     Graphics::Dispose() {
     for (Uint32 i = 0; i < MAX_3D_SCENES; i++)
         Graphics::DeleteScene3D(i);
 
-	for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
-		next = texture->Next;
+    for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
+        next = texture->Next;
         Graphics::DisposeTexture(texture);
     }
-	Graphics::TextureHead = NULL;
+    Graphics::TextureHead = NULL;
 
     Graphics::SpriteSheetTextureMap->Clear();
 
     Graphics::GfxFunctions->Dispose();
 
-	delete Graphics::TextureMap;
+    delete Graphics::TextureMap;
     delete Graphics::SpriteSheetTextureMap;
     while (Graphics::MatrixStack.size()) {
         delete Graphics::MatrixStack.top();

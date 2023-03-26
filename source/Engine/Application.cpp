@@ -164,6 +164,9 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
         Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
     }
 
+    Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
+    Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
+
     SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
     Application::InitSettings("config.ini");

@@ -27,6 +27,26 @@ extern "C" {
 SDL_Renderer* Renderer = NULL;
 float         SDL2Renderer::RenderScale = 1.0f;
 
+vector<Texture*> TextureList;
+
+// TODO: Would it just be better to turn Graphics::TextureMap into a vector?
+// The OpenGL renderer benefits from it being a map, but this method would
+// make sense for the D3D renderer too.
+void FindTextureID(Texture* texture) {
+    for (size_t i = 0; i <= TextureList.size(); i++) {
+        if (i == TextureList.size()) {
+            texture->ID = TextureList.size();
+            TextureList.push_back(texture);
+            return;
+        }
+        else if (TextureList[i] == nullptr) {
+            texture->ID = i;
+            TextureList[i] = texture;
+            break;
+        }
+    }
+}
+
 // Initialization and disposal functions
 PUBLIC STATIC void     SDL2Renderer::Init() {
     Log::Print(Log::LOG_INFO, "Renderer: SDL2");
@@ -136,7 +156,7 @@ PUBLIC STATIC Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access,
     *textureData = SDL_CreateTexture(Renderer, format, access, width, height);
     SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
 
-    texture->ID = Graphics::TextureMap->Count;
+    FindTextureID(texture);
     Graphics::TextureMap->Put(texture->ID, texture);
 
     return texture;
@@ -160,6 +180,8 @@ PUBLIC STATIC void     SDL2Renderer::DisposeTexture(Texture* texture) {
     if (!textureData)
         return;
 
+    if (texture->ID < TextureList.size())
+        TextureList[texture->ID] = nullptr;
     Graphics::TextureMap->Remove(texture->ID);
 
     SDL_DestroyTexture(*textureData);

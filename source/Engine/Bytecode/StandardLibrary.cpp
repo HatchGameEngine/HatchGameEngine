@@ -256,9 +256,9 @@ namespace LOCAL {
     }
     inline Texture*       GetTexture(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Graphics::TextureMap->Count) {
+        if (!Graphics::TextureMap->Exists((Uint32)where)) {
             if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                "Texture index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
+                "Texture index \"%d\" does not exist.", where) == ERROR_RES_CONTINUE)
                 BytecodeObjectManager::Threads[threadID].ReturnFromNative();
         }
 
