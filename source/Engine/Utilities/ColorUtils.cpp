@@ -66,16 +66,16 @@ PUBLIC STATIC void   ColorUtils::ConvertFromARGBtoABGR(Uint32* argb, int count) 
         Uint8 red = (*argb >> 16) & 0xFF;
         Uint8 green = (*argb >> 8) & 0xFF;
         Uint8 blue = *argb & 0xFF;
-        *argb = 0xFF000000U | red << 16 | green << 8 | blue;
+        *argb = 0xFF000000U | blue << 16 | green << 8 | red;
         argb++;
     }
 }
 PUBLIC STATIC void   ColorUtils::ConvertFromABGRtoARGB(Uint32* argb, int count) {
     for (int p = 0; p < count; p++) {
-        Uint8 red = (*argb >> 16) & 0xFF;
+        Uint8 blue = (*argb >> 16) & 0xFF;
         Uint8 green = (*argb >> 8) & 0xFF;
-        Uint8 blue = *argb & 0xFF;
-        *argb = 0xFF000000U | blue << 16 | green << 8 | red;
+        Uint8 red = *argb & 0xFF;
+        *argb = 0xFF000000U | red << 16 | green << 8 | blue;
         argb++;
     }
 }
