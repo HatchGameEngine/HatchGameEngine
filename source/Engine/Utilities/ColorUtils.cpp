@@ -62,10 +62,20 @@ PUBLIC STATIC Uint32 ColorUtils::Blend(Uint32 color1, Uint32 color2, int percent
     return (rb & 0xFF00FFU) | (g & 0x00FF00U);
 }
 PUBLIC STATIC void   ColorUtils::ConvertFromARGBtoABGR(Uint32* argb, int count) {
-    Uint8* color = (Uint8*)argb;
     for (int p = 0; p < count; p++) {
-        *argb = 0xFF000000U | color[0] << 16 | color[1] << 8 | color[2];
-        color += 4;
+        Uint8 red = (*argb >> 16) & 0xFF;
+        Uint8 green = (*argb >> 8) & 0xFF;
+        Uint8 blue = *argb & 0xFF;
+        *argb = 0xFF000000U | red << 16 | green << 8 | blue;
+        argb++;
+    }
+}
+PUBLIC STATIC void   ColorUtils::ConvertFromABGRtoARGB(Uint32* argb, int count) {
+    for (int p = 0; p < count; p++) {
+        Uint8 red = (*argb >> 16) & 0xFF;
+        Uint8 green = (*argb >> 8) & 0xFF;
+        Uint8 blue = *argb & 0xFF;
+        *argb = 0xFF000000U | blue << 16 | green << 8 | red;
         argb++;
     }
 }

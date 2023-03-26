@@ -6109,6 +6109,8 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (gif->Colors) {
                             for (int p = 0; p < 256; p++)
                                 SoftwareRenderer::PaletteColors[palIndex][p] = gif->Colors[p];
+                            if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
+                                ColorUtils::ConvertFromABGRtoARGB(SoftwareRenderer::PaletteColors[palIndex], 256);
                             Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
@@ -6129,6 +6131,8 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (png->Paletted) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 SoftwareRenderer::PaletteColors[palIndex][p] = png->Colors[p];
+                            if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
+                                ColorUtils::ConvertFromABGRtoARGB(SoftwareRenderer::PaletteColors[palIndex], png->NumPaletteColors);
                             Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
@@ -6187,7 +6191,9 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
-    return INTEGER_VAL((int)(SoftwareRenderer::PaletteColors[palIndex][colorIndex] & 0xFFFFFFU));
+    Uint32 color = SoftwareRenderer::PaletteColors[palIndex][colorIndex];
+    Graphics::ConvertFromARGBtoNative(&color, 1);
+    return INTEGER_VAL((int)(color & 0xFFFFFFU));
 }
 /***
  * Palette.SetColor
@@ -6202,8 +6208,9 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
     Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
-    SoftwareRenderer::PaletteColors[palIndex][colorIndex] = (hex & 0xFFFFFFU) | 0xFF000000U;
-    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][colorIndex], 1);
+    Uint32* color = &SoftwareRenderer::PaletteColors[palIndex][colorIndex];
+    *color = (hex & 0xFFFFFFU) | 0xFF000000U;
+    Graphics::ConvertFromARGBtoNative(color, 1);
     return NULL_VAL;
 }
 /***
