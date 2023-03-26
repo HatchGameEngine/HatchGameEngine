@@ -383,6 +383,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
             for (int g = 0; g < scenelayer.ScrollInfoCount; g++) {
                 scenelayer.ScrollInfos[g].RelativeParallax = 0x0100;
                 scenelayer.ScrollInfos[g].ConstantParallax = 0x0000;
+                scenelayer.ScrollInfos[g].CanDeform = false;
             }
 
             Scene::Layers.push_back(scenelayer);

@@ -200,9 +200,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValu
         // Log::Print(Log::LOG_VERBOSE, "Freeing object %p of type %s", AS_OBJECT(value), GetTypeString(value));
         switch (OBJECT_TYPE(value)) {
             case OBJ_NATIVE:
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjNative));
-                GarbageCollector::GarbageSize -= sizeof(ObjNative);
-                Memory::Free(AS_OBJECT(value));
+                FREE_OBJ(AS_OBJECT(value), ObjNative);
                 break;
                 
             default:
@@ -226,9 +224,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function)
 
     ChunkFree(&function->Chunk);
 
-    assert(GarbageCollector::GarbageSize >= sizeof(ObjFunction));
-    GarbageCollector::GarbageSize -= sizeof(ObjFunction);
-    Memory::Free(function);
+    FREE_OBJ(function, ObjFunction);
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
     // Subfunctions are already freed as a byproduct of the AllFunctionList,
@@ -243,18 +239,14 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
     if (klass->Name)
         FreeValue(OBJECT_VAL(klass->Name));
 
-    assert(GarbageCollector::GarbageSize >= sizeof(ObjClass));
-    GarbageCollector::GarbageSize -= sizeof(ObjClass);
-    Memory::Free(klass);
+    FREE_OBJ(klass, ObjClass);
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeString(ObjString* string) {
     if (string->Chars != NULL)
         Memory::Free(string->Chars);
     string->Chars = NULL;
 
-    assert(GarbageCollector::GarbageSize >= sizeof(ObjString));
-    GarbageCollector::GarbageSize -= sizeof(ObjString);
-    Memory::Free(string);
+    FREE_OBJ(string, ObjString);
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
@@ -266,9 +258,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
                 break;
             }
             case OBJ_NATIVE: {
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjNative));
-                GarbageCollector::GarbageSize -= sizeof(ObjNative);
-                Memory::Free(AS_OBJECT(value));
+                FREE_OBJ(AS_OBJECT(value), ObjNative);
                 break;
             }
             default:
@@ -461,9 +451,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
         Obj* objectPointer = AS_OBJECT(value);
         switch (OBJECT_TYPE(value)) {
             case OBJ_BOUND_METHOD: {
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjBoundMethod));
-                GarbageCollector::GarbageSize -= sizeof(ObjBoundMethod);
-                Memory::Free(objectPointer);
+                FREE_OBJ(objectPointer, ObjBoundMethod);
                 break;
             }
             case OBJ_INSTANCE: {
@@ -473,9 +461,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
                 // to free them.
                 delete instance->Fields;
 
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjInstance));
-                GarbageCollector::GarbageSize -= sizeof(ObjInstance);
-                Memory::Free(instance);
+                FREE_OBJ(instance, ObjInstance);
                 break;
             }
             case OBJ_STRING: {
@@ -491,9 +477,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
                 array->Values->clear();
                 delete array->Values;
 
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjArray));
-                GarbageCollector::GarbageSize -= sizeof(ObjArray);
-                Memory::Free(array);
+                FREE_OBJ(array, ObjArray);
                 break;
             }
             case OBJ_MAP: {
@@ -510,14 +494,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
                 // Free Values table
                 delete map->Values;
 
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjMap));
-                GarbageCollector::GarbageSize -= sizeof(ObjMap);
-                Memory::Free(map);
-                break;
-            }
-            case OBJ_CLASS: {
-                ObjClass* klass = AS_CLASS(value);
-                FreeClass(klass);
+                FREE_OBJ(map, ObjMap);
                 break;
             }
             case OBJ_STREAM: {
@@ -526,9 +503,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
                 if (!stream->Closed)
                     stream->StreamPtr->Close();
 
-                assert(GarbageCollector::GarbageSize >= sizeof(ObjStream));
-                GarbageCollector::GarbageSize -= sizeof(ObjStream);
-                Memory::Free(stream);
+                FREE_OBJ(stream, ObjStream);
                 break;
             }
             default:

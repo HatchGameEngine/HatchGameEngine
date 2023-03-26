@@ -11201,23 +11201,27 @@ static VMValue XML_FillMap(XMLNode* parent) {
  */
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
+    VMValue mapValue = NULL_VAL;
     if (BytecodeObjectManager::Lock()) {
         ObjString* string = AS_STRING(args[0]);
-        MemoryStream* stream = MemoryStream::New(string->Chars, string->Length);
+        char* text = StringUtils::Duplicate(string->Chars);
 
+        MemoryStream* stream = MemoryStream::New(text, strlen(text));
         if (stream) {
             XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
+            if (xmlRoot)
+                mapValue = XML_FillMap(xmlRoot);
 
-            if (xmlRoot) {
-                VMValue mapValue = XML_FillMap(xmlRoot);
-                BytecodeObjectManager::Unlock();
-                return mapValue;
-            }
+            // XMLParser will realloc text, so the stream needs to free it.
+            stream->owns_memory = true;
+            stream->Close();
         }
+        else
+            Memory::Free(text);
 
         BytecodeObjectManager::Unlock();
     }
-    return NULL_VAL;
+    return mapValue;
 }
 // #endregion
 

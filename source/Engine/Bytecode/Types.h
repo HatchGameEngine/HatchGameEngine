@@ -252,6 +252,11 @@ ObjArray*          NewArray();
 ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
 
+#define FREE_OBJ(obj, type) \
+    assert(GarbageCollector::GarbageSize >= sizeof(type)); \
+    GarbageCollector::GarbageSize -= sizeof(type); \
+    Memory::Free(obj)
+
 bool               ValuesEqual(VMValue a, VMValue b);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {

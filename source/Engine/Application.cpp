@@ -1148,8 +1148,6 @@ PUBLIC STATIC void Application::Cleanup() {
 
     SDL_Quit();
 
-    // Memory::PrintLeak();
-
 #ifdef MSYS
     FreeConsole();
 #endif
