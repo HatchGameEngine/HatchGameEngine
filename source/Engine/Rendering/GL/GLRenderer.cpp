@@ -838,7 +838,7 @@ PUBLIC STATIC void     GLRenderer::Dispose() {
     ShaderShape->Dispose(); delete ShaderShape;
     ShaderTexturedShape->Dispose(); delete ShaderTexturedShape;
 
-    SDL_GL_DeleteContext(Context); CHECK_GL();
+    SDL_GL_DeleteContext(Context);
 }
 
 // Texture management functions
