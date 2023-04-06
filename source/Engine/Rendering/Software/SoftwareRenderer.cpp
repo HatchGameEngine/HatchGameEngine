@@ -2914,7 +2914,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         }
         else {
             blendState.Mode = BlendFlag_OPAQUE;
-            blendState.Opacity = 0;
+            blendState.Opacity = 0xFF;
         }
 
         int* multTableAt;
