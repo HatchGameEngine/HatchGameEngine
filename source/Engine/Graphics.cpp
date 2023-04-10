@@ -1145,19 +1145,19 @@ PUBLIC STATIC void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertic
 
 PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
     data[3].Position.X = FP16_TO(x);
-    data[3].Position.Y = FP16_TO(y);
+    data[3].Position.Y = FP16_TO(y - (frameH * scaleY));
     data[3].Position.Z = FP16_TO(z);
 
     data[2].Position.X = FP16_TO(x + (frameW * scaleX));
-    data[2].Position.Y = FP16_TO(y);
+    data[2].Position.Y = FP16_TO(y - (frameH * scaleY));
     data[2].Position.Z = FP16_TO(z);
 
     data[1].Position.X = FP16_TO(x + (frameW * scaleX));
-    data[1].Position.Y = FP16_TO(y + (frameH * scaleY));
+    data[1].Position.Y = FP16_TO(y);
     data[1].Position.Z = FP16_TO(z);
 
     data[0].Position.X = FP16_TO(x);
-    data[0].Position.Y = FP16_TO(y + (frameH * scaleY));
+    data[0].Position.Y = FP16_TO(y);
     data[0].Position.Z = FP16_TO(z);
 
     for (int i = 0; i < 4; i++) {

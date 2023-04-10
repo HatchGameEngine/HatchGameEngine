@@ -2183,7 +2183,7 @@ VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
     VertexAttribute data[4];
 
     x += frameStr.OffsetX * scaleX;
-    y += frameStr.OffsetY * scaleY;
+    y -= frameStr.OffsetY * scaleY;
 
     Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
     DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
@@ -2247,7 +2247,7 @@ VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
     VertexAttribute data[4];
 
     x += frameStr.OffsetX * scaleX;
-    y += frameStr.OffsetY * scaleY;
+    y -= frameStr.OffsetY * scaleY;
 
     Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
     DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
