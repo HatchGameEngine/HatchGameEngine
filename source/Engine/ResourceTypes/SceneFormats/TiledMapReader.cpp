@@ -208,6 +208,8 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     TileSpriteInfo info;
     Scene::TileSpriteInfos.clear();
 
+    int SlotID = 0;
+
     for (size_t i = 0; i < map->children.size(); i++) {
         if (XMLParser::MatchToken(map->children[i]->name, "tileset")) {
             XMLNode* tileset = map->children[i];
@@ -410,6 +412,8 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                     obj->InitialX = obj->X;
                     obj->InitialY = obj->Y;
                     obj->List = objectList;
+                    obj->SlotID = SlotID;
+                    SlotID++;
                     Scene::AddStatic(objectList, obj);
 
                     if (object->attributes.Exists("width") &&

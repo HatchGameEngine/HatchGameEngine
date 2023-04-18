@@ -20,6 +20,8 @@ public:
     int          Pauseable = true;
     int          Persistent = false;
     int          Interactable = true;
+    int          ActiveStatus = 4; // Active_BOUNDS
+    int          InRange = false;
 
     float        X = 0.0f;
     float        Y = 0.0f;
@@ -77,6 +79,8 @@ public:
     float        GravityStrength = 0.0f;
     int          OnGround = false;
     int          Direction = 0;
+    
+    int          SlotID = 0;
 
     bool         Removed = false;
 

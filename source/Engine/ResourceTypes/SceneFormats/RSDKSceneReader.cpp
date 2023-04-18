@@ -395,6 +395,7 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
             obj->InitialX = obj->X;
             obj->InitialY = obj->Y;
             obj->List = objectList;
+            obj->SlotID = SlotID;
 
             // HACK: This is so Player ends up in the current SlotID,
             //       since this currently cannot be changed during runtime.

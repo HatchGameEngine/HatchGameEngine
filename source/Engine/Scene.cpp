@@ -78,6 +78,12 @@ public:
     static char                      CurrentScene[256];
     static bool                      DoRestart;
     static bool                      NoPersistency;
+
+    static int                       TimeEnabled;
+    static int                       TimeCounter;
+    static int                       Minutes;
+    static int                       Seconds;
+    static int                       Milliseconds;
 };
 #endif
 
@@ -167,6 +173,13 @@ char                      Scene::CurrentScene[256];
 bool                      Scene::DoRestart = false;
 bool                      Scene::NoPersistency = false;
 
+// Time Variables
+int                       Scene::TimeEnabled = 0;
+int                       Scene::TimeCounter = 0;
+int                       Scene::Milliseconds = 0;
+int                       Scene::Seconds = 0;
+int                       Scene::Minutes = 0;
+
 // Resource managing variables
 vector<ResourceType*>     Scene::SpriteList;
 vector<ResourceType*>     Scene::ImageList;
@@ -195,7 +208,7 @@ void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
     BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -223,7 +236,7 @@ void UpdateObjectEarly(Entity* ent) {
     }
 }
 void UpdateObjectLate(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -251,7 +264,7 @@ void UpdateObjectLate(Entity* ent) {
     }
 }
 void UpdateObject(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
         return;
 
     if (!ent->Active)
@@ -260,29 +273,86 @@ void UpdateObject(Entity* ent) {
     bool onScreenX = (ent->OnScreenHitboxW == 0.0f);
     bool onScreenY = (ent->OnScreenHitboxH == 0.0f);
 
-    if (Scene::ViewsActive < 2) {
-        if (!onScreenX) {
-            onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[0].X &&
-                         ent->X - ent->OnScreenHitboxW * 0.5f <  Scene::Views[0].X + Scene::Views[0].Width);
-        }
-        if (!onScreenY) {
-            onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[0].Y &&
-                         ent->Y - ent->OnScreenHitboxH * 0.5f <  Scene::Views[0].Y + Scene::Views[0].Height);
-        }
-    } else {
+    switch (ent->ActiveStatus) {
+    default:
+        break;
+
+    case Active_NEVER:
+    case Active_PAUSED:
+        ent->InRange = false;
+        break;
+
+    case Active_ALWAYS:
+    case Active_NORMAL:
+        ent->InRange = true;
+        break;
+
+    case Active_BOUNDS:
+        ent->InRange = false;
+
         for (int i = 0; i < Scene::ViewsActive; i++) {
             if (!onScreenX) {
                 onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
-                             ent->X - ent->OnScreenHitboxW * 0.5f <  Scene::Views[i].X + Scene::Views[i].Width);
+                    ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
             }
             if (!onScreenY) {
                 onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[i].Y &&
-                             ent->Y - ent->OnScreenHitboxH * 0.5f <  Scene::Views[i].Y + Scene::Views[i].Height);
+                    ent->Y - ent->OnScreenHitboxH * 0.5f < Scene::Views[i].Y + Scene::Views[i].Height);
             }
         }
+
+        if (onScreenX && onScreenY)
+            ent->InRange = true;
+
+        break;
+
+    case Active_XBOUNDS:
+        ent->InRange = false;
+
+        for (int i = 0; i < Scene::ViewsActive; i++) {
+            if (!onScreenX) {
+                onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
+                    ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
+            }
+        }
+
+        if (onScreenX)
+            ent->InRange = true;
+
+        break;
+
+    case Active_YBOUNDS:
+        ent->InRange = false;
+
+        for (int i = 0; i < Scene::ViewsActive; i++) {
+            if (!onScreenY) {
+                onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[i].Y &&
+                    ent->Y - ent->OnScreenHitboxH * 0.5f < Scene::Views[i].Y + Scene::Views[i].Height);
+            }
+        }
+
+        if (onScreenY)
+            ent->InRange = true;
+
+        break;
+
+    case Active_RBOUNDS:
+        ent->InRange = false;
+
+        // TODO: Double check this works properly
+        for (int v = 0; v < Scene::ViewsActive; v++) {
+            float sx = abs(ent->X - Scene::Views[v].X);
+            float sy = abs(ent->Y - Scene::Views[v].Y);
+
+            if (sx * sx + sy * sy <= ent->OnScreenHitboxW || onScreenX || onScreenY) {
+                ent->InRange = true;
+                break;
+            }
+        }
+        break;
     }
 
-    if (onScreenX && onScreenY) {
+    if (ent->InRange) {
         double elapsed = Clock::GetTicks();
 
         ent->OnScreen = true;
@@ -566,8 +636,10 @@ PUBLIC STATIC void Scene::Update() {
         AudioManager::Unlock();
     #endif
 
-    if (!Scene::Paused)
+    if (!Scene::Paused) {
         Scene::Frame++;
+        Scene::ProcessSceneTimer();
+    }
 }
 
 PUBLIC STATIC void Scene::SetViewActive(int viewIndex, bool active) {
@@ -999,6 +1071,11 @@ PUBLIC STATIC void Scene::Restart() {
     Scene::Frame = 0;
     Scene::Paused = false;
 
+    Scene::TimeCounter = 0;
+    Scene::Minutes = 0;
+    Scene::Seconds = 0;
+    Scene::Milliseconds = 0;
+
     Scene::ResetViews();
 
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
@@ -1227,6 +1304,28 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
 
     Scene::AddStaticClass();
 }
+
+PUBLIC STATIC void Scene::ProcessSceneTimer() {
+    if (Scene::TimeEnabled) {
+        Scene::TimeCounter += 100;
+
+        if (Scene::TimeCounter >= 6000) {
+            Scene::TimeCounter -= 6025;
+
+            Scene::Seconds++;
+            if (Scene::Seconds >= 60) {
+                Scene::Seconds = 0;
+
+                Scene::Minutes++;
+                if (Scene::Minutes >= 60)
+                    Scene::Minutes = 0;
+            }
+        }
+
+        Scene::Milliseconds = Scene::TimeCounter / 60; // Refresh rate
+    }
+}
+
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (nothrow) ObjectList(objectName);
     if (objectList && BytecodeObjectManager::LoadClass(objectName))

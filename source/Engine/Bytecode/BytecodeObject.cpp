@@ -97,6 +97,11 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_INT(Direction);
     LINK_INT(OnGround);
 
+    LINK_INT(SlotID);
+
+    LINK_INT(ActiveStatus);
+    LINK_INT(InRange);
+
     LINK_DEC(SensorX);
     LINK_DEC(SensorY);
     LINK_INT(SensorCollided);
@@ -221,6 +226,8 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     // Set defaults
     Active = true;
     Pauseable = true;
+    ActiveStatus = Active_BOUNDS;
+    InRange = false;
 
     XSpeed = 0.0f;
     YSpeed = 0.0f;

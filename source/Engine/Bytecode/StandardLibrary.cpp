@@ -11575,6 +11575,17 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
+    // #region Active Statuses
+    DEF_ENUM(Active_NEVER);
+    DEF_ENUM(Active_ALWAYS);
+    DEF_ENUM(Active_NORMAL);
+    DEF_ENUM(Active_PAUSED);
+    DEF_ENUM(Active_BOUNDS);
+    DEF_ENUM(Active_XBOUNDS);
+    DEF_ENUM(Active_YBOUNDS);
+    DEF_ENUM(Active_RBOUNDS);
+    // #endregion
+
     // #region Ease
     INIT_CLASS(Ease);
     DEF_NATIVE(Ease, InSine);
@@ -12128,6 +12139,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_LINK_DECIMAL("LowPassFilter", &AudioManager::LowPassFilter);
 
     DEF_LINK_INT("Scene_Frame", &Scene::Frame);
+    DEF_LINK_INT("Scene_TimeEnabled", &Scene::TimeEnabled);
+    DEF_LINK_INT("Scene_TimeCounter", &Scene::TimeCounter);
+    DEF_LINK_INT("Scene_Minutes", &Scene::Minutes);
+    DEF_LINK_INT("Scene_Seconds", &Scene::Seconds);
+    DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
     DEF_CONST_INT("Scene_MaxViews", MAX_SCENE_VIEWS);
 
     DEF_CONST_DECIMAL("Math_PI", M_PI);
