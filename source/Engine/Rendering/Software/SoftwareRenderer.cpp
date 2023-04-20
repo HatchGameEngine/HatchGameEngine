@@ -539,27 +539,27 @@ static void (*PixelNoFiltFunctions[])(Uint32*, Uint32*, BlendState&, int*, int*)
 
 // Tinted versions
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    *dst = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetTransparent(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetAdditive(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetSubtract(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 
 static void (*PixelTintFunctions[])(Uint32*, Uint32*, BlendState&, int*, int*) = {
