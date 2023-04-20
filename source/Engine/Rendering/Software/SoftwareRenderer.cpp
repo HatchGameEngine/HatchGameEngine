@@ -301,6 +301,35 @@ PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, f
     out->Values[15] = 0.0f;
 }
 
+void GetClipRegion(int& clip_x1, int& clip_y1, int& clip_x2, int& clip_y2) {
+    if (Graphics::CurrentClip.Enabled) {
+        clip_x1 = Graphics::CurrentClip.X;
+        clip_y1 = Graphics::CurrentClip.Y;
+        clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
+        clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
+
+        if (clip_x1 < 0)
+            clip_x1 = 0;
+        if (clip_y1 < 0)
+            clip_y1 = 0;
+        if (clip_x2 > (int)Graphics::CurrentRenderTarget->Width)
+            clip_x2 = (int)Graphics::CurrentRenderTarget->Width;
+        if (clip_y2 > (int)Graphics::CurrentRenderTarget->Height)
+            clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    }
+    else {
+        clip_x1 = 0;
+        clip_y1 = 0;
+        clip_x2 = (int)Graphics::CurrentRenderTarget->Width;
+        clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
+    }
+}
+bool CheckClipRegion(int clip_x1, int clip_y1, int clip_x2, int clip_y2) {
+    if (clip_x2 < 0 || clip_y2 < 0 || clip_x1 >= clip_x2 || clip_y1 >= clip_y2)
+        return false;
+    return true;
+}
+
 // Shader-related functions
 PUBLIC STATIC void     SoftwareRenderer::UseShader(void* shader) {
     if (!shader) {
@@ -1305,18 +1334,9 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     int dst_y2 = y + y2;
 
     int minX, maxX, minY, maxY;
-    if (Graphics::CurrentClip.Enabled) {
-        minX = Graphics::CurrentClip.X;
-        minY = Graphics::CurrentClip.Y;
-        maxX = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        maxY = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-    }
-    else {
-        minX = 0;
-        minY = 0;
-        maxX = (int)Graphics::CurrentRenderTarget->Width;
-        maxY = (int)Graphics::CurrentRenderTarget->Height;
-    }
+    GetClipRegion(minX, minY, maxX, maxY);
+    if (!CheckClipRegion(minX, minY, maxX, maxY))
+        return;
 
     int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
     int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
@@ -1382,32 +1402,21 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int dst_x2 = x + rad;
     int dst_y2 = y + rad;
 
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_x2 > Graphics::CurrentClip.X + Graphics::CurrentClip.Width)
-            dst_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-
-        if (dst_x1 < Graphics::CurrentClip.X)
-            dst_x1 = Graphics::CurrentClip.X;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_x2 > (int)Graphics::CurrentRenderTarget->Width)
-            dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-
-        if (dst_x1 < 0)
-            dst_x1 = 0;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_x1 >= dst_x2)
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
         return;
-    if (dst_y1 >= dst_y2)
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     BlendState blendState = GetBlendState();
@@ -1523,32 +1532,21 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     int dst_x2 = x + w;
     int dst_y2 = y + h;
 
-    if (Graphics::CurrentClip.Enabled) {
-        if (dst_x2 > Graphics::CurrentClip.X + Graphics::CurrentClip.Width)
-            dst_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height)
-            dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-
-        if (dst_x1 < Graphics::CurrentClip.X)
-            dst_x1 = Graphics::CurrentClip.X;
-        if (dst_y1 < Graphics::CurrentClip.Y)
-            dst_y1 = Graphics::CurrentClip.Y;
-    }
-    else {
-        if (dst_x2 > (int)Graphics::CurrentRenderTarget->Width)
-            dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
-        if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height)
-            dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
-
-        if (dst_x1 < 0)
-            dst_x1 = 0;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-    }
-
-    if (dst_x1 >= dst_x2)
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
         return;
-    if (dst_y1 >= dst_y2)
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     BlendState blendState = GetBlendState();
@@ -1673,57 +1671,28 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     int blendFlag = blendState.Mode;
     int opacity = blendState.Opacity;
 
-    int clip_x1 = 0,
-        clip_y1 = 0,
-        clip_x2 = 0,
-        clip_y2 = 0;
-
-    if (Graphics::CurrentClip.Enabled) {
-        clip_x1 = Graphics::CurrentClip.X;
-        clip_y1 = Graphics::CurrentClip.Y;
-        clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-
-        if (dst_x2 > clip_x2)
-            dst_x2 = clip_x2;
-        if (dst_y2 > clip_y2)
-            dst_y2 = clip_y2;
-
-        if (dst_x1 < clip_x1) {
-            src_x1 += clip_x1 - dst_x1;
-            src_x2 -= clip_x1 - dst_x1;
-            dst_x1 = clip_x1;
-        }
-        if (dst_y1 < clip_y1) {
-            src_y1 += clip_y1 - dst_y1;
-            src_y2 -= clip_y1 - dst_y1;
-            dst_y1 = clip_y1;
-        }
-    }
-    else {
-        clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
-        clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
-
-        if (dst_x2 > clip_x2)
-            dst_x2 = clip_x2;
-        if (dst_y2 > clip_y2)
-            dst_y2 = clip_y2;
-
-        if (dst_x1 < 0) {
-            src_x1 += -dst_x1;
-            src_x2 -= -dst_x1;
-            dst_x1 = 0;
-        }
-        if (dst_y1 < 0) {
-            src_y1 += -dst_y1;
-            src_y2 -= -dst_y1;
-            dst_y1 = 0;
-        }
-    }
-
-    if (dst_x1 >= dst_x2)
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
         return;
-    if (dst_y1 >= dst_y2)
+
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x1 < clip_x1) {
+        src_x1 += clip_x1 - dst_x1;
+        src_x2 -= clip_x1 - dst_x1;
+        dst_x1 = clip_x1;
+    }
+    if (dst_y1 < clip_y1) {
+        src_y1 += clip_y1 - dst_y1;
+        src_y2 -= clip_y1 - dst_y1;
+        dst_y1 = clip_y1;
+    }
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     #define DEFORM_X { \
@@ -1977,43 +1946,21 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     dst_x2 += x + 1;
     dst_y2 += y + 1;
 
-    int clip_x1 = 0,
-        clip_y1 = 0,
-        clip_x2 = 0,
-        clip_y2 = 0;
-
-    if (Graphics::CurrentClip.Enabled) {
-        clip_x1 = Graphics::CurrentClip.X,
-        clip_y1 = Graphics::CurrentClip.Y,
-        clip_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width,
-        clip_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-
-        if (dst_x1 < clip_x1)
-            dst_x1 = clip_x1;
-        if (dst_y1 < clip_y1)
-            dst_y1 = clip_y1;
-        if (dst_x2 > clip_x2)
-            dst_x2 = clip_x2;
-        if (dst_y2 > clip_y2)
-            dst_y2 = clip_y2;
-    }
-    else {
-        clip_x2 = (int)Graphics::CurrentRenderTarget->Width,
-        clip_y2 = (int)Graphics::CurrentRenderTarget->Height;
-
-        if (dst_x1 < 0)
-            dst_x1 = 0;
-        if (dst_y1 < 0)
-            dst_y1 = 0;
-        if (dst_x2 > clip_x2)
-            dst_x2 = clip_x2;
-        if (dst_y2 > clip_y2)
-            dst_y2 = clip_y2;
-    }
-
-    if (dst_x1 >= dst_x2)
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
         return;
-    if (dst_y1 >= dst_y2)
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     #define DEFORM_X { \
@@ -2515,14 +2462,21 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* dstPxLine;
 
-    if (Graphics::CurrentClip.Enabled) {
-        dst_x1 = Graphics::CurrentClip.X;
-        dst_y1 = Graphics::CurrentClip.Y;
-        dst_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-    }
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
 
-    if (dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     bool canCollide = (layer->Flags & SceneLayer::FLAGS_COLLIDEABLE);
@@ -2855,14 +2809,21 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* dstPxLine;
 
-    if (Graphics::CurrentClip.Enabled) {
-        dst_x1 = Graphics::CurrentClip.X;
-        dst_y1 = Graphics::CurrentClip.Y;
-        dst_x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
-        dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height;
-    }
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
 
-    if (dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
         return;
 
     int layerWidthInBits = layer->WidthInBits;

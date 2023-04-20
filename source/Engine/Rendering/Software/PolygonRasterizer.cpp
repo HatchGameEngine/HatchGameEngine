@@ -374,7 +374,9 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
     if (dst_y2 > (int)Graphics::CurrentRenderTarget->Height) \
         dst_y2 = (int)Graphics::CurrentRenderTarget->Height; \
     if (dst_y1 < 0) \
-        dst_y1 = 0
+        dst_y1 = 0; \
+    if (dst_y2 < 0 || dst_y1 >= dst_y2) \
+        return
 
 // Draws a polygon
 PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
@@ -393,9 +395,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -463,9 +462,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* co
 
     GetPolygonBounds<Vector2>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -536,9 +532,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 colo
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -633,9 +626,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* c
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
 
-    if (dst_y1 >= dst_y2)
-        return;
-
     Scanline::Prepare(dst_y1, dst_y2);
 
     int* lastColor = colors;
@@ -725,9 +715,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -856,9 +843,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -1070,9 +1054,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
 
-    if (dst_y1 >= dst_y2)
-        return;
-
     Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
@@ -1186,9 +1167,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
@@ -1311,9 +1289,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
 
-    if (dst_y1 >= dst_y2)
-        return;
-
     Scanline::Prepare(dst_y1, dst_y2);
 
     Vector3* lastVector = positions;
@@ -1402,9 +1377,6 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* co
 
     GetPolygonBounds<Vector3>(positions, count, dst_y1, dst_y2);
     CLIP_BOUNDS();
-
-    if (dst_y1 >= dst_y2)
-        return;
 
     Scanline::Prepare(dst_y1, dst_y2);
 
