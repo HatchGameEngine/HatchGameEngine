@@ -3469,7 +3469,7 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.UseTinting
  * \desc Sets whether or not to use color tinting when drawing.
- * \param useDeform (Boolean): Whether or not to use color tinting when drawing.
+ * \param useTinting (Boolean): Whether or not to use color tinting when drawing.
  * \ns Draw
  */
 VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
