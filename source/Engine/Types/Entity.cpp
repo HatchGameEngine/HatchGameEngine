@@ -245,17 +245,6 @@ PUBLIC int  Entity::SolidCollideWithObject(Entity* other, int flag) {
     float deltaSquaredY1 = otherY - (other->Y);
     float deltaSquaredY2 = initialOtherY - (other->Y);
 
-    if (collideSideHori && collideSideVert) {
-        // print
-        //     " deltaSquaredX1: " + deltaSquaredX1 +
-        //     " deltaSquaredX2: " + deltaSquaredX2 +
-        //     " deltaSquaredY1: " + deltaSquaredY1 +
-        //     " deltaSquaredY2: " + deltaSquaredY2;
-        // print
-        //     " collideSideHori: " + collideSideHori +
-        //     " collideSideVert: " + collideSideVert;
-    }
-
     deltaSquaredX1 *= deltaSquaredX1;
     deltaSquaredX2 *= deltaSquaredX2;
     deltaSquaredY1 *= deltaSquaredY1;

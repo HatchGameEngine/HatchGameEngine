@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/ResourceTypes/ISound.h>
 
 class StandardLibrary {
 public:
@@ -14,7 +15,6 @@ public:
 #include <Engine/Graphics.h>
 #include <Engine/Scene.h>
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/ResourceTypes/ISound.h>
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/Compiler.h>
@@ -317,25 +317,26 @@ namespace LOCAL {
 // NOTE:
 // Integers specifically need to be whole integers.
 // Floats can be just any countable real number.
-PUBLIC STATIC int       StandardLibrary::GetInteger(VMValue* args, int index) {
-    Uint32 threadID = 0;
+PUBLIC STATIC int          StandardLibrary::GetInteger(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetInteger(args, index, threadID);
 }
-PUBLIC STATIC float     StandardLibrary::GetDecimal(VMValue* args, int index) {
-    Uint32 threadID = 0;
+PUBLIC STATIC float        StandardLibrary::GetDecimal(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetDecimal(args, index, threadID);
 }
-PUBLIC STATIC char*     StandardLibrary::GetString(VMValue* args, int index) {
-    Uint32 threadID = 0;
+PUBLIC STATIC char*        StandardLibrary::GetString(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetString(args, index, threadID);
 }
-PUBLIC STATIC ObjArray* StandardLibrary::GetArray(VMValue* args, int index) {
-    Uint32 threadID = 0;
+PUBLIC STATIC ObjArray*    StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetArray(args, index, threadID);
 }
-PUBLIC STATIC ISprite*  StandardLibrary::GetSprite(VMValue* args, int index) {
-    Uint32 threadID = 0;
+PUBLIC STATIC ISprite*     StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetSprite(args, index, threadID);
+}
+PUBLIC STATIC ISound*      StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
+    return LOCAL::GetSound(args, index, threadID);
+}
+PUBLIC STATIC ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
+    return LOCAL::GetInstance(args, index, threadID);
 }
 
 PUBLIC STATIC void      StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -1875,7 +1876,7 @@ VMValue Draw_BindScene3D(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", MAX_3D_SCENES);
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES);
         return NULL_VAL;
     }
 
@@ -5728,6 +5729,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)
  * \ns Music
  */
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
@@ -5736,8 +5738,11 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
+    float fadeInAfterFinished = GET_ARG_OPT(4, GetDecimal, 0.0f);
+    if (fadeInAfterFinished < 0.f)
+        fadeInAfterFinished = 0.f;
 
-    AudioManager::PushMusic(audio, false, 0, panning, speed, volume);
+    AudioManager::PushMusicAt(audio, 0.0, false, 0, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
@@ -5757,8 +5762,11 @@ VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
+    float fadeInAfterFinished = GET_ARG_OPT(5, GetDecimal, 0.0f);
+    if (fadeInAfterFinished < 0.f)
+        fadeInAfterFinished = 0.f;
 
-    AudioManager::PushMusicAt(audio, start_point, false, 0, panning, speed, volume);
+    AudioManager::PushMusicAt(audio, start_point, false, 0, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
@@ -5776,6 +5784,7 @@ VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.StopWithFadeOut
  * \desc Removes the music at the top of the music stack, fading it out over a time period.
+ * \param seconds (Decimal): The time period to fade out the music, in seconds.
  * \ns Music
  */
 VMValue Music_StopWithFadeOut(int argCount, VMValue* args, Uint32 threadID) {
@@ -5783,7 +5792,7 @@ VMValue Music_StopWithFadeOut(int argCount, VMValue* args, Uint32 threadID) {
     float seconds = GET_ARG(0, GetDecimal);
     if (seconds < 0.f)
         seconds = 0.f;
-    AudioManager::FadeMusic(seconds);
+    AudioManager::FadeOutMusic(seconds);
     return NULL_VAL;
 }
 /***
@@ -5869,7 +5878,7 @@ VMValue Music_LoopAtTime(int argCount, VMValue* args, Uint32 threadID) {
     float speed = GET_ARG_OPT(5, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(6, GetDecimal, 1.0f);
 
-    AudioManager::PushMusicAt(audio, start_point, true, loop_point, panning, speed, volume);
+    AudioManager::PushMusicAt(audio, start_point, true, loop_point, panning, speed, volume, 0.0);
     return NULL_VAL;
 }
 /***
@@ -8648,11 +8657,11 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetSound);
-    int channel = GET_ARG(0, GetInteger);
     float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, false, 0, panning, speed, volume);
+    AudioManager::AudioStop(audio);
+    AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
     return NULL_VAL;
 }
 /***
@@ -8669,12 +8678,12 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetSound);
-    int channel = GET_ARG(0, GetInteger);
     int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
     float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, true, loopPoint, panning, speed, volume);
+    AudioManager::AudioStop(audio);
+    AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
     return NULL_VAL;
 }
 /***
@@ -8687,9 +8696,9 @@ VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    int channel = GET_ARG(0, GetInteger);
+    ISound* audio = GET_ARG(0, GetSound);
 
-    AudioManager::AudioStop(channel % AudioManager::SoundArrayLength);
+    AudioManager::AudioStop(audio);
     return NULL_VAL;
 }
 /***
@@ -8701,21 +8710,21 @@ VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int channel = GET_ARG(0, GetInteger);
-    AudioManager::AudioPause(channel % AudioManager::SoundArrayLength);
+    ISound* audio = GET_ARG(0, GetSound);
+    AudioManager::AudioPause(audio);
     return NULL_VAL;
 }
 /***
  * Sound.Resume
- * \desc Unpauses an paused sound.
+ * \desc Unpauses a paused sound.
  * \param sound (Integer): The sound index to resume.
  * \return
  * \ns Sound
  */
 VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int channel = GET_ARG(0, GetInteger);
-    AudioManager::AudioUnpause(channel % AudioManager::SoundArrayLength);
+    ISound* audio = GET_ARG(0, GetSound);
+    AudioManager::AudioUnpause(audio);
     return NULL_VAL;
 }
 /***
@@ -8750,14 +8759,205 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsPlaying
- * \param sound (Integer): The sound index to play.
+ * \param sound (Integer): The sound index.
  * \desc Checks whether a sound is currently playing or not.
  * \ns Sound
  */
 VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
+    ISound* audio = GET_ARG(0, GetSound);
+    return INTEGER_VAL(AudioManager::AudioIsPlaying(audio));
+}
+/***
+ * Sound.PlayMultiple
+ * \desc Plays a sound once, without interrupting channels playing the same sound.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    ISound* audio = GET_ARG(0, GetSound);
+    float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
+    float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
+    float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
+    AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
+    return NULL_VAL;
+}
+/***
+ * Sound.LoopMultiple
+ * \desc Plays a sound, looping back when it ends, without interrupting channels playing the same sound.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    ISound* audio = GET_ARG(0, GetSound);
+    int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+    float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
+    float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
+    float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
+    AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
+    return NULL_VAL;
+}
+/***
+ * Sound.PlayAtChannel
+ * \desc Plays a sound at the specified channel.
+ * \param channel (Integer): The channel index.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
     int channel = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(AudioManager::AudioIsPlaying(channel));
+    ISound* audio = GET_ARG(1, GetSound);
+    float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
+    float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
+    float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, false, 0, panning, speed, volume, nullptr);
+    return NULL_VAL;
+}
+/***
+ * Sound.LoopAtChannel
+ * \desc Plays a sound at the specified channel, looping back when it ends.
+ * \param channel (Integer): The channel index.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int channel = GET_ARG(0, GetInteger);
+    ISound* audio = GET_ARG(1, GetSound);
+    int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
+    float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
+    float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
+    float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, true, loopPoint, panning, speed, volume, nullptr);
+    return NULL_VAL;
+}
+/***
+ * Sound.StopChannel
+ * \desc Stops a channel.
+ * \param channel (Integer): The channel index to stop.
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_StopChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int channel = GET_ARG(0, GetInteger);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::AudioStop(channel % AudioManager::SoundArrayLength);
+    return NULL_VAL;
+}
+/***
+ * Sound.PauseChannel
+ * \desc Pauses a channel.
+ * \param channel (Integer): The channel index to pause.
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_PauseChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int channel = GET_ARG(0, GetInteger);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::AudioPause(channel % AudioManager::SoundArrayLength);
+    return NULL_VAL;
+}
+/***
+ * Sound.ResumeChannel
+ * \desc Unpauses a paused channel.
+ * \param channel (Integer): The channel index to resume.
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_ResumeChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int channel = GET_ARG(0, GetInteger);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::AudioUnpause(channel % AudioManager::SoundArrayLength);
+    return NULL_VAL;
+}
+/***
+ * Sound.AlterChannel
+ * \desc Alters the playback conditions of the specified channel.
+ * \param channel (Integer): The channel index to resume.
+ * \param panning (Decimal): Control the panning of the sound. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.
+ * \param speed (Decimal): Control the speed of the sound. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed.
+ * \param volume (Decimal): Controls the volume of the sound. 0.0 is muted, 1.0 is normal volume.
+ * \return
+ * \ns Sound
+ */
+VMValue Sound_AlterChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    int channel = GET_ARG(0, GetInteger);
+    float panning = GET_ARG(1, GetDecimal);
+    float speed = GET_ARG(2, GetDecimal);
+    float volume = GET_ARG(3, GetDecimal);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    AudioManager::AlterChannel(channel % AudioManager::SoundArrayLength, panning, speed, volume);
+    return NULL_VAL;
+}
+/***
+ * Sound.GetFreeChannel
+ * \desc Gets the first channel index that is not currently playing any sound.
+ * \return Returns the available channel index, or <code>-1</code> if no channel was available.
+ * \ns Sound
+ */
+VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(AudioManager::GetFreeChannel());
+}
+/***
+ * Sound.IsChannelFree
+ * \desc Checks whether a channel is currently playing any sound or not.
+ * \param sound (Integer): The channel index.
+ * \ns Sound
+ */
+VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int channel = GET_ARG(0, GetInteger);
+    if (channel < 0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(AudioManager::AudioIsPlaying(channel % AudioManager::SoundArrayLength));
 }
 // #endregion
 
@@ -11913,6 +12113,16 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sound, PauseAll);
     DEF_NATIVE(Sound, ResumeAll);
     DEF_NATIVE(Sound, IsPlaying);
+    DEF_NATIVE(Sound, PlayMultiple);
+    DEF_NATIVE(Sound, LoopMultiple);
+    DEF_NATIVE(Sound, PlayAtChannel);
+    DEF_NATIVE(Sound, LoopAtChannel);
+    DEF_NATIVE(Sound, StopChannel);
+    DEF_NATIVE(Sound, PauseChannel);
+    DEF_NATIVE(Sound, ResumeChannel);
+    DEF_NATIVE(Sound, AlterChannel);
+    DEF_NATIVE(Sound, GetFreeChannel);
+    DEF_NATIVE(Sound, IsChannelFree);
     // #endregion
 
     // #region Sprite
