@@ -283,7 +283,7 @@ PUBLIC        size_t       OGG::SeekSample(int index) {
     SampleIndex = (size_t)index;
     return SampleIndex;
 }
-PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
+PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 #ifdef USING_LIBOGG
     int read;
     Uint32 total = 0,
@@ -319,8 +319,8 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
             // Reached end of file, what should be done?
             if (read == 0) {
                 // If we want to loop, seek to loop point and continue reading.
-                if (LoopIndex >= 0) {
-                    SeekSample(LoopIndex);
+                if (loopIndex >= 0) {
+                    SeekSample(loopIndex);
                     continue;
                 }
 
@@ -361,8 +361,8 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
         // Reached end of file, what should be done?
         if (read == 0) {
             // If we want to loop, seek to loop point and continue reading.
-            if (LoopIndex >= 0) {
-                SeekSample(LoopIndex);
+            if (loopIndex >= 0) {
+                SeekSample(loopIndex);
                 continue;
             }
 

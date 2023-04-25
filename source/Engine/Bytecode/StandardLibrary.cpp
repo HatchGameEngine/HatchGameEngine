@@ -5902,7 +5902,7 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetMusic);
-    return DECIMAL_VAL((float)audio->SoundData->GetPosition());
+    return DECIMAL_VAL((float)AudioManager::GetMusicPosition(audio));
 }
 /***
  * Music.Alter
