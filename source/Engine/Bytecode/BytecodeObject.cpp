@@ -690,11 +690,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_PlaySound(int argCount, VMValue* args, 
     float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
+    int channel = -1;
     if (self) {
         AudioManager::StopOriginSound((void*)self, audio);
-        AudioManager::PlaySound(audio, false, 0, panning, speed, volume, (void*)self);
+        channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, (void*)self);
     }
-    return NULL_VAL;
+    return INTEGER_VAL(channel);
 }
 PUBLIC STATIC VMValue BytecodeObject::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
@@ -704,11 +705,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_LoopSound(int argCount, VMValue* args, 
     float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
+    int channel = -1;
     if (self) {
         AudioManager::StopOriginSound((void*)self, audio);
-        AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, (void*)self);
+        channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, (void*)self);
     }
-    return NULL_VAL;
+    return INTEGER_VAL(channel);
 }
 PUBLIC STATIC VMValue BytecodeObject::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);

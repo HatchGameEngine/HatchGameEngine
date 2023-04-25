@@ -300,8 +300,8 @@ PUBLIC STATIC int    AudioManager::PlaySound(ISound* music, bool loop, int loopP
     return -1;
 }
 
-PUBLIC STATIC void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume) {
-    PushMusicAt(music, 0.0, loop, lp, pan, speed, volume, 0.0);
+PUBLIC STATIC void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
+    PushMusicAt(music, 0.0, loop, lp, pan, speed, volume, fadeInAfterFinished);
 }
 PUBLIC STATIC void   AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
     if (music->LoadFailed) return;

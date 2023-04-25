@@ -3994,7 +3994,7 @@
         <hr/>
         <p id="Reference_Music_PlayAtTime">
         <h2 style="margin-bottom: 8px;">Music.PlayAtTime</h2>
-        <code>Music.PlayAtTime(music, startPoint[, panning, speed, volume])</code>
+        <code>Music.PlayAtTime(music, startPoint[, panning, speed, volume, fadeInAfterFinished])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it at a time (in seconds).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -4003,6 +4003,7 @@
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
+        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)</li>
         </ul>
         </p>
         <hr/>
@@ -4046,7 +4047,7 @@
         <hr/>
         <p id="Reference_Music_Loop">
         <h2 style="margin-bottom: 8px;">Music.Loop</h2>
-        <code>Music.Loop(music, loop, loopPoint[, panning, speed, volume])</code>
+        <code>Music.Loop(music, loop, loopPoint[, panning, speed, volume, fadeInAfterFinished])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -4056,12 +4057,13 @@
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
+        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)</li>
         </ul>
         </p>
         <hr/>
         <p id="Reference_Music_LoopAtTime">
         <h2 style="margin-bottom: 8px;">Music.LoopAtTime</h2>
-        <code>Music.LoopAtTime(music, startPoint, loop, loopPoint[, panning, speed, volume])</code>
+        <code>Music.LoopAtTime(music, startPoint, loop, loopPoint[, panning, speed, volume, fadeInAfterFinished])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -4072,6 +4074,7 @@
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
+        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)</li>
         </ul>
         </p>
         <hr/>
@@ -5446,6 +5449,8 @@
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
         </p>
         <hr/>
         <p id="Reference_Sound_Loop">
@@ -5460,6 +5465,8 @@
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
         </p>
         <hr/>
         <p id="Reference_Sound_Stop">
@@ -5531,6 +5538,8 @@
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
         </p>
         <hr/>
         <p id="Reference_Sound_LoopMultiple">
@@ -5545,6 +5554,8 @@
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
         </p>
         <hr/>
         <p id="Reference_Sound_PlayAtChannel">
