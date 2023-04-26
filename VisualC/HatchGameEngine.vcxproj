@@ -149,6 +149,7 @@ CD ..</Command>
   <ItemGroup>
     <ClCompile Include="..\source\engine\Application.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp" />
+    <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeObjectManager.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />
@@ -254,7 +255,7 @@ CD ..</Command>
     <ClCompile Include="..\source\Libraries\spng.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\engine\audio\StackNode.h" />
+    <ClInclude Include="..\include\engine\audio\AudioChannel.h" />
     <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h" />
     <ClInclude Include="..\include\engine\bytecode\Types.h" />
     <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h" />

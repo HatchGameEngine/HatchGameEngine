@@ -8,7 +8,6 @@ public:
     // Common
     Stream*        StreamPtr = NULL;
     SDL_AudioSpec  InputFormat;
-    SDL_AudioSpec  OutputFormat;
 
     vector<Uint8*> Samples;
     size_t         SampleSize;
@@ -16,9 +15,6 @@ public:
 
     int            TotalPossibleSamples;
     Uint8*         SampleBuffer = NULL;
-    Uint8*         SampleBufferHead = NULL;
-
-    Sint32         LoopIndex = -1;
 };
 #endif
 
@@ -31,7 +27,7 @@ public:
 PUBLIC VIRTUAL int    SoundFormat::LoadSamples(size_t count) {
     return 0;
 }
-PUBLIC VIRTUAL int    SoundFormat::GetSamples(Uint8* buffer, size_t count) {
+PUBLIC VIRTUAL int    SoundFormat::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
     if (SampleIndex >= Samples.size()) {
         if (LoadSamples(count) == 0) // If we've reached end of file
             return 0;
@@ -56,6 +52,36 @@ PUBLIC VIRTUAL size_t SoundFormat::SeekSample(int index) {
 PUBLIC VIRTUAL size_t SoundFormat::TellSample() {
     return SampleIndex;
 }
+PUBLIC void           SoundFormat::CopySamples(SoundFormat* dest, int bytesForSample) {
+    // Load the entire sound
+    if (SampleBuffer == nullptr) {
+        SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
+        Samples.reserve(TotalPossibleSamples);
+    }
+
+    if (Samples.size() < TotalPossibleSamples) {
+        Samples.clear();
+
+        SeekSample(0);
+        GetSamples(SampleBuffer, TotalPossibleSamples, 0);
+
+        char* buffer = (char*)SampleBuffer;
+        while (bytesForSample >= SampleSize) {
+            Samples.push_back((Uint8*)buffer);
+            buffer += SampleSize;
+            bytesForSample -= SampleSize;
+        }
+    }
+
+    // The destination SoundData's Samples are the same as the source SoundData's Samples.
+    // Why? Because Samples is just a list of pointers to the sample buffer,
+    // which the destination SoundData does not need to own a copy of.
+    // So as long as the source SampleBuffer hasn't been freed, this is completely fine to do.
+    dest->Samples = Samples;
+    dest->SampleSize = SampleSize;
+    dest->TotalPossibleSamples = TotalPossibleSamples;
+    dest->InputFormat = InputFormat;
+}
 
 PUBLIC VIRTUAL double SoundFormat::GetPosition() {
     return (double)SampleIndex / InputFormat.freq;
@@ -72,8 +98,6 @@ PROTECTED void        SoundFormat::LoadFinish() {
     SampleIndex = 0;
     SampleSize = ((InputFormat.format & 0xFF) >> 3) * InputFormat.channels;
     SampleBuffer = NULL;
-    // SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
-    // Samples.reserve(TotalPossibleSamples);
 }
 
 PUBLIC VIRTUAL        SoundFormat::~SoundFormat() {
@@ -92,8 +116,6 @@ PUBLIC VIRTUAL void   SoundFormat::Dispose() {
 
     if (SampleBuffer)
         Memory::Free(SampleBuffer);
-
-    SampleBufferHead = NULL;
 
     if (StreamPtr) {
         StreamPtr->Close();

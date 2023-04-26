@@ -1870,7 +1870,7 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
     }
     // Sounds
     AudioManager::ClearMusic();
-    AudioManager::AudioStopAll();
+    AudioManager::ClearSounds();
 
     AudioManager::Lock();
     for (size_t i = 0, i_sz = Scene::SoundList.size(); i < i_sz; i++) {

@@ -20,6 +20,16 @@ public:
         y1 = Graphics::CurrentClip.Y; \
         x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width; \
         y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height; \
+        if (x1 < 0) \
+            x1 = 0; \
+        if (y1 < 0) \
+            y1 = 0; \
+        if (x2 > (int)Graphics::CurrentRenderTarget->Width) \
+            x2 = (int)Graphics::CurrentRenderTarget->Width; \
+        if (y2 > (int)Graphics::CurrentRenderTarget->Height) \
+            y2 = (int)Graphics::CurrentRenderTarget->Height; \
+        if (x2 < 0 || y2 < 0 || x1 >= x2 || y1 >= y2) \
+            return; \
     } \
     else { \
         x1 = 0; \

@@ -872,28 +872,37 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
             return false;
         }
         if (klass->Extended == 0) {
-            BytecodeObjectManager::DefineNative(klass, "InView", BytecodeObject::VM_InView);
-            BytecodeObjectManager::DefineNative(klass, "Animate", BytecodeObject::VM_Animate);
-            BytecodeObjectManager::DefineNative(klass, "ApplyPhysics", BytecodeObject::VM_ApplyPhysics);
-            BytecodeObjectManager::DefineNative(klass, "SetAnimation", BytecodeObject::VM_SetAnimation);
-            BytecodeObjectManager::DefineNative(klass, "ResetAnimation", BytecodeObject::VM_ResetAnimation);
-            BytecodeObjectManager::DefineNative(klass, "GetHitboxFromSprite", BytecodeObject::VM_GetHitboxFromSprite);
-            BytecodeObjectManager::DefineNative(klass, "ReturnHitboxFromSprite", BytecodeObject::VM_ReturnHitboxFromSprite);
-            BytecodeObjectManager::DefineNative(klass, "AddToRegistry", BytecodeObject::VM_AddToRegistry);
-            BytecodeObjectManager::DefineNative(klass, "RemoveFromRegistry", BytecodeObject::VM_RemoveFromRegistry);
-            BytecodeObjectManager::DefineNative(klass, "CollidedWithObject", BytecodeObject::VM_CollidedWithObject);
-            BytecodeObjectManager::DefineNative(klass, "CollideWithObject", BytecodeObject::VM_CollideWithObject);
-            BytecodeObjectManager::DefineNative(klass, "SolidCollideWithObject", BytecodeObject::VM_SolidCollideWithObject);
-            BytecodeObjectManager::DefineNative(klass, "TopSolidCollideWithObject", BytecodeObject::VM_TopSolidCollideWithObject);
-            BytecodeObjectManager::DefineNative(klass, "PropertyGet", BytecodeObject::VM_PropertyGet);
-            BytecodeObjectManager::DefineNative(klass, "PropertyExists", BytecodeObject::VM_PropertyExists);
-            BytecodeObjectManager::DefineNative(klass, "SetViewVisibility", BytecodeObject::VM_SetViewVisibility);
-            BytecodeObjectManager::DefineNative(klass, "SetViewOverride", BytecodeObject::VM_SetViewOverride);
+            BytecodeObjectManager::AddNativeFunctions(klass);
         }
         Classes->Put(objectName, klass);
     }
 
     return true;
+}
+PUBLIC STATIC void   BytecodeObjectManager::AddNativeFunctions(ObjClass* klass) {
+#define DEF_NATIVE(name) BytecodeObjectManager::DefineNative(klass, #name, BytecodeObject::VM_##name)
+    DEF_NATIVE(InView);
+    DEF_NATIVE(Animate);
+    DEF_NATIVE(ApplyPhysics);
+    DEF_NATIVE(SetAnimation);
+    DEF_NATIVE(ResetAnimation);
+    DEF_NATIVE(GetHitboxFromSprite);
+    DEF_NATIVE(ReturnHitboxFromSprite);
+    DEF_NATIVE(AddToRegistry);
+    DEF_NATIVE(RemoveFromRegistry);
+    DEF_NATIVE(CollidedWithObject);
+    DEF_NATIVE(CollideWithObject);
+    DEF_NATIVE(SolidCollideWithObject);
+    DEF_NATIVE(TopSolidCollideWithObject);
+    DEF_NATIVE(PropertyGet);
+    DEF_NATIVE(PropertyExists);
+    DEF_NATIVE(SetViewVisibility);
+    DEF_NATIVE(SetViewOverride);
+    DEF_NATIVE(PlaySound);
+    DEF_NATIVE(LoopSound);
+    DEF_NATIVE(StopSound);
+    DEF_NATIVE(StopAllSounds);
+#undef DEF_NATIVE
 }
 PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction(const char* objectName) {
     return BytecodeObjectManager::SpawnObject(objectName);
