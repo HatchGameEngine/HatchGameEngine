@@ -114,8 +114,10 @@ PUBLIC VIRTUAL void   SoundFormat::Dispose() {
     Samples.clear();
     Samples.shrink_to_fit();
 
-    if (SampleBuffer)
+    if (SampleBuffer) {
         Memory::Free(SampleBuffer);
+        SampleBuffer = NULL;
+    }
 
     if (StreamPtr) {
         StreamPtr->Close();

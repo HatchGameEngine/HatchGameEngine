@@ -231,8 +231,10 @@ PUBLIC STATIC void   AudioManager::ClampParams(float& pan, float& speed, float& 
 }
 
 PRIVATE STATIC void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback, ISound* sound) {
-    if (!playback->SoundData)
+    if (!playback->SoundData) {
         playback->SoundData = new SoundFormat;
+        playback->OwnsSoundData = true;
+    }
 
     SoundFormat* srcSndData = sound->SoundData;
     if (srcSndData) {
