@@ -7085,6 +7085,18 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].OffsetY);
 }
 /***
+ * Scene.GetLayerDrawGroup
+ * \desc Sets the draw group of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
+ * \ns Scene
+ */
+VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DrawGroup);
+}
+/***
  * Scene.GetTileSize
  * \desc Gets the size of tiles.
  * \return Returns the size of tiles.
@@ -12014,6 +12026,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerHeight);
     DEF_NATIVE(Scene, GetLayerOffsetX);
     DEF_NATIVE(Scene, GetLayerOffsetY);
+    DEF_NATIVE(Scene, GetLayerDrawGroup);
     DEF_NATIVE(Scene, GetTileSize);
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
