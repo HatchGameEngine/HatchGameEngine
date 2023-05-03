@@ -15,6 +15,7 @@ public:
     int              DeviceBytesPerSample = 0;
     SDL_AudioStream* ConversionStream = NULL;
     SoundFormat*     SoundData = NULL;
+    bool             OwnsSoundData = false;
     Sint32           LoopIndex = -1;
 };
 #endif
@@ -89,8 +90,10 @@ PUBLIC void AudioPlayback::Dispose() {
     }
 
     if (SoundData) {
-        SoundData->Dispose();
-        delete SoundData;
+        if (OwnsSoundData) {
+            SoundData->Dispose();
+            delete SoundData;
+        }
         SoundData = NULL;
     }
 }

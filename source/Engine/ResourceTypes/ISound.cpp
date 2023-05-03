@@ -92,6 +92,7 @@ PUBLIC AudioPlayback* ISound::CreatePlayer() {
 
     AudioPlayback* playback = new AudioPlayback(Format, requiredSamples, BytesPerSample, AudioManager::BytesPerSample);
     playback->SoundData = SoundData;
+    playback->OwnsSoundData = false;
 
     return playback;
 }
