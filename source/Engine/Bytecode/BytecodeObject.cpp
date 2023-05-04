@@ -68,10 +68,13 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_INT(CurrentAnimation);
     LINK_INT(CurrentFrame);
     LINK_INT(CurrentFrameCount);
-    LINK_DEC(CurrentFrameTimeLeft);
     LINK_DEC(AnimationSpeedMult);
     LINK_INT(AnimationSpeedAdd);
     LINK_INT(AutoAnimate);
+    LINK_DEC(AnimationSpeed);
+    LINK_DEC(AnimationTimer);
+    LINK_INT(AnimationFrameDuration);
+    LINK_INT(AnimationLoopIndex);
 
     LINK_INT(OnScreen);
     LINK_DEC(OnScreenHitboxW);
@@ -255,10 +258,14 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     Sprite = -1;
     CurrentAnimation = -1;
     CurrentFrame = -1;
-    CurrentFrameTimeLeft = 0.0;
+    CurrentFrameCount = 0;
     AnimationSpeedMult = 1.0;
     AnimationSpeedAdd = 0;
     AutoAnimate = true;
+    AnimationSpeed = 0;
+    AnimationTimer = 0.0;
+    AnimationFrameDuration = 0;
+    AnimationLoopIndex = 0;
 
     HitboxW = 0.0f;
     HitboxH = 0.0f;

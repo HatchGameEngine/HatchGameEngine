@@ -57,10 +57,13 @@ public:
     int          CurrentAnimation = -1;
     int          CurrentFrame = -1;
     int          CurrentFrameCount = 0;
-    float        CurrentFrameTimeLeft = 0.0;
     float        AnimationSpeedMult = 1.0;
     int          AnimationSpeedAdd = 0;
     int          AutoAnimate = true;
+    float        AnimationSpeed = 0.0;
+    float        AnimationTimer = 0.0;
+    int          AnimationFrameDuration = 0;
+    int          AnimationLoopIndex = 0;
 
     float        HitboxW = 0.0f;
     float        HitboxH = 0.0f;
@@ -101,34 +104,26 @@ PUBLIC void Entity::ApplyMotion() {
     Y += YSpeed;
 }
 PUBLIC void Entity::Animate() {
-    if (Sprite < 0) return;
-    if ((size_t)Sprite >= Scene::SpriteList.size()) return;
+    if (Sprite < 0 || (size_t)Sprite >= Scene::SpriteList.size())
+        return;
 
     ISprite* sprite = Scene::SpriteList[Sprite]->AsSprite;
 
-    if (CurrentAnimation < 0) return;
-    if ((size_t)CurrentAnimation >= sprite->Animations.size()) return;
+    if (CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
+        return;
 
-    if (CurrentFrameTimeLeft > 0.0f) {
-        CurrentFrameTimeLeft -= (sprite->Animations[CurrentAnimation].AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-        if (CurrentFrameTimeLeft <= 0.0f) {
-            CurrentFrame += 1.0f;
-            if ((size_t)CurrentFrame >= sprite->Animations[CurrentAnimation].Frames.size()) {
-                CurrentFrame  = sprite->Animations[CurrentAnimation].FrameToLoop;
-                OnAnimationFinish();
-            }
+    AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 
-            if ((size_t)CurrentFrame < sprite->Animations[CurrentAnimation].Frames.size()) {
-                sprite = Scene::SpriteList[Sprite]->AsSprite;
-                CurrentFrameTimeLeft = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-            }
-            else {
-                CurrentFrameTimeLeft = 1.0f;
-            }
+    while (AnimationTimer > AnimationFrameDuration) {
+        CurrentFrame++;
+
+        AnimationTimer -= AnimationFrameDuration;
+        if (CurrentFrame >= CurrentFrameCount) {
+            CurrentFrame = AnimationLoopIndex;
+            OnAnimationFinish();
         }
-    }
-    else {
-        CurrentFrameTimeLeft = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+
+        AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
     }
 }
 PUBLIC void Entity::SetAnimation(int animation, int frame) {
@@ -136,22 +131,24 @@ PUBLIC void Entity::SetAnimation(int animation, int frame) {
         ResetAnimation(animation, frame);
 }
 PUBLIC void Entity::ResetAnimation(int animation, int frame) {
-    if (Sprite < 0) return;
-    if ((size_t)Sprite >= Scene::SpriteList.size()) return;
+    if (Sprite < 0 || (size_t)Sprite >= Scene::SpriteList.size())
+        return;
 
     ISprite* sprite = Scene::SpriteList[Sprite]->AsSprite;
 
-    if (animation < 0) return;
-    if ((size_t)animation >= sprite->Animations.size()) return;
+    if (animation < 0 || (size_t)animation >= sprite->Animations.size())
+        return;
 
-    if (frame < 0) return;
-    if ((size_t)frame >= sprite->Animations[animation].Frames.size()) return;
+    if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size())
+        return;
 
-    CurrentAnimation = animation;
-    CurrentFrame = frame;
-    CurrentFrameTimeLeft = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-    CurrentFrameCount = (int)sprite->Animations[CurrentAnimation].Frames.size();
-    AnimationSpeedAdd = 0;
+    CurrentAnimation        = animation;
+    AnimationTimer          = 0.0;
+    CurrentFrame            = frame;
+    CurrentFrameCount       = (int)sprite->Animations[CurrentAnimation].Frames.size();
+    AnimationFrameDuration  = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+    AnimationSpeed          = sprite->Animations[CurrentAnimation].AnimationSpeed;
+    AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
 }
 
 PUBLIC bool Entity::CollideWithObject(Entity* other) {
