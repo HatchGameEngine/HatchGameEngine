@@ -584,7 +584,7 @@ PUBLIC STATIC void Application::SetWindowSize(int window_w, int window_h) {
     int defaultMonitor = Application::DefaultMonitor;
     SDL_SetWindowPosition(Application::Window, SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor));
 
-    // Incase the window just doesn't resize (Android)
+    // In case the window just doesn't resize (Android)
     SDL_GetWindowSize(Application::Window, &window_w, &window_h);
 
     Graphics::Resize(window_w, window_h);

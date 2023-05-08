@@ -30,4 +30,13 @@ struct Animation {
     vector<AnimFrame> Frames;
 };
 
+enum {
+    ROTSTYLE_NONE = 0,
+    ROTSTYLE_FULL = 1,
+    ROTSTYLE_45DEG = 2,
+    ROTSTYLE_90DEG = 3,
+    ROTSTYLE_180DEG = 4,
+    ROTSTYLE_STATICFRAMES = 5,
+};
+
 #endif /* ENGINE_SPRITES_ANIMATION_H */

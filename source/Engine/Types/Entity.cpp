@@ -150,7 +150,6 @@ PUBLIC void Entity::ResetAnimation(int animation, int frame) {
     AnimationSpeed          = sprite->Animations[CurrentAnimation].AnimationSpeed;
     AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
 }
-
 PUBLIC bool Entity::CollideWithObject(Entity* other) {
     float sourceFlipX = (this->FlipFlag & 1) ? -1.0 : 1.0;
     float sourceFlipY = (this->FlipFlag & 2) ? -1.0 : 1.0;

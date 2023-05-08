@@ -526,6 +526,10 @@
                     <li><a href="#Reference_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
                     <li><a href="#Reference_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
+                    <li><a href="#Reference_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
+                    <li><a href="#Reference_Scene_GetLayerDeformSplitLine">Scene.GetLayerDeformSplitLine</a></li>
+                    <li><a href="#Reference_Scene_GetLayerDeformOffsetA">Scene.GetLayerDeformOffsetA</a></li>
+                    <li><a href="#Reference_Scene_GetLayerDeformOffsetB">Scene.GetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_Scene_LayerPropertyExists">Scene.LayerPropertyExists</a></li>
                     <li><a href="#Reference_Scene_GetName">Scene.GetName</a></li>
                     <li><a href="#Reference_Scene_GetWidth">Scene.GetWidth</a></li>
@@ -561,6 +565,8 @@
                     <li><a href="#Reference_Scene_SetLayerTileDeforms">Scene.SetLayerTileDeforms</a></li>
                     <li><a href="#Reference_Scene_SetLayerTileDeformSplitLine">Scene.SetLayerTileDeformSplitLine</a></li>
                     <li><a href="#Reference_Scene_SetLayerTileDeformOffsets">Scene.SetLayerTileDeformOffsets</a></li>
+                    <li><a href="#Reference_Scene_SetLayerDeformOffsetA">Scene.SetLayerDeformOffsetA</a></li>
+                    <li><a href="#Reference_Scene_SetLayerDeformOffsetB">Scene.SetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_Scene_SetLayerCustomScanlineFunction">Scene.SetLayerCustomScanlineFunction</a></li>
                     <li><a href="#Reference_Scene_SetTileScanline">Scene.SetTileScanline</a></li>
                     <li><a href="#Reference_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></li>
@@ -1442,7 +1448,7 @@
         <hr/>
         <p id="Reference_Draw_Sprite">
         <h2 style="margin-bottom: 8px;">Draw.Sprite</h2>
-        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation])</code>
+        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation, useHex])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -1455,7 +1461,8 @@
         <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>rotation (Number): Rotation of the drawn sprite in radians.</li>
+        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useHex is true</li>
+        <li>useHex (Number): Whether or not the rotation argument is already in radians</li>
         </ul>
         </p>
         <hr/>
@@ -4534,6 +4541,54 @@
         <div style="font-size: 14px;">Returns the property.</div>
         </p>
         <hr/>
+        <p id="Reference_Scene_GetLayerExists">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerExists</h2>
+        <code>Scene.GetLayerExists(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether a layer exists or not.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetLayerDeformSplitLine">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformSplitLine</h2>
+        <code>Scene.GetLayerDeformSplitLine(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformSplitLine of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetLayerDeformOffsetA">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetA</h2>
+        <code>Scene.GetLayerDeformOffsetA(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetA of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_GetLayerDeformOffsetB">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetB</h2>
+        <code>Scene.GetLayerDeformOffsetB(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetB of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
         <p id="Reference_Scene_LayerPropertyExists">
         <h2 style="margin-bottom: 8px;">Scene.LayerPropertyExists</h2>
         <code>Scene.LayerPropertyExists(layerIndex, property)</code>
@@ -4904,6 +4959,28 @@
         <li>layerIndex (Integer): Index of layer.</li>
         <li>deformAOffset (Number): Offset for the deforms above the Deform Split Line.</li>
         <li>deformBOffset (Number): Offset for the deforms below the Deform Split Line.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetLayerDeformOffsetA">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetA</h2>
+        <code>Scene.SetLayerDeformOffsetA(layerIndex, deformA)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset A of the layer at the specified index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>deformA (Number): Deform value above the Deform Split Line.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene_SetLayerDeformOffsetB">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetB</h2>
+        <code>Scene.SetLayerDeformOffsetB(layerIndex, deformA)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset B of the layer at the specified index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>deformA (Number): Deform value below the Deform Split Line.</li>
         </ul>
         </p>
         <hr/>
@@ -7160,6 +7237,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>487 out of 556 functions have descriptions. </p>
+        <p>493 out of 562 functions have descriptions. </p>
     </body>
 </html>

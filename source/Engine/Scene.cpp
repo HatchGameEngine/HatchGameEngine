@@ -2128,6 +2128,7 @@ PUBLIC STATIC int  Scene::CollisionAt(int x, int y, int collisionField, int coll
 
     return -1;
 }
+
 PUBLIC STATIC int  Scene::CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor) {
     if (checkLen < 0)
         return -1;
@@ -2318,5 +2319,67 @@ PUBLIC STATIC int  Scene::CollisionInLine(int x, int y, int angleMode, int check
     if (sensor->Collided)
         return sensor->Angle;
 
+    return -1;
+}
+
+PUBLIC STATIC int  Scene::FindFloorPosition(int sensorX, int sensorY, int sensorCollided, int sensorAngle) {
+    /*
+    int posX = sensorX;
+    int posY = sensorY;
+
+    int solid = 0;
+    if (collisionEntity->tileCollisions == TILECOLLISION_DOWN)
+        solid = collisionEntity->collisionPlane ? (1 << 14) : (1 << 12);
+    else
+        solid = collisionEntity->collisionPlane ? (1 << 15) : (1 << 13);
+
+    int startY = posY;
+
+    for (int l = 0, layerID = 1; l < Layers.size(); l++, layerID << 1) {
+        // if (collisionEntity->collisionLayers & layerID) {
+            SceneLayer layer = Layers[l];
+            int colX = posX - layer.OffsetX;
+            int colY = posY - layer.OffsetY;
+            int cy = (colY & -Scene::TileSize) - Scene::TileSize;
+            // Is the width correct or is it multiplied?
+            if (colX >= 0 && colX < Scene::TileSize * layer.Width) {
+                for (int i = 0; i < 3; ++i) {
+                    if (cy >= 0 && cy < Scene::TileSize * layer.Height) {
+                        int tile = layer.Tiles[(colX / Scene::TileSize) +((cy / Scene::TileSize) << layer.WidthInBits)];
+
+                        if (tile < EmptyTile) {
+                            if (tile & solid) {
+                                // int32 mask      = collisionMasks[collisionEntity->collisionPlane][tile & 0xFFF].floorMasks[colX & 0xF];
+                                int ty = cy + mask;
+                                // int tileAngle = 
+
+                                if (mask < 0xFF) {
+                                    if (!sensorCollided || startY >= ty) {
+                                        // if (Math::Abs(colY - ty) < *insert CollisionTolerance*) {
+                                            if (Math::Abs(sensorAngle - tileAngle) <= Scene::TileSize * 2
+                                                || Math::Abs(sensorAngle - tileAngle + 0x100) <= Scene::FloorAngleTolerance
+                                                || Math::Abs(sensorAngle - tileAngle - 0x100) <= Scene::FloorAngleTolerance) {
+                                                sensorCollided = true;
+                                                sensorAngle = tileAngle;
+                                                sensorY = ty + layer.OffsetY;
+                                                startY = ty;
+                                                i = 3;
+                                            }
+                                        // }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    cy += Scene::TileSize;
+                }
+            }
+
+            posX = layer.OffsetX + colX;
+            posY = layer.OffsetY + colY;
+        // }
+    }
+    */
     return -1;
 }

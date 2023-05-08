@@ -1295,7 +1295,8 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians.
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useHex is true
+ * \paramOpt useHex (Number): Whether or not the rotation argument is already in radians
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1311,14 +1312,48 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
     float rotation = 0.0f;
+    bool useHex = false;
     if (argCount > 7)
         scaleX = GET_ARG(7, GetDecimal);
     if (argCount > 8)
         scaleY = GET_ARG(8, GetDecimal);
     if (argCount > 9)
         rotation = GET_ARG(9, GetDecimal);
+    if (argCount > 10)
+        useHex = GET_ARG(10, GetInteger);
 
-    // Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+    if (useHex) {
+        int rot = (int)rotation;
+        switch (int rotationStyle = sprite->Animations[animation].Flags) {
+            case ROTSTYLE_NONE:
+                rot = 0;
+                break;
+
+            case ROTSTYLE_FULL:
+                rot = rot & 0x1FF;
+                break;
+
+            case ROTSTYLE_45DEG:
+                // TODO: The & checks are not performing correctly. 45 is like 90, 90 is like 180, 180 is like 0, but these are the correct values?
+                rot = (rot + 0x20) & 0x1C0;
+                break;
+
+            case ROTSTYLE_90DEG:
+                rot = (rot + 0x40) & 0x180;
+                break;
+
+            case ROTSTYLE_180DEG:
+                rot = (rot + 0x80) & 0x100;
+                break;
+
+            case ROTSTYLE_STATICFRAMES:
+                break;
+
+            default: break;
+        }
+        rotation = rot * M_PI / 128.0;
+    }
+
     Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
     return NULL_VAL;
 }
@@ -1358,14 +1393,47 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
     float rotation = 0.0f;
+    bool useHex = false;
     if (argCount > 11)
         scaleX = GET_ARG(11, GetDecimal);
     if (argCount > 12)
         scaleY = GET_ARG(12, GetDecimal);
     if (argCount > 13)
         rotation = GET_ARG(13, GetDecimal);
+    if (argCount > 14)
+        useHex = GET_ARG(14, GetInteger);
 
-    // Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+    if (useHex) {
+        int rot = (int)rotation;
+        switch (int rotationStyle = sprite->Animations[animation].Flags) {
+            case ROTSTYLE_NONE:
+                rot = 0;
+                break;
+
+            case ROTSTYLE_FULL:
+                rot = rot & 0x1FF;
+                break;
+
+            case ROTSTYLE_45DEG:
+                rot = (rot + 0x20) & 0x1C0;
+                break;
+
+            case ROTSTYLE_90DEG:
+                rot = (rot + 0x40) & 0x180;
+                break;
+
+            case ROTSTYLE_180DEG:
+                rot = (rot + 0x80) & 0x100;
+                break;
+
+            case ROTSTYLE_STATICFRAMES:
+                break;
+
+            default: break;
+        }
+        rotation = rot * M_PI / 128.0;
+    }
+
     Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
     return NULL_VAL;
 }
@@ -6971,6 +7039,50 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
     return Scene::Layers[index].PropertyGet(property);
 }
 /***
+ * Scene.GetLayerExists
+ * \desc Gets whether a layer exists or not.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(GET_ARG(0, GetInteger) < Scene::Layers.size());
+}
+/***
+ * Scene.GetLayerDeformSplitLine
+ * \desc Gets the DeformSplitLine of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformSplitLine);
+}
+/***
+ * Scene.GetLayerDeformOffsetA
+ * \desc Gets the DeformOffsetA of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
+}
+/***
+ * Scene.GetLayerDeformOffsetB
+ * \desc Gets the DeformOffsetB of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
+}
+/***
  * Scene.LayerPropertyExists
  * \desc Checks if a property exists in the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -7635,6 +7747,34 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
     int deformBOffset = (int)GET_ARG(2, GetDecimal);
     Scene::Layers[index].DeformOffsetA = deformAOffset;
     Scene::Layers[index].DeformOffsetB = deformBOffset;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerDeformOffsetA
+ * \desc Sets the tile deform offset A of the layer at the specified index.
+ * \param layerIndex (Integer): Index of layer.
+ * \param deformA (Number): Deform value above the Deform Split Line.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int deformA = (int)GET_ARG(1, GetDecimal);
+    Scene::Layers[index].DeformOffsetA = deformA;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerDeformOffsetB
+ * \desc Sets the tile deform offset B of the layer at the specified index.
+ * \param layerIndex (Integer): Index of layer.
+ * \param deformA (Number): Deform value below the Deform Split Line.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int deformB = (int)GET_ARG(1, GetDecimal);
+    Scene::Layers[index].DeformOffsetA = deformB;
     return NULL_VAL;
 }
 /***
@@ -10991,6 +11131,32 @@ VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
     return DECIMAL_VAL(Scene::Views[view_index].Height);
 }
 /***
+ * View.GetCenterX
+ * \desc Gets the x center of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[view_index].Width / 2.0);
+}
+/***
+ * View.GetCenterY
+ * \desc Gets the y center of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a Number value.
+ * \ns View
+ */
+VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int view_index = GET_ARG(0, GetInteger);
+    CHECK_VIEW_INDEX();
+    return DECIMAL_VAL(Scene::Views[view_index].Height / 2.0);
+}
+/***
  * View.IsUsingDrawTarget
  * \desc Gets whether the specified camera is using a draw target or not.
  * \param viewIndex (Integer): Index of the view.
@@ -12018,6 +12184,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerVisible);
     DEF_NATIVE(Scene, GetLayerOpacity);
     DEF_NATIVE(Scene, GetLayerProperty);
+    DEF_NATIVE(Scene, GetLayerExists);
+    DEF_NATIVE(Scene, GetLayerDeformSplitLine);
+    DEF_NATIVE(Scene, GetLayerDeformOffsetA);
+    DEF_NATIVE(Scene, GetLayerDeformOffsetB);
     DEF_NATIVE(Scene, LayerPropertyExists);
     DEF_NATIVE(Scene, GetName);
     DEF_NATIVE(Scene, GetWidth);
@@ -12053,6 +12223,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerTileDeforms);
     DEF_NATIVE(Scene, SetLayerTileDeformSplitLine);
     DEF_NATIVE(Scene, SetLayerTileDeformOffsets);
+    DEF_NATIVE(Scene, SetLayerDeformOffsetA);
+    DEF_NATIVE(Scene, SetLayerDeformOffsetB);
     DEF_NATIVE(Scene, SetLayerCustomScanlineFunction);
     DEF_NATIVE(Scene, SetTileScanline);
     DEF_NATIVE(Scene, SetObjectViewRender);
@@ -12324,6 +12496,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(View, GetZ);
     DEF_NATIVE(View, GetWidth);
     DEF_NATIVE(View, GetHeight);
+    DEF_NATIVE(View, GetCenterX);
+    DEF_NATIVE(View, GetCenterY);
     DEF_NATIVE(View, IsUsingDrawTarget);
     DEF_NATIVE(View, SetUseDrawTarget);
     DEF_NATIVE(View, GetDrawTarget);
