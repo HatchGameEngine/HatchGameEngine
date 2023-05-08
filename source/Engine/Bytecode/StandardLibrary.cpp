@@ -5320,6 +5320,191 @@ VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return DECIMAL_VAL(std::exp(GET_ARG(0, GetDecimal)));
 }
+/***
+ * Math.ClearTrigLookupTables
+ * \desc Clears the engine's angle lookup tables.
+ * \ns Math
+ */
+VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    Math::ClearTrigLookupTables();
+    return NULL_VAL;
+}
+/***
+ * Math.CalculateTrigAngles
+ * \desc Sets the engine's angle lookup tables.
+ * \ns Math
+ */
+VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    Math::CalculateTrigAngles();
+    return NULL_VAL;
+}
+/***
+ * Math.Sin1024
+ * \desc Returns the sine of an angle of x based on a max of 1024.
+ * \param angle (Integer): Angle to get the sine of.
+ * \return The sine 1024 of the angle.
+ * \ns Math
+ */
+VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Sin1024(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Cos1024
+ * \desc Returns the cosine of an angle of x based on a max of 1024.
+ * \param angle (Integer): Angle to get the cosine of.
+ * \return The cosine 1024 of the angle.
+ * \ns Math
+ */
+VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Cos1024(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Tan1024
+ * \desc Returns the tangent of an angle of x based on a max of 1024.
+ * \param angle (Integer): Angle to get the tangent of.
+ * \return The tangent 1024 of the angle.
+ * \ns Math
+ */
+VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Tan1024(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ASin1024
+ * \desc Returns the arc sine of an angle of x based on a max of 1024.
+ * \param angle (Integer): Angle to get the arc sine of.
+ * \return The arc sine 1024 of the angle.
+ * \ns Math
+ */
+VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ASin1024(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ACos1024
+ * \desc Returns the arc cosine of an angle of x based on a max of 1024.
+ * \param angle (Integer): Angle to get the arc cosine of.
+ * \return The arc cosine 1024 of the angle.
+ * \ns Math
+ */
+VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ACos1024(GET_ARG(0, GetInteger)));
+}
+/**
+ * Math.Sin512
+ * \desc Returns the sine of an angle of x based on a max of 512.
+ * \param angle (Integer): Angle to get the sine of.
+ * \return The sine 512 of the angle.
+ * \ns Math
+ */
+VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Sin512(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Cos512
+ * \desc Returns the cosine of an angle of x based on a max of 512.
+ * \param angle (Integer): Angle to get the cosine of.
+ * \return The cosine 512 of the angle.
+ * \ns Math
+ */
+VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Cos512(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Tan512
+ * \desc Returns the tangent of an angle of x based on a max of 512.
+ * \param angle (Integer): Angle to get the tangent of.
+ * \return The tangent 512 of the angle.
+ * \ns Math
+ */
+VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Tan512(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ASin512
+ * \desc Returns the arc sine of an angle of x based on a max of 512.
+ * \param angle (Integer): Angle to get the arc sine of.
+ * \return The arc sine 512 of the angle.
+ * \ns Math
+ */
+VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ASin512(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ACos512
+ * \desc Returns the arc cosine of an angle of x based on a max of 512.
+ * \param angle (Integer): Angle to get the arc cosine of.
+ * \return The arc cosine 512 of the angle.
+ * \ns Math
+ */
+VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ACos512(GET_ARG(0, GetInteger)));
+}
+/**
+ * Math.Sin256
+ * \desc Returns the sine of an angle of x based on a max of 256.
+ * \param angle (Integer): Angle to get the sine of.
+ * \return The sine 256 of the angle.
+ * \ns Math
+ */
+VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Sin256(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Cos256
+ * \desc Returns the cosine of an angle of x based on a max of 256.
+ * \param angle (Integer): Angle to get the cosine of.
+ * \return The cosine 256 of the angle.
+ * \ns Math
+ */
+VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Cos256(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.Tan256
+ * \desc Returns the tangent of an angle of x based on a max of 256.
+ * \param angle (Integer): Angle to get the tangent of.
+ * \return The tangent 256 of the angle.
+ * \ns Math
+ */
+VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::Tan256(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ASin256
+ * \desc Returns the arc sine of an angle of x based on a max of 256.
+ * \param angle (Integer): Angle to get the arc sine of.
+ * \return The arc sine 256 of the angle.
+ * \ns Math
+ */
+VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ASin256(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.ACos256
+ * \desc Returns the arc cosine of an angle of x based on a max of 256.
+ * \param angle (Integer): Angle to get the arc cosine of.
+ * \return The arc cosine 256 of the angle.
+ * \ns Math
+ */
+VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
+}
 // #endregion
 
 // #region Matrix
@@ -12084,6 +12269,23 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Sqrt);
     DEF_NATIVE(Math, Pow);
     DEF_NATIVE(Math, Exp);
+    DEF_NATIVE(Math, ClearTrigLookupTables);
+    DEF_NATIVE(Math, CalculateTrigAngles);
+    DEF_NATIVE(Math, Sin1024);
+    DEF_NATIVE(Math, Cos1024);
+    DEF_NATIVE(Math, Tan1024);
+    DEF_NATIVE(Math, ASin1024);
+    DEF_NATIVE(Math, ACos1024);
+    DEF_NATIVE(Math, Sin512);
+    DEF_NATIVE(Math, Cos512);
+    DEF_NATIVE(Math, Tan512);
+    DEF_NATIVE(Math, ASin512);
+    DEF_NATIVE(Math, ACos512);
+    DEF_NATIVE(Math, Sin256);
+    DEF_NATIVE(Math, Cos256);
+    DEF_NATIVE(Math, Tan256);
+    DEF_NATIVE(Math, ASin256);
+    DEF_NATIVE(Math, ACos256);
     // #endregion
 
     // #region Matrix
@@ -12555,6 +12757,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_CONST_DECIMAL("Math_PI", M_PI);
     DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
     DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
+    DEF_CONST_DECIMAL("Math_R_PI", R_PI);
 
     DEF_ENUM(NUM_KEYBOARD_KEYS);
 

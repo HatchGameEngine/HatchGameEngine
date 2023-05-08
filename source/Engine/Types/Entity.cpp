@@ -43,7 +43,10 @@ public:
 
     int          Angle = 0;
     int          AngleMode = 0;
+    float        ScaleX = 1.0;
+    float        ScaleY = 1.0;
     float        Rotation = 0.0;
+    float        Alpha = 1.0;
     int          AutoPhysics = false;
 
     int          Priority = 0;
@@ -52,6 +55,7 @@ public:
 
     float        Depth = 0.0f;
     float        OldDepth = 0.0f;
+    float        ZDepth = 0.0;
 
     int          Sprite = -1;
     int          CurrentAnimation = -1;
@@ -82,6 +86,10 @@ public:
     float        GravityStrength = 0.0f;
     int          OnGround = false;
     int          Direction = 0;
+
+    int          CollisionLayers = 0;
+    int          CollisionPlane = 0;
+    int          CollisionMode = 0;
     
     int          SlotID = 0;
 

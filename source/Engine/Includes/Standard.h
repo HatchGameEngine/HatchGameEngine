@@ -24,6 +24,10 @@
     #undef __on_failure
 #endif
 
+#ifndef R_PI
+    #define R_PI 3.1415927
+#endif
+
 using namespace std;
 
 enum class Platforms {

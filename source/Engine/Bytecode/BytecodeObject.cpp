@@ -61,7 +61,10 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_INT(Angle);
     LINK_INT(AngleMode);
     LINK_INT(Ground);
+    LINK_DEC(ScaleX);
+    LINK_DEC(ScaleY);
     LINK_DEC(Rotation);
+    LINK_DEC(Alpha);
     LINK_INT(Priority);
     LINK_DEC(Depth);
     LINK_INT(Sprite);
@@ -93,7 +96,6 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_DEC(HitboxOffY);
     LINK_INT(FlipFlag);
 
-
     LINK_DEC(VelocityX);
     LINK_DEC(VelocityY);
     LINK_DEC(GroundVel);
@@ -101,6 +103,12 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     LINK_INT(OnGround);
 
     LINK_INT(SlotID);
+
+    LINK_DEC(ZDepth);
+
+    LINK_INT(CollisionLayers);
+    LINK_INT(CollisionPlane);
+    LINK_INT(CollisionMode);
 
     LINK_INT(ActiveStatus);
     LINK_INT(InRange);
