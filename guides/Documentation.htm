@@ -415,6 +415,21 @@
                     <li><a href="#Reference_Math_Sqrt">Math.Sqrt</a></li>
                     <li><a href="#Reference_Math_Pow">Math.Pow</a></li>
                     <li><a href="#Reference_Math_Exp">Math.Exp</a></li>
+                    <li><a href="#Reference_Math_ClearTrigLookupTables">Math.ClearTrigLookupTables</a></li>
+                    <li><a href="#Reference_Math_CalculateTrigAngles">Math.CalculateTrigAngles</a></li>
+                    <li><a href="#Reference_Math_Sin1024">Math.Sin1024</a></li>
+                    <li><a href="#Reference_Math_Cos1024">Math.Cos1024</a></li>
+                    <li><a href="#Reference_Math_Tan1024">Math.Tan1024</a></li>
+                    <li><a href="#Reference_Math_ASin1024">Math.ASin1024</a></li>
+                    <li><a href="#Reference_Math_ACos1024">Math.ACos1024</a></li>
+                    <li><a href="#Reference_Math_Cos512">Math.Cos512</a></li>
+                    <li><a href="#Reference_Math_Tan512">Math.Tan512</a></li>
+                    <li><a href="#Reference_Math_ASin512">Math.ASin512</a></li>
+                    <li><a href="#Reference_Math_ACos512">Math.ACos512</a></li>
+                    <li><a href="#Reference_Math_Cos256">Math.Cos256</a></li>
+                    <li><a href="#Reference_Math_Tan256">Math.Tan256</a></li>
+                    <li><a href="#Reference_Math_ASin256">Math.ASin256</a></li>
+                    <li><a href="#Reference_Math_ACos256">Math.ACos256</a></li>
                 </ul>
             </p>
             <p id="Reference_Matrix">
@@ -855,6 +870,8 @@
                     <li><a href="#Reference_View_GetZ">View.GetZ</a></li>
                     <li><a href="#Reference_View_GetWidth">View.GetWidth</a></li>
                     <li><a href="#Reference_View_GetHeight">View.GetHeight</a></li>
+                    <li><a href="#Reference_View_GetCenterX">View.GetCenterX</a></li>
+                    <li><a href="#Reference_View_GetCenterY">View.GetCenterY</a></li>
                     <li><a href="#Reference_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
                     <li><a href="#Reference_View_GetDrawTarget">View.GetDrawTarget</a></li>
@@ -3556,7 +3573,7 @@
         <li>y2 (Number): Y position of second point.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the distance from (x1,y1) to (x2,y2) as a Number value.</div>
+        <div style="font-size: 14px;">Returns the distance from (x1,y1) to (x2,y2) as a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_Math_Direction">
@@ -3571,7 +3588,7 @@
         <li>y2 (Number): Y position of second point.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the angle from (x1,y1) to (x2,y2) as a Number value.</div>
+        <div style="font-size: 14px;">Returns the angle from (x1,y1) to (x2,y2) as a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_Math_Abs">
@@ -3629,7 +3646,7 @@
         <p id="Reference_Math_Sign">
         <h2 style="margin-bottom: 8px;">Math.Sign</h2>
         <code>Math.Sign(n)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the sign associated with a Number value.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the sign associated with a Decimal value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>n (Number): Number value.</li>
@@ -3742,6 +3759,174 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the result number.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ClearTrigLookupTables">
+        <h2 style="margin-bottom: 8px;">Math.ClearTrigLookupTables</h2>
+        <code>Math.ClearTrigLookupTables()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Clears the engine's angle lookup tables.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_CalculateTrigAngles">
+        <h2 style="margin-bottom: 8px;">Math.CalculateTrigAngles</h2>
+        <code>Math.CalculateTrigAngles()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's angle lookup tables.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Sin1024">
+        <h2 style="margin-bottom: 8px;">Math.Sin1024</h2>
+        <code>Math.Sin1024(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the sine of an angle of x based on a max of 1024.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the sine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The sine 1024 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Cos1024">
+        <h2 style="margin-bottom: 8px;">Math.Cos1024</h2>
+        <code>Math.Cos1024(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 1024.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The cosine 1024 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Tan1024">
+        <h2 style="margin-bottom: 8px;">Math.Tan1024</h2>
+        <code>Math.Tan1024(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 1024.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the tangent of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The tangent 1024 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ASin1024">
+        <h2 style="margin-bottom: 8px;">Math.ASin1024</h2>
+        <code>Math.ASin1024(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 1024.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc sine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc sine 1024 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ACos1024">
+        <h2 style="margin-bottom: 8px;">Math.ACos1024</h2>
+        <code>Math.ACos1024(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 1024.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc cosine 1024 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Cos512">
+        <h2 style="margin-bottom: 8px;">Math.Cos512</h2>
+        <code>Math.Cos512(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 512.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The cosine 512 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Tan512">
+        <h2 style="margin-bottom: 8px;">Math.Tan512</h2>
+        <code>Math.Tan512(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 512.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the tangent of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The tangent 512 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ASin512">
+        <h2 style="margin-bottom: 8px;">Math.ASin512</h2>
+        <code>Math.ASin512(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 512.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc sine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc sine 512 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ACos512">
+        <h2 style="margin-bottom: 8px;">Math.ACos512</h2>
+        <code>Math.ACos512(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 512.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc cosine 512 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Cos256">
+        <h2 style="margin-bottom: 8px;">Math.Cos256</h2>
+        <code>Math.Cos256(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 256.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The cosine 256 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_Tan256">
+        <h2 style="margin-bottom: 8px;">Math.Tan256</h2>
+        <code>Math.Tan256(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 256.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the tangent of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The tangent 256 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ASin256">
+        <h2 style="margin-bottom: 8px;">Math.ASin256</h2>
+        <code>Math.ASin256(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 256.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc sine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc sine 256 of the angle.</div>
+        </p>
+        <hr/>
+        <p id="Reference_Math_ACos256">
+        <h2 style="margin-bottom: 8px;">Math.ACos256</h2>
+        <code>Math.ACos256(angle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 256.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>angle (Integer): Angle to get the arc cosine of.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc cosine 256 of the angle.</div>
         </p>
         <hr/>
         <p id="Reference_Matrix_Create">
@@ -4562,7 +4747,7 @@
         <li>layerIndex (Integer): Index of layer.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <hr/>
         <p id="Reference_Scene_GetLayerDeformOffsetA">
@@ -4574,7 +4759,7 @@
         <li>layerIndex (Integer): Index of layer.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <hr/>
         <p id="Reference_Scene_GetLayerDeformOffsetB">
@@ -4586,7 +4771,7 @@
         <li>layerIndex (Integer): Index of layer.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <hr/>
         <p id="Reference_Scene_LayerPropertyExists">
@@ -5304,7 +5489,7 @@
         <p id="Reference_Settings_SetNumber">
         <h2 style="margin-bottom: 8px;">Settings.SetNumber</h2>
         <code>Settings.SetNumber(section, property, value)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to a number value.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a property in a section to a Decimal value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.</li>
@@ -6425,7 +6610,7 @@
         <li>touchIndex (Integer):</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_Touch_GetY">
@@ -6437,7 +6622,7 @@
         <li>touchIndex (Integer):</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_Touch_IsDown">
@@ -6920,7 +7105,7 @@
         <li>viewIndex (Integer): Index of the view.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_View_GetY">
@@ -6932,7 +7117,7 @@
         <li>viewIndex (Integer): Index of the view.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_View_GetZ">
@@ -6944,7 +7129,7 @@
         <li>viewIndex (Integer): Index of the view.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_View_GetWidth">
@@ -6956,7 +7141,7 @@
         <li>viewIndex (Integer): Index of the view.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_View_GetHeight">
@@ -6968,7 +7153,31 @@
         <li>viewIndex (Integer): Index of the view.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Number value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_View_GetCenterX">
+        <h2 style="margin-bottom: 8px;">View.GetCenterX</h2>
+        <code>View.GetCenterX(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the x center of the camera for the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <hr/>
+        <p id="Reference_View_GetCenterY">
+        <h2 style="margin-bottom: 8px;">View.GetCenterY</h2>
+        <code>View.GetCenterY(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the y center of the camera for the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <hr/>
         <p id="Reference_View_IsUsingDrawTarget">
@@ -7237,6 +7446,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>493 out of 562 functions have descriptions. </p>
+        <p>510 out of 579 functions have descriptions. </p>
     </body>
 </html>

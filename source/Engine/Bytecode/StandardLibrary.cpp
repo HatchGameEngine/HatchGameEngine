@@ -5139,7 +5139,7 @@ VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
  * \param y1 (Number): Y position of first point.
  * \param x2 (Number): X position of second point.
  * \param y2 (Number): Y position of second point.
- * \return Returns the distance from (x1,y1) to (x2,y2) as a Number value.
+ * \return Returns the distance from (x1,y1) to (x2,y2) as a Decimal value.
  * \ns Math
  */
 VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
@@ -5153,7 +5153,7 @@ VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
  * \param y1 (Number): Y position of first point.
  * \param x2 (Number): X position of second point.
  * \param y2 (Number): Y position of second point.
- * \return Returns the angle from (x1,y1) to (x2,y2) as a Number value.
+ * \return Returns the angle from (x1,y1) to (x2,y2) as a Decimal value.
  * \ns Math
  */
 VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
@@ -5211,7 +5211,7 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Math.Sign
- * \desc Gets the sign associated with a Number value.
+ * \desc Gets the sign associated with a Decimal value.
  * \param n (Number): Number value.
  * \return Returns <code>-1</code> if <code>n</code> is negative, <code>1</code> if positive, and <code>0</code> if otherwise.
  * \ns Math
@@ -7238,34 +7238,34 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetLayerDeformSplitLine
  * \desc Gets the DeformSplitLine of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \return Returns a Decimal value.
+ * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformSplitLine);
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformSplitLine);
 }
 /***
  * Scene.GetLayerDeformOffsetA
  * \desc Gets the DeformOffsetA of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \return Returns a Decimal value.
+ * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
 }
 /***
  * Scene.GetLayerDeformOffsetB
  * \desc Gets the DeformOffsetB of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \return Returns a Decimal value.
+ * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
+    return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DeformOffsetA);
 }
 /***
  * Scene.LayerPropertyExists
@@ -8527,7 +8527,7 @@ VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Settings.SetNumber
- * \desc Sets a property in a section to a number value.
+ * \desc Sets a property in a section to a Decimal value.
  * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
  * \param property (String): The property to set.
  * \param value (Number): The value of the property.
@@ -10271,7 +10271,7 @@ VMValue Texture_SetInterpolation(int argCount, VMValue* args, Uint32 threadID) {
  * Touch.GetX
  * \desc Gets the X position of a touch.
  * \param touchIndex (Integer):
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Touch
  */
 VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -10282,7 +10282,7 @@ VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
  * Touch.GetY
  * \desc Gets the Y position of a touch.
  * \param touchIndex (Integer):
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Touch
  */
 VMValue Touch_GetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -11254,7 +11254,7 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetX
  * \desc Gets the x-axis position of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -11267,7 +11267,7 @@ VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetY
  * \desc Gets the y-axis position of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -11280,7 +11280,7 @@ VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetZ
  * \desc Gets the z-axis position of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
@@ -11293,7 +11293,7 @@ VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetWidth
  * \desc Gets the width of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -11306,7 +11306,7 @@ VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetHeight
  * \desc Gets the height of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -11319,27 +11319,27 @@ VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetCenterX
  * \desc Gets the x center of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
     CHECK_VIEW_INDEX();
-    return DECIMAL_VAL(Scene::Views[view_index].Width / 2.0);
+    return DECIMAL_VAL(((float)Scene::Views[view_index].Width) / 2.0f);
 }
 /***
  * View.GetCenterY
  * \desc Gets the y center of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns View
  */
 VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int view_index = GET_ARG(0, GetInteger);
     CHECK_VIEW_INDEX();
-    return DECIMAL_VAL(Scene::Views[view_index].Height / 2.0);
+    return DECIMAL_VAL(((float)Scene::Views[view_index].Height) / 2.0f);
 }
 /***
  * View.IsUsingDrawTarget
