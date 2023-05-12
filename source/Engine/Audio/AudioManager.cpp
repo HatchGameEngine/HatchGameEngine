@@ -237,9 +237,8 @@ PRIVATE STATIC void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback,
     }
 
     SoundFormat* srcSndData = sound->SoundData;
-    if (srcSndData) {
-        srcSndData->CopySamples(playback->SoundData, playback->BytesPerSample);
-    }
+    if (srcSndData)
+        srcSndData->CopySamples(playback->SoundData);
     else {
         playback->SoundData->Samples.clear();
         playback->SoundData->Samples.shrink_to_fit();

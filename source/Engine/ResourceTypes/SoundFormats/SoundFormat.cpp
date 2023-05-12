@@ -52,25 +52,15 @@ PUBLIC VIRTUAL size_t SoundFormat::SeekSample(int index) {
 PUBLIC VIRTUAL size_t SoundFormat::TellSample() {
     return SampleIndex;
 }
-PUBLIC void           SoundFormat::CopySamples(SoundFormat* dest, int bytesForSample) {
+PUBLIC VIRTUAL void   SoundFormat::LoadAllSamples() {
+    LoadSamples(TotalPossibleSamples - Samples.size());
+}
+
+PUBLIC void           SoundFormat::CopySamples(SoundFormat* dest) {
     // Load the entire sound
-    if (SampleBuffer == nullptr) {
-        SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
-        Samples.reserve(TotalPossibleSamples);
-    }
-
     if (Samples.size() < TotalPossibleSamples) {
-        Samples.clear();
-
-        SeekSample(0);
-        GetSamples(SampleBuffer, TotalPossibleSamples, 0);
-
-        char* buffer = (char*)SampleBuffer;
-        while (bytesForSample >= SampleSize) {
-            Samples.push_back((Uint8*)buffer);
-            buffer += SampleSize;
-            bytesForSample -= SampleSize;
-        }
+        LoadAllSamples();
+        Close();
     }
 
     // The destination SoundData's Samples are the same as the source SoundData's Samples.

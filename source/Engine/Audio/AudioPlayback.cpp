@@ -10,9 +10,9 @@ public:
     Uint8*           UnconvertedSampleBuffer = NULL;
     Uint32           BufferedSamples = 0;
     SDL_AudioSpec    Format;
-    int              BytesPerSample = 0;
-    int              RequiredSamples = 0;
-    int              DeviceBytesPerSample = 0;
+    size_t           BytesPerSample = 0;
+    size_t           RequiredSamples = 0;
+    size_t           DeviceBytesPerSample = 0;
     SDL_AudioStream* ConversionStream = NULL;
     SoundFormat*     SoundData = NULL;
     bool             OwnsSoundData = false;
@@ -23,7 +23,7 @@ public:
 #include <Engine/Audio/AudioPlayback.h>
 #include <Engine/Audio/AudioManager.h>
 
-PUBLIC      AudioPlayback::AudioPlayback(SDL_AudioSpec format, int requiredSamples, int audioBytesPerSample, int deviceBytesPerSample) {
+PUBLIC      AudioPlayback::AudioPlayback(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
     Format = format;
     RequiredSamples = requiredSamples;
     BytesPerSample = audioBytesPerSample;
@@ -37,21 +37,21 @@ PUBLIC      AudioPlayback::AudioPlayback(SDL_AudioSpec format, int requiredSampl
     CreateConversionStream(format);
 }
 
-PUBLIC void AudioPlayback::Change(SDL_AudioSpec format, int requiredSamples, int audioBytesPerSample, int deviceBytesPerSample) {
+PUBLIC void AudioPlayback::Change(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
     bool formatChanged = format.format != Format.format || format.channels != Format.channels || format.freq != Format.freq;
+
+    size_t bufSize = requiredSamples * deviceBytesPerSample;
+    if (bufSize > RequiredSamples * DeviceBytesPerSample)
+        Buffer = (Uint8*)Memory::Realloc(Buffer, bufSize);
+
+    bufSize = requiredSamples * audioBytesPerSample;
+    if (bufSize > RequiredSamples * BytesPerSample)
+        UnconvertedSampleBuffer = (Uint8*)Memory::Realloc(UnconvertedSampleBuffer, bufSize);
 
     Format = format;
     RequiredSamples = requiredSamples;
     BytesPerSample = audioBytesPerSample;
     DeviceBytesPerSample = deviceBytesPerSample;
-
-    int bufSize = requiredSamples * deviceBytesPerSample;
-    if (bufSize > RequiredSamples * DeviceBytesPerSample)
-        Buffer = (Uint8*)Memory::Realloc(Buffer, requiredSamples * deviceBytesPerSample);
-
-    bufSize = requiredSamples * audioBytesPerSample;
-    if (bufSize > RequiredSamples * BytesPerSample)
-        UnconvertedSampleBuffer = (Uint8*)Memory::Realloc(UnconvertedSampleBuffer, bufSize);
 
     if (formatChanged) {
         if (ConversionStream)
