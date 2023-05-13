@@ -106,6 +106,8 @@ public:
 
 #include <Engine/Types/Entity.h>
 
+#define USE_RSDK_ANIMATE
+
 PUBLIC void Entity::ApplyMotion() {
     YSpeed += Gravity;
     X += XSpeed;
@@ -120,6 +122,7 @@ PUBLIC void Entity::Animate() {
     if (CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
         return;
 
+#ifdef USE_RSDK_ANIMATE
     AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 
     while (AnimationTimer > AnimationFrameDuration) {
@@ -133,6 +136,35 @@ PUBLIC void Entity::Animate() {
 
         AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
     }
+#else
+    if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+        AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+        if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+            CurrentFrame++;
+            if (CurrentFrame >= CurrentFrameCount) {
+                CurrentFrame = AnimationLoopIndex;
+                OnAnimationFinish();
+
+                // Sprite may have changed after a call to OnAnimationFinish
+                sprite = Scene::SpriteList[Sprite]->AsSprite;
+            }
+
+            // Do a basic range check, for strange loop points
+            // (or just in case CurrentAnimation happens to be invalid, which is very possible)
+            if (CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 && CurrentAnimation < sprite->Animations.size()) {
+                AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+            }
+            else {
+                AnimationFrameDuration = 1.0f;
+            }
+
+            AnimationTimer = 0.0f;
+        }
+    }
+    else {
+        AnimationTimer = 0.0f;
+    }
+#endif
 }
 PUBLIC void Entity::SetAnimation(int animation, int frame) {
     if (CurrentAnimation != animation)
