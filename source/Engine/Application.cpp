@@ -802,6 +802,8 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
         }
         Step = false;
+        if (UpdatesPerFrame != 1 && (*Scene::NextScene || Scene::DoRestart))
+            break;
     }
 
     // Rendering
