@@ -5763,6 +5763,297 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
     MatrixHelper_CopyTo(&helper, out);
     return NULL_VAL;
 }
+/***
+ * Matrix.Create256
+ * \desc Creates a 4x4 matrix based on the decimal 256.0. <br/>\
+ * \return Returns the Matrix as an Array.
+ * \ns Matrix
+ */
+VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    ObjArray* array = NewArray();
+    for (int i = 0; i < 16; i++) {
+        array->Values->push_back(DECIMAL_VAL(0.0));
+    }
+    return OBJECT_VAL(array);
+}
+/***
+ * Matrix.Identity256
+ * \desc Sets the matrix to the identity based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \ns Matrix
+ */
+VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjArray* array = GET_ARG(0, GetArray);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    helper[0][0] = 256.0;
+    helper[1][0] = 0.0;
+    helper[2][0] = 0.0;
+    helper[3][0] = 0.0;
+    helper[0][1] = 0.0;
+    helper[1][1] = 256.0;
+    helper[2][1] = 0.0;
+    helper[3][1] = 0.0;
+    helper[0][2] = 0.0;
+    helper[1][2] = 0.0;
+    helper[2][2] = 256.0;
+    helper[3][2] = 0.0;
+    helper[0][3] = 0.0;
+    helper[1][3] = 0.0;
+    helper[2][3] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, array);
+    return NULL_VAL;
+}
+/***
+ * Matrix.Multiply256
+ * \desc Multiplies two matrices based on the deciaml 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param a (Matrix): The first matrix to use for multiplying.
+ * \param b (Matrix): The second matrix to use for multiplying.
+ * \ns Matrix
+ */
+VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
+
+    ObjArray* dest = GET_ARG(0, GetArray);
+    ObjArray* matrixA = GET_ARG(1, GetArray);
+    ObjArray* matrixB = GET_ARG(2, GetArray);
+    MatrixHelper result, a, b;
+    MatrixHelper_CopyFrom(&a, matrixA);
+    MatrixHelper_CopyFrom(&b, matrixB);
+    for (int i = 0; i < 16; i++) {
+        int rowA = i / 4;
+        int rowB = i % 4;
+        result[rowB][rowA] = (a[3][rowA] * b[rowB][3] / 256.0) + (a[2][rowA] * b[rowB][2] / 256.0)
+            + (a[1][rowA] * b[rowB][1] / 256.0)
+            + (a[0][rowA] * b[rowB][0] / 256.0);
+    }
+    MatrixHelper_CopyTo(&result, dest);
+    return NULL_VAL;
+}
+/***
+ * Matrix.Translate256
+ * \desc Translates the matrix based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param x (Number): X position value.
+ * \param y (Number): Y position value.
+ * \param z (Number): Z position value.
+ * \param setIdentity (Boolean): Whether or not to set the matrix as the identity.
+ * \ns Matrix
+ */
+VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int x = GET_ARG(1, GetDecimal);
+    int y = GET_ARG(2, GetDecimal);
+    int z = GET_ARG(3, GetDecimal);
+    bool setIdentity = GET_ARG(4, GetInteger);
+    MatrixHelper helper;
+    MatrixHelper_CopyFrom(&helper, matrix);
+    if (setIdentity) {
+        helper[0][0] = 256.0;
+        helper[1][0] = 0.0;
+        helper[2][0] = 0.0;
+        helper[0][1] = 0.0;
+        helper[1][1] = 256.0;
+        helper[2][1] = 0.0;
+        helper[0][2] = 0.0;
+        helper[1][2] = 0.0;
+        helper[2][2] = 256.0;
+        helper[3][0] = 0.0;
+        helper[3][1] = 0.0;
+        helper[3][2] = 0.0;
+        helper[3][3] = 256.0;
+    }
+    helper[0][3] = x / 256.0;
+    helper[1][3] = y / 256.0;
+    helper[2][3] = z / 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
+/***
+ * Matrix.Scale256
+ * \desc Sets the matrix to a scale identity based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param scaleX (Number): X scale value.
+ * \param scaleY (Number): Y scale value.
+ * \param scaleZ (Number): Z scale value.
+ * \ns Matrix
+ */
+VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int scaleX = GET_ARG(1, GetDecimal);
+    int scaleY = GET_ARG(2, GetDecimal);
+    int scaleZ = GET_ARG(3, GetDecimal);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    helper[0][0] = scaleZ;
+    helper[1][0] = 0.0;
+    helper[2][0] = 0.0;
+    helper[3][0] = 0.0;
+    helper[0][1] = 0.0;
+    helper[1][1] = scaleY;
+    helper[2][1] = 0.0;
+    helper[3][1] = 0.0;
+    helper[0][2] = 0.0;
+    helper[1][2] = 0.0;
+    helper[2][2] = scaleZ;
+    helper[3][2] = 0.0;
+    helper[0][3] = 0.0;
+    helper[1][3] = 0.0;
+    helper[2][3] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
+/***
+ * Matrix.RotateX256
+ * \desc Sets the matrix to a rotation X identity based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param rotationY (Number): X rotation value.
+ * \ns Matrix
+ */
+VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int rotationX = GET_ARG(1, GetDecimal);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    double sine = Math::Sin1024(rotationX) / 4.0;
+    double cosine = Math::Cos1024(rotationX) / 4.0;
+    helper[0][0] = 256.0;
+    helper[1][0] = 0.0;
+    helper[2][0] = 0.0;
+    helper[3][0] = 0.0;
+    helper[0][1] = 0.0;
+    helper[1][1] = cosine;
+    helper[2][1] = sine;
+    helper[3][1] = 0.0;
+    helper[0][2] = 0.0;
+    helper[1][2] = -sine;
+    helper[2][2] = cosine;
+    helper[3][2] = 0.0;
+    helper[0][3] = 0.0;
+    helper[1][3] = 0.0;
+    helper[2][3] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
+/***
+ * Matrix.RotateY256
+ * \desc Sets the matrix to a rotation Y identity based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param rotationY (Number): Y rotation value.
+ * \ns Matrix
+ */
+VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int rotationY = GET_ARG(1, GetDecimal);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    double sine = Math::Sin1024(rotationY) / 4.0;
+    double cosine = Math::Cos1024(rotationY) / 4.0;
+    helper[0][0] = cosine;
+    helper[1][0] = 0.0;
+    helper[2][0] = sine;
+    helper[3][0] = 0.0;
+    helper[0][1] = 0.0;
+    helper[1][1] = 256.0;
+    helper[2][1] = 0.0;
+    helper[3][1] = 0.0;
+    helper[0][2] = -sine;
+    helper[1][2] = 0.0;
+    helper[2][2] = cosine;
+    helper[3][2] = 0.0;
+    helper[0][3] = 0.0;
+    helper[1][3] = 0.0;
+    helper[2][3] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
+/***
+ * Matrix.RotateZ256
+ * \desc Sets the matrix to a rotation Z identity based on the decimal 256.0.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param rotationZ (Number): Z rotation value.
+ * \ns Matrix
+ */
+VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int rotationZ = GET_ARG(1, GetDecimal);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    double sine = Math::Sin1024(rotationZ) / 4.0;
+    double cosine = Math::Cos1024(rotationZ) / 4.0;
+    helper[0][0] = cosine;
+    helper[1][0] = -sine;
+    helper[2][0] = 0.0;
+    helper[3][0] = 0.0;
+    helper[0][1] = sine;
+    helper[1][1] = cosine;
+    helper[2][1] = 0.0;
+    helper[3][1] = 0.0;
+    helper[0][2] = 0.0;
+    helper[1][2] = 0.0;
+    helper[2][2] = 256.0;
+    helper[3][2] = 0.0;
+    helper[0][3] = 0.0;
+    helper[1][3] = 0.0;
+    helper[2][3] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
+/***
+ * Matrix.Rotate256
+ * \desc Sets the matrix to a rotation identity based on 256.
+ * \param matrix (Matrix): The matrix to output the values to.
+ * \param rotationX (Number): X rotation value.
+ * \param rotationY (Number): Y rotation value.
+ * \param rotationZ (Number): Z rotation value.
+ * \ns Matrix
+ */
+VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ObjArray* matrix = GET_ARG(0, GetArray);
+    int rotationX = GET_ARG(1, GetDecimal);
+    int rotationY = GET_ARG(2, GetDecimal);
+    int rotationZ = GET_ARG(3, GetDecimal);
+    MatrixHelper helper;
+    memset(&helper, 0, sizeof(helper));
+    double sineX = Math::Sin1024(rotationX) / 4.0;
+    double cosineX = Math::Cos1024(rotationX) / 4.0;
+    double sineY = Math::Sin1024(rotationX) / 4.0;
+    double cosineY = Math::Cos1024(rotationX) / 4.0;
+    double sineZ = Math::Sin1024(rotationX) / 4.0;
+    double cosineZ = Math::Cos1024(rotationX) / 4.0;
+
+    helper[0][0] = (cosineZ * cosineY / 256.0) + (sineZ * (sineY * sineX / 256.0) / 256.0);
+    helper[0][1] = -(sineZ * cosineX) / 256.0;
+    helper[0][2] = (sineZ * (cosineY * cosineX / 256.0) / 256.0) - (cosineZ * cosineY / 256.0);
+    helper[0][3] = 0.0;
+    helper[1][0] = (sineZ * cosineY / 256.0) - (cosineZ * (sineY * sineX / 256.0) / 256.0);
+    helper[1][1] = cosineZ * cosineX / 256.0;
+    helper[1][2] = (-(sineZ * sineY) / 256.0) - (cosineZ * (cosineY * sineX / 256.0) / 256.0);
+    helper[1][3] = 0.0;
+    helper[2][0] = sineY * cosineX / 256.0;
+    helper[2][1] = sineX;
+    helper[2][2] = cosineY * cosineX / 256.0;
+    helper[2][3] = 0.0;
+    helper[3][0] = 0.0;
+    helper[3][1] = 0.0;
+    helper[3][2] = 0.0;
+    helper[3][3] = 256.0;
+    MatrixHelper_CopyTo(&helper, matrix);
+    return NULL_VAL;
+}
 // #endregion
 
 #define CHECK_ANIMATION_INDEX(animation) \
@@ -12298,6 +12589,15 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Matrix, Translate);
     DEF_NATIVE(Matrix, Scale);
     DEF_NATIVE(Matrix, Rotate);
+    DEF_NATIVE(Matrix, Create256);
+    DEF_NATIVE(Matrix, Identity256);
+    DEF_NATIVE(Matrix, Multiply256);
+    DEF_NATIVE(Matrix, Translate256);
+    DEF_NATIVE(Matrix, Scale256);
+    DEF_NATIVE(Matrix, RotateX256);
+    DEF_NATIVE(Matrix, RotateY256);
+    DEF_NATIVE(Matrix, RotateZ256);
+    DEF_NATIVE(Matrix, Rotate256);
     // #endregion
 
     // #region Model
