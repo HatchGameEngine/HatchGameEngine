@@ -106,8 +106,6 @@ public:
 
 #include <Engine/Types/Entity.h>
 
-#define USE_RSDK_ANIMATE
-
 PUBLIC void Entity::ApplyMotion() {
     YSpeed += Gravity;
     X += XSpeed;
