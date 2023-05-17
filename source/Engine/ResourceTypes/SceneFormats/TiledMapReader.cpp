@@ -105,6 +105,17 @@ int   base64_decode_block(const char* code_in, const int length_in, char* plaint
 }
 
 PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
+    // If the property has no value (for example, a multiline string),
+    // the value is assumed to be in the content
+    if (!property->attributes.Exists("value")) {
+        // FIXME: check if this is needed
+        if (property->children.size() == 0)
+            return NULL_VAL;
+
+        XMLNode* text = property->children[0];
+        return OBJECT_VAL(CopyString(text->name.Start, (int)text->name.Length));
+    }
+
     Token    property_type = property->attributes.Get("type");
     Token    property_value = property->attributes.Get("value");
 
