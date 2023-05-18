@@ -2910,10 +2910,20 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
             if (maxVertCells != 0)
                 sourceTileCellY %= maxVertCells;
 
-            tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)] & TILE_IDENT_MASK;
-            if (tile != Scene::EmptyTile) {
-                color = tileSources[tile][(srcTX & 15) + (srcTY & 15) * srcStrides[tile]];
-                if (isPalettedSources[tile]) {
+            tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+
+            if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+                int tileID = tile & TILE_IDENT_MASK;
+
+                // If y-flipped
+                if (tile & TILE_FLIPY_MASK)
+                    srcTY ^= 15;
+                // If x-flipped
+                if (tile & TILE_FLIPX_MASK)
+                    srcTX ^= 15;
+
+                color = tileSources[tileID][(srcTX & 15) + (srcTY & 15) * srcStrides[tileID]];
+                if (isPalettedSources[tileID]) {
                     if (color)
                         linePixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
                 }
