@@ -49,8 +49,6 @@ public:
     static vector<TileSpriteInfo>    TileSpriteInfos;
     static Uint16                    EmptyTile;
 
-    static float                     CameraX;
-    static float                     CameraY;
     static vector<SceneLayer>        Layers;
     static bool                      AnyLayerTileChange;
 
@@ -69,13 +67,16 @@ public:
 
     static int                       Frame;
     static bool                      Paused;
-    static int                       MainLayer;
 
     static View                      Views[MAX_SCENE_VIEWS];
     static int                       ViewCurrent;
     static int                       ViewsActive;
+
+    static int                       CurrentDrawGroup;
+
     static int                       ObjectViewRenderFlag;
     static int                       TileViewRenderFlag;
+
     static Perf_ViewRender           PERF_ViewRender[MAX_SCENE_VIEWS];
 
     static char                      NextScene[256];
@@ -127,7 +128,6 @@ public:
 // Layering variables
 vector<SceneLayer>        Scene::Layers;
 bool                      Scene::AnyLayerTileChange = false;
-int                       Scene::MainLayer = 0;
 int                       Scene::PriorityPerLayer = 16;
 DrawGroupList*            Scene::PriorityLists = NULL;
 
@@ -167,11 +167,10 @@ Uint16                    Scene::EmptyTile = 0x000;
 // View variables
 int                       Scene::Frame = 0;
 bool                      Scene::Paused = false;
-float                     Scene::CameraX = 0.0f;
-float                     Scene::CameraY = 0.0f;
 View                      Scene::Views[MAX_SCENE_VIEWS];
 int                       Scene::ViewCurrent = 0;
 int                       Scene::ViewsActive = 1;
+int                       Scene::CurrentDrawGroup = -1;
 int                       Scene::ObjectViewRenderFlag;
 int                       Scene::TileViewRenderFlag;
 Perf_ViewRender           Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
@@ -817,6 +816,8 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         if (drawGroupList->NeedsSorting)
             drawGroupList->Sort();
 
+        Scene::CurrentDrawGroup = l;
+
         for (Entity* ent : *drawGroupList->Entities) {
             if (ent->Active)
                 ent->RenderEarly();
@@ -842,6 +843,8 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         float _ox;
         float _oy;
         objectTime = Clock::GetTicks();
+
+        Scene::CurrentDrawGroup = l;
 
         drawGroupList = &PriorityLists[l];
         for (Entity* ent : *drawGroupList->Entities) {
@@ -950,12 +953,15 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         if (DEV_NoObjectRender)
             break;
 
+        Scene::CurrentDrawGroup = l;
+
         DrawGroupList* drawGroupList = &PriorityLists[l];
         for (Entity* ent : *drawGroupList->Entities) {
             if (ent->Active)
                 ent->RenderLate();
         }
     }
+    Scene::CurrentDrawGroup = -1;
     PERF_END(ObjectRenderLateTime);
 
     PERF_START(RenderFinishTime);

@@ -3960,6 +3960,16 @@ VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
     Graphics::SetDepthTesting(useDepthTesting);
     return NULL_VAL;
 }
+/***
+ * Draw.GetCurrentDrawGroup
+ * \desc Gets the draw group currently being drawn.
+ * \return Returns an Integer value.
+ * \ns Draw
+ */
+VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::CurrentDrawGroup);
+}
 // #endregion
 
 // #region Ease
@@ -12129,6 +12139,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseSpriteDeform);
     DEF_NATIVE(Draw, SetSpriteDeformLine);
     DEF_NATIVE(Draw, UseDepthTesting);
+    DEF_NATIVE(Draw, GetCurrentDrawGroup);
 
     DEF_ENUM(DrawMode_LINES);
     DEF_ENUM(DrawMode_POLYGONS);
