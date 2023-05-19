@@ -91,7 +91,7 @@ public:
     int          CollisionPlane = 0;
     int          CollisionMode = 0;
     
-    int          SlotID = 0;
+    int          SlotID = -1;
 
     bool         Removed = false;
 
@@ -101,12 +101,13 @@ public:
     ObjectList*  List = NULL;
     Entity*      PrevEntityInList = NULL;
     Entity*      NextEntityInList = NULL;
+
+    Entity*      PrevSceneEntity = NULL;
+    Entity*      NextSceneEntity = NULL;
 };
 #endif
 
 #include <Engine/Types/Entity.h>
-
-#define USE_RSDK_ANIMATE
 
 PUBLIC void Entity::ApplyMotion() {
     YSpeed += Gravity;

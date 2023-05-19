@@ -105,6 +105,17 @@ int   base64_decode_block(const char* code_in, const int length_in, char* plaint
 }
 
 PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
+    // If the property has no value (for example, a multiline string),
+    // the value is assumed to be in the content
+    if (!property->attributes.Exists("value")) {
+        // FIXME: check if this is needed
+        if (property->children.size() == 0)
+            return NULL_VAL;
+
+        XMLNode* text = property->children[0];
+        return OBJECT_VAL(CopyString(text->name.Start, (int)text->name.Length));
+    }
+
     Token    property_type = property->attributes.Get("type");
     Token    property_value = property->attributes.Get("value");
 
@@ -145,6 +156,13 @@ PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
         */
         val = OBJECT_VAL(CopyString(property_value.Start, property_value.Length));
     }
+    else if (XMLParser::MatchToken(property_type, "object")) {
+        /*
+        property_value:
+        an integer
+        */
+        val = INTEGER_VAL((int)XMLParser::TokenToNumber(property_value));
+    }
     else if (sscanf(property_value.Start, "vec2 %f,%f", &fx, &fy) == 2) {
         VMValue valX = DECIMAL_VAL(fx);
         VMValue valY = DECIMAL_VAL(fy);
@@ -162,6 +180,9 @@ PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
 }
 
 PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMValue>* properties) {
+    if (!node->attributes.Exists("name"))
+        return;
+
     Token    property_name = node->attributes.Get("name");
 
     char*  object_attribute_name = (char*)malloc(property_name.Length + 1);
@@ -171,6 +192,36 @@ PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMV
     properties->Put(object_attribute_name, TiledMapReader::ParseProperty(node));
 
     free(object_attribute_name);
+}
+
+PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
+    if (!node->attributes.Exists("points"))
+        return nullptr;
+
+    Token  points_token = node->attributes.Get("points");
+    char*  points_text = (char*)malloc(points_token.Length + 1);
+    memcpy(points_text, points_token.Start, points_token.Length);
+    points_text[points_token.Length] = 0;
+
+    ObjArray* array = NewArray();
+
+    char* token = strtok(points_text, " ");
+    while (token != NULL) {
+        float fx, fy;
+        if (sscanf(token, "%f,%f", &fx, &fy) != 2)
+            break;
+
+        ObjArray* sub = NewArray();
+        sub->Values->push_back(DECIMAL_VAL(fx));
+        sub->Values->push_back(DECIMAL_VAL(fy));
+        array->Values->push_back(OBJECT_VAL(sub));
+
+        token = strtok(NULL, " ");
+    }
+
+    free(points_text);
+
+    return array;
 }
 
 PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
@@ -207,8 +258,6 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
 
     TileSpriteInfo info;
     Scene::TileSpriteInfos.clear();
-
-    int SlotID = 0;
 
     for (size_t i = 0; i < map->children.size(); i++) {
         if (XMLParser::MatchToken(map->children[i]->name, "tileset")) {
@@ -412,9 +461,10 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                     obj->InitialX = obj->X;
                     obj->InitialY = obj->Y;
                     obj->List = objectList;
-                    obj->SlotID = SlotID;
-                    SlotID++;
                     Scene::AddStatic(objectList, obj);
+
+                    if (object->attributes.Exists("id"))
+                        obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id"));
 
                     if (object->attributes.Exists("width") &&
                         object->attributes.Exists("height")) {
@@ -438,13 +488,19 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                     }
 
                     for (size_t p = 0; p < object->children.size(); p++) {
-                        if (!XMLParser::MatchToken(object->children[p]->name, "properties"))
-                            continue;
+                        XMLNode* child = object->children[p];
 
-                        XMLNode* properties = object->children[p];
-                        for (size_t pr = 0; pr < properties->children.size(); pr++) {
-                            if (XMLParser::MatchToken(properties->children[pr]->name, "property"))
-                                TiledMapReader::ParsePropertyNode(properties->children[pr], obj->Properties);
+                        if (XMLParser::MatchToken(child->name, "properties")) {
+                            for (size_t pr = 0; pr < child->children.size(); pr++) {
+                                if (XMLParser::MatchToken(child->children[pr]->name, "property"))
+                                    TiledMapReader::ParsePropertyNode(child->children[pr], obj->Properties);
+                            }
+                        } else if (XMLParser::MatchToken(child->name, "polygon")) {
+                            ObjArray* points = TiledMapReader::ParsePolyPoints(child);
+                            obj->Properties->Put("PolygonPoints", OBJECT_VAL(points));
+                        } else if (XMLParser::MatchToken(child->name, "polyline")) {
+                            ObjArray* points = TiledMapReader::ParsePolyPoints(child);
+                            obj->Properties->Put("LinePoints", OBJECT_VAL(points));
                         }
                     }
                 }

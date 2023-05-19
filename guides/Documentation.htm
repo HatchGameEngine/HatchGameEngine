@@ -288,6 +288,7 @@
                     <li><a href="#Reference_Draw_UseSpriteDeform">Draw.UseSpriteDeform</a></li>
                     <li><a href="#Reference_Draw_SetSpriteDeformLine">Draw.SetSpriteDeformLine</a></li>
                     <li><a href="#Reference_Draw_UseDepthTesting">Draw.UseDepthTesting</a></li>
+                    <li><a href="#Reference_Draw_GetCurrentDrawGroup">Draw.GetCurrentDrawGroup</a></li>
                 </ul>
             </p>
             <p id="Reference_Ease">
@@ -379,6 +380,7 @@
                     <li><a href="#Reference_Instance_IsClass">Instance.IsClass</a></li>
                     <li><a href="#Reference_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
+                    <li><a href="#Reference_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
                 </ul>
             </p>
             <p id="Reference_JSON">
@@ -444,15 +446,6 @@
                     <li><a href="#Reference_Matrix_Translate">Matrix.Translate</a></li>
                     <li><a href="#Reference_Matrix_Scale">Matrix.Scale</a></li>
                     <li><a href="#Reference_Matrix_Rotate">Matrix.Rotate</a></li>
-                    <li><a href="#Reference_Matrix_Create256">Matrix.Create256</a></li>
-                    <li><a href="#Reference_Matrix_Identity256">Matrix.Identity256</a></li>
-                    <li><a href="#Reference_Matrix_Multiply256">Matrix.Multiply256</a></li>
-                    <li><a href="#Reference_Matrix_Translate256">Matrix.Translate256</a></li>
-                    <li><a href="#Reference_Matrix_Scale256">Matrix.Scale256</a></li>
-                    <li><a href="#Reference_Matrix_RotateX256">Matrix.RotateX256</a></li>
-                    <li><a href="#Reference_Matrix_RotateY256">Matrix.RotateY256</a></li>
-                    <li><a href="#Reference_Matrix_RotateZ256">Matrix.RotateZ256</a></li>
-                    <li><a href="#Reference_Matrix_Rotate256">Matrix.Rotate256</a></li>
                 </ul>
             </p>
             <p id="Reference_Model">
@@ -2754,6 +2747,14 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Draw_GetCurrentDrawGroup">
+        <h2 style="margin-bottom: 8px;">Draw.GetCurrentDrawGroup</h2>
+        <code>Draw.GetCurrentDrawGroup()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the draw group currently being drawn.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <hr/>
         <p id="Reference_Ease_InSine">
         <h2 style="margin-bottom: 8px;">Ease.InSine</h2>
         <code>Ease.InSine(value)</code>
@@ -3472,6 +3473,18 @@
         <div style="font-size: 14px;">Returns the desired instance.</div>
         </p>
         <hr/>
+        <p id="Reference_Instance_GetBySlotID">
+        <h2 style="margin-bottom: 8px;">Instance.GetBySlotID</h2>
+        <code>Instance.GetBySlotID(slotID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets an instance by its slot ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>slotID (Integer): The slot ID to search a corresponding instance for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.</div>
+        </p>
+        <hr/>
         <p id="Reference_JSON_Parse">
         <h2 style="margin-bottom: 8px;">JSON.Parse</h2>
         <code>JSON.Parse(jsonText)</code>
@@ -4031,107 +4044,6 @@
         <li>x (Number): X rotation value.</li>
         <li>y (Number): Y rotation value.</li>
         <li>z (Number): Z rotation value.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Create256">
-        <h2 style="margin-bottom: 8px;">Matrix.Create256</h2>
-        <code>Matrix.Create256()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0. <br/>* \return Returns the Matrix as an Array.</div>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Identity256">
-        <h2 style="margin-bottom: 8px;">Matrix.Identity256</h2>
-        <code>Matrix.Identity256(matrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to the identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Multiply256">
-        <h2 style="margin-bottom: 8px;">Matrix.Multiply256</h2>
-        <code>Matrix.Multiply256(matrix, a, b)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Multiplies two matrices based on the deciaml 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>a (Matrix): The first matrix to use for multiplying.</li>
-        <li>b (Matrix): The second matrix to use for multiplying.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Translate256">
-        <h2 style="margin-bottom: 8px;">Matrix.Translate256</h2>
-        <code>Matrix.Translate256(matrix, x, y, z, setIdentity)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Translates the matrix based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>x (Number): X position value.</li>
-        <li>y (Number): Y position value.</li>
-        <li>z (Number): Z position value.</li>
-        <li>setIdentity (Boolean): Whether or not to set the matrix as the identity.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Scale256">
-        <h2 style="margin-bottom: 8px;">Matrix.Scale256</h2>
-        <code>Matrix.Scale256(matrix, scaleX, scaleY, scaleZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a scale identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>scaleX (Number): X scale value.</li>
-        <li>scaleY (Number): Y scale value.</li>
-        <li>scaleZ (Number): Z scale value.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_RotateX256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateX256</h2>
-        <code>Matrix.RotateX256(matrix, rotationY)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation X identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationY (Number): X rotation value.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_RotateY256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateY256</h2>
-        <code>Matrix.RotateY256(matrix, rotationY)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Y identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationY (Number): Y rotation value.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_RotateZ256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateZ256</h2>
-        <code>Matrix.RotateZ256(matrix, rotationZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Z identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationZ (Number): Z rotation value.</li>
-        </ul>
-        </p>
-        <hr/>
-        <p id="Reference_Matrix_Rotate256">
-        <h2 style="margin-bottom: 8px;">Matrix.Rotate256</h2>
-        <code>Matrix.Rotate256(matrix, rotationX, rotationY, rotationZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation identity based on 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationX (Number): X rotation value.</li>
-        <li>rotationY (Number): Y rotation value.</li>
-        <li>rotationZ (Number): Z rotation value.</li>
         </ul>
         </p>
         <hr/>
@@ -7556,6 +7468,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>519 out of 588 functions have descriptions. </p>
+        <p>512 out of 581 functions have descriptions. </p>
     </body>
 </html>

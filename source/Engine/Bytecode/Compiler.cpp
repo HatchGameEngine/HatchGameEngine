@@ -2030,13 +2030,16 @@ PUBLIC void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
 PUBLIC void Compiler::GetImportDeclaration() {
-    ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
+    do {
+        ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
 
-    Token className = parser.Previous;
-    VMValue value = OBJECT_VAL(Compiler::MakeString(className));
+        Token className = parser.Previous;
+        VMValue value = OBJECT_VAL(Compiler::MakeString(className));
 
-    EmitByte(OP_IMPORT);
-    EmitUint32(GetConstantIndex(value));
+        EmitByte(OP_IMPORT);
+        EmitUint32(GetConstantIndex(value));
+    }
+    while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after import declaration.");
 }

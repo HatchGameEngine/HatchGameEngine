@@ -588,7 +588,6 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
 
     return NULL_VAL;
 }
-
 PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
     BytecodeObject* self = GET_ENTITY(0);
@@ -705,6 +704,40 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetViewOverride(int argCount, VMValue* 
     }
     return NULL_VAL;
 }
+
+PUBLIC STATIC VMValue BytecodeObject::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+    BytecodeObject* self = GET_ENTITY(0);
+    int drawGroup = GET_ARG(1, GetInteger);
+    if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
+        if (!Scene::PriorityLists[drawGroup].Contains(self))
+            Scene::PriorityLists[drawGroup].Add(self);
+    }
+    else
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+    return NULL_VAL;
+}
+PUBLIC STATIC VMValue BytecodeObject::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+    BytecodeObject* self = GET_ENTITY(0);
+    int drawGroup = GET_ARG(1, GetInteger);
+    if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
+        return INTEGER_VAL(!!(Scene::PriorityLists[drawGroup].Contains(self)));
+    else
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+    return NULL_VAL;
+}
+PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+    BytecodeObject* self = GET_ENTITY(0);
+    int drawGroup = GET_ARG(1, GetInteger);
+    if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
+        Scene::PriorityLists[drawGroup].Remove(self);
+    else
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+    return NULL_VAL;
+}
+
 PUBLIC STATIC VMValue BytecodeObject::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);

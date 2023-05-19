@@ -898,6 +898,9 @@ PUBLIC STATIC void   BytecodeObjectManager::AddNativeFunctions(ObjClass* klass) 
     DEF_NATIVE(PropertyExists);
     DEF_NATIVE(SetViewVisibility);
     DEF_NATIVE(SetViewOverride);
+    DEF_NATIVE(AddToDrawGroup);
+    DEF_NATIVE(IsInDrawGroup);
+    DEF_NATIVE(RemoveFromDrawGroup);
     DEF_NATIVE(PlaySound);
     DEF_NATIVE(LoopSound);
     DEF_NATIVE(StopSound);
