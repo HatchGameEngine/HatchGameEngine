@@ -91,7 +91,7 @@ public:
     int          CollisionPlane = 0;
     int          CollisionMode = 0;
     
-    int          SlotID = 0;
+    int          SlotID = -1;
 
     bool         Removed = false;
 
