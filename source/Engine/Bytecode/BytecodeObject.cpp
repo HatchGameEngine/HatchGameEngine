@@ -709,8 +709,10 @@ PUBLIC STATIC VMValue BytecodeObject::VM_AddToDrawGroup(int argCount, VMValue* a
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
     int drawGroup = GET_ARG(1, GetInteger);
-    if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
-        Scene::PriorityLists[drawGroup].Add(self);
+    if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
+        if (!Scene::PriorityLists[drawGroup].Contains(self))
+            Scene::PriorityLists[drawGroup].Add(self);
+    }
     else
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
