@@ -156,6 +156,13 @@ PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
         */
         val = OBJECT_VAL(CopyString(property_value.Start, property_value.Length));
     }
+    else if (XMLParser::MatchToken(property_type, "object")) {
+        /*
+        property_value:
+        an integer
+        */
+        val = INTEGER_VAL((int)XMLParser::TokenToNumber(property_value));
+    }
     else if (sscanf(property_value.Start, "vec2 %f,%f", &fx, &fy) == 2) {
         VMValue valX = DECIMAL_VAL(fx);
         VMValue valY = DECIMAL_VAL(fy);

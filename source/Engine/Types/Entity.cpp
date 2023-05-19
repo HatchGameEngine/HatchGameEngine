@@ -101,6 +101,9 @@ public:
     ObjectList*  List = NULL;
     Entity*      PrevEntityInList = NULL;
     Entity*      NextEntityInList = NULL;
+
+    Entity*      PrevSceneEntity = NULL;
+    Entity*      NextSceneEntity = NULL;
 };
 #endif
 

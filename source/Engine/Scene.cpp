@@ -38,6 +38,10 @@ public:
     static Entity*                   DynamicObjectFirst;
     static Entity*                   DynamicObjectLast;
 
+    static int                       ObjectCount;
+    static Entity*                   ObjectFirst;
+    static Entity*                   ObjectLast;
+
     static int                       PriorityPerLayer;
     static DrawGroupList*            PriorityLists;
 
@@ -146,6 +150,10 @@ Entity*                   Scene::StaticObjectLast = NULL;
 int                       Scene::DynamicObjectCount = 0;
 Entity*                   Scene::DynamicObjectFirst = NULL;
 Entity*                   Scene::DynamicObjectLast = NULL;
+
+int                       Scene::ObjectCount = 0;
+Entity*                   Scene::ObjectFirst = NULL;
+Entity*                   Scene::ObjectLast = NULL;
 
 // Tile variables
 vector<ISprite*>          Scene::TileSprites;
@@ -434,6 +442,8 @@ PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity*
         exit(-1);
     }
     obj->List->Add(obj);
+
+    Scene::AddToScene(obj);
 }
 PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
     if (obj == NULL) return;
@@ -453,7 +463,33 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
 
     (*count)--;
 
+    Scene::RemoveFromScene(obj);
     Scene::RemoveObject(obj);
+}
+PUBLIC STATIC void Scene::AddToScene(Entity* obj) {
+    obj->PrevSceneEntity = Scene::ObjectLast;
+    obj->NextSceneEntity = NULL;
+
+    if (Scene::ObjectLast)
+        Scene::ObjectLast->NextSceneEntity = obj;
+    if (!Scene::ObjectFirst)
+        Scene::ObjectFirst = obj;
+
+    Scene::ObjectLast = obj;
+    Scene::ObjectCount++;
+}
+PUBLIC STATIC void Scene::RemoveFromScene(Entity* obj) {
+    if (Scene::ObjectFirst == obj)
+        Scene::ObjectFirst = obj->NextSceneEntity;
+    if (Scene::ObjectLast == obj)
+        Scene::ObjectLast = obj->PrevSceneEntity;
+
+    if (obj->PrevSceneEntity)
+        obj->PrevSceneEntity->NextSceneEntity = obj->NextSceneEntity;
+    if (obj->NextSceneEntity)
+        obj->NextSceneEntity->PrevSceneEntity = obj->PrevSceneEntity;
+
+    Scene::ObjectCount--;
 }
 PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     // Remove from proper list

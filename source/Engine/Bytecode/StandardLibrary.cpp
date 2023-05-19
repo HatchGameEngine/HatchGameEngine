@@ -4722,8 +4722,12 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
+    ObjInstance* instance = GET_ARG(0, GetInstance);
     char* objectName = GET_ARG(1, GetString);
+
+    Entity* self = (Entity*)instance->EntityPtr;
+    if (!self)
+        return INTEGER_VAL(false);
 
     if (!Scene::ObjectLists->Exists(objectName)) {
         return INTEGER_VAL(false);
@@ -4766,20 +4770,24 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
+    ObjInstance* instance = GET_ARG(0, GetInstance);
+    Entity* self = (Entity*)instance->EntityPtr;
     int     n    = GET_ARG(1, GetInteger);
+
+    if (!self)
+        return NULL_VAL;
 
     Entity* object = self;
     if (n < 0) {
         for (int i = 0; i < -n; i++) {
-            object = object->PrevEntity;
+            object = object->PrevSceneEntity;
             if (!object)
                 return NULL_VAL;
         }
     }
     else {
         for (int i = 0; i <= n; i++) {
-            object = object->NextEntity;
+            object = object->NextSceneEntity;
             if (!object)
                 return NULL_VAL;
         }
@@ -4787,6 +4795,28 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 
     if (object)
         return OBJECT_VAL(((BytecodeObject*)object)->Instance);
+
+    return NULL_VAL;
+}
+/***
+ * Instance.GetBySlotID
+ * \desc Gets an instance by its slot ID.
+ * \param slotID (Integer): The slot ID to search a corresponding instance for.
+ * \return Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.
+ * \ns Instance
+ */
+VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    int slotID = GET_ARG(0, GetInteger);
+    if (slotID < 0)
+        return NULL_VAL;
+
+    // Search backwards
+    for (Entity* ent = Scene::ObjectLast; ent; ent = ent->PrevSceneEntity) {
+        if (ent->SlotID == slotID)
+            return OBJECT_VAL(((BytecodeObject*)ent)->Instance);
+    }
 
     return NULL_VAL;
 }
@@ -12237,6 +12267,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, IsClass);
     DEF_NATIVE(Instance, GetCount);
     DEF_NATIVE(Instance, GetNextInstance);
+    DEF_NATIVE(Instance, GetBySlotID);
     // #endregion
 
     // #region JSON
