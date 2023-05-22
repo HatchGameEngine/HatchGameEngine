@@ -106,6 +106,7 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
 
     LINK_DEC(ZDepth);
 
+    LINK_INT(TileCollisions);
     LINK_INT(CollisionLayers);
     LINK_INT(CollisionPlane);
     LINK_INT(CollisionMode);

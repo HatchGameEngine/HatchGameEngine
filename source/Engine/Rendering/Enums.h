@@ -70,6 +70,41 @@ enum {
 };
 
 enum {
+    TileCollision_NONE = 0,
+    TileCollision_DOWN = 1,
+    TileCollision_UP   = 2
+};
+
+enum {
+    C_NONE      = 0,
+    C_TOP       = 1,
+    C_LEFT      = 2,
+    C_RIGHT     = 3,
+    C_BOTTOM    = 4
+};
+
+enum {
+    Flip_NONE   = 0,
+    Flip_X      = 1,
+    Flip_Y      = 2,
+    Flip_XY     = 3
+};
+
+enum {
+    CMode_FLOOR = 0,
+    CMode_LWALL = 1,
+    CMode_ROOF  = 2,
+    CMode_RWALL = 3
+};
+
+enum {
+    H_TYPE_TOUCH    = 0,
+    H_TYPE_CIRCLE   = 1,
+    H_TYPE_BOX      = 2,
+    H_TYPE_PLAT     = 3
+};
+
+enum {
     Active_NEVER   = 0, // Never updates
     Active_ALWAYS  = 1, // Updates no matter what
     Active_NORMAL  = 2, // Updates no matter where the object is in the scene, but not if scene is paused

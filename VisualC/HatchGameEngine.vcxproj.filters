@@ -416,6 +416,9 @@
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\engine\scene\SceneConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\engine\sprites\Animation.h">
       <Filter>Header Files</Filter>
     </ClInclude>

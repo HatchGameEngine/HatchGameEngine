@@ -87,6 +87,7 @@ public:
     int          OnGround = false;
     int          Direction = 0;
 
+    int          TileCollisions = false;
     int          CollisionLayers = 0;
     int          CollisionPlane = 0;
     int          CollisionMode = 0;

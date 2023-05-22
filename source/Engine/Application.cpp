@@ -221,6 +221,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::LoadGameConfig();
     Application::ReadSettings();
     Application::DisposeGameConfig();
+    Scene::LoadSceneConfig();
 
     const char *platform;
     switch (Application::Platform) {

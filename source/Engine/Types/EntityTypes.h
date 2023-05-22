@@ -93,5 +93,22 @@ struct Sensor {
     int Angle;
 };
 
+struct CollisionSensor {
+    float   X;
+    float   Y;
+    int     Collided;
+    int     Angle;
+};
+
+#define DEBUG_HITBOX_COUNT (0x400)
+
+struct DebugHitboxInfo {
+    int             type;
+    int             collision;
+    Entity*         entity;
+    CollisionBox    hitbox;
+    int             x;
+    int             y;
+};
 
 #endif /* ENTITYTYPES_H */
