@@ -411,6 +411,112 @@ PUBLIC bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
     return true;
 }
 
+PUBLIC void Entity::Copy(Entity* other) {
+    // Add the other entity to this object's list
+    if (other->List != List) {
+        other->List->Remove(other);
+        other->List = List;
+        other->List->Add(other);
+    }
+
+    for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+        if (Scene::PriorityLists[l].Contains(this)) {
+            // If the other object isn't in this priority list already, it's added into it
+            if (!Scene::PriorityLists[l].Contains(other))
+                Scene::PriorityLists[l].Add(other);
+        }
+        else {
+            // If this object isn't in this priority list, the other object is removed from it
+            Scene::PriorityLists[l].Remove(other);
+        }
+    }
+
+    CopyFields(other);
+}
+
+PUBLIC void Entity::CopyFields(Entity* other) {
+#define COPY(which) other->which = which
+    COPY(InitialX);
+    COPY(InitialY);
+    COPY(Active);
+    COPY(Pauseable);
+    COPY(Persistent);
+    COPY(Interactable);
+    COPY(ActiveStatus);
+    COPY(InRange);
+
+    COPY(X);
+    COPY(Y);
+    COPY(Z);
+    COPY(XSpeed);
+    COPY(YSpeed);
+    COPY(GroundSpeed);
+    COPY(Gravity);
+    COPY(Ground);
+
+    COPY(OnScreen);
+    COPY(OnScreenHitboxW);
+    COPY(OnScreenHitboxH);
+    COPY(ViewRenderFlag);
+    COPY(ViewOverrideFlag);
+    COPY(RenderRegionW);
+    COPY(RenderRegionH);
+
+    COPY(Angle);
+    COPY(AngleMode);
+    COPY(ScaleX);
+    COPY(ScaleY);
+    COPY(Rotation);
+    COPY(Alpha);
+    COPY(AutoPhysics);
+
+    COPY(Priority);
+    COPY(PriorityListIndex);
+    COPY(PriorityOld);
+
+    COPY(Depth);
+    COPY(OldDepth);
+    COPY(ZDepth);
+
+    COPY(Sprite);
+    COPY(CurrentAnimation);
+    COPY(CurrentFrame);
+    COPY(CurrentFrameCount);
+    COPY(AnimationSpeedMult);
+    COPY(AnimationSpeedAdd);
+    COPY(AutoAnimate);
+    COPY(AnimationSpeed);
+    COPY(AnimationTimer);
+    COPY(AnimationFrameDuration);
+    COPY(AnimationLoopIndex);
+
+    COPY(HitboxW);
+    COPY(HitboxH);
+    COPY(HitboxOffX);
+    COPY(HitboxOffY);
+    COPY(FlipFlag);
+
+    COPY(SensorX);
+    COPY(SensorY);
+    COPY(SensorCollided);
+    COPY(SensorAngle);
+
+    COPY(VelocityX);
+    COPY(VelocityY);
+    COPY(GroundVel);
+    COPY(GravityStrength);
+    COPY(OnGround);
+
+    COPY(CollisionLayers);
+    COPY(CollisionPlane);
+    COPY(CollisionMode);
+
+    COPY(SlotID);
+
+    COPY(Removed);
+#undef COPY
+}
+
 PUBLIC void Entity::ApplyPhysics() {
 
 }

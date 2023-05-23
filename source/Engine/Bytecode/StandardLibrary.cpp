@@ -4830,6 +4830,25 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 
     return NULL_VAL;
 }
+/***
+ * Instance.Copy
+ * \desc Copies an instance into another.
+ * \param destInstance (Instance): The destination instance.
+ * \param srcInstance (Instance): The source instance.
+ * \ns Instance
+ */
+VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjInstance* destInstance = GET_ARG(0, GetInstance);
+    ObjInstance* srcInstance = GET_ARG(1, GetInstance);
+
+    BytecodeObject* destEntity = (BytecodeObject*)destInstance->EntityPtr;
+    BytecodeObject* srcEntity = (BytecodeObject*)srcInstance->EntityPtr;
+    if (destEntity && srcEntity)
+        srcEntity->Copy(destEntity);
+
+    return NULL_VAL;
+}
 // #endregion
 
 // #region JSON
@@ -12279,6 +12298,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, GetCount);
     DEF_NATIVE(Instance, GetNextInstance);
     DEF_NATIVE(Instance, GetBySlotID);
+    DEF_NATIVE(Instance, Copy);
     // #endregion
 
     // #region JSON

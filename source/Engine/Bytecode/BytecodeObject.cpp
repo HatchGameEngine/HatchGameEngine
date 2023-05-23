@@ -50,6 +50,10 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
         SavedHashes = true;
     }
 
+    LinkFields();
+}
+
+PUBLIC void BytecodeObject::LinkFields() {
     LINK_DEC(X);
     LINK_DEC(Y);
     LINK_DEC(Z);
@@ -218,6 +222,44 @@ PUBLIC bool BytecodeObject::RunInitializer() {
     thread->StackTop = stackTop;
 
     return true;
+}
+
+PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
+    CopyFields(other);
+
+    other->Instance->Class = Instance->Class;
+
+    // Copy properties
+    HashMap<VMValue>* srcProperties = Properties;
+    HashMap<VMValue>* destProperties = other->Properties;
+
+    destProperties->Clear();
+
+    srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
+        destProperties->Put(key, value);
+    });
+}
+
+PUBLIC void BytecodeObject::CopyFields(BytecodeObject* other) {
+    Entity::CopyFields(other);
+
+    CopyVMFields(other);
+}
+
+PUBLIC void BytecodeObject::CopyVMFields(BytecodeObject* other) {
+    Table* srcFields = Instance->Fields;
+    Table* destFields = other->Instance->Fields;
+
+    destFields->Clear();
+
+    srcFields->WithAll([destFields](Uint32 key, VMValue value) -> void {
+        // Don't copy linked fields, because they point to this entity's built-in fields
+        if (value.Type != VAL_LINKED_INTEGER && value.Type != VAL_LINKED_DECIMAL)
+            destFields->Put(key, value);
+    });
+
+    // Link the built-in fields again, since they have been removed
+    other->LinkFields();
 }
 
 // Events called from C++
