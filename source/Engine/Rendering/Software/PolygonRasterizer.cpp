@@ -48,10 +48,10 @@ int FogEquation(float density, float coord) {
     CLAMP_VAL(result, 0, 0x100);
     return 0x100 - result;
 }
-int DoFogLighting(int color, float fogCoord) {
+Uint32 DoFogLighting(int color, float fogCoord) {
     int fogValue = FogEquation(PolygonRasterizer::FogDensity, fogCoord / 192.0f);
     if (fogValue != 0)
-        return ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
+        color = ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
     return color | 0xFF000000U;
 }
 Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {

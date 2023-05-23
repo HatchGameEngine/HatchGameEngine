@@ -64,7 +64,7 @@ struct Scene3D {
     void SetFogDensity(float density) {
         Fog.Density = density;
     }
-    void SetFogColor(Uint32 r, Uint32 g, Uint32 b) {
+    void SetFogColor(float r, float g, float b) {
         Fog.Color.R = r;
         Fog.Color.G = g;
         Fog.Color.B = b;

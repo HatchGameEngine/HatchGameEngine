@@ -1876,9 +1876,9 @@ VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 r = (Uint32)(GET_ARG(1, GetDecimal) * 0xFF);
-    Uint32 g = (Uint32)(GET_ARG(2, GetDecimal) * 0xFF);
-    Uint32 b = (Uint32)(GET_ARG(3, GetDecimal) * 0xFF);
+    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
+    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
     GET_SCENE_3D();
     scene3D->SetFogColor(r, g, b);
     return NULL_VAL;
