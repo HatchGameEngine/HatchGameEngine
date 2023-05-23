@@ -11,6 +11,11 @@ enum VertexType {
     VertexType_Color = 4,
 };
 
+enum FogEquation {
+    FogEquation_Linear,
+    FogEquation_Exp
+};
+
 enum {
     FaceCull_None,
     FaceCull_Back,

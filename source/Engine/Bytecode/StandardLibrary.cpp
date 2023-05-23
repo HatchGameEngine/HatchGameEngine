@@ -8202,8 +8202,12 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 cullMode = GET_ARG(1, GetInteger);
+    int cullMode = GET_ARG(1, GetInteger);
     GET_SCENE_3D();
+    if (cullMode < (int)FaceCull_None || cullMode > (int)FaceCull_Front) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid face cull mode %d.", cullMode);
+        return NULL_VAL;
+    }
     scene3D->FaceCullMode = cullMode;
     return NULL_VAL;
 }
@@ -8373,8 +8377,62 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
     return NULL_VAL;
 }
 /***
+ * Scene3D.SetFogEquation
+ * \desc Sets the fog equation of the 3D scene. (software-renderer only) <br/>\
+</br>Fog Equations:<ul>\
+<li><code>FogEquation_Linear</code>: Linear fog equation.</li>\
+<li><code>FogEquation_Exp</code>: Exponential fog equation.</li>\
+</ul>
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param fogEquation (Integer): The fog equation to use.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    int fogEquation = GET_ARG(1, GetInteger);
+    GET_SCENE_3D();
+    if (fogEquation < (int)FogEquation_Linear || fogEquation > (int)FogEquation_Exp) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid fog equation %d.", fogEquation);
+        return NULL_VAL;
+    }
+    scene3D->SetFogEquation((FogEquation)fogEquation);
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFogStart
+ * \desc Sets the near distance used in the linear equation of the 3D scene's fog.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param start (Number): The start value.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    GET_SCENE_3D();
+    scene3D->SetFogStart(GET_ARG(1, GetDecimal));
+    return NULL_VAL;
+}
+/***
+ * Scene3D.SetFogEnd
+ * \desc Sets the far distance used in the linear equation of the 3D scene's fog.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param end (Number): The end value.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    GET_SCENE_3D();
+    scene3D->SetFogEnd(GET_ARG(1, GetDecimal));
+    return NULL_VAL;
+}
+/***
  * Scene3D.SetFogDensity
- * \desc Sets the density of the 3D scene's fog.
+ * \desc Sets the density used in the exponential equation of the 3D scene's fog.
  * \param scene3DIndex (Integer): The index of the 3D scene.
  * \param density (Number): The fog density.
  * \return
@@ -8383,7 +8441,6 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
 VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-
     GET_SCENE_3D();
     scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
     return NULL_VAL;
@@ -12513,6 +12570,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, SetAmbientLighting);
     DEF_NATIVE(Scene3D, SetDiffuseLighting);
     DEF_NATIVE(Scene3D, SetSpecularLighting);
+    DEF_NATIVE(Scene3D, SetFogEquation);
+    DEF_NATIVE(Scene3D, SetFogStart);
+    DEF_NATIVE(Scene3D, SetFogEnd);
     DEF_NATIVE(Scene3D, SetFogDensity);
     DEF_NATIVE(Scene3D, SetFogColor);
     DEF_NATIVE(Scene3D, SetPointSize);
@@ -12520,6 +12580,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(FaceCull_None);
     DEF_ENUM(FaceCull_Back);
     DEF_ENUM(FaceCull_Front);
+
+    DEF_ENUM(FogEquation_Linear);
+    DEF_ENUM(FogEquation_Exp);
     // #endregion
 
     // #region Settings
