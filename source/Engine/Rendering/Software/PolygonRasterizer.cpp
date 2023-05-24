@@ -17,6 +17,7 @@ public:
     static float   FogEnd;
     static float   FogDensity;
     static int     FogColor;
+    static Uint16  FogTable[0x100 + 1];
 };
 #endif
 
@@ -38,6 +39,7 @@ float   PolygonRasterizer::FogStart = 0.0f;
 float   PolygonRasterizer::FogEnd = 1.0f;
 float   PolygonRasterizer::FogDensity = 1.0f;
 int     PolygonRasterizer::FogColor = 0x000000;
+Uint16  PolygonRasterizer::FogTable[0x100 + 1];
 
 #define DEPTH_READ_DUMMY(depth) true
 #define DEPTH_WRITE_DUMMY(depth)
@@ -75,8 +77,10 @@ int (*FogEquationFunc)(float) = FogEquationFunc_Linear;
 
 Uint32 DoFogLighting(int color, float fogCoord) {
     int fogValue = FogEquationFunc(fogCoord / 192.0f);
-    if (fogValue != 0)
+    if (fogValue != 0) {
+        fogValue = PolygonRasterizer::FogTable[fogValue];
         color = ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
+    }
     return color | 0xFF000000U;
 }
 Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
@@ -1534,4 +1538,22 @@ PUBLIC STATIC void     PolygonRasterizer::SetFogColor(float r, float g, float b)
     Uint8 colorG = (Uint32)(g * 0xFF);
     Uint8 colorB = (Uint32)(b * 0xFF);
     FogColor = colorR << 16 | colorG << 8 | colorB;
+}
+PUBLIC STATIC void     PolygonRasterizer::SetFogSmoothness(float smoothness) {
+    float value = Math::Clamp(1.0f - smoothness, 0.0f, 1.0f);
+    if (value <= 0.0) {
+        for (size_t i = 0; i <= 0x100; i++)
+            FogTable[i] = i;
+        return;
+    }
+
+    float fog = 0.0f;
+    float inv = 1.0f / value;
+
+    const float recip = 1.0f / 256.0f;
+
+    for (size_t i = 0; i <= 0x100; i++) {
+        FogTable[i] = (int)(floor(fog) * value * 256.0f);
+        fog += recip * inv;
+    }
 }

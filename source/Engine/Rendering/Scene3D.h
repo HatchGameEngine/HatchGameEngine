@@ -35,6 +35,7 @@ struct Scene3D {
         float Start = 0.0f;
         float End = 1.0f;
         float Density = 1.0f;
+        float Smoothness = 1.0f;
         struct {
             float R, G, B;
         } Color;
@@ -80,6 +81,9 @@ struct Scene3D {
         Fog.Color.R = r;
         Fog.Color.G = g;
         Fog.Color.B = b;
+    }
+    void SetFogSmoothness(float smoothness) {
+        Fog.Smoothness = smoothness;
     }
     void SetClipPolygons(bool clipPolygons) {
         ClipPolygons = clipPolygons;

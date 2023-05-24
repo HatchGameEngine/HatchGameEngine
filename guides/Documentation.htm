@@ -607,8 +607,12 @@
                     <li><a href="#Reference_Scene3D_SetAmbientLighting">Scene3D.SetAmbientLighting</a></li>
                     <li><a href="#Reference_Scene3D_SetDiffuseLighting">Scene3D.SetDiffuseLighting</a></li>
                     <li><a href="#Reference_Scene3D_SetSpecularLighting">Scene3D.SetSpecularLighting</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogEquation">Scene3D.SetFogEquation</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogStart">Scene3D.SetFogStart</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogEnd">Scene3D.SetFogEnd</a></li>
                     <li><a href="#Reference_Scene3D_SetFogDensity">Scene3D.SetFogDensity</a></li>
                     <li><a href="#Reference_Scene3D_SetFogColor">Scene3D.SetFogColor</a></li>
+                    <li><a href="#Reference_Scene3D_SetFogSmoothness">Scene3D.SetFogSmoothness</a></li>
                     <li><a href="#Reference_Scene3D_SetPointSize">Scene3D.SetPointSize</a></li>
                 </ul>
             </p>
@@ -5391,10 +5395,43 @@
         </ul>
         </p>
         <hr/>
+        <p id="Reference_Scene3D_SetFogEquation">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogEquation</h2>
+        <code>Scene3D.SetFogEquation(scene3DIndex, fogEquation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the fog equation of the 3D scene. (software-renderer only) <br/></br>Fog Equations:<ul><li><code>FogEquation_Linear</code>: Linear fog equation.</li><li><code>FogEquation_Exp</code>: Exponential fog equation.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>fogEquation (Integer): The fog equation to use.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFogStart">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogStart</h2>
+        <code>Scene3D.SetFogStart(scene3DIndex, start)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the near distance used in the linear equation of the 3D scene's fog.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>start (Number): The start value.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFogEnd">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogEnd</h2>
+        <code>Scene3D.SetFogEnd(scene3DIndex, end)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the far distance used in the linear equation of the 3D scene's fog.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>end (Number): The end value.</li>
+        </ul>
+        </p>
+        <hr/>
         <p id="Reference_Scene3D_SetFogDensity">
         <h2 style="margin-bottom: 8px;">Scene3D.SetFogDensity</h2>
         <code>Scene3D.SetFogDensity(scene3DIndex, density)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the 3D scene's fog.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the density used in the exponential equation of the 3D scene's fog.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
@@ -5412,6 +5449,17 @@
         <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
         <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
         <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
+        </ul>
+        </p>
+        <hr/>
+        <p id="Reference_Scene3D_SetFogSmoothness">
+        <h2 style="margin-bottom: 8px;">Scene3D.SetFogSmoothness</h2>
+        <code>Scene3D.SetFogSmoothness(scene3DIndex, smoothness)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the smoothness of the 3D scene's fog.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The index of the 3D scene.</li>
+        <li>smoothness (Number): The smoothness, bounded by 0.0 - 1.0.</li>
         </ul>
         </p>
         <hr/>
@@ -7480,6 +7528,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>513 out of 582 functions have descriptions. </p>
+        <p>517 out of 586 functions have descriptions. </p>
     </body>
 </html>

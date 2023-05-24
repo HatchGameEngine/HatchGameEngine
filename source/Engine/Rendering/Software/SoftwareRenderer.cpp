@@ -942,6 +942,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
         if (faceInfoPtr->DrawMode & DrawMode_FOG) {
             PolygonRasterizer::SetUseFog(true);
             PolygonRasterizer::SetFogColor(scene->Fog.Color.R, scene->Fog.Color.G, scene->Fog.Color.B);
+            PolygonRasterizer::SetFogSmoothness(scene->Fog.Smoothness);
             PolygonRasterizer::SetFogEquation(scene->Fog.Equation);
 
             switch (scene->Fog.Equation) {

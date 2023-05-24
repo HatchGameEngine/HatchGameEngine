@@ -8466,6 +8466,22 @@ VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Scene3D.SetFogSmoothness
+ * \desc Sets the smoothness of the 3D scene's fog.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \param smoothness (Number): The smoothness, bounded by 0.0 - 1.0.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    float smoothness = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
+    GET_SCENE_3D();
+    scene3D->SetFogSmoothness(smoothness);
+    return NULL_VAL;
+}
+/***
  * Scene3D.SetPointSize
  * \desc Sets the point size of the 3D scene. (hardware-renderer only)
  * \param scene3DIndex (Integer): The index of the 3D scene.
@@ -12575,6 +12591,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, SetFogEnd);
     DEF_NATIVE(Scene3D, SetFogDensity);
     DEF_NATIVE(Scene3D, SetFogColor);
+    DEF_NATIVE(Scene3D, SetFogSmoothness);
     DEF_NATIVE(Scene3D, SetPointSize);
 
     DEF_ENUM(FaceCull_None);
