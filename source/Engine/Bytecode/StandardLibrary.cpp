@@ -11976,17 +11976,77 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
+    /***
+    * \enum KeyBind_Fullscreen
+    * \desc Fullscreen keybind.
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, Fullscreen);
+    /***
+    * \enum KeyBind_DevRestartApp
+    * \desc App restart keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevRestartApp);
+    /***
+    * \enum KeyBind_DevRestartScene
+    * \desc Scene restart keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevRestartScene);
+    /***
+    * \enum KeyBind_DevRecompile
+    * \desc Script recompile keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevRecompile);
+    /***
+    * \enum KeyBind_DevPerfSnapshot
+    * \desc Performance snapshot keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevPerfSnapshot);
+    /***
+    * \enum KeyBind_Fullscreen
+    * \desc Scene layer info keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
+    /***
+    * \enum KeyBind_DevFastForward
+    * \desc Fast forward keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevFastForward);
+    /***
+    * \enum KeyBind_DevFrameStepper
+    * \desc Frame stepper keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevFrameStepper);
+    /***
+    * \enum KeyBind_DevStepFrame
+    * \desc Step frame keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevStepFrame);
+    /***
+    * \enum KeyBind_DevTileCol
+    * \desc Tile collision display keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevTileCol);
+    /***
+    * \enum KeyBind_DevObjectRegions
+    * \desc Object regions display keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevObjectRegions);
+    /***
+    * \enum KeyBind_DevQuit
+    * \desc App quit keybind. (dev)
+    * \ns KeyBind
+    */
     DEF_ENUM_CLASS(KeyBind, DevQuit);
     // #endregion
 
@@ -12036,61 +12096,291 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, SetRumblePaused);
     DEF_NATIVE(Controller, SetLargeMotorFrequency);
     DEF_NATIVE(Controller, SetSmallMotorFrequency);
+    /***
+    * \constant NUM_CONTROLLER_BUTTONS
+    * \type Integer
+    * \desc The amount of buttons in a controller.
+    */
     DEF_CONST_INT("NUM_CONTROLLER_BUTTONS", (int)ControllerButton::Max);
+    /***
+    * \constant NUM_CONTROLLER_AXES
+    * \type Integer
+    * \desc The amount of axes in a controller.
+    */
     DEF_CONST_INT("NUM_CONTROLLER_AXES", (int)ControllerAxis::Max);
     #define CONST_BUTTON(x, y) DEF_CONST_INT("Button_"#x, (int)ControllerButton::y)
     {
+        /***
+        * \enum Button_A
+        * \desc Bottom controller face button.
+        * \ns Button
+        */
         CONST_BUTTON(A, A);
+        /***
+        * \enum Button_B
+        * \desc Right controller face button.
+        * \ns Button
+        */
         CONST_BUTTON(B, B);
+        /***
+        * \enum Button_X
+        * \desc Left controller face button.
+        * \ns Button
+        */
         CONST_BUTTON(X, X);
+        /***
+        * \enum Button_Y
+        * \desc Top controller face button.
+        * \ns Button
+        */
         CONST_BUTTON(Y, Y);
+        /***
+        * \enum Button_BACK
+        * \desc Controller Back button.
+        * \ns Button
+        */
         CONST_BUTTON(BACK, Back);
+        /***
+        * \enum Button_GUIDE
+        * \desc Controller Guide button.
+        * \ns Button
+        */
         CONST_BUTTON(GUIDE, Guide);
+        /***
+        * \enum Button_START
+        * \desc Controller Start button.
+        * \ns Button
+        */
         CONST_BUTTON(START, Start);
+        /***
+        * \enum Button_LEFTSTICK
+        * \desc Controller left stick click.
+        * \ns Button
+        */
         CONST_BUTTON(LEFTSTICK, LeftStick);
+        /***
+        * \enum Button_RIGHTSTICK
+        * \desc Controller right stick click.
+        * \ns Button
+        */
         CONST_BUTTON(RIGHTSTICK, RightStick);
+        /***
+        * \enum Button_LEFTSHOULDER
+        * \desc Controller left shoulder.
+        * \ns Button
+        */
         CONST_BUTTON(LEFTSHOULDER, LeftShoulder);
+        /***
+        * \enum Button_RIGHTSHOULDER
+        * \desc Controller right shoulder.
+        * \ns Button
+        */
         CONST_BUTTON(RIGHTSHOULDER, RightShoulder);
+        /***
+        * \enum Button_DPAD_UP
+        * \desc Controller D-Pad Up.
+        * \ns Button
+        */
         CONST_BUTTON(DPAD_UP, DPadUp);
+        /***
+        * \enum Button_DPAD_DOWN
+        * \desc Controller D-Pad Down.
+        * \ns Button
+        */
         CONST_BUTTON(DPAD_DOWN, DPadDown);
+        /***
+        * \enum Button_DPAD_LEFT
+        * \desc Controller D-Pad Left.
+        * \ns Button
+        */
         CONST_BUTTON(DPAD_LEFT, DPadLeft);
+        /***
+        * \enum Button_DPAD_RIGHT
+        * \desc Controller D-Pad Right.
+        * \ns Button
+        */
         CONST_BUTTON(DPAD_RIGHT, DPadRight);
+        /***
+        * \enum Button_SHARE
+        * \desc Share/Capture controller button.
+        * \ns Button
+        */
         CONST_BUTTON(SHARE, Share);
+        /***
+        * \enum Button_MICROPHONE
+        * \desc Microphone controller button.
+        * \ns Button
+        */
         CONST_BUTTON(MICROPHONE, Microphone);
+        /***
+        * \enum Button_TOUCHPAD
+        * \desc Touchpad controller button.
+        * \ns Button
+        */
         CONST_BUTTON(TOUCHPAD, Touchpad);
+        /***
+        * \enum Button_PADDLE1
+        * \desc P1 Paddle (Xbox Elite controllers.).
+        * \ns Button
+        */
         CONST_BUTTON(PADDLE1, Paddle1);
+        /***
+        * \enum Button_PADDLE2
+        * \desc P2 Paddle (Xbox Elite controllers.).
+        * \ns Button
+        */
         CONST_BUTTON(PADDLE2, Paddle2);
+        /***
+        * \enum Button_PADDLE3
+        * \desc P3 Paddle (Xbox Elite controllers.).
+        * \ns Button
+        */
         CONST_BUTTON(PADDLE3, Paddle3);
+        /***
+        * \enum Button_PADDLE4
+        * \desc P4 Paddle (Xbox Elite controllers.).
+        * \ns Button
+        */
         CONST_BUTTON(PADDLE4, Paddle4);
+        /***
+        * \enum Button_MISC1
+        * \desc Controller button for miscellaneous purposes.
+        * \ns Button
+        */
         CONST_BUTTON(MISC1, Misc1);
     }
     #undef CONST_BUTTON
     #define CONST_AXIS(x, y) DEF_CONST_INT("Axis_"#x, (int)ControllerAxis::y)
     {
+        /***
+        * \enum Axis_LEFTX
+        * \desc Left controller stick X.
+        * \ns Axis
+        */
         CONST_AXIS(LEFTX, LeftX);
+        /***
+        * \enum Axis_LEFTY
+        * \desc Left controller stick Y.
+        * \ns Axis
+        */
         CONST_AXIS(LEFTY, LeftY);
+        /***
+        * \enum Axis_RIGHTX
+        * \desc Right controller stick X.
+        * \ns Axis
+        */
         CONST_AXIS(RIGHTX, RightX);
+        /***
+        * \enum Axis_RIGHTY
+        * \desc Right controller stick Y.
+        * \ns Axis
+        */
         CONST_AXIS(RIGHTY, RightY);
+        /***
+        * \enum Axis_TRIGGERLEFT
+        * \desc Left controller trigger.
+        * \ns Axis
+        */
         CONST_AXIS(TRIGGERLEFT, TriggerLeft);
+        /***
+        * \enum Axis_TRIGGERRIGHT
+        * \desc Right controller trigger.
+        * \ns Axis
+        */
         CONST_AXIS(TRIGGERRIGHT, TriggerRight);
     }
     #undef CONST_AXIS
     #define CONST_CONTROLLER(type) DEF_CONST_INT("Axis_"#type, (int)ControllerType::type)
     {
+        /***
+        * \enum Controller_Xbox360
+        * \desc Xbox 360 controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(Xbox360);
+        /***
+        * \enum Controller_XboxOne
+        * \desc Xbox One controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(XboxOne);
+        /***
+        * \enum Controller_XboxSeriesXS
+        * \desc Xbox Series XS controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(XboxSeriesXS);
+        /***
+        * \enum Controller_XboxElite
+        * \desc Xbox Elite controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(XboxElite);
+        /***
+        * \enum Controller_PS3
+        * \desc PlayStation 3 controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(PS3);
+        /***
+        * \enum Controller_PS4
+        * \desc PlayStation 4 controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(PS4);
+        /***
+        * \enum Controller_PS5
+        * \desc PlayStation 5 controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(PS5);
+        /***
+        * \enum Controller_SwitchJoyConPair
+        * \desc Nintendo Switch Joy-Con pair controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(SwitchJoyConPair);
+        /***
+        * \enum Controller_SwitchJoyConLeft
+        * \desc Nintendo Switch Joy-Con L controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(SwitchJoyConLeft);
+        /***
+        * \enum Controller_SwitchJoyConRight
+        * \desc Nintendo Switch Joy-Con R controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(SwitchJoyConRight);
+        /***
+        * \enum Controller_SwitchPro
+        * \desc Nintendo Switch Pro Controller controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(SwitchPro);
+        /***
+        * \enum Controller_Stadia
+        * \desc Stadia Controller controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(Stadia);
+        /***
+        * \enum Controller_AmazonLuna
+        * \desc Amazon Luna controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(AmazonLuna);
+        /***
+        * \enum Controller_NvidiaShield
+        * \desc Nvidia Shield TV controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(NvidiaShield);
+        /***
+        * \enum Controller_Unknown
+        * \desc Unknown or unrecognized controller type.
+        * \ns Controller
+        */
         CONST_CONTROLLER(Unknown);
     }
     #undef CONST_CONTROLLER
@@ -12106,14 +12396,59 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Device);
     DEF_NATIVE(Device, GetPlatform);
     DEF_NATIVE(Device, IsMobile);
+    /***
+    * \enum Platform_Windows
+    * \desc Windows platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Windows);
+    /***
+    * \enum Platform_MacOSX
+    * \desc Mac OSX platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, MacOSX);
+    /***
+    * \enum Platform_Linux
+    * \desc Linux platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Linux);
+    /***
+    * \enum Platform_Switch
+    * \desc Nintendo Switch platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Switch);
+    /***
+    * \enum Platform_Playstation
+    * \desc PlayStation platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Playstation);
+    /***
+    * \enum Platform_Xbox
+    * \desc Xbox platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Xbox);
+    /***
+    * \enum Platform_iOS
+    * \desc iOS platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, iOS);
+    /***
+    * \enum Platform_Android
+    * \desc Android platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Android);
+    /***
+    * \enum Platform_Unknown
+    * \desc Unknown platform.
+    * \ns Platform
+    */
     DEF_ENUM_NAMED("Platform", Platforms, Unknown);
     // #endregion
 
@@ -12233,61 +12568,306 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseDepthTesting);
     DEF_NATIVE(Draw, GetCurrentDrawGroup);
 
+    /***
+    * \enum DrawMode_LINES
+    * \desc Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_LINES);
+    /***
+    * \enum DrawMode_POLYGONS
+    * \desc Draws the faces with polygons, using a solid color determined by the face's existing colors (and if not, the blend color.)
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_POLYGONS);
+    /***
+    * \enum DrawMode_POINTS
+    * \desc (hardware-renderer only) Draws the faces with points, using a solid color determined by the face's existing colors (and if not, the blend color.)
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_POINTS);
+    /***
+    * \enum DrawMode_FLAT_LIGHTING
+    * \desc Enables lighting, using a color for the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_FLAT_LIGHTING);
+    /***
+    * \enum DrawMode_SMOOTH_LIGHTING
+    * \desc Enables lighting, using a color smoothly spread across the primitive calculated with the vertex normals, and the primitive's existing colors (and if not, the blend color.)
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_SMOOTH_LIGHTING);
+    /***
+    * \enum DrawMode_TEXTURED
+    * \desc Enables texturing.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_TEXTURED);
+    /***
+    * \enum DrawMode_AFFINE
+    * \desc (software-renderer only) Uses affine texture mapping.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_AFFINE);
+    /***
+    * \enum DrawMode_DEPTH_TEST
+    * \desc Enables depth testing.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_DEPTH_TEST);
+    /***
+    * \enum DrawMode_FOG
+    * \desc (software-renderer only) Enables fog.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_FOG);
+    /***
+    * \enum DrawMode_ORTHOGRAPHIC
+    * \desc (software-renderer only) Uses orthographic perspective projection.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_ORTHOGRAPHIC);
+    /***
+    * \enum DrawMode_LINES_FLAT
+    * \desc Combination of <code>DrawMode_LINES</code> and <code>DrawMode_FLAT_LIGHTING</code>.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_LINES_FLAT);
+    /***
+    * \enum DrawMode_LINES_SMOOTH
+    * \desc Combination of <code>DrawMode_LINES</code> and <code>DrawMode_SMOOTH_LIGHTING</code>.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_LINES_SMOOTH);
+    /***
+    * \enum DrawMode_POLYGONS_FLAT
+    * \desc Combination of <code>DrawMode_POLYGONS</code> and <code>DrawMode_FLAT_LIGHTING</code>.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_POLYGONS_FLAT);
+    /***
+    * \enum DrawMode_POLYGONS_SMOOTH
+    * \desc Combination of <code>DrawMode_POLYGONS</code> and <code>DrawMode_SMOOTH_LIGHTING</code>.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_POLYGONS_SMOOTH);
+    /***
+    * \enum DrawMode_PrimitiveMask
+    * \desc Masks out <code>DrawMode_LINES | DrawMode_POLYGONS | DrawMode_POINTS</code> out of a draw mode.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_PrimitiveMask);
+    /***
+    * \enum DrawMode_LightingMask
+    * \desc Masks out <code>DrawMode_FLAT_LIGHTING | DrawMode_SMOOTH_LIGHTING</code> out of a draw mode.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_LightingMask);
+    /***
+    * \enum DrawMode_FillTypeMask
+    * \desc Masks out <code>DrawMode_PrimitiveMask | DrawMode_LightingMask</code> out of a draw mode.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_FillTypeMask);
+    /***
+    * \enum DrawMode_FlagsMask
+    * \desc Masks out <code>~DrawMode_FillTypeMask</code> out of a draw mode.
+    * \ns DrawMode
+    */
     DEF_ENUM(DrawMode_FlagsMask);
 
-    DEF_ENUM(BlendMode_ADD);
-    DEF_ENUM(BlendMode_MAX);
+    /***
+    * \enum BlendMode_NORMAL
+    * \desc Normal pixel blending.
+    * \ns BlendMode
+    */
     DEF_ENUM(BlendMode_NORMAL);
+    /***
+    * \enum BlendMode_ADD
+    * \desc Additive pixel blending.
+    * \ns BlendMode
+    */
+    DEF_ENUM(BlendMode_ADD);
+    /***
+    * \enum BlendMode_SUBTRACT
+    * \desc Subtractive pixel blending.
+    * \ns BlendMode
+    */
     DEF_ENUM(BlendMode_SUBTRACT);
+    /***
+    * \enum BlendMode_MAX
+    * \desc (hardware-renderer only) Maximum pixel blending.
+    * \ns BlendMode
+    */
+    DEF_ENUM(BlendMode_MAX);
+    /***
+    * \enum BlendMode_MATCH_EQUAL
+    * \desc (software-renderer only) Draw pixels only where it matches the Comparison Color.
+    * \ns BlendMode
+    */
     DEF_ENUM(BlendMode_MATCH_EQUAL);
+    /***
+    * \enum BlendMode_MATCH_NOT_EQUAL
+    * \desc (software-renderer only) Draw pixels only where it does not match the Comparison Color.
+    * \ns BlendMode
+    */
     DEF_ENUM(BlendMode_MATCH_NOT_EQUAL);
 
+    /***
+    * \enum TintMode_SRC_NORMAL
+    * \desc Tints the source pixel with the tint color.
+    * \ns TintMode
+    */
     DEF_ENUM(TintMode_SRC_NORMAL);
+    /***
+    * \enum TintMode_DST_NORMAL
+    * \desc Tints the destination pixel with the tint color.
+    * \ns TintMode
+    */
     DEF_ENUM(TintMode_DST_NORMAL);
+    /***
+    * \enum TintMode_SRC_BLEND
+    * \desc Blends the source pixel with the tint color.
+    * \ns TintMode
+    */
     DEF_ENUM(TintMode_SRC_BLEND);
+    /***
+    * \enum TintMode_DST_BLEND
+    * \desc Blends the destination pixel with the tint color.
+    * \ns TintMode
+    */
     DEF_ENUM(TintMode_DST_BLEND);
 
+    /***
+    * \enum Filter_NONE
+    * \desc Disables the current filter.
+    * \ns Filter
+    */
     DEF_ENUM(Filter_NONE);
+    /***
+    * \enum Filter_BLACK_AND_WHITE
+    * \desc Black and white filter.
+    * \ns Filter
+    */
     DEF_ENUM(Filter_BLACK_AND_WHITE);
+    /***
+    * \enum Filter_INVERT
+    * \desc Invert filter.
+    * \ns Filter
+    */
     DEF_ENUM(Filter_INVERT);
 
+    /***
+    * \enum BlendFactor_ZERO
+    * \desc Blend factor: (0, 0, 0, 0)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_ZERO);
+    /***
+    * \enum BlendFactor_ONE
+    * \desc Blend factor: (1, 1, 1, 1)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_ONE);
+    /***
+    * \enum BlendFactor_SRC_COLOR
+    * \desc Blend factor: (Rs, Gs, Bs, As)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_SRC_COLOR);
+    /***
+    * \enum BlendFactor_INV_SRC_COLOR
+    * \desc Blend factor: (1-Rs, 1-Gs, 1-Bs, 1-As)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_INV_SRC_COLOR);
+    /***
+    * \enum BlendFactor_SRC_ALPHA
+    * \desc Blend factor: (As, As, As, As)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_SRC_ALPHA);
+    /***
+    * \enum BlendFactor_INV_SRC_ALPHA
+    * \desc Blend factor: (1-As, 1-As, 1-As, 1-As)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_INV_SRC_ALPHA);
+    /***
+    * \enum BlendFactor_DST_COLOR
+    * \desc Blend factor: (Rd, Gd, Bd, Ad)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_DST_COLOR);
+    /***
+    * \enum BlendFactor_INV_DST_COLOR
+    * \desc Blend factor: (1-Rd, 1-Gd, 1-Bd, 1-Ad)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_INV_DST_COLOR);
+    /***
+    * \enum BlendFactor_DST_ALPHA
+    * \desc Blend factor: (Ad, Ad, Ad, Ad)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_DST_ALPHA);
+    /***
+    * \enum BlendFactor_INV_DST_ALPHA
+    * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
+    * \ns BlendFactor
+    */
     DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
     // #region Active Statuses
+    /***
+    * \enum Active_NEVER
+    * \desc Entity never updates.
+    * \ns Active
+    */
     DEF_ENUM(Active_NEVER);
+    /***
+    * \enum Active_ALWAYS
+    * \desc Entity always updates.
+    * \ns Active
+    */
     DEF_ENUM(Active_ALWAYS);
+    /***
+    * \enum Active_NORMAL
+    * \desc Entity updates no matter where it is located on the scene, but does not update if the scene is paused.
+    * \ns Active
+    */
     DEF_ENUM(Active_NORMAL);
+    /***
+    * \enum Active_PAUSED
+    * \desc Entity only updates when the scene is paused.
+    * \ns Active
+    */
     DEF_ENUM(Active_PAUSED);
+    /***
+    * \enum Active_BOUNDS
+    * \desc Entity only updates when it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
+    * \ns Active
+    */
     DEF_ENUM(Active_BOUNDS);
+    /***
+    * \enum Active_XBOUNDS
+    * \desc Entity only updates within an X bound. (only uses UpdateRegionW)
+    * \ns Active
+    */
     DEF_ENUM(Active_XBOUNDS);
+    /***
+    * \enum Active_YBOUNDS
+    * \desc Entity only updates within a Y bound. (only uses UpdateRegionH)
+    * \ns Active
+    */
     DEF_ENUM(Active_YBOUNDS);
+    /***
+    * \enum Active_RBOUNDS
+    * \desc Entity updates within a radius. (uses UpdateRegionW)
+    * \ns Active
+    */
     DEF_ENUM(Active_RBOUNDS);
     // #endregion
 
@@ -12503,7 +13083,17 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Resources, ReadAllText);
     DEF_NATIVE(Resources, UnloadImage);
 
+    /***
+    * \enum SCOPE_SCENE
+    * \desc Scene scope.
+    * \ns SCOPE
+    */
     DEF_ENUM(SCOPE_SCENE);
+    /***
+    * \enum SCOPE_GAME
+    * \desc Game scope.
+    * \ns SCOPE
+    */
     DEF_ENUM(SCOPE_GAME);
     // #endregion
 
@@ -12567,8 +13157,23 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetObjectViewRender);
     DEF_NATIVE(Scene, SetTileViewRender);
 
+    /***
+    * \enum DrawBehavior_HorizontalParallax
+    * \desc Horizontal parallax.
+    * \ns DrawBehavior
+    */
     DEF_ENUM(DrawBehavior_HorizontalParallax);
+    /***
+    * \enum DrawBehavior_VerticalParallax
+    * \desc Do not use.
+    * \ns DrawBehavior
+    */
     DEF_ENUM(DrawBehavior_VerticalParallax);
+    /***
+    * \enum DrawBehavior_CustomTileScanLines
+    * \desc Custom scanline behavior.
+    * \ns DrawBehavior
+    */
     DEF_ENUM(DrawBehavior_CustomTileScanLines);
     // #endregion
 
@@ -12594,11 +13199,36 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, SetFogSmoothness);
     DEF_NATIVE(Scene3D, SetPointSize);
 
+    /***
+    * \enum FaceCull_None
+    * \desc Disables face culling.
+    * \ns FaceCull
+    */
     DEF_ENUM(FaceCull_None);
+    /***
+    * \enum FaceCull_Back
+    * \desc Culls back faces.
+    * \ns FaceCull
+    */
     DEF_ENUM(FaceCull_Back);
+    /***
+    * \enum FaceCull_Front
+    * \desc Culls front faces.
+    * \ns FaceCull
+    */
     DEF_ENUM(FaceCull_Front);
 
+    /***
+    * \enum FogEquation_Linear
+    * \desc Linear fog equation.
+    * \ns FogEquation
+    */
     DEF_ENUM(FogEquation_Linear);
+    /***
+    * \enum FogEquation_Exp
+    * \desc Exponential fog equation.
+    * \ns FogEquation
+    */
     DEF_ENUM(FogEquation_Exp);
     // #endregion
 
@@ -12723,8 +13353,23 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Stream, WriteInt64);
     DEF_NATIVE(Stream, WriteFloat);
     DEF_NATIVE(Stream, WriteString);
+    /***
+    * \enum FileStream_READ_ACCESS
+    * \desc Read file access mode. (<code>rb</code>)
+    * \ns FileStream
+    */
     DEF_ENUM_CLASS(FileStream, READ_ACCESS);
+    /***
+    * \enum FileStream_WRITE_ACCESS
+    * \desc Write file access mode. (<code>wb</code>)
+    * \ns FileStream
+    */
     DEF_ENUM_CLASS(FileStream, WRITE_ACCESS);
+    /***
+    * \enum FileStream_APPEND_ACCESS
+    * \desc Append file access mode. (<code>ab</code>)
+    * \ns FileStream
+    */
     DEF_ENUM_CLASS(FileStream, APPEND_ACCESS);
     // #endregion
 
@@ -12766,9 +13411,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(TileCollision, Point);
     DEF_NATIVE(TileCollision, PointExtended);
     DEF_NATIVE(TileCollision, Line);
+    /***
+    * \enum SensorDirection_Down
+    * \desc Down sensor direction.
+    * \ns SensorDirection
+    */
     DEF_CONST_INT("SensorDirection_Down", 0);
+    /***
+    * \enum SensorDirection_Right
+    * \desc Right sensor direction.
+    * \ns SensorDirection
+    */
     DEF_CONST_INT("SensorDirection_Right", 1);
+    /***
+    * \enum SensorDirection_Up
+    * \desc Up sensor direction.
+    * \ns SensorDirection
+    */
     DEF_CONST_INT("SensorDirection_Up", 2);
+    /***
+    * \enum SensorDirection_Left
+    * \desc Left sensor direction.
+    * \ns SensorDirection
+    */
     DEF_CONST_INT("SensorDirection_Left", 3);
     // #endregion
 
@@ -12884,23 +13549,108 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     BytecodeObjectManager::Globals->Put("other", NULL_VAL);
 
+    /***
+    * \global CameraX
+    * \type Decimal
+    * \desc The X position of the first camera.
+    */
     DEF_LINK_DECIMAL("CameraX", &Scene::Views[0].X);
+    /***
+    * \global CameraY
+    * \type Decimal
+    * \desc The X position of the first camera.
+    */
     DEF_LINK_DECIMAL("CameraY", &Scene::Views[0].Y);
+    /***
+    * \global LowPassFilter
+    * \type Decimal
+    * \desc The low pass filter of the audio.
+    */
     DEF_LINK_DECIMAL("LowPassFilter", &AudioManager::LowPassFilter);
 
+    /***
+    * \global Scene_Frame
+    * \type Integer
+    * \desc The current scene frame.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_Frame", &Scene::Frame);
+    /***
+    * \global Scene_TimeEnabled
+    * \type Integer
+    * \desc Whether the scene timer is enabled or not.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_TimeEnabled", &Scene::TimeEnabled);
+    /***
+    * \global Scene_TimeCounter
+    * \type Integer
+    * \desc The current scene timer counter.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_TimeCounter", &Scene::TimeCounter);
+    /***
+    * \global Scene_Minutes
+    * \type Integer
+    * \desc The minutes value of the scene timer.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_Minutes", &Scene::Minutes);
+    /***
+    * \global Scene_Milliseconds
+    * \type Integer
+    * \desc The seconds value of the scene timer.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_Seconds", &Scene::Seconds);
+    /***
+    * \global Scene_Milliseconds
+    * \type Integer
+    * \desc The milliseconds value of the scene timer.
+    * \ns Scene
+    */
     DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
+    /***
+    * \constant Scene_MaxViews
+    * \type Integer
+    * \desc The max amount of scene views.
+    * \ns Scene
+    */
     DEF_CONST_INT("Scene_MaxViews", MAX_SCENE_VIEWS);
 
+    /***
+    * \constant Math_PI
+    * \type Decimal
+    * \desc The value of pi.
+    * \ns Math
+    */
     DEF_CONST_DECIMAL("Math_PI", M_PI);
+    /***
+    * \constant Math_PI_DOUBLE
+    * \type Decimal
+    * \desc Double of the value of pi.
+    * \ns Math
+    */
     DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
+    /***
+    * \constant Math_PI_HALF
+    * \type Decimal
+    * \desc Half of the value of pi.
+    * \ns Math
+    */
     DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
+    /***
+    * \constant Math_R_PI
+    * \type Decimal
+    * \ns Math
+    */
     DEF_CONST_DECIMAL("Math_R_PI", R_PI);
 
+    /***
+    * \constant NUM_KEYBOARD_KEYS
+    * \type Integer
+    * \desc Count of keyboard keys.
+    */
     DEF_ENUM(NUM_KEYBOARD_KEYS);
 
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
