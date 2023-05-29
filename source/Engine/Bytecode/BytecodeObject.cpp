@@ -54,77 +54,506 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
 }
 
 PUBLIC void BytecodeObject::LinkFields() {
+    /***
+    * \field X
+    * \type Decimal
+    * \ns Instance
+    * \desc The X position of the entity.
+    */
     LINK_DEC(X);
+    /***
+    * \field Y
+    * \type Decimal
+    * \ns Instance
+    * \desc The Y position of the entity.
+    */
     LINK_DEC(Y);
+    /***
+    * \field Z
+    * \type Decimal
+    * \ns Instance
+    * \desc The Z position of the entity.
+    */
     LINK_DEC(Z);
+    /***
+    * \field XSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal velocity of the entity.
+    */
     LINK_DEC(XSpeed);
+    /***
+    * \field YSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical velocity of the entity.
+    */
     LINK_DEC(YSpeed);
+    /***
+    * \field GroundSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The speed of the entity on the ground.
+    */
     LINK_DEC(GroundSpeed);
+    /***
+    * \field Gravity
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The gravity of the entity.
+    */
     LINK_DEC(Gravity);
+    /***
+    * \field AutoPhysics
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether <linkto ref="instance.ApplyMotion"></linkto> is automatically called for this entity.
+    */
     LINK_INT(AutoPhysics);
+    /***
+    * \field Angle
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The angle of the entity on the ground, within the range of <code>0x00</code> - <code>0xFF</code>.
+    */
     LINK_INT(Angle);
+    /***
+    * \field AngleMode
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The angle mode of the entity on the ground, within the range of <code>0</code> - <code>3</code>.
+    */
     LINK_INT(AngleMode);
+    /***
+    * \field Ground
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether the entity is on the ground.
+    */
     LINK_INT(Ground);
-    LINK_DEC(ScaleX);
-    LINK_DEC(ScaleY);
-    LINK_DEC(Rotation);
-    LINK_DEC(Alpha);
-    LINK_INT(Priority);
-    LINK_DEC(Depth);
-    LINK_INT(Sprite);
-    LINK_INT(CurrentAnimation);
-    LINK_INT(CurrentFrame);
-    LINK_INT(CurrentFrameCount);
-    LINK_DEC(AnimationSpeedMult);
-    LINK_INT(AnimationSpeedAdd);
-    LINK_INT(AutoAnimate);
-    LINK_DEC(AnimationSpeed);
-    LINK_DEC(AnimationTimer);
-    LINK_INT(AnimationFrameDuration);
-    LINK_INT(AnimationLoopIndex);
 
+    /***
+    * \field ScaleX
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for scaling a sprite horizontally.
+    */
+    LINK_DEC(ScaleX);
+    /***
+    * \field ScaleY
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for scaling a sprite vertically.
+    */
+    LINK_DEC(ScaleY);
+    /***
+    * \field Rotation
+    * \type Decimal (radians)
+    * \default 0.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for rotating a sprite.
+    */
+    LINK_DEC(Rotation);
+    /***
+    * \field Alpha
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for changing the opacity of a sprite.
+    */
+    LINK_DEC(Alpha);
+    /***
+    * \field Priority
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The priority, or draw group, where this entity is located.
+    */
+    LINK_INT(Priority);
+    /***
+    * \field Depth
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The depth of the entity. Used for sorting entity draw order.
+    */
+    LINK_DEC(Depth);
+
+    /***
+    * \field Sprite
+    * \type Integer (Resource)
+    * \default -1
+    * \ns Instance
+    * \desc The sprite index of the entity.
+    */
+    LINK_INT(Sprite);
+    /***
+    * \field CurrentAnimation
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The current sprite  animation index of the entity.
+    */
+    LINK_INT(CurrentAnimation);
+    /***
+    * \field CurrentFrame
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The current frame index of the entity's current animation.
+    */
+    LINK_INT(CurrentFrame);
+    /***
+    * \field CurrentFrameCount
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The frame count of the entity's current animation.
+    */
+    LINK_INT(CurrentFrameCount);
+    /***
+    * \field AnimationSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The animation speed of the entity's animation.
+    */
+    LINK_DEC(AnimationSpeed);
+    /***
+    * \field AnimationTimer
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The animation timer of the entity's animation.
+    */
+    LINK_DEC(AnimationTimer);
+    /***
+    * \field AnimationFrameDuration
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The duration of the entity's current animation frame.
+    */
+    LINK_INT(AnimationFrameDuration);
+    /***
+    * \field AnimationLoopIndex
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The loop index of entity's current animation.
+    */
+    LINK_INT(AnimationLoopIndex);
+    /***
+    * \field AnimationSpeedMult
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc The animation speed multiplier of the entity.
+    */
+    LINK_DEC(AnimationSpeedMult);
+    /***
+    * \field AnimationSpeedAdd
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc This value is added to the result of <linkto ref="instance.AnimationSpeed"></linkto> * <linkto ref="instance.AnimationSpeedMult"></linkto> when the entity is being animated.
+    */
+    LINK_INT(AnimationSpeedAdd);
+    /***
+    * \field AutoAnimate
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether <linkto ref="instance.Animate"></linkto> is automatically called for this entity.
+    */
+    LINK_INT(AutoAnimate);
+
+    /***
+    * \field OnScreen
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc See <linkto ref="instance.InRange"></linkto>.
+    */
     LINK_INT(OnScreen);
+    /***
+    * \field OnScreenHitboxW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Alias for <linkto ref="instance.UpdateRegionW"></linkto>.
+    */
     LINK_DEC(OnScreenHitboxW);
+    /***
+    * \field OnScreenHitboxH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Alias for <linkto ref="instance.UpdateRegionH"></linkto>.
+    */
     LINK_DEC(OnScreenHitboxH);
+    /***
+    * \field ViewRenderFlag
+    * \type Integer
+    * \default ~0
+    * \ns Instance
+    * \desc A bitfield that indicates in which views the entity renders. By default, this is on for every view.
+    */
     LINK_INT(ViewRenderFlag);
+    /***
+    * \field ViewOverrideFlag
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc A bitfield similar to <linkto ref="instance.ViewRenderFlag"></linkto>. Bypasses each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.
+    */
     LINK_INT(ViewOverrideFlag);
 
+    /***
+    * \field UpdateRegionW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal on-screen range where the entity can update. If this and <linkto ref="instance.UpdateRegionH"></linkto> are set to <code>0.0</code>, the entity will update regardless of the camera's position.
+    */
     Instance->Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
+    /***
+    * \field UpdateRegionH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical on-screen range where the entity can update. If this and <linkto ref="instance.UpdateRegionW"></linkto> are set to <code>0.0</code>, the entity will update regardless of the camera's position.
+    */
     Instance->Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
+    /***
+    * \field RenderRegionW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's horizontal position.
+    */
     LINK_DEC(RenderRegionW);
+    /***
+    * \field RenderRegionH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.
+    */
     LINK_DEC(RenderRegionH);
 
+    /***
+    * \field HitboxW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The width of the hitbox.
+    */
     LINK_DEC(HitboxW);
+    /***
+    * \field HitboxH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The height of the hitbox.
+    */
     LINK_DEC(HitboxH);
+    /***
+    * \field HitboxOffX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal offset of the hitbox.
+    */
     LINK_DEC(HitboxOffX);
+    /***
+    * \field HitboxOffY
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical offset of the hitbox.
+    */
     LINK_DEC(HitboxOffY);
+    /***
+    * \field FlipFlag
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc Bitfield that indicates whether the entity is X/Y flipped.
+    */
     LINK_INT(FlipFlag);
 
+    /***
+    * \field VelocityX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.XSpeed"></linkto>.
+    */
     LINK_DEC(VelocityX);
+    /***
+    * \field VelocityX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.YSpeed"></linkto>.
+    */
     LINK_DEC(VelocityY);
+    /***
+    * \field GroundVel
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.GroundSpeed"></linkto>.
+    */
     LINK_DEC(GroundVel);
+    /***
+    * \field Direction
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.FlipFlag"></linkto>.
+    */
     LINK_INT(Direction);
+    /***
+    * \field OnGround
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.Ground"></linkto>.
+    */
     LINK_INT(OnGround);
 
+    /***
+    * \field SlotID
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc If this entity was spawned from a scene file, this field contains the slot ID in which it was placed. If not, this field contains the default value of <code>-1</code>.
+    */
     LINK_INT(SlotID);
 
+    /***
+    * \field ZDepth
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    */
     LINK_DEC(ZDepth);
 
+    /***
+    * \field CollisionLayers
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
     LINK_INT(CollisionLayers);
+    /***
+    * \field CollisionPlane
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
     LINK_INT(CollisionPlane);
+    /***
+    * \field CollisionMode
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
     LINK_INT(CollisionMode);
 
+    /***
+    * \field ActiveStatus
+    * \type Enumeration
+    * \default Active_BOUNDS
+    * \ns Instance
+    * \desc The active status for this entity.
+    */
     LINK_INT(ActiveStatus);
+    /***
+    * \field InRange
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether this entity is within active range; see <linkto ref="instance.ActiveStatus"></linkto>.
+    */
     LINK_INT(InRange);
 
+    /***
+    * \field SensorX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the horizontal position of where the entity collided.
+    */
     LINK_DEC(SensorX);
+    /***
+    * \field SensorY
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the vertical position of where the entity collided.
+    */
     LINK_DEC(SensorY);
+    /***
+    * \field SensorAngle
+    * \type Boolean
+    * \default 0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will be <code>true</code> if the entity collided with a tile, <code>false</code> otherwise.
+    */
     LINK_INT(SensorCollided);
+    /***
+    * \field SensorAngle
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the angle of the tile within the range of <code>0x00</code> - <code>0xFF</code>.
+    */
     LINK_INT(SensorAngle);
 
+    /***
+    * \field Active
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity is active. If set to false, the entity is removed at the end of the frame.
+    */
     LINK_BOOL(Active);
+    /***
+    * \field Pauseable
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity stops updating when the scene is paused.
+    */
     LINK_BOOL(Pauseable);
+    /***
+    * \field Persistent
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether the entity persists between scenes.
+    */
     LINK_BOOL(Persistent);
+    /***
+    * \field Interactable
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity can be interacted with. If set to <code>false</code>, the entity will not be included in <code>with</code> iterations.
+    */
     LINK_BOOL(Interactable);
 }
 
@@ -428,6 +857,13 @@ bool TestEntityCollision(BytecodeObject* other, BytecodeObject* self) {
     }
     return false;
 }
+/***
+ * \method SetAnimation
+ * \desc Changes the current animation of the entity, if the animation index differs from the entity's current animation index.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     Entity* self = GET_ENTITY(0);
@@ -455,6 +891,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetAnimation(int argCount, VMValue* arg
     self->SetAnimation(animation, frame);
     return NULL_VAL;
 }
+/***
+ * \method ResetAnimation
+ * \desc Changes the current animation of the entity.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     Entity* self = GET_ENTITY(0);
@@ -483,6 +926,11 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ResetAnimation(int argCount, VMValue* a
     self->ResetAnimation(animation, frame);
     return NULL_VAL;
 }
+/***
+ * \method Animate
+ * \desc Animates the entity.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
@@ -490,6 +938,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_Animate(int argCount, VMValue* args, Ui
         self->Animate();
     return NULL_VAL;
 }
+/***
+ * \method AddToRegistry
+ * \desc Adds the entity to a registry.
+ * \param registry (String): The registry name.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     Entity* self = GET_ENTITY(0);
@@ -511,6 +965,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_AddToRegistry(int argCount, VMValue* ar
 
     return NULL_VAL;
 }
+/***
+ * \method RemoveFromRegistry
+ * \desc Removes the entity from a registry.
+ * \param registry (String): The registry name.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     Entity* self = GET_ENTITY(0);
@@ -529,6 +989,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromRegistry(int argCount, VMValu
 
     return NULL_VAL;
 }
+/***
+ * \method ApplyMotion
+ * \desc Applies gravity and velocities to the entity.
+ * \return
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
@@ -536,6 +1002,17 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ApplyMotion(int argCount, VMValue* args
         self->ApplyMotion();
     return NULL_VAL;
 }
+/***
+ * \method InView
+ * \desc Checks if the specified positions and ranges are within the specified view.
+ * \param viewIndex (Integer): The view index.
+ * \param x (Decimal): The X position.
+ * \param y (Decimal): The Y position.
+ * \param w (Decimal): The width.
+ * \param h (Decimal): The height.
+ * \return Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 6);
     // Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
@@ -553,6 +1030,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_InView(int argCount, VMValue* args, Uin
 
     return INTEGER_VAL(false);
 }
+/***
+ * \method CollidedWithObject
+ * \desc Checks if the entity collided with another object, or any object of the specified class name.
+ * \param other (Instance/String): The instance or class to collide with.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
 
@@ -591,6 +1075,15 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValu
 
     return INTEGER_VAL(false);
 }
+/***
+ * \method GetHitboxFromSprite
+ * \desc Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.
+ * \param sprite (Sprite): The sprite.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index.
+ * \param hitbox (Integer): The hitbox ID.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
     BytecodeObject* self = GET_ENTITY(0);
@@ -630,6 +1123,16 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
 
     return NULL_VAL;
 }
+/***
+ * \method GetHitboxFromSprite
+ * \desc Gets the hitbox in the specified sprite's animation, frame and hitbox ID.
+ * \param sprite (Sprite): The sprite.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index.
+ * \param hitbox (Integer): The hitbox ID.
+ * \return Returns an array containing the hitbox top, left, right and bottom sides in that order. 
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
     BytecodeObject* self = GET_ENTITY(0);
@@ -666,6 +1169,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
     return OBJECT_VAL(array);
 }
 
+/***
+ * \method CollideWithObject
+ * \desc Does collision with another entity.
+ * \param other (Instance): The other entity.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -674,6 +1184,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollideWithObject(int argCount, VMValue
         return NULL_VAL;
     return INTEGER_VAL(self->CollideWithObject(other));
 }
+/***
+ * \method SolidCollideWithObject
+ * \desc Does solid collision with another entity.
+ * \param other (Instance): The other entity.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     BytecodeObject* self = GET_ENTITY(0);
@@ -683,6 +1200,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SolidCollideWithObject(int argCount, VM
         return NULL_VAL;
     return INTEGER_VAL(self->SolidCollideWithObject(other, flag));
 }
+/***
+ * \method TopSolidCollideWithObject
+ * \desc Does solid collision with another entity's top.
+ * \param other (Instance): The other entity.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     BytecodeObject* self = GET_ENTITY(0);
@@ -701,6 +1225,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ApplyPhysics(int argCount, VMValue* arg
     return NULL_VAL;
 }
 
+/***
+ * \method PropertyExists
+ * \desc Checks if a property exists in the entity.
+ * \param property (String): The property name.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -709,6 +1240,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_PropertyExists(int argCount, VMValue* a
         return INTEGER_VAL(1);
     return INTEGER_VAL(0);
 }
+/***
+ * \method PropertyGet
+ * \desc Gets a property exists from the entity.
+ * \param property (String): The property name.
+ * \return Returns the property if it exists, and <code>null</code> if the property does not exist.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -718,6 +1256,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_PropertyGet(int argCount, VMValue* args
     return self->Properties->Get(property);
 }
 
+/***
+ * \method SetViewVisibility
+ * \desc Sets whether the entity is visible on a specific view.
+ * \param viewIndex (Integer): The view index.
+ * \param visible (Boolean): Whether the entity will be visible or not on the specified view.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     BytecodeObject* self = GET_ENTITY(0);
@@ -732,6 +1277,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetViewVisibility(int argCount, VMValue
     }
     return NULL_VAL;
 }
+/***
+ * \method SetViewOverride
+ * \desc Toggles the bypass for each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.
+ * \param viewIndex (Integer): The view index.
+ * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     BytecodeObject* self = GET_ENTITY(0);
@@ -747,6 +1299,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetViewOverride(int argCount, VMValue* 
     return NULL_VAL;
 }
 
+/***
+ * \method AddToDrawGroup
+ * \desc Adds the entity into the specified draw group.
+ * \param drawGroup (Integer): The draw group.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -759,6 +1317,13 @@ PUBLIC STATIC VMValue BytecodeObject::VM_AddToDrawGroup(int argCount, VMValue* a
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
 }
+/***
+ * \method IsInDrawGroup
+ * \desc Checks if the entity is in the specified draw group.
+ * \param drawGroup (Integer): The draw group.
+ * \return Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -769,6 +1334,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_IsInDrawGroup(int argCount, VMValue* ar
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
 }
+/***
+ * \method RemoveFromDrawGroup
+ * \desc Removes the entity from the specified draw group.
+ * \param drawGroup (Integer): The draw group.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -780,6 +1351,16 @@ PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromDrawGroup(int argCount, VMVal
     return NULL_VAL;
 }
 
+/***
+ * \method PlaySound
+ * \desc Plays a sound once from the entity.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return Returns the channel index where the sound began to play.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -794,6 +1375,17 @@ PUBLIC STATIC VMValue BytecodeObject::VM_PlaySound(int argCount, VMValue* args, 
     }
     return INTEGER_VAL(channel);
 }
+/***
+ * \method LoopSound
+ * \desc Plays a sound from the entity, looping back when it ends.
+ * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return Returns the channel index where the sound began to play.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -809,6 +1401,12 @@ PUBLIC STATIC VMValue BytecodeObject::VM_LoopSound(int argCount, VMValue* args, 
     }
     return INTEGER_VAL(channel);
 }
+/***
+ * \method StopSound
+ * \desc Stops a specific sound that is being played from the entity.
+ * \param sound (Integer): The sound index to interrupt.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     BytecodeObject* self = GET_ENTITY(0);
@@ -817,6 +1415,11 @@ PUBLIC STATIC VMValue BytecodeObject::VM_StopSound(int argCount, VMValue* args, 
         AudioManager::StopOriginSound((void*)self, audio);
     return NULL_VAL;
 }
+/***
+ * \method StopAllSounds
+ * \desc Stops all sounds the entity is playing.
+ * \ns Instance
+ */
 PUBLIC STATIC VMValue BytecodeObject::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     BytecodeObject* self = GET_ENTITY(0);
