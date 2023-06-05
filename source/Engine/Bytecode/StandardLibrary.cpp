@@ -10441,20 +10441,13 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks to see if a tile at the ID is empty.
  * \param tileID (Integer): ID of tile to check.
  * \param collisionPlane (Integer): The collision plane of the tile to check for.
- * \return 1 if the tile is empty space, 0 if otherwise.
+ * \return Returns <code>true</code> if the tile is empty space, <code>false</code> if otherwise.
  * \ns TileInfo
  */
 VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int tileID = GET_ARG(0, GetInteger);
-    // int collisionPlane = GET_ARG(1, GetInteger);
-
     return INTEGER_VAL(tileID == Scene::EmptyTile);
-
-    // if (collisionPlane == 0)
-    //     return INTEGER_VAL(Scene::TileCfgA[tileID].CollisionTop[0] >= 0xF0);
-    //
-    // return INTEGER_VAL(Scene::TileCfgB[tileID].CollisionTop[0]);
 }
 /***
  * TileInfo.GetCollision
@@ -10586,6 +10579,33 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
     return INTEGER_VAL(Scene::TileCfgB[tileID].Behavior);
+}
+/***
+ * TileInfo.IsCeiling
+ * \desc Checks if the desired tile is a ceiling tile.
+ * \param tileID (Integer): ID of the tile to check.
+ * \param collisionPlane (Integer): The collision plane of the tile to check.
+ * \return Returns <code>true</code> if the tile is a ceiling tile, <code>false</code> if otherwise.
+ * \ns TileInfo
+ */
+VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int tileID = GET_ARG(0, GetInteger);
+    int collisionPlane = GET_ARG(1, GetInteger);
+
+    if (collisionPlane == 0) {
+        if (!Scene::TileCfgA) {
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision A is not loaded.");
+            return NULL_VAL;
+        }
+        return INTEGER_VAL(Scene::TileCfgA[tileID].IsCeiling);
+    }
+
+    if (!Scene::TileCfgB) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision B is not loaded.");
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(Scene::TileCfgB[tileID].IsCeiling);
 }
 // #endregion
 
@@ -13156,6 +13176,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(TileInfo, GetCollision);
     DEF_NATIVE(TileInfo, GetAngle);
     DEF_NATIVE(TileInfo, GetBehaviorFlag);
+    DEF_NATIVE(TileInfo, IsCeiling);
     // #endregion
 
     // #region Thread
