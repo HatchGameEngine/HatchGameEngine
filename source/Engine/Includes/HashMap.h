@@ -22,7 +22,7 @@ public:
     int Count = 0;
     int Capacity = 0;
     int CapacityMask = 0;
-    int ChainLength = 16;
+    int ChainLength = 64;
     HashMapElement<T>* Data = NULL;
     Uint32 FirstKey = 0;
     Uint32 LastKey = 0;
