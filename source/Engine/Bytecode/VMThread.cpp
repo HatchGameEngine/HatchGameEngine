@@ -106,7 +106,7 @@ char GetTokenBuffer[16];
     else if (functionName != "<anonymous-fn>") \
         functionName = "event " + functionName
 
-PUBLIC char*   VMThread::GetToken(Uint32 hash) {
+PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
     if (__Tokens__ && __Tokens__->Exists(hash))
         return __Tokens__->Get(hash);
 

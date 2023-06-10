@@ -31,10 +31,14 @@ struct Scene3D {
     } Lighting;
 
     struct {
+        FogEquation Equation = FogEquation_Linear;
+        float Start = 0.0f;
+        float End = 1.0f;
+        float Density = 1.0f;
+        float Smoothness = 1.0f;
         struct {
             float R, G, B;
         } Color;
-        float Density;
     } Fog;
 
     float            PointSize = 1.0f;
@@ -61,13 +65,25 @@ struct Scene3D {
         Lighting.Specular.G = g;
         Lighting.Specular.B = b;
     }
+    void SetFogEquation(FogEquation mode) {
+        Fog.Equation = mode;
+    }
+    void SetFogStart(float start) {
+        Fog.Start = start;
+    }
+    void SetFogEnd(float end) {
+        Fog.End = end;
+    }
     void SetFogDensity(float density) {
         Fog.Density = density;
     }
-    void SetFogColor(Uint32 r, Uint32 g, Uint32 b) {
+    void SetFogColor(float r, float g, float b) {
         Fog.Color.R = r;
         Fog.Color.G = g;
         Fog.Color.B = b;
+    }
+    void SetFogSmoothness(float smoothness) {
+        Fog.Smoothness = smoothness;
     }
     void SetClipPolygons(bool clipPolygons) {
         ClipPolygons = clipPolygons;
