@@ -430,6 +430,94 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
     Application::Running = false;
     return NULL_VAL;
 }
+/***
+ * Application.GetGameTitle
+ * \desc Gets the game title of the application.
+ * \ns Application
+ */
+VMValue Application_GetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::GameTitle));
+}
+/***
+ * Application.GetGameTitleShort
+ * \desc Gets the short game title of the application.
+ * \ns Application
+ */
+VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::GameTitleShort));
+}
+/***
+ * Application.GetVersion
+ * \desc Gets the version of the application.
+ * \ns Application
+ */
+VMValue Application_GetVersion(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::Version));
+}
+/***
+ * Application.GetDescription
+ * \desc Gets the description of the application.
+ * \ns Application
+ */
+VMValue Application_GetDescription(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::Description));
+}
+/***
+ * Application.SetGameTitle
+ * \desc Sets the game title of the application.
+ * \param title (String): Game title.
+ * \ns Application
+ */
+VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    const char* string = GET_ARG(0, GetString);
+    memset(Application::GameTitle, 0, sizeof(Application::GameTitle));
+    snprintf(Application::GameTitle, sizeof(Application::GameTitle), "%s", string);
+    return NULL_VAL;
+}
+/***
+ * Application.SetGameTitleShort
+ * \desc Sets the short game title of the application.
+ * \param title (String): Short game title.
+ * \ns Application
+ */
+VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    const char* string = GET_ARG(0, GetString);
+    memset(Application::GameTitleShort, 0, sizeof(Application::GameTitleShort));
+    snprintf(Application::GameTitleShort, sizeof(Application::GameTitleShort), "%s", string);
+    return NULL_VAL;
+}
+/***
+ * Application.SetVersion
+ * \desc Sets the version of the application.
+ * \param title (String): Game version.
+ * \ns Application
+ */
+VMValue Application_SetVersion(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    const char* string = GET_ARG(0, GetString);
+    memset(Application::Version, 0, sizeof(Application::Version));
+    snprintf(Application::Version, sizeof(Application::Version), "%s", string);
+    return NULL_VAL;
+}
+/***
+ * Application.SetDescription
+ * \desc Sets the description of the application.
+ * \param title (String): Game description.
+ * \ns Application
+ */
+VMValue Application_SetDescription(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    const char* string = GET_ARG(0, GetString);
+    memset(Application::Description, 0, sizeof(Application::Description));
+    snprintf(Application::Description, sizeof(Application::Description), "%s", string);
+    return NULL_VAL;
+}
 // #endregion
 
 // #region Audio
@@ -7332,6 +7420,34 @@ VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Scene.LoadPosition
+ * \desc Loads the scene located in the scene list's position slot, if a scene sist is loaded.
+ * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
+ * \ns Scene
+ */
+VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
+    if (Scene::ListData.size()) {
+        SceneListEntry scene = Scene::ListData[Scene::ListPos];
+        if (!strcmp(scene.fileType, "bin")) {
+            snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Stages/%s/Scene%s.%s", scene.folder, scene.id, scene.fileType);
+        }
+        else {
+            if (scene.folder[0] == '\0')
+                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s.%s", scene.id, scene.fileType);
+            else
+                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s/%s.%s", scene.folder, scene.id, scene.fileType);
+        }
+        if (argCount != 0) {
+            CHECK_ARGCOUNT(1);
+            Scene::NoPersistency = !!GET_ARG(1, GetInteger);
+        }
+        else {
+            Scene::NoPersistency = true;
+        }
+    }
+    return NULL_VAL;
+}
+/***
  * Scene.LoadTileCollisions
  * \desc Load tile collisions from a resource file.
  * \param filename (String): Filename of tile collision file.
@@ -7717,6 +7833,143 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
     return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
 }
 /***
+ * Scene.GetListPos
+ * \desc Gets the current list position of the scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::ListPos);
+}
+/***
+ * Scene.GetCurrentFolder
+ * \desc Gets the current folder of the scene.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Scene::CurrentFolder));
+}
+/***
+ * Scene.GetCurrentID
+ * \desc Gets the current ID of the scene.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Scene::CurrentID));
+}
+/***
+ * Scene.GetCurrentSpriteFolder
+ * \desc Gets the current sprite folder of the scene.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Scene::CurrentSpriteFolder));
+}
+/***
+ * Scene.GetCurrentCategory
+ * \desc Gets the current category name of the scene.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Scene::CurrentCategory));
+}
+/***
+ * Scene.GetActiveCategory
+ * \desc Gets the current category number of the scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::ActiveCategory);
+}
+/***
+ * Scene.GetCategoryCount
+ * \desc Gets the amount of categories in the scene list.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::CategoryCount);
+}
+/***
+ * Scene.GetStageCount
+ * \desc Gets the amount of stages in the scene list.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::StageCount);
+}
+/***
+ * Scene.GetDebugMode
+ * \desc Gets whether Debug Mode has been turned on in the current scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::DebugMode);
+}
+/***
+ * Scene.CheckValidScene
+ * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    if (Scene::ListData.size()) {
+        if (Scene::ActiveCategory >= Scene::CategoryCount)
+            return INTEGER_VAL(0);
+
+        SceneListInfo list = Scene::ListCategory[Scene::ActiveCategory];
+        return INTEGER_VAL((int)(!!(Scene::ListPos >= list.sceneOffsetStart && Scene::ListPos <= list.sceneOffsetEnd)));
+    }
+    else {
+        return INTEGER_VAL(0);
+    } 
+}
+/***
+ * Scene.CheckSceneFolder
+ * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded.
+ * \param folder (String): Folder name to compare.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    if (Scene::ListData.size())
+        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].folder, GET_ARG(0, GetString)) == 0));
+    else
+        return INTEGER_VAL(0);
+}
+/***
+ * Scene.CheckSceneID
+ * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded.
+ * \param id (String): ID to compare.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    if (Scene::ListData.size())
+        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].id, GET_ARG(0, GetString)) == 0));
+    else
+        return INTEGER_VAL(0);;
+}
+/***
  * Scene.IsPaused
  * \desc Gets whether or not the scene is paused.
  * \return Returns a Boolean value.
@@ -7724,6 +7977,48 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
  */
 VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)Scene::Paused);
+}
+/***
+ * Scene.SetListPos
+ * \desc Sets the current list position of the scene.
+ * \ns Scene
+ */
+VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Scene::ListPos = GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetActiveCategory
+ * \desc Sets the current category number of the scene.
+ * \ns Scene
+ */
+VMValue Scene_SetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Scene::ActiveCategory = GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetDebugMode
+ * \desc Sets whether Debug Mode has been turned on in the current scene.
+ * \ns Scene
+ */
+VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Scene::DebugMode = GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetScene
+ * \desc Sets the scene if the category and scene names exist within the scene list.
+ * \param category (String): Category name.
+ * \param scene (String): Scene name. If the scene name is not found but the category name is, the 
+ * \ns Scene
+ */
+VMValue Scene_SetScene(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::SetScene(GET_ARG(0, GetString), GET_ARG(1, GetString));
+    return NULL_VAL;
 }
 /***
  * Scene.SetTile
@@ -12130,6 +12425,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
+    DEF_NATIVE(Application, GetGameTitle);
+    DEF_NATIVE(Application, GetGameTitleShort);
+    DEF_NATIVE(Application, GetVersion);
+    DEF_NATIVE(Application, GetDescription);
+    DEF_NATIVE(Application, SetGameTitle);
+    DEF_NATIVE(Application, SetGameTitleShort);
+    DEF_NATIVE(Application, SetVersion);
+    DEF_NATIVE(Application, SetDescription);
     /***
     * \enum KeyBind_Fullscreen
     * \desc Fullscreen keybind.
@@ -13148,6 +13451,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Scene);
     DEF_NATIVE(Scene, Load);
     DEF_NATIVE(Scene, LoadNoPersistency);
+    DEF_NATIVE(Scene, LoadPosition);
     DEF_NATIVE(Scene, LoadTileCollisions);
     DEF_NATIVE(Scene, AreTileCollisionsLoaded);
     DEF_NATIVE(Scene, Restart);
@@ -13177,7 +13481,23 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileFlipY);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
+    DEF_NATIVE(Scene, GetListPos);
+    DEF_NATIVE(Scene, GetCurrentFolder);
+    DEF_NATIVE(Scene, GetCurrentID);
+    DEF_NATIVE(Scene, GetCurrentSpriteFolder);
+    DEF_NATIVE(Scene, GetCurrentCategory);
+    DEF_NATIVE(Scene, GetActiveCategory);
+    DEF_NATIVE(Scene, GetCategoryCount);
+    DEF_NATIVE(Scene, GetStageCount);
+    DEF_NATIVE(Scene, GetDebugMode);
+    DEF_NATIVE(Scene, CheckValidScene);
+    DEF_NATIVE(Scene, CheckSceneFolder);
+    DEF_NATIVE(Scene, CheckSceneID);
     DEF_NATIVE(Scene, IsPaused);
+    DEF_NATIVE(Scene, SetListPos);
+    DEF_NATIVE(Scene, SetActiveCategory);
+    DEF_NATIVE(Scene, SetDebugMode);
+    DEF_NATIVE(Scene, SetScene);
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
@@ -13643,6 +13963,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
     DEF_CONST_INT("Scene_MaxViews", MAX_SCENE_VIEWS);
+    /***
+    * \constant Scene_ListPos
+    * \type Integer
+    * \desc The position of the current scene in the scene list.
+    */
+    DEF_LINK_INT("Scene_ListPos", &Scene::ListPos);
+    /***
+    * \constant Scene_ActiveCategory
+    * \type Integer
+    * \desc The category number that contains the current scene.
+    */
+    DEF_LINK_INT("Scene_ActiveCategory", &Scene::ActiveCategory);
+    /***
+    * \constant Scene_DebugMode
+    * \type Integer
+    * \desc Whether nor not Debug Mode has been turned on in the current scene
+    */
+    DEF_LINK_INT("Scene_DebugMode", &Scene::DebugMode);
 
     /***
     * \constant Math_PI

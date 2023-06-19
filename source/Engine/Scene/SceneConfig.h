@@ -13,6 +13,7 @@ struct SceneListEntry {
     char    folder[16];
     char    id[8];
     char    spriteFolder[16];
+    char    fileType[8];
 };
 
 #endif /* ENGINE_SCENE_SCENECONFIG_H */

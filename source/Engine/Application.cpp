@@ -14,6 +14,7 @@ public:
     static char        SettingsFile[4096];
 
     static XMLNode*    GameConfig;
+    static XMLNode*    SceneConfig;
 
     static float       FPS;
     static bool        Running;
@@ -26,6 +27,11 @@ public:
     static int         DefaultMonitor;
     static Platforms   Platform;
 
+    static char        GameTitle[256];
+    static char        GameTitleShort[256];
+    static char        Version[256];
+    static char        Description[256];
+
     static int         UpdatesPerFrame;
     static bool        Stepper;
     static bool        Step;
@@ -33,6 +39,8 @@ public:
     static int         MasterVolume;
     static int         MusicVolume;
     static int         SoundVolume;
+
+    static int         StartSceneNum;
 };
 #endif
 
@@ -89,6 +97,7 @@ INI*        Application::Settings = NULL;
 char        Application::SettingsFile[4096];
 
 XMLNode*    Application::GameConfig = NULL;
+XMLNode*    Application::SceneConfig = NULL;
 
 float       Application::FPS = 60.f;
 int         TargetFPS = 60;
@@ -101,6 +110,11 @@ int         Application::WindowWidth = 848;
 int         Application::WindowHeight = 480;
 int         Application::DefaultMonitor = 0;
 
+char        Application::GameTitle[256];
+char        Application::GameTitleShort[256];
+char        Application::Version[256];
+char        Application::Description[256];
+
 int         Application::UpdatesPerFrame = 1;
 bool        Application::Stepper = false;
 bool        Application::Step = false;
@@ -108,6 +122,8 @@ bool        Application::Step = false;
 int         Application::MasterVolume = 100;
 int         Application::MusicVolume = 100;
 int         Application::SoundVolume = 100;
+
+int         Application::StartSceneNum = 0;
 
 char    StartingScene[256];
 
@@ -219,9 +235,10 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Clock::Init();
 
     Application::LoadGameConfig();
+    Application::LoadGameInfo();
+    Application::LoadSceneInfo();
     Application::ReadSettings();
     Application::DisposeGameConfig();
-    Scene::LoadSceneConfig();
 
     const char *platform;
     switch (Application::Platform) {
@@ -246,7 +263,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     }
     Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
 
-    Application::SetWindowTitle("Hatch Game Engine");
+    Application::SetWindowTitle(Application::GameTitleShort);
 
     Running = true;
 }
@@ -467,6 +484,8 @@ PRIVATE STATIC void Application::Restart() {
     Graphics::UsePalettes = false;
 
     Application::LoadGameConfig();
+    Application::LoadGameInfo();
+    Application::LoadSceneInfo();
     Application::ReloadSettings();
     Application::DisposeGameConfig();
 }
@@ -1236,12 +1255,150 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     node = XMLParser::SearchNode(root, "startscene");
     if (node)
         XMLParser::CopyTokenToString(node->children[0]->name, StartingScene, sizeof(StartingScene));
+
 }
 
 PRIVATE STATIC void Application::DisposeGameConfig() {
     if (Application::GameConfig)
         XMLParser::Free(Application::GameConfig);
     Application::GameConfig = nullptr;
+}
+
+PRIVATE STATIC void Application::LoadGameInfo() {
+    StringUtils::Copy(Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
+    StringUtils::Copy(Application::GameTitleShort, "Hatch Engine", sizeof(Application::GameTitleShort));
+    StringUtils::Copy(Application::Version, "1.0", sizeof(Application::Version));
+    StringUtils::Copy(Application::Description, "Those who dare to fail miserably can achieve greatly.", sizeof(Application::Description));
+
+    if (Application::GameConfig) {
+        XMLNode* root = Application::GameConfig->children[0];
+        XMLNode* node = XMLParser::SearchNode(root, "gameTitle");
+        if (node)
+            XMLParser::CopyTokenToString(node->children[0]->name, Application::GameTitle, sizeof(Application::GameTitle));
+        node = XMLParser::SearchNode(root, "shortTitle");
+        if (node)
+            XMLParser::CopyTokenToString(node->children[0]->name, Application::GameTitleShort, sizeof(Application::GameTitleShort));
+        node = XMLParser::SearchNode(root, "version");
+        if (node)
+            XMLParser::CopyTokenToString(node->children[0]->name, Application::Version, sizeof(Application::Version));
+        node = XMLParser::SearchNode(root, "description");
+        if (node)
+            XMLParser::CopyTokenToString(node->children[0]->name, Application::Description, sizeof(Application::Description));
+    }
+    return;
+}
+
+PUBLIC STATIC void Application::LoadSceneInfo() {
+    if (Application::GameConfig) {
+        XMLNode* node;
+
+        // Read category and starting scene number to be used by the SceneConfig
+        node = Application::GameConfig->children[0];
+        if (node) {
+            ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory);
+            ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
+        }
+        else {
+            Scene::ActiveCategory       = 0;
+            Application::StartSceneNum  = 0;
+        }
+
+        // Open and read SceneConfig
+        Application::SceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
+        if (!Application::SceneConfig) {
+            Log::Print(Log::LOG_WARN, "Could not find SceneConfig.xml file!");
+            return;
+        }
+
+        node = Application::SceneConfig->children[0];
+
+        // TODO: Check existing scene folder and id here to reset them upon reload
+
+        Scene::CategoryCount = 0;
+        Scene::StageCount = 0;
+        Scene::ListPos = 0;
+
+        Scene::ListCategory.clear();
+        Scene::ListCategory.shrink_to_fit();
+
+        Scene::ListData.clear();
+        Scene::ListData.shrink_to_fit();
+
+        // Parse Scene List
+        for (size_t i = 0; i < node->children.size(); ++i) {
+            XMLNode* listElement = node->children[i];
+            if (XMLParser::MatchToken(listElement->name, "category")) {
+                SceneListInfo category;
+                if (listElement->attributes.Exists("name"))
+                    XMLParser::CopyTokenToString(listElement->attributes.Get("name"), category.name, sizeof(category.name));
+                else
+                    snprintf(category.name, sizeof(category.name), "unknown list");
+
+                category.sceneOffsetStart = Scene::ListData.size();
+                category.sceneCount = 0;
+
+                for (size_t s = 0; s < listElement->children.size(); ++s) {
+                    XMLNode* stgElement = listElement->children[s];
+                    if (XMLParser::MatchToken(stgElement->name, "stage")) {
+                        SceneListEntry scene;
+                        if (stgElement->attributes.Exists("name"))
+                            XMLParser::CopyTokenToString(stgElement->attributes.Get("name"), scene.name, sizeof(scene.name));
+                        else
+                            snprintf(scene.name, sizeof(scene.name), "unknownStage");
+
+                        if (stgElement->attributes.Exists("folder"))
+                            XMLParser::CopyTokenToString(stgElement->attributes.Get("folder"), scene.folder, sizeof(scene.folder));
+                        else
+                            // Accounts for scenes placed in the root
+                            scene.folder[0] = '\0';
+
+                        if (stgElement->attributes.Exists("id"))
+                            XMLParser::CopyTokenToString(stgElement->attributes.Get("id"), scene.id, sizeof(scene.id));
+                        else
+                            snprintf(scene.id, sizeof(scene.id), "unknownID");
+
+                        if (stgElement->attributes.Exists("spriteFolder"))
+                            XMLParser::CopyTokenToString(stgElement->attributes.Get("spriteFolder"), scene.spriteFolder, sizeof(scene.spriteFolder));
+                        else
+                            snprintf(scene.spriteFolder, sizeof(scene.spriteFolder), "unknownSprFldr");
+
+                        if (stgElement->attributes.Exists("type"))
+                            XMLParser::CopyTokenToString(stgElement->attributes.Get("type"), scene.fileType, sizeof(scene.fileType));
+                        else
+                            snprintf(scene.fileType, sizeof(scene.fileType), "bin");
+
+                        Scene::ListData.push_back(scene);
+                        category.sceneCount++;
+                        Scene::StageCount++;
+                    }
+
+                    category.sceneOffsetEnd = category.sceneOffsetStart + category.sceneCount;
+                }
+
+                Scene::ListCategory.push_back(category);
+                Scene::CategoryCount++;
+            }
+        }
+
+        Scene::ListPos = Scene::ListCategory[Scene::ActiveCategory].sceneOffsetStart + Application::StartSceneNum;
+        SceneListEntry scene = Scene::ListData[Scene::ListPos];
+        strcpy(Scene::CurrentFolder, scene.folder);
+        strcpy(Scene::CurrentID, scene.id);
+        strcpy(Scene::CurrentSpriteFolder, scene.spriteFolder);
+        char filePath[4096];
+        if (!strcmp(scene.fileType, "bin")) {
+            snprintf(filePath, sizeof(filePath), "Stages/%s/Scene%s.%s", scene.folder, scene.id, scene.fileType);
+        }
+        else {
+            if (scene.folder[0] == '\0')
+                snprintf(filePath, sizeof(filePath), "Scenes/%s.%s", scene.id, scene.fileType);
+            else
+                snprintf(filePath, sizeof(filePath), "Scenes/%s/%s.%s", scene.folder, scene.id, scene.fileType);
+        }
+        StringUtils::Copy(StartingScene, filePath, sizeof(StartingScene));
+        Log::Print(Log::LOG_VERBOSE, "Successfully read SceneConfig.xml file.");
+        XMLParser::Free(Application::SceneConfig);
+    }
 }
 
 PUBLIC STATIC bool Application::LoadSettings(const char* filename) {

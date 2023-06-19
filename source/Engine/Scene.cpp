@@ -67,6 +67,8 @@ public:
     static vector<ResourceType*>     ModelList;
     static vector<ResourceType*>     MediaList;
 
+    static vector<Animator*>         AnimatorList;
+
     static int                       Frame;
     static bool                      Paused;
 
@@ -92,15 +94,19 @@ public:
     static int                       Seconds;
     static int                       Milliseconds;
 
-    static SceneListEntry*           ListData;
-    static SceneListInfo*            ListCategory;
+    static vector<SceneListEntry>    ListData;
+    static vector<SceneListInfo>     ListCategory;
     static int                       ListPos;
-    static char                      ActiveFolder[16];
-    static char                      ActiveSpriteFolder[16];
-    static char                      ActiveCategory[16];
+    static char                      CurrentFolder[16];
+    static char                      CurrentID[16];
+    static char                      CurrentSpriteFolder[16];
+    static char                      CurrentCategory[16];
+    static int                       ActiveCategory;
     static int                       CategoryCount;
     static int                       ListCount;
     static int                       StageCount;
+
+    static int                       DebugMode;
 
     static float                     CollisionTolerance;
     static bool                      UseCollisionOffset;
@@ -220,15 +226,20 @@ int                       Scene::Seconds = 0;
 int                       Scene::Minutes = 0;
 
 // Scene list variables
-SceneListEntry*           Scene::ListData;
-SceneListInfo*            Scene::ListCategory;
+vector<SceneListEntry>    Scene::ListData;
+vector<SceneListInfo>     Scene::ListCategory;
 int                       Scene::ListPos;
-char                      Scene::ActiveFolder[16];
-char                      Scene::ActiveSpriteFolder[16];
-char                      Scene::ActiveCategory[16];
+char                      Scene::CurrentFolder[16];
+char                      Scene::CurrentID[16];
+char                      Scene::CurrentSpriteFolder[16];
+char                      Scene::CurrentCategory[16];
+int                       Scene::ActiveCategory;
 int                       Scene::CategoryCount;
 int                       Scene::ListCount;
 int                       Scene::StageCount;
+
+// Debug mode variables
+int                       Scene::DebugMode;
 
 // Resource managing variables
 vector<ResourceType*>     Scene::SpriteList;
@@ -238,6 +249,8 @@ vector<ResourceType*>     Scene::MusicList;
 vector<ResourceType*>     Scene::ShaderList;
 vector<ResourceType*>     Scene::ModelList;
 vector<ResourceType*>     Scene::MediaList;
+
+vector <Animator*>        Scene::AnimatorList;
 
 Entity*                   StaticObject = NULL;
 ObjectList*               StaticObjectList = NULL;
@@ -604,86 +617,23 @@ PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
     }
 }
 
-// Scene List Generator
-PUBLIC STATIC void Scene::LoadSceneConfig() {
-    /*
-    Scene::ListCount = 0;
-    Scene::StageCount = 0;
+// Scene List Functions
+PUBLIC STATIC void Scene::SetScene(const char* categoryName, const char* sceneName) {
+    for (int i = 0; i < Scene::CategoryCount; ++i) {
+        if (!strcmp(Scene::ListCategory[i].name, categoryName)) {
+            Scene::ActiveCategory = i;
+            Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart;
 
-    if (XMLNode* sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml")) {
-        XMLNode* root = sceneConfig->children[0];
-        // pointer listElement = Find first child pointer from the root with the title "category" (there are several with the title)
-        if (listElement) {
-            do {
-                // pointer stgElement = Find first element pointer "stage" in listElement (there are several with the title)
-
-                SceneListInfo* list = &Scene::ListCategory[Scene::ListCount];
-                // pointer nameAttr = Find attribute pointer "name" in the listElement for the name of the category
-                const char* lstName = "unknown list";
-                if (nameAttr) {
-                    // listName = the value of nameAttr;
+            for (int s = 0; s < Scene::ListCategory[i].sceneCount; ++s) {
+                if (!strcmp(Scene::ListData[Scene::ListCategory[i].sceneOffsetStart + s].name, sceneName)) {
+                    Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart + s;
+                    break;
                 }
-                // sprintf_s(list->name, sizeof(list->name), "%s", lstName);
+            }
 
-                list->sceneOffsetStart = Scene::StageCount;
-                list->sceneOffsetEnd = Scene::StageCount;
-                list->sceneCount = 0;
-
-                if (stgElement) {
-                    do {
-                        // pointer nameAttr = Find attribute pointer "name" in the stgElement for the name of the stage
-                        const char* stgName = "unknownStage";
-                        if (nameAttr) {
-                            // stgName = the value of nameAttr
-                        }
-
-                        // pointer folderAttr = Find attribute pointer "folder" in the stgElement for the folder the stage is located in
-                        const char* stgFolder = "unknownFolder";
-                        if (folderAttr) {
-                            // stgFolder = the value of folderAttr
-                        }
-
-                        // pointer idAttr = Find attribute pointer "name" in the stgElement for the scene number of the stage's filename
-                        const char* stgID = "unknownID";
-                        if (idAttr) {
-                            // stgID = the value of idAttr
-                        }
-
-                        // pointer spriteFolderAttr = Find attribute pointer "spriteFolder" in the stgElement for the folder sprites would most likely be located in
-                        // (most LoadSprite calls would not use this though, it's case-by-case basis. I use it a lot in Gateway sprite loads so different stages have different sprites
-                        // for the same object, like Motobug)
-                        const char* stgSpriteFolder = "unknownSprFldr";
-                        if (spriteFolderAttr) {
-                            // stgSpriteFolder = the value of folderAttr
-                        }
-
-                        SceneListEntry* scene = &Scene::ListData[Scene::StageCount];
-
-                        // sprintf_s(scene->name, sizeof(scene->name), "%s", stgName);
-                        // sprintf_s(scene->folder, sizeof(scene->folder), "%s", stgFolder);
-                        // sprintf_s(scene->id, sizeof(scene->id), "%s", stgID);
-                        // sprintf_s(scene->spriteFolder, sizeof(scene->spriteFolder), "%s", stgSpriteFolder);
-
-                        // Scene::ListCategory[listID].sceneCount++;
-                        Scene::StageCount++;
-
-                    } // while there is another element with the name "stage" in the category that can be assigned to stgElement here
-                }
-
-                list->sceneOffsetEnd += list->sceneCount;
-                Scene::CategoryCount++;
-
-                Scene::ListCount++;
-            } // while there is another child with the name "category" that can be assigned to listElement here
+            break;
         }
-
-        XMLParser::Free(sceneConfig);
     }
-    else {
-        Log::Print(Log::LOG_WARN, "Did not parse SceneConfig.xml file!");
-    }
-    */
-    return;
 }
 
 // Scene Lifecycle
@@ -1263,6 +1213,8 @@ PUBLIC STATIC void Scene::Restart() {
     Scene::Seconds = 0;
     Scene::Milliseconds = 0;
 
+    Scene::DebugMode = 0;
+
     Scene::ResetViews();
 
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
@@ -1484,6 +1436,27 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
                 HatchSceneReader::Read(filename, pathParent);
             else
                 TiledMapReader::Read(filename, pathParent);
+        }
+
+        // Load scene info and tile collisions
+        if (Scene::ListData.size()) {
+            SceneListEntry scene = Scene::ListData[Scene::ListPos];
+
+            strcpy(Scene::CurrentFolder, scene.folder);
+            strcpy(Scene::CurrentID, scene.id);
+            strcpy(Scene::CurrentSpriteFolder, scene.spriteFolder);
+
+            char filePath[4096];
+            if (!strcmp(scene.fileType, "bin")) {
+                snprintf(filePath, sizeof(filePath), "Stages/%s/TileConfig.bin", scene.folder);
+            }
+            else {
+                if (scene.folder[0] == '\0')
+                    snprintf(filePath, sizeof(filePath), "Scenes/TileConfig.bin");
+                else
+                    snprintf(filePath, sizeof(filePath), "Scenes/%s/TileConfig.bin", scene.folder);
+            }
+            Scene::LoadTileCollisions(filePath);
         }
     }
     else

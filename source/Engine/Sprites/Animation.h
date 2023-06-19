@@ -29,6 +29,19 @@ struct Animation {
     int               Flags;
     vector<AnimFrame> Frames;
 };
+struct Animator {
+    vector<AnimFrame*> Frames;
+    int                Sprite;
+    int                CurrentAnimation;
+    int                CurrentFrame;
+    int                PrevAnimation;
+    int                AnimationSpeed;
+    int                AnimationTimer;
+    int                Duration;
+    int                FrameCount;
+    int                LoopIndex;
+    int                RotationStyle;
+};
 
 enum {
     ROTSTYLE_NONE = 0,
