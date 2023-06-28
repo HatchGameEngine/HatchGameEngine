@@ -28,6 +28,8 @@ struct Animation {
     int               FrameToLoop;
     int               Flags;
     vector<AnimFrame> Frames;
+    int               FrameListOffset;
+    int               FrameCount;
 };
 struct Animator {
     vector<AnimFrame*> Frames;
@@ -41,15 +43,16 @@ struct Animator {
     int                FrameCount;
     int                LoopIndex;
     int                RotationStyle;
+    Uint32             UnloadPolicy;
 };
 
 enum {
-    ROTSTYLE_NONE = 0,
-    ROTSTYLE_FULL = 1,
-    ROTSTYLE_45DEG = 2,
-    ROTSTYLE_90DEG = 3,
-    ROTSTYLE_180DEG = 4,
-    ROTSTYLE_STATICFRAMES = 5,
+    ROTSTYLE_NONE           = 0,
+    ROTSTYLE_FULL           = 1,
+    ROTSTYLE_45DEG          = 2,
+    ROTSTYLE_90DEG          = 3,
+    ROTSTYLE_180DEG         = 4,
+    ROTSTYLE_STATICFRAMES   = 5,
 };
 
 #endif /* ENGINE_SPRITES_ANIMATION_H */

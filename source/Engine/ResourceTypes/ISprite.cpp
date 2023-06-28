@@ -296,10 +296,12 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
     Animations.resize(previousAnimationCount + animationCount);
 
     // Load animations
+    int frameID = 0;
     for (int a = 0; a < animationCount; a++) {
         Animation an;
         an.Name = reader->ReadHeaderedString();
-        frameCount = reader->ReadUInt16();
+        an.FrameCount = reader->ReadUInt16();
+        an.FrameListOffset = frameID;
         an.AnimationSpeed = reader->ReadUInt16();
         an.FrameToLoop = reader->ReadByte();
 
@@ -313,11 +315,12 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 #ifdef ISPRITE_DEBUG
         Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
 #endif
-        an.Frames.resize(frameCount);
+        an.Frames.resize(an.FrameCount);
 
-        for (int i = 0; i < frameCount; i++) {
+        for (int i = 0; i < an.FrameCount; i++) {
             AnimFrame anfrm;
             anfrm.SheetNumber = reader->ReadByte();
+            frameID++;
 
             if (anfrm.SheetNumber >= SpritesheetCount)
                 Log::Print(Log::LOG_ERROR, "Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)", anfrm.SheetNumber, SpritesheetCount, a, i);

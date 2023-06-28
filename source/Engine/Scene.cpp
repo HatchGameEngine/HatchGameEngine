@@ -66,7 +66,6 @@ public:
     static vector<ResourceType*>     ShaderList;
     static vector<ResourceType*>     ModelList;
     static vector<ResourceType*>     MediaList;
-
     static vector<Animator*>         AnimatorList;
 
     static int                       Frame;
@@ -249,8 +248,7 @@ vector<ResourceType*>     Scene::MusicList;
 vector<ResourceType*>     Scene::ShaderList;
 vector<ResourceType*>     Scene::ModelList;
 vector<ResourceType*>     Scene::MediaList;
-
-vector <Animator*>        Scene::AnimatorList;
+vector<Animator*>         Scene::AnimatorList;
 
 Entity*                   StaticObject = NULL;
 ObjectList*               StaticObjectList = NULL;
@@ -2069,6 +2067,14 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
         Scene::MediaList[i] = NULL;
     }
     AudioManager::Unlock();
+    // Animators
+    for (size_t i = 0, i_sz = Scene::AnimatorList.size(); i < i_sz; i++) {
+        if (!Scene::AnimatorList[i]) continue;
+        if (Scene::AnimatorList[i]->UnloadPolicy > scope) continue;
+
+        delete Scene::AnimatorList[i];
+        Scene::AnimatorList[i] = NULL;
+    }
 }
 PUBLIC STATIC void Scene::Dispose() {
     for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -2096,6 +2102,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::MusicList.clear();
     Scene::ModelList.clear();
     Scene::MediaList.clear();
+    Scene::AnimatorList.clear();
 
     // Dispose of StaticObject
     if (StaticObject) {

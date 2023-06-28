@@ -526,8 +526,6 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
         Scene::InitObjectListsAndRegistries();
         Scene::AddManagers();
 
-        Log::Print(Log::LOG_VERBOSE, "Hacked in WindowManager, InputManager, and FadeManager...");
-
         int maxObjSlots = 0x940;
         Entity** objSlots = (Entity**)calloc(sizeof(Entity*), maxObjSlots);
         if (!objSlots) {

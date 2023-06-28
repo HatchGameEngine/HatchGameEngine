@@ -1349,7 +1349,7 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
                         if (stgElement->attributes.Exists("folder"))
                             XMLParser::CopyTokenToString(stgElement->attributes.Get("folder"), scene.folder, sizeof(scene.folder));
                         else
-                            // Accounts for scenes placed in the root
+                            // Accounts for scenes placed in the root of the Scenes folder if the file type is not "bin"
                             scene.folder[0] = '\0';
 
                         if (stgElement->attributes.Exists("id"))

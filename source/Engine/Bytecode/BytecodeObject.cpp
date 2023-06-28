@@ -456,6 +456,7 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \type Integer
     * \default 0
     * \ns Instance
+    * \desc A bitfield containing which layers an entity is able to collide with.
     */
     LINK_INT(CollisionLayers);
     /***

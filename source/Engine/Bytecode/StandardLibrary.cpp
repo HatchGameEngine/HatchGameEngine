@@ -383,6 +383,302 @@ VMValue ReturnString(char* str) {
     return NULL_VAL;
 }
 
+// #region Animator
+// return true if we found it in the list
+bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) {
+    *foundEmpty = false;
+    *index = list->size();
+    for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
+        if (!(*list)[i]) {
+            if (!(*foundEmpty)) {
+                *foundEmpty = true;
+                *index = i;
+            }
+            continue;
+        }
+    }
+    return false;
+}
+/***
+ * Animator.Create
+ * \desc Creates a new animator.
+ * \return Returns the index of the Animator.
+ * \ns Animator
+ */
+VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+
+    Animator* animator = new Animator();
+    animator->Sprite            = argCount >= 1 ? GET_ARG(0, GetInteger) : -1;
+    animator->CurrentAnimation  = argCount >= 2 ? GET_ARG(1, GetInteger) : -1;
+    animator->CurrentFrame      = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
+    animator->UnloadPolicy      = argCount >= 4 ? GET_ARG(3, GetInteger) : SCOPE_SCENE;
+
+    size_t index = 0;
+    bool emptySlot = false;
+    vector<Animator*>* list = &Scene::AnimatorList;
+    if (GetAnimatorSpace(list, &index, &emptySlot))
+        return INTEGER_VAL((int)index);
+    else if (emptySlot) (*list)[index] = animator;
+    else list->push_back(animator);
+
+    return INTEGER_VAL(index);
+}
+/***
+ * Animator.Animate
+ * \desc Animates an animator.
+ * \param animator (Integer): The index of the animator.
+ * \ns Animator
+ */
+VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Animator* animator = Scene::AnimatorList[GET_ARG(0, GetInteger)];
+    if (!animator || !animator->Frames.size())
+        return NULL_VAL;
+
+    // TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
+    while (animator->AnimationTimer > animator->Duration) {
+        ++animator->CurrentFrame;
+
+        animator->AnimationTimer -= animator->Duration;
+        if (animator->CurrentFrame >= animator->FrameCount)
+            animator->CurrentFrame = animator->LoopIndex;
+
+        animator->Duration = animator->Frames[animator->CurrentFrame]->Duration;
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Animator.GetSprite
+ * \desc Gets the sprite index of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite);
+}
+/***
+ * Animator.GetCurrentAnimation
+ * \desc Gets the current animation value of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL((int)Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation);
+}
+/***
+ * Animator.GetCurrentFrame
+ * \desc Gets the current animation value of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame);
+}
+/***
+ * Animator.GetHitbox
+ * \desc Gets the hitbox of an animation and frame of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns a reference value to a hitbox array.
+ * \ns Animator
+ */
+VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Animator* animator = Scene::AnimatorList[GET_ARG(0, GetInteger)];
+    if (animator && animator->Frames.size()) {
+    }
+    else {
+        return NULL_VAL;
+    }
+}
+/***
+ * Animator.GetPreviousAnimation
+ * \desc Gets the previous animation value of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation);
+}
+/***
+ * Animator.GetAnimationSpeed
+ * \desc Gets the animation speed of an animator's current animation.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed);
+}
+/***
+ * Animator.GetAnimationTimer
+ * \desc Gets the animation timer of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer);
+}
+/***
+ * Animator.GetDuration
+ * \desc Gets the frame duration of an animator's current frame.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration);
+}
+/***
+ * Animator.GetFrameCount
+ * \desc Gets the frame count of an animator's current animation.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount);
+}
+/***
+ * Animator.GetLoopIndex
+ * \desc Gets the loop index of an animator's current animation.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex);
+}
+/***
+ * Animator.SetAnimation
+ * \desc Sets the current animation and frame of an animator.
+ * \param animator (Integer): The index of the animator.
+ * \param sprite (Integer): The index of the sprite.
+ * \param animationID (Integer): The animator's changed animation ID.
+ * \param frameID (Integer): The animator's changed frame ID.
+ * \param forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
+ * \ns Animator
+ */
+VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+    Animator* animator  = Scene::AnimatorList[GET_ARG(0, GetInteger)];
+    int spriteIndex     = GET_ARG(1, GetInteger);
+    int animationID     = GET_ARG(2, GetInteger);
+    int frameID         = GET_ARG(3, GetInteger);
+    int forceApply      = GET_ARG(4, GetInteger);
+
+    if (spriteIndex < 0 || (size_t)spriteIndex >= Scene::SpriteList.size())
+        return NULL_VAL;
+
+    ISprite* sprite = Scene::SpriteList[spriteIndex]->AsSprite;
+
+    if (animationID < 0 || (size_t)animationID >= sprite->Animations.size())
+        return NULL_VAL;
+
+    if (frameID < 0 || (size_t)frameID >= sprite->Animations[frameID].Frames.size())
+        return NULL_VAL;
+
+    // animator->frames = frames;
+    animator->AnimationTimer = 0;
+    animator->CurrentFrame = frameID;
+    // animator->frameCount = anim->frameCount;
+    // animator->Duration = animator->Frames[frameID].Duration;
+    // animator->AnimationSpeed = anim->animationSpeed;
+    // animator->RotationStyle = anim->Flags;
+    // animator->LoopIndex = anim->loopIndex;
+    animator->PrevAnimation = animator->CurrentAnimation;
+    animator->CurrentAnimation = animationID;
+    return NULL_VAL;
+}
+/***
+ * Animator.SetSprite
+ * \desc Sets the sprite index of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param animationID (Integer): The animator's changed animation ID.
+ * \ns Animator
+ */
+VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetCurrentAnimation
+ * \desc Sets the current animation of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param animationID (Integer): The animator's changed animation ID.
+ * \ns Animator
+ */
+VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetCurrentFrame
+ * \desc Gets the current frame of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param frameID (Integer): The animator's changed frame ID.
+ * \ns Animator
+ */
+VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetAnimationSpeed
+ * \desc Sets the animation speed of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param animationSpeed (Integer): The animator's changed animation speed.
+ * \ns Animator
+ */
+VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetAnimationTimer
+ * \desc Sets the animation timer of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param animationTimer (Integer): The animator's changed animation timer.
+ * \ns Animator
+ */
+VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetDuration
+ * \desc Sets the frame duration of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param duration (Integer): The animator's changed duration.
+ * \ns Animator
+ */
+VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+// #endregion
+
 // #region Application
 /***
  * Application.GetFPS
@@ -12419,6 +12715,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     #define DEF_NATIVE(className, funcName) \
         BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
 
+    // #region Animator
+    INIT_CLASS(Animator);
+    DEF_NATIVE(Animator, Create);
+    DEF_NATIVE(Animator, Animate);
+    DEF_NATIVE(Animator, GetSprite);
+    DEF_NATIVE(Animator, GetCurrentAnimation);
+    DEF_NATIVE(Animator, GetCurrentFrame);
+    DEF_NATIVE(Animator, GetHitbox);
+    DEF_NATIVE(Animator, GetPreviousAnimation);
+    DEF_NATIVE(Animator, GetAnimationSpeed);
+    DEF_NATIVE(Animator, GetAnimationTimer);
+    DEF_NATIVE(Animator, GetDuration);
+    DEF_NATIVE(Animator, GetFrameCount);
+    DEF_NATIVE(Animator, GetLoopIndex);
+    DEF_NATIVE(Animator, SetSprite);
+    DEF_NATIVE(Animator, SetAnimation);
+    DEF_NATIVE(Animator, SetCurrentAnimation);
+    DEF_NATIVE(Animator, SetCurrentFrame);
+    DEF_NATIVE(Animator, SetAnimationSpeed);
+    DEF_NATIVE(Animator, SetAnimationTimer);
+    DEF_NATIVE(Animator, SetDuration);
+    // #endregion
+
     // #region Application
     INIT_CLASS(Application);
     DEF_NATIVE(Application, GetFPS);
@@ -13946,7 +14265,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_LINK_INT("Scene_Minutes", &Scene::Minutes);
     /***
-    * \global Scene_Milliseconds
+    * \global Scene_Seconds
     * \type Integer
     * \desc The seconds value of the scene timer.
     */
@@ -14003,6 +14322,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     /***
     * \constant Math_R_PI
     * \type Decimal
+    * \desc A less precise value of pi.
     */
     DEF_CONST_DECIMAL("Math_R_PI", R_PI);
 
