@@ -843,6 +843,23 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
     Scene::ViewCurrent = viewIndex;
 }
 
+PUBLIC STATIC bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY) {
+    if (!posX || !posY || !rangeX || !rangeY)
+        return false;
+
+    for (int s = 0; s < MAX_SCENE_VIEWS; ++s) {
+        if (Scene::Views[s].Active) {
+            int sx = abs(posX - Scene::Views[s].X);
+            int sy = abs(posY - Scene::Views[s].Y);
+
+            if (sx <= rangeX /* + Scene::Views[s].OffsetX*/ && sy <= rangeY /* + Scene::Views[s].OffsetY*/)
+                return true;
+        }
+    }
+    
+    return false;
+}
+
 #define PERF_START(n) if (viewPerf) viewPerf->n = Clock::GetTicks()
 #define PERF_END(n) if (viewPerf) viewPerf->n = Clock::GetTicks() - viewPerf->n
 

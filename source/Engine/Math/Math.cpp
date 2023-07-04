@@ -25,6 +25,8 @@ int ACos256LookupTable[0x100];
 
 int ArcTan256LookupTable[0x100 * 0x100];
 
+int randSeed = 0;
+
 #include <Engine/Math/Math.h>
 #include <time.h>
 
@@ -80,8 +82,11 @@ PUBLIC STATIC void Math::ClearTrigLookupTables() {
     memset(ASin1024LookupTable, 0, sizeof(ASin1024LookupTable));
     memset(ACos1024LookupTable, 0, sizeof(ACos1024LookupTable));
     memset(ArcTan256LookupTable, 0, sizeof(ArcTan256LookupTable));
+    randSeed = 0;
 }
 PUBLIC STATIC void Math::CalculateTrigAngles() {
+    randSeed = rand();
+
     for (int i = 0; i < 0x400; i++) {
         Sin1024LookupTable[i] = (int)(sinf((i / 512.0) * R_PI) * 1024.0);
         Cos1024LookupTable[i] = (int)(cosf((i / 512.0) * R_PI) * 1024.0);
@@ -234,5 +239,44 @@ PUBLIC STATIC float Math::RandomMax(float max) {
 }
 PUBLIC STATIC float Math::RandomRange(float min, float max) {
     return (Math::Random() * (max - min)) + min;
+}
+PUBLIC STATIC int Math::GetRandSeed() {
+    return randSeed;
+}
+PUBLIC STATIC void Math::SetRandSeed(int key) {
+    randSeed = key;
+}
+PUBLIC STATIC int Math::RandomInteger(int min, int max) {
+    int seed1   = 1103515245 * randSeed + 12345;
+    int seed2   = 1103515245 * seed1 + 12345;
+    randSeed    = 1103515245 * seed2 + 12345;
+
+    int result  = ((randSeed >> 16) & 0x7FF) ^ ((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
+    int size    = abs(max - min);
+
+    if (min > max)
+        return (result - result / size * size + max);
+    else if (min < max)
+        return (result - result / size * size + min);
+    else
+        return max;
+}
+PUBLIC STATIC int Math::RandomIntegerSeeded(int min, int max, int seed) {
+    if (!randSeed)
+        return 0;
+
+    int seed1   = 1103515245 * randSeed + 12345;
+    int seed2   = 1103515245 * seed1 + 12345;
+    randSeed   = 1103515245 * seed2 + 12345;
+
+    int result  = ((randSeed >> 16) & 0x7FF) ^ ((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
+    int size    = abs(max - min);
+
+    if (min > max)
+        return (result - result / size * size + max);
+    else if (min < max)
+        return (result - result / size * size + min);
+    else
+        return max;
 }
 //

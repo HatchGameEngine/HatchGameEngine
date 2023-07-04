@@ -631,7 +631,7 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Animator.SetCurrentFrame
- * \desc Gets the current frame of an animator.
+ * \desc Sets the current frame of an animator.
  * \param animator (Integer): The animator index to change.
  * \param frameID (Integer): The animator's changed frame ID.
  * \ns Animator
@@ -675,6 +675,66 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustCurrentAnimation
+ * \desc Adjusts the current animation of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's animation ID.
+ * \ns Animator
+ */
+VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustCurrentFrame
+ * \desc Adjusts the current frame of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's frame ID.
+ * \ns Animator
+ */
+VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustAnimationSpeed
+ * \desc Adjusts the animation speed of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's animation speed.
+ * \ns Animator
+ */
+VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustAnimationTimer
+ * \desc Adjusts the animation timer of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's animation timer.
+ * \ns Animator
+ */
+VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustDuration
+ * \desc Adjusts the duration of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's duration.
+ * \ns Animator
+ */
+VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration += GET_ARG(1, GetInteger);
     return NULL_VAL;
 }
 // #endregion
@@ -1604,8 +1664,8 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useHex is true
- * \paramOpt useHex (Number): Whether or not the rotation argument is already in radians
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1621,7 +1681,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
     float rotation = 0.0f;
-    bool useHex = false;
+    bool useInteger = false;
     if (argCount > 7)
         scaleX = GET_ARG(7, GetDecimal);
     if (argCount > 8)
@@ -1629,9 +1689,9 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     if (argCount > 9)
         rotation = GET_ARG(9, GetDecimal);
     if (argCount > 10)
-        useHex = GET_ARG(10, GetInteger);
+        useInteger = GET_ARG(10, GetInteger);
 
-    if (useHex) {
+    if (useInteger) {
         int rot = (int)rotation;
         switch (int rotationStyle = sprite->Animations[animation].Flags) {
             case ROTSTYLE_NONE:
@@ -1643,7 +1703,6 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
                 break;
 
             case ROTSTYLE_45DEG:
-                // TODO: The & checks are not performing correctly. 45 is like 90, 90 is like 180, 180 is like 0, but these are the correct values?
                 rot = (rot + 0x20) & 0x1C0;
                 break;
 
@@ -1660,7 +1719,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 
             default: break;
         }
-        rotation = rot * M_PI / 128.0;
+        rotation = rot * M_PI / 256.0;
     }
 
     Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
@@ -1682,7 +1741,8 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians.
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
  * \ns Draw
  */
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -1702,7 +1762,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
     float rotation = 0.0f;
-    bool useHex = false;
+    bool useInteger = false;
     if (argCount > 11)
         scaleX = GET_ARG(11, GetDecimal);
     if (argCount > 12)
@@ -1710,9 +1770,9 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     if (argCount > 13)
         rotation = GET_ARG(13, GetDecimal);
     if (argCount > 14)
-        useHex = GET_ARG(14, GetInteger);
+        useInteger = GET_ARG(14, GetInteger);
 
-    if (useHex) {
+    if (useInteger) {
         int rot = (int)rotation;
         switch (int rotationStyle = sprite->Animations[animation].Flags) {
             case ROTSTYLE_NONE:
@@ -1740,7 +1800,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 
             default: break;
         }
-        rotation = rot * M_PI / 128.0;
+        rotation = rot * M_PI / 256.0;
     }
 
     Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
@@ -5579,6 +5639,54 @@ VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
     return DECIMAL_VAL(Math::RandomRange(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
+ * Math.GetRandSeed
+ * \desc Gets the engine's random seed value.
+ * \return Returns an integer of the engine's random seed value.
+ * \ns Math
+ */
+VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Math::GetRandSeed());
+}
+/***
+ * Math.SetRandSeed
+ * \desc Sets the engine's random seed value.
+ * \param key (Integer): Value to set the seed to.
+ * \ns Math
+ */
+VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Math::SetRandSeed(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Math.RandomInteger
+ * \desc Gets a random number between specified minimum integer and a specified maximum integer.
+ * \param min (Integer): Minimum non-inclusive integer value.
+ * \param max (Integer): Maximum non-inclusive integer value.
+ * \return Returns the random number as an integer.
+ * \ns Math
+ */
+VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    return INTEGER_VAL(Math::RandomInteger(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger)));
+}
+/***
+ * Math.RandomIntegerSeeded
+ * \desc Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.
+ * \param min (Integer): Minimum non-inclusive integer value.
+ * \param max (Integer): Maximum non-inclusive integer value.
+ * \paramOpt seed (Integer): Seed of which to base the number.
+ * \return Returns the random number as an integer.
+ * \ns Math
+ */
+VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    if (argCount < 3)
+        return INTEGER_VAL(0);
+    return INTEGER_VAL(Math::RandomIntegerSeeded(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger), GET_ARG(2, GetInteger)));
+}
+/***
  * Math.Floor
  * \desc Rounds the number n downward, returning the largest integral value that is not greater than n.
  * \param n (Number): Number to be rounded.
@@ -5829,6 +5937,28 @@ VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
+}
+/***
+ * Math.RadianToInteger
+ * \desc Gets the integer conversion of a radian, based on 256.
+ * \param radian (Decimal): Radian value to convert.
+ * \return An integer value of the converted radian.
+ * \ns Math
+ */
+VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(GET_ARG(0, GetDecimal) * 256.0 / M_PI);
+}
+/***
+ * Math.IntegerToRadian
+ * \desc Gets the radian decimal conversion of an integer, based on 256.
+ * \param integer (Integer): Integer value to convert.
+ * \return A radian decimal value of the converted integer.
+ * \ns Math
+ */
+VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return DECIMAL_VAL(GET_ARG(0, GetInteger) * M_PI / 256.0);
 }
 // #endregion
 
@@ -12427,6 +12557,59 @@ VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(MAX_SCENE_VIEWS);
 }
+/***
+ * View.GetActiveCount
+ * \desc Gets the total amount of views currently activated.
+ * \return Returns an Integer value.
+ * \ns View
+ */
+VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::ViewsActive);
+}
+/***
+ * View.CheckOnScreen
+ * \desc Determines whether an instance is on screen.
+ * \param instance (Instance): The instance to check.
+ * \param rangeX (Decimal): The x range to check, or null if an update region width should be used.
+ * \param rangeY (Decimal): The y range to check, or null if an update region height should be used.
+ * \return Returns whether or not the instance is on screen on any view.
+ * \ns View
+ */
+VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    ObjInstance* instance   = GET_ARG(0, GetInstance);
+    Entity* self            = (Entity*)instance->EntityPtr;
+    float rangeX            = GET_ARG(1, GetDecimal);
+    float rangeY            = GET_ARG(2, GetDecimal);
+
+    if (!self)
+        return INTEGER_VAL(false);
+
+    if (!rangeX)
+        rangeX = self->OnScreenHitboxW;
+
+    if (!rangeY)
+        rangeY = self->OnScreenHitboxH;
+
+    return INTEGER_VAL(Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
+}
+/***
+ * View.CheckPosOnScreen
+ * \desc Determines whether a position is on screen.
+ * \param posX (Decimal): The x position to check.
+ * \param posY (Decimal): The y position to check.
+ * \param rangeX (Decimal): The x range to check.
+ * \param rangeY (Decimal): The y range to check.
+ * \return Returns whether or not the position is on screen on any view.
+ * \ns View
+ */
+VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+
+    return INTEGER_VAL(Scene::CheckPosOnScreen(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal)));
+}
 // #endregion
 
 // #region Window
@@ -12736,6 +12919,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Animator, SetAnimationSpeed);
     DEF_NATIVE(Animator, SetAnimationTimer);
     DEF_NATIVE(Animator, SetDuration);
+    DEF_NATIVE(Animator, AdjustCurrentAnimation);
+    DEF_NATIVE(Animator, AdjustCurrentFrame);
+    DEF_NATIVE(Animator, AdjustAnimationSpeed);
+    DEF_NATIVE(Animator, AdjustAnimationTimer);
+    DEF_NATIVE(Animator, AdjustDuration);
     // #endregion
 
     // #region Application
@@ -13640,6 +13828,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Random);
     DEF_NATIVE(Math, RandomMax);
     DEF_NATIVE(Math, RandomRange);
+    DEF_NATIVE(Math, GetRandSeed);
+    DEF_NATIVE(Math, SetRandSeed);
+    DEF_NATIVE(Math, RandomInteger);
+    DEF_NATIVE(Math, RandomIntegerSeeded);
     DEF_NATIVE(Math, Floor);
     DEF_NATIVE(Math, Ceil);
     DEF_NATIVE(Math, Round);
@@ -13663,6 +13855,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Tan256);
     DEF_NATIVE(Math, ASin256);
     DEF_NATIVE(Math, ACos256);
+    DEF_NATIVE(Math, RadianToInteger);
+    DEF_NATIVE(Math, IntegerToRadian);
     // #endregion
 
     // #region Matrix
@@ -14194,6 +14388,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(View, GetPriority);
     DEF_NATIVE(View, GetCurrent);
     DEF_NATIVE(View, GetCount);
+    DEF_NATIVE(View, GetActiveCount);
+    DEF_NATIVE(View, CheckOnScreen);
+    DEF_NATIVE(View, CheckPosOnScreen);
     // #endregion
 
     // #region Window
