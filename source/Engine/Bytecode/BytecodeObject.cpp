@@ -29,7 +29,7 @@ Uint32 Hash_RenderEarly = 0;
 Uint32 Hash_Render = 0;
 Uint32 Hash_RenderLate = 0;
 Uint32 Hash_OnAnimationFinish = 0;
-Uint32 Hash_Destroy = 0;
+Uint32 Hash_Dispose = 0;
 
 PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     Instance = instance;
@@ -47,7 +47,7 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
         Hash_Render = Murmur::EncryptString("Render");
         Hash_RenderLate = Murmur::EncryptString("RenderLate");
         Hash_OnAnimationFinish = Murmur::EncryptString("OnAnimationFinish");
-        Hash_Destroy = Murmur::EncryptString("Destroy");
+        Hash_Dispose = Murmur::EncryptString("Dispose");
 
         SavedHashes = true;
     }
@@ -831,7 +831,7 @@ PUBLIC void BytecodeObject::Remove() {
     if (Removed) return;
     if (!Instance) return;
 
-    RunFunction(Hash_Destroy);
+    RunFunction(Hash_Dispose);
 
     Removed = true;
 }
