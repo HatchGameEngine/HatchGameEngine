@@ -422,7 +422,7 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
     else if (emptySlot) (*list)[index] = animator;
     else list->push_back(animator);
 
-    return INTEGER_VAL(index);
+    return INTEGER_VAL((int)index);
 }
 /***
  * Animator.Animate
@@ -493,6 +493,8 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Animator* animator = Scene::AnimatorList[GET_ARG(0, GetInteger)];
     if (animator && animator->Frames.size()) {
+        // TODO
+        return NULL_VAL;
     }
     else {
         return NULL_VAL;
@@ -5948,7 +5950,7 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return INTEGER_VAL(GET_ARG(0, GetDecimal) * 256.0 / M_PI);
+    return INTEGER_VAL((int)((float)GET_ARG(0, GetDecimal) * 256.0 / M_PI));
 }
 /***
  * Math.IntegerToRadian
@@ -5959,7 +5961,7 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(GET_ARG(0, GetInteger) * M_PI / 256.0);
+    return DECIMAL_VAL((float)(GET_ARG(0, GetInteger) * M_PI / 256.0));
 }
 // #endregion
 
