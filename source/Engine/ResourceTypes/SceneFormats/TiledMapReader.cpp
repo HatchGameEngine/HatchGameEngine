@@ -249,15 +249,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     int layer_width = (int)XMLParser::TokenToNumber(map->attributes.Get("width"));
     int layer_height = (int)XMLParser::TokenToNumber(map->attributes.Get("height"));
 
-    Scene::InitObjectListsAndRegistries();
-
-    for (size_t i = 0; i < Scene::Layers.size(); i++) {
-        Scene::Layers[i].Dispose();
-    }
-    Scene::Layers.clear();
-
     TileSpriteInfo info;
-    Scene::TileSpriteInfos.clear();
 
     for (size_t i = 0; i < map->children.size(); i++) {
         if (XMLParser::MatchToken(map->children[i]->name, "tileset")) {
@@ -519,8 +511,6 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
             }
         }
     }
-
-    Scene::InitPriorityLists();
 
     FREE:
     XMLParser::Free(tileMapXML);

@@ -515,15 +515,12 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
         ticks = Clock::GetTicks() - ticks;
         Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);
 
-        Scene::InitPriorityLists();
-
         // Read objects
         ticks = Clock::GetTicks();
 
         int objectDefinitionCount = r->ReadByte();
         Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
 
-        Scene::InitObjectListsAndRegistries();
         Scene::AddManagers();
 
         int maxObjSlots = 0x940;

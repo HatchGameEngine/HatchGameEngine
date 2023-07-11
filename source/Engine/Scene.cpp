@@ -1448,11 +1448,24 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::TileSprites.clear();
     Scene::TileSpriteInfos.clear();
 
+    Scene::TileSize = 16;
+    Scene::EmptyTile = 0;
+
+    Scene::InitObjectListsAndRegistries();
+    Scene::InitPriorityLists();
+
+    for (size_t i = 0; i < Scene::Layers.size(); i++)
+        Scene::Layers[i].Dispose();
+    Scene::Layers.clear();
+
+    // Load Static class
+    if (Application::GameStart)
+        Scene::AddStaticClass();
+
+    // Actually try to read the scene now
     Log::Print(Log::LOG_INFO, "Starting scene \"%s\"...", filename);
 
-    // Try to read it
     Stream* r = ResourceStream::New(filename);
-
     if (r) {
         // Guess from the header first
         Uint32 magic = r->ReadUInt32();
@@ -1501,7 +1514,11 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     else
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 
-    Scene::AddStaticClass();
+    // Call Static's GameStart here
+    if (Application::GameStart) {
+        Scene::CallGameStart();
+        Application::GameStart = false;
+    }
 }
 
 PUBLIC STATIC void Scene::ProcessSceneTimer() {
@@ -1531,10 +1548,7 @@ PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
         objectList->SpawnFunction = BytecodeObjectManager::SpawnFunction;
     return objectList;
 }
-PUBLIC STATIC void Scene::AddStaticClass() {
-    if (!Application::GameStart)
-        return;
-
+PRIVATE STATIC void Scene::AddStaticClass() {
     StaticObjectList = Scene::NewObjectList("Static");
     if (!StaticObjectList->SpawnFunction)
         return;
@@ -1549,12 +1563,13 @@ PUBLIC STATIC void Scene::AddStaticClass() {
         obj->Persistent = true;
 
         BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
-
-        obj->GameStart();
-        Application::GameStart = false;
     }
 
     StaticObject = obj;
+}
+PRIVATE STATIC void Scene::CallGameStart() {
+    if (StaticObject)
+        StaticObject->GameStart();
 }
 PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFunction) {
     Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));

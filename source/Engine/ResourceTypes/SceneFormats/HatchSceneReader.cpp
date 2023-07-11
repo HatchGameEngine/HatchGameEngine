@@ -61,16 +61,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
         return false;
     }
 
-    // Init scene
-    Scene::TileSize = 16;
-    Scene::EmptyTile = 0;
-
-    Scene::InitObjectListsAndRegistries();
-
-    for (size_t i = 0; i < Scene::Layers.size(); i++)
-        Scene::Layers[i].Dispose();
-    Scene::Layers.clear();
-
     // Read scene version
     Uint8 verMajor = r->ReadByte();
     Uint8 verMinor = r->ReadByte();
@@ -120,8 +110,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 
     // Free classes
     HatchSceneReader::FreeClasses();
-
-    Scene::InitPriorityLists();
 
     return true;
 }
