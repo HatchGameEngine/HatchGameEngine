@@ -22,6 +22,8 @@ public:
     int          Interactable = true;
     int          ActiveStatus = 4; // Active_BOUNDS
     int          InRange = false;
+    bool         Created = false;
+    bool         PostCreated = false;
 
     float        X = 0.0f;
     float        Y = 0.0f;
@@ -532,7 +534,7 @@ PUBLIC VIRTUAL void Entity::Initialize() {
 PUBLIC VIRTUAL void Entity::Create() {
 
 }
-PUBLIC VIRTUAL void Entity::Setup() {
+PUBLIC VIRTUAL void Entity::PostCreate() {
 
 }
 
@@ -559,5 +561,10 @@ PUBLIC VIRTUAL void Entity::RenderLate() {
 
 }
 
+PUBLIC VIRTUAL void Entity::Remove() {
+
+}
+
 PUBLIC VIRTUAL void Entity::Dispose() {
+
 }

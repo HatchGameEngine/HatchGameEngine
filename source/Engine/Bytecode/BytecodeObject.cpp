@@ -20,8 +20,8 @@ public:
 
 bool   SavedHashes = false;
 Uint32 Hash_GameStart = 0;
-Uint32 Hash_Setup = 0;
 Uint32 Hash_Create = 0;
+Uint32 Hash_PostCreate = 0;
 Uint32 Hash_Update = 0;
 Uint32 Hash_UpdateLate = 0;
 Uint32 Hash_UpdateEarly = 0;
@@ -29,6 +29,7 @@ Uint32 Hash_RenderEarly = 0;
 Uint32 Hash_Render = 0;
 Uint32 Hash_RenderLate = 0;
 Uint32 Hash_OnAnimationFinish = 0;
+Uint32 Hash_Dispose = 0;
 
 PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     Instance = instance;
@@ -37,8 +38,8 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
 
     if (!SavedHashes) {
         Hash_GameStart = Murmur::EncryptString("GameStart");
-        Hash_Setup = Murmur::EncryptString("Setup");
         Hash_Create = Murmur::EncryptString("Create");
+        Hash_PostCreate = Murmur::EncryptString("PostCreate");
         Hash_Update = Murmur::EncryptString("Update");
         Hash_UpdateLate = Murmur::EncryptString("UpdateLate");
         Hash_UpdateEarly = Murmur::EncryptString("UpdateEarly");
@@ -46,6 +47,7 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
         Hash_Render = Murmur::EncryptString("Render");
         Hash_RenderLate = Murmur::EncryptString("RenderLate");
         Hash_OnAnimationFinish = Murmur::EncryptString("OnAnimationFinish");
+        Hash_Dispose = Murmur::EncryptString("Dispose");
 
         SavedHashes = true;
     }
@@ -711,6 +713,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     Pauseable = true;
     ActiveStatus = Active_BOUNDS;
     InRange = false;
+    Created = true;
 
     XSpeed = 0.0f;
     YSpeed = 0.0f;
@@ -771,10 +774,12 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
 PUBLIC void BytecodeObject::Create() {
     Create(INTEGER_VAL(0));
 }
-PUBLIC void BytecodeObject::Setup() {
+PUBLIC void BytecodeObject::PostCreate() {
     if (!Instance) return;
 
-    // RunFunction(Hash_Setup);
+    PostCreated = true;
+
+    RunFunction(Hash_PostCreate);
 }
 PUBLIC void BytecodeObject::UpdateEarly() {
     if (!Active) return;
@@ -822,7 +827,14 @@ PUBLIC void BytecodeObject::RenderLate() {
 PUBLIC void BytecodeObject::OnAnimationFinish() {
     RunFunction(Hash_OnAnimationFinish);
 }
+PUBLIC void BytecodeObject::Remove() {
+    if (Removed) return;
+    if (!Instance) return;
 
+    RunFunction(Hash_Dispose);
+
+    Removed = true;
+}
 PUBLIC void BytecodeObject::Dispose() {
     Entity::Dispose();
     if (Properties) {

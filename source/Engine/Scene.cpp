@@ -577,7 +577,7 @@ PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     // be deleted during garbage collection.
     // It doesn't really matter if it's still active or not, since it
     // won't be in any object list or draw groups at this point.
-    obj->Removed = true;
+    obj->Remove();
 }
 PUBLIC STATIC void Scene::Clear(Entity** first, Entity** last, int* count) {
     (*first) = NULL;
@@ -1265,20 +1265,36 @@ PUBLIC STATIC void Scene::Restart() {
     // Dispose of all dynamic objects
     Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
 
-    // Run "Initialize" on all objects
-    Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
-        ent->X = ent->InitialX;
-        ent->Y = ent->InitialY;
-        ent->Initialize();
-    });
-
     // Run "Load" on all object classes
+    // This is done (on purpose) before object lists are cleared.
+    // See the comments in ObjectList_CallLoads
     if (Scene::ObjectLists)
         Scene::ObjectLists->ForAllOrdered(ObjectList_CallLoads);
 
+    // Run "Initialize" on all objects
+    Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
+        // On a scene restart, static entities are generally subject to having
+        // their constructors called again, along with having their positions set
+        // to their initial positions. On top of that, their Create event is called.
+        // Of course, none of this should be done if the entity is persistent.
+        if (!ent->Persistent) {
+            ent->Created = false;
+            ent->PostCreated = false;
+        }
+
+        if (!ent->Created) {
+            ent->X = ent->InitialX;
+            ent->Y = ent->InitialY;
+            ent->Initialize();
+        }
+    });
+
     // Run "Create" on all objects
     Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
-        ent->Create();
+        if (!ent->Created) {
+            // ent->Created gets set when Create() is called.
+            ent->Create();
+        }
     });
 
     // Clean up object lists
@@ -1291,6 +1307,14 @@ PUBLIC STATIC void Scene::Restart() {
             }
         });
     }
+
+    // Run "PostCreate" on all objects
+    Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
+        if (!ent->PostCreated) {
+            // ent->PostCreated gets set when PostCreate() is called.
+            ent->PostCreate();
+        }
+    });
 
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::RequestGarbageCollection();
@@ -1532,7 +1556,7 @@ PUBLIC STATIC void Scene::AddStaticClass() {
 
     StaticObject = obj;
 }
-PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
+PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFunction) {
     Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
     ObjectList* objectList;
@@ -1541,9 +1565,15 @@ PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
     else {
         objectList = Scene::NewObjectList(objectName);
         Scene::ObjectLists->Put(objectNameHash, objectList);
+
+        if (callListLoadFunction)
+            BytecodeObjectManager::CallFunction(objectList->LoadFunctionName);
     }
 
     return objectList;
+}
+PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
+    return GetObjectList(objectName, true);
 }
 PUBLIC STATIC ObjectList* Scene::GetStaticObjectList(const char* objectName) {
     ObjectList* objectList;
@@ -1569,7 +1599,7 @@ PUBLIC STATIC ObjectList* Scene::GetStaticObjectList(const char* objectName) {
     return objectList;
 }
 PRIVATE STATIC void Scene::SpawnStaticObject(const char* objectName) {
-    ObjectList* objectList = Scene::GetObjectList(objectName);
+    ObjectList* objectList = Scene::GetObjectList(objectName, false);
     if (objectList->SpawnFunction) {
         Entity* obj = objectList->Spawn();
         obj->X = 0.0f;
