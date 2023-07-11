@@ -7025,20 +7025,6 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
     Graphics::UsePalettes = usePalettes;
     return NULL_VAL;
 }
-// .hpal defines color lines that it can load instead of full 256 color .act's
-/***
- * Palette.LoadFromFile
- * \desc Loads palette from an .act, .col, .gif, or .hpal file.
- * \param paletteIndex (Integer): Index of palette to load to.
- * \param filename (String): Filepath of file.
- * \ns Palette
- */
-VMValue Palette_LoadFromFile(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    // int palIndex = GET_ARG(0, GetInteger);
-    // char* filename = GET_ARG(1, GetString);
-    return NULL_VAL;
-}
 /***
  * Palette.LoadFromResource
  * \desc Loads palette from an .act, .col, .gif, or .hpal resource.
@@ -7087,6 +7073,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                     Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
                 }
                 // HPAL file
+                // .hpal defines color lines that it can load instead of full 256 color .act's
                 else if (StringUtils::StrCaseStr(filename, ".hpal") || StringUtils::StrCaseStr(filename, ".HPAL")) {
                     do {
                         Uint32 magic = memoryReader->ReadUInt32();
@@ -7483,87 +7470,6 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)index);
 }
 /***
- * Resources.LoadShader
- * \desc Please do not use this
- * \param vertexShaderFilename (String):
- * \param fragmentShaderFilename (String):
- * \param unloadPolicy (Integer):
- * \return
- * \ns Resources
- */
-VMValue Resources_LoadShader(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
-
-    // char* filename_v = GET_ARG(0, GetString);
-    // char* filename_f = GET_ARG(1, GetString);
-
-    /*
-
-    ResourceType* shader;
-    size_t found = Scene::ShaderList.size();
-    for (size_t i = 0; i < found; i++) {
-        shader = Scene::ShaderList[i];
-        if (!strcmp(shader->FilenameV, filename_v) &&
-            !strcmp(shader->FilenameF, filename_f)) {
-            found = i;
-            break;
-        }
-    }
-    if (found == Scene::ShaderList.size()) {
-        ResourceStream* streamV = ResourceStream::New(filename_v);
-        if (!streamV) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Resource File \"%s\" does not exist.", filename_v) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
-        }
-
-        size_t lenV = streamV->Length();
-        char*  sourceV = (char*)malloc(lenV);
-        streamV->ReadBytes(sourceV, lenV);
-        sourceV[lenV] = 0;
-        streamV->Close();
-
-        ResourceStream* streamF = ResourceStream::New(filename_f);
-        if (!streamF) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Resource File \"%s\" does not exist.", filename_f) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
-        }
-
-        size_t lenF = streamF->Length();
-        char*  sourceF = (char*)malloc(lenF);
-        streamF->ReadBytes(sourceF, lenF);
-        sourceF[lenF] = 0;
-        streamF->Close();
-
-        MemoryStream* streamMV = MemoryStream::New(sourceV, lenV);
-        MemoryStream* streamMF = MemoryStream::New(sourceF, lenF);
-
-        // if (Graphics::Internal.Init == GLRenderer::Init) {
-        //     // shader = new GLShader(streamMV, streamMF);
-        // }
-        // else {
-            free(sourceV);
-            free(sourceF);
-            streamMV->Close();
-            streamMF->Close();
-            return INTEGER_VAL((int)-1);
-        // }
-
-        free(sourceV);
-        free(sourceF);
-        streamMV->Close();
-        streamMF->Close();
-
-        strcpy(shader->FilenameV, filename_v);
-        strcpy(shader->FilenameF, filename_f);
-
-        Scene::ShaderList.push_back(shader);
-    }
-
-    return INTEGER_VAL((int)found);
-    // */
-    return INTEGER_VAL(0);
-}
-/***
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (String): Filename of the resource.
@@ -7786,30 +7692,6 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
         return OBJECT_VAL(text);
     }
     return NULL_VAL;
-}
-/***
- * Resources.UnloadImage
- * \desc
- * \return
- * \ns Resources
- */
-VMValue Resources_UnloadImage(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int index = GET_ARG(0, GetInteger);
-
-    ResourceType* resource = Scene::ImageList[index];
-
-    if (!resource)
-        return INTEGER_VAL(false);
-    delete resource;
-
-    if (!resource->AsImage)
-        return INTEGER_VAL(false);
-    delete resource->AsImage;
-
-    Scene::ImageList[index] = NULL;
-
-    return INTEGER_VAL(true);
 }
 // #endregion
 
@@ -9699,107 +9581,8 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (IS_ARRAY(args[0])) {
-        ObjArray* array = GET_ARG(0, GetArray);
-        Graphics::UseShader(array);
-        return NULL_VAL;
-    }
-
-    int   arg1 = GET_ARG(0, GetInteger);
-
-	if (!(arg1 >= 0 && arg1 < (int)Scene::ShaderList.size())) return NULL_VAL;
-
-    Graphics::UseShader(Scene::ShaderList[arg1]);
-    return NULL_VAL;
-}
-/***
- * Shader.GetUniform
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_GetUniform(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int   arg1 = GET_ARG(0, GetInteger);
-    // char* arg2 = GET_ARG(1, GetString);
-
-    if (!(arg1 >= 0 && arg1 < (int)Scene::ShaderList.size())) return INTEGER_VAL(-1);
-
-    // return INTEGER_VAL(Scene::ShaderList[arg1]->GetUniformLocation(arg2));
-    return INTEGER_VAL(0);
-}
-/***
- * Shader.SetUniformI
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_SetUniformI(int argCount, VMValue* args, Uint32 threadID) {
-    // CHECK_AT_LEAST_ARGCOUNT(1);
-    // int   arg1 = GET_ARG(0, GetInteger);
-    // for (int i = 1; i < argCount; i++) {
-    //
-    // }
-
-    return NULL_VAL;
-}
-/***
- * Shader.SetUniformF
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_SetUniformF(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    int   arg1 = GET_ARG(0, GetInteger);
-
-    float* values = (float*)malloc((argCount - 1) * sizeof(float));
-    for (int i = 1; i < argCount; i++) {
-        values[i - 1] = GetDecimal(args, i, threadID);
-    }
-    Graphics::Internal.SetUniformF(arg1, argCount - 1, values);
-    free(values);
-    return NULL_VAL;
-}
-/***
- * Shader.SetUniform3x3
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_SetUniform3x3(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(9);
-    for (int i = 0; i < 9; i++) {
-        // GetDecimal(args, i, threadID);
-    }
-    return NULL_VAL;
-}
-/***
- * Shader.SetUniform4x4
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_SetUniform4x4(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(16);
-    for (int i = 0; i < 16; i++) {
-        // GetDecimal(args, i, threadID);
-    }
-    return NULL_VAL;
-}
-/***
- * Shader.SetUniformTexture
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_SetUniformTexture(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
-    int      uniform_index = GET_ARG(0, GetInteger);
-    Texture* texture = GET_ARG(1, GetTexture);
-    int      slot = GET_ARG(2, GetInteger);
-
-    Graphics::Internal.SetUniformTexture(texture, uniform_index, slot);
+    ObjArray* array = GET_ARG(0, GetArray);
+    Graphics::UseShader(array);
     return NULL_VAL;
 }
 /***
@@ -13925,7 +13708,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Palette
     INIT_CLASS(Palette);
     DEF_NATIVE(Palette, EnablePaletteUsage);
-    DEF_NATIVE(Palette, LoadFromFile);
     DEF_NATIVE(Palette, LoadFromResource);
     DEF_NATIVE(Palette, LoadFromImage);
     DEF_NATIVE(Palette, GetColor);
@@ -13942,14 +13724,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Resources, LoadSprite);
     DEF_NATIVE(Resources, LoadImage);
     DEF_NATIVE(Resources, LoadFont);
-    DEF_NATIVE(Resources, LoadShader);
     DEF_NATIVE(Resources, LoadModel);
     DEF_NATIVE(Resources, LoadMusic);
     DEF_NATIVE(Resources, LoadSound);
     DEF_NATIVE(Resources, LoadVideo);
     DEF_NATIVE(Resources, FileExists);
     DEF_NATIVE(Resources, ReadAllText);
-    DEF_NATIVE(Resources, UnloadImage);
 
     /***
     * \enum SCOPE_SCENE
@@ -14132,12 +13912,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Shader
     INIT_CLASS(Shader);
     DEF_NATIVE(Shader, Set);
-    DEF_NATIVE(Shader, GetUniform);
-    DEF_NATIVE(Shader, SetUniformI);
-    DEF_NATIVE(Shader, SetUniformF);
-    DEF_NATIVE(Shader, SetUniform3x3);
-    DEF_NATIVE(Shader, SetUniform4x4);
-    DEF_NATIVE(Shader, SetUniformTexture);
     DEF_NATIVE(Shader, Unset);
     // #endregion
 
@@ -14477,29 +14251,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
     /***
-    * \constant Scene_MaxViews
-    * \type Integer
-    * \desc The max amount of scene views.
-    */
-    DEF_CONST_INT("Scene_MaxViews", MAX_SCENE_VIEWS);
-    /***
-    * \constant Scene_ListPos
+    * \global Scene_ListPos
     * \type Integer
     * \desc The position of the current scene in the scene list.
     */
     DEF_LINK_INT("Scene_ListPos", &Scene::ListPos);
     /***
-    * \constant Scene_ActiveCategory
+    * \global Scene_ActiveCategory
     * \type Integer
     * \desc The category number that contains the current scene.
     */
     DEF_LINK_INT("Scene_ActiveCategory", &Scene::ActiveCategory);
     /***
-    * \constant Scene_DebugMode
+    * \global Scene_DebugMode
     * \type Integer
     * \desc Whether nor not Debug Mode has been turned on in the current scene
     */
     DEF_LINK_INT("Scene_DebugMode", &Scene::DebugMode);
+    /***
+    * \constant MAX_SCENE_VIEWS
+    * \type Integer
+    * \desc The max amount of scene views.
+    */
+    DEF_CONST_INT("MAX_SCENE_VIEWS", MAX_SCENE_VIEWS);
 
     /***
     * \constant Math_PI

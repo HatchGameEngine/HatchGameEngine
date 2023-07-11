@@ -63,7 +63,6 @@ public:
     static vector<ResourceType*>     ImageList;
     static vector<ResourceType*>     SoundList;
     static vector<ResourceType*>     MusicList;
-    static vector<ResourceType*>     ShaderList;
     static vector<ResourceType*>     ModelList;
     static vector<ResourceType*>     MediaList;
     static vector<Animator*>         AnimatorList;
@@ -245,7 +244,6 @@ vector<ResourceType*>     Scene::SpriteList;
 vector<ResourceType*>     Scene::ImageList;
 vector<ResourceType*>     Scene::SoundList;
 vector<ResourceType*>     Scene::MusicList;
-vector<ResourceType*>     Scene::ShaderList;
 vector<ResourceType*>     Scene::ModelList;
 vector<ResourceType*>     Scene::MediaList;
 vector<Animator*>         Scene::AnimatorList;
