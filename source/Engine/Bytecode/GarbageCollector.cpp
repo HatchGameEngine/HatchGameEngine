@@ -203,6 +203,8 @@ PRIVATE STATIC void GarbageCollector::GrayHashMap(void* pointer) {
 }
 
 PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
+    GrayObject(object->Class);
+
     switch (object->Type) {
         case OBJ_BOUND_METHOD: {
             ObjBoundMethod* bound = (ObjBoundMethod*)object;
@@ -227,7 +229,6 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
         }
         case OBJ_INSTANCE: {
             ObjInstance* instance = (ObjInstance*)object;
-            GrayObject(instance->Class);
             GrayHashMap(instance->Fields);
             break;
         }

@@ -161,9 +161,10 @@ enum ObjType {
 typedef HashMap<VMValue> Table;
 
 struct Obj {
-    ObjType     Type;
-    bool        IsDark;
-    struct Obj* Next;
+    ObjType          Type;
+    bool             IsDark;
+    struct ObjClass* Class;
+    struct Obj*      Next;
 };
 struct ObjString {
     Obj    Object;
@@ -210,7 +211,6 @@ struct ObjClass {
 };
 struct ObjInstance {
     Obj       Object;
-    ObjClass* Class;
     Table*    Fields;
     void*     EntityPtr;
 };

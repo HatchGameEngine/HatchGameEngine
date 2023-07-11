@@ -5015,7 +5015,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
     ObjInstance* instance = obj->Instance;
 
     // Call the initializer, if there is one.
-    if (HasInitializer(instance->Class))
+    if (HasInitializer(instance->Object.Class))
         obj->Initialize();
 
     obj->Create(flag);

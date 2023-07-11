@@ -571,7 +571,7 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
         return true;
     }
 
-    ObjClass* klass = Instance->Class;
+    ObjClass* klass = Instance->Object.Class;
     if (klass->Methods->Exists(hash)) {
         value = klass->Methods->Get(hash);
         return true;
@@ -589,7 +589,7 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
     return false;
 }
 PRIVATE ObjFunction* BytecodeObject::GetCallableFunction(Uint32 hash) {
-    ObjClass* klass = Instance->Class;
+    ObjClass* klass = Instance->Object.Class;
     if (klass->Methods->Exists(hash))
         return AS_FUNCTION(klass->Methods->Get(hash));
     return NULL;
@@ -640,7 +640,7 @@ PUBLIC bool BytecodeObject::RunCreateFunction(VMValue flag) {
     return false;
 }
 PUBLIC bool BytecodeObject::RunInitializer() {
-    if (!HasInitializer(Instance->Class))
+    if (!HasInitializer(Instance->Object.Class))
         return true;
 
     VMThread* thread = BytecodeObjectManager::Threads + 0;
@@ -648,7 +648,7 @@ PUBLIC bool BytecodeObject::RunInitializer() {
     VMValue* stackTop = thread->StackTop;
 
     thread->Push(OBJECT_VAL(Instance)); // Pushes this instance into the stack so that 'this' can work
-    thread->CallInitializer(Instance->Class->Initializer);
+    thread->CallInitializer(Instance->Object.Class->Initializer);
     thread->Pop(); // Pops it
 
     thread->StackTop = stackTop;
@@ -659,7 +659,7 @@ PUBLIC bool BytecodeObject::RunInitializer() {
 PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
     CopyFields(other);
 
-    other->Instance->Class = Instance->Class;
+    other->Instance->Object.Class = Instance->Object.Class;
 
     // Copy properties
     HashMap<VMValue>* srcProperties = Properties;

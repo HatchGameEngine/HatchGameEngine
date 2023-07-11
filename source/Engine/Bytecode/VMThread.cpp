@@ -52,8 +52,6 @@ bool         VMThread::InstructionIgnoreMap[0x100];
 std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
-char GetTokenBuffer[16];
-
 #define THROW_ERROR_START() va_list args; \
     char errorString[2048]; \
     va_start(args, errorMessage); \
@@ -107,11 +105,25 @@ char GetTokenBuffer[16];
         functionName = "event " + functionName
 
 PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
+    static char GetTokenBuffer[16];
+
     if (__Tokens__ && __Tokens__->Exists(hash))
         return __Tokens__->Get(hash);
 
     snprintf(GetTokenBuffer, 15, "%X", hash);
-    return &GetTokenBuffer[0];
+    return GetTokenBuffer;
+}
+PUBLIC STATIC char*   VMThread::GetVariableOrMethodName(Uint32 hash) {
+    static char GetTokenBuffer[16];
+
+    if (__Tokens__ && __Tokens__->Exists(hash)) {
+        char* hashStr = __Tokens__->Get(hash);
+        snprintf(GetTokenBuffer, sizeof GetTokenBuffer, "\"%s\"", hashStr);
+    }
+    else
+        snprintf(GetTokenBuffer, sizeof GetTokenBuffer, "$[%08X]", hash);
+
+    return GetTokenBuffer;
 }
 PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
     int line;
@@ -459,14 +471,8 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
             if (BytecodeObjectManager::Lock()) {
                 if (!BytecodeObjectManager::Globals->Exists(hash)) {
-                    if (__Tokens__ && __Tokens__->Exists(hash)) {
-                        if (ThrowRuntimeError(false, "Variable \"%s\" does not exist.", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_GLOBAL;
-                    }
-                    else {
-                        if (ThrowRuntimeError(false, "Variable $[%08X] does not exist.", hash) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_GLOBAL;
-                    }
+                    if (ThrowRuntimeError(false, "Variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_GET_GLOBAL;
                     Push(NULL_VAL);
                     return INTERPRET_GLOBAL_DOES_NOT_EXIST;
                 }
@@ -485,14 +491,8 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
             if (BytecodeObjectManager::Lock()) {
                 if (!BytecodeObjectManager::Globals->Exists(hash)) {
-                    if (__Tokens__ && __Tokens__->Exists(hash)) {
-                        if (ThrowRuntimeError(false, "Global variable \"%s\" does not exist.", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_SET_GLOBAL;
-                    }
-                    else {
-                        if (ThrowRuntimeError(false, "Global variable $[%08X] does not exist.", hash) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_SET_GLOBAL;
-                    }
+                    if (ThrowRuntimeError(false, "Global variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_SET_GLOBAL;
                     return INTERPRET_GLOBAL_DOES_NOT_EXIST;
                 }
 
@@ -582,24 +582,18 @@ PUBLIC int     VMThread::RunInstruction() {
                         VM_BREAK;
                     }
 
-                    ObjClass* klass = instance->Class;
+                    ObjClass* klass = instance->Object.Class;
                     if (klass->ParentHash && !klass->Parent) {
                         BytecodeObjectManager::SetClassParent(klass);
                     }
 
-                    if (GetMethod(instance->Class, hash)) {
+                    if (GetMethod(klass, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
                     }
 
-                    if (__Tokens__ && __Tokens__->Exists(hash)) {
-                        if (ThrowRuntimeError(false, "Could not find %s in instance!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_PROPERTY;
-                    }
-                    else {
-                        if (ThrowRuntimeError(false, "Could not find %X in instance!", hash) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_PROPERTY;
-                    }
+                    if (ThrowRuntimeError(false, "Could not find %s in instance!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_GET_PROPERTY;
                     goto FAIL_OP_GET_PROPERTY;
                 }
             }
@@ -625,14 +619,27 @@ PUBLIC int     VMThread::RunInstruction() {
                         VM_BREAK;
                     }
 
-                    if (__Tokens__ && __Tokens__->Exists(hash)) {
-                        if (ThrowRuntimeError(false, "Could not find %s in class!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_PROPERTY;
+                    if (ThrowRuntimeError(false, "Could not find %s in class!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_GET_PROPERTY;
+                    goto FAIL_OP_GET_PROPERTY;
+                }
+            }
+            // If it's any other object,
+            else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+                ObjClass* klass = AS_CLASS(object);
+
+                if (BytecodeObjectManager::Lock()) {
+                    if (klass->ParentHash && !klass->Parent) {
+                        BytecodeObjectManager::SetClassParent(klass);
                     }
-                    else {
-                        if (ThrowRuntimeError(false, "Could not find %X in class!", hash) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_GET_PROPERTY;
+
+                    if (GetMethod(klass, hash)) {
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
                     }
+
+                    if (ThrowRuntimeError(false, "Could not find %s in object!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_GET_PROPERTY;
                     goto FAIL_OP_GET_PROPERTY;
                 }
             }
@@ -1241,57 +1248,56 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 isSuper = ReadByte(frame);
 
             VMValue receiver = Peek(argCount);
-            if (IS_CLASS(receiver)) {
-                ObjClass* klass = AS_CLASS(receiver);
-                if (klass->Methods->Exists(hash)) {
-                    VMValue nat = klass->Methods->Get(hash);
-                    if (IS_NATIVE(nat)) {
-                        if (!CallValue(nat, argCount)) {
-                            if (ThrowRuntimeError(false, "Could not call value!", hash) == ERROR_RES_CONTINUE)
-                                goto FAIL_OP_INVOKE;
-
-                            return INTERPRET_RUNTIME_ERROR;
-                        }
-
-                        // // Get returned value
-                        // VMValue returned = Pop();
-                        // // Pop class value off the stack.
-                        // Pop();
-                        // // Put returned value on top of stack.
-                        // Push(returned);
-                    }
-                    else {
-                        // ThrowRuntimeError(true, "Cannot get non-native function value from class.");
-                        // return INTERPRET_RUNTIME_ERROR;
-                        // StackTop[-argCount - 1] = receiver;
-                        if (!CallValue(nat, argCount)) {
-                            if (ThrowRuntimeError(false, "Could not call value!", hash) == ERROR_RES_CONTINUE)
-                                goto FAIL_OP_INVOKE;
-
-                            return INTERPRET_RUNTIME_ERROR;
-                        }
-                    }
-                }
-                else {
-                    if (__Tokens__ && __Tokens__->Exists(hash))
-                        if (ThrowRuntimeError(false, "Event \"%s\" does not exist in class %s.", __Tokens__->Get(hash), __Tokens__->Get(klass->Hash)) == ERROR_RES_CONTINUE)
-                            goto FAIL_OP_INVOKE;
+            if (IS_INSTANCE(receiver)) {
+                if (!InvokeForInstance(hash, argCount, isSuper)) {
+                    if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_INVOKE;
 
                     return INTERPRET_RUNTIME_ERROR;
                 }
+
+                frame = &Frames[FrameCount - 1];
                 VM_BREAK;
             }
+            else if (IS_CLASS(receiver)) {
+                ObjClass* klass = AS_CLASS(receiver);
+                if (klass->Methods->Exists(hash)) {
+                    if (!CallValue(klass->Methods->Get(hash), argCount)) {
+                        if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_INVOKE;
 
-            if (!Invoke(hash, argCount, isSuper)) {
-                if (__Tokens__ && __Tokens__->Exists(hash))
-                    if (ThrowRuntimeError(false, "Could not invoke %s value!", __Tokens__->Get(hash)) == ERROR_RES_CONTINUE)
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                }
+                else {
+                    if (ThrowRuntimeError(false, "Event %s does not exist in class %s.", GetVariableOrMethodName(hash), klass->Name ? klass->Name->Chars : GetToken(klass->Hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_INVOKE;
 
-                return INTERPRET_RUNTIME_ERROR;
+                    return INTERPRET_RUNTIME_ERROR;
+                }
             }
+            else if (IS_OBJECT(receiver)) {
+                ObjClass* klass = AS_OBJECT(receiver)->Class;
+                if (!klass) {
+                    ThrowRuntimeError(false, "Only instances and classes have events.");
+                    goto FAIL_OP_INVOKE;
+                }
 
-            frame = &Frames[FrameCount - 1];
-            VM_BREAK;
+                if (klass->Methods->Exists(hash)) {
+                    if (!CallValue(klass->Methods->Get(hash), argCount)) {
+                        if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_INVOKE;
+
+                        return INTERPRET_RUNTIME_ERROR;
+                    }
+                }
+                else {
+                    if (ThrowRuntimeError(false, "Event %s does not exist in object.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_INVOKE;
+
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+            }
 
             FAIL_OP_INVOKE:
             VM_BREAK;
@@ -1480,10 +1486,7 @@ PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
             method = klass->Parent->Methods->Get(hash);
         }
         else {
-            if (!__Tokens__ || !__Tokens__->Exists(hash))
-                ThrowRuntimeError(false, "Undefined property $[%08X].", hash);
-            else
-                ThrowRuntimeError(false, "Undefined property \"%s\".", __Tokens__->Get(hash));
+            ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
             Pop(); // Instance.
             Push(NULL_VAL);
             return false;
@@ -1508,9 +1511,6 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
             switch (OBJECT_TYPE(callee)) {
                 case OBJ_BOUND_METHOD: {
                     ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
-
-                    // if (__Tokens__ && __Tokens__->Exists(bound->Method->NameHash))
-                    //     printf("Calling Bound Method: %s, argCount: %d\n", __Tokens__->Get(bound->Method->NameHash), argCount);
 
                     // Replace the bound method with the receiver so it's in the
                     // right slot when the method is called.
@@ -1587,9 +1587,6 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
             return false;
     }
 
-    // if (__Tokens__ && __Tokens__->Exists(function->NameHash))
-    //     printf("new frame '%s' at %d#%d\n", __Tokens__->Get(function->NameHash), ID, FrameCount);
-
     if (FrameCount == FRAMES_MAX) {
         ThrowRuntimeError(true, "Frame overflow. (Count %d / %d)", FrameCount, FRAMES_MAX);
         return false;
@@ -1640,15 +1637,9 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
     }
     return false;
 }
-PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
-    VMValue receiver = Peek(argCount);
-
-    if (!IS_INSTANCE(receiver)) {
-        ThrowRuntimeError(false, "Only instances have methods.");
-        return false;
-    }
-
-    ObjInstance* instance = AS_INSTANCE(receiver);
+PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
+    ObjInstance* instance = AS_INSTANCE(Peek(argCount));
+    ObjClass* klass = instance->Object.Class;
 
     if (!isSuper) {
         // First look for a field which may shadow a method.
@@ -1665,19 +1656,18 @@ PUBLIC bool    VMThread::Invoke(Uint32 hash, int argCount, bool isSuper) {
         }
     }
     else {
-        ObjClass* klass = instance->Class;
         if (klass->ParentHash && !klass->Parent) {
             BytecodeObjectManager::SetClassParent(klass);
         }
 
-        if (instance->Class->Parent) {
-            return InvokeFromClass(instance->Class->Parent, hash, argCount);
+        if (klass->Parent) {
+            return InvokeFromClass(klass->Parent, hash, argCount);
         }
 
         ThrowRuntimeError(false, "Instance's class does not have a parent to call method from.");
         return false;
     }
-    return InvokeFromClass(instance->Class, hash, argCount);
+    return InvokeFromClass(klass, hash, argCount);
 }
 PUBLIC bool    VMThread::Import(VMValue value) {
     bool result = false;

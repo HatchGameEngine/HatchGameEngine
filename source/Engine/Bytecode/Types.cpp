@@ -19,12 +19,10 @@ static Obj*       AllocateObject(size_t size, ObjType type) {
 
     Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
     object->Type = type;
+    object->Class = nullptr;
     object->IsDark = false;
     object->Next = GarbageCollector::RootObject;
     GarbageCollector::RootObject = object;
-    #ifdef DEBUG_TRACE_GC
-        Log::Print(Log::LOG_VERBOSE, "%p allocate %ld for %d", object, size, type);
-    #endif
 
     return object;
 }
@@ -121,7 +119,7 @@ ObjClass*         NewClass(Uint32 hash) {
 ObjInstance*      NewInstance(ObjClass* klass) {
     ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
     Memory::Track(instance, "NewInstance");
-    instance->Class = klass;
+    instance->Object.Class = klass;
     instance->Fields = new Table(NULL, 16);
     instance->EntityPtr = NULL;
     return instance;

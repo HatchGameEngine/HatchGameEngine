@@ -2427,7 +2427,7 @@ PUBLIC STATIC void   Compiler::PrintObject(char** buffer, int* buf_start, VMValu
             justin_print(buffer, buf_start, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
             break;
         case OBJ_INSTANCE:
-            justin_print(buffer, buf_start, "<class %s> instance", AS_INSTANCE(value)->Class->Name ? AS_INSTANCE(value)->Class->Name->Chars : "(null)");
+            justin_print(buffer, buf_start, "<class %s> instance", AS_INSTANCE(value)->Object.Class->Name ? AS_INSTANCE(value)->Object.Class->Name->Chars : "(null)");
             break;
         case OBJ_NATIVE:
             justin_print(buffer, buf_start, "<native fn>");
