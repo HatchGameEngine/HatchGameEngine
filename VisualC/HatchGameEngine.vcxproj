@@ -187,6 +187,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\io\NetworkStream.cpp" />
     <ClCompile Include="..\source\engine\io\ResourceStream.cpp" />
     <ClCompile Include="..\source\engine\io\SDLStream.cpp" />
+    <ClCompile Include="..\source\engine\io\Serializer.cpp" />
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
