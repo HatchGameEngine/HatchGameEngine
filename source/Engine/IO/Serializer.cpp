@@ -20,9 +20,17 @@ public:
         size_t Size;
     };
     std::vector<Serializer::Chunk> ChunkList;
+    Serializer::Chunk              LastChunk;
+
+    struct String {
+        Uint32 Length;
+        char*  Chars;
+    };
+    std::vector<Serializer::String> StringList;
 
     enum {
-        CHUNK_OBJS = FOURCC("OBJS")
+        CHUNK_OBJS = FOURCC("OBJS"),
+        CHUNK_TEXT = FOURCC("TEXT")
     };
 
     enum {
@@ -56,6 +64,7 @@ PUBLIC Serializer::Serializer(Stream* stream) {
     ObjToID.clear();
     ObjList.clear();
     ChunkList.clear();
+    StringList.clear();
 }
 
 PRIVATE void Serializer::WriteValue(VMValue val) {
@@ -100,8 +109,7 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
             WriteObjectPreamble(Serializer::OBJ_TYPE_STRING);
 
             ObjString* string = (ObjString*)obj;
-            StreamPtr->WriteUInt32(string->Length);
-            StreamPtr->WriteBytes(string->Chars, string->Length);
+            StreamPtr->WriteUInt32(GetUniqueStringID(string->Chars, string->Length));
             break;
         }
         case OBJ_ARRAY: {
@@ -134,9 +142,8 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
             StreamPtr->WriteUInt32(numValues);
 
             map->Keys->WithAll([this](Uint32, char* ptr) -> void {
-                StreamPtr->WriteString(ptr);
+                StreamPtr->WriteUInt32(GetUniqueStringID(ptr, strlen(ptr)));
             });
-
             map->Values->WithAll([this](Uint32 hash, VMValue mapVal) -> void {
                 StreamPtr->WriteUInt32(hash);
                 WriteValue(mapVal);
@@ -149,6 +156,35 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
     }
 
     PatchObjectSize();
+}
+
+PRIVATE void Serializer::WriteObjectsChunk() {
+    BeginChunk(Serializer::CHUNK_OBJS);
+
+    StreamPtr->WriteUInt32(ObjList.size());
+
+    for (size_t i = 0; i < ObjList.size(); i++)
+        WriteObject(ObjList[i]);
+
+    FinishChunk();
+    AddChunkToList();
+}
+
+PRIVATE void Serializer::WriteTextChunk() {
+    BeginChunk(Serializer::CHUNK_TEXT);
+
+    StreamPtr->WriteUInt32(StringList.size());
+
+    for (size_t i = 0; i < StringList.size(); i++) {
+        Uint32 length = StringList[i].Length;
+        StreamPtr->WriteUInt32(length);
+        StreamPtr->WriteBytes(StringList[i].Chars, length);
+    }
+
+    FinishChunk();
+
+    // Ensure that TEXT chunks are read early
+    ChunkList.insert(ChunkList.begin(), LastChunk);
 }
 
 PRIVATE Uint32 Serializer::GetUniqueObjectID(Obj* obj) {
@@ -164,14 +200,16 @@ PRIVATE void Serializer::BeginChunk(Uint32 type) {
 }
 
 PRIVATE void Serializer::FinishChunk() {
-    Serializer::Chunk chunk;
-    chunk.Type = CurrentChunkType;
-    chunk.Offset = StoredChunkPos;
-    chunk.Size = StreamPtr->Position() - StoredChunkPos;
-    ChunkList.push_back(chunk);
+    LastChunk.Type = CurrentChunkType;
+    LastChunk.Offset = StoredChunkPos;
+    LastChunk.Size = StreamPtr->Position() - StoredChunkPos;
 
     // Write end marker
     StreamPtr->WriteByte(Serializer::END);
+}
+
+PRIVATE void Serializer::AddChunkToList() {
+    ChunkList.push_back(LastChunk);
 }
 
 PRIVATE void Serializer::WriteObjectPreamble(Uint8 type) {
@@ -189,15 +227,43 @@ PRIVATE void Serializer::PatchObjectSize() {
     StreamPtr->Seek(curPos);
 }
 
+PRIVATE void Serializer::AddUniqueString(char* chars, size_t length) {
+    if (StringList.size() >= 0xFFFFFFFF)
+        return;
+
+    for (size_t i = 0; i < StringList.size(); i++) {
+        if (StringList[i].Length == length && !memcmp(StringList[i].Chars, chars, length))
+            return;
+    }
+
+    Serializer::String str;
+    str.Length = length;
+    str.Chars = chars;
+    StringList.push_back(str);
+}
+
+PRIVATE Uint32 Serializer::GetUniqueStringID(char* chars, size_t length) {
+    for (size_t i = 0; i < StringList.size(); i++) {
+        if (StringList[i].Length == length && !memcmp(StringList[i].Chars, chars, length))
+            return (Uint32)i;
+    }
+
+    return 0xFFFFFFFF;
+}
+
 PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
     if (ObjToID.count(obj) || ObjList.size() >= 0xFFFFFFFF)
         return;
 
-    Uint32 id = ObjList.size();
-    ObjToID[obj] = id;
+    ObjToID[obj] = ObjList.size();
     ObjList.push_back(obj);
 
     switch (obj->Type) {
+        case OBJ_STRING: {
+            ObjString* string = (ObjString*)obj;
+            AddUniqueString(string->Chars, string->Length);
+            return;
+        }
         case OBJ_ARRAY: {
             ObjArray* array = (ObjArray*)obj;
             for (size_t i = 0; i < array->Values->size(); i++) {
@@ -209,6 +275,9 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
         }
         case OBJ_MAP: {
             ObjMap* map = (ObjMap*)obj;
+            map->Keys->WithAll([this](Uint32, char* mapKey) -> void {
+                AddUniqueString(mapKey, strlen(mapKey));
+            });
             map->Values->WithAll([this](Uint32, VMValue mapVal) -> void {
                 if (IS_OBJECT(mapVal))
                     AddUniqueObject(AS_OBJECT(mapVal));
@@ -237,19 +306,14 @@ PUBLIC void Serializer::Store(VMValue val) {
     // End marker
     StreamPtr->WriteByte(Serializer::END);
 
-    // Write the object count chunk
-    if (ObjList.size()) {
-        BeginChunk(Serializer::CHUNK_OBJS);
+    // Write the objects chunk, if there are objects
+    if (ObjList.size())
+        Serializer::WriteObjectsChunk();
 
-        // Write the object count
-        StreamPtr->WriteUInt32(ObjList.size());
-
-        // Serialize all of the objects now
-        for (size_t i = 0; i < ObjList.size(); i++)
-            WriteObject(ObjList[i]);
-
-        FinishChunk();
-    }
+    // Write the text chunk, if there are strings
+    // (currently only possible if there are objects)
+    if (StringList.size())
+        Serializer::WriteTextChunk();
 
     // Write the chunk list
     size_t chunkListPos = StreamPtr->Position();
@@ -281,10 +345,19 @@ PRIVATE void Serializer::GetObject() {
     Uint32 size = StreamPtr->ReadUInt32();
     switch (type) {
     case Serializer::OBJ_TYPE_STRING: {
-        size_t sz = StreamPtr->ReadUInt32();
-        ObjString* string = AllocString(sz);
+        Uint32 stringID = StreamPtr->ReadUInt32();
+        if (stringID >= StringList.size()) {
+            Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
+            return;
+        }
+        else if (StringList[stringID].Chars == nullptr) {
+            ObjList.push_back(nullptr);
+            return;
+        }
+        Uint32 length = StringList[stringID].Length;
+        ObjString* string = AllocString(length);
+        memcpy(string->Chars, StringList[stringID].Chars, length);
         ObjList.push_back((Obj*)string);
-        StreamPtr->ReadBytes(string->Chars, sz);
         return;
     }
     case Serializer::OBJ_TYPE_ARRAY: {
@@ -326,8 +399,17 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
         Uint32 numValues = StreamPtr->ReadUInt32();
         ObjMap* map = (ObjMap*)obj;
         for (Uint32 i = 0; i < numKeys; i++) {
-            char* mapKey = StreamPtr->ReadString();
-            map->Keys->Put(mapKey, HeapCopyString(mapKey, strlen(mapKey)));
+            Uint32 stringID = StreamPtr->ReadUInt32();
+            if (stringID >= StringList.size()) {
+                Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
+                continue;
+            }
+            else if (StringList[stringID].Chars != nullptr) {
+                Uint32 length = StringList[stringID].Length;
+                char* mapKey = HeapCopyString(StringList[stringID].Chars, length);
+                if (mapKey)
+                    map->Keys->Put(mapKey, mapKey);
+            }
         }
         for (Uint32 i = 0; i < numValues; i++) {
             Uint32 valueHash = StreamPtr->ReadUInt32();
@@ -379,6 +461,7 @@ PUBLIC bool Serializer::ReadObjectsChunk() {
     for (Uint32 i = 0; i < count; i++)
         GetObject();
 
+    // Check for the end of chunk marker
     if (StreamPtr->ReadByte() != Serializer::END)
         return false;
 
@@ -387,6 +470,27 @@ PUBLIC bool Serializer::ReadObjectsChunk() {
     for (Uint32 i = 0; i < count; i++)
         ReadObject(ObjList[i]);
 
+    // Check for the end of chunk marker (again!)
+    return StreamPtr->ReadByte() == Serializer::END;
+}
+
+PUBLIC bool Serializer::ReadTextChunk() {
+    // Read the count
+    Uint32 count = StreamPtr->ReadUInt32();
+
+    // Read the text, if there's any
+    for (Uint32 i = 0; i < count; i++) {
+        Serializer::String str;
+        str.Length = StreamPtr->ReadUInt32();
+        str.Chars = (char*)Memory::Calloc(str.Length, sizeof(char));
+        if (str.Chars)
+            StreamPtr->ReadBytes(str.Chars, str.Length);
+        else
+            StreamPtr->Skip(str.Length);
+        StringList.push_back(str);
+    }
+
+    // Check for the end of chunk marker
     return StreamPtr->ReadByte() == Serializer::END;
 }
 
@@ -414,19 +518,30 @@ PUBLIC VMValue Serializer::Retrieve() {
 
     Uint32 numChunks = StreamPtr->ReadUInt32();
     for (Uint32 i = 0; i < numChunks; i++) {
-        Uint32 type = StreamPtr->ReadUInt32BE();
-        Uint32 offset = StreamPtr->ReadUInt32();
-        Uint32 size = StreamPtr->ReadUInt32();
+        Serializer::Chunk chunk;
+        chunk.Type = StreamPtr->ReadUInt32BE();
+        chunk.Offset = StreamPtr->ReadUInt32();
+        chunk.Size = StreamPtr->ReadUInt32();
+        ChunkList.push_back(chunk);
+    }
+
+    for (size_t i = 0; i < ChunkList.size(); i++) {
+        Serializer::Chunk& chunk = ChunkList[i];
+
+        Uint32 type = chunk.Type;
+        Uint32 offset = chunk.Offset;
 
         Uint8* typeArr = (Uint8*)(&type);
         bool success = false;
 
-        size_t curPos = StreamPtr->Position();
         StreamPtr->Seek((size_t)offset);
 
         switch (type) {
         case Serializer::CHUNK_OBJS:
             success = Serializer::ReadObjectsChunk();
+            break;
+        case Serializer::CHUNK_TEXT:
+            success = Serializer::ReadTextChunk();
             break;
         default:
             Log::Print(Log::LOG_WARN, "Skipping unknown chunk type %c%c%c%c", typeArr[3], typeArr[2], typeArr[1], typeArr[0]);
@@ -435,8 +550,6 @@ PUBLIC VMValue Serializer::Retrieve() {
 
         if (!success)
             Log::Print(Log::LOG_ERROR, "Did not read end of chunk marker where it was expected to be!");
-
-        StreamPtr->Seek(curPos);
     }
 
     // Seek back, so that we can read the value now
@@ -449,6 +562,10 @@ PUBLIC VMValue Serializer::Retrieve() {
     // (Although it doesn't really matter at this point, but it can catch a malformed data stream)
     if (StreamPtr->ReadByte() != Serializer::END)
         Log::Print(Log::LOG_ERROR, "Did not read end of file marker where it was expected to be!");
+
+    // Free all text strings
+    for (size_t i = 0; i < StringList.size(); i++)
+        Memory::Free(StringList[i].Chars);
 
     return returnValue;
 }
