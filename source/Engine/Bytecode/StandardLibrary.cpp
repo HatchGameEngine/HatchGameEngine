@@ -383,6 +383,21 @@ VMValue ReturnString(char* str) {
     return NULL_VAL;
 }
 
+#define CHECK_READ_STREAM \
+    if (stream->Closed) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
+        return NULL_VAL; \
+    }
+#define CHECK_WRITE_STREAM \
+    if (stream->Closed) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to closed stream!"); \
+        return NULL_VAL; \
+    } \
+    if (!stream->Writable) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to read-only stream!"); \
+        return NULL_VAL; \
+    }
+
 // #region Animator
 // return true if we found it in the list
 bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) {
@@ -9245,6 +9260,431 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
 #undef GET_SCENE_3D
 // #endregion
 
+// #region Serializer
+// TODO: Move all of this to another file
+struct SerializerState {
+    std::map<Obj*, Uint32> UniqueObjects;
+    std::vector<Obj*>      UniqueObjectList;
+};
+
+struct DeserializerState {
+    vector<Obj*>           Objects;
+    Uint32                 ObjectCount;
+};
+
+void SerializeValue(SerializerState& state, Stream* stream, VMValue val, int threadID);
+void SerializeObject(SerializerState& state, Stream* stream, Obj* obj, int threadID);
+VMValue DeserializeValue(DeserializerState& state, Stream* stream, int threadID);
+Obj* DeserializeObject(DeserializerState& state, Stream* stream, int threadID);
+
+enum {
+    SERIALIZED_VAL_NULL,
+    SERIALIZED_VAL_INTEGER,
+    SERIALIZED_VAL_DECIMAL,
+    SERIALIZED_VAL_STRING,
+    SERIALIZED_VAL_ARRAY,
+    SERIALIZED_VAL_MAP,
+
+    SERIALIZER_END = 0xFF
+};
+
+enum {
+    SERIALIZED_OBJ_STRING,
+    SERIALIZED_OBJ_ARRAY,
+    SERIALIZED_OBJ_MAP
+};
+
+Uint32 GetUniqueObjectID(SerializerState& state, Obj* obj) {
+    if (state.UniqueObjects.count(obj))
+        return state.UniqueObjects[obj];
+
+    return 0xFFFFFFFF;
+}
+
+void SerializeObjectID(SerializerState& state, Stream* stream, Obj* obj) {
+    Uint32 objectID = GetUniqueObjectID(state, obj);
+    if (objectID == 0xFFFFFFFF) {
+        stream->WriteByte(SERIALIZED_VAL_NULL);
+        return;
+    }
+
+    switch (obj->Type) {
+        case OBJ_STRING:
+            stream->WriteByte(SERIALIZED_VAL_STRING);
+            break;
+        case OBJ_ARRAY:
+            stream->WriteByte(SERIALIZED_VAL_ARRAY);
+            break;
+        case OBJ_MAP:
+            stream->WriteByte(SERIALIZED_VAL_MAP);
+            break;
+        default:
+            stream->WriteByte(SERIALIZED_VAL_NULL);
+            return;
+    }
+
+    stream->WriteUInt32(objectID);
+}
+
+void AddUniqueObject(SerializerState& state, Obj* obj, int threadID) {
+    if (state.UniqueObjects.count(obj) || state.UniqueObjectList.size() >= 0xFFFFFFFF)
+        return;
+
+    Uint32 id = state.UniqueObjectList.size();
+    state.UniqueObjects[obj] = id;
+    state.UniqueObjectList.push_back(obj);
+
+    switch (obj->Type) {
+        case OBJ_ARRAY: {
+            ObjArray* array = (ObjArray*)obj;
+            for (size_t i = 0; i < array->Values->size(); i++) {
+                VMValue arrayVal = (*array->Values)[i];
+                if (IS_OBJECT(arrayVal))
+                    AddUniqueObject(state, AS_OBJECT(arrayVal), threadID);
+            }
+            break;
+        }
+        case OBJ_MAP: {
+            ObjMap* map = (ObjMap*)obj;
+            map->Values->WithAll([&state, threadID](Uint32, VMValue mapVal) -> void {
+                if (IS_OBJECT(mapVal))
+                    AddUniqueObject(state, AS_OBJECT(mapVal), threadID);
+            });
+            break;
+        }
+        default:
+            return;
+    }
+}
+
+void PatchObjectSize(Stream* stream, size_t pos) {
+    size_t curPos = stream->Position();
+    size_t size = curPos - pos;
+    stream->Seek(pos - 4);
+    stream->WriteUInt32(size);
+    stream->Seek(curPos);
+}
+
+void SerializeObject(SerializerState& state, Stream* stream, Obj* obj, int threadID) {
+    switch (obj->Type) {
+        case OBJ_STRING: {
+            stream->WriteByte(SERIALIZED_OBJ_STRING);
+            stream->WriteUInt32(0);
+
+            size_t pos = stream->Position();
+
+            ObjString* string = (ObjString*)obj;
+            stream->WriteUInt32(string->Length);
+            stream->WriteBytes(string->Chars, string->Length);
+
+            PatchObjectSize(stream, pos);
+            break;
+        }
+        case OBJ_ARRAY: {
+            stream->WriteByte(SERIALIZED_OBJ_ARRAY);
+            stream->WriteUInt32(0);
+
+            size_t pos = stream->Position();
+
+            ObjArray* array = (ObjArray*)obj;
+            size_t sz = array->Values->size();
+            stream->WriteUInt32(sz);
+
+            for (size_t i = 0; i < sz; i++) {
+                VMValue arrayVal = (*array->Values)[i];
+                SerializeValue(state, stream, arrayVal, threadID);
+            }
+
+            PatchObjectSize(stream, pos);
+            break;
+        }
+        case OBJ_MAP: {
+            stream->WriteByte(SERIALIZED_OBJ_MAP);
+            stream->WriteUInt32(0);
+
+            size_t pos = stream->Position();
+
+            ObjMap* map = (ObjMap*)obj;
+            Uint32 numKeys = 0;
+            Uint32 numValues = 0;
+            map->Keys->WithAll([&numKeys](Uint32, char*) -> void {
+                numKeys++;
+            });
+            map->Values->WithAll([&numValues](Uint32, VMValue) -> void {
+                numValues++;
+            });
+
+            stream->WriteUInt32(numKeys);
+            stream->WriteUInt32(numValues);
+
+            map->Keys->WithAll([&state, stream, threadID](Uint32, char* ptr) -> void {
+                stream->WriteString(ptr);
+            });
+
+            map->Values->WithAll([&state, stream, threadID](Uint32 hash, VMValue mapVal) -> void {
+                stream->WriteUInt32(hash);
+                SerializeValue(state, stream, mapVal, threadID);
+            });
+
+            PatchObjectSize(stream, pos);
+            break;
+        }
+        default:
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+                "Cannot serialize an object of type %s.", GetTypeString(OBJECT_VAL(obj)));
+            break;
+    }
+}
+void SerializeValue(SerializerState& state, Stream* stream, VMValue val, int threadID) {
+    switch (val.Type) {
+        case VAL_DECIMAL:
+        case VAL_LINKED_DECIMAL: {
+            float d = AS_DECIMAL(val);
+            stream->WriteByte(SERIALIZED_VAL_DECIMAL);
+            stream->WriteFloat(d);
+            break;
+        }
+        case VAL_INTEGER:
+        case VAL_LINKED_INTEGER: {
+            int i = AS_INTEGER(val);
+            stream->WriteByte(SERIALIZED_VAL_INTEGER);
+            stream->WriteInt64(i);
+            break;
+        }
+        case VAL_OBJECT:
+            SerializeObjectID(state, stream, AS_OBJECT(val));
+            break;
+        default:
+            stream->WriteByte(SERIALIZED_VAL_NULL);
+            break;
+    }
+}
+
+void ReadObject(DeserializerState& state, Stream* stream, int threadID) {
+    Uint8 type = stream->ReadByte();
+    Uint32 size = stream->ReadUInt32();
+    switch (type) {
+    case SERIALIZED_OBJ_STRING: {
+        size_t sz = stream->ReadUInt32();
+        ObjString* string = AllocString(sz);
+        stream->ReadBytes(string->Chars, sz);
+        state.Objects.push_back((Obj*)string);
+        return;
+    }
+    case SERIALIZED_OBJ_ARRAY: {
+        ObjArray* array = NewArray();
+        state.Objects.push_back((Obj*)array);
+        stream->Skip(size);
+        return;
+    }
+    case SERIALIZED_OBJ_MAP: {
+        ObjMap* map = NewMap();
+        state.Objects.push_back((Obj*)map);
+        stream->Skip(size);
+        return;
+    }
+    default:
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Attempted to deserialize an invalid object type.");
+        state.Objects.push_back(nullptr);
+        return;
+    }
+}
+void DeserializeObject(DeserializerState& state, Stream* stream, Obj* obj, int threadID) {
+    Uint8 type = stream->ReadByte();
+    Uint32 size = stream->ReadUInt32();
+    switch (type) {
+    case SERIALIZED_OBJ_STRING: {
+        // Nothing to do here
+        stream->Skip(size);
+        break;
+    }
+    case SERIALIZED_OBJ_ARRAY: {
+        size_t sz = stream->ReadUInt32();
+        ObjArray* array = (ObjArray*)obj;
+        for (size_t i = 0; i < sz; i++)
+            array->Values->push_back(DeserializeValue(state, stream, threadID));
+        return;
+    }
+    case SERIALIZED_OBJ_MAP: {
+        size_t numKeys = stream->ReadUInt32();
+        size_t numValues = stream->ReadUInt32();
+        ObjMap* map = (ObjMap*)obj;
+        for (size_t i = 0; i < numKeys; i++) {
+            char* mapKey = stream->ReadString();
+            map->Keys->Put(mapKey, HeapCopyString(mapKey, strlen(mapKey)));
+        }
+        for (size_t i = 0; i < numValues; i++) {
+            Uint32 valueHash = stream->ReadUInt32();
+            map->Values->Put(valueHash, DeserializeValue(state, stream, threadID));
+        }
+        return;
+    }
+    default:
+        return;
+    }
+}
+VMValue DeserializeValue(DeserializerState& state, Stream* stream, int threadID) {
+    VMValue returnValue = NULL_VAL;
+    Uint8 type = stream->ReadByte();
+    switch (type) {
+    case SERIALIZED_VAL_INTEGER:
+        returnValue = INTEGER_VAL((int)stream->ReadInt64());
+        break;
+    case SERIALIZED_VAL_DECIMAL:
+        returnValue = DECIMAL_VAL(stream->ReadFloat());
+        break;
+    case SERIALIZED_VAL_NULL:
+        break;
+    case SERIALIZED_VAL_STRING:
+    case SERIALIZED_VAL_ARRAY:
+    case SERIALIZED_VAL_MAP: {
+        Uint32 objectID = stream->ReadUInt32();
+        if (objectID >= state.ObjectCount)
+            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Attempted to read an invalid object ID.");
+        else
+            returnValue = OBJECT_VAL(state.Objects[objectID]);
+        break;
+    }
+    case SERIALIZER_END:
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Unexpected end of serialized data.");
+        break;
+    default:
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Attempted to deserialize an invalid value type.");
+        break;
+    }
+    return returnValue;
+}
+
+/***
+ * Serializer.WriteToStream
+ * \desc
+ * \param stream (Stream):
+ * \param value (Value):
+ * \ns Serializer
+ */
+VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    VMValue val = args[1];
+    CHECK_WRITE_STREAM;
+
+    Stream* streamPtr = stream->StreamPtr;
+
+    // Write header
+    streamPtr->WriteUInt32(0x9D939FF0);
+    streamPtr->WriteUInt32(0);
+
+    // Init serializer
+    SerializerState state;
+    state.UniqueObjects.clear();
+    state.UniqueObjectList.clear();
+
+    // We're gonna patch this later.
+    size_t addrPos = streamPtr->Position();
+    streamPtr->WriteUInt32(0);
+
+    // See if we can add this value as an object
+    if (IS_OBJECT(val))
+        AddUniqueObject(state, AS_OBJECT(val), threadID);
+
+    // Write the value
+    SerializeValue(state, streamPtr, val, threadID);
+
+    // End marker
+    streamPtr->WriteByte(SERIALIZER_END);
+
+    // Write the object count
+    size_t dirPos = streamPtr->Position();
+    streamPtr->WriteUInt32(state.UniqueObjectList.size());
+
+    // Serialize all of the objects now
+    for (size_t i = 0; i < state.UniqueObjectList.size(); i++)
+        SerializeObject(state, streamPtr, state.UniqueObjectList[i], threadID);
+
+    // Write a pointer to the object directory
+    size_t curPos = streamPtr->Position();
+    streamPtr->Seek(addrPos);
+    streamPtr->WriteUInt32(dirPos);
+    streamPtr->Seek(curPos);
+
+    // Done here
+    streamPtr->WriteByte(SERIALIZER_END);
+
+    state.UniqueObjects.clear();
+
+    return NULL_VAL;
+}
+/***
+ * Serializer.ReadFromStream
+ * \desc
+ * \param stream (Stream):
+ * \return
+ * \ns Serializer
+ */
+VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjStream* stream = GET_ARG(0, GetStream);
+    CHECK_READ_STREAM;
+    Stream* streamPtr = stream->StreamPtr;
+
+    Uint32 magic = streamPtr->ReadUInt32();
+    if (magic != 0x9D939FF0) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid magic!");
+        return NULL_VAL;
+    }
+
+    Uint32 version = streamPtr->ReadUInt32();
+
+    VMValue returnValue = NULL_VAL;
+    DeserializerState state;
+    state.Objects.clear();
+
+    // Read the pointer to the object directory
+    size_t dirPos = streamPtr->ReadUInt32();
+
+    // Store where we were before
+    size_t startPos = streamPtr->Position();
+
+    // Seek to the object directory, and read it
+    streamPtr->Seek(dirPos);
+
+    // Read the object count
+    state.ObjectCount = streamPtr->ReadUInt32();
+
+    // Read the objects, if there are any
+    size_t objListPos = streamPtr->Position();
+    for (Uint32 i = 0; i < state.ObjectCount; i++)
+        ReadObject(state, streamPtr, threadID);
+
+#define CHECK_MARKER \
+    if (streamPtr->ReadByte() != SERIALIZER_END) { \
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Did not read marker where it was expected to be."); \
+        return returnValue; \
+    }
+
+    CHECK_MARKER
+
+    // Deserialize the objects (for real!)
+    if (state.ObjectCount) {
+        streamPtr->Seek(objListPos);
+        for (Uint32 i = 0; i < state.ObjectCount; i++)
+            DeserializeObject(state, streamPtr, state.Objects[i], threadID);
+
+        CHECK_MARKER
+    }
+
+    // Seek back, so that we can read the values now
+    streamPtr->Seek(startPos);
+
+    // Read the value
+    returnValue = DeserializeValue(state, streamPtr, threadID);
+
+    CHECK_MARKER
+
+    return returnValue;
+}
+// #endregion
+
 // #region Settings
 /***
  * Settings.Load
@@ -10358,11 +10798,6 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
     }
     return INTEGER_VAL((int)stream->StreamPtr->Length());
 }
-#define CHECK_READ_STREAM \
-    if (stream->Closed) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
-        return NULL_VAL; \
-    }
 /***
  * Stream.ReadByte
  * \desc Reads an unsigned 8-bit number from the stream.
@@ -10557,16 +10992,6 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
     }
     return obj;
 }
-#undef CHECK_READ_STREAM
-#define CHECK_WRITE_STREAM \
-    if (stream->Closed) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to closed stream!"); \
-        return NULL_VAL; \
-    } \
-    if (!stream->Writable) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to read-only stream!"); \
-        return NULL_VAL; \
-    }
 /***
  * Stream.WriteByte
  * \desc Writes an unsigned 8-bit number to the stream.
@@ -10763,6 +11188,7 @@ VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 #undef CHECK_WRITE_STREAM
+#undef CHECK_READ_STREAM
 // #endregion
 
 // #region String
@@ -13885,6 +14311,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Exponential fog equation.
     */
     DEF_ENUM(FogEquation_Exp);
+    // #endregion
+
+    // #region Serializer
+    INIT_CLASS(Serializer);
+    DEF_NATIVE(Serializer, WriteToStream);
+    DEF_NATIVE(Serializer, ReadFromStream);
     // #endregion
 
     // #region Settings

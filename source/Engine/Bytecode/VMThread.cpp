@@ -1699,19 +1699,6 @@ PUBLIC bool    VMThread::Import(VMValue value) {
         a = def; \
     }
 
-
-enum {
-    ASSIGNMENT_MULTIPLY,
-    ASSIGNMENT_DIVISION,
-    ASSIGNMENT_MODULO,
-    ASSIGNMENT_PLUS,
-    ASSIGNMENT_MINUS,
-    ASSIGNMENT_BITWISE_LEFT,
-    ASSIGNMENT_BITWISE_RIGHT,
-    ASSIGNMENT_BITWISE_AND,
-    ASSIGNMENT_BITWISE_XOR,
-    ASSIGNMENT_BITWISE_OR,
-};
 // If one of the operators is a decimal, they both become one
 
 PUBLIC VMValue VMThread::Values_Multiply() {
