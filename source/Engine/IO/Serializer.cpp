@@ -35,14 +35,21 @@ public:
     };
 
     enum {
+        OBJ_TYPE_UNIMPLEMENTED,
         OBJ_TYPE_STRING,
         OBJ_TYPE_ARRAY,
         OBJ_TYPE_MAP
     };
+
+    static Uint32 Magic;
+    static Uint32 Version;
 };
 #endif
 
 #include <Engine/IO/Serializer.h>
+
+Uint32 Serializer::Magic = 0x9D939FF0;
+Uint32 Serializer::Version = 0x00000001;
 
 PUBLIC Serializer::Serializer(Stream* stream) {
     StreamPtr = stream;
@@ -58,40 +65,32 @@ PRIVATE void Serializer::WriteValue(VMValue val) {
             float d = AS_DECIMAL(val);
             StreamPtr->WriteByte(Serializer::VAL_TYPE_DECIMAL);
             StreamPtr->WriteFloat(d);
-            break;
+            return;
         }
         case VAL_INTEGER:
         case VAL_LINKED_INTEGER: {
             int i = AS_INTEGER(val);
             StreamPtr->WriteByte(Serializer::VAL_TYPE_INTEGER);
             StreamPtr->WriteInt64(i);
-            break;
+            return;
         }
         case VAL_OBJECT: {
             Obj* obj = AS_OBJECT(val);
-
             Uint32 objectID = GetUniqueObjectID(obj);
-            if (objectID == 0xFFFFFFFF) {
-                StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
-                break;
+            if (objectID != 0xFFFFFFFF) {
+                switch (obj->Type) {
+                    case OBJ_STRING:
+                    case OBJ_ARRAY:
+                    case OBJ_MAP:
+                        StreamPtr->WriteByte(Serializer::VAL_TYPE_OBJECT);
+                        StreamPtr->WriteUInt32(objectID);
+                        return;
+                }
             }
-
-            switch (obj->Type) {
-                case OBJ_STRING:
-                case OBJ_ARRAY:
-                case OBJ_MAP:
-                    StreamPtr->WriteByte(Serializer::VAL_TYPE_OBJECT);
-                    StreamPtr->WriteUInt32(objectID);
-                    break;
-                default:
-                    StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
-                    break;
-            }
-            break;
         }
         default:
             StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
-            break;
+            return;
     }
 }
 
@@ -145,8 +144,8 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
             break;
         }
         default:
-            Log::Print(Log::LOG_ERROR, "Cannot serialize an object of type %s!", GetTypeString(OBJECT_VAL(obj)));
-            return;
+            Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetTypeString(OBJECT_VAL(obj)));
+            WriteObjectPreamble(Serializer::OBJ_TYPE_UNIMPLEMENTED);
     }
 
     PatchObjectSize();
@@ -206,7 +205,7 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
                 if (IS_OBJECT(arrayVal))
                     AddUniqueObject(AS_OBJECT(arrayVal));
             }
-            break;
+            return;
         }
         case OBJ_MAP: {
             ObjMap* map = (ObjMap*)obj;
@@ -214,17 +213,15 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
                 if (IS_OBJECT(mapVal))
                     AddUniqueObject(AS_OBJECT(mapVal));
             });
-            break;
-        }
-        default:
             return;
+        }
     }
 }
 
 PUBLIC void Serializer::Store(VMValue val) {
     // Write header
-    StreamPtr->WriteUInt32(0x9D939FF0);
-    StreamPtr->WriteUInt32(0);
+    StreamPtr->WriteUInt32(Serializer::Magic);
+    StreamPtr->WriteUInt32(Serializer::Version);
 
     // We're gonna patch this later.
     size_t chunkAddrPos = StreamPtr->Position();
@@ -303,7 +300,10 @@ PRIVATE void Serializer::GetObject() {
         return;
     }
     default:
-        Log::Print(Log::LOG_ERROR, "Attempted to deserialize an invalid object type!");
+        if (type == OBJ_TYPE_UNIMPLEMENTED)
+            Log::Print(Log::LOG_WARN, "Ignoring unimplemented object type");
+        else
+            Log::Print(Log::LOG_ERROR, "Attempted to deserialize an invalid object type!");
         ObjList.push_back(nullptr);
         StreamPtr->Skip(size);
         return;
@@ -314,11 +314,6 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
     Uint8 type = StreamPtr->ReadByte();
     Uint32 size = StreamPtr->ReadUInt32();
     switch (type) {
-    case Serializer::OBJ_TYPE_STRING: {
-        // Nothing to do here
-        StreamPtr->Skip(size);
-        return;
-    }
     case Serializer::OBJ_TYPE_ARRAY: {
         Uint32 sz = StreamPtr->ReadUInt32();
         ObjArray* array = (ObjArray*)obj;
@@ -341,20 +336,18 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
         return;
     }
     default:
+        StreamPtr->Skip(size);
         return;
     }
 }
 
 PRIVATE VMValue Serializer::ReadValue() {
-    VMValue returnValue = NULL_VAL;
     Uint8 type = StreamPtr->ReadByte();
     switch (type) {
     case Serializer::VAL_TYPE_INTEGER:
-        returnValue = INTEGER_VAL((int)StreamPtr->ReadInt64());
-        break;
+        return INTEGER_VAL((int)StreamPtr->ReadInt64());
     case Serializer::VAL_TYPE_DECIMAL:
-        returnValue = DECIMAL_VAL(StreamPtr->ReadFloat());
-        break;
+        return DECIMAL_VAL(StreamPtr->ReadFloat());
     case Serializer::VAL_TYPE_NULL:
         break;
     case Serializer::VAL_TYPE_OBJECT: {
@@ -362,7 +355,7 @@ PRIVATE VMValue Serializer::ReadValue() {
         if (objectID >= ObjList.size())
             Log::Print(Log::LOG_ERROR, "Attempted to read an invalid object ID!");
         else if (ObjList[objectID] != nullptr)
-            returnValue = OBJECT_VAL(ObjList[objectID]);
+            return OBJECT_VAL(ObjList[objectID]);
         break;
     }
     case Serializer::END:
@@ -372,7 +365,7 @@ PRIVATE VMValue Serializer::ReadValue() {
         Log::Print(Log::LOG_ERROR, "Attempted to deserialize an invalid value type!");
         break;
     }
-    return returnValue;
+    return NULL_VAL;
 }
 
 PUBLIC bool Serializer::ReadObjectsChunk() {
@@ -399,12 +392,16 @@ PUBLIC bool Serializer::ReadObjectsChunk() {
 
 PUBLIC VMValue Serializer::Retrieve() {
     Uint32 magic = StreamPtr->ReadUInt32();
-    if (magic != 0x9D939FF0) {
+    if (magic != Serializer::Magic) {
         Log::Print(Log::LOG_ERROR, "Invalid magic!");
         return NULL_VAL;
     }
 
     Uint32 version = StreamPtr->ReadUInt32();
+    if (version != Serializer::Version) {
+        Log::Print(Log::LOG_ERROR, "Invalid version!");
+        return NULL_VAL;
+    }
 
     // Read the pointer to the chunk list
     size_t chunkListPos = StreamPtr->ReadUInt32();
