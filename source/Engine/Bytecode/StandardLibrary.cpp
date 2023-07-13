@@ -5002,7 +5002,7 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
  * \param className (String): Name of the object class.
  * \param x (Number): X position of where to place the new instance.
  * \param y (Number): Y position of where to place the new instance.
- * \paramOpt flag (Any): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)
+ * \paramOpt flag (any type): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)
  * \return Returns the new instance.
  * \ns Instance
  */
@@ -9264,9 +9264,17 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
 // #region Serializer
 /***
  * Serializer.WriteToStream
- * \desc
- * \param stream (Stream):
- * \param value (Value):
+ * \desc Serializes a value into a stream.<br/>\
+</br>Supported types:<ul>\
+<li>Integer</li>\
+<li>Decimal</li>\
+<li><code>null</code></li>\
+<li>String</li>\
+<li>Array</li>\
+<li>Map</li>\
+</ul>
+ * \param stream (Stream): The stream.
+ * \param value (any type): The value to serialize.
  * \ns Serializer
  */
 VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
@@ -9281,9 +9289,9 @@ VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Serializer.ReadFromStream
- * \desc
- * \param stream (Stream):
- * \return
+ * \desc Deserializes a value from a stream.
+ * \param stream (Stream): The stream.
+ * \return The deserialized value.
  * \ns Serializer
  */
 VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) {

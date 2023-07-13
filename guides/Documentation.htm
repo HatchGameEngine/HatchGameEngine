@@ -71,6 +71,7 @@
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
+            <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
@@ -826,6 +827,14 @@
                     <li><a href="#Reference_functions_Scene3D_SetFogColor">Scene3D.SetFogColor</a></li>
                     <li><a href="#Reference_functions_Scene3D_SetFogSmoothness">Scene3D.SetFogSmoothness</a></li>
                     <li><a href="#Reference_functions_Scene3D_SetPointSize">Scene3D.SetPointSize</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Serializer">
+                <h2>Serializer</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Serializer_WriteToStream">Serializer.WriteToStream</a></li>
+                    <li><a href="#Reference_functions_Serializer_ReadFromStream">Serializer.ReadFromStream</a></li>
                 </ul>
             </p>
             <p id="Reference_Settings">
@@ -4041,7 +4050,7 @@
         <li>className (String): Name of the object class.</li>
         <li>x (Number): X position of where to place the new instance.</li>
         <li>y (Number): Y position of where to place the new instance.</li>
-        <li>flag (Any): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)</li>
+        <li>flag (any type): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the new instance.</div>
@@ -6170,6 +6179,27 @@
         <li>pointSize (Decimal): The point size.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Serializer_WriteToStream">
+        <h2 style="margin-bottom: 8px;">Serializer.WriteToStream</h2>
+        <code>Serializer.WriteToStream(stream, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Serializes a value into a stream.<br/></br>Supported types:<ul><li>Integer</li><li>Decimal</li><li><code>null</code></li><li>String</li><li>Array</li><li>Map</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        <li>value (any type): The value to serialize.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Serializer_ReadFromStream">
+        <h2 style="margin-bottom: 8px;">Serializer.ReadFromStream</h2>
+        <code>Serializer.ReadFromStream(stream)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Deserializes a value from a stream.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stream (Stream): The stream.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The deserialized value.</div>
+        </p>
         <p id="Reference_functions_Settings_Load">
         <h2 style="margin-bottom: 8px;">Settings.Load</h2>
         <code>Settings.Load(filename)</code>
@@ -7993,7 +8023,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>583 out of 645 functions have descriptions. </p>
+        <p>585 out of 647 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
