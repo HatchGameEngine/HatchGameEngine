@@ -29,8 +29,8 @@ public:
     std::vector<Serializer::String> StringList;
 
     enum {
-        CHUNK_OBJS = FOURCC("OBJS"),
-        CHUNK_TEXT = FOURCC("TEXT")
+        CHUNK_OBJS = MakeFourCC("OBJS"),
+        CHUNK_TEXT = MakeFourCC("TEXT")
     };
 
     enum {
