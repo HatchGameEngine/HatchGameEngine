@@ -105,7 +105,7 @@ std::jmp_buf VMThread::JumpBuffer;
         functionName = "event " + functionName
 
 PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
-    static char GetTokenBuffer[16];
+    static char GetTokenBuffer[256];
 
     if (__Tokens__ && __Tokens__->Exists(hash))
         return __Tokens__->Get(hash);
@@ -114,7 +114,7 @@ PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
     return GetTokenBuffer;
 }
 PUBLIC STATIC char*   VMThread::GetVariableOrMethodName(Uint32 hash) {
-    static char GetTokenBuffer[16];
+    static char GetTokenBuffer[256];
 
     if (__Tokens__ && __Tokens__->Exists(hash)) {
         char* hashStr = __Tokens__->Get(hash);
