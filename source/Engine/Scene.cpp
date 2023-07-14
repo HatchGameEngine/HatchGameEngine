@@ -1842,13 +1842,13 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
             Log::Print(Log::LOG_WARN, "Less Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
             tileCount = numTiles;
         }
-        else if (tileCount >= numTiles) {
+        else if (tileCount > numTiles) {
             Log::Print(Log::LOG_WARN, "More Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
-            tileCount = numTiles - 1;
+            tileCount = numTiles;
         }
 
-        if (tilesToRead >= numTiles)
-            tilesToRead = numTiles - 1;
+        if (tilesToRead > numTiles)
+            tilesToRead = numTiles;
     }
 
     Scene::TileCfgLoaded = true;

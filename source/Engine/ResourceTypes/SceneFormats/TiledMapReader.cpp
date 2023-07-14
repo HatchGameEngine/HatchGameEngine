@@ -292,7 +292,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
                     Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
             }
 
-            Tileset sceneTileset(curTileCount + numEmptyTiles, cols * rows, tilesetXMLPath);
+            Tileset sceneTileset(curTileCount + numEmptyTiles, (cols * rows) + (firstgid - curTileCount), tilesetXMLPath);
             Scene::Tilesets.push_back(sceneTileset);
         }
     }
