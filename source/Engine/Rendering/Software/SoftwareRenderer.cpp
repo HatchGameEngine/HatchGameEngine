@@ -2539,7 +2539,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
 
     Uint32 DRAW_COLLISION = 0;
     int c_pixelsOfTileRemaining, tileFlipOffset;
-    TileConfig* baseTileCfg = Scene::ShowTileCollisionFlag == 2 ? Scene::TileCfgB : Scene::TileCfgA;
+    TileConfig* baseTileCfg = NULL;
+    if (Scene::TileCfg.size()) {
+        size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
+        if (collisionPlane < Scene::TileCfg.size())
+            baseTileCfg = Scene::TileCfg[collisionPlane];
+    }
 
     void (*pixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*) = NULL;
     if (blendFlag & BlendFlag_TINT_BIT)
@@ -2576,7 +2581,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         if ((*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
             int tileID = *tile & TILE_IDENT_MASK;
 
-            if (Scene::ShowTileCollisionFlag && Scene::TileCfgA) {
+            if (Scene::ShowTileCollisionFlag && baseTileCfg) {
                 c_dst_x = dst_x;
                 if (Scene::ShowTileCollisionFlag == 1)
                     DRAW_COLLISION = (*tile & TILE_COLLA_MASK) >> 28;
@@ -2670,7 +2675,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 tile -= layerWidth;
             }
 
-            if (Scene::ShowTileCollisionFlag && Scene::TileCfgA) {
+            if (Scene::ShowTileCollisionFlag && baseTileCfg) {
                 c_dst_x = dst_x;
                 if (Scene::ShowTileCollisionFlag == 1)
                     DRAW_COLLISION = (*tile & TILE_COLLA_MASK) >> 28;

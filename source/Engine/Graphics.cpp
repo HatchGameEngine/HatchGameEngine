@@ -752,7 +752,12 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 	int flipX, flipY, col;
 	int TileBaseX, TileBaseY, baseX, baseY, tile, tileOrig, baseXOff, baseYOff;
 
-	TileConfig* baseTileCfg = Scene::ShowTileCollisionFlag == 2 ? Scene::TileCfgB : Scene::TileCfgA;
+	TileConfig* baseTileCfg = NULL;
+	if (Scene::TileCfg.size()) {
+		size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
+		if (collisionPlane < Scene::TileCfg.size())
+			baseTileCfg = Scene::TileCfg[collisionPlane];
+	}
 
 	if (layer->ScrollInfosSplitIndexes && layer->ScrollInfosSplitIndexesCount > 0) {
 		int height, index;
@@ -829,7 +834,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
 						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileSize, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
-						if (Scene::ShowTileCollisionFlag && Scene::TileCfgA && layer->ScrollInfoCount <= 1) {
+						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
 							col = 0;
 							if (Scene::ShowTileCollisionFlag == 1)
 								col = (tileOrig & TILE_COLLA_MASK) >> 28;
@@ -958,7 +963,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
 						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileSize, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
-						if (Scene::ShowTileCollisionFlag && Scene::TileCfgA && layer->ScrollInfoCount <= 1) {
+						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
 							col = 0;
 							if (Scene::ShowTileCollisionFlag == 1)
 								col = (tileOrig & TILE_COLLA_MASK) >> 28;

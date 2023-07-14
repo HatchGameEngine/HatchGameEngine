@@ -733,6 +733,7 @@
                     <li><a href="#Reference_functions_Scene_LoadPosition">Scene.LoadPosition</a></li>
                     <li><a href="#Reference_functions_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_functions_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
+                    <li><a href="#Reference_functions_Scene_AddTileset">Scene.AddTileset</a></li>
                     <li><a href="#Reference_functions_Scene_Restart">Scene.Restart</a></li>
                     <li><a href="#Reference_functions_Scene_PropertyExists">Scene.PropertyExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetProperty">Scene.GetProperty</a></li>
@@ -757,6 +758,8 @@
                     <li><a href="#Reference_functions_Scene_GetTilesetCount">Scene.GetTilesetCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetIndex">Scene.GetTilesetIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetTileCount">Scene.GetTilesetTileCount</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetFirstTileID">Scene.GetTilesetFirstTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileSize">Scene.GetTileSize</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipX">Scene.GetTileFlipX</a></li>
@@ -5339,7 +5342,18 @@
         <code>Scene.AreTileCollisionsLoaded()</code>
         <div style="margin-top: 8px; font-size: 14px;">Returns or whether tile collisions are loaded.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>true</code> if tile collisions are loaded, or <code>false</code> if not.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if tile collisions are loaded, and <code>false</code> if not.</div>
+        </p>
+        <p id="Reference_functions_Scene_AddTileset">
+        <h2 style="margin-bottom: 8px;">Scene.AddTileset</h2>
+        <code>Scene.AddTileset(tileset)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adds a new tileset into the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileset (String): Path of tileset to load.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the tileset was added, and <code>false</code> if not.</div>
         </p>
         <p id="Reference_functions_Scene_Restart">
         <h2 style="margin-bottom: 8px;">Scene.Restart</h2>
@@ -5563,6 +5577,28 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the tileset name.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetTileCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetTileCount</h2>
+        <code>Scene.GetTilesetTileCount(tilesetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile count for the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetFirstTileID">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetFirstTileID</h2>
+        <code>Scene.GetTilesetFirstTileID(tilesetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first tile index number for the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileSize">
         <h2 style="margin-bottom: 8px;">Scene.GetTileSize</h2>
@@ -8056,7 +8092,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>588 out of 650 functions have descriptions. </p>
+        <p>591 out of 653 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

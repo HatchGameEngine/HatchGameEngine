@@ -88,7 +88,7 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
         }
         else {
             Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
-            exit(-1);
+            return NULL;
         }
     }
     else if (StringUtils::StrCaseStr(altered, ".jpg") || StringUtils::StrCaseStr(altered, ".jpeg")) {
@@ -124,22 +124,15 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 
             data = gif->Data;
             paletted = gif->Paletted;
-            
-            // Palette = gif->Colors;
-            // PaletteAlt = (Uint32*)Memory::TrackedCalloc("Sprite::PaletteAlt", 256, sizeof(Uint32));
-            // PaletteCount = 1;
 
             Memory::Track(data, "Texture::Data");
-            // Memory::Track(Palette, "Sprite::Palette");
-            // SetTransparentColorIndex(gif->TransparentColorIndex);
-
             Memory::Free(gif->Colors);
 
             delete gif;
         }
         else {
             Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
-            exit(-1);
+            return NULL;
         }
     }
     else {
@@ -168,25 +161,6 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 
     return texture;
 }
-
-/*
-// PUBLIC void ISprite::RotatePaletteLeft(Uint32* color, int index, int size) {
-//     color += index;
-//     Uint32 temp = *color;
-//     for (int i = 0; i < size - 1; i++) {
-//         *(color + i) = *(color + i + 1);
-//     }
-//     *(color + size - 1) = temp;
-// }
-// PUBLIC void ISprite::RotatePaletteRight(Uint32* color, int index, int size) {
-//     color += index;
-//     Uint32 temp = *(color + size - 1);
-//     for (int i = size - 1; i >= 1; i--) {
-//         *(color + i) = *(color + i - 1);
-//     }
-//     *color = temp;
-// }
-//*/
 
 PUBLIC void ISprite::ReserveAnimationCount(int count) {
     Animations.reserve(count);

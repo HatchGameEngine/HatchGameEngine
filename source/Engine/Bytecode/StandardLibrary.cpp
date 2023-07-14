@@ -7791,12 +7791,24 @@ VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.AreTileCollisionsLoaded
  * \desc Returns or whether tile collisions are loaded.
- * \return Returns <code>true</code> if tile collisions are loaded, or <code>false</code> if not.
+ * \return Returns <code>true</code> if tile collisions are loaded, and <code>false</code> if not.
  * \ns Scene
  */
 VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL((int)Scene::TileCfgLoaded);
+}
+/***
+ * Scene.AddTileset
+ * \desc Adds a new tileset into the scene.
+ * \param tileset (String): Path of tileset to load.
+ * \return Returns <code>true</code> if the tileset was added, and <code>false</code> if not.
+ * \ns Scene
+ */
+VMValue Scene_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* tileset = GET_ARG(0, GetString);
+    return INTEGER_VAL(Scene::AddTileset(tileset));
 }
 /***
  * Scene.Restart
@@ -8096,6 +8108,11 @@ VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
     }
     return INTEGER_VAL(-1);
 }
+#define CHECK_TILESET_INDEX \
+if (index < 0 || index >= (int)Scene::Tilesets.size()) { \
+    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tileset index %d out of range. (0 - %d)", index, (int)Scene::Tilesets.size() - 1); \
+    return NULL_VAL; \
+}
 /***
  * Scene.GetTilesetName
  * \desc Gets the tileset name for the specified tileset index.
@@ -8106,14 +8123,36 @@ VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
-    int numTilesets = (int)Scene::Tilesets.size();
-    if (index >= 0 && index < numTilesets)
-        return OBJECT_VAL(CopyString(Scene::Tilesets[index].Filename));
-    else {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tileset index %d out of range. (0 - %d)", index, numTilesets);
-        return NULL_VAL;
-    }
+    CHECK_TILESET_INDEX
+    return OBJECT_VAL(CopyString(Scene::Tilesets[index].Filename));
 }
+/***
+ * Scene.GetTilesetTileCount
+ * \desc Gets the tile count for the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    CHECK_TILESET_INDEX
+    return INTEGER_VAL((int)Scene::Tilesets[index].TileCount);
+}
+/***
+ * Scene.GetTilesetFirstTileID
+ * \desc Gets the first tile index number for the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    CHECK_TILESET_INDEX
+    return INTEGER_VAL((int)Scene::Tilesets[index].StartTile);
+}
+#undef CHECK_TILESET_INDEX
 /***
  * Scene.GetTileSize
  * \desc Gets the size of tiles.
@@ -11364,7 +11403,10 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    TileConfig* tileCfgBase = collisionField ? Scene::TileCfgB : Scene::TileCfgA;
+    if (collisionField >= Scene::TileCfg.size())
+        return INTEGER_VAL(-1);
+
+    TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
     tileCfgBase = &tileCfgBase[tileID] + ((flipY << 1) | flipX) * Scene::TileCount;
 
     int cValue = -1;
@@ -11413,7 +11455,10 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    TileConfig* tileCfgBase = collisionField ? Scene::TileCfgB : Scene::TileCfgA;
+    if (collisionField >= Scene::TileCfg.size())
+        return INTEGER_VAL(-1);
+
+    TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
     tileCfgBase = &tileCfgBase[tileID] + ((flipY << 1) | flipX) * Scene::TileCount;
 
     int cValue = 0;
@@ -11452,10 +11497,12 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionPlane == 0)
-        return INTEGER_VAL(Scene::TileCfgA[tileID].Behavior);
+    if (collisionPlane >= Scene::TileCfg.size())
+        return INTEGER_VAL(0);
 
-    return INTEGER_VAL(Scene::TileCfgB[tileID].Behavior);
+    TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+    return INTEGER_VAL(tileCfgBase[tileID].Behavior);
 }
 /***
  * TileInfo.IsCeiling
@@ -11475,10 +11522,12 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionPlane == 0)
-        return INTEGER_VAL(Scene::TileCfgA[tileID].IsCeiling);
+    if (collisionPlane >= Scene::TileCfg.size())
+        return INTEGER_VAL(0);
 
-    return INTEGER_VAL(Scene::TileCfgB[tileID].IsCeiling);
+    TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+    return INTEGER_VAL(tileCfgBase[tileID].IsCeiling);
 }
 // #endregion
 
@@ -13825,6 +13874,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, LoadPosition);
     DEF_NATIVE(Scene, LoadTileCollisions);
     DEF_NATIVE(Scene, AreTileCollisionsLoaded);
+    DEF_NATIVE(Scene, AddTileset);
     DEF_NATIVE(Scene, Restart);
     DEF_NATIVE(Scene, PropertyExists);
     DEF_NATIVE(Scene, GetProperty);
@@ -13853,6 +13903,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTilesetCount);
     DEF_NATIVE(Scene, GetTilesetIndex);
     DEF_NATIVE(Scene, GetTilesetName);
+    DEF_NATIVE(Scene, GetTilesetTileCount);
+    DEF_NATIVE(Scene, GetTilesetFirstTileID);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, GetListPos);
