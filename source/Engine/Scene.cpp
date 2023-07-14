@@ -2278,6 +2278,7 @@ PUBLIC STATIC void Scene::UnloadTilesets() {
         Scene::TileSprites[i]->Dispose();
         delete Scene::TileSprites[i];
     }
+    Scene::Tilesets.clear();
     Scene::TileSprites.clear();
     Scene::TileSpriteInfos.clear();
 }

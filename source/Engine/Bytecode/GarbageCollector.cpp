@@ -47,6 +47,9 @@ PUBLIC STATIC void GarbageCollector::Init() {
 PUBLIC STATIC void GarbageCollector::Collect() {
     GrayList.clear();
 
+    BytecodeObjectManager::Globals->Put("this", NULL_VAL);
+    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
+
     double grayElapsed = Clock::GetTicks();
 
     // Mark threads (should lock here for safety)
@@ -169,8 +172,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
 PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
     if (!IS_OBJECT(value)) return;
 
-    // If this object is an instance associated with an entity, then
-    // delete the latter
+    // If this object is an instance associated with an entity,
+    // then delete the latter
     if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
         ObjInstance* instance = AS_INSTANCE(value);
         if (instance->EntityPtr)

@@ -9,12 +9,16 @@ need_t BytecodeObject;
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Types/Entity.h>
 
+#include <set>
+
 class BytecodeObjectManager {
 public:
     static bool                 LoadAllClasses;
 
     static HashMap<VMValue>*    Globals;
     static HashMap<VMValue>*    Strings;
+
+    static std::set<Obj*>       FreedGlobals;
 
     static VMThread             Threads[8];
     static Uint32               ThreadCount;
@@ -53,6 +57,8 @@ Uint32               BytecodeObjectManager::ThreadCount = 1;
 
 HashMap<VMValue>*    BytecodeObjectManager::Globals = NULL;
 HashMap<VMValue>*    BytecodeObjectManager::Strings = NULL;
+
+std::set<Obj*>       BytecodeObjectManager::FreedGlobals;
 
 char                 BytecodeObjectManager::CurrentObjectName[256];
 vector<ObjFunction*> BytecodeObjectManager::FunctionList;
@@ -131,6 +137,9 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     ThreadCount = 1;
 }
 PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
+    BytecodeObjectManager::Globals->Put("this", NULL_VAL);
+    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
+
     if (Globals) {
         // NOTE: Remove GC-able values from table so it may be cleaned up.
         Globals->ForAll(RemoveNonGlobalableValue);
@@ -139,6 +148,8 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
     ForceGarbageCollection();
+
+    FreedGlobals.clear();
 
     if (Globals) {
         Log::Print(Log::LOG_VERBOSE, "Freeing values in Globals list...");
@@ -197,7 +208,6 @@ PUBLIC STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 has
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
-        // Log::Print(Log::LOG_VERBOSE, "Freeing object %p of type %s", AS_OBJECT(value), GetTypeString(value));
         switch (OBJECT_TYPE(value)) {
             case OBJ_NATIVE:
                 FREE_OBJ(AS_OBJECT(value), ObjNative);
@@ -250,15 +260,27 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeString(ObjString* string) {
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
-        // Log::Print(Log::LOG_VERBOSE, "Freeing object %p of type %s", AS_OBJECT(value), GetTypeString(value));
+        Obj* object = AS_OBJECT(value);
+        if (FreedGlobals.find(object) != FreedGlobals.end())
+            return;
+
+#ifdef DEBUG_FREE_GLOBALS
+        if (Tokens->Get(hash))
+            Log::Print(Log::LOG_VERBOSE, "Freeing global %s, type %s", Tokens->Get(hash), GetTypeString(value));
+        else
+            Log::Print(Log::LOG_VERBOSE, "Freeing global %d, type %s", hash, GetTypeString(value));
+#endif
+
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS: {
                 ObjClass* klass = AS_CLASS(value);
                 FreeClass(klass);
+                FreedGlobals.insert(object);
                 break;
             }
             case OBJ_NATIVE: {
                 FREE_OBJ(AS_OBJECT(value), ObjNative);
+                FreedGlobals.insert(object);
                 break;
             }
             default:
