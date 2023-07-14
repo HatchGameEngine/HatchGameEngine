@@ -234,7 +234,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
 
     if (tileset->attributes.Exists("source")) {
         Token source = tileset->attributes.Get("source");
-        sprintf(tilesetXMLPath, "%s%.*s", parentFolder, (int)source.Length, source.Start);
+        snprintf(tilesetXMLPath, sizeof(tilesetXMLPath), "%s%.*s", parentFolder, (int)source.Length, source.Start);
 
         tilesetXML = XMLParser::ParseFromResource(tilesetXMLPath);
         if (!tilesetXML)

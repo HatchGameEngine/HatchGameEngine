@@ -1842,6 +1842,13 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
             Log::Print(Log::LOG_WARN, "Less Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
             tileCount = numTiles;
         }
+        else if (tileCount >= numTiles) {
+            Log::Print(Log::LOG_WARN, "More Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
+            tileCount = numTiles - 1;
+        }
+
+        if (tilesToRead >= numTiles)
+            tilesToRead = numTiles - 1;
     }
 
     Scene::TileCfgLoaded = true;
@@ -1849,10 +1856,11 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
 
     // Read it now
     Uint8 collisionBuffer[16];
-    TileConfig *tile, *tileDest, *tileLast, *tileBase = &Scene::TileCfgA[tileStart];
+    TileConfig *tile, *tileDest, *tileLast;
+    TileConfig *tileBase = &Scene::TileCfgA[tileStart];
+    TileConfig *maxTile = &Scene::TileCfgA[tileStart + tilesToRead];
 
-    tile = tileBase;
-    for (Uint32 i = 0; i < tilesToRead; i++) {
+    for (tile = tileBase; tile < maxTile; tile++) {
         tile->IsCeiling = tileColReader->ReadByte();
         tile->AngleTop = tileColReader->ReadByte();
         bool hasCollision = tileColReader->ReadByte();
@@ -2009,8 +2017,6 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
             tileDest->CollisionRight[xD] = tile->CollisionLeft[xS] ^ 15;
             tileDest->CollisionBottom[xD] = tile->CollisionTop[xS] ^ 15;
         }
-
-        tile++;
     }
 
     // Copy over to B
@@ -2026,10 +2032,8 @@ PRIVATE STATIC void Scene::InitTileCollisions() {
     if (Scene::TileCount == 0) {
         size_t tileCount = 0x400;
 
-        if (Scene::Tilesets.size()) {
-            Tileset& lastTileset = Scene::Tilesets.back();
-            tileCount = lastTileset.StartTile + lastTileset.TileCount;
-        }
+        if (Scene::TileSpriteInfos.size())
+            tileCount = Scene::TileSpriteInfos.size();
 
         Scene::TileCount = tileCount;
     }
@@ -2040,6 +2044,17 @@ PRIVATE STATIC void Scene::InitTileCollisions() {
 
     Scene::TileCfgA = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgA", totalTileVariantCount, sizeof(TileConfig));
     Scene::TileCfgB = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgB", totalTileVariantCount, sizeof(TileConfig));
+
+    for (size_t i = 0; i < totalTileVariantCount; i++) {
+        TileConfig* tile = &Scene::TileCfgA[i];
+
+        memset(tile->CollisionTop, 16, 16);
+        memset(tile->CollisionBottom, 16, 16);
+        memset(tile->CollisionLeft, 16, 16);
+        memset(tile->CollisionRight, 16, 16);
+    }
+
+    memcpy(Scene::TileCfgB, Scene::TileCfgA, totalTileVariantCount * sizeof(TileConfig));
 }
 PRIVATE STATIC void Scene::ReallocTileCollisions() {
     size_t totalTileVariantCount = Scene::TileCount;
