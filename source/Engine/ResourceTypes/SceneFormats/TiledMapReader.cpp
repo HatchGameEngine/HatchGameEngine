@@ -245,20 +245,16 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
         tilesetNode = tileset;
     }
 
-    TileSpriteInfo info;
-
     for (size_t e = 0; e < tilesetNode->children.size(); e++) {
         if (XMLParser::MatchToken(tilesetNode->children[e]->name, "image")) {
             Token image_source = tilesetNode->children[e]->attributes.Get("source");
             snprintf(tilesetXMLPath, sizeof(tilesetXMLPath), "%s%.*s", parentFolder, (int)image_source.Length, image_source.Start);
 
             ISprite* tileSprite = new ISprite();
-            Scene::TileSprites.push_back(tileSprite);
-
-            int cols, rows;
             tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetXMLPath);
-            cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-            rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+
+            int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
+            int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
 
             tileSprite->ReserveAnimationCount(1);
             tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -270,6 +266,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
                 numEmptyTiles = 0;
 
             // Add empty tile
+            TileSpriteInfo info;
             for (int i = (int)curTileCount; i < firstgid; i++) {
                 info.Sprite = tileSprite;
                 info.AnimationIndex = 0;
@@ -292,7 +289,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
                     Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
             }
 
-            Tileset sceneTileset(curTileCount + numEmptyTiles, (cols * rows) + 1, tilesetXMLPath);
+            Tileset sceneTileset(tileSprite, curTileCount + numEmptyTiles, (cols * rows) + 1, tilesetXMLPath);
             Scene::Tilesets.push_back(sceneTileset);
         }
     }

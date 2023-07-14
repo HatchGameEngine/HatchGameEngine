@@ -335,24 +335,20 @@ PRIVATE STATIC void HatchSceneReader::FreeClasses() {
 PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     int curTileCount = (int)Scene::TileSpriteInfos.size();
 
-    ISprite* tileSprite = new ISprite();
-    Scene::TileSprites.push_back(tileSprite);
-
-    TileSpriteInfo info;
-    Scene::TileSpriteInfos.clear();
-
     char tilesetFile[4096];
     snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
 
-    int cols, rows;
+    ISprite* tileSprite = new ISprite();
     tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetFile);
-    cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-    rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
     // Add tiles
+    TileSpriteInfo info;
     for (int i = 0; i < cols * rows; i++) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
@@ -375,7 +371,7 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
 
-    Tileset sceneTileset(curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
+    Tileset sceneTileset(tileSprite, curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
     Scene::Tilesets.push_back(sceneTileset);
 }
 

@@ -49,7 +49,6 @@ public:
     static DrawGroupList*            PriorityLists;
 
     static vector<Tileset>           Tilesets;
-    static vector<ISprite*>          TileSprites;
     static vector<TileSpriteInfo>    TileSpriteInfos;
     static Uint16                    EmptyTile;
 
@@ -58,6 +57,8 @@ public:
 
     static int                       TileCount;
     static int                       TileSize;
+    static int                       BaseTileCount;
+    static int                       BaseTilesetCount;
     static bool                      TileCfgLoaded;
     static vector<TileConfig*>       TileCfg;
 
@@ -195,10 +196,11 @@ Entity*                   Scene::ObjectLast = NULL;
 
 // Tile variables
 vector<Tileset>           Scene::Tilesets;
-vector<ISprite*>          Scene::TileSprites;
 vector<TileSpriteInfo>    Scene::TileSpriteInfos;
 int                       Scene::TileCount = 0;
 int                       Scene::TileSize = 16;
+int                       Scene::BaseTileCount = 0;
+int                       Scene::BaseTilesetCount = 0;
 bool                      Scene::TileCfgLoaded = false;
 vector<TileConfig*>       Scene::TileCfg;
 Uint16                    Scene::EmptyTile = 0x000;
@@ -1017,7 +1019,7 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         if (DEV_NoTiles)
             continue;
 
-        if (Scene::TileSprites.size() == 0)
+        if (Scene::Tilesets.size() == 0)
             continue;
 
         if ((Scene::TileViewRenderFlag & viewRenderFlag) == 0)
@@ -1263,6 +1265,24 @@ PUBLIC STATIC void Scene::Restart() {
 
     // Dispose of all dynamic objects
     Scene::RemoveNonPersistentObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+
+    if (Scene::BaseTilesetCount != Scene::Tilesets.size()) {
+        while (Scene::Tilesets.size() > Scene::BaseTilesetCount) {
+            size_t i = Scene::Tilesets.size() - 1;
+
+            if (Scene::Tilesets[i].Sprite)
+                delete Scene::Tilesets[i].Sprite;
+            if (Scene::Tilesets[i].Filename)
+                Memory::Free(Scene::Tilesets[i].Filename);
+
+            Scene::Tilesets.erase(Scene::Tilesets.begin() + i);
+        }
+    }
+
+    if (Scene::BaseTileCount != Scene::TileCount) {
+        Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
+        Scene::SetTileCount(Scene::BaseTileCount);
+    }
 
     // Run "Load" on all object classes
     // This is done (on purpose) before object lists are cleared.
@@ -2038,9 +2058,10 @@ PRIVATE STATIC void Scene::InitTileCollisions() {
         Scene::TileCount = tileCount;
     }
 
-    size_t totalTileVariantCount = Scene::TileCount;
-    // multiplied by 4: For all combinations of tile flipping
-    totalTileVariantCount <<= 2;
+    Scene::BaseTileCount = Scene::TileCount;
+    Scene::BaseTilesetCount = Scene::Tilesets.size();
+
+    size_t totalTileVariantCount = Scene::TileCount << 2; // multiplied by 4: For all combinations of tile flipping
 
     TileConfig* tileCfgA = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgA", totalTileVariantCount, sizeof(TileConfig));
     TileConfig* tileCfgB = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgB", totalTileVariantCount, sizeof(TileConfig));
@@ -2069,15 +2090,13 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         return false;
     }
 
-    Scene::TileSprites.push_back(tileSprite);
-
     int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
     int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
-    Tileset sceneTileset(Scene::TileSpriteInfos.size(), cols * rows, path);
+    Tileset sceneTileset(tileSprite, Scene::TileSpriteInfos.size(), cols * rows, path);
     Scene::Tilesets.push_back(sceneTileset);
 
     // Add tiles
@@ -2094,16 +2113,16 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
             Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
     }
 
-    Scene::AddTileCount(cols * rows);
+    Scene::SetTileCount(Scene::TileCount + (cols * rows));
 
     return true;
 }
-PRIVATE STATIC void Scene::AddTileCount(size_t add) {
+PRIVATE STATIC void Scene::SetTileCount(size_t tileCount) {
     vector<TileConfig*> configFlipX;
     vector<TileConfig*> configFlipY;
     vector<TileConfig*> configFlipXY;
 
-    size_t copySize = Scene::TileCount * sizeof(TileConfig);
+    size_t copySize = ((tileCount > Scene::TileCount) ? Scene::TileCount : tileCount) * sizeof(TileConfig);
 
     for (size_t i = 0; i < Scene::TileCfg.size(); i++) {
         TileConfig* srcCfg = Scene::TileCfg[i];
@@ -2121,11 +2140,7 @@ PRIVATE STATIC void Scene::AddTileCount(size_t add) {
         configFlipXY.push_back(flipXY);
     }
 
-    Scene::TileCount += add;
-
-    size_t totalTileVariantCount = Scene::TileCount;
-    // multiplied by 4: For all combinations of tile flipping
-    totalTileVariantCount <<= 2;
+    size_t totalTileVariantCount = tileCount << 2; // multiplied by 4: For all combinations of tile flipping
 
     for (size_t i = 0; i < Scene::TileCfg.size(); i++) {
         Scene::TileCfg[i] = (TileConfig*)Memory::Realloc(Scene::TileCfg[i], totalTileVariantCount * sizeof(TileConfig));
@@ -2139,13 +2154,15 @@ PRIVATE STATIC void Scene::AddTileCount(size_t add) {
         TileConfig* flipXY = configFlipXY[i];
 
         memcpy(destCfg, flipX, copySize);
-        memcpy(destCfg + Scene::TileCount, flipY, copySize);
-        memcpy(destCfg + (Scene::TileCount * 2), flipXY, copySize);
+        memcpy(destCfg + tileCount, flipY, copySize);
+        memcpy(destCfg + (tileCount * 2), flipXY, copySize);
 
         Memory::Free(flipX);
         Memory::Free(flipY);
         Memory::Free(flipXY);
     }
+
+    Scene::TileCount = tileCount;
 }
 PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
     if (!ResourceManager::ResourceExists(filename)) {
@@ -2352,14 +2369,12 @@ PUBLIC STATIC void Scene::Dispose() {
 
 PUBLIC STATIC void Scene::UnloadTilesets() {
     for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
-        Memory::Free(Scene::Tilesets[i].Filename);
-    }
-    for (size_t i = 0; i < Scene::TileSprites.size(); i++) {
-        Scene::TileSprites[i]->Dispose();
-        delete Scene::TileSprites[i];
+        if (Scene::Tilesets[i].Sprite)
+            delete Scene::Tilesets[i].Sprite;
+        if (Scene::Tilesets[i].Filename)
+            Memory::Free(Scene::Tilesets[i].Filename);
     }
     Scene::Tilesets.clear();
-    Scene::TileSprites.clear();
     Scene::TileSpriteInfos.clear();
 }
 

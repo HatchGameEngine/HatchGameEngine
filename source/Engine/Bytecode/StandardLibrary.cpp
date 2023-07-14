@@ -11344,7 +11344,7 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
     if (spriteIndex <= -1) {
         if (tileID < (int)Scene::TileSpriteInfos.size()) {
             TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
-            info.Sprite = Scene::TileSprites[0];
+            info.Sprite = Scene::Tilesets[0].Sprite;
             info.AnimationIndex = 0;
             if (frameIndex > -1)
                 info.FrameIndex = frameIndex;
