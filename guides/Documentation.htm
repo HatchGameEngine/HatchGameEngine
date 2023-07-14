@@ -754,6 +754,9 @@
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetX">Scene.GetLayerOffsetX</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetY">Scene.GetLayerOffsetY</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerDrawGroup">Scene.GetLayerDrawGroup</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetCount">Scene.GetTilesetCount</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetIndex">Scene.GetTilesetIndex</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileSize">Scene.GetTileSize</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipX">Scene.GetTileFlipX</a></li>
@@ -5323,11 +5326,12 @@
         </p>
         <p id="Reference_functions_Scene_LoadTileCollisions">
         <h2 style="margin-bottom: 8px;">Scene.LoadTileCollisions</h2>
-        <code>Scene.LoadTileCollisions(filename)</code>
+        <code>Scene.LoadTileCollisions(filename[, tilesetID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Load tile collisions from a resource file.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of tile collision file.</li>
+        <li>tilesetID (Integer): Tileset to load tile collisions for.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_AreTileCollisionsLoaded">
@@ -5530,6 +5534,35 @@
         <li>layerIndex (Integer): Index of layer.</li>
         <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetCount</h2>
+        <code>Scene.GetTilesetCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of tilesets in the current scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetIndex">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetIndex</h2>
+        <code>Scene.GetTilesetIndex(tilesetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tileset index for the specified filename.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the tileset index, or <code>-1</code> if there is no tileset with said filename.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetName">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetName</h2>
+        <code>Scene.GetTilesetName(tilesetIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tileset name for the specified tileset index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetIndex (Index): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the tileset name.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileSize">
         <h2 style="margin-bottom: 8px;">Scene.GetTileSize</h2>
@@ -8023,7 +8056,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>585 out of 647 functions have descriptions. </p>
+        <p>588 out of 650 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

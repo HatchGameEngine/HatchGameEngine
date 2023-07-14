@@ -490,6 +490,7 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
     // Clear scene to defaults
     Scene::TileSize = 16;
+    Scene::TileCount = 0x400;
     Scene::EmptyTile = 0x3FF;
 
     if (r->ReadUInt32BE() == 0x53434E00) {
@@ -579,8 +580,8 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
 
     Graphics::UsePalettes = true;
 
-    char filename16x16Tiles[256];
-    sprintf(filename16x16Tiles, "%s16x16Tiles.gif", parentFolder);
+    char filename16x16Tiles[4096];
+    snprintf(filename16x16Tiles, sizeof(filename16x16Tiles), "%s16x16Tiles.gif", parentFolder);
     {
         GIF* gif;
         bool loadPalette = Graphics::UsePalettes;
@@ -612,7 +613,6 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
             (i / cols) * Scene::TileSize,
             Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
     }
-    Log::Print(Log::LOG_VERBOSE, "Loaded %d tiles from %s", cols * rows, filename16x16Tiles);
 
     TileSpriteInfo info;
     Scene::TileSpriteInfos.clear();
@@ -622,4 +622,7 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
         info.FrameIndex = i;
         Scene::TileSpriteInfos.push_back(info);
     }
+
+    Tileset sceneTileset(0, Scene::TileSpriteInfos.size(), filename16x16Tiles);
+    Scene::Tilesets.push_back(sceneTileset);
 }

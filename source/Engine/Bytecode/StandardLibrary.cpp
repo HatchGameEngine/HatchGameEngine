@@ -7778,12 +7778,14 @@ VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.LoadTileCollisions
  * \desc Load tile collisions from a resource file.
  * \param filename (String): Filename of tile collision file.
+ * \paramOpt tilesetID (Integer): Tileset to load tile collisions for.
  * \ns Scene
  */
 VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
+    CHECK_AT_LEAST_ARGCOUNT(1);
     char* filename = GET_ARG(0, GetString);
-    Scene::LoadTileCollisions(filename);
+    int tilesetID = GET_ARG_OPT(1, GetInteger, 0);
+    Scene::LoadTileCollisions(filename, (size_t)tilesetID);
     return NULL_VAL;
 }
 /***
@@ -7794,7 +7796,7 @@ VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(!!(Scene::TileCfgA != NULL && Scene::TileCfgB != NULL));
+    return INTEGER_VAL((int)Scene::TileCfgLoaded);
 }
 /***
  * Scene.Restart
@@ -8067,6 +8069,50 @@ VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
     return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DrawGroup);
+}
+/***
+ * Scene.GetTilesetCount
+ * \desc Gets the amount of tilesets in the current scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((int)Scene::Tilesets.size());
+}
+/***
+ * Scene.GetTilesetIndex
+ * \desc Gets the tileset index for the specified filename.
+ * \param tilesetID (Integer): The tileset index.
+ * \return Returns the tileset index, or <code>-1</code> if there is no tileset with said filename.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* name = GET_ARG(0, GetString);
+    for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
+        if (strcmp(Scene::Tilesets[i].Filename, name) == 0)
+            return INTEGER_VAL((int)i);
+    }
+    return INTEGER_VAL(-1);
+}
+/***
+ * Scene.GetTilesetName
+ * \desc Gets the tileset name for the specified tileset index.
+ * \param tilesetIndex (Index): The tileset index.
+ * \return Returns the tileset name.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    int numTilesets = (int)Scene::Tilesets.size();
+    if (index >= 0 && index < numTilesets)
+        return OBJECT_VAL(CopyString(Scene::Tilesets[index].Filename));
+    else {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tileset index %d out of range. (0 - %d)", index, numTilesets);
+        return NULL_VAL;
+    }
 }
 /***
  * Scene.GetTileSize
@@ -11313,12 +11359,8 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
     int flipX = GET_ARG_OPT(4, GetInteger, 0);
     int flipY = GET_ARG_OPT(5, GetInteger, 0);
 
-    if (!Scene::TileCfgA && collisionField == 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision A is not loaded.");
-        return NULL_VAL;
-    }
-    if (!Scene::TileCfgB && collisionField == 1) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision B is not loaded.");
+    if (!Scene::TileCfgLoaded) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
         return NULL_VAL;
     }
 
@@ -11366,12 +11408,8 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
     int flipX = GET_ARG_OPT(3, GetInteger, 0);
     int flipY = GET_ARG_OPT(4, GetInteger, 0);
 
-    if (!Scene::TileCfgA && collisionField == 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision A is not loaded.");
-        return NULL_VAL;
-    }
-    if (!Scene::TileCfgB && collisionField == 1) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision B is not loaded.");
+    if (!Scene::TileCfgLoaded) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
         return NULL_VAL;
     }
 
@@ -11409,18 +11447,14 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
     int tileID = GET_ARG(0, GetInteger);
     int collisionPlane = GET_ARG(1, GetInteger);
 
-    if (collisionPlane == 0) {
-        if (!Scene::TileCfgA) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision A is not loaded.");
-            return NULL_VAL;
-        }
-        return INTEGER_VAL(Scene::TileCfgA[tileID].Behavior);
-    }
-
-    if (!Scene::TileCfgB) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision B is not loaded.");
+    if (!Scene::TileCfgLoaded) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision is not loaded.");
         return NULL_VAL;
     }
+
+    if (collisionPlane == 0)
+        return INTEGER_VAL(Scene::TileCfgA[tileID].Behavior);
+
     return INTEGER_VAL(Scene::TileCfgB[tileID].Behavior);
 }
 /***
@@ -11436,18 +11470,14 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
     int tileID = GET_ARG(0, GetInteger);
     int collisionPlane = GET_ARG(1, GetInteger);
 
-    if (collisionPlane == 0) {
-        if (!Scene::TileCfgA) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision A is not loaded.");
-            return NULL_VAL;
-        }
-        return INTEGER_VAL(Scene::TileCfgA[tileID].IsCeiling);
-    }
-
-    if (!Scene::TileCfgB) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision B is not loaded.");
+    if (!Scene::TileCfgLoaded) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
         return NULL_VAL;
     }
+
+    if (collisionPlane == 0)
+        return INTEGER_VAL(Scene::TileCfgA[tileID].IsCeiling);
+
     return INTEGER_VAL(Scene::TileCfgB[tileID].IsCeiling);
 }
 // #endregion
@@ -13820,6 +13850,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);
+    DEF_NATIVE(Scene, GetTilesetCount);
+    DEF_NATIVE(Scene, GetTilesetIndex);
+    DEF_NATIVE(Scene, GetTilesetName);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, GetListPos);

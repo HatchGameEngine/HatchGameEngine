@@ -7,6 +7,7 @@
 
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Types/Tileset.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/ObjectList.h>
 #include <Engine/Types/ObjectRegistry.h>
@@ -47,6 +48,7 @@ public:
     static int                       PriorityPerLayer;
     static DrawGroupList*            PriorityLists;
 
+    static vector<Tileset>           Tilesets;
     static vector<ISprite*>          TileSprites;
     static vector<TileSpriteInfo>    TileSpriteInfos;
     static Uint16                    EmptyTile;
@@ -56,6 +58,7 @@ public:
 
     static int                       TileCount;
     static int                       TileSize;
+    static bool                      TileCfgLoaded;
     static TileConfig*               TileCfgA;
     static TileConfig*               TileCfgB;
 
@@ -192,10 +195,12 @@ Entity*                   Scene::ObjectFirst = NULL;
 Entity*                   Scene::ObjectLast = NULL;
 
 // Tile variables
+vector<Tileset>           Scene::Tilesets;
 vector<ISprite*>          Scene::TileSprites;
 vector<TileSpriteInfo>    Scene::TileSpriteInfos;
 int                       Scene::TileCount = 0;
 int                       Scene::TileSize = 16;
+bool                      Scene::TileCfgLoaded = false;
 TileConfig*               Scene::TileCfgA = NULL;
 TileConfig*               Scene::TileCfgB = NULL;
 Uint16                    Scene::EmptyTile = 0x000;
@@ -1237,10 +1242,8 @@ PUBLIC STATIC void Scene::Restart() {
 
     if (Scene::AnyLayerTileChange) {
         // Copy backup tiles into main tiles
-        for (int l = 0; l < (int)Layers.size(); l++) {
-            // printf("layer: w %d h %d data %d == %d\n", Layers[l].WidthData, Layers[l].HeightData, Layers[l].DataSize, (Layers[l].WidthMask + 1) * (Layers[l].HeightMask + 1) * sizeof(Uint32));
+        for (int l = 0; l < (int)Layers.size(); l++)
             memcpy(Layers[l].Tiles, Layers[l].TilesBackup, Layers[l].DataSize);
-        }
         Scene::AnyLayerTileChange = false;
     }
 
@@ -1409,11 +1412,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::Layers.clear();
 
     // Dispose of TileConfigs
-    if (Scene::TileCfgA) {
-        Memory::Free(Scene::TileCfgA);
-    }
-    Scene::TileCfgA = NULL;
-    Scene::TileCfgB = NULL;
+    Scene::UnloadTileCollisions();
 
     // Dispose of properties
     if (Scene::Properties)
@@ -1439,12 +1438,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
 
     memmove(Scene::CurrentScene, filename, strlen(filename) + 1);
 
-    for (size_t i = 0; i < Scene::TileSprites.size(); i++) {
-        Scene::TileSprites[i]->Dispose();
-        delete Scene::TileSprites[i];
-    }
-    Scene::TileSprites.clear();
-    Scene::TileSpriteInfos.clear();
+    Scene::UnloadTilesets();
 
     Scene::TileSize = 16;
     Scene::EmptyTile = 0;
@@ -1488,6 +1482,9 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
                 TiledMapReader::Read(filename, pathParent);
         }
 
+        // Prepare tile collisions
+        InitTileCollisions();
+
         // Load scene info and tile collisions
         if (Scene::ListData.size()) {
             SceneListEntry scene = Scene::ListData[Scene::ListPos];
@@ -1506,7 +1503,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
                 else
                     snprintf(filePath, sizeof(filePath), "Scenes/%s/TileConfig.bin", scene.folder);
             }
-            Scene::LoadTileCollisions(filePath);
+            Scene::LoadTileCollisions(filePath, 0);
         }
     }
     else
@@ -1645,188 +1642,185 @@ PUBLIC STATIC void Scene::InitPriorityLists() {
     for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
         Scene::PriorityLists[i].Init();
 }
-PRIVATE STATIC void Scene::LoadRSDKTileConfig(Stream* tileColReader) {
-    Uint32 tileCount = 0x400;
-
-    Uint8* tileInfo = (Uint8*)Memory::Calloc(1, tileCount * 2 * 0x26);
-    tileColReader->ReadCompressed(tileInfo);
-
-    Scene::TileSize = 16;
-    Scene::TileCount = tileCount;
-    if (Scene::TileCfgA == NULL) {
-        int totalTileVariantCount = Scene::TileCount;
-        // multiplied by 4: For all combinations of tile flipping
-        totalTileVariantCount <<= 2;
-        // multiplied by 2: For both collision planes
-        totalTileVariantCount <<= 1;
-
-        Scene::TileCfgA = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfg", totalTileVariantCount, sizeof(TileConfig));
-        Scene::TileCfgB = Scene::TileCfgA + (Scene::TileCount << 2);
-    }
-
-    Uint8* line;
-    bool isCeiling;
+PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig *tile, Uint8* line) {
     Uint8 collisionBuffer[16];
     Uint8 hasCollisionBuffer[16];
-    TileConfig *tile, *tileDest, *tileLast, *tileBase = &Scene::TileCfgA[0];
 
-    tile = tileBase;
-    READ_TILES:
+    TileConfig *tileDest, *tileLast;
+
+    bool isCeiling;
+    tile->IsCeiling = isCeiling = line[0x20];
+
+    // Copy collision
+    memcpy(hasCollisionBuffer, &line[0x10], 16);
+    memcpy(collisionBuffer, &line[0x00], 16);
+
+    Uint8* col;
+    // Interpret up/down collision
+    if (isCeiling) {
+        col = &collisionBuffer[0];
+        for (int c = 0; c < 16; c++) {
+            if (hasCollisionBuffer[c]) {
+                tile->CollisionTop[c] = 0;
+                tile->CollisionBottom[c] = *col;
+            }
+            else {
+                tile->CollisionTop[c] =
+                tile->CollisionBottom[c] = 0xFF;
+            }
+            col++;
+        }
+
+        // Interpret left/right collision
+        for (int y = 15; y >= 0; y--) {
+            // Left-to-right check
+            for (int x = 0; x <= 15; x++) {
+                Uint8 data = tile->CollisionBottom[x];
+                if (data != 0xFF && data >= y) {
+                    tile->CollisionLeft[y] = x;
+                    goto COLLISION_LINE_LEFT_BOTTOMUP_FOUND;
+                }
+            }
+            tile->CollisionLeft[y] = 0xFF;
+
+            COLLISION_LINE_LEFT_BOTTOMUP_FOUND:
+
+            // Right-to-left check
+            for (int x = 15; x >= 0; x--) {
+                Uint8 data = tile->CollisionBottom[x];
+                if (data != 0xFF && data >= y) {
+                    tile->CollisionRight[y] = x;
+                    goto COLLISION_LINE_RIGHT_BOTTOMUP_FOUND;
+                }
+            }
+            tile->CollisionRight[y] = 0xFF;
+
+            COLLISION_LINE_RIGHT_BOTTOMUP_FOUND:
+            ;
+        }
+    }
+    else {
+        col = &collisionBuffer[0];
+        for (int c = 0; c < 16; c++) {
+            if (hasCollisionBuffer[c]) {
+                tile->CollisionTop[c] = *col;
+                tile->CollisionBottom[c] = 15;
+            }
+            else {
+                tile->CollisionTop[c] =
+                tile->CollisionBottom[c] = 0xFF;
+            }
+            col++;
+        }
+
+        // Interpret left/right collision
+        for (int y = 0; y <= 15; y++) {
+            // Left-to-right check
+            for (int x = 0; x <= 15; x++) {
+                Uint8 data = tile->CollisionTop[x];
+                if (data != 0xFF && data <= y) {
+                    tile->CollisionLeft[y] = x;
+                    goto COLLISION_LINE_LEFT_TOPDOWN_FOUND;
+                }
+            }
+            tile->CollisionLeft[y] = 0xFF;
+
+            COLLISION_LINE_LEFT_TOPDOWN_FOUND:
+
+            // Right-to-left check
+            for (int x = 15; x >= 0; x--) {
+                Uint8 data = tile->CollisionTop[x];
+                if (data != 0xFF && data <= y) {
+                    tile->CollisionRight[y] = x;
+                    goto COLLISION_LINE_RIGHT_TOPDOWN_FOUND;
+                }
+            }
+            tile->CollisionRight[y] = 0xFF;
+
+            COLLISION_LINE_RIGHT_TOPDOWN_FOUND:
+            ;
+        }
+    }
+
+    tile->Behavior = line[0x25];
+    memcpy(&tile->AngleTop, &line[0x21], 4);
+
+    // Flip X
+    tileDest = tile + Scene::TileCount;
+    tileDest->AngleTop = -tile->AngleTop;
+    tileDest->AngleLeft = -tile->AngleRight;
+    tileDest->AngleRight = -tile->AngleLeft;
+    tileDest->AngleBottom = -tile->AngleBottom;
+    for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
+        tileDest->CollisionTop[xD] = tile->CollisionTop[xS];
+        tileDest->CollisionBottom[xD] = tile->CollisionBottom[xS];
+        // Swaps
+        tileDest->CollisionLeft[xD] = tile->CollisionRight[xD] ^ 15;
+        tileDest->CollisionRight[xD] = tile->CollisionLeft[xD] ^ 15;
+    }
+    // Flip Y
+    tileDest = tile + (Scene::TileCount << 1);
+    tileDest->AngleTop = 0x80 - tile->AngleBottom;
+    tileDest->AngleLeft = 0x80 - tile->AngleLeft;
+    tileDest->AngleRight = 0x80 - tile->AngleRight;
+    tileDest->AngleBottom = 0x80 - tile->AngleTop;
+    for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
+        tileDest->CollisionLeft[xD] = tile->CollisionLeft[xS];
+        tileDest->CollisionRight[xD] = tile->CollisionRight[xS];
+        // Swaps
+        tileDest->CollisionTop[xD] = tile->CollisionBottom[xD] ^ 15;
+        tileDest->CollisionBottom[xD] = tile->CollisionTop[xD] ^ 15;
+    }
+    // Flip XY
+    tileLast = tileDest;
+    tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
+    tileDest->AngleTop = -tileLast->AngleTop;
+    tileDest->AngleLeft = -tileLast->AngleRight;
+    tileDest->AngleRight = -tileLast->AngleLeft;
+    tileDest->AngleBottom = -tileLast->AngleBottom;
+    for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
+        tileDest->CollisionTop[xD] = tile->CollisionBottom[xS] ^ 15;
+        tileDest->CollisionLeft[xD] = tile->CollisionRight[xS] ^ 15;
+        tileDest->CollisionRight[xD] = tile->CollisionLeft[xS] ^ 15;
+        tileDest->CollisionBottom[xD] = tile->CollisionTop[xS] ^ 15;
+    }
+}
+PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
+    Uint32 tileCount = 0x400;
+
+    Uint8* tileData = (Uint8*)Memory::Calloc(1, tileCount * 2 * 0x26);
+    Uint8* tileInfo = tileData;
+    tileColReader->ReadCompressed(tileInfo);
+
+    Scene::TileCfgLoaded = true;
+    Scene::TileSize = 16;
+
+    // Read plane A
+    TileConfig* tile = &Scene::TileCfgA[0];
+
     for (Uint32 i = 0; i < tileCount; i++) {
-        line = &tileInfo[i * 0x26];
+        Uint8* line = &tileInfo[i * 0x26];
 
-        tile->IsCeiling = isCeiling = line[0x20];
-
-        // Copy collision
-        memcpy(hasCollisionBuffer, &line[0x10], 16);
-        memcpy(collisionBuffer, &line[0x00], 16);
-
-        Uint8* col;
-        // Interpret up/down collision
-        if (isCeiling) {
-            col = &collisionBuffer[0];
-            for (int c = 0; c < 16; c++) {
-                if (hasCollisionBuffer[c]) {
-                    tile->CollisionTop[c] = 0;
-                    tile->CollisionBottom[c] = *col;
-                }
-                else {
-                    tile->CollisionTop[c] =
-                    tile->CollisionBottom[c] = 0xFF;
-                }
-                col++;
-            }
-
-            // Interpret left/right collision
-            for (int y = 15; y >= 0; y--) {
-                // Left-to-right check
-                for (int x = 0; x <= 15; x++) {
-                    Uint8 data = tile->CollisionBottom[x];
-                    if (data != 0xFF && data >= y) {
-                        tile->CollisionLeft[y] = x;
-                        goto COLLISION_LINE_LEFT_BOTTOMUP_FOUND;
-                    }
-                }
-                tile->CollisionLeft[y] = 0xFF;
-
-                COLLISION_LINE_LEFT_BOTTOMUP_FOUND:
-
-                // Right-to-left check
-                for (int x = 15; x >= 0; x--) {
-                    Uint8 data = tile->CollisionBottom[x];
-                    if (data != 0xFF && data >= y) {
-                        tile->CollisionRight[y] = x;
-                        goto COLLISION_LINE_RIGHT_BOTTOMUP_FOUND;
-                    }
-                }
-                tile->CollisionRight[y] = 0xFF;
-
-                COLLISION_LINE_RIGHT_BOTTOMUP_FOUND:
-                ;
-            }
-        }
-        else {
-            col = &collisionBuffer[0];
-            for (int c = 0; c < 16; c++) {
-                if (hasCollisionBuffer[c]) {
-                    tile->CollisionTop[c] = *col;
-                    tile->CollisionBottom[c] = 15;
-                }
-                else {
-                    tile->CollisionTop[c] =
-                    tile->CollisionBottom[c] = 0xFF;
-                }
-                col++;
-            }
-
-            // Interpret left/right collision
-            for (int y = 0; y <= 15; y++) {
-                // Left-to-right check
-                for (int x = 0; x <= 15; x++) {
-                    Uint8 data = tile->CollisionTop[x];
-                    if (data != 0xFF && data <= y) {
-                        tile->CollisionLeft[y] = x;
-                        goto COLLISION_LINE_LEFT_TOPDOWN_FOUND;
-                    }
-                }
-                tile->CollisionLeft[y] = 0xFF;
-
-                COLLISION_LINE_LEFT_TOPDOWN_FOUND:
-
-                // Right-to-left check
-                for (int x = 15; x >= 0; x--) {
-                    Uint8 data = tile->CollisionTop[x];
-                    if (data != 0xFF && data <= y) {
-                        tile->CollisionRight[y] = x;
-                        goto COLLISION_LINE_RIGHT_TOPDOWN_FOUND;
-                    }
-                }
-                tile->CollisionRight[y] = 0xFF;
-
-                COLLISION_LINE_RIGHT_TOPDOWN_FOUND:
-                ;
-            }
-        }
-
-        tile->Behavior = line[0x25];
-        memcpy(&tile->AngleTop, &line[0x21], 4);
-
-        // Flip X
-        tileDest = tile + tileCount;
-        tileDest->AngleTop = -tile->AngleTop;
-        tileDest->AngleLeft = -tile->AngleRight;
-        tileDest->AngleRight = -tile->AngleLeft;
-        tileDest->AngleBottom = -tile->AngleBottom;
-        for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
-            tileDest->CollisionTop[xD] = tile->CollisionTop[xS];
-            tileDest->CollisionBottom[xD] = tile->CollisionBottom[xS];
-            // Swaps
-            tileDest->CollisionLeft[xD] = tile->CollisionRight[xD] ^ 15;
-            tileDest->CollisionRight[xD] = tile->CollisionLeft[xD] ^ 15;
-        }
-        // Flip Y
-        tileDest = tile + (tileCount << 1);
-        tileDest->AngleTop = 0x80 - tile->AngleBottom;
-        tileDest->AngleLeft = 0x80 - tile->AngleLeft;
-        tileDest->AngleRight = 0x80 - tile->AngleRight;
-        tileDest->AngleBottom = 0x80 - tile->AngleTop;
-        for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
-            tileDest->CollisionLeft[xD] = tile->CollisionLeft[xS];
-            tileDest->CollisionRight[xD] = tile->CollisionRight[xS];
-            // Swaps
-            tileDest->CollisionTop[xD] = tile->CollisionBottom[xD] ^ 15;
-            tileDest->CollisionBottom[xD] = tile->CollisionTop[xD] ^ 15;
-        }
-        // Flip XY
-        tileLast = tileDest;
-        tileDest = tile + (tileCount << 1) + tileCount;
-        tileDest->AngleTop = -tileLast->AngleTop;
-        tileDest->AngleLeft = -tileLast->AngleRight;
-        tileDest->AngleRight = -tileLast->AngleLeft;
-        tileDest->AngleBottom = -tileLast->AngleBottom;
-        for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
-            tileDest->CollisionTop[xD] = tile->CollisionBottom[xS] ^ 15;
-            tileDest->CollisionLeft[xD] = tile->CollisionRight[xS] ^ 15;
-            tileDest->CollisionRight[xD] = tile->CollisionLeft[xS] ^ 15;
-            tileDest->CollisionBottom[xD] = tile->CollisionTop[xS] ^ 15;
-        }
+        ReadRSDKTile(tile, line);
 
         tile++;
     }
 
-    if (tileBase == Scene::TileCfgA) {
-        tileBase = Scene::TileCfgB;
-        tileInfo += tileCount * 0x26;
-        tile = tileBase;
-        goto READ_TILES;
+    // Read plane B
+    tileInfo += tileCount * 0x26;
+    tile = &Scene::TileCfgB[0];
+
+    for (Uint32 i = 0; i < tileCount; i++) {
+        Uint8* line = &tileInfo[i * 0x26];
+
+        ReadRSDKTile(tile, line);
+
+        tile++;
     }
 
-    // Restore pointer
-    tileInfo -= tileCount * 0x26;
-
-    Memory::Free(tileInfo);
+    Memory::Free(tileData);
 }
-PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
+PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
     Uint32 tileCount = tileColReader->ReadUInt32();
     Uint8  tileSize  = tileColReader->ReadByte();
     tileColReader->ReadByte();
@@ -1836,36 +1830,29 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
 
     tileSize = 16;
 
-    Scene::TileCount = tileCount;
+    size_t tileStart = 0;
+    size_t tilesToRead = tileCount;
 
-    if (Scene::TileSprites.size()) {
-        int numTiles = (int)Scene::TileSprites[0]->Animations[0].Frames.size();
-        if (Scene::TileCount < numTiles) {
-            Log::Print(Log::LOG_WARN, "Less Tile Collisions (%d) than actual Tiles! (%d)", Scene::TileCount, (int)Scene::TileSprites[0]->Animations[0].Frames.size());
-            Scene::TileCount = numTiles;
+    if (Scene::Tilesets.size() && tilesetID < Scene::Tilesets.size()) {
+        size_t numTiles = Scene::Tilesets[tilesetID].TileCount;
+
+        tileStart = Scene::Tilesets[tilesetID].StartTile;
+
+        if (tileCount < numTiles) {
+            Log::Print(Log::LOG_WARN, "Less Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
+            tileCount = numTiles;
         }
     }
 
-    if (Scene::TileCfgA == NULL) {
-        int totalTileVariantCount = Scene::TileCount;
-        // multiplied by 4: For all combinations of tile flipping
-        totalTileVariantCount <<= 2;
-        // multiplied by 2: For both collision planes
-        totalTileVariantCount <<= 1;
+    Scene::TileCfgLoaded = true;
+    Scene::TileSize = tileSize;
 
-        Scene::TileSize = tileSize;
-        Scene::TileCfgA = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgA", totalTileVariantCount, sizeof(TileConfig));
-        Scene::TileCfgB = Scene::TileCfgA + (tileCount << 2);
-    }
-    else if (Scene::TileSize != tileSize) {
-        Scene::TileSize = tileSize;
-    }
-
+    // Read it now
     Uint8 collisionBuffer[16];
-    TileConfig *tile, *tileDest, *tileLast, *tileBase = &Scene::TileCfgA[0];
+    TileConfig *tile, *tileDest, *tileLast, *tileBase = &Scene::TileCfgA[tileStart];
 
     tile = tileBase;
-    for (Uint32 i = 0; i < tileCount; i++) {
+    for (Uint32 i = 0; i < tilesToRead; i++) {
         tile->IsCeiling = tileColReader->ReadByte();
         tile->AngleTop = tileColReader->ReadByte();
         bool hasCollision = tileColReader->ReadByte();
@@ -1984,7 +1971,7 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
         }
 
         // Flip X
-        tileDest = tile + tileCount;
+        tileDest = tile + Scene::TileCount;
         tileDest->AngleTop = -tile->AngleTop;
         tileDest->AngleLeft = -tile->AngleRight;
         tileDest->AngleRight = -tile->AngleLeft;
@@ -1997,7 +1984,7 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
             tileDest->CollisionRight[xD] = tile->CollisionLeft[xD] ^ 15;
         }
         // Flip Y
-        tileDest = tile + (tileCount << 1);
+        tileDest = tile + (Scene::TileCount << 1);
         tileDest->AngleTop = 0x80 - tile->AngleBottom;
         tileDest->AngleLeft = 0x80 - tile->AngleLeft;
         tileDest->AngleRight = 0x80 - tile->AngleRight;
@@ -2011,7 +1998,7 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
         }
         // Flip XY
         tileLast = tileDest;
-        tileDest = tile + (tileCount << 1) + tileCount;
+        tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
         tileDest->AngleTop = -tileLast->AngleTop;
         tileDest->AngleLeft = -tileLast->AngleRight;
         tileDest->AngleRight = -tileLast->AngleLeft;
@@ -2027,32 +2014,76 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(Stream* tileColReader) {
     }
 
     // Copy over to B
-    memcpy(Scene::TileCfgB, Scene::TileCfgA, (tileCount << 2) * sizeof(TileConfig));
+    TileConfig* cfgA = &Scene::TileCfgA[tileStart];
+    TileConfig* cfgB = &Scene::TileCfgB[tileStart];
+    for (size_t i = 0; i < 3; i++) {
+        memcpy(cfgB, cfgA, tileCount * sizeof(TileConfig));
+        cfgA += Scene::TileCount;
+        cfgB += Scene::TileCount;
+    }
 }
-PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename) {
-    Stream* tileColReader;
+PRIVATE STATIC void Scene::InitTileCollisions() {
+    if (Scene::TileCount == 0) {
+        size_t tileCount = 0x400;
+
+        if (Scene::Tilesets.size()) {
+            Tileset& lastTileset = Scene::Tilesets.back();
+            tileCount = lastTileset.StartTile + lastTileset.TileCount;
+        }
+
+        Scene::TileCount = tileCount;
+    }
+
+    size_t totalTileVariantCount = Scene::TileCount;
+    // multiplied by 4: For all combinations of tile flipping
+    totalTileVariantCount <<= 2;
+
+    Scene::TileCfgA = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgA", totalTileVariantCount, sizeof(TileConfig));
+    Scene::TileCfgB = (TileConfig*)Memory::TrackedCalloc("Scene::TileCfgB", totalTileVariantCount, sizeof(TileConfig));
+}
+PRIVATE STATIC void Scene::ReallocTileCollisions() {
+    size_t totalTileVariantCount = Scene::TileCount;
+    // multiplied by 4: For all combinations of tile flipping
+    totalTileVariantCount <<= 2;
+
+    Scene::TileCfgA = (TileConfig*)Memory::Realloc(Scene::TileCfgA, totalTileVariantCount * sizeof(TileConfig));
+    Scene::TileCfgB = (TileConfig*)Memory::Realloc(Scene::TileCfgB, totalTileVariantCount * sizeof(TileConfig));
+}
+PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
     if (!ResourceManager::ResourceExists(filename)) {
         Log::Print(Log::LOG_WARN, "Could not find tile collision file \"%s\"!", filename);
         return;
     }
 
-    tileColReader = ResourceStream::New(filename);
+    Stream* tileColReader = ResourceStream::New(filename);
     if (!tileColReader)
         return;
 
     Uint32 magic = tileColReader->ReadUInt32();
     // RSDK TileConfig
     if (magic == 0x004C4954U) {
-        Scene::LoadRSDKTileConfig(tileColReader);
+        Scene::LoadRSDKTileConfig(tilesetID, tileColReader);
     }
     // HCOL TileConfig
     else if (magic == 0x4C4F4354U) {
-        Scene::LoadHCOLTileConfig(tileColReader);
+        Scene::LoadHCOLTileConfig(tilesetID, tileColReader);
     }
     else {
         Log::Print(Log::LOG_ERROR, "Invalid magic for TileCollisions! %X", magic);
     }
+
     tileColReader->Close();
+}
+PUBLIC STATIC void Scene::UnloadTileCollisions() {
+    if (Scene::TileCfgA)
+        Memory::Free(Scene::TileCfgA);
+    if (Scene::TileCfgB)
+        Memory::Free(Scene::TileCfgB);
+
+    Scene::TileCfgLoaded = false;
+    Scene::TileCfgA = NULL;
+    Scene::TileCfgB = NULL;
+    Scene::TileCount = 0;
 }
 
 PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
@@ -2191,12 +2222,7 @@ PUBLIC STATIC void Scene::Dispose() {
     }
     Scene::Layers.clear();
 
-    for (size_t i = 0; i < Scene::TileSprites.size(); i++) {
-        Scene::TileSprites[i]->Dispose();
-        delete Scene::TileSprites[i];
-    }
-    Scene::TileSprites.clear();
-    Scene::TileSpriteInfos.clear();
+    Scene::UnloadTilesets();
 
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -2219,10 +2245,7 @@ PUBLIC STATIC void Scene::Dispose() {
         StaticObjectList = NULL;
     }
 
-    if (Scene::TileCfgA)
-        Memory::Free(Scene::TileCfgA);
-    Scene::TileCfgA = NULL;
-    Scene::TileCfgB = NULL;
+    Scene::UnloadTileCollisions();
 
     if (Scene::Properties)
         delete Scene::Properties;
@@ -2230,6 +2253,18 @@ PUBLIC STATIC void Scene::Dispose() {
 
     BytecodeObjectManager::Dispose();
     SourceFileMap::Dispose();
+}
+
+PUBLIC STATIC void Scene::UnloadTilesets() {
+    for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
+        Memory::Free(Scene::Tilesets[i].Filename);
+    }
+    for (size_t i = 0; i < Scene::TileSprites.size(); i++) {
+        Scene::TileSprites[i]->Dispose();
+        delete Scene::TileSprites[i];
+    }
+    Scene::TileSprites.clear();
+    Scene::TileSpriteInfos.clear();
 }
 
 // Tile Batching

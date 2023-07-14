@@ -2539,7 +2539,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
 
     Uint32 DRAW_COLLISION = 0;
     int c_pixelsOfTileRemaining, tileFlipOffset;
-	TileConfig* baseTileCfg = Scene::ShowTileCollisionFlag == 2 ? Scene::TileCfgB : Scene::TileCfgA;
+    TileConfig* baseTileCfg = Scene::ShowTileCollisionFlag == 2 ? Scene::TileCfgB : Scene::TileCfgA;
 
     void (*pixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*) = NULL;
     if (blendFlag & BlendFlag_TINT_BIT)

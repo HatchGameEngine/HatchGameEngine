@@ -77,9 +77,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Load the tileset
     HatchSceneReader::LoadTileset(parentFolder);
 
-    // Load tile collisions
-    HatchSceneReader::LoadTileCollisions(parentFolder);
-
     r->ReadUInt32(); // Editor background color 1
     r->ReadUInt32(); // Editor background color 2
     if (verPatch >= 1)
@@ -336,6 +333,8 @@ PRIVATE STATIC void HatchSceneReader::FreeClasses() {
 }
 
 PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
+    int curTileCount = (int)Scene::TileSpriteInfos.size();
+
     ISprite* tileSprite = new ISprite();
     Scene::TileSprites.push_back(tileSprite);
 
@@ -375,13 +374,9 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     Scene::TileSpriteInfos.push_back(info);
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
-}
 
-PRIVATE STATIC void HatchSceneReader::LoadTileCollisions(const char* parentFolder) {
-    char tileColFile[4096];
-    snprintf(tileColFile, sizeof(tileColFile), "%s/TileCol.bin", parentFolder);
-
-    Scene::LoadTileCollisions(tileColFile);
+    Tileset sceneTileset(curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
+    Scene::Tilesets.push_back(sceneTileset);
 }
 
 PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {

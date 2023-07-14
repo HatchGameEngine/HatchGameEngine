@@ -249,6 +249,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectList.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
+    <ClCompile Include="..\source\engine\types\Tileset.cpp" />
     <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp" />
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
