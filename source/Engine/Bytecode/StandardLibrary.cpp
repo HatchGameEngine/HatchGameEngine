@@ -8154,14 +8154,34 @@ VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID
 }
 #undef CHECK_TILESET_INDEX
 /***
+ * Scene.GetTileWidth
+ * \desc Gets the width of tiles.
+ * \return Returns the width of tiles.
+ * \ns Scene
+ */
+VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::TileWidth);
+}
+/***
+ * Scene.GetTileHeight
+ * \desc Gets the height of tiles.
+ * \return Returns the height of tiles.
+ * \ns Scene
+ */
+VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::TileHeight);
+}
+/***
  * Scene.GetTileSize
- * \desc Gets the size of tiles.
+ * \desc Gets the size of tiles. (Deprecated; use <linkto ref="Scene.GetTileWidth"></linkto> and <linkto ref="Scene.GetTileHeight"></linkto> instead.)
  * \return Returns the size of tiles.
  * \ns Scene
  */
 VMValue Scene_GetTileSize(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::TileSize);
+    return INTEGER_VAL(Scene::TileWidth);
 }
 /***
  * Scene.GetTileID
@@ -8711,7 +8731,7 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Did not end scroll line setup before beginning new one");
         Memory::Free(BufferedScrollLines);
     }
-    BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileSize;
+    BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileWidth;
     BufferedScrollLines = (Uint8*)Memory::Malloc(BufferedScrollLinesMax);
     BufferedScrollSetupLayer = index;
     BufferedScrollInfos.clear();
@@ -13896,7 +13916,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerOffsetX);
     DEF_NATIVE(Scene, GetLayerOffsetY);
     DEF_NATIVE(Scene, GetLayerDrawGroup);
-    DEF_NATIVE(Scene, GetTileSize);
+    DEF_NATIVE(Scene, GetTileWidth);
+    DEF_NATIVE(Scene, GetTileHeight);
+    DEF_NATIVE(Scene, GetTileSize); // deprecated
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);

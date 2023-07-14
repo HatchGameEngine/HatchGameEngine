@@ -341,8 +341,8 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     ISprite* tileSprite = new ISprite();
     tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetFile);
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -356,9 +356,9 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
-            (i % cols) * Scene::TileSize,
-            (i / cols) * Scene::TileSize,
-            Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
+            (i % cols) * Scene::TileWidth,
+            (i / cols) * Scene::TileHeight,
+            Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
     Scene::EmptyTile = Scene::TileSpriteInfos.size();

@@ -253,8 +253,8 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
             ISprite* tileSprite = new ISprite();
             tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetXMLPath);
 
-            int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-            int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+            int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+            int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
 
             tileSprite->ReserveAnimationCount(1);
             tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -284,9 +284,9 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
                 Scene::TileSpriteInfos.push_back(info);
 
                 tileSprite->AddFrame(0,
-                    (i % cols) * Scene::TileSize,
-                    (i / cols) * Scene::TileSize,
-                    Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
+                    (i % cols) * Scene::TileWidth,
+                    (i / cols) * Scene::TileHeight,
+                    Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
             }
 
             Tileset sceneTileset(tileSprite, curTileCount + numEmptyTiles, (cols * rows) + 1, tilesetXMLPath);
@@ -318,7 +318,8 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     }
 
     Scene::EmptyTile = 0;
-    Scene::TileSize = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
+    Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
+    Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
 
     int layer_width = (int)XMLParser::TokenToNumber(map->attributes.Get("width"));
     int layer_height = (int)XMLParser::TokenToNumber(map->attributes.Get("height"));

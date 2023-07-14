@@ -169,7 +169,8 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
 }
 PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
     int vertexCountPerFace = 4;
-    int tileSize = 16;
+    int tileWidth = Scene::TileWidth;
+    int tileHeight = Scene::TileHeight;
     Uint32 colRGB = CurrentColor;
 
     Matrix4x4 mvpMatrix;
@@ -250,14 +251,14 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
                 bottom_v = uv_bottom;
             }
 
-            data[0].Position.X = FP16_TO(destX * tileSize);
-            data[0].Position.Z = FP16_TO(destY * tileSize);
+            data[0].Position.X = FP16_TO(destX * tileWidth);
+            data[0].Position.Z = FP16_TO(destY * tileHeight);
             data[0].Position.Y = 0;
             data[0].UV.X       = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
             data[0].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
             data[0].Normal.X   = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0;
 
-            data[1].Position.X = data[0].Position.X + FP16_TO(tileSize);
+            data[1].Position.X = data[0].Position.X + FP16_TO(tileWidth);
             data[1].Position.Z = data[0].Position.Z;
             data[1].Position.Y = 0;
             data[1].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
@@ -265,7 +266,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
             data[1].Normal.X   = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0;
 
             data[2].Position.X = data[1].Position.X;
-            data[2].Position.Z = data[1].Position.Z + FP16_TO(tileSize);
+            data[2].Position.Z = data[1].Position.Z + FP16_TO(tileHeight);
             data[2].Position.Y = 0;
             data[2].UV.X       = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
             data[2].UV.Y       = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);

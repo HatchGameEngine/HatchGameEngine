@@ -744,10 +744,12 @@ PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bo
     Graphics::GfxFunctions->DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
-	int tileSize = Scene::TileSize;
-	int tileSizeHalf = tileSize >> 1;
-	int tileCellMaxWidth = 3 + (currentView->Width / tileSize);
-	int tileCellMaxHeight = 2 + (currentView->Height / tileSize);
+	int tileWidth = Scene::TileWidth;
+	int tileWidthHalf = tileWidth >> 1;
+    int tileHeight = Scene::TileHeight;
+    int tileHeightHalf = tileHeight >> 1;
+	int tileCellMaxWidth = 3 + (currentView->Width / tileWidth);
+	int tileCellMaxHeight = 2 + (currentView->Height / tileHeight);
 
 	int flipX, flipY, col;
 	int TileBaseX, TileBaseY, baseX, baseY, tile, tileOrig, baseXOff, baseYOff;
@@ -778,9 +780,9 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 				baseX = (sourceTileCellX << 4) + 8;
 				baseX -= baseXOff;
 
-				if (baseX - 8 + height < -tileSize)
+				if (baseX - 8 + height < -tileWidth)
 					goto SKIP_TILE_ROW_DRAW_ROT90;
-				if (baseX - 8 >= currentView->Width + tileSize)
+				if (baseX - 8 >= currentView->Width + tileWidth)
 					break;
 
 				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
@@ -793,20 +795,18 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 					if (sourceTileCellX < 0) goto SKIP_TILE_ROW_DRAW_ROT90;
 					if (sourceTileCellX >= layer->Width) goto SKIP_TILE_ROW_DRAW_ROT90;
 				}
-				// sourceTileCellX = sourceTileCellX & layer->WidthMask;
 				while (sourceTileCellX < 0) sourceTileCellX += layer->Width;
 				while (sourceTileCellX >= layer->Width) sourceTileCellX -= layer->Width;
 
 				// Draw row of tiles
-				iy = (TileBaseY >> 4);
-				baseY = tileSizeHalf;
-				baseY -= baseYOff & 15; // baseY -= baseYOff % 16;
+				iy = TileBaseY >> 4;
+				baseY = tileHeightHalf;
+				baseY -= baseYOff & 15;
 
 				// To get the leftmost tile, ix--, and start t = -1
 				baseY -= 16;
 				iy--;
 
-				// sourceTileCellY = ((sourceTileCellY % layer->Height) + layer->Height) % layer->Height;
 				for (int t = 0; t < tileCellMaxHeight; t++) {
 					// Loop or cut off sourceTileCellX
 					sourceTileCellY = iy;
@@ -829,10 +829,10 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 						flipY = (tileOrig & TILE_FLIPY_MASK);
 
 						int partY = TileBaseX & 0xF;
-						if (flipX) partY = tileSize - height - partY;
+						if (flipX) partY = tileWidth - height - partY;
 
 						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileSize, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
 						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
 							col = 0;
@@ -855,24 +855,24 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 
 							int xorFlipX = 0;
 							if (flipX)
-								xorFlipX = tileSize - 1;
+								xorFlipX = tileWidth - 1;
 
 							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0; checkX < tileSize; checkX++) {
+								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
 									realCheckX = checkX ^ xorFlipX;
 									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
 									Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileSize - colH);
+									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
 								}
 							}
 							else {
-								for (int checkX = 0, realCheckX = 0; checkX < tileSize; checkX++) {
+								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
 									realCheckX = checkX ^ xorFlipX;
 									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
 									Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileSize - colH);
+									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
 								}
 							}
 						}
@@ -880,7 +880,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 
 					SKIP_TILE_DRAW_ROT90:
 					iy++;
-					baseY += tileSize;
+					baseY += tileHeight;
 				}
 
 				SKIP_TILE_ROW_DRAW_ROT90:
@@ -889,9 +889,6 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 		}
 		// Horizontal
 		else {
-			// baseYOff = (int)std::floor(
-			//     (currentView->Y + layer->OffsetY) * layer->RelativeY / 256.f +
-			//     Scene::Frame * layer->ConstantY / 256.f);
 			baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->RelativeY) + Scene::Frame * layer->ConstantY) >> 8;
 			TileBaseY = 0;
 
@@ -905,15 +902,12 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 				baseY = (sourceTileCellY << 4) + 8;
 				baseY -= baseYOff;
 
-				if (baseY - 8 + height < -tileSize)
+				if (baseY - 8 + height < -tileHeight)
 					goto SKIP_TILE_ROW_DRAW;
-				if (baseY - 8 >= currentView->Height + tileSize)
+				if (baseY - 8 >= currentView->Height + tileHeight)
 					break;
 
 				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
-				// baseXOff = (int)std::floor(
-				//     (currentView->X + layer->OffsetX) * layer->ScrollInfos[index].RelativeParallax / 256.f +
-				//     Scene::Frame * layer->ScrollInfos[index].ConstantParallax / 256.f);
 				baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->ScrollInfos[index].RelativeParallax) + Scene::Frame * layer->ScrollInfos[index].ConstantParallax) >> 8;
 				TileBaseX = baseXOff;
 
@@ -922,14 +916,13 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 					if (sourceTileCellY < 0) goto SKIP_TILE_ROW_DRAW;
 					if (sourceTileCellY >= layer->Height) goto SKIP_TILE_ROW_DRAW;
 				}
-				// sourceTileCellY = sourceTileCellY & layer->HeightMask;
 				while (sourceTileCellY < 0) sourceTileCellY += layer->Height;
 				while (sourceTileCellY >= layer->Height) sourceTileCellY -= layer->Height;
 
 				// Draw row of tiles
-				ix = (TileBaseX >> 4);
-				baseX = tileSizeHalf;
-				baseX -= baseXOff & 15; // baseX -= baseXOff % 16;
+				ix = TileBaseX >> 4;
+				baseX = tileWidthHalf;
+				baseX -= baseXOff & 15;
 
 				// To get the leftmost tile, ix--, and start t = -1
 				baseX -= 16;
@@ -958,10 +951,10 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 						flipY = !!(tileOrig & TILE_FLIPY_MASK);
 
 						int partY = TileBaseY & 0xF;
-						if (flipY) partY = tileSize - height - partY;
+						if (flipY) partY = tileHeight - height - partY;
 
 						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileSize, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
 						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
 							col = 0;
@@ -984,24 +977,24 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 
 							int xorFlipX = 0;
 							if (flipX)
-								xorFlipX = tileSize - 1;
+								xorFlipX = tileWidth - 1;
 
 							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0; checkX < tileSize; checkX++) {
+								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
 									realCheckX = checkX ^ xorFlipX;
 									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
 									Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileSize - colH);
+									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
 								}
 							}
 							else {
-								for (int checkX = 0, realCheckX = 0; checkX < tileSize; checkX++) {
+								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
 									realCheckX = checkX ^ xorFlipX;
 									if (baseTileCfg[tile].CollisionBottom[realCheckX] < 0xF0) continue;
 
 									Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileSize - colH);
+									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
 								}
 							}
 						}
@@ -1009,7 +1002,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 
 					SKIP_TILE_DRAW:
 					ix++;
-					baseX += tileSize;
+					baseX += tileWidth;
 				}
 
 				SKIP_TILE_ROW_DRAW:

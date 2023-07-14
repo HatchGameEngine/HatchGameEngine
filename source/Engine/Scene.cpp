@@ -56,7 +56,8 @@ public:
     static bool                      AnyLayerTileChange;
 
     static int                       TileCount;
-    static int                       TileSize;
+    static int                       TileWidth;
+    static int                       TileHeight;
     static int                       BaseTileCount;
     static int                       BaseTilesetCount;
     static bool                      TileCfgLoaded;
@@ -198,7 +199,8 @@ Entity*                   Scene::ObjectLast = NULL;
 vector<Tileset>           Scene::Tilesets;
 vector<TileSpriteInfo>    Scene::TileSpriteInfos;
 int                       Scene::TileCount = 0;
-int                       Scene::TileSize = 16;
+int                       Scene::TileWidth = 16;
+int                       Scene::TileHeight = 16;
 int                       Scene::BaseTileCount = 0;
 int                       Scene::BaseTilesetCount = 0;
 bool                      Scene::TileCfgLoaded = false;
@@ -1458,7 +1460,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
 
     Scene::UnloadTilesets();
 
-    Scene::TileSize = 16;
+    Scene::TileWidth = Scene::TileHeight = 16;
     Scene::EmptyTile = 0;
 
     Scene::InitObjectListsAndRegistries();
@@ -1811,7 +1813,6 @@ PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColRead
     tileColReader->ReadCompressed(tileInfo);
 
     Scene::TileCfgLoaded = true;
-    Scene::TileSize = 16;
 
     // Read plane A
     TileConfig* tile = &Scene::TileCfg[0][0];
@@ -1849,8 +1850,6 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
     tileColReader->ReadByte();
     tileColReader->ReadUInt32();
 
-    tileSize = 16;
-
     size_t tileStart = Scene::Tilesets[tilesetID].StartTile;
     size_t numTiles = Scene::Tilesets[tilesetID].TileCount;
     size_t tilesToRead = tileCount;
@@ -1870,7 +1869,6 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
         tilesToRead = numTiles - 1;
 
     Scene::TileCfgLoaded = true;
-    Scene::TileSize = tileSize;
 
     // Read it now
     Uint8 collisionBuffer[16];
@@ -2090,8 +2088,8 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         return false;
     }
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -2108,9 +2106,9 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
-            (i % cols) * Scene::TileSize,
-            (i / cols) * Scene::TileSize,
-            Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
+            (i % cols) * Scene::TileWidth,
+            (i / cols) * Scene::TileHeight,
+            Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
     Scene::SetTileCount(Scene::TileCount + (cols * rows));
@@ -3139,14 +3137,12 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                     SceneLayer layer = Layers[l];
                     float colX  = posX - layer.OffsetX;
                     float colY  = posY - layer.OffsetY;
-                    int cy      = ((int)colY & -Scene::TileSize) - Scene::TileSize;
-                    if (colX >= 0.0 && colX < Scene::TileSize * layer.Width) {
+                    int cy      = ((int)colY & -Scene::TileHeight) - Scene::TileHeight;
+                    if (colX >= 0.0 && colX < Scene::TileWidth * layer.Width) {
                         for (int i = 0; i < 3; ++i) {
-                            if (cy >= 0 && cy < Scene::TileSize * layer.Height) {
-                                Uint16 tile = layer.Tiles[((int)colX / Scene::TileSize) + ((cy / Scene::TileSize) << layer.WidthInBits)];
+                            if (cy >= 0 && cy < Scene::TileWidth * layer.Height) {
+                                Uint16 tile = layer.Tiles[((int)colX / Scene::TileWidth) + ((cy / Scene::TileHeight) << layer.WidthInBits)];
                                 if (tile < 0xFFFF && tile & solid) {
-                                    // int32 ty = cy + collisionMasks[cPlane][tile & 0xFFF].floorMasks[colX & 0xF];
-                                    // tileCfgBase = &tileCfgBase[tileID] + ((flipY << 1) | flipX) * Scene::TileCount;
                                     int ty;
                                     if (colY >= ty && abs(colY - ty) <= 14) {
                                         collided    = true;
@@ -3155,7 +3151,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                                     }
                                 }
                             }
-                            cy += Scene::TileSize;
+                            cy += Scene::TileHeight;
                         }
                     }
                     posX = layer.OffsetX + colX;

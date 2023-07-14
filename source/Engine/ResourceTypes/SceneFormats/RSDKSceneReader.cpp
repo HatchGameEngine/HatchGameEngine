@@ -488,8 +488,6 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
         return false;
     }
 
-    // Clear scene to defaults
-    Scene::TileSize = 16;
     Scene::TileCount = 0x400;
     Scene::EmptyTile = 0x3FF;
 
@@ -600,16 +598,16 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
     ISprite* tileSprite = new ISprite();
     tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(filename16x16Tiles);
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
     for (int i = 0; i < cols * rows; i++) {
         tileSprite->AddFrame(0,
-            (i % cols) * Scene::TileSize,
-            (i / cols) * Scene::TileSize,
-            Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
+            (i % cols) * Scene::TileWidth,
+            (i / cols) * Scene::TileHeight,
+            Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
     TileSpriteInfo info;
