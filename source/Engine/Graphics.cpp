@@ -84,10 +84,10 @@ public:
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #ifdef USING_OPENGL
-	#include <Engine/Rendering/GL/GLRenderer.h>
+    #include <Engine/Rendering/GL/GLRenderer.h>
 #endif
 #ifdef USING_DIRECT3D
-	#include <Engine/Rendering/D3D/D3DRenderer.h>
+    #include <Engine/Rendering/D3D/D3DRenderer.h>
 #endif
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 
@@ -274,75 +274,75 @@ PUBLIC STATIC void     Graphics::Dispose() {
 }
 
 PUBLIC STATIC Point    Graphics::ProjectToScreen(float x, float y, float z) {
-	Point p;
-	float vec4[4];
-	Matrix4x4* matrix;
+    Point p;
+    float vec4[4];
+    Matrix4x4* matrix;
 
-	matrix = Graphics::MatrixStack.top();
+    matrix = Graphics::MatrixStack.top();
 
-	vec4[0] = x; vec4[1] = y; vec4[2] = z; vec4[3] = 1.0f;
-	Matrix4x4::Multiply(matrix, &vec4[0]);
+    vec4[0] = x; vec4[1] = y; vec4[2] = z; vec4[3] = 1.0f;
+    Matrix4x4::Multiply(matrix, &vec4[0]);
 
-	p.X = (vec4[0] + 1.0f) / 2.0f * Graphics::CurrentViewport.Width;
-	p.Y = (vec4[1] - 1.0f) / -2.0f * Graphics::CurrentViewport.Height;
-	p.Z = vec4[2];
-	return p;
+    p.X = (vec4[0] + 1.0f) / 2.0f * Graphics::CurrentViewport.Width;
+    p.Y = (vec4[1] - 1.0f) / -2.0f * Graphics::CurrentViewport.Height;
+    p.Z = vec4[2];
+    return p;
 }
 
 PUBLIC STATIC Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture;
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+        Graphics::NoInternalTextures) {
         texture = Texture::New(format, access, width, height);
         if (!texture)
             return NULL;
     }
     else {
         texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
-    	if (!texture)
-    		return NULL;
+        if (!texture)
+            return NULL;
     }
 
-	texture->Next = Graphics::TextureHead;
-	if (Graphics::TextureHead)
-		Graphics::TextureHead->Prev = texture;
+    texture->Next = Graphics::TextureHead;
+    if (Graphics::TextureHead)
+        Graphics::TextureHead->Prev = texture;
 
-	Graphics::TextureHead = texture;
+    Graphics::TextureHead = texture;
 
-	return texture;
+    return texture;
 }
 PUBLIC STATIC Texture* Graphics::CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch) {
     Texture* texture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
-	if (texture)
-		Graphics::UpdateTexture(texture, NULL, pixels, pitch);
+    if (texture)
+        Graphics::UpdateTexture(texture, NULL, pixels, pitch);
 
-	return texture;
+    return texture;
 }
 PUBLIC STATIC Texture* Graphics::CreateTextureFromSurface(SDL_Surface* surface) {
-	Texture* texture = Graphics::CreateTexture(surface->format->format, SDL_TEXTUREACCESS_STATIC, surface->w, surface->h);
-	if (texture)
-		Graphics::GfxFunctions->UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
-	return texture;
+    Texture* texture = Graphics::CreateTexture(surface->format->format, SDL_TEXTUREACCESS_STATIC, surface->w, surface->h);
+    if (texture)
+        Graphics::GfxFunctions->UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
+    return texture;
 }
 PUBLIC STATIC int      Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures)
-		return 1;
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
     return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
 }
 PUBLIC STATIC int      Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures)
-		return 1;
+    memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
     return Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
 }
 PUBLIC STATIC int      Graphics::UpdateYUVTexture(Texture* texture, SDL_Rect* src, Uint8* pixelsY, int pitchY, Uint8* pixelsU, int pitchU, Uint8* pixelsV, int pitchV) {
-	if (!Graphics::GfxFunctions->UpdateYUVTexture)
-		return 0;
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures)
-		return 1;
+    if (!Graphics::GfxFunctions->UpdateYUVTexture)
+        return 0;
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
     return Graphics::GfxFunctions->UpdateYUVTexture(texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
 }
 PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
@@ -351,18 +351,18 @@ PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
 PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
     Graphics::GfxFunctions->DisposeTexture(texture);
 
-	if (texture->Next)
-		texture->Next->Prev = texture->Prev;
+    if (texture->Next)
+        texture->Next->Prev = texture->Prev;
 
-	if (texture->Prev)
-		texture->Prev->Next = texture->Next;
-	else
-		Graphics::TextureHead = texture->Next;
+    if (texture->Prev)
+        texture->Prev->Next = texture->Next;
+    else
+        Graphics::TextureHead = texture->Next;
 
-	if (texture->Pixels)
-		Memory::Free(texture->Pixels);
+    if (texture->Pixels)
+        Memory::Free(texture->Pixels);
 
-	Memory::Free(texture);
+    Memory::Free(texture);
 }
 
 PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
@@ -396,8 +396,8 @@ PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
 }
 
 PUBLIC STATIC void     Graphics::UseShader(void* shader) {
-	Graphics::CurrentShader = shader;
-	Graphics::GfxFunctions->UseShader(shader);
+    Graphics::CurrentShader = shader;
+    Graphics::GfxFunctions->UseShader(shader);
 }
 PUBLIC STATIC void     Graphics::SetTextureInterpolation(bool interpolate) {
     Graphics::TextureInterpolate = interpolate;
@@ -411,13 +411,13 @@ PUBLIC STATIC void     Graphics::Present() {
 }
 
 PUBLIC STATIC void     Graphics::SoftwareStart() {
-	Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
-	SoftwareRenderer::RenderStart();
+    Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
+    SoftwareRenderer::RenderStart();
 }
 PUBLIC STATIC void     Graphics::SoftwareEnd() {
-	SoftwareRenderer::RenderEnd();
-	Graphics::GfxFunctions = &Graphics::Internal;
-	Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
+    SoftwareRenderer::RenderEnd();
+    Graphics::GfxFunctions = &Graphics::Internal;
+    Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
 }
 
 PUBLIC STATIC void     Graphics::UnloadSceneData() {
@@ -439,29 +439,29 @@ PUBLIC STATIC void     Graphics::UnloadSceneData() {
 }
 
 PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
-	if (texture && !Graphics::CurrentRenderTarget) {
-		Graphics::BackupViewport = Graphics::CurrentViewport;
-		Graphics::BackupClip = Graphics::CurrentClip;
-	}
+    if (texture && !Graphics::CurrentRenderTarget) {
+        Graphics::BackupViewport = Graphics::CurrentViewport;
+        Graphics::BackupClip = Graphics::CurrentClip;
+    }
 
-	Graphics::CurrentRenderTarget = texture;
+    Graphics::CurrentRenderTarget = texture;
 
     Graphics::GfxFunctions->SetRenderTarget(texture);
 
-	Viewport* vp = &Graphics::CurrentViewport;
-	if (texture) {
-		vp->X = 0.0;
-		vp->Y = 0.0;
-		vp->Width = texture->Width;
-		vp->Height = texture->Height;
-	}
-	else {
-		Graphics::CurrentViewport = Graphics::BackupViewport;
-		Graphics::CurrentClip = Graphics::BackupClip;
-	}
+    Viewport* vp = &Graphics::CurrentViewport;
+    if (texture) {
+        vp->X = 0.0;
+        vp->Y = 0.0;
+        vp->Width = texture->Width;
+        vp->Height = texture->Height;
+    }
+    else {
+        Graphics::CurrentViewport = Graphics::BackupViewport;
+        Graphics::CurrentClip = Graphics::BackupClip;
+    }
 
     Graphics::GfxFunctions->UpdateViewport();
-	Graphics::GfxFunctions->UpdateClipRect();
+    Graphics::GfxFunctions->UpdateClipRect();
 }
 PUBLIC STATIC void     Graphics::UpdateOrtho(float width, float height) {
     Graphics::GfxFunctions->UpdateOrtho(0.0f, 0.0f, width, height);
@@ -495,47 +495,47 @@ PUBLIC STATIC void     Graphics::CalculateMVPMatrix(Matrix4x4* output, Matrix4x4
         Matrix4x4::Identity(output);
 }
 PUBLIC STATIC void     Graphics::SetViewport(float x, float y, float w, float h) {
-	Viewport* vp = &Graphics::CurrentViewport;
-	if (x < 0) {
-		vp->X = 0.0;
-		vp->Y = 0.0;
-		if (Graphics::CurrentRenderTarget) {
-			vp->Width = Graphics::CurrentRenderTarget->Width;
-			vp->Height = Graphics::CurrentRenderTarget->Height;
-		}
-		else {
-			int w, h;
-			SDL_GetWindowSize(Application::Window, &w, &h);
-			vp->Width = w;
-			vp->Height = h;
-		}
-	}
-	else {
-		vp->X = x;
-		vp->Y = y;
-		vp->Width = w;
-		vp->Height = h;
-	}
+    Viewport* vp = &Graphics::CurrentViewport;
+    if (x < 0) {
+        vp->X = 0.0;
+        vp->Y = 0.0;
+        if (Graphics::CurrentRenderTarget) {
+            vp->Width = Graphics::CurrentRenderTarget->Width;
+            vp->Height = Graphics::CurrentRenderTarget->Height;
+        }
+        else {
+            int w, h;
+            SDL_GetWindowSize(Application::Window, &w, &h);
+            vp->Width = w;
+            vp->Height = h;
+        }
+    }
+    else {
+        vp->X = x;
+        vp->Y = y;
+        vp->Width = w;
+        vp->Height = h;
+    }
     Graphics::GfxFunctions->UpdateViewport();
 }
 PUBLIC STATIC void     Graphics::ResetViewport() {
-	Graphics::SetViewport(-1.0, 0.0, 0.0, 0.0);
+    Graphics::SetViewport(-1.0, 0.0, 0.0, 0.0);
 }
 PUBLIC STATIC void     Graphics::Resize(int width, int height) {
     Graphics::GfxFunctions->UpdateWindowSize(width, height);
 }
 
 PUBLIC STATIC void     Graphics::SetClip(int x, int y, int width, int height) {
-	Graphics::CurrentClip.Enabled = true;
-	Graphics::CurrentClip.X = x;
-	Graphics::CurrentClip.Y = y;
-	Graphics::CurrentClip.Width = width;
-	Graphics::CurrentClip.Height = height;
-	Graphics::GfxFunctions->UpdateClipRect();
+    Graphics::CurrentClip.Enabled = true;
+    Graphics::CurrentClip.X = x;
+    Graphics::CurrentClip.Y = y;
+    Graphics::CurrentClip.Width = width;
+    Graphics::CurrentClip.Height = height;
+    Graphics::GfxFunctions->UpdateClipRect();
 }
 PUBLIC STATIC void     Graphics::ClearClip() {
-	Graphics::CurrentClip.Enabled = false;
-	Graphics::GfxFunctions->UpdateClipRect();
+    Graphics::CurrentClip.Enabled = false;
+    Graphics::GfxFunctions->UpdateClipRect();
 }
 
 PUBLIC STATIC void     Graphics::Save() {
@@ -703,9 +703,9 @@ PUBLIC STATIC void     Graphics::StrokeEllipse(float x, float y, float w, float 
     Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
 }
 PUBLIC STATIC void     Graphics::StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
-	Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
-	Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
+    Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+    Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
+    Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
 }
 PUBLIC STATIC void     Graphics::StrokeRectangle(float x, float y, float w, float h) {
     Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
@@ -717,7 +717,7 @@ PUBLIC STATIC void     Graphics::FillEllipse(float x, float y, float w, float h)
     Graphics::GfxFunctions->FillEllipse(x, y, w, h);
 }
 PUBLIC STATIC void     Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
+    Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
 }
 PUBLIC STATIC void     Graphics::FillRectangle(float x, float y, float w, float h) {
     Graphics::GfxFunctions->FillRectangle(x, y, w, h);
@@ -734,304 +734,304 @@ PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, 
 }
 
 PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawTile(tile, x, y, flipX, flipY);
-		return;
-	}
+    // If possible, uses optimized software-renderer call instead.
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
+        SoftwareRenderer::DrawTile(tile, x, y, flipX, flipY);
+        return;
+    }
 
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+    TileSpriteInfo info = Scene::TileSpriteInfos[tile];
     Graphics::GfxFunctions->DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
-	int tileWidth = Scene::TileWidth;
-	int tileWidthHalf = tileWidth >> 1;
+    int tileWidth = Scene::TileWidth;
+    int tileWidthHalf = tileWidth >> 1;
     int tileHeight = Scene::TileHeight;
     int tileHeightHalf = tileHeight >> 1;
-	int tileCellMaxWidth = 3 + (currentView->Width / tileWidth);
-	int tileCellMaxHeight = 2 + (currentView->Height / tileHeight);
+    int tileCellMaxWidth = 3 + (currentView->Width / tileWidth);
+    int tileCellMaxHeight = 2 + (currentView->Height / tileHeight);
 
-	int flipX, flipY, col;
-	int TileBaseX, TileBaseY, baseX, baseY, tile, tileOrig, baseXOff, baseYOff;
+    int flipX, flipY, col;
+    int TileBaseX, TileBaseY, baseX, baseY, tile, tileOrig, baseXOff, baseYOff;
 
-	TileConfig* baseTileCfg = NULL;
-	if (Scene::TileCfg.size()) {
-		size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
-		if (collisionPlane < Scene::TileCfg.size())
-			baseTileCfg = Scene::TileCfg[collisionPlane];
-	}
+    TileConfig* baseTileCfg = NULL;
+    if (Scene::TileCfg.size()) {
+        size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
+        if (collisionPlane < Scene::TileCfg.size())
+            baseTileCfg = Scene::TileCfg[collisionPlane];
+    }
 
-	if (layer->ScrollInfosSplitIndexes && layer->ScrollInfosSplitIndexesCount > 0) {
-		int height, index;
-		int ix, iy, sourceTileCellX, sourceTileCellY;
+    if (layer->ScrollInfosSplitIndexes && layer->ScrollInfosSplitIndexesCount > 0) {
+        int height, index;
+        int ix, iy, sourceTileCellX, sourceTileCellY;
 
-		// Vertical
-		if (layer->DrawBehavior == DrawBehavior_VerticalParallax) {
-			baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->RelativeY) + Scene::Frame * layer->ConstantY) >> 8;
-			TileBaseX = 0;
+        // Vertical
+        if (layer->DrawBehavior == DrawBehavior_VerticalParallax) {
+            baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->RelativeY) + Scene::Frame * layer->ConstantY) >> 8;
+            TileBaseX = 0;
 
-			for (int split = 0, spl; split < 4096; split++) {
-				spl = split;
-				while (spl >= layer->ScrollInfosSplitIndexesCount) spl -= layer->ScrollInfosSplitIndexesCount;
+            for (int split = 0, spl; split < 4096; split++) {
+                spl = split;
+                while (spl >= layer->ScrollInfosSplitIndexesCount) spl -= layer->ScrollInfosSplitIndexesCount;
 
-				height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
+                height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
 
-				sourceTileCellX = (TileBaseX >> 4);
-				baseX = (sourceTileCellX << 4) + 8;
-				baseX -= baseXOff;
+                sourceTileCellX = (TileBaseX >> 4);
+                baseX = (sourceTileCellX << 4) + 8;
+                baseX -= baseXOff;
 
-				if (baseX - 8 + height < -tileWidth)
-					goto SKIP_TILE_ROW_DRAW_ROT90;
-				if (baseX - 8 >= currentView->Width + tileWidth)
-					break;
+                if (baseX - 8 + height < -tileWidth)
+                    goto SKIP_TILE_ROW_DRAW_ROT90;
+                if (baseX - 8 >= currentView->Width + tileWidth)
+                    break;
 
-				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
+                index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
 
-				baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->ScrollInfos[index].RelativeParallax) + Scene::Frame * layer->ScrollInfos[index].ConstantParallax) >> 8;
-				TileBaseY = baseYOff;
+                baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->ScrollInfos[index].RelativeParallax) + Scene::Frame * layer->ScrollInfos[index].ConstantParallax) >> 8;
+                TileBaseY = baseYOff;
 
-				// Loop or cut off sourceTileCellX
-				if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
-					if (sourceTileCellX < 0) goto SKIP_TILE_ROW_DRAW_ROT90;
-					if (sourceTileCellX >= layer->Width) goto SKIP_TILE_ROW_DRAW_ROT90;
-				}
-				while (sourceTileCellX < 0) sourceTileCellX += layer->Width;
-				while (sourceTileCellX >= layer->Width) sourceTileCellX -= layer->Width;
+                // Loop or cut off sourceTileCellX
+                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                    if (sourceTileCellX < 0) goto SKIP_TILE_ROW_DRAW_ROT90;
+                    if (sourceTileCellX >= layer->Width) goto SKIP_TILE_ROW_DRAW_ROT90;
+                }
+                while (sourceTileCellX < 0) sourceTileCellX += layer->Width;
+                while (sourceTileCellX >= layer->Width) sourceTileCellX -= layer->Width;
 
-				// Draw row of tiles
-				iy = TileBaseY >> 4;
-				baseY = tileHeightHalf;
-				baseY -= baseYOff & 15;
+                // Draw row of tiles
+                iy = TileBaseY >> 4;
+                baseY = tileHeightHalf;
+                baseY -= baseYOff & 15;
 
-				// To get the leftmost tile, ix--, and start t = -1
-				baseY -= 16;
-				iy--;
+                // To get the leftmost tile, ix--, and start t = -1
+                baseY -= 16;
+                iy--;
 
-				for (int t = 0; t < tileCellMaxHeight; t++) {
-					// Loop or cut off sourceTileCellX
-					sourceTileCellY = iy;
-					if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
-						if (sourceTileCellY < 0) goto SKIP_TILE_DRAW_ROT90;
-						if (sourceTileCellY >= layer->Height) goto SKIP_TILE_DRAW_ROT90;
-					}
-					else {
-						// sourceTileCellY = ((sourceTileCellY % layer->Height) + layer->Height) % layer->Height;
-						while (sourceTileCellY < 0) sourceTileCellY += layer->Height;
-						while (sourceTileCellY >= layer->Height) sourceTileCellY -= layer->Height;
-					}
+                for (int t = 0; t < tileCellMaxHeight; t++) {
+                    // Loop or cut off sourceTileCellX
+                    sourceTileCellY = iy;
+                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                        if (sourceTileCellY < 0) goto SKIP_TILE_DRAW_ROT90;
+                        if (sourceTileCellY >= layer->Height) goto SKIP_TILE_DRAW_ROT90;
+                    }
+                    else {
+                        // sourceTileCellY = ((sourceTileCellY % layer->Height) + layer->Height) % layer->Height;
+                        while (sourceTileCellY < 0) sourceTileCellY += layer->Height;
+                        while (sourceTileCellY >= layer->Height) sourceTileCellY -= layer->Height;
+                    }
 
-					tileOrig = tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layer->WidthInBits)];
+                    tileOrig = tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layer->WidthInBits)];
 
-					tile &= TILE_IDENT_MASK;
-					// "li == 0" should ideally be "layer->DrawGroup == 0", but in some games multiple layers will use DrawGroup == 0, which would look bad & lag
-					if (tile != Scene::EmptyTile) { // || li == 0
-						flipX = (tileOrig & TILE_FLIPX_MASK);
-						flipY = (tileOrig & TILE_FLIPY_MASK);
+                    tile &= TILE_IDENT_MASK;
+                    // "li == 0" should ideally be "layer->DrawGroup == 0", but in some games multiple layers will use DrawGroup == 0, which would look bad & lag
+                    if (tile != Scene::EmptyTile) { // || li == 0
+                        flipX = (tileOrig & TILE_FLIPX_MASK);
+                        flipY = (tileOrig & TILE_FLIPY_MASK);
 
-						int partY = TileBaseX & 0xF;
-						if (flipX) partY = tileWidth - height - partY;
+                        int partY = TileBaseX & 0xF;
+                        if (flipX) partY = tileWidth - height - partY;
 
-						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
-						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
-							col = 0;
-							if (Scene::ShowTileCollisionFlag == 1)
-								col = (tileOrig & TILE_COLLA_MASK) >> 28;
-							else if (Scene::ShowTileCollisionFlag == 2)
-								col = (tileOrig & TILE_COLLB_MASK) >> 26;
+                        if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
+                            col = 0;
+                            if (Scene::ShowTileCollisionFlag == 1)
+                                col = (tileOrig & TILE_COLLA_MASK) >> 28;
+                            else if (Scene::ShowTileCollisionFlag == 2)
+                                col = (tileOrig & TILE_COLLB_MASK) >> 26;
 
-							switch (col) {
-								case 1:
-									Graphics::SetBlendColor(1.0, 1.0, 0.0, 1.0);
-									break;
-								case 2:
-									Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
-									break;
-								case 3:
-									Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-									break;
-							}
+                            switch (col) {
+                                case 1:
+                                    Graphics::SetBlendColor(1.0, 1.0, 0.0, 1.0);
+                                    break;
+                                case 2:
+                                    Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+                                    break;
+                                case 3:
+                                    Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+                                    break;
+                            }
 
-							int xorFlipX = 0;
-							if (flipX)
-								xorFlipX = tileWidth - 1;
+                            int xorFlipX = 0;
+                            if (flipX)
+                                xorFlipX = tileWidth - 1;
 
-							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
-									realCheckX = checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
+                            if (baseTileCfg[tile].IsCeiling ^ flipY) {
+                                for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
+                                    realCheckX = checkX ^ xorFlipX;
+                                    if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
-									Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
-								}
-							}
-							else {
-								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
-									realCheckX = checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
+                                    Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
+                                    Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
+                                }
+                            }
+                            else {
+                                for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
+                                    realCheckX = checkX ^ xorFlipX;
+                                    if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
-									Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
-								}
-							}
-						}
-					}
+                                    Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
+                                    Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
+                                }
+                            }
+                        }
+                    }
 
-					SKIP_TILE_DRAW_ROT90:
-					iy++;
-					baseY += tileHeight;
-				}
+                    SKIP_TILE_DRAW_ROT90:
+                    iy++;
+                    baseY += tileHeight;
+                }
 
-				SKIP_TILE_ROW_DRAW_ROT90:
-				TileBaseX += height;
-			}
-		}
-		// Horizontal
-		else {
-			baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->RelativeY) + Scene::Frame * layer->ConstantY) >> 8;
-			TileBaseY = 0;
+                SKIP_TILE_ROW_DRAW_ROT90:
+                TileBaseX += height;
+            }
+        }
+        // Horizontal
+        else {
+            baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->RelativeY) + Scene::Frame * layer->ConstantY) >> 8;
+            TileBaseY = 0;
 
-			for (int split = 0, spl; split < 4096; split++) {
-				spl = split;
-				while (spl >= layer->ScrollInfosSplitIndexesCount) spl -= layer->ScrollInfosSplitIndexesCount;
+            for (int split = 0, spl; split < 4096; split++) {
+                spl = split;
+                while (spl >= layer->ScrollInfosSplitIndexesCount) spl -= layer->ScrollInfosSplitIndexesCount;
 
-				height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
+                height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
 
-				sourceTileCellY = (TileBaseY >> 4);
-				baseY = (sourceTileCellY << 4) + 8;
-				baseY -= baseYOff;
+                sourceTileCellY = (TileBaseY >> 4);
+                baseY = (sourceTileCellY << 4) + 8;
+                baseY -= baseYOff;
 
-				if (baseY - 8 + height < -tileHeight)
-					goto SKIP_TILE_ROW_DRAW;
-				if (baseY - 8 >= currentView->Height + tileHeight)
-					break;
+                if (baseY - 8 + height < -tileHeight)
+                    goto SKIP_TILE_ROW_DRAW;
+                if (baseY - 8 >= currentView->Height + tileHeight)
+                    break;
 
-				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
-				baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->ScrollInfos[index].RelativeParallax) + Scene::Frame * layer->ScrollInfos[index].ConstantParallax) >> 8;
-				TileBaseX = baseXOff;
+                index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
+                baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->ScrollInfos[index].RelativeParallax) + Scene::Frame * layer->ScrollInfos[index].ConstantParallax) >> 8;
+                TileBaseX = baseXOff;
 
-				// Loop or cut off sourceTileCellY
-				if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
-					if (sourceTileCellY < 0) goto SKIP_TILE_ROW_DRAW;
-					if (sourceTileCellY >= layer->Height) goto SKIP_TILE_ROW_DRAW;
-				}
-				while (sourceTileCellY < 0) sourceTileCellY += layer->Height;
-				while (sourceTileCellY >= layer->Height) sourceTileCellY -= layer->Height;
+                // Loop or cut off sourceTileCellY
+                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                    if (sourceTileCellY < 0) goto SKIP_TILE_ROW_DRAW;
+                    if (sourceTileCellY >= layer->Height) goto SKIP_TILE_ROW_DRAW;
+                }
+                while (sourceTileCellY < 0) sourceTileCellY += layer->Height;
+                while (sourceTileCellY >= layer->Height) sourceTileCellY -= layer->Height;
 
-				// Draw row of tiles
-				ix = TileBaseX >> 4;
-				baseX = tileWidthHalf;
-				baseX -= baseXOff & 15;
+                // Draw row of tiles
+                ix = TileBaseX >> 4;
+                baseX = tileWidthHalf;
+                baseX -= baseXOff & 15;
 
-				// To get the leftmost tile, ix--, and start t = -1
-				baseX -= 16;
-				ix--;
+                // To get the leftmost tile, ix--, and start t = -1
+                baseX -= 16;
+                ix--;
 
-				// sourceTileCellX = ((sourceTileCellX % layer->Width) + layer->Width) % layer->Width;
-				for (int t = 0; t < tileCellMaxWidth; t++) {
-					// Loop or cut off sourceTileCellX
-					sourceTileCellX = ix;
-					if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
-						if (sourceTileCellX < 0) goto SKIP_TILE_DRAW;
-						if (sourceTileCellX >= layer->Width) goto SKIP_TILE_DRAW;
-					}
-					else {
-						// sourceTileCellX = ((sourceTileCellX % layer->Width) + layer->Width) % layer->Width;
-						while (sourceTileCellX < 0) sourceTileCellX += layer->Width;
-						while (sourceTileCellX >= layer->Width) sourceTileCellX -= layer->Width;
-					}
+                // sourceTileCellX = ((sourceTileCellX % layer->Width) + layer->Width) % layer->Width;
+                for (int t = 0; t < tileCellMaxWidth; t++) {
+                    // Loop or cut off sourceTileCellX
+                    sourceTileCellX = ix;
+                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                        if (sourceTileCellX < 0) goto SKIP_TILE_DRAW;
+                        if (sourceTileCellX >= layer->Width) goto SKIP_TILE_DRAW;
+                    }
+                    else {
+                        // sourceTileCellX = ((sourceTileCellX % layer->Width) + layer->Width) % layer->Width;
+                        while (sourceTileCellX < 0) sourceTileCellX += layer->Width;
+                        while (sourceTileCellX >= layer->Width) sourceTileCellX -= layer->Width;
+                    }
 
-					tileOrig = tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layer->WidthInBits)];
+                    tileOrig = tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layer->WidthInBits)];
 
-					tile &= TILE_IDENT_MASK;
-					// "li == 0" should ideally be "layer->DrawGroup == 0", but in some games multiple layers will use DrawGroup == 0, which would look bad & lag
-					if (tile != Scene::EmptyTile) { // || li == 0
-						flipX = !!(tileOrig & TILE_FLIPX_MASK);
-						flipY = !!(tileOrig & TILE_FLIPY_MASK);
+                    tile &= TILE_IDENT_MASK;
+                    // "li == 0" should ideally be "layer->DrawGroup == 0", but in some games multiple layers will use DrawGroup == 0, which would look bad & lag
+                    if (tile != Scene::EmptyTile) { // || li == 0
+                        flipX = !!(tileOrig & TILE_FLIPX_MASK);
+                        flipY = !!(tileOrig & TILE_FLIPY_MASK);
 
-						int partY = TileBaseY & 0xF;
-						if (flipY) partY = tileHeight - height - partY;
+                        int partY = TileBaseY & 0xF;
+                        if (flipY) partY = tileHeight - height - partY;
 
-						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
 
-						if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
-							col = 0;
-							if (Scene::ShowTileCollisionFlag == 1)
-								col = (tileOrig & TILE_COLLA_MASK) >> 28;
-							else if (Scene::ShowTileCollisionFlag == 2)
-								col = (tileOrig & TILE_COLLB_MASK) >> 26;
+                        if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
+                            col = 0;
+                            if (Scene::ShowTileCollisionFlag == 1)
+                                col = (tileOrig & TILE_COLLA_MASK) >> 28;
+                            else if (Scene::ShowTileCollisionFlag == 2)
+                                col = (tileOrig & TILE_COLLB_MASK) >> 26;
 
-							switch (col) {
-								case 1:
-									Graphics::SetBlendColor(1.0, 1.0, 0.0, 1.0);
-									break;
-								case 2:
-									Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
-									break;
-								case 3:
-									Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-									break;
-							}
+                            switch (col) {
+                                case 1:
+                                    Graphics::SetBlendColor(1.0, 1.0, 0.0, 1.0);
+                                    break;
+                                case 2:
+                                    Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+                                    break;
+                                case 3:
+                                    Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+                                    break;
+                            }
 
-							int xorFlipX = 0;
-							if (flipX)
-								xorFlipX = tileWidth - 1;
+                            int xorFlipX = 0;
+                            if (flipX)
+                                xorFlipX = tileWidth - 1;
 
-							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
-									realCheckX = checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
+                            if (baseTileCfg[tile].IsCeiling ^ flipY) {
+                                for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
+                                    realCheckX = checkX ^ xorFlipX;
+                                    if (baseTileCfg[tile].CollisionTop[realCheckX] < 0xF0) continue;
 
-									Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
-								}
-							}
-							else {
-								for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
-									realCheckX = checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionBottom[realCheckX] < 0xF0) continue;
+                                    Uint8 colH = baseTileCfg[tile].CollisionTop[realCheckX];
+                                    Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8, 1, tileHeight - colH);
+                                }
+                            }
+                            else {
+                                for (int checkX = 0, realCheckX = 0; checkX < tileWidth; checkX++) {
+                                    realCheckX = checkX ^ xorFlipX;
+                                    if (baseTileCfg[tile].CollisionBottom[realCheckX] < 0xF0) continue;
 
-									Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
-									Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
-								}
-							}
-						}
-					}
+                                    Uint8 colH = baseTileCfg[tile].CollisionBottom[realCheckX];
+                                    Graphics::FillRectangle(baseX - 8 + checkX, baseY - 8 + colH, 1, tileHeight - colH);
+                                }
+                            }
+                        }
+                    }
 
-					SKIP_TILE_DRAW:
-					ix++;
-					baseX += tileWidth;
-				}
+                    SKIP_TILE_DRAW:
+                    ix++;
+                    baseX += tileWidth;
+                }
 
-				SKIP_TILE_ROW_DRAW:
-				TileBaseY += height;
-			}
-		}
-	}
+                SKIP_TILE_ROW_DRAW:
+                TileBaseY += height;
+            }
+        }
+    }
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
 
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawSceneLayer(layer, currentView);
-		return;
-	}
+    // If possible, uses optimized software-renderer call instead.
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
+        SoftwareRenderer::DrawSceneLayer(layer, currentView);
+        return;
+    }
 
     switch (layer->DrawBehavior) {
-		default:
-		case DrawBehavior_HorizontalParallax:
-		case DrawBehavior_CustomTileScanLines:
-		case DrawBehavior_PGZ1_BG:
-			Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
-			break;
-		// case DrawBehavior_VerticalParallax:
-		// 	Graphics::DrawSceneLayer_VerticalParallax(layer, currentView);
-			break;
-	}
+        default:
+        case DrawBehavior_HorizontalParallax:
+        case DrawBehavior_CustomTileScanLines:
+        case DrawBehavior_PGZ1_BG:
+            Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+            break;
+        // case DrawBehavior_VerticalParallax:
+        //  Graphics::DrawSceneLayer_VerticalParallax(layer, currentView);
+            break;
+    }
 }
 
 // 3D drawing
@@ -1216,18 +1216,18 @@ PUBLIC STATIC void     Graphics::SetDepthTesting(bool enabled) {
 }
 
 PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
-	//#ifdef DEBUG
-	if (!sprite) return true;
-	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
-		BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
-		return true;
-	}
-	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
-		BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
-		return true;
-	}
-	//#endif
-	return false;
+    //#ifdef DEBUG
+    if (!sprite) return true;
+    if (animation < 0 || animation >= (int)sprite->Animations.size()) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
+        return true;
+    }
+    if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
+        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
+        return true;
+    }
+    //#endif
+    return false;
 }
 
 PUBLIC STATIC void   Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
