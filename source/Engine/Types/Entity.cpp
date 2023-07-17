@@ -219,7 +219,7 @@ PUBLIC bool Entity::CollideWithObject(Entity* other) {
     return true;
 }
 PUBLIC int  Entity::SolidCollideWithObject(Entity* other, int flag) {
-    // NOTE: "flag" might be "UseGroundSpeed"
+    // NOTE: "flag" is setValues
     float initialOtherX = (other->X);
     float initialOtherY = (other->Y);
     float sourceX = std::floor(this->X);

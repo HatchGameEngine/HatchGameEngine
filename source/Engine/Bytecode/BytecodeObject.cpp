@@ -475,6 +475,13 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \ns Instance
     */
     LINK_INT(CollisionMode);
+     /***
+    * \field TileCollisions
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
+    LINK_INT(TileCollisions);
 
     /***
     * \field ActiveStatus
@@ -1148,11 +1155,11 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
  */
 PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
-    BytecodeObject* self = GET_ENTITY(0);
-    ISprite* sprite = GET_ARG(1, GetSprite);
-    int animation = GET_ARG(2, GetInteger);
-    int frame = GET_ARG(3, GetInteger);
-    int hitbox = GET_ARG(4, GetInteger);
+    BytecodeObject* self    = GET_ENTITY(0);
+    ISprite* sprite         = GET_ARG(1, GetSprite);
+    int animation           = GET_ARG(2, GetInteger);
+    int frame               = GET_ARG(3, GetInteger);
+    int hitbox              = GET_ARG(4, GetInteger);
 
     if (!self)
         return NULL_VAL;
@@ -1175,8 +1182,8 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
 
     CollisionBox box = frameO.Boxes[hitbox];
     ObjArray* array = NewArray();
-    array->Values->push_back(DECIMAL_VAL((float)box.Top));
     array->Values->push_back(DECIMAL_VAL((float)box.Left));
+    array->Values->push_back(DECIMAL_VAL((float)box.Top));
     array->Values->push_back(DECIMAL_VAL((float)box.Right));
     array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
     return OBJECT_VAL(array);
