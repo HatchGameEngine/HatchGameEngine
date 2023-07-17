@@ -32,18 +32,18 @@ struct Animation {
     int               FrameCount;
 };
 struct Animator {
-    vector<AnimFrame*> Frames;
-    int                Sprite;
-    int                CurrentAnimation;
-    int                CurrentFrame;
-    int                PrevAnimation;
-    int                AnimationSpeed;
-    int                AnimationTimer;
-    int                Duration;
-    int                FrameCount;
-    int                LoopIndex;
-    int                RotationStyle;
-    Uint32             UnloadPolicy;
+    vector<AnimFrame>  Frames;
+    int                Sprite           = -1;
+    int                CurrentAnimation = -1;
+    int                CurrentFrame     = -1;
+    int                PrevAnimation    = 0;
+    int                AnimationSpeed   = 0;
+    int                AnimationTimer   = 0;
+    int                Duration         = 0;
+    int                FrameCount       = 0;
+    int                LoopIndex        = 0;
+    int                RotationStyle    = 0;
+    Uint32             UnloadPolicy     = 0;
 };
 
 enum {
