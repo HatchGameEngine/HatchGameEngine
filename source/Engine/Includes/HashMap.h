@@ -213,7 +213,7 @@ public:
                 return Data[index].Data;
             }
 
-            index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
+            index = (index + 1) & CapacityMask;
         }
 
 #ifdef IOS
@@ -233,15 +233,11 @@ public:
         index = TranslateIndex(index);
 
         for (int i = 0; i < ChainLength; i++) {
-            // printf("Data[%d].Key (%X) == %X: %s     .Used == %s\n",
-            //     index, Data[index].Key, hash,
-            //     Data[index].Key == hash ? "TRUE" : "FALSE",
-            //     Data[index].Used ? "TRUE" : "FALSE");
             if (Data[index].Used && Data[index].Key == hash) {
                 return true;
             }
 
-            index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
+            index = (index + 1) & CapacityMask;
         }
 
         return false;
@@ -249,6 +245,28 @@ public:
     bool   Exists(const char* key) {
         Uint32 hash = HashFunction(key, strlen(key));
         return Exists(hash);
+    }
+
+    bool   GetIfExists(Uint32 hash, T* result) {
+        Uint32 index;
+
+        index = hash;
+        index = TranslateIndex(index);
+
+        for (int i = 0; i < ChainLength; i++) {
+            if (Data[index].Used && Data[index].Key == hash) {
+                *result = Data[index].Data;
+                return true;
+            }
+
+            index = (index + 1) & CapacityMask;
+        }
+
+        return false;
+    }
+    bool   GetIfExists(const char* key, T* result) {
+        Uint32 hash = HashFunction(key, strlen(key));
+        return GetIfExists(hash, result);
     }
 
     bool   Remove(Uint32 hash) {

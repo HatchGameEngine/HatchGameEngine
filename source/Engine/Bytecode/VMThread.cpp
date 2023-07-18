@@ -471,14 +471,15 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_GET_GLOBAL): {
             Uint32 hash = ReadUInt32(frame);
             if (BytecodeObjectManager::Lock()) {
-                if (!BytecodeObjectManager::Globals->Exists(hash)) {
+                VMValue result;
+                if (!BytecodeObjectManager::Globals->GetIfExists(hash, &result)) {
                     if (ThrowRuntimeError(false, "Variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_GET_GLOBAL;
                     Push(NULL_VAL);
                     return INTERPRET_GLOBAL_DOES_NOT_EXIST;
                 }
 
-                Push(BytecodeObjectManager::DelinkValue(BytecodeObjectManager::Globals->Get(hash)));
+                Push(BytecodeObjectManager::DelinkValue(result));
                 BytecodeObjectManager::Unlock();
             }
             VM_BREAK;
@@ -536,9 +537,8 @@ PUBLIC int     VMThread::RunInstruction() {
             if (BytecodeObjectManager::Lock()) {
                 VMValue value = Peek(0);
                 // If it already exists,
-                if (BytecodeObjectManager::Globals->Exists(hash)) {
-                    VMValue originalValue = BytecodeObjectManager::Globals->Get(hash);
-
+                VMValue originalValue;
+                if (BytecodeObjectManager::Globals->GetIfExists(hash, &originalValue)) {
                     // If the value is a class and original is a class,
                     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
                         ObjClass* src = AS_CLASS(value);
@@ -569,6 +569,7 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
 
             VMValue object = Peek(0);
+            VMValue result;
 
             // If it's an instance,
             if (IS_INSTANCE(object)) {
@@ -576,9 +577,9 @@ PUBLIC int     VMThread::RunInstruction() {
 
                 if (BytecodeObjectManager::Lock()) {
                     // Fields have priority over methods
-                    if (instance->Fields->Exists(hash)) {
+                    if (instance->Fields->GetIfExists(hash, &result)) {
                         Pop();
-                        Push(BytecodeObjectManager::DelinkValue(instance->Fields->Get(hash)));
+                        Push(BytecodeObjectManager::DelinkValue(result));
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
                     }
@@ -604,9 +605,9 @@ PUBLIC int     VMThread::RunInstruction() {
 
                 if (BytecodeObjectManager::Lock()) {
                     // Fields have priority over methods
-                    if (klass->Fields->Exists(hash)) {
+                    if (klass->Fields->GetIfExists(hash, &result)) {
                         Pop();
-                        Push(BytecodeObjectManager::DelinkValue(klass->Fields->Get(hash)));
+                        Push(BytecodeObjectManager::DelinkValue(result));
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
                     }
@@ -683,8 +684,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 hash = ReadUInt32(frame);
 
                 value = Pop();
-                if (fields->Exists(hash)) {
-                    field = fields->Get(hash);
+                if (fields->GetIfExists(hash, &field)) {
                     switch (field.Type) {
                         case VAL_LINKED_INTEGER:
                             result = BytecodeObjectManager::CastValueAsInteger(value);
@@ -762,11 +762,13 @@ PUBLIC int     VMThread::RunInstruction() {
                         if (ThrowRuntimeError(false, "Cannot find value at empty key.") == ERROR_RES_CONTINUE)
                             goto FAIL_OP_GET_ELEMENT;
                     }
-                    if (!map->Values->Exists(index)) {
+
+                    VMValue result;
+                    if (!map->Values->GetIfExists(index, &result)) {
                         goto FAIL_OP_GET_ELEMENT;
                     }
 
-                    Push(map->Values->Get(index));
+                    Push(result);
                     BytecodeObjectManager::Unlock();
                 }
             }
@@ -1241,6 +1243,7 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 isSuper = ReadByte(frame);
 
             VMValue receiver = Peek(argCount);
+            VMValue result;
             if (IS_INSTANCE(receiver)) {
                 if (!InvokeForInstance(hash, argCount, isSuper)) {
                     if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
@@ -1254,8 +1257,8 @@ PUBLIC int     VMThread::RunInstruction() {
             }
             else if (IS_CLASS(receiver)) {
                 ObjClass* klass = AS_CLASS(receiver);
-                if (klass->Methods->Exists(hash)) {
-                    if (!CallValue(klass->Methods->Get(hash), argCount)) {
+                if (klass->Methods->GetIfExists(hash, &result)) {
+                    if (!CallValue(result, argCount)) {
                         if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_INVOKE;
 
@@ -1276,8 +1279,8 @@ PUBLIC int     VMThread::RunInstruction() {
                     goto FAIL_OP_INVOKE;
                 }
 
-                if (klass->Methods->Exists(hash)) {
-                    if (!CallValue(klass->Methods->Get(hash), argCount)) {
+                if (klass->Methods->GetIfExists(hash, &result)) {
+                    if (!CallValue(result, argCount)) {
                         if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_INVOKE;
 
@@ -1472,11 +1475,13 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
 PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
     if (BytecodeObjectManager::Lock()) {
         VMValue method;
-        if (klass->Methods->Exists(hash)) {
-            method = klass->Methods->Get(hash);
+        if (klass->Methods->GetIfExists(hash, &method)) {
+            Pop(); // Instance.
+            Push(method);
         }
-        else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
-            method = klass->Parent->Methods->Get(hash);
+        else if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &method)) {
+            Pop(); // Instance.
+            Push(method);
         }
         else {
             ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
@@ -1485,8 +1490,6 @@ PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
             return false;
         }
 
-        Pop(); // Instance.
-        Push(method);
         BytecodeObjectManager::Unlock();
         return true;
     }
@@ -1604,11 +1607,11 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
             BytecodeObjectManager::SetClassParent(klass);
         }
 
-        if (klass->Methods->Exists(hash)) {
-            method = klass->Methods->Get(hash);
+        if (klass->Methods->GetIfExists(hash, &method)) {
+            // Done
         }
-        else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
-            method = klass->Parent->Methods->Get(hash);
+        else if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &method)) {
+            // Ditto
         }
         else {
             BytecodeObjectManager::Unlock();
@@ -1638,9 +1641,7 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
         VMValue value;
         bool exists = false;
         if (BytecodeObjectManager::Lock()) {
-            if ((exists = instance->Fields->Exists(hash)))
-                value = instance->Fields->Get(hash);
-
+            exists = instance->Fields->GetIfExists(hash, &value);
             BytecodeObjectManager::Unlock();
         }
         if (exists) {
