@@ -872,7 +872,6 @@ bool TestEntityCollision(BytecodeObject* other, BytecodeObject* self) {
         other->Y + other->HitboxH / 2.0f >= self->Y - self->HitboxH / 2.0f &&
         other->X - other->HitboxW / 2.0f  < self->X + self->HitboxW / 2.0f &&
         other->Y - other->HitboxH / 2.0f  < self->Y + self->HitboxH / 2.0f) {
-        BytecodeObjectManager::Globals->Put("other", OBJECT_VAL(other->Instance));
         return true;
     }
     return false;

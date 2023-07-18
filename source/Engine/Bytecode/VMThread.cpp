@@ -36,6 +36,7 @@ public:
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/Values.h>
+#include <Engine/Diagnostics/Clock.h>
 
 #ifndef _MSC_VER
 #define USING_VM_DISPATCH_TABLE
@@ -1131,22 +1132,18 @@ PUBLIC int     VMThread::RunInstruction() {
                         frame->WithIteratorStackTop++;
 
                         // Backup original receiver
-                        BytecodeObjectManager::Globals->Put("other", frame->Slots[0]);
                         *frame->WithReceiverStackTop = frame->Slots[0];
                         frame->WithReceiverStackTop++;
                         // Replace receiver
                         frame->Slots[0] = OBJECT_VAL(objectStart->Instance);
-                        BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
                         break;
                     }
                     else if (IS_INSTANCE(receiver)) {
                         // Backup original receiver
-                        BytecodeObjectManager::Globals->Put("other", frame->Slots[0]);
                         *frame->WithReceiverStackTop = frame->Slots[0];
                         frame->WithReceiverStackTop++;
                         // Replace receiver
                         frame->Slots[0] = receiver;
-                        BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
 
                         Pop(); // pop receiver
 
@@ -1188,7 +1185,6 @@ PUBLIC int     VMThread::RunInstruction() {
                             // Replace receiver
                             BytecodeObject* object = (BytecodeObject*)it.entity;
                             frame->Slots[0] = OBJECT_VAL(object->Instance);
-                            BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
                         }
                     }
                     // Otherwise in registry,
@@ -1205,7 +1201,6 @@ PUBLIC int     VMThread::RunInstruction() {
                             // Replace receiver
                             BytecodeObject* object = (BytecodeObject*)registry->GetNth(it.index);
                             frame->Slots[0] = OBJECT_VAL(object->Instance);
-                            BytecodeObjectManager::Globals->Put("this", frame->Slots[0]);
                         }
                     }
                     else {
@@ -1222,8 +1217,6 @@ PUBLIC int     VMThread::RunInstruction() {
                     frame->Slots[0] = originalReceiver;
 
                     frame->WithIteratorStackTop--;
-
-                    BytecodeObjectManager::Globals->Remove("this");
                     break;
                 }
             }
@@ -1600,7 +1593,6 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
     frame->WithReceiverStackTop = frame->WithReceiverStack;
     frame->WithIteratorStackTop = frame->WithIteratorStack;
     frame->FunctionListOffset = function->FunctionListOffset;
-    BytecodeObjectManager::Globals->Remove("this");
 
     return true;
 }

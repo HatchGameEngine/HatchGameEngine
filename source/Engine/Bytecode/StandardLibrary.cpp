@@ -14674,8 +14674,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     #undef DEF_NATIVE
     #undef INIT_CLASS
 
-    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
-
     /***
     * \global CameraX
     * \type Decimal

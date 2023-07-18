@@ -137,9 +137,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     ThreadCount = 1;
 }
 PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
-    BytecodeObjectManager::Globals->Put("this", NULL_VAL);
-    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
-
     if (Globals) {
         // NOTE: Remove GC-able values from table so it may be cleaned up.
         Globals->ForAll(RemoveNonGlobalableValue);
