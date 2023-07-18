@@ -472,7 +472,8 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
             if (BytecodeObjectManager::Lock()) {
                 VMValue result;
-                if (!BytecodeObjectManager::Globals->GetIfExists(hash, &result)) {
+                if (!BytecodeObjectManager::Globals->GetIfExists(hash, &result)
+                && !BytecodeObjectManager::Constants->GetIfExists(hash, &result)) {
                     if (ThrowRuntimeError(false, "Variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_GET_GLOBAL;
                     Push(NULL_VAL);
@@ -493,7 +494,12 @@ PUBLIC int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
             if (BytecodeObjectManager::Lock()) {
                 if (!BytecodeObjectManager::Globals->Exists(hash)) {
-                    if (ThrowRuntimeError(false, "Global variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                    if (BytecodeObjectManager::Constants->Exists(hash)) {
+                        // Can't do that
+                        if (ThrowRuntimeError(false, "Cannot redefine constant %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                            goto FAIL_OP_SET_GLOBAL;
+                    }
+                    else if (ThrowRuntimeError(false, "Global variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_SET_GLOBAL;
                     return INTERPRET_GLOBAL_DOES_NOT_EXIST;
                 }
@@ -541,17 +547,22 @@ PUBLIC int     VMThread::RunInstruction() {
                 if (BytecodeObjectManager::Globals->GetIfExists(hash, &originalValue)) {
                     // If the value is a class and original is a class,
                     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
-                        ObjClass* src = AS_CLASS(value);
-                        ObjClass* dst = AS_CLASS(originalValue);
-
-                        src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
-                            dst->Methods->Put(hash, value);
-                        });
-                        src->Methods->Clear();
+                        DoClassExtension(value, originalValue);
                     }
                     // Otherwise,
                     else {
                         BytecodeObjectManager::Globals->Put(hash, value);
+                    }
+                }
+                // Otherwise, if it's a constant,
+                else if (BytecodeObjectManager::Constants->GetIfExists(hash, &originalValue)) {
+                    // If the value is a class and original is a class,
+                    if (IS_CLASS(value) && IS_CLASS(originalValue)) {
+                        DoClassExtension(value, originalValue);
+                    }
+                    // Can't do that
+                    else {
+                        ThrowRuntimeError(false, "Cannot redefine constant %s!", GetVariableOrMethodName(hash));
                     }
                 }
                 // Otherwise,
@@ -1661,6 +1672,15 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
         return false;
     }
     return InvokeFromClass(klass, hash, argCount);
+}
+PUBLIC void    VMThread::DoClassExtension(VMValue value, VMValue originalValue) {
+    ObjClass* src = AS_CLASS(value);
+    ObjClass* dst = AS_CLASS(originalValue);
+
+    src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
+        dst->Methods->Put(hash, value);
+    });
+    src->Methods->Clear();
 }
 PUBLIC bool    VMThread::Import(VMValue value) {
     bool result = false;

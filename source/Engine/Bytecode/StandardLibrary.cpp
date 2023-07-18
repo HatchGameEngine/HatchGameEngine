@@ -13140,7 +13140,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
         klass = NewClass(Murmur::EncryptString(#className)); \
         klass->Name = CopyString(#className, strlen(#className)); \
         val = OBJECT_VAL(klass); \
-        BytecodeObjectManager::Globals->Put(klass->Hash, OBJECT_VAL(klass));
+        BytecodeObjectManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
         BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
 

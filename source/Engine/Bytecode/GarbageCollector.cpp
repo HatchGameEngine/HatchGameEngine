@@ -65,6 +65,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     // Mark global roots
     GrayHashMap(BytecodeObjectManager::Globals);
 
+    // Mark constants
+    GrayHashMap(BytecodeObjectManager::Constants);
+
     // Mark static objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
