@@ -377,6 +377,8 @@ void UpdateObject(Entity* ent) {
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
+            if (onScreenX && onScreenY)
+                break;
             if (!onScreenX) {
                 onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
                     ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
@@ -396,6 +398,8 @@ void UpdateObject(Entity* ent) {
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
+            if (onScreenX)
+                break;
             if (!onScreenX) {
                 onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
                     ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
@@ -411,6 +415,8 @@ void UpdateObject(Entity* ent) {
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
+            if (onScreenY)
+                break;
             if (!onScreenY) {
                 onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[i].Y &&
                     ent->Y - ent->OnScreenHitboxH * 0.5f < Scene::Views[i].Y + Scene::Views[i].Height);
@@ -427,6 +433,9 @@ void UpdateObject(Entity* ent) {
 
         // TODO: Double check this works properly
         for (int v = 0; v < Scene::ViewsActive; v++) {
+            if (ent->InRange)
+                break;
+
             float sx = abs(ent->X - Scene::Views[v].X);
             float sy = abs(ent->Y - Scene::Views[v].Y);
 
