@@ -5228,24 +5228,65 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 
     return NULL_VAL;
 }
+// TODO: Finish these
 /***
  * Instance.Copy
  * \desc Copies an instance into another.
  * \param destInstance (Instance): The destination instance.
  * \param srcInstance (Instance): The source instance.
+ * \paramOpt copyClass (Boolean): Whether to copy the class of the source entity (defaults to true).
  * \ns Instance
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    ObjInstance* destInstance = GET_ARG(0, GetInstance);
-    ObjInstance* srcInstance = GET_ARG(1, GetInstance);
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    ObjInstance* destInstance   = GET_ARG(0, GetInstance);
+    ObjInstance* srcInstance    = GET_ARG(1, GetInstance);
+    bool copyClass              = argCount >= 3 ? !!GET_ARG(2, GetInteger) : true;
+    bool destroySrc             = argCount >= 4 ? !!GET_ARG(3, GetInteger) : false;
 
-    BytecodeObject* destEntity = (BytecodeObject*)destInstance->EntityPtr;
-    BytecodeObject* srcEntity = (BytecodeObject*)srcInstance->EntityPtr;
+    BytecodeObject* destEntity  = (BytecodeObject*)destInstance->EntityPtr;
+    BytecodeObject* srcEntity   = (BytecodeObject*)srcInstance->EntityPtr;
     if (destEntity && srcEntity)
-        srcEntity->Copy(destEntity);
+        srcEntity->Copy(destEntity, copyClass, destroySrc);
 
     return NULL_VAL;
+}
+/***
+ * Instance.ChangeClass
+ * \desc Changes an instance's class.
+ * \param instance (Instance): The instance to swap.
+ * \param className (String): Name of the object class.
+ * \return Returns whether the instance was swapped.
+ * \ns Instance
+ */
+VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    ObjInstance* instance   = GET_ARG(0, GetInstance);
+    char* objectName        = GET_ARG(1, GetString);
+
+    BytecodeObject* self = (BytecodeObject*)instance->EntityPtr;
+    if (!self)
+        return INTEGER_VAL(false);
+
+    if (BytecodeObjectManager::ClassExists(objectName)) {
+        if (!BytecodeObjectManager::Classes->Exists(objectName))
+            BytecodeObjectManager::LoadClass(objectName);
+
+        ObjClass* klass = AS_CLASS(BytecodeObjectManager::Globals->Get(objectName));
+        if (!klass) {
+            return INTEGER_VAL(false);
+        }
+
+        instance->Object.Class = klass;
+    }
+    else {
+        return INTEGER_VAL(false);
+    }
+
+    ObjectList* objectList  = Scene::ObjectLists->Get(objectName);
+    self->List              = objectList;
+    return INTEGER_VAL(true);
 }
 // #endregion
 
@@ -7078,6 +7119,24 @@ VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return DECIMAL_VAL(GET_ARG(0, GetDecimal));
+}
+// #endregion
+
+// #region Object
+/***
+ * Object.Loaded
+ * \desc Checks if an object class is loaded.
+ * \param className (String): Name of the object class.
+ * \return Returns whether the class is loaded.
+ * \ns Object
+ */
+VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    char* objectName        = GET_ARG(0, GetString);
+    Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
+
+    return INTEGER_VAL(!!Scene::ObjectLists->Exists(objectNameHash));
 }
 // #endregion
 
@@ -10674,7 +10733,7 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (Integer): The sprite index to check.
  * \param animation (Integer): The animation index of the sprite to check.
  * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame ID (in pixels) of the specified sprite frame.
+ * \return Returns the frame ID of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
@@ -10683,6 +10742,45 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
+}
+/***
+ * Sprite.GetHitbox
+ * \desc Gets the hitbox of an animation and frame of a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animationID = GET_ARG(1, GetInteger);
+    int frameID     = GET_ARG(2, GetInteger);
+    int hitboxID    = GET_ARG(3, GetInteger);
+
+    ObjArray* array = NewArray();
+    for (int i = 0; i < 4; i++)
+        array->Values->push_back(DECIMAL_VAL(0.0f));
+
+    if (sprite && animationID >= 0 && frameID >= 0) {
+        AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+        if (!(hitboxID > -1 && hitboxID < frame.BoxCount))
+            return OBJECT_VAL(array);
+
+        CollisionBox box    = frame.Boxes[hitboxID];
+        ObjArray* hitbox    = NewArray();
+        hitbox->Values->push_back(DECIMAL_VAL((float)box.Top));
+        hitbox->Values->push_back(DECIMAL_VAL((float)box.Left));
+        hitbox->Values->push_back(DECIMAL_VAL((float)box.Right));
+        hitbox->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+        return OBJECT_VAL(hitbox);
+    }
+    else {
+        return OBJECT_VAL(array);
+    }
 }
 // #endregion
 
@@ -14048,6 +14146,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, GetNextInstance);
     DEF_NATIVE(Instance, GetBySlotID);
     DEF_NATIVE(Instance, Copy);
+    DEF_NATIVE(Instance, ChangeClass);
     // #endregion
 
     // #region JSON
@@ -14164,6 +14263,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Number, AsInteger);
     DEF_NATIVE(Number, AsDecimal);
     // #endregion
+
+    // #region Object
+    INIT_CLASS(Object);
+    DEF_NATIVE(Object, Loaded);
+    // #endRegion
 
     // #region Palette
     INIT_CLASS(Palette);
@@ -14444,6 +14548,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameWidth);
     DEF_NATIVE(Sprite, GetFrameHeight);
     DEF_NATIVE(Sprite, GetFrameID);
+    DEF_NATIVE(Sprite, GetHitbox);
     // #endregion
 
     // #region Stream

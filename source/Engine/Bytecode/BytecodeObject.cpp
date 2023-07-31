@@ -663,10 +663,11 @@ PUBLIC bool BytecodeObject::RunInitializer() {
     return true;
 }
 
-PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
+PUBLIC void BytecodeObject::Copy(BytecodeObject* other, bool copyClass, bool destroySrc) {
     CopyFields(other);
 
-    other->Instance->Object.Class = Instance->Object.Class;
+    if (copyClass)
+        other->Instance->Object.Class = Instance->Object.Class;
 
     // Copy properties
     HashMap<VMValue>* srcProperties = Properties;
@@ -677,7 +678,11 @@ PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
     srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
         destProperties->Put(key, value);
     });
+
+    if (destroySrc)
+        other->Active = false;
 }
+
 
 PUBLIC void BytecodeObject::CopyFields(BytecodeObject* other) {
     Entity::CopyFields(other);

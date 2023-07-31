@@ -279,11 +279,12 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
         an.AnimationSpeed = reader->ReadUInt16();
         an.FrameToLoop = reader->ReadByte();
 
-        // 0: Default behavior
-        // 1: Full engine rotation
-        // 2: Partial engine rotation
-        // 3: Static rotation using extra frames
-        // 4: Unknown (used alot in Mania)
+        // 0: No rotation
+        // 1: Full rotation
+        // 2: Snaps to multiples of 45 degrees
+        // 3: Snaps to multiples of 90 degrees
+        // 4: Snaps to multiples of 180 degrees
+        // 5: Static rotation using extra frames
         an.Flags = reader->ReadByte();
 
 #ifdef ISPRITE_DEBUG
@@ -391,11 +392,12 @@ PUBLIC bool ISprite::SaveAnimation(const char* filename) {
         stream->WriteUInt16(an.AnimationSpeed);
         stream->WriteByte(an.FrameToLoop);
 
-        // 0: Default behavior
-        // 1: Full engine rotation
-        // 2: Partial engine rotation
-        // 3: Static rotation using extra frames
-        // 4: Unknown (used alot in Mania)
+        // 0: No rotation
+        // 1: Full rotation
+        // 2: Snaps to multiples of 45 degrees
+        // 3: Snaps to multiples of 90 degrees
+        // 4: Snaps to multiples of 180 degrees
+        // 5: Static rotation using extra frames
         stream->WriteByte(an.Flags);
 
         for (size_t i = 0; i < an.Frames.size(); i++) {
