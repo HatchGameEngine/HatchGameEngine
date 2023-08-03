@@ -285,9 +285,11 @@ void   GL_MakeShapeBuffers() {
 void   GL_BindTexture(Texture* texture) {
     // Do texture (re-)binding if necessary
     if (GL_LastTexture != texture) {
-        if (texture) {
-            GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+        GL_TextureData* textureData = nullptr;
+        if (texture)
+            textureData = (GL_TextureData*)texture->DriverData;
 
+        if (textureData) {
             glActiveTexture(GL_TEXTURE0); CHECK_GL();
             glBindTexture(GL_TEXTURE_2D, textureData->TextureID); CHECK_GL();
         }

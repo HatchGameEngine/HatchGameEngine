@@ -1440,7 +1440,6 @@ PUBLIC STATIC void Application::InitSettings(const char* filename) {
 
         Application::Settings->SetBool("display", "fullscreen", false);
         Application::Settings->SetBool("display", "vsync", false);
-        Application::Settings->SetBool("display", "software", true);
     }
 
     int logLevel = 0;
