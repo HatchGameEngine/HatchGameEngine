@@ -7205,8 +7205,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (png->Paletted) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 SoftwareRenderer::PaletteColors[palIndex][p] = png->Colors[p];
-                            if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
-                                ColorUtils::ConvertFromABGRtoARGB(SoftwareRenderer::PaletteColors[palIndex], png->NumPaletteColors);
                             Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
