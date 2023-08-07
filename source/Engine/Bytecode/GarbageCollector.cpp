@@ -47,9 +47,6 @@ PUBLIC STATIC void GarbageCollector::Init() {
 PUBLIC STATIC void GarbageCollector::Collect() {
     GrayList.clear();
 
-    BytecodeObjectManager::Globals->Put("this", NULL_VAL);
-    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
-
     double grayElapsed = Clock::GetTicks();
 
     // Mark threads (should lock here for safety)
@@ -67,6 +64,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
 
     // Mark global roots
     GrayHashMap(BytecodeObjectManager::Globals);
+
+    // Mark constants
+    GrayHashMap(BytecodeObjectManager::Constants);
 
     // Mark static objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {

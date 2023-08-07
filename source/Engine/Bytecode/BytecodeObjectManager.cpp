@@ -16,7 +16,7 @@ public:
     static bool                 LoadAllClasses;
 
     static HashMap<VMValue>*    Globals;
-    static HashMap<VMValue>*    Strings;
+    static HashMap<VMValue>*    Constants;
 
     static std::set<Obj*>       FreedGlobals;
 
@@ -56,7 +56,7 @@ VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;
 
 HashMap<VMValue>*    BytecodeObjectManager::Globals = NULL;
-HashMap<VMValue>*    BytecodeObjectManager::Strings = NULL;
+HashMap<VMValue>*    BytecodeObjectManager::Constants = NULL;
 
 std::set<Obj*>       BytecodeObjectManager::FreedGlobals;
 
@@ -107,12 +107,12 @@ PUBLIC STATIC void    BytecodeObjectManager::ResetStack() {
 PUBLIC STATIC void    BytecodeObjectManager::Init() {
     if (Globals == NULL)
         Globals = new HashMap<VMValue>(NULL, 8);
+    if (Constants == NULL)
+        Constants = new HashMap<VMValue>(NULL, 8);
     if (Sources == NULL)
         Sources = new HashMap<Bytecode>(NULL, 8);
     if (Classes == NULL)
         Classes = new HashMap<ObjClass*>(NULL, 8);
-    if (Strings == NULL)
-        Strings = new HashMap<VMValue>(NULL, 8);
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
 
@@ -136,14 +136,17 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     }
     ThreadCount = 1;
 }
+PUBLIC STATIC void    BytecodeObjectManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
+    globals->ForAll(FreeGlobalValue);
+    globals->Clear();
+    delete globals;
+}
 PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
-    BytecodeObjectManager::Globals->Put("this", NULL_VAL);
-    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
-
-    if (Globals) {
-        // NOTE: Remove GC-able values from table so it may be cleaned up.
+    // NOTE: Remove GC-able values from these tables so they may be cleaned up.
+    if (Globals)
         Globals->ForAll(RemoveNonGlobalableValue);
-    }
+    if (Constants)
+        Constants->ForAll(RemoveNonGlobalableValue);
 
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
@@ -153,11 +156,16 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
 
     if (Globals) {
         Log::Print(Log::LOG_VERBOSE, "Freeing values in Globals list...");
-        Globals->ForAll(FreeGlobalValue);
+        DisposeGlobalValueTable(Globals);
         Log::Print(Log::LOG_VERBOSE, "Done!");
-        Globals->Clear();
-        delete Globals;
         Globals = NULL;
+    }
+
+    if (Constants) {
+        Log::Print(Log::LOG_VERBOSE, "Freeing values in Constants list...");
+        DisposeGlobalValueTable(Constants);
+        Log::Print(Log::LOG_VERBOSE, "Done!");
+        Constants = NULL;
     }
 
     FreeFunctions();
@@ -174,11 +182,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
         Classes->Clear();
         delete Classes;
         Classes = NULL;
-    }
-    if (Strings) {
-        Strings->Clear();
-        delete Strings;
-        Strings = NULL;
     }
     if (Tokens) {
         for (size_t i = 0, iSz = TokensList.size(); i < iSz; i++) {
@@ -268,7 +271,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
         if (Tokens->Get(hash))
             Log::Print(Log::LOG_VERBOSE, "Freeing global %s, type %s", Tokens->Get(hash), GetTypeString(value));
         else
-            Log::Print(Log::LOG_VERBOSE, "Freeing global %d, type %s", hash, GetTypeString(value));
+            Log::Print(Log::LOG_VERBOSE, "Freeing global %08X, type %s", hash, GetTypeString(value));
 #endif
 
         switch (OBJECT_TYPE(value)) {
@@ -583,14 +586,14 @@ PUBLIC STATIC void    BytecodeObjectManager::GlobalLinkDecimal(ObjClass* klass, 
 PUBLIC STATIC void    BytecodeObjectManager::GlobalConstInteger(ObjClass* klass, const char* name, int value) {
     if (name == NULL) return;
     if (klass == NULL)
-        Globals->Put(name, INTEGER_VAL(value));
+        Constants->Put(name, INTEGER_VAL(value));
     else
         klass->Methods->Put(name, INTEGER_VAL(value));
 }
 PUBLIC STATIC void    BytecodeObjectManager::GlobalConstDecimal(ObjClass* klass, const char* name, float value) {
     if (name == NULL) return;
     if (klass == NULL)
-        Globals->Put(name, DECIMAL_VAL(value));
+        Constants->Put(name, DECIMAL_VAL(value));
     else
         klass->Methods->Put(name, DECIMAL_VAL(value));
 }

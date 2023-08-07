@@ -146,7 +146,7 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 	// }
 
     bool overrideSoftware = false;
-    Application::Settings->GetBool("display", "software", &overrideSoftware);
+    Application::Settings->GetBool("display", "forceSoftwareTextures", &overrideSoftware);
     if (overrideSoftware)
         Graphics::NoInternalTextures = true;
 

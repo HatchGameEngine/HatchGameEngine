@@ -573,22 +573,23 @@ PUBLIC void BytecodeObject::LinkFields() {
 
 PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
     // First look for a field which may shadow a method.
-    if (Instance->Fields->Exists(hash)) {
-        value = Instance->Fields->Get(hash);
+    VMValue result;
+    if (Instance->Fields->GetIfExists(hash, &result)) {
+        value = result;
         return true;
     }
 
     ObjClass* klass = Instance->Object.Class;
-    if (klass->Methods->Exists(hash)) {
-        value = klass->Methods->Get(hash);
+    if (klass->Methods->GetIfExists(hash, &result)) {
+        value = result;
         return true;
     }
     else {
         if (!klass->Parent && klass->ParentHash) {
             BytecodeObjectManager::SetClassParent(klass);
         }
-        if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
-            value = klass->Parent->Methods->Get(hash);
+        if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &result)) {
+            value = result;
             return true;
         }
     }
@@ -597,8 +598,9 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
 }
 PRIVATE ObjFunction* BytecodeObject::GetCallableFunction(Uint32 hash) {
     ObjClass* klass = Instance->Object.Class;
-    if (klass->Methods->Exists(hash))
-        return AS_FUNCTION(klass->Methods->Get(hash));
+    VMValue result;
+    if (klass->Methods->GetIfExists(hash, &result))
+        return AS_FUNCTION(result);
     return NULL;
 }
 PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
@@ -877,7 +879,6 @@ bool TestEntityCollision(BytecodeObject* other, BytecodeObject* self) {
         other->Y + other->HitboxH / 2.0f >= self->Y - self->HitboxH / 2.0f &&
         other->X - other->HitboxW / 2.0f  < self->X + self->HitboxW / 2.0f &&
         other->Y - other->HitboxH / 2.0f  < self->Y + self->HitboxH / 2.0f) {
-        BytecodeObjectManager::Globals->Put("other", OBJECT_VAL(other->Instance));
         return true;
     }
     return false;

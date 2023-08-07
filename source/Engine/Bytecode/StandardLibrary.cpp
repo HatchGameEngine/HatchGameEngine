@@ -7312,8 +7312,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (png->Paletted) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 SoftwareRenderer::PaletteColors[palIndex][p] = png->Colors[p];
-                            if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
-                                ColorUtils::ConvertFromABGRtoARGB(SoftwareRenderer::PaletteColors[palIndex], png->NumPaletteColors);
                             Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
@@ -13296,7 +13294,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
         klass = NewClass(Murmur::EncryptString(#className)); \
         klass->Name = CopyString(#className, strlen(#className)); \
         val = OBJECT_VAL(klass); \
-        BytecodeObjectManager::Globals->Put(klass->Hash, OBJECT_VAL(klass));
+        BytecodeObjectManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
         BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
 
@@ -14840,8 +14838,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     #undef DEF_NATIVE
     #undef INIT_CLASS
-
-    BytecodeObjectManager::Globals->Put("other", NULL_VAL);
 
     /***
     * \global CameraX

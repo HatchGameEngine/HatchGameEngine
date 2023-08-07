@@ -923,15 +923,26 @@ PUBLIC void  Compiler::PopToScope(int depth) {
         lcl--;
     }
 }
-PUBLIC void  Compiler::AddLocal(Token name) {
+PUBLIC int   Compiler::AddLocal(Token name) {
     if (LocalCount == 0xFF) {
         Error("Too many local variables in function.");
-        return;
+        return -1;
     }
     Local* local = &Locals[LocalCount++];
     local->Name = name;
-    // local->Depth = ScopeDepth;
     local->Depth = -1;
+    return LocalCount - 1;
+}
+PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
+    if (LocalCount == 0xFF) {
+        Error("Too many local variables in function.");
+        return -1;
+    }
+    Local* local = &Locals[LocalCount++];
+    local->Name.Start = (char*)name;
+    local->Name.Length = len;
+    local->Depth = -1;
+    return LocalCount - 1;
 }
 PUBLIC int   Compiler::ResolveLocal(Token* name) {
     for (int i = LocalCount - 1; i >= 0; i--) {
@@ -1712,11 +1723,27 @@ PUBLIC void Compiler::GetWithStatement() {
         WITH_STATE_FINISH,
     };
 
+    // Start new scope
+    ScopeBegin();
+
+    // Reserve stack slot for where "other" will be at
+    EmitByte(OP_NULL);
+
+    // Add "other"
+    int otherSlot = AddLocal("other", 5);
+    MarkInitialized();
+
+    // Make a copy of "this", which is at the very first slot, into "other"
+    EmitBytes(OP_GET_LOCAL, 0);
+    EmitBytes(OP_SET_LOCAL, otherSlot);
+    EmitByte(OP_POP);
+
     // With "expression"
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
     GetExpression();
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
+    // Init "with" iteration
     EmitByte(OP_WITH);
     EmitByte(WITH_STATE_INIT);
     EmitByte(0xFF);
@@ -1762,6 +1789,9 @@ PUBLIC void Compiler::GetWithStatement() {
     int jump = CurrentChunk()->Count - loopStart;
     CurrentChunk()->Code[loopStart - 2] = jump & 0xFF;
     CurrentChunk()->Code[loopStart - 1] = (jump >> 8) & 0xFF;
+
+    // End scope (will pop "other")
+    ScopeEnd();
 }
 PUBLIC void Compiler::GetForStatement() {
     // Start new scope
