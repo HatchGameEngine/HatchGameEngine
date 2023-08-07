@@ -2394,7 +2394,15 @@ PUBLIC int           Compiler::MakeConstant(VMValue value) {
 }
 
 PUBLIC bool          Compiler::HasThis() {
-    return Type != TYPE_FUNCTION;
+    switch (Type)
+    {
+    case TYPE_CONSTRUCTOR:
+    case TYPE_METHOD:
+    case TYPE_WITH:
+        return true;
+    default:
+        return false;
+    }
 }
 PUBLIC void          Compiler::SetReceiverName(const char *name) {
     Local* local = &Locals[0];
