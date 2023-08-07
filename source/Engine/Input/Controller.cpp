@@ -170,7 +170,7 @@ PUBLIC bool          Controller::IsXbox() {
         Type == ControllerType::XboxSeriesXS ||
         Type == ControllerType::XboxElite;
 }
-PUBLIC bool          Controller::IsPlaystation() {
+PUBLIC bool          Controller::IsPlayStation() {
     return Type == ControllerType::PS3 ||
         Type == ControllerType::PS4 ||
         Type == ControllerType::PS5;

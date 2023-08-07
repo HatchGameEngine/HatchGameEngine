@@ -291,10 +291,11 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
     BytecodeObjectManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
-    BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
+    if (list->ActiveState == ACTIVE_ALWAYS || (list->ActiveState == ACTIVE_NORMAL && !Scene::Paused) || (list->ActiveState == ACTIVE_PAUSED && Scene::Paused))
+        BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -322,7 +323,7 @@ void UpdateObjectEarly(Entity* ent) {
     }
 }
 void UpdateObjectLate(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -350,7 +351,7 @@ void UpdateObjectLate(Entity* ent) {
     }
 }
 void UpdateObject(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveStatus != Active_PAUSED && ent->ActiveStatus != Active_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
         return;
 
     if (!ent->Active)
@@ -359,21 +360,21 @@ void UpdateObject(Entity* ent) {
     bool onScreenX = (ent->OnScreenHitboxW == 0.0f);
     bool onScreenY = (ent->OnScreenHitboxH == 0.0f);
 
-    switch (ent->ActiveStatus) {
+    switch (ent->ActiveState) {
     default:
         break;
 
-    case Active_NEVER:
-    case Active_PAUSED:
+    case ACTIVE_NEVER:
+    case ACTIVE_PAUSED:
         ent->InRange = false;
         break;
 
-    case Active_ALWAYS:
-    case Active_NORMAL:
+    case ACTIVE_ALWAYS:
+    case ACTIVE_NORMAL:
         ent->InRange = true;
         break;
 
-    case Active_BOUNDS:
+    case ACTIVE_BOUNDS:
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
@@ -394,7 +395,7 @@ void UpdateObject(Entity* ent) {
 
         break;
 
-    case Active_XBOUNDS:
+    case ACTIVE_XBOUNDS:
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
@@ -411,7 +412,7 @@ void UpdateObject(Entity* ent) {
 
         break;
 
-    case Active_YBOUNDS:
+    case ACTIVE_YBOUNDS:
         ent->InRange = false;
 
         for (int i = 0; i < Scene::ViewsActive; i++) {
@@ -428,7 +429,7 @@ void UpdateObject(Entity* ent) {
 
         break;
 
-    case Active_RBOUNDS:
+    case ACTIVE_RBOUNDS:
         ent->InRange = false;
 
         // TODO: Double check this works properly
@@ -479,9 +480,6 @@ void UpdateObject(Entity* ent) {
 
     int oldPriority = ent->PriorityOld;
     int maxPriority = Scene::PriorityPerLayer - 1;
-    // HACK: This needs to error
-    // if (ent->Priority < 0 || (ent->Priority >= (Scene::Layers.size() << Scene::PriorityPerLayer)))
-    //     return;
     if (ent->Priority < 0)
         ent->Priority = 0;
     if (ent->Priority > maxPriority)
@@ -1671,108 +1669,148 @@ PUBLIC STATIC void Scene::InitPriorityLists() {
     for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
         Scene::PriorityLists[i].Init();
 }
-PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig *tile, Uint8* line) {
-    Uint8 collisionBuffer[16];
-    Uint8 hasCollisionBuffer[16];
+PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
+    int bufferPos = 0;
 
-    TileConfig *tileDest, *tileLast;
+    Uint8 collisionHeights[16];
+    Uint8 collisionActive[16];
 
-    bool isCeiling;
-    tile->IsCeiling = isCeiling = line[0x20];
+    TileConfig* tileDest, * tileLast;
 
     // Copy collision
-    memcpy(hasCollisionBuffer, &line[0x10], 16);
-    memcpy(collisionBuffer, &line[0x00], 16);
+    memcpy(collisionHeights, &line[bufferPos], TileWidth);
+    bufferPos += TileWidth;
+    memcpy(collisionActive, &line[bufferPos], TileWidth);
+    bufferPos += TileWidth;
+
+    bool isCeiling;
+    tile->IsCeiling     = isCeiling = line[bufferPos++];
+    tile->AngleTop      = line[bufferPos++];
+    tile->AngleLeft     = line[bufferPos++];
+    tile->AngleRight    = line[bufferPos++];
+    tile->AngleBottom   = line[bufferPos++];
+    tile->Behavior      = line[bufferPos++];
 
     Uint8* col;
     // Interpret up/down collision
     if (isCeiling) {
-        col = &collisionBuffer[0];
-        for (int c = 0; c < 16; c++) {
-            if (hasCollisionBuffer[c]) {
-                tile->CollisionTop[c] = 0;
-                tile->CollisionBottom[c] = *col;
+        col = &collisionHeights[0];
+        for (int c = 0; c < TileWidth; c++) {
+            if (collisionActive[c]) {
+                tile->CollisionTop[c]       = 0x00;
+                tile->CollisionBottom[c]    = *col;
             }
             else {
-                tile->CollisionTop[c] =
-                tile->CollisionBottom[c] = 0xFF;
+                tile->CollisionTop[c]       = 0xFF;
+                tile->CollisionBottom[c]    = 0xFF;
             }
             col++;
         }
 
-        // Interpret left/right collision
-        for (int y = 15; y >= 0; y--) {
-            // Left-to-right check
-            for (int x = 0; x <= 15; x++) {
-                Uint8 data = tile->CollisionBottom[x];
-                if (data != 0xFF && data >= y) {
-                    tile->CollisionLeft[y] = x;
-                    goto COLLISION_LINE_LEFT_BOTTOMUP_FOUND;
+        // Left Wall rotations
+        // TODO: Should be Width or Height?
+        for (int c = 0; c < TileWidth; ++c) {
+            int h = 0;
+            while (true) {
+                if (h == TileWidth) {
+                    tile->CollisionLeft[c] = 0xFF;
+                    break;
+                }
+                Uint8 m = tile->CollisionBottom[h];
+                if (m != 0xFF && c <= m) {
+                    tile->CollisionLeft[c] = h;
+                    break;
+                }
+                else {
+                    ++h;
+                    if (h <= -1)
+                        break;
                 }
             }
-            tile->CollisionLeft[y] = 0xFF;
+        }
 
-            COLLISION_LINE_LEFT_BOTTOMUP_FOUND:
+        // Right Wall rotations
+        // TODO: Should be Width or Height?
+        for (int c = 0; c < TileWidth; ++c) {
+            int h = TileWidth - 1;
+            while (true) {
+                if (h == -1) {
+                    tile->CollisionRight[c] = 0xFF;
+                    break;
+                }
 
-            // Right-to-left check
-            for (int x = 15; x >= 0; x--) {
-                Uint8 data = tile->CollisionBottom[x];
-                if (data != 0xFF && data >= y) {
-                    tile->CollisionRight[y] = x;
-                    goto COLLISION_LINE_RIGHT_BOTTOMUP_FOUND;
+                Uint8 m = tile->CollisionBottom[h];
+                if (m != 0xFF && c <= m) {
+                    tile->CollisionRight[c] = h;
+                    break;
+                }
+                else {
+                    --h;
+                    if (h >= TileWidth)
+                        break;
                 }
             }
-            tile->CollisionRight[y] = 0xFF;
-
-            COLLISION_LINE_RIGHT_BOTTOMUP_FOUND:
-            ;
         }
     }
     else {
-        col = &collisionBuffer[0];
-        for (int c = 0; c < 16; c++) {
-            if (hasCollisionBuffer[c]) {
-                tile->CollisionTop[c] = *col;
-                tile->CollisionBottom[c] = 15;
+        col = &collisionHeights[0];
+        for (int c = 0; c < TileWidth; c++) {
+            if (collisionActive[c]) {
+                tile->CollisionTop[c]       = *col;
+                tile->CollisionBottom[c]    = 0x0F;
             }
             else {
-                tile->CollisionTop[c] =
-                tile->CollisionBottom[c] = 0xFF;
+                tile->CollisionTop[c]       = 0xFF;
+                tile->CollisionBottom[c]    = 0xFF;
             }
             col++;
         }
 
-        // Interpret left/right collision
-        for (int y = 0; y <= 15; y++) {
-            // Left-to-right check
-            for (int x = 0; x <= 15; x++) {
-                Uint8 data = tile->CollisionTop[x];
-                if (data != 0xFF && data <= y) {
-                    tile->CollisionLeft[y] = x;
-                    goto COLLISION_LINE_LEFT_TOPDOWN_FOUND;
+        // Left Wall rotations
+        // TODO: Should be Width or Height?
+        for (int c = 0; c < TileWidth; ++c) {
+            int h = 0;
+            while (true) {
+                if (h == TileWidth) {
+                    tile->CollisionLeft[c] = 0xFF;
+                    break;
+                }
+                Uint8 m = tile->CollisionTop[h];
+                if (m != 0xFF && c >= m) {
+                    tile->CollisionLeft[c] = h;
+                    break;
+                }
+                else {
+                    ++h;
+                    if (h <= -1)
+                        break;
                 }
             }
-            tile->CollisionLeft[y] = 0xFF;
+        }
 
-            COLLISION_LINE_LEFT_TOPDOWN_FOUND:
+        // Right Wall rotations
+        // TODO: Should be Width or Height?
+        for (int c = 0; c < TileWidth; ++c) {
+            int h = TileWidth - 1;
+            while (true) {
+                if (h == -1) {
+                    tile->CollisionRight[c] = 0xFF;
+                    break;
+                }
 
-            // Right-to-left check
-            for (int x = 15; x >= 0; x--) {
-                Uint8 data = tile->CollisionTop[x];
-                if (data != 0xFF && data <= y) {
-                    tile->CollisionRight[y] = x;
-                    goto COLLISION_LINE_RIGHT_TOPDOWN_FOUND;
+                Uint8 m = tile->CollisionTop[h];
+                if (m != 0xFF && c >= m) {
+                    tile->CollisionRight[c] = h;
+                    break;
+                }
+                else {
+                    --h;
+                    if (h >= TileWidth)
+                        break;
                 }
             }
-            tile->CollisionRight[y] = 0xFF;
-
-            COLLISION_LINE_RIGHT_TOPDOWN_FOUND:
-            ;
         }
     }
-
-    tile->Behavior = line[0x25];
-    memcpy(&tile->AngleTop, &line[0x21], 4);
 
     // Flip X
     tileDest = tile + Scene::TileCount;
@@ -1787,6 +1825,7 @@ PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig *tile, Uint8* line) {
         tileDest->CollisionLeft[xD] = tile->CollisionRight[xD] ^ 15;
         tileDest->CollisionRight[xD] = tile->CollisionLeft[xD] ^ 15;
     }
+
     // Flip Y
     tileDest = tile + (Scene::TileCount << 1);
     tileDest->AngleTop = 0x80 - tile->AngleBottom;
@@ -1800,6 +1839,7 @@ PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig *tile, Uint8* line) {
         tileDest->CollisionTop[xD] = tile->CollisionBottom[xD] ^ 15;
         tileDest->CollisionBottom[xD] = tile->CollisionTop[xD] ^ 15;
     }
+
     // Flip XY
     tileLast = tileDest;
     tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
@@ -1827,7 +1867,7 @@ PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColRead
     TileConfig* tile = &Scene::TileCfg[0][0];
 
     for (Uint32 i = 0; i < tileCount; i++) {
-        Uint8* line = &tileInfo[i * 0x26];
+        Uint8* line = &tileInfo[i * 38];
 
         ReadRSDKTile(tile, line);
 
@@ -1835,11 +1875,11 @@ PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColRead
     }
 
     // Read plane B
-    tileInfo += tileCount * 0x26;
+    tileInfo += tileCount * 38;
     tile = &Scene::TileCfg[1][0];
 
     for (Uint32 i = 0; i < tileCount; i++) {
-        Uint8* line = &tileInfo[i * 0x26];
+        Uint8* line = &tileInfo[i * 38];
 
         ReadRSDKTile(tile, line);
 
@@ -1865,12 +1905,12 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
 
     if (tileCount < numTiles - 1) {
         if (tileCount != numTiles)
-            Log::Print(Log::LOG_WARN, "Less Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
+            Log::Print(Log::LOG_WARN, "There are less tile collisions (%d) than actual tiles! (%d)", tileCount, numTiles);
         tileCount = numTiles - 1;
     }
     else if (tileCount >= numTiles) {
         if (tileCount != numTiles)
-            Log::Print(Log::LOG_WARN, "More Tile Collisions (%d) than actual Tiles! (%d)", tileCount, numTiles);
+            Log::Print(Log::LOG_WARN, "There are more tile collisions (%d) than actual tiles! (%d)", tileCount, numTiles);
         tileCount = numTiles - 1;
     }
 
@@ -3578,7 +3618,6 @@ PUBLIC STATIC void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* ou
 
                 if (CollisionOuter.Bottom < 14)
                     UseCollisionOffset = false;
-
                 ProcessPathGrip();
             }
             else {
@@ -3678,7 +3717,7 @@ PUBLIC STATIC void Scene::ProcessPathGrip() {
                             tileDistance = i;
 
                         // Do these Y values need to be typecasted as ints for this check?
-                        if (Sensors[i].Y == Sensors[tileDistance].Y && (Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8))
+                        if ((int)Sensors[i].Y == (int)Sensors[tileDistance].Y && (Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8))
                             tileDistance = i;
                     }
                     else if (Sensors[i].Collided) {
@@ -4679,54 +4718,87 @@ PUBLIC STATIC void Scene::SetPathGripSensors(CollisionSensor* sensors) {
 }
 
 PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
+    int x = sensor->X;
+    int y = sensor->Y;
+    int temp;
+
+   //  Log::Print(Log::LOG_ERROR, "24: x \"%d\"!", (int)sensor->X);
+
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
     int OGY     = sensor->Y;
 
-    // Should this also be setting the sensor as blank? Or not since it is set as blank elsewhere?
-    if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= Scene::TileCfg.size())
+    int tileX, tileY, tileID;
+
+    if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= TileCfg.size())
         return;
 
     TileConfig* tileCfg;
-    TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
+    TileConfig* tileCfgBase = TileCfg[CollisionEntity->CollisionPlane];
 
-    int solid = 0;
-    if (CollisionEntity->TileCollisions == TileCollision_DOWN)
-        solid = 1;
-    else
-        solid = 2;
+    int solid = (CollisionEntity->TileCollisions == TileCollision_DOWN) ? 1 : 2;
 
     int startY = posY;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
-
+        
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
 
+        x -= layer.OffsetX;
+        x -= layer.OffsetY;
+
+        temp = layer.Width << 4;
+        if (x < 0 || x >= temp)
+            continue;
+        x &= layer.WidthMask << 4 | 0xF;
+
+        temp = layer.Height << 4;
+        if ((y < 0 || y >= temp))
+            continue;
+        y &= layer.HeightMask << 4 | 0xF;
+
+        tileX = x / TileWidth;
+        tileY = y / TileHeight;
+
         if (CollisionEntity->CollisionLayers & layerID) {
-            float colX  = posX - layer.OffsetX - OGX;
-            float colY  = posY - layer.OffsetY - OGY;
+            float colX  = posX - layer.OffsetX;
+            float colY  = posY - layer.OffsetY;
             int cy      = ((int)colY & -TileHeight) - TileHeight;
+
             if (colX >= 0.0 && colX < TileWidth * layer.Width) {
                 for (int i = 0; i < 3; ++i) {
                     if (cy >= 0 && cy < TileHeight * layer.Height) {
-                        int tileID = layer.Tiles[((int)colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+                        tileID = layer.Tiles[((int)colX / TileWidth) + (((int)colY / TileHeight) << layer.WidthInBits)];
+                        // Log::Print(Log::LOG_ERROR, "24: colX \"%d\"!", (int)colX);
+                        // Log::Print(Log::LOG_ERROR, "24: colY \"%d\"!", (int)colY);
+                        // Log::Print(Log::LOG_ERROR, "24: Real X \"%d\"!", (int)CollisionEntity->X);
+                        // Log::Print(Log::LOG_ERROR, "24: Real Y \"%d\"!", (int)CollisionEntity->Y);
 
                         if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                             int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
 
-                            int isSolid = CollisionEntity->CollisionPlane ? ((tileID & TILE_COLLA_MASK & solid) >> 28) : ((tileID & TILE_COLLB_MASK & solid) >> 26);
+                            int collisionA = (tileID & TILE_COLLA_MASK) >> 28;
+                            int collisionB = (tileID & TILE_COLLB_MASK) >> 26;
+                            int collision = CollisionEntity->CollisionPlane ? collisionB : collisionA;
+
                             tileID &= TILE_IDENT_MASK;
 
-                            tileCfg = &tileCfgBase[tileID] + tileFlipOffset;
+                            tileCfg = &tileCfgBase[tileID + tileFlipOffset];
+                            Uint8* colT = tileCfg->CollisionTop;
 
-                            if (isSolid) {
-                                int mask        = tileCfg[tileID & 0xFFF].CollisionTop[(int)colX & 0xF];
+                            // Log::Print(Log::LOG_ERROR, "24: colT \"%d\"!", (int)collision);
+
+                            if (collision & 1) {
+                                int mask        = colT[(int)colX & 0xF];
                                 int ty          = cy + mask;
                                 int tileAngle   = tileCfg->AngleTop;
+
+                                // Log::Print(Log::LOG_ERROR, "22: TileID \"%d\"!", (int)tileID);
+                                // Log::Print(Log::LOG_ERROR, "23: Mask \"%d\"!", (int)mask);
 
                                 if (mask < 0xFF) {
                                     if (!sensor->Collided || startY >= ty) {
@@ -4736,7 +4808,7 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
                                                 || abs(sensor->Angle - tileAngle - 0x100) <= FloorAngleTolerance) {
                                                 sensor->Collided    = true;
                                                 sensor->Angle       = tileAngle;
-                                                sensor->Y           = ty + OGY + layer.OffsetY;
+                                                sensor->Y           = ty + layer.OffsetY;
                                                 startY              = ty;
                                                 i                   = 3;
                                             }
@@ -4749,8 +4821,9 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
                     cy += TileHeight;
                 }
             }
-            posX = OGX + layer.OffsetX + colX;
-            posY = OGY + layer.OffsetY + colY;
+
+            posX = OGX + colX + layer.OffsetX;
+            posY = OGY + colY + layer.OffsetY;
         }
     }
 }

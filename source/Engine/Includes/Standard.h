@@ -32,10 +32,10 @@ using namespace std;
 
 enum class Platforms {
     Windows,
-    MacOSX,
+    MacOS,
     Linux,
     Switch,
-    Playstation,
+    PlayStation,
     Xbox,
     Android,
     iOS,

@@ -76,13 +76,13 @@ extern "C" {
 #if   WIN32
     Platforms Application::Platform = Platforms::Windows;
 #elif MACOSX
-    Platforms Application::Platform = Platforms::MacOSX;
+    Platforms Application::Platform = Platforms::MacOS;
 #elif LINUX
     Platforms Application::Platform = Platforms::Linux;
 #elif SWITCH
     Platforms Application::Platform = Platforms::Switch;
 #elif PLAYSTATION
-    Platforms Application::Platform = Platforms::Playstation;
+    Platforms Application::Platform = Platforms::PlayStation;
 #elif XBOX
     Platforms Application::Platform = Platforms::Xbox;
 #elif ANDROID
@@ -244,14 +244,14 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     switch (Application::Platform) {
         case Platforms::Windows:
             platform = "Windows"; break;
-        case Platforms::MacOSX:
+        case Platforms::MacOS:
             platform = "MacOS"; break;
         case Platforms::Linux:
             platform = "Linux"; break;
         case Platforms::Switch:
             platform = "Nintendo Switch"; break;
-        case Platforms::Playstation:
-            platform = "Playstation"; break;
+        case Platforms::PlayStation:
+            platform = "PlayStation"; break;
         case Platforms::Xbox:
             platform = "Xbox"; break;
         case Platforms::Android:
@@ -266,6 +266,10 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::SetWindowTitle(Application::GameTitleShort);
 
     Running = true;
+}
+
+PUBLIC STATIC bool Application::IsPC() {
+    return Application::Platform == Platforms::Windows || Application::Platform == Platforms::MacOS || Application::Platform == Platforms::Linux;
 }
 
 PUBLIC STATIC bool Application::IsMobile() {
@@ -1053,7 +1057,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
 }
 PRIVATE STATIC void Application::DelayFrame() {
     // HACK: MacOS V-Sync timing gets disabled if window is not visible
-    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOSX) {
+    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOS) {
         double frameTime = Clock::GetTicks() - FrameTimeStart;
         double frameDurationRemainder = FrameTimeDesired - frameTime;
         if (frameDurationRemainder >= 0.0) {

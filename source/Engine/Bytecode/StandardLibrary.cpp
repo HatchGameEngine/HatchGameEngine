@@ -1306,7 +1306,7 @@ CONTROLLER_GET_BOOL(IsXbox)
  * \return Returns whether the controller at the index is a PlayStation controller.
  * \ns Controller
  */
-CONTROLLER_GET_BOOL(IsPlaystation)
+CONTROLLER_GET_BOOL(IsPlayStation)
 /***
  * Controller.IsJoyCon
  * \desc Gets whether the controller at the index is a Nintendo Switch Joy-Con L or R.
@@ -1592,9 +1592,20 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)Application::Platform);
 }
 /***
+ * Device.IsPC
+ * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
+ * \return Returns 1 if the device is on a PC, 0 if otherwise.
+ * \ns Device
+ */
+VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    bool isPC = Application::IsPC();
+    return INTEGER_VAL((int)isPC);
+}
+/***
  * Device.IsMobile
  * \desc Determines whether or not the application is running on a mobile device.
- * \return 1 if the device is on a mobile device, 0 if otherwise.
+ * \return Returns 1 if the device is on a mobile device, 0 if otherwise.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
@@ -7133,10 +7144,47 @@ VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
+    char* objectName    = GET_ARG(0, GetString);
+
+    return INTEGER_VAL(!!Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))));
+}
+/***
+ * Object.SetActiveState
+ * \desc Sets the active state of an object to determine if/when it runs its GlobalUpdate function.
+ * \param className (String): Name of the object class.
+ * \param activeState (Integer): The active state to set the object to.
+ * \ns Object
+ */
+VMValue Object_SetActiveState(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
     char* objectName        = GET_ARG(0, GetString);
     Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-    return INTEGER_VAL(!!Scene::ObjectLists->Exists(objectNameHash));
+    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+        Scene::GetObjectList(objectName)->ActiveState = GET_ARG(1, GetInteger);
+    }
+    
+    return NULL_VAL;
+}
+/***
+ * Object.GetActiveState
+ * \desc Gets the active state of an object that determines if/when it runs its GlobalUpdate function.
+ * \param className (String): Name of the object class.
+ * \return Returns the active state of the object if it is loaded, otherwise returns -1.
+ * \ns Object
+ */
+VMValue Object_GetActiveState(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    char* objectName        = GET_ARG(0, GetString);
+    Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
+
+    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+        return INTEGER_VAL(Scene::GetObjectList(objectName)->ActiveState);
+    }
+
+    return INTEGER_VAL(-1);
 }
 // #endregion
 
@@ -11812,6 +11860,16 @@ VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(tileID == Scene::EmptyTile);
 }
 /***
+ * TileInfo.GetEmptyTile
+ * \desc Gets the scene's empty tile ID.
+ * \return Returns the ID of the scene's empty tile space.
+ * \ns TileInfo
+ */
+VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::EmptyTile);
+}
+/***
  * TileInfo.GetCollision
  * \desc Gets the collision value at the pixel position of the desired tile, -1 if no collision.
  * \param tileID (Integer): ID of the tile to get the value of.
@@ -13374,7 +13432,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, GetCount);
     DEF_NATIVE(Controller, IsConnected);
     DEF_NATIVE(Controller, IsXbox);
-    DEF_NATIVE(Controller, IsPlaystation);
+    DEF_NATIVE(Controller, IsPlayStation);
     DEF_NATIVE(Controller, IsJoyCon);
     DEF_NATIVE(Controller, HasShareButton);
     DEF_NATIVE(Controller, HasMicrophoneButton);
@@ -13647,6 +13705,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Device
     INIT_CLASS(Device);
     DEF_NATIVE(Device, GetPlatform);
+    DEF_NATIVE(Device, IsPC);
     DEF_NATIVE(Device, IsMobile);
     /***
     * \enum Platform_Windows
@@ -13654,10 +13713,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_ENUM_NAMED("Platform", Platforms, Windows);
     /***
-    * \enum Platform_MacOSX
-    * \desc Mac OSX platform.
+    * \enum Platform_MacOS
+    * \desc MacOS platform.
     */
-    DEF_ENUM_NAMED("Platform", Platforms, MacOSX);
+    DEF_ENUM_NAMED("Platform", Platforms, MacOS);
     /***
     * \enum Platform_Linux
     * \desc Linux platform.
@@ -13669,25 +13728,25 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_ENUM_NAMED("Platform", Platforms, Switch);
     /***
-    * \enum Platform_Playstation
+    * \enum Platform_PlayStation
     * \desc PlayStation platform.
     */
-    DEF_ENUM_NAMED("Platform", Platforms, Playstation);
+    DEF_ENUM_NAMED("Platform", Platforms, PlayStation);
     /***
     * \enum Platform_Xbox
     * \desc Xbox platform.
     */
     DEF_ENUM_NAMED("Platform", Platforms, Xbox);
     /***
-    * \enum Platform_iOS
-    * \desc iOS platform.
-    */
-    DEF_ENUM_NAMED("Platform", Platforms, iOS);
-    /***
     * \enum Platform_Android
     * \desc Android platform.
     */
     DEF_ENUM_NAMED("Platform", Platforms, Android);
+    /***
+   * \enum Platform_iOS
+   * \desc iOS platform.
+   */
+    DEF_ENUM_NAMED("Platform", Platforms, iOS);
     /***
     * \enum Platform_Unknown
     * \desc Unknown platform.
@@ -14024,45 +14083,45 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Active Statuses
     /***
-    * \enum Active_NEVER
+    * \enum ACTIVE_NEVER
     * \desc Entity never updates.
     */
-    DEF_ENUM(Active_NEVER);
+    DEF_ENUM(ACTIVE_NEVER);
     /***
-    * \enum Active_ALWAYS
+    * \enum ACTIVE_ALWAYS
     * \desc Entity always updates.
     */
-    DEF_ENUM(Active_ALWAYS);
+    DEF_ENUM(ACTIVE_ALWAYS);
     /***
-    * \enum Active_NORMAL
+    * \enum ACTIVE_NORMAL
     * \desc Entity updates no matter where it is located on the scene, but does not update if the scene is paused.
     */
-    DEF_ENUM(Active_NORMAL);
+    DEF_ENUM(ACTIVE_NORMAL);
     /***
-    * \enum Active_PAUSED
+    * \enum ACTIVE_PAUSED
     * \desc Entity only updates when the scene is paused.
     */
-    DEF_ENUM(Active_PAUSED);
+    DEF_ENUM(ACTIVE_PAUSED);
     /***
-    * \enum Active_BOUNDS
+    * \enum ACTIVE_BOUNDS
     * \desc Entity only updates when it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
     */
-    DEF_ENUM(Active_BOUNDS);
+    DEF_ENUM(ACTIVE_BOUNDS);
     /***
-    * \enum Active_XBOUNDS
+    * \enum ACTIVE_XBOUNDS
     * \desc Entity only updates within an X bound. (only uses UpdateRegionW)
     */
-    DEF_ENUM(Active_XBOUNDS);
+    DEF_ENUM(ACTIVE_XBOUNDS);
     /***
-    * \enum Active_YBOUNDS
+    * \enum ACTIVE_YBOUNDS
     * \desc Entity only updates within a Y bound. (only uses UpdateRegionH)
     */
-    DEF_ENUM(Active_YBOUNDS);
+    DEF_ENUM(ACTIVE_YBOUNDS);
     /***
-    * \enum Active_RBOUNDS
+    * \enum ACTIVE_RBOUNDS
     * \desc Entity updates within a radius. (uses UpdateRegionW)
     */
-    DEF_ENUM(Active_RBOUNDS);
+    DEF_ENUM(ACTIVE_RBOUNDS);
     // #endregion
 
     // #region Ease
@@ -14267,6 +14326,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Object
     INIT_CLASS(Object);
     DEF_NATIVE(Object, Loaded);
+    DEF_NATIVE(Object, SetActiveState);
+    DEF_NATIVE(Object, GetActiveState);
     // #endRegion
 
     // #region Palette
@@ -14669,6 +14730,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(TileInfo);
     DEF_NATIVE(TileInfo, SetSpriteInfo);
     DEF_NATIVE(TileInfo, IsEmptySpace);
+    DEF_NATIVE(TileInfo, GetEmptyTile);
     DEF_NATIVE(TileInfo, GetCollision);
     DEF_NATIVE(TileInfo, GetAngle);
     DEF_NATIVE(TileInfo, GetBehaviorFlag);

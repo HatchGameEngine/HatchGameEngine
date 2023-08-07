@@ -105,14 +105,14 @@ enum {
 };
 
 enum {
-    Active_NEVER   = 0, // Never updates
-    Active_ALWAYS  = 1, // Updates no matter what
-    Active_NORMAL  = 2, // Updates no matter where the object is in the scene, but not if scene is paused
-    Active_PAUSED  = 3, // Only updates when the scene is paused
-    Active_BOUNDS  = 4, // Updates only when the object is within bounds
-    Active_XBOUNDS = 5, // Updates within an x bound (not accounting for y bound)
-    Active_YBOUNDS = 6, // Updates within a y bound (not accounting for x bound)
-    Active_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
+    ACTIVE_NEVER   = 0, // Never updates
+    ACTIVE_ALWAYS  = 1, // Updates no matter what
+    ACTIVE_NORMAL  = 2, // Updates no matter where the object is in the scene, but not if scene is paused
+    ACTIVE_PAUSED  = 3, // Only updates when the scene is paused
+    ACTIVE_BOUNDS  = 4, // Updates only when the object is within bounds
+    ACTIVE_XBOUNDS = 5, // Updates within an x bound (not accounting for y bound)
+    ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting for x bound)
+    ACTIVE_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
 };
 
 #define TILE_FLIPX_MASK 0x80000000U
