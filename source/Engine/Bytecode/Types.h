@@ -367,6 +367,7 @@ enum   OpCode {
     OP_TYPEOF,
     OP_NEW,
     OP_IMPORT,
+    OP_SWITCH,
 
     OP_SYNC = 0xFF,
 };

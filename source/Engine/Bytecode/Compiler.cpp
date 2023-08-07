@@ -160,7 +160,6 @@ enum FunctionType {
     TYPE_FUNCTION,
     TYPE_CONSTRUCTOR,
     TYPE_METHOD,
-    TYPE_WITH,
 };
 
 PUBLIC Token         Compiler::MakeToken(int type) {
@@ -537,6 +536,19 @@ PUBLIC Token         Compiler::NextToken() {
 }
 PUBLIC Token         Compiler::PeekToken() {
     return parser.Current;
+}
+PUBLIC Token         Compiler::PeekNextToken() {
+    Parser previousParser = parser;
+    Scanner previousScanner = scanner;
+    Token next;
+
+    AdvanceToken();
+    next = parser.Current;
+
+    parser = previousParser;
+    scanner = previousScanner;
+
+    return next;
 }
 PUBLIC Token         Compiler::PrevToken() {
     return parser.Previous;
@@ -1231,6 +1243,33 @@ PUBLIC void Compiler::GetMap(bool canAssign) {
     EmitByte(OP_NEW_MAP);
     EmitUint32(count);
 }
+PUBLIC bool Compiler::IsConstant() {
+    switch (PeekToken().Type) {
+        case TOKEN_NULL:
+        case TOKEN_TRUE:
+        case TOKEN_FALSE:
+            return true;
+        case TOKEN_STRING:
+            return true;
+        case TOKEN_NUMBER:
+            return true;
+        case TOKEN_DECIMAL:
+            return true;
+        case TOKEN_MINUS: {
+            switch (PeekNextToken().Type) {
+                case TOKEN_NUMBER:
+                    return true;
+                case TOKEN_DECIMAL:
+                    return true;
+                default:
+                    return false;
+            }
+            break;
+        }
+        default:
+            return false;
+    }
+}
 PUBLIC void Compiler::GetConstant(bool canAssign) {
     switch (NextToken().Type) {
         case TOKEN_NULL:
@@ -1383,11 +1422,21 @@ PUBLIC void Compiler::GetCall(bool canAssign) {
 PUBLIC void Compiler::GetExpression() {
     ParsePrecedence(PREC_ASSIGNMENT);
 }
+enum {
+    SWITCH_CASE_TYPE_CONSTANT,
+    SWITCH_CASE_TYPE_LOCAL,
+    SWITCH_CASE_TYPE_GLOBAL,
+    SWITCH_CASE_TYPE_DEFAULT
+};
 // Reading statements
 struct switch_case {
     int position;
-    int constant_index;
-    int patch_ptr;
+    Uint8 type;
+    union {
+        Uint8 constant_index;
+        Uint8 local_slot;
+        Uint32 global_hash;
+    } as;
 };
 stack<vector<int>*> BreakJumpListStack;
 stack<vector<int>*> ContinueJumpListStack;
@@ -1540,78 +1589,65 @@ PUBLIC void Compiler::GetSwitchStatement() {
 
     chunk->Count -= code_block_length;
 
-    // printf("code_block_start: %d\n", code_block_start);
-    // printf("code_block_length: %d\n", code_block_length);
-
-    int integer_min = 0x7FFFFFFF;
-    int integer_max = 0x80000000;
-    bool all_constants_are_integer = true;
+    bool all_cases_are_constants = true;
     vector<switch_case> cases = *SwitchJumpListStack.top();
     for (size_t i = 0; i < cases.size(); i++) {
-        // int position = cases[i].position;
-        int constant_index = cases[i].constant_index;
-        if (constant_index > -1) {
-            VMValue value = chunk->Constants->at(constant_index);
-
-            all_constants_are_integer &= (value.Type == VAL_INTEGER);
-            if (all_constants_are_integer) {
-                int val = AS_INTEGER(value);
-                if (integer_min > val)
-                    integer_min = val;
-                if (integer_max < val)
-                    integer_max = val;
-            }
+        if (cases[i].type == SWITCH_CASE_TYPE_LOCAL || cases[i].type == SWITCH_CASE_TYPE_GLOBAL) {
+            all_cases_are_constants = false;
+            break;
         }
-        else {
-            // printf("default");
-        }
-        // printf(": %d\n", position - code_block_start);
     }
 
-    if (all_constants_are_integer && false) {
-        //
+    if (!all_cases_are_constants) {
+        int switchJump = EmitJump(OP_SWITCH);
+        EmitUint16(cases.size());
+        for (size_t i = 0; i < cases.size(); i++) {
+            int position = cases[i].position - code_block_start;
+            Uint8 type = cases[i].type;
+
+            EmitByte(type);
+            EmitUint16(position);
+
+            if (type == SWITCH_CASE_TYPE_GLOBAL)
+                EmitUint32(cases[i].as.global_hash);
+            else if (type == SWITCH_CASE_TYPE_LOCAL)
+                EmitByte(cases[i].as.local_slot);
+            else if (type == SWITCH_CASE_TYPE_CONSTANT)
+                EmitByte(cases[i].as.constant_index);
+        }
+        PatchJump(switchJump);
     }
     else {
-        // Stack:
-        //  0 : switch value
-
-        // EmitByte(OP_PRINT_STACK);
-
         EmitByte(OP_SWITCH_TABLE);
         EmitUint16(cases.size());
         for (size_t i = 0; i < cases.size(); i++) {
             int position = cases[i].position - code_block_start;
-            int constant_index = cases[i].constant_index;
-            EmitByte(constant_index);
+            Uint8 index = cases[i].as.constant_index;
+            EmitByte(index);
             EmitUint16(position);
-        }
-
-        int exitJump = EmitJump(OP_JUMP);
-
-        int new_block_pos = CodePointer();
-        // We do this here so that if an allocation is needed, it happens.
-        for (int i = 0; i < code_block_length; i++) {
-            ChunkWrite(chunk, code_block_copy[i], line_block_copy[i]);
-        }
-        free(code_block_copy);
-        free(line_block_copy);
-
-        PatchJump(exitJump);
-
-        // Set the old break opcode positions to the newly placed ones
-        vector<int>* top = BreakJumpListStack.top();
-        for (size_t i = 0; i < top->size(); i++) {
-            (*top)[i] += -code_block_start + new_block_pos;
-            // printf("break at: %d (%d)\n", (*top)[i], chunk->Code[(*top)[i] - 1]);
         }
     }
 
+    int exitJump = EmitJump(OP_JUMP);
+
+    int new_block_pos = CodePointer();
+    // We do this here so that if an allocation is needed, it happens.
+    for (int i = 0; i < code_block_length; i++) {
+        ChunkWrite(chunk, code_block_copy[i], line_block_copy[i]);
+    }
+    free(code_block_copy);
+    free(line_block_copy);
+
+    PatchJump(exitJump);
+
+    // Set the old break opcode positions to the newly placed ones
+    vector<int>* top = BreakJumpListStack.top();
+    for (size_t i = 0; i < top->size(); i++) {
+        (*top)[i] += -code_block_start + new_block_pos;
+        // printf("break at: %d (%d)\n", (*top)[i], chunk->Code[(*top)[i] - 1]);
+    }
+
     EndSwitchJumpList();
-
-    // vector<switch_case>* sdf = SwitchJumpListStack.top();
-
-    // // Pop value since OP_JUMP_IF_FALSE doesn't pop off expression value
-    // EmitByte(OP_POP);
 
     // Pop jump list off break stack, patch all breaks to this code point
     EndBreakJumpList();
@@ -1621,29 +1657,44 @@ PUBLIC void Compiler::GetCaseStatement() {
         Error("Cannot use case label outside of switch statement.");
     }
 
-    int position, constant_index;
-    position = CodePointer();
+    int position = CodePointer();
 
-    // int enum_index;
-    // Token t = PeekToken();
-    // if ((enum_index = ResolveEnum(&t)) != -1) {
-    //     if (Enums[enum_index].Constant != -1) {
-    //         AdvanceToken();
-    //         ConsumeToken(TOKEN_COLON, "Expected \":\" after \"case\".");
-    //         CurrentChunk()->Count = position;
-    //
-    //         SwitchJumpListStack.top()->push_back(switch_case { position, Enums[enum_index].Constant, 0 });
-    //         return;
-    //     }
-    // }
+    switch_case case_info;
+    case_info.position = position;
 
-    GetConstant(false);
+    if (IsConstant()) {
+        // Will emit OP_CONSTANT and the constant index itself.
+        GetConstant(false);
+
+        case_info.type = SWITCH_CASE_TYPE_CONSTANT;
+        case_info.as.constant_index = CurrentChunk()->Code[position + 1];
+
+        // We don't actually want to emit the opcode and the constant index,
+        // so we "undo" it by restoring the last code point.
+        CurrentChunk()->Count = position;
+    }
+    else {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+
+        Token name = parser.Previous;
+        int arg = ResolveLocal(&name);
+        if (arg != -1) {
+            // Is a local
+            case_info.type = SWITCH_CASE_TYPE_LOCAL;
+            case_info.as.local_slot = (Uint8)arg;
+        }
+        else {
+            // Is a global
+            case_info.type = SWITCH_CASE_TYPE_GLOBAL;
+            case_info.as.global_hash = GetHash(name);
+            if (!TokenMap->Exists(case_info.as.global_hash))
+                TokenMap->Put(case_info.as.global_hash, name);
+        }
+    }
+
     ConsumeToken(TOKEN_COLON, "Expected \":\" after \"case\".");
 
-    constant_index = CurrentChunk()->Code[position + 1];
-    CurrentChunk()->Count = position;
-
-    SwitchJumpListStack.top()->push_back(switch_case { position, constant_index, 0 });
+    SwitchJumpListStack.top()->push_back(case_info);
 }
 PUBLIC void Compiler::GetDefaultStatement() {
     if (SwitchJumpListStack.size() == 0) {
@@ -1652,10 +1703,12 @@ PUBLIC void Compiler::GetDefaultStatement() {
 
     ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
 
-    int position;
-    position = CodePointer();
+    switch_case case_info;
+    case_info.position = CodePointer();
+    case_info.type = SWITCH_CASE_TYPE_DEFAULT;
+    case_info.as.constant_index = 0xFF;
 
-    SwitchJumpListStack.top()->push_back(switch_case { position, -1, 0 });
+    SwitchJumpListStack.top()->push_back(case_info);
 }
 PUBLIC void Compiler::GetWhileStatement() {
     // Set the start of the loop to before the condition
@@ -1948,33 +2001,27 @@ PUBLIC int  Compiler::GetFunction(int type) {
     Compiler* compiler = new Compiler;
     compiler->Initialize(this, 1, type);
 
-    if (type == TYPE_WITH) {
-        // With statements shouldn't need brackets
-        compiler->GetStatement();
-    }
-    else {
-        // Compile the parameter list.
-        compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+    // Compile the parameter list.
+    compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
-        if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
-            do {
-                compiler->ParseVariable("Expect parameter name.");
-                compiler->DefineVariableToken(parser.Previous);
+    if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
+        do {
+            compiler->ParseVariable("Expect parameter name.");
+            compiler->DefineVariableToken(parser.Previous);
 
-                compiler->Function->Arity++;
-                if (compiler->Function->Arity > 255) {
-                    compiler->Error("Cannot have more than 255 parameters.");
-                }
+            compiler->Function->Arity++;
+            if (compiler->Function->Arity > 255) {
+                compiler->Error("Cannot have more than 255 parameters.");
             }
-            while (compiler->MatchToken(TOKEN_COMMA));
         }
-
-        compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
-
-        // The body.
-        compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
-        compiler->GetBlockStatement();
+        while (compiler->MatchToken(TOKEN_COMMA));
     }
+
+    compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+
+    // The body.
+    compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+    compiler->GetBlockStatement();
 
     compiler->FinishCompiler();
 
@@ -2368,10 +2415,6 @@ PUBLIC void          Compiler::StartSwitchJumpList() {
 }
 PUBLIC void          Compiler::EndSwitchJumpList() {
     vector<switch_case>* top = SwitchJumpListStack.top();
-    for (size_t i = 0; i < top->size(); i++) {
-        // switch_case offset = (*top)[i];
-        // PatchJump(offset);
-    }
     delete top;
     SwitchJumpListStack.pop();
     SwitchScopeStack.pop();
@@ -2398,7 +2441,6 @@ PUBLIC bool          Compiler::HasThis() {
     {
     case TYPE_CONSTRUCTOR:
     case TYPE_METHOD:
-    case TYPE_WITH:
         return true;
     default:
         return false;
@@ -2829,9 +2871,6 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
         case TYPE_METHOD:
         case TYPE_FUNCTION:
             Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
-            break;
-        case TYPE_WITH:
-            Function->Name = CopyString("<anonymous-fn>", 14);
             break;
         case TYPE_TOP_LEVEL:
             Function->Name = CopyString("main", 4);
