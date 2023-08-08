@@ -1058,9 +1058,9 @@ PUBLIC STATIC VMValue BytecodeObject::VM_InView(int argCount, VMValue* args, Uin
 }
 /***
  * \method CollidedWithObject
- * \desc Checks if the entity collided with another object, or any object of the specified class name.
- * \param other (Instance/String): The instance or class to collide with.
- * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
+ * \desc Checks if the entity collided with another entity, or any entity of the specified class name.
+ * \param other (Instance/String): The entity or class to collide with.
+ * \return Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.
  * \ns Instance
  */
 PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
@@ -1073,21 +1073,23 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValu
     if (IS_INSTANCE(args[1])) {
         BytecodeObject* other = GET_ENTITY(1);
         if (!other)
-            return INTEGER_VAL(false);
-        return INTEGER_VAL(TestEntityCollision(other, self));
+            return NULL_VAL;
+        if (TestEntityCollision(other, self))
+            return OBJECT_VAL(other->Instance);
+        return NULL_VAL;
     }
 
-    if (!Scene::ObjectLists) return INTEGER_VAL(false);
-    if (!Scene::ObjectRegistries) return INTEGER_VAL(false);
+    if (!Scene::ObjectLists) return NULL_VAL;
+    if (!Scene::ObjectRegistries) return NULL_VAL;
 
     char* object = GET_ARG(1, GetString);
     if (!Scene::ObjectRegistries->Exists(object)) {
         if (!Scene::ObjectLists->Exists(object))
-            return INTEGER_VAL(false);
+            return NULL_VAL;
     }
 
     if (self->HitboxW == 0.0f ||
-        self->HitboxH == 0.0f) return INTEGER_VAL(false);
+        self->HitboxH == 0.0f) return NULL_VAL;
 
     BytecodeObject* other = NULL;
     ObjectList* objectList = Scene::ObjectLists->Get(object);
@@ -1096,10 +1098,10 @@ PUBLIC STATIC VMValue BytecodeObject::VM_CollidedWithObject(int argCount, VMValu
     for (Entity* next; other; other = (BytecodeObject*)next) {
         next = other->NextEntityInList;
         if (TestEntityCollision(other, self))
-            return INTEGER_VAL(true);
+            return OBJECT_VAL(other->Instance);
     }
 
-    return INTEGER_VAL(false);
+    return NULL_VAL;
 }
 /***
  * \method GetHitboxFromSprite

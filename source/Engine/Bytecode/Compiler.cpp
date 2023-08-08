@@ -1723,6 +1723,10 @@ PUBLIC void Compiler::GetWithStatement() {
         WITH_STATE_FINISH,
     };
 
+    // Ensure "this" is available
+    if (!HasThis())
+        Compiler::SetReceiverName("this");
+
     // Start new scope
     ScopeBegin();
 
@@ -1792,6 +1796,10 @@ PUBLIC void Compiler::GetWithStatement() {
 
     // End scope (will pop "other")
     ScopeEnd();
+
+    // Remove "this" if this function is not supposed to have it
+    if (!HasThis())
+        Compiler::SetReceiverName("");
 }
 PUBLIC void Compiler::GetForStatement() {
     // Start new scope
@@ -2385,6 +2393,23 @@ PUBLIC int           Compiler::MakeConstant(VMValue value) {
     return constant;
 }
 
+PUBLIC bool          Compiler::HasThis() {
+    switch (Type)
+    {
+    case TYPE_CONSTRUCTOR:
+    case TYPE_METHOD:
+    case TYPE_WITH:
+        return true;
+    default:
+        return false;
+    }
+}
+PUBLIC void          Compiler::SetReceiverName(const char *name) {
+    Local* local = &Locals[0];
+    local->Name.Start = (char*)name;
+    local->Name.Length = strlen(name);
+}
+
 int  justin_print(char** buffer, int* buf_start, const char *format, ...) {
     va_list args;
     va_list argsCopy;
@@ -2816,16 +2841,14 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
     Local* local = &Locals[LocalCount++];
     local->Depth = ScopeDepth;
 
-    if (type != TYPE_FUNCTION) {
+    if (HasThis()) {
         // In a method, it holds the receiver, "this".
-        local->Name.Start = (char*)"this";
-        local->Name.Length = 4;
+        SetReceiverName("this");
     }
     else {
         // In a function, it holds the function, but cannot be referenced,
-        // so has no name.
-        local->Name.Start = (char*)"";
-        local->Name.Length = 0;
+        // so it has no name.
+        SetReceiverName("");
     }
 }
 PUBLIC bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
