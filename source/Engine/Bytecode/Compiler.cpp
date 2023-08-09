@@ -126,7 +126,7 @@ enum TokenTYPE {
     // Script Keywords.
     TOKEN_EVENT,
     TOKEN_VAR,
-    TOKEN_REF,
+    TOKEN_PROPERTY,
 
     // Keywords.
     TOKEN_DO,
@@ -361,7 +361,19 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             }
             break;
         case 'p':
-            return CheckKeyword(1, 4, "rint", TOKEN_PRINT);
+            if (scanner.Current - scanner.Start > 1) {
+                switch (*(scanner.Start + 1)) {
+                    case 'r':
+                        if (scanner.Current - scanner.Start > 2) {
+                            switch (*(scanner.Start + 2)) {
+                                case 'i': return CheckKeyword(3, 2, "nt", TOKEN_PRINT);
+                                case 'o': return CheckKeyword(3, 5, "perty", TOKEN_PROPERTY);
+                            }
+                        }
+                        break;
+                }
+            }
+            break;
         case 'r':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
@@ -1076,7 +1088,6 @@ PUBLIC void  Compiler::GetDot(bool canAssign) {
         EmitByte((instanceToken.Type == TOKEN_SUPER));
     }
     else {
-        // EmitBytes(OP_GET_PROPERTY, name);
         EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
     }
 }
@@ -2051,8 +2062,8 @@ PUBLIC void Compiler::GetVariableDeclaration() {
     }
 
     do {
-        // Uint8 global =
-            ParseVariable("Expected variable name.");
+        ParseVariable("Expected variable name.");
+
         Token token = parser.Previous;
 
         if (MatchToken(TOKEN_ASSIGNMENT)) {
@@ -2062,12 +2073,32 @@ PUBLIC void Compiler::GetVariableDeclaration() {
             EmitByte(OP_NULL);
         }
 
-        // DefineVariable(global);
         DefineVariableToken(token);
     }
     while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+}
+PUBLIC void Compiler::GetPropertyDeclaration(Token className) {
+    do {
+        ParseVariable("Expected property name.");
+
+        NamedVariable(className, false);
+
+        Token token = parser.Previous;
+
+        if (MatchToken(TOKEN_ASSIGNMENT)) {
+            GetExpression();
+        }
+        else {
+            EmitByte(OP_NULL);
+        }
+
+        EmitSetOperation(OP_SET_PROPERTY, -1, token);
+    }
+    while (MatchToken(TOKEN_COMMA));
+
+    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
 }
 PUBLIC void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
@@ -2079,6 +2110,7 @@ PUBLIC void Compiler::GetClassDeclaration() {
     EmitStringHash(className);
 
     ClassHashList.push_back(GetHash(className));
+
     // Check for class extension
     if (MatchToken(TOKEN_PLUS)) {
         EmitByte(true);
@@ -2105,6 +2137,9 @@ PUBLIC void Compiler::GetClassDeclaration() {
         if (MatchToken(TOKEN_EVENT)) {
             NamedVariable(className, false);
             GetMethod(className);
+        }
+        else if (MatchToken(TOKEN_PROPERTY)) {
+            GetPropertyDeclaration(className);
         }
         else {
             NamedVariable(className, false);

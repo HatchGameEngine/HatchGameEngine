@@ -693,9 +693,9 @@ PUBLIC int     VMThread::RunInstruction() {
                     goto FAIL_OP_SET_PROPERTY;
             }
 
-            if (BytecodeObjectManager::Lock()) {
-                hash = ReadUInt32(frame);
+            hash = ReadUInt32(frame);
 
+            if (BytecodeObjectManager::Lock()) {
                 value = Pop();
                 if (fields->GetIfExists(hash, &field)) {
                     switch (field.Type) {
