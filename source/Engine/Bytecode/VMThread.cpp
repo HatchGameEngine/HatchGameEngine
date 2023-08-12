@@ -371,6 +371,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_TYPEOF),
             VM_ADD_DISPATCH(OP_NEW),
             VM_ADD_DISPATCH(OP_IMPORT),
+            VM_ADD_DISPATCH(OP_SWITCH),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -457,6 +458,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_TYPEOF)
                 PRINT_CASE(OP_NEW)
                 PRINT_CASE(OP_IMPORT)
+                PRINT_CASE(OP_SWITCH)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -691,9 +693,9 @@ PUBLIC int     VMThread::RunInstruction() {
                     goto FAIL_OP_SET_PROPERTY;
             }
 
-            if (BytecodeObjectManager::Lock()) {
-                hash = ReadUInt32(frame);
+            hash = ReadUInt32(frame);
 
+            if (BytecodeObjectManager::Lock()) {
                 value = Pop();
                 if (fields->GetIfExists(hash, &field)) {
                     switch (field.Type) {
@@ -950,6 +952,76 @@ PUBLIC int     VMThread::RunInstruction() {
             }
 
             JUMPED:
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_SWITCH): {
+            enum {
+                SWITCH_CASE_TYPE_CONSTANT,
+                SWITCH_CASE_TYPE_LOCAL,
+                SWITCH_CASE_TYPE_GLOBAL,
+                SWITCH_CASE_TYPE_DEFAULT
+            };
+
+            Uint16 switchTableSize = ReadUInt16(frame);
+            Uint16 count = ReadUInt16(frame);
+            VMValue switch_value = Pop();
+
+            Uint8* end = frame->IP + switchTableSize + 1;
+
+            int default_offset = -1;
+            for (int i = 0; i < count; i++) {
+                Uint8 type = ReadByte(frame);
+                Uint16 offset = ReadUInt16(frame);
+
+                switch (type) {
+                    case SWITCH_CASE_TYPE_DEFAULT:
+                        default_offset = offset;
+                        break;
+                    case SWITCH_CASE_TYPE_CONSTANT: {
+                        Uint8 constant_index = ReadByte(frame);
+                        VMValue constant = (*frame->Function->Chunk.Constants)[constant_index];
+                        if (BytecodeObjectManager::ValuesSortaEqual(switch_value, constant)) {
+                            frame->IP = end + offset;
+                            goto JUMPED2;
+                        }
+                        break;
+                    }
+                    case SWITCH_CASE_TYPE_LOCAL: {
+                        Uint8 slot = ReadByte(frame);
+                        VMValue local_value = frame->Slots[slot];
+                        if (BytecodeObjectManager::ValuesSortaEqual(switch_value, local_value)) {
+                            frame->IP = end + offset;
+                            goto JUMPED2;
+                        }
+                        break;
+                    }
+                    case SWITCH_CASE_TYPE_GLOBAL: {
+                        Uint32 hash = ReadUInt32(frame);
+                        VMValue global_value = NULL_VAL;
+                        if (BytecodeObjectManager::Lock()) {
+                            if (!BytecodeObjectManager::Globals->GetIfExists(hash, &global_value)
+                            && !BytecodeObjectManager::Constants->GetIfExists(hash, &global_value)) {
+                                ThrowRuntimeError(false, "Variable %s does not exist.", GetVariableOrMethodName(hash));
+                            }
+                            else
+                                global_value = BytecodeObjectManager::DelinkValue(global_value);
+                            BytecodeObjectManager::Unlock();
+                        }
+                        if (BytecodeObjectManager::ValuesSortaEqual(switch_value, global_value)) {
+                            frame->IP = end + offset;
+                            goto JUMPED2;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (default_offset > -1) {
+                frame->IP = end + default_offset;
+            }
+
+            JUMPED2:
             VM_BREAK;
         }
 
