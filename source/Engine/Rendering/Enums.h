@@ -70,9 +70,9 @@ enum {
 };
 
 enum {
-    TileCollision_NONE = 0,
-    TileCollision_DOWN = 1,
-    TileCollision_UP   = 2
+    TILECOLLISION_NONE = 0,
+    TILECOLLISION_DOWN = 1,
+    TILECOLLISION_UP   = 2
 };
 
 enum {
@@ -84,24 +84,17 @@ enum {
 };
 
 enum {
-    Flip_NONE   = 0,
-    Flip_X      = 1,
-    Flip_Y      = 2,
-    Flip_XY     = 3
+    FLIP_NONE   = 0,
+    FLIP_X      = 1,
+    FLIP_Y      = 2,
+    FLIP_XY     = 3
 };
 
 enum {
-    CMode_FLOOR = 0,
-    CMode_LWALL = 1,
-    CMode_ROOF  = 2,
-    CMode_RWALL = 3
-};
-
-enum {
-    H_TYPE_TOUCH    = 0,
-    H_TYPE_CIRCLE   = 1,
-    H_TYPE_BOX      = 2,
-    H_TYPE_PLAT     = 3
+    CMODE_FLOOR = 0,
+    CMODE_LWALL = 1,
+    CMODE_ROOF  = 2,
+    CMODE_RWALL = 3
 };
 
 enum {
@@ -113,6 +106,23 @@ enum {
     ACTIVE_XBOUNDS = 5, // Updates within an x bound (not accounting for y bound)
     ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting for x bound)
     ACTIVE_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
+};
+
+enum {
+    SUNDAY      = 0,
+    MONDAY      = 1,
+    TUESDAY     = 2,
+    WEDNESDAY   = 3,
+    THURSDAY    = 4,
+    FRIDAY      = 5,
+    SATURDAY    = 6
+};
+
+enum {
+    MORNING = 0, // Hours 5AM to 11AM. 0500 to 1100.
+    MIDDAY  = 1, // Hours 12PM to 4PM. 1200 to 1600.
+    EVENING = 2, // Hours 5PM to 8PM.  1700 to 2000.
+    NIGHT   = 3  // Hours 9PM to 4AM.  2100 to 400.
 };
 
 #define TILE_FLIPX_MASK 0x80000000U

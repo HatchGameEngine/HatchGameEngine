@@ -47,9 +47,9 @@ void*               InputManager::TouchStates;
 struct TouchState {
     float X;
     float Y;
-    bool Down;
-    bool Pressed;
-    bool Released;
+    bool  Down;
+    bool  Pressed;
+    bool  Released;
 };
 
 PUBLIC STATIC void  InputManager::Init() {

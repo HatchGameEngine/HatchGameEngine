@@ -44,6 +44,7 @@ public:
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
+
 #ifdef USING_FREETYPE
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -312,6 +313,18 @@ namespace LOCAL {
         if (!Scene::MediaList[where]) return NULL;
 
         return Scene::MediaList[where]->AsMedia;
+    }
+    inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
+        int where = GetInteger(args, index, threadID);
+        if (where < 0 || where >(int)Scene::AnimatorList.size()) {
+            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+                "Animator \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
+                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        }
+
+        if (!Scene::AnimatorList[where]) return NULL;
+
+        return Scene::AnimatorList[where];
     }
 }
 
@@ -1567,6 +1580,65 @@ VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 th
 VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL((int)time(NULL));
+}
+/***
+ * Date.GetWeekday
+ * \desc Gets the current day of the week, starting from 1 January 1970, 0:00 UTC.
+ * \return The day of the week (0-6 corresponding to Sunday-Saturday).
+ * \ns Date
+ */
+VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((((int)time(NULL) / 86400) + 3) % 7);
+}
+/***
+ * Date.GetSecond
+ * \desc Gets the the second of the current minute.
+ * \return The second of the minute (from 0 to 59).
+ * \ns Date
+ */
+VMValue Date_GetSecond(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((int)time(NULL) % 60);
+}
+/***
+ * Date.GetMinute
+ * \desc Gets the the minute of the current hour.
+ * \return The minute of the hour (from 0 to 59).
+ * \ns Date
+ */
+VMValue Date_GetMinute(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(((int)time(NULL) / 60) % 60);
+}
+/***
+ * Date.GetHour
+ * \desc Gets the the hour of the current day.
+ * \return The hour of the day (from 0 to 23).
+ * \ns Date
+ */
+VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(((int)time(NULL) / 3600) % 24);
+}
+/***
+ * Date.GetTimeOfDay
+ * \desc Gets the the current time of the day (Morning, Midday, Evening, Night).
+ * \return The time of day based on the current hour.
+ * \ns Date
+ */
+VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    int hour = ((int)time(NULL) / 3600) % 24;
+
+    if (hour >= 5 && hour <= 11)
+        return INTEGER_VAL(MORNING);
+    else if (hour >= 12 && hour <= 16)
+        return INTEGER_VAL(MIDDAY);
+    else if (hour >= 17 && hour <= 20)
+        return INTEGER_VAL(EVENING);
+    else
+        return INTEGER_VAL(NIGHT);
 }
 /***
  * Date.GetTicks
@@ -13697,6 +13769,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Date
     INIT_CLASS(Date);
     DEF_NATIVE(Date, GetEpoch);
+    DEF_NATIVE(Date, GetWeekday);
+    DEF_NATIVE(Date, GetSecond);
+    DEF_NATIVE(Date, GetMinute);
+    DEF_NATIVE(Date, GetHour);
+    DEF_NATIVE(Date, GetTimeOfDay);
     DEF_NATIVE(Date, GetTicks);
     // #endregion
 
@@ -14079,30 +14156,122 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
-    // #region Active Statuses
+    // #region Tile Collision States
+    /***
+    * \enum TILECOLLISION_NONE
+    * \desc Entity expects no tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_NONE);
+    /***
+    * \enum TILECOLLISION_DOWN
+    * \desc Entity expects downward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_DOWN);
+    /***
+    * \enum TILECOLLISION_UP
+    * \desc Entity expects upward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_UP);
+    // #endregion
+
+    // #region Collision Sides
+    /***
+    * \enum C_NONE
+    * \desc No collided side.
+    */
+    DEF_ENUM(C_NONE);
+    /***
+    * \enum C_TOP
+    * \desc Top collided side.
+    */
+    DEF_ENUM(C_TOP);
+    /***
+    * \enum C_LEFT
+    * \desc Left collided side.
+    */
+    DEF_ENUM(C_LEFT);
+    /***
+    * \enum C_RIGHT
+    * \desc Right collided side.
+    */
+    DEF_ENUM(C_RIGHT);
+    /***
+    * \enum C_BOTTOM
+    * \desc Bottom collided side.
+    */
+    DEF_ENUM(C_BOTTOM);
+    // #endregion
+
+    // #region Flip Flags
+    /***
+    * \enum FLIP_NONE
+    * \desc No flip.
+    */
+    DEF_ENUM(FLIP_NONE);
+    /***
+    * \enum FLIP_X
+    * \desc Horizontal flip.
+    */
+    DEF_ENUM(FLIP_X);
+    /***
+    * \enum FLIP_Y
+    * \desc Vertical flip.
+    */
+    DEF_ENUM(FLIP_Y);
+    /***
+    * \enum FLIP_XY
+    * \desc Horizontal and vertical flip.
+    */
+    DEF_ENUM(FLIP_XY);
+    // #endregion
+
+    // #region Collision Modes
+    /***
+    * \enum CMODE_FLOOR
+    * \desc Entity expects to collide with a floor.
+    */
+    DEF_ENUM(CMODE_FLOOR);
+    /***
+    * \enum CMODE_LWALL
+    * \desc Entity expects to collide with the left side of a wall.
+    */
+    DEF_ENUM(CMODE_LWALL);
+    /***
+    * \enum CMODE_ROOF
+    * \desc Entity expects to collide with a roof.
+    */
+    DEF_ENUM(CMODE_ROOF);
+    /***
+    * \enum CMODE_RWALL
+    * \desc Entity expects to collide with the right side of a wall.
+    */
+    DEF_ENUM(CMODE_RWALL);
+    // #endregion
+
+    // #region Active States
     /***
     * \enum ACTIVE_NEVER
-    * \desc Entity never updates.
+    * \desc Entity never updates. Object never runs GlobalUpdate.
     */
     DEF_ENUM(ACTIVE_NEVER);
     /***
     * \enum ACTIVE_ALWAYS
-    * \desc Entity always updates.
+    * \desc Entity always updates. Object always runs GlobalUpdate.
     */
     DEF_ENUM(ACTIVE_ALWAYS);
     /***
     * \enum ACTIVE_NORMAL
-    * \desc Entity updates no matter where it is located on the scene, but does not update if the scene is paused.
+    * \desc Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.
     */
     DEF_ENUM(ACTIVE_NORMAL);
     /***
     * \enum ACTIVE_PAUSED
-    * \desc Entity only updates when the scene is paused.
+    * \desc Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.
     */
     DEF_ENUM(ACTIVE_PAUSED);
     /***
     * \enum ACTIVE_BOUNDS
-    * \desc Entity only updates when it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
+    * \desc Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
     */
     DEF_ENUM(ACTIVE_BOUNDS);
     /***
@@ -14120,6 +14289,66 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Entity updates within a radius. (uses UpdateRegionW)
     */
     DEF_ENUM(ACTIVE_RBOUNDS);
+
+    // #region Weekdays
+    /***
+    * \enum SUNDAY
+    * \desc The first day of the week (value 0).
+    */
+    DEF_ENUM(SUNDAY);
+    /***
+    * \enum MONDAY
+    * \desc The second day of the week (value 1).
+    */
+    DEF_ENUM(MONDAY);
+    /***
+    * \enum TUESDAY
+    * \desc The third day of the week (value 2).
+    */
+    DEF_ENUM(TUESDAY);
+    /***
+    * \enum WEDNESDAY
+    * \desc The fourth day of the week (value 3).
+    */
+    DEF_ENUM(WEDNESDAY);
+    /***
+    * \enum THURSDAY
+    * \desc The fifth day of the week (value 4).
+    */
+    DEF_ENUM(THURSDAY);
+    /***
+    * \enum FRIDAY
+    * \desc The sixth day of the week (value 5).
+    */
+    DEF_ENUM(FRIDAY);
+    /***
+    * \enum SATURDAY
+    * \desc The seventh day of the week (value 6).
+    */
+    DEF_ENUM(SATURDAY);
+    // #endregion
+
+    // #region TimesOfDay
+    /***
+    * \enum MORNING
+    * \desc The early hours of the day (5AM to 11AM, 0500 to 1100).
+    */
+    DEF_ENUM(MORNING);
+    /***
+    * \enum MIDDAY
+    * \desc The middle hours of the day (12PM to 4PM, 1200 to 1600).
+    */
+    DEF_ENUM(MIDDAY);
+    /***
+    * \enum EVENING
+    * \desc The later hours of the day (5PM to 8PM, 1700 to 2000).
+    */
+    DEF_ENUM(EVENING);
+    /***
+    * \enum NIGHT
+    * \desc The very late and very early hours of the day (9PM to 4AM, 2100 to 400).
+    */
+    DEF_ENUM(NIGHT);
     // #endregion
 
     // #region Ease
