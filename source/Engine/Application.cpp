@@ -666,9 +666,9 @@ PRIVATE STATIC void Application::PollEvents() {
                 if (DevMenu) {
                     // Quit game (dev)
                     if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-                        //  Running = false;
-                        Application::DevMenuActivated ^= 1;
-                        Log::Print(Log::LOG_VERBOSE, "Dev Menu Activated: %d", DevMenuActivated);
+                        Running = false;
+                        // Application::DevMenuActivated ^= 1;
+                        // Log::Print(Log::LOG_VERBOSE, "Dev Menu Activated: %d", DevMenuActivated);
                         break;
                     }
                     // Restart application (dev)
