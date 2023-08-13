@@ -14290,6 +14290,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_ENUM(ACTIVE_RBOUNDS);
 
+    // #region Hitbox Sides
+    /***
+    * \enum LEFT
+    * \desc Left side, slot 0 of a hitbox array.
+    */
+    DEF_ENUM(LEFT);
+    /***
+    * \enum TOP
+    * \desc Top side, slot 1 of a hitbox array.
+    */
+    DEF_ENUM(TOP);
+    /***
+    * \enum RIGHT
+    * \desc Right side, slot 2 of a hitbox array.
+    */
+    DEF_ENUM(RIGHT);
+    /***
+    * \enum BOTTOM
+    * \desc Bottom side, slot 3 of a hitbox array.
+    */
+    DEF_ENUM(BOTTOM);
+    // #endregion
+
     // #region Weekdays
     /***
     * \enum SUNDAY

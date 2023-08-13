@@ -41,6 +41,8 @@ public:
     static int         SoundVolume;
 
     static int         StartSceneNum;
+
+    static bool        DevMenuActivated;
 };
 #endif
 
@@ -124,6 +126,8 @@ int         Application::MusicVolume = 100;
 int         Application::SoundVolume = 100;
 
 int         Application::StartSceneNum = 0;
+
+bool        Application::DevMenuActivated = false;
 
 char    StartingScene[256];
 
@@ -662,7 +666,9 @@ PRIVATE STATIC void Application::PollEvents() {
                 if (DevMenu) {
                     // Quit game (dev)
                     if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-                        Running = false;
+                        //  Running = false;
+                        Application::DevMenuActivated ^= 1;
+                        Log::Print(Log::LOG_VERBOSE, "Dev Menu Activated: %d", DevMenuActivated);
                         break;
                     }
                     // Restart application (dev)
@@ -853,6 +859,8 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             int cols, rows;
             DEBUG_fontSprite->SpritesheetCount = 1;
             DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
+            if (!DEBUG_fontSprite->Spritesheets[0])
+                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Game/Font.png");
             cols = DEBUG_fontSprite->Spritesheets[0]->Width / 32;
             rows = DEBUG_fontSprite->Spritesheets[0]->Height / 32;
 

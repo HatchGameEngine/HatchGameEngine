@@ -98,6 +98,20 @@ enum {
 };
 
 enum {
+    H_TYPE_TOUCH    = 0,
+    H_TYPE_CIRCLE   = 1,
+    H_TYPE_BOX      = 2,
+    H_TYPE_PLAT     = 3
+};
+
+enum {
+    LEFT    = 0,
+    TOP     = 1,
+    RIGHT   = 2,
+    BOTTOM  = 3
+};
+
+enum {
     ACTIVE_NEVER   = 0, // Never updates
     ACTIVE_ALWAYS  = 1, // Updates no matter what
     ACTIVE_NORMAL  = 2, // Updates no matter where the object is in the scene, but not if scene is paused
