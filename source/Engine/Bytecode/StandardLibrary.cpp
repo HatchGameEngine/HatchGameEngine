@@ -244,6 +244,11 @@ namespace LOCAL {
 
         return Scene::SpriteList[where]->AsSprite;
     }
+    inline ISprite*        GetSpriteIndex(int index) {
+        if (index < 0 || index >(int)Scene::SpriteList.size() || !Scene::SpriteList[index])
+            return NULL;
+        return Scene::SpriteList[index]->AsSprite;
+    }
     inline Image*         GetImage(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::ImageList.size()) {
@@ -1877,6 +1882,45 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+    return NULL_VAL;
+}
+/***
+ * Draw.SpriteBasic
+ * \desc Draws a sprite based on an entity's current values.
+ * \param instance (Instance): The instance to draw.
+ * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \ns Draw
+ */
+VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+
+    ObjInstance* instance   = GET_ARG(0, GetInstance);
+    Entity* entity          = (Entity*)instance->EntityPtr;
+    ISprite* sprite         = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite));
+    float rotation          = 0.0f;
+
+    if (!sprite)
+        return NULL_VAL;
+
+    int rot = (int)entity->Rotation;
+    switch (sprite->Animations[entity->CurrentAnimation].Flags) {
+        case ROTSTYLE_NONE: rot = 0; break;
+
+        case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+
+        case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+
+        case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+
+        case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+
+        case ROTSTYLE_STATICFRAMES: break;
+
+        default: break;
+    }
+    rotation = rot * M_PI / 256.0;
+
+    Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
     return NULL_VAL;
 }
 /***
@@ -13846,6 +13890,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Draw
     INIT_CLASS(Draw);
     DEF_NATIVE(Draw, Sprite);
+    DEF_NATIVE(Draw, SpriteBasic);
     DEF_NATIVE(Draw, SpritePart);
     DEF_NATIVE(Draw, Image);
     DEF_NATIVE(Draw, ImagePart);
