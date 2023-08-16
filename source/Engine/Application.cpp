@@ -488,6 +488,7 @@ PRIVATE STATIC void Application::Restart() {
     Graphics::SpriteSheetTextureMap->Clear();
 
     BytecodeObjectManager::LoadAllClasses = false;
+    BytecodeObjectManager::DisableAutoAnimate = false;
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
 
@@ -860,7 +861,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             DEBUG_fontSprite->SpritesheetCount = 1;
             DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
             if (!DEBUG_fontSprite->Spritesheets[0])
-                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Game/Font.png");
+                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/Font.png");
             cols = DEBUG_fontSprite->Spritesheets[0]->Width / 32;
             rows = DEBUG_fontSprite->Spritesheets[0]->Height / 32;
 

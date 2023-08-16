@@ -3162,7 +3162,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, Colli
     return collided;
 }
 
-PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, float xOffset, float yOffset, bool setPos) {
+PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
     int layerID     = 1;
     bool collided   = false;
     int posX        = xOffset + entity->X;
@@ -3186,13 +3186,13 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                     continue;
 
                 if (cLayers & layerID) {
-                    float colX  = posX - layer.OffsetX;
-                    float colY  = posY - layer.OffsetY;
-                    int cy      = ((int)colY & -TileHeight) - TileHeight;
+                    int colX  = posX - layer.OffsetX;
+                    int colY  = posY - layer.OffsetY;
+                    int cy      = (colY & -TileHeight) - TileHeight;
                     if (colX >= 0.0 && colX < TileWidth * layer.Width) {
                         for (int i = 0; i < 3; ++i) {
                             if (cy >= 0 && cy < TileHeight * layer.Height) {
-                                int tileID = layer.Tiles[((int)colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+                                int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
 
                                 if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                                     int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
@@ -3233,13 +3233,13 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                     continue;
 
                 if (cLayers & layerID) {
-                    float colX  = posX - layer.OffsetX;
-                    float colY  = posY - layer.OffsetY;
-                    int cx      = ((int)colX & -TileWidth) - TileWidth;
+                    int colX  = posX - layer.OffsetX;
+                    int colY  = posY - layer.OffsetY;
+                    int cx      = (colX & -TileWidth) - TileWidth;
                     if (colY >= 0.0 && colY < TileHeight * layer.Height) {
                         for (int i = 0; i < 3; ++i) {
                             if (cx >= 0 && cx < TileWidth * layer.Width) {
-                                int tileID = layer.Tiles[(cx / TileWidth) + (((int)colY / TileHeight) << layer.WidthInBits)];
+                                int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
 
                                 if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                                     int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
@@ -3280,13 +3280,13 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                     continue;
 
                 if (cLayers & layerID) {
-                    float colX  = posX - layer.OffsetX;
-                    float colY  = posY - layer.OffsetY;
+                    int colX  = posX - layer.OffsetX;
+                    int colY  = posY - layer.OffsetY;
                     int cy      = ((int)colY & -TileHeight) - TileHeight;
                     if (colX >= 0.0 && colX < TileWidth * layer.Width) {
                         for (int i = 0; i < 3; ++i) {
                             if (cy >= 0 && cy < TileHeight * layer.Height) {
-                                int tileID = layer.Tiles[((int)colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+                                int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
 
                                 if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                                     int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
@@ -3327,13 +3327,13 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
                     continue;
 
                 if (cLayers & layerID) {
-                    float colX  = posX - layer.OffsetX;
-                    float colY  = posY - layer.OffsetY;
-                    int cx      = ((int)colX & -TileWidth) - TileWidth;
+                    int colX  = posX - layer.OffsetX;
+                    int colY  = posY - layer.OffsetY;
+                    int cx      = (colX & -TileWidth) - TileWidth;
                     if (colY >= 0.0 && colY < TileHeight * layer.Height) {
                         for (int i = 0; i < 3; ++i) {
                             if (cx >= 0 && cx < TileWidth * layer.Width) {
-                                int tileID = layer.Tiles[(cx / TileWidth) + (((int)colY / TileHeight) << layer.WidthInBits)];
+                                int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
 
                                 if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                                     int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;

@@ -717,17 +717,11 @@ PUBLIC void BytecodeObject::GameStart() {
 PUBLIC void BytecodeObject::Initialize() {
     if (!Instance) return;
 
-    RunInitializer();
-}
-PUBLIC void BytecodeObject::Create(VMValue flag) {
-    if (!Instance) return;
-
     // Set defaults
     Active = true;
     Pauseable = true;
     ActiveState = ACTIVE_BOUNDS;
     InRange = false;
-    Created = true;
 
     XSpeed = 0.0f;
     YSpeed = 0.0f;
@@ -758,7 +752,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     CurrentFrameCount = 0;
     AnimationSpeedMult = 1.0;
     AnimationSpeedAdd = 0;
-    AutoAnimate = true;
+    AutoAnimate = BytecodeObjectManager::DisableAutoAnimate ? false : true;
     AnimationSpeed = 0;
     AnimationTimer = 0.0;
     AnimationFrameDuration = 0;
@@ -779,6 +773,13 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
 
     Persistent = false;
     Interactable = true;
+
+    RunInitializer();
+}
+PUBLIC void BytecodeObject::Create(VMValue flag) {
+    if (!Instance) return;
+
+    Created = true;
 
     RunCreateFunction(flag);
     if (Sprite >= 0 && CurrentAnimation < 0) {

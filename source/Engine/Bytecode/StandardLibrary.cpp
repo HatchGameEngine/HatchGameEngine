@@ -1830,7 +1830,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(7);
 
-    ISprite* sprite = GET_ARG(0, GetSprite);
+    ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
     int x = (int)GET_ARG(3, GetDecimal);
@@ -1850,9 +1850,10 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     if (argCount > 10)
         useInteger = GET_ARG(10, GetInteger);
 
-    if (useInteger) {
-        int rot = (int)rotation;
-        switch (int rotationStyle = sprite->Animations[animation].Flags) {
+    if (sprite && animation >= 0 && frame >= 0) {
+        if (useInteger) {
+            int rot = (int)rotation;
+            switch (int rotationStyle = sprite->Animations[animation].Flags) {
             case ROTSTYLE_NONE:
                 rot = 0;
                 break;
@@ -1877,16 +1878,17 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
                 break;
 
             default: break;
+            }
+            rotation = rot * M_PI / 256.0;
         }
-        rotation = rot * M_PI / 256.0;
-    }
 
-    Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+    }
     return NULL_VAL;
 }
 /***
  * Draw.SpriteBasic
- * \desc Draws a sprite based on an entity's current values.
+ * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param instance (Instance): The instance to draw.
  * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
  * \ns Draw
@@ -1905,17 +1907,11 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
     int rot = (int)entity->Rotation;
     switch (sprite->Animations[entity->CurrentAnimation].Flags) {
         case ROTSTYLE_NONE: rot = 0; break;
-
         case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-
         case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-
         case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-
         case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-
         case ROTSTYLE_STATICFRAMES: break;
-
         default: break;
     }
     rotation = rot * M_PI / 256.0;
@@ -5355,6 +5351,17 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 
     return NULL_VAL;
 }
+/***
+ * Instance.DisableAutoAnimate
+ * \desc Disables the AutoAnimate function of entities.
+ * \param disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.
+ * \ns Instance
+ */
+VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    BytecodeObjectManager::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
 // TODO: Finish these
 /***
  * Instance.Copy
@@ -8028,8 +8035,8 @@ VMValue Scene_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID
  * \param cLayers (Integer): Bitfield of the layers the entity can collide with.
  * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
  * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Decimal): How far from the entity's X value to start from.
- * \param yOffset (Decimal): How far from the entity's Y value to start from.
+ * \param xOffset (Number): How far from the entity's X value to start from.
+ * \param yOffset (Number): How far from the entity's Y value to start from.
  * \param setPos (Boolean): Whether to set the entity's position if collision is found.
  * \return Returns whether the instance has collided with a tile.
  * \ns Scene
@@ -13097,6 +13104,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     Entity* self            = (Entity*)instance->EntityPtr;
+    // TODO: Check if GetDecimal can get null values
     float rangeX            = GET_ARG(1, GetDecimal);
     float rangeY            = GET_ARG(2, GetDecimal);
 
@@ -14499,6 +14507,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, GetCount);
     DEF_NATIVE(Instance, GetNextInstance);
     DEF_NATIVE(Instance, GetBySlotID);
+    DEF_NATIVE(Instance, DisableAutoAnimate);
     DEF_NATIVE(Instance, Copy);
     DEF_NATIVE(Instance, ChangeClass);
     // #endregion
@@ -15155,6 +15164,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_LINK_DECIMAL("LowPassFilter", &AudioManager::LowPassFilter);
 
+    /***
+    * \global CurrentView
+    * \type Integer
+    * \desc The current camera index.
+    */
+    DEF_LINK_INT("CurrentView", &Scene::ViewCurrent);
     /***
     * \global Scene_Frame
     * \type Integer

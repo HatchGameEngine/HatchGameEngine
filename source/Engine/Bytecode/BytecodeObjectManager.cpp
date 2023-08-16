@@ -51,6 +51,7 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 
 bool                 BytecodeObjectManager::LoadAllClasses = false;
+bool                 BytecodeObjectManager::DisableAutoAnimate = false;
 
 VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;
