@@ -245,8 +245,11 @@ namespace LOCAL {
         return Scene::SpriteList[where]->AsSprite;
     }
     inline ISprite*        GetSpriteIndex(int index) {
-        if (index < 0 || index >(int)Scene::SpriteList.size() || !Scene::SpriteList[index])
+        if (index < 0 || index > (int)Scene::SpriteList.size() || !Scene::SpriteList[index])
             return NULL;
+
+        if (!Scene::SpriteList[index]) return NULL;
+
         return Scene::SpriteList[index]->AsSprite;
     }
     inline Image*         GetImage(VMValue* args, int index, Uint32 threadID) {
@@ -321,11 +324,8 @@ namespace LOCAL {
     }
     inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where >(int)Scene::AnimatorList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                "Animator \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
-        }
+        if (where < 0 || where > (int)Scene::AnimatorList.size())
+            return NULL;
 
         if (!Scene::AnimatorList[where]) return NULL;
 
@@ -442,7 +442,7 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(0);
 
-    Animator* animator = new Animator();
+    Animator* animator          = new Animator();
     animator->Sprite            = argCount >= 1 ? GET_ARG(0, GetInteger) : -1;
     animator->CurrentAnimation  = argCount >= 2 ? GET_ARG(1, GetInteger) : -1;
     animator->CurrentFrame      = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
@@ -470,16 +470,14 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
-    int animatorIndex   = GET_ARG(0, GetInteger);
+    Animator* animator  = GET_ARG(0, GetAnimator);
     int spriteIndex     = GET_ARG(1, GetInteger);
     int animationID     = GET_ARG(2, GetInteger);
     int frameID         = GET_ARG(3, GetInteger);
     int forceApply      = GET_ARG(4, GetInteger);
 
-    if (animatorIndex < 0 || animatorIndex >= (int)Scene::AnimatorList.size())
+    if (!animator)
         return NULL_VAL;
-
-    Animator* animator = Scene::AnimatorList[animatorIndex];
 
     if (spriteIndex < 0 || spriteIndex >= (int)Scene::SpriteList.size() || !animator) {
         if (animator) {
@@ -505,9 +503,8 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     Animation anim              = sprite->Animations[animationID];
     vector<AnimFrame> frames    = anim.Frames;
 
-    if (animator->CurrentAnimation == animationID && !forceApply) {
+    if (animator->CurrentAnimation == animationID && !forceApply)
         return NULL_VAL;
-    }
 
     animator->Frames            = frames;
     animator->AnimationTimer    = 0;
@@ -531,15 +528,10 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int animatorIndex = GET_ARG(0, GetInteger);
+    Animator* animator = GET_ARG(0, GetAnimator);
 
-    if (animatorIndex < 0 || animatorIndex >= (int)Scene::AnimatorList.size())
+    if (!animator || !animator->Frames.size())
         return NULL_VAL;
-
-    Animator* animator = Scene::AnimatorList[animatorIndex];
-    if (!animator || !animator->Frames.size()) {
-        return NULL_VAL;
-    }
 
     if (animator->Sprite < 0 || animator->Sprite >= (int)Scene::SpriteList.size())
         return NULL_VAL;
@@ -1854,30 +1846,13 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
         if (useInteger) {
             int rot = (int)rotation;
             switch (int rotationStyle = sprite->Animations[animation].Flags) {
-            case ROTSTYLE_NONE:
-                rot = 0;
-                break;
-
-            case ROTSTYLE_FULL:
-                rot = rot & 0x1FF;
-                break;
-
-            case ROTSTYLE_45DEG:
-                rot = (rot + 0x20) & 0x1C0;
-                break;
-
-            case ROTSTYLE_90DEG:
-                rot = (rot + 0x40) & 0x180;
-                break;
-
-            case ROTSTYLE_180DEG:
-                rot = (rot + 0x80) & 0x100;
-                break;
-
-            case ROTSTYLE_STATICFRAMES:
-                break;
-
-            default: break;
+                case ROTSTYLE_NONE: rot = 0; break;
+                case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+                case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+                case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+                case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+                case ROTSTYLE_STATICFRAMES: break;
+                default: break;
             }
             rotation = rot * M_PI / 256.0;
         }
@@ -1901,22 +1876,111 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite         = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite));
     float rotation          = 0.0f;
 
-    if (!sprite)
+    if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
+        int rot = (int)entity->Rotation;
+        switch (sprite->Animations[entity->CurrentAnimation].Flags) {
+            case ROTSTYLE_NONE: rot = 0; break;
+            case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+            case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+            case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+            case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+            case ROTSTYLE_STATICFRAMES: break;
+            default: break;
+        }
+        rotation = rot * M_PI / 256.0;
+
+        Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+    }
+    return NULL_VAL;
+}
+/***
+ * Draw.Animator
+ * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and other provided values.
+ * \param animator (Animator): The animator to draw.
+ * \param x (Number): X position of where to draw the sprite.
+ * \param y (Number): Y position of where to draw the sprite.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
+ * \paramOpt rotation (Number): Rotation of the drawn sprite, from 0-511.
+ * \ns Draw
+ */
+VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(5);
+
+    Animator* animator  = GET_ARG(0, GetAnimator);
+    int x               = (int)GET_ARG(1, GetDecimal);
+    int y               = (int)GET_ARG(2, GetDecimal);
+    int flipX           = GET_ARG(3, GetInteger);
+    int flipY           = GET_ARG(4, GetInteger);
+    float scaleX        = (argCount > 5) ? GET_ARG(5, GetDecimal) : 1.0f;
+    float scaleY        = (argCount > 6) ? GET_ARG(6, GetDecimal) : 1.0f;
+    float rotation      = (argCount > 7) ? GET_ARG(7, GetDecimal) : 0.0f;
+
+    if (!animator || !animator->Frames.size())
         return NULL_VAL;
 
-    int rot = (int)entity->Rotation;
-    switch (sprite->Animations[entity->CurrentAnimation].Flags) {
-        case ROTSTYLE_NONE: rot = 0; break;
-        case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-        case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-        case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-        case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-        case ROTSTYLE_STATICFRAMES: break;
-        default: break;
-    }
-    rotation = rot * M_PI / 256.0;
+    if (animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+        ISprite* sprite = GetSpriteIndex(animator->Sprite);
+        if (!sprite)
+            return NULL_VAL;
 
-    Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+        int rot     = (int)rotation;
+        switch (sprite->Animations[animator->CurrentAnimation].Flags) {
+            case ROTSTYLE_NONE: rot = 0; break;
+            case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+            case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+            case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+            case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+            case ROTSTYLE_STATICFRAMES: break;
+            default: break;
+        }
+        rotation    = rot * M_PI / 256.0;
+
+        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+    }
+    return NULL_VAL;
+}
+/***
+ * Draw.AnimatorBasic
+ * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
+ * \param animator (Animator): The animator to draw.
+ * \param instance (Instance): The instance to pull other values from.
+ * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \ns Draw
+ */
+VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+
+    Animator* animator      = GET_ARG(0, GetAnimator);
+    ObjInstance* instance   = GET_ARG(1, GetInstance);
+    Entity* entity          = (Entity*)instance->EntityPtr;
+    ISprite* sprite         = (argCount > 2) ? GetSpriteIndex(GET_ARG(2, GetInteger)) : GetSpriteIndex(animator->Sprite);
+    float rotation          = 0.0f;
+
+    if (!animator || !animator->Frames.size())
+        return NULL_VAL;
+
+    if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+        ISprite* sprite = GetSpriteIndex(animator->Sprite);
+        if (!sprite)
+            return NULL_VAL;
+
+        int rot     = (int)rotation;
+        switch (sprite->Animations[animator->CurrentAnimation].Flags) {
+            case ROTSTYLE_NONE: rot = 0; break;
+            case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+            case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+            case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+            case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+            case ROTSTYLE_STATICFRAMES: break;
+            default: break;
+        }
+        rotation    = rot * M_PI / 256.0;
+
+        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+    }
     return NULL_VAL;
 }
 /***
@@ -1942,7 +2006,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(11);
 
-    ISprite* sprite = GET_ARG(0, GetSprite);
+    ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
     int x = (int)GET_ARG(3, GetDecimal);
@@ -1966,38 +2030,23 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     if (argCount > 14)
         useInteger = GET_ARG(14, GetInteger);
 
-    if (useInteger) {
-        int rot = (int)rotation;
-        switch (int rotationStyle = sprite->Animations[animation].Flags) {
-            case ROTSTYLE_NONE:
-                rot = 0;
-                break;
-
-            case ROTSTYLE_FULL:
-                rot = rot & 0x1FF;
-                break;
-
-            case ROTSTYLE_45DEG:
-                rot = (rot + 0x20) & 0x1C0;
-                break;
-
-            case ROTSTYLE_90DEG:
-                rot = (rot + 0x40) & 0x180;
-                break;
-
-            case ROTSTYLE_180DEG:
-                rot = (rot + 0x80) & 0x100;
-                break;
-
-            case ROTSTYLE_STATICFRAMES:
-                break;
-
-            default: break;
+    if (sprite && animation >= 0 && frame >= 0) {
+        if (useInteger) {
+            int rot = (int)rotation;
+            switch (int rotationStyle = sprite->Animations[animation].Flags) {
+                case ROTSTYLE_NONE: rot = 0; break;
+                case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+                case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+                case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+                case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+                case ROTSTYLE_STATICFRAMES: break;
+                default: break;
+            }
+            rotation = rot * M_PI / 256.0;
         }
-        rotation = rot * M_PI / 256.0;
-    }
 
-    Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
+    }
     return NULL_VAL;
 }
 /***
@@ -7284,9 +7333,8 @@ VMValue Object_SetActiveState(int argCount, VMValue* args, Uint32 threadID) {
     char* objectName        = GET_ARG(0, GetString);
     Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))))
         Scene::GetObjectList(objectName)->ActiveState = GET_ARG(1, GetInteger);
-    }
     
     return NULL_VAL;
 }
@@ -7303,9 +7351,8 @@ VMValue Object_GetActiveState(int argCount, VMValue* args, Uint32 threadID) {
     char* objectName        = GET_ARG(0, GetString);
     Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+    if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))))
         return INTEGER_VAL(Scene::GetObjectList(objectName)->ActiveState);
-    }
 
     return INTEGER_VAL(-1);
 }
@@ -9153,6 +9200,34 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
     int offsetX = (int)GET_ARG(1, GetDecimal);
     int offsetY = (int)GET_ARG(2, GetDecimal);
     Scene::Layers[index].OffsetX = offsetX;
+    Scene::Layers[index].OffsetY = offsetY;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerOffsetX
+ * \desc Sets the camera offset X value of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param offsetX (Number): Offset X position.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int offsetX = (int)GET_ARG(1, GetDecimal);
+    Scene::Layers[index].OffsetX = offsetX;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerOffsetY
+ * \desc Sets the camera offset Y value of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param offsetY (Number): Offset Y position.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int offsetY = (int)GET_ARG(1, GetDecimal);
     Scene::Layers[index].OffsetY = offsetY;
     return NULL_VAL;
 }
@@ -13899,6 +13974,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Draw);
     DEF_NATIVE(Draw, Sprite);
     DEF_NATIVE(Draw, SpriteBasic);
+    DEF_NATIVE(Draw, Animator);
+    DEF_NATIVE(Draw, AnimatorBasic);
     DEF_NATIVE(Draw, SpritePart);
     DEF_NATIVE(Draw, Image);
     DEF_NATIVE(Draw, ImagePart);
@@ -14745,6 +14822,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerCollidable);
     DEF_NATIVE(Scene, SetLayerInternalSize);
     DEF_NATIVE(Scene, SetLayerOffsetPosition);
+    DEF_NATIVE(Scene, SetLayerOffsetX);
+    DEF_NATIVE(Scene, SetLayerOffsetY);
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);

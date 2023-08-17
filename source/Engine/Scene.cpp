@@ -4722,8 +4722,6 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
     int y = sensor->Y;
     int temp;
 
-   //  Log::Print(Log::LOG_ERROR, "24: x \"%d\"!", (int)sensor->X);
-
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -4773,10 +4771,6 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
                 for (int i = 0; i < 3; ++i) {
                     if (cy >= 0 && cy < TileHeight * layer.Height) {
                         tileID = layer.Tiles[((int)colX / TileWidth) + (((int)colY / TileHeight) << layer.WidthInBits)];
-                        // Log::Print(Log::LOG_ERROR, "24: colX \"%d\"!", (int)colX);
-                        // Log::Print(Log::LOG_ERROR, "24: colY \"%d\"!", (int)colY);
-                        // Log::Print(Log::LOG_ERROR, "24: Real X \"%d\"!", (int)CollisionEntity->X);
-                        // Log::Print(Log::LOG_ERROR, "24: Real Y \"%d\"!", (int)CollisionEntity->Y);
 
                         if ((tileID & TILE_IDENT_MASK) != EmptyTile) {
                             int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
@@ -4790,15 +4784,10 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
                             tileCfg = &tileCfgBase[tileID + tileFlipOffset];
                             Uint8* colT = tileCfg->CollisionTop;
 
-                            // Log::Print(Log::LOG_ERROR, "24: colT \"%d\"!", (int)collision);
-
                             if (collision & 1) {
                                 int mask        = colT[(int)colX & 0xF];
                                 int ty          = cy + mask;
                                 int tileAngle   = tileCfg->AngleTop;
-
-                                // Log::Print(Log::LOG_ERROR, "22: TileID \"%d\"!", (int)tileID);
-                                // Log::Print(Log::LOG_ERROR, "23: Mask \"%d\"!", (int)mask);
 
                                 if (mask < 0xFF) {
                                     if (!sensor->Collided || startY >= ty) {
