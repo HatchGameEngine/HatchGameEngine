@@ -73,7 +73,7 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   set(MAKEHEADERS_BINARY makeheaders.exe)
 else()
-  set(MAKEHEADERS_BINARY lmakeheaders)
+  set(MAKEHEADERS_BINARY makeheaders)
 endif()
 
 add_custom_target(makeheaders ALL
