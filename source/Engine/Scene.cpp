@@ -550,15 +550,14 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
 
     (*count)--;
 
-    Scene::RemoveFromScene(obj);
     Scene::RemoveObject(obj);
 }
 PUBLIC STATIC void Scene::AddToScene(Entity* obj) {
     obj->PrevSceneEntity = Scene::ObjectLast;
     obj->NextSceneEntity = NULL;
 
-    if (Scene::ObjectLast)
-        Scene::ObjectLast->NextSceneEntity = obj;
+    if (obj->PrevSceneEntity)
+        obj->PrevSceneEntity->NextSceneEntity = obj;
     if (!Scene::ObjectFirst)
         Scene::ObjectFirst = obj;
 
@@ -576,6 +575,8 @@ PUBLIC STATIC void Scene::RemoveFromScene(Entity* obj) {
     if (obj->NextSceneEntity)
         obj->NextSceneEntity->PrevSceneEntity = obj->PrevSceneEntity;
 
+    obj->PrevSceneEntity = obj->NextSceneEntity = NULL;
+
     Scene::ObjectCount--;
 }
 PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
@@ -586,6 +587,9 @@ PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     // Remove from draw groups
     for (int l = 0; l < Scene::PriorityPerLayer; l++)
         PriorityLists[l].Remove(obj);
+
+    // Remove it from the scene
+    Scene::RemoveFromScene(obj);
 
     // If this object is unreachable script-side, that means it can
     // be deleted during garbage collection.
@@ -2326,6 +2330,12 @@ PUBLIC STATIC void Scene::Dispose() {
 
     // Dispose and clear Dynamic objects
     Scene::DeleteObjects(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
+
+    // Initialize the list that contains all of the scene's objects
+    // (they have already been removed from it before this)
+    Scene::ObjectCount = 0;
+    Scene::ObjectFirst = NULL;
+    Scene::ObjectLast = NULL;
 
     // Free Priority Lists
     if (Scene::PriorityLists) {
