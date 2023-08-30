@@ -123,7 +123,7 @@ enum TokenTYPE {
     // Script Keywords.
     TOKEN_EVENT,
     TOKEN_VAR,
-    TOKEN_PROPERTY,
+    TOKEN_STATIC,
 
     // Keywords.
     TOKEN_DO,
@@ -348,6 +348,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                     case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
                 }
             }
+            break;
         case 'o':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
@@ -358,14 +359,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 'p':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
-                    case 'r':
-                        if (scanner.Current - scanner.Start > 2) {
-                            switch (*(scanner.Start + 2)) {
-                                case 'i': return CheckKeyword(3, 2, "nt", TOKEN_PRINT);
-                                case 'o': return CheckKeyword(3, 5, "perty", TOKEN_PROPERTY);
-                            }
-                        }
-                        break;
+                    case 'r': return CheckKeyword(2, 3, "int", TOKEN_PRINT);
                 }
             }
             break;
@@ -386,6 +380,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 's':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
+                    case 't': return CheckKeyword(2, 4, "atic", TOKEN_STATIC);
                     case 'u':
                         if (scanner.Current - scanner.Start > 2) {
                             switch (*(scanner.Start + 2)) {
@@ -2102,7 +2097,7 @@ PUBLIC void Compiler::GetClassDeclaration() {
             NamedVariable(className, false);
             GetMethod(className);
         }
-        else if (MatchToken(TOKEN_PROPERTY)) {
+        else if (MatchToken(TOKEN_STATIC)) {
             GetPropertyDeclaration(className);
         }
         else {
