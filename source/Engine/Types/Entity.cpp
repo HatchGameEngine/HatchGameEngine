@@ -20,7 +20,7 @@ public:
     int          Pauseable = true;
     int          Persistent = false;
     int          Interactable = true;
-    int          ActiveState = ACTIVE_BOUNDS;
+    int          Activity = ACTIVE_BOUNDS;
     int          InRange = false;
     bool         Created = false;
     bool         PostCreated = false;
@@ -445,7 +445,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(Pauseable);
     COPY(Persistent);
     COPY(Interactable);
-    COPY(ActiveState);
+    COPY(Activity);
     COPY(InRange);
 
     COPY(X);

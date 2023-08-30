@@ -7321,38 +7321,38 @@ VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(!!Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))));
 }
 /***
- * Object.SetActiveState
+ * Object.SetActivity
  * \desc Sets the active state of an object to determine if/when it runs its GlobalUpdate function.
  * \param className (String): Name of the object class.
- * \param activeState (Integer): The active state to set the object to.
+ * \param Activity (Integer): The active state to set the object to.
  * \ns Object
  */
-VMValue Object_SetActiveState(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
     char* objectName        = GET_ARG(0, GetString);
     Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
     if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))))
-        Scene::GetObjectList(objectName)->ActiveState = GET_ARG(1, GetInteger);
+        Scene::GetObjectList(objectName)->Activity = GET_ARG(1, GetInteger);
     
     return NULL_VAL;
 }
 /***
- * Object.GetActiveState
+ * Object.GetActivity
  * \desc Gets the active state of an object that determines if/when it runs its GlobalUpdate function.
  * \param className (String): Name of the object class.
  * \return Returns the active state of the object if it is loaded, otherwise returns -1.
  * \ns Object
  */
-VMValue Object_GetActiveState(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
     char* objectName        = GET_ARG(0, GetString);
     Uint32 objectNameHash   = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
     if (Scene::ObjectLists->Exists(Scene::ObjectLists->HashFunction(objectName, strlen(objectName))))
-        return INTEGER_VAL(Scene::GetObjectList(objectName)->ActiveState);
+        return INTEGER_VAL(Scene::GetObjectList(objectName)->Activity);
 
     return INTEGER_VAL(-1);
 }
@@ -7373,15 +7373,17 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Palette.LoadFromResource
- * \desc Loads palette from an .act, .col, .gif, or .hpal resource.
+ * \desc Loads palette from an .act, .col, .gif, .png, or .hpal resource.
  * \param paletteIndex (Integer): Index of palette to load to.
  * \param filename (String): Filepath of resource.
+ * \paramOpt activeRows (Bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.
  * \ns Palette
  */
 VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int palIndex = GET_ARG(0, GetInteger);
-    char* filename = GET_ARG(1, GetString);
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int palIndex        = GET_ARG(0, GetInteger);
+    char* filename      = GET_ARG(1, GetString);
+    int disabledRows    = argCount > 2 ? GET_ARG(2, GetInteger) : 0x0000;
 
     // RSDK StageConfig
     if (StringUtils::StrCaseStr(filename, "StageConfig.bin"))
@@ -7398,9 +7400,17 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                 if (StringUtils::StrCaseStr(filename, ".act") || StringUtils::StrCaseStr(filename, ".ACT")) {
                     do {
                         Uint8 Color[3];
-                        for (int d = 0; d < 256; d++) {
-                            memoryReader->ReadBytes(Color, 3);
-                            SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                        for (int col = 0; col < 16; col++) {
+                            if (!(disabledRows & (1 << col))) {
+                                for (int d = 0; d < 16; d++) {
+                                    memoryReader->ReadBytes(Color, 3);
+                                    SoftwareRenderer::PaletteColors[palIndex][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                                }
+                                Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][(col << 4)], 16);
+                            }
+                            else {
+                                for (int d = 0; d < 16; d++) memoryReader->ReadBytes(Color, 3);
+                            }
                         }
                         Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
                     } while (false);
@@ -7412,9 +7422,17 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 
                     // Read colors
                     Uint8 Color[4];
-                    for (int d = 0; d < 256; d++) {
-                        memoryReader->ReadBytes(Color, 3);
-                        SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                    for (int col = 0; col < 16; col++) {
+                        if (!(disabledRows & (1 << col))) {
+                            for (int d = 0; d < 16; d++) {
+                                memoryReader->ReadBytes(Color, 3);
+                                SoftwareRenderer::PaletteColors[palIndex][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                            }
+                            Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][(col << 4)], 16);
+                        }
+                        else {
+                            for (int d = 0; d < 16; d++) memoryReader->ReadBytes(Color, 3);
+                        }
                     }
                     Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
                 }
@@ -7460,8 +7478,13 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 
                     if (gif) {
                         if (gif->Colors) {
-                            for (int p = 0; p < 256; p++)
-                                SoftwareRenderer::PaletteColors[palIndex][p] = gif->Colors[p];
+                            for (int col = 0; col < 16; col++) {
+                                if (!(disabledRows & (1 << col))) {
+                                    for (int d = 0; d < 16; d++) {
+                                        SoftwareRenderer::PaletteColors[palIndex][(col << 4) | d] = gif->Colors[(col << 4) | d];
+                                    }
+                                }
+                            }
                             Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
@@ -7671,17 +7694,17 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Palette.SetPaletteIndexLines
- * \desc Sets the palette to be used for drawing, on certain Y-positions on the screen (between the start and end lines).
+ * \desc Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).
  * \param paletteIndex (Integer): Index of palette.
- * \param lineStart (Integer): Start line to set to the palette.
- * \param lineEnd (Integer): Line where to stop setting the palette.
+ * \param lineStart (Number): Start line to set to the palette.
+ * \param lineEnd (Number): Line where to stop setting the palette.
  * \ns Palette
  */
 VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
-    int palIndex = GET_ARG(0, GetInteger);
-    Sint32 lineStart = GET_ARG(1, GetInteger);
-    Sint32 lineEnd = GET_ARG(2, GetInteger);
+    int palIndex        = GET_ARG(0, GetInteger);
+    Sint32 lineStart    = (int)GET_ARG(1, GetDecimal);
+    Sint32 lineEnd      = (int)GET_ARG(2, GetDecimal);
 
     Sint32 lastLine = sizeof(SoftwareRenderer::PaletteIndexLines) - 1;
     if (lineStart > lastLine)
@@ -8079,7 +8102,7 @@ VMValue Scene_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID
  * Scene.ObjectTileCollision
  * \desc Checks tile collision based on where an instance should check.
  * \param entity (Instance): The instance to base the values on.
- * \param cLayers (Integer): Bitfield of the layers the entity can collide with.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
  * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
  * \param cPlane (Integer): Collision plane to get the collision of (A or B).
  * \param xOffset (Number): How far from the entity's X value to start from.
@@ -8106,7 +8129,7 @@ VMValue Scene_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) 
  * Scene.ObjectTileGrip
  * \desc Keeps an instance gripped to tile collision based on where an instance should check.
  * \param entity (Instance): The instance to move.
- * \param cLayers (Integer): Bitfield of the layers the entity can collide with.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
  * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
  * \param cPlane (Integer): Collision plane to get the collision of (A or B).
  * \param xOffset (Decimal): How far from the entity's X value to start from.
@@ -8944,6 +8967,36 @@ VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(Scene::DebugMode);
+}
+/***
+ * Scene.GetInstanceCount
+ * \desc Gets the count of instances currently in the scene.
+ * \return Returns the amount of instances in the scene.
+ * \ns Scene
+ */
+VMValue Scene_GetInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::ObjectCount);
+}
+/***
+ * Scene.GetStaticInstanceCount
+ * \desc Gets the count of instances currently in the scene.
+ * \return Returns the amount of instances in the scene.
+ * \ns Scene
+ */
+VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::StaticObjectCount);
+}
+/***
+ * Scene.GetDynamicInstanceCount
+ * \desc Gets the count of instances currently in the scene.
+ * \return Returns the amount of instances in the scene.
+ * \ns Scene
+ */
+VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Scene::DynamicObjectCount);
 }
 /***
  * Scene.CheckValidScene
@@ -14707,8 +14760,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Object
     INIT_CLASS(Object);
     DEF_NATIVE(Object, Loaded);
-    DEF_NATIVE(Object, SetActiveState);
-    DEF_NATIVE(Object, GetActiveState);
+    DEF_NATIVE(Object, SetActivity);
+    DEF_NATIVE(Object, GetActivity);
     // #endRegion
 
     // #region Palette
@@ -14807,6 +14860,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetCategoryCount);
     DEF_NATIVE(Scene, GetStageCount);
     DEF_NATIVE(Scene, GetDebugMode);
+    DEF_NATIVE(Scene, GetInstanceCount);
+    DEF_NATIVE(Scene, GetStaticInstanceCount);
+    DEF_NATIVE(Scene, GetDynamicInstanceCount);
     DEF_NATIVE(Scene, CheckValidScene);
     DEF_NATIVE(Scene, CheckSceneFolder);
     DEF_NATIVE(Scene, CheckSceneID);
@@ -15285,6 +15341,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc The milliseconds value of the scene timer.
     */
     DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
+    /***
+    * \global Scene_Filter
+    * \type Integer
+    * \desc The scene's entity filter value.
+    */
+    DEF_LINK_INT("Scene_Filter", &Scene::Filter);
     /***
     * \global Scene_ListPos
     * \type Integer

@@ -75,9 +75,6 @@ PUBLIC STATIC void RSDKSceneReader::StageConfig_GetColors(const char* filename) 
                         if ((bitmap & (1 << col)) != 0) {
                             for (int d = 0; d < 16; d++) {
                                 memoryReader->ReadBytes(Color, 3);
-                                // if (Color[0] == 0xFF && Color[1] == 0x00 && Color[2] == 0xFF)
-                                //     continue;
-
                                 SoftwareRenderer::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                             }
                             Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);

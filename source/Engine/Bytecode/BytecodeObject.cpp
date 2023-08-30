@@ -484,19 +484,19 @@ PUBLIC void BytecodeObject::LinkFields() {
     LINK_INT(TileCollisions);
 
     /***
-    * \field ActiveState
+    * \field Activity
     * \type Enumeration
     * \default ACTIVE_BOUNDS
     * \ns Instance
     * \desc The active status for this entity.
     */
-    LINK_INT(ActiveState);
+    LINK_INT(Activity);
     /***
     * \field InRange
     * \type Boolean
     * \default false
     * \ns Instance
-    * \desc Whether this entity is within active range; see <linkto ref="instance.ActiveState"></linkto>.
+    * \desc Whether this entity is within active range; see <linkto ref="instance.Activity"></linkto>.
     */
     LINK_INT(InRange);
 
@@ -720,7 +720,7 @@ PUBLIC void BytecodeObject::Initialize() {
     // Set defaults
     Active = true;
     Pauseable = true;
-    ActiveState = ACTIVE_BOUNDS;
+    Activity = ACTIVE_BOUNDS;
     InRange = false;
 
     XSpeed = 0.0f;

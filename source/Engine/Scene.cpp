@@ -96,6 +96,8 @@ public:
     static int                       Seconds;
     static int                       Milliseconds;
 
+    static int                       Filter;
+
     static vector<SceneListEntry>    ListData;
     static vector<SceneListInfo>     ListCategory;
     static int                       ListPos;
@@ -230,6 +232,8 @@ int                       Scene::Milliseconds = 0;
 int                       Scene::Seconds = 0;
 int                       Scene::Minutes = 0;
 
+int                       Scene::Filter = 0xFF;
+
 // Scene list variables
 vector<SceneListEntry>    Scene::ListData;
 vector<SceneListInfo>     Scene::ListCategory;
@@ -291,11 +295,11 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
     BytecodeObjectManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
-    if (list->ActiveState == ACTIVE_ALWAYS || (list->ActiveState == ACTIVE_NORMAL && !Scene::Paused) || (list->ActiveState == ACTIVE_PAUSED && Scene::Paused))
+    if (list->Activity == ACTIVE_ALWAYS || (list->Activity == ACTIVE_NORMAL && !Scene::Paused) || (list->Activity == ACTIVE_PAUSED && Scene::Paused))
         BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -323,7 +327,7 @@ void UpdateObjectEarly(Entity* ent) {
     }
 }
 void UpdateObjectLate(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
         return;
     if (!ent->Active)
         return;
@@ -351,7 +355,7 @@ void UpdateObjectLate(Entity* ent) {
     }
 }
 void UpdateObject(Entity* ent) {
-    if (Scene::Paused && ent->Pauseable && ent->ActiveState != ACTIVE_PAUSED && ent->ActiveState != ACTIVE_ALWAYS)
+    if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
         return;
 
     if (!ent->Active)
@@ -360,7 +364,7 @@ void UpdateObject(Entity* ent) {
     bool onScreenX = (ent->OnScreenHitboxW == 0.0f);
     bool onScreenY = (ent->OnScreenHitboxH == 0.0f);
 
-    switch (ent->ActiveState) {
+    switch (ent->Activity) {
     default:
         break;
 
