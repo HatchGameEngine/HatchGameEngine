@@ -47,9 +47,6 @@ const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
 
-Enum            Enums[0x100];
-int             EnumsCount = 0;
-
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
 
 // Order these by C/C++ precedence operators
@@ -126,7 +123,7 @@ enum TokenTYPE {
     // Script Keywords.
     TOKEN_EVENT,
     TOKEN_VAR,
-    TOKEN_PROPERTY,
+    TOKEN_STATIC,
 
     // Keywords.
     TOKEN_DO,
@@ -136,7 +133,6 @@ enum TokenTYPE {
     TOKEN_FOR,
     TOKEN_CASE,
     TOKEN_ELSE,
-    TOKEN_ENUM,
     TOKEN_THIS,
     TOKEN_WITH,
     TOKEN_SUPER,
@@ -325,7 +321,6 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'l': return CheckKeyword(2, 2, "se", TOKEN_ELSE);
-                    case 'n': return CheckKeyword(2, 2, "um", TOKEN_ENUM);
                     case 'v': return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
                 }
             }
@@ -353,6 +348,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                     case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
                 }
             }
+            break;
         case 'o':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
@@ -363,14 +359,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 'p':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
-                    case 'r':
-                        if (scanner.Current - scanner.Start > 2) {
-                            switch (*(scanner.Start + 2)) {
-                                case 'i': return CheckKeyword(3, 2, "nt", TOKEN_PRINT);
-                                case 'o': return CheckKeyword(3, 5, "perty", TOKEN_PROPERTY);
-                            }
-                        }
-                        break;
+                    case 'r': return CheckKeyword(2, 3, "int", TOKEN_PRINT);
                 }
             }
             break;
@@ -391,6 +380,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 's':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
+                    case 't': return CheckKeyword(2, 4, "atic", TOKEN_STATIC);
                     case 'u':
                         if (scanner.Current - scanner.Start > 2) {
                             switch (*(scanner.Start + 2)) {
@@ -615,7 +605,6 @@ PUBLIC void          Compiler::SynchronizeToken() {
         if (PrevToken().Type == TOKEN_SEMICOLON) return;
 
         switch (PeekToken().Type) {
-            case TOKEN_ENUM:
             case TOKEN_IF:
             case TOKEN_WHILE:
             case TOKEN_DO:
@@ -995,36 +984,6 @@ PUBLIC Uint8 Compiler::GetArgumentList() {
 
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
     return argumentCount;
-}
-
-// Enums
-PUBLIC void  Compiler::AddEnum(Token name) {
-    if (EnumsCount == 0xFF) {
-        Error("Too many local variables in function.");
-        return;
-    }
-    Enum* enume = &Enums[EnumsCount++];
-    enume->Name = name;
-    enume->Constant = -1;
-}
-PUBLIC int   Compiler::ResolveEnum(Token* name) {
-    for (int i = EnumsCount - 1; i >= 0; i--) {
-        Enum* enume = &Enums[i];
-        if (IdentifiersEqual(name, &enume->Name)) {
-            return i;
-        }
-    }
-    return -1;
-}
-PUBLIC void  Compiler::DeclareEnum() {
-    Token* name = &parser.Previous;
-    for (int i = LocalCount - 1; i >= 0; i--) {
-        Enum* local = &Enums[i];
-        if (IdentifiersEqual(name, &local->Name))
-            Error("Enumeration with this name already declared.");
-    }
-
-    AddEnum(*name);
 }
 
 Token InstanceToken = Token { 0, NULL, 0, 0, 0 };
@@ -2138,7 +2097,7 @@ PUBLIC void Compiler::GetClassDeclaration() {
             NamedVariable(className, false);
             GetMethod(className);
         }
-        else if (MatchToken(TOKEN_PROPERTY)) {
+        else if (MatchToken(TOKEN_STATIC)) {
             GetPropertyDeclaration(className);
         }
         else {
@@ -2185,29 +2144,6 @@ PUBLIC void Compiler::GetEventDeclaration() {
         EmitStringHash(constantToken);
     // }
 }
-PUBLIC void Compiler::GetEnumDeclaration() {
-    do {
-        // Uint8 global =
-        ConsumeToken(TOKEN_IDENTIFIER, "Expected enumeration name.");
-        DeclareEnum();
-
-        Token t = parser.Previous;
-
-        ConsumeToken(TOKEN_ASSIGNMENT, "Expected \"=\" after enumeration name.");
-
-        // Get Constant Value
-        int constant_index = GetConstantValue();
-
-        int enum_index;
-        if ((enum_index = ResolveEnum(&t)) != -1) {
-            Enums[enum_index].Constant = constant_index;
-            // printf("enum (%.*s) = %d\n", t.Length, t.Start, constant_index);
-        }
-    }
-    while (MatchToken(TOKEN_COMMA));
-
-    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after enum declaration.");
-}
 PUBLIC void Compiler::GetDeclaration() {
     if (MatchToken(TOKEN_CLASS))
         GetClassDeclaration();
@@ -2215,8 +2151,6 @@ PUBLIC void Compiler::GetDeclaration() {
         GetImportDeclaration();
     else if (MatchToken(TOKEN_VAR))
         GetVariableDeclaration();
-    else if (MatchToken(TOKEN_ENUM))
-        GetEnumDeclaration();
     else if (MatchToken(TOKEN_EVENT))
         GetEventDeclaration();
     else
@@ -2934,8 +2868,6 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     parser.HadError = false;
     parser.PanicMode = false;
-
-    EnumsCount = 0;
 
     Initialize(NULL, 0, TYPE_TOP_LEVEL);
 

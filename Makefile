@@ -38,7 +38,7 @@ PROGRAM_SUFFIX := .exe
 endif
 
 ifeq ($(PLATFORM),$(PLATFORM_LINUX))
-MAKEHEADERS := ./tools/lmakeheaders
+MAKEHEADERS := ./tools/makeheaders
 else
 MAKEHEADERS := ./tools/makeheaders$(PROGRAM_SUFFIX)
 endif
