@@ -610,6 +610,36 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         driverData->Faces->push_back(glFace);
     }
 }
+void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat)
+{
+    GLShader* shader = GLRenderer::CurrentShader;
+
+    size_t stride = sizeof(GL_VertexBufferEntry);
+
+    glEnableVertexAttribArray(shader->LocPosition);
+    glVertexAttribPointer(shader->LocPosition, 3, GL_FLOAT, GL_FALSE, stride, driverData->Entries); CHECK_GL();
+
+    // ShaderShape3D doesn't use o_uv, so the entire attribute just gets optimized out.
+    // This case is handled to prevent a GL_INVALID_VALUE error.
+    if (shader->LocTexCoord != -1) {
+        glEnableVertexAttribArray(shader->LocTexCoord); CHECK_GL();
+        glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 3); CHECK_GL();
+    }
+
+    // All shaders used for 3D rendering use o_color, so this is safe to do
+    glEnableVertexAttribArray(shader->LocVaryingColor); CHECK_GL();
+    glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 5); CHECK_GL();
+
+    // TODO
+    // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
+    // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 9); CHECK_GL();
+
+    GL_SetProjectionMatrix(projMat);
+    GL_SetModelViewMatrix(viewMat);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+}
 PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
         return nullptr;
@@ -1582,24 +1612,12 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     // should transpose this
     Matrix4x4::Transpose(&viewMat);
 
+    // Prepare the shader now
     GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
-    glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
-    glEnableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor); CHECK_GL();
 
     GLShader* lastShader = GLRenderer::CurrentShader;
 
-    GL_SetProjectionMatrix(&projMat);
-    GL_SetModelViewMatrix(&viewMat);
-
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), driverData->Entries); CHECK_GL();
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 3); CHECK_GL();
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 5); CHECK_GL();
-
-    // TODO
-    // glVertexAttribPointer(GLRenderer::CurrentShader->LocNormal, 3, GL_FLOAT, GL_FALSE, sizeof(GL_VertexBufferEntry), (float*)driverData->Entries + 9); CHECK_GL();
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+    GL_UpdateScene3DShader(driverData, &projMat, &viewMat);
 
     GLRenderer::SetDepthTesting(true);
 
@@ -1611,15 +1629,9 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         // Change shader if needed and set texture
         if (face.DrawMode & DrawMode_TEXTURED && face.UseMaterial) {
             GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
-            glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
             GL_BindTexture((Texture*)face.MaterialInfo.Texture);
         }
         else {
-            if (GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape
-            || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape3D
-            || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShapeYUV) {
-                glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
-            }
             GLRenderer::UseShader(GLRenderer::ShaderShape3D);
             GL_BindTexture(NULL);
         }
@@ -1640,11 +1652,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
         // Update matrices
         if (GLRenderer::CurrentShader != lastShader) {
-            GL_SetProjectionMatrix(&projMat);
-            GL_SetModelViewMatrix(&viewMat);
-
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+            GL_UpdateScene3DShader(driverData, &projMat, &viewMat);
 
             lastShader = GLRenderer::CurrentShader;
         }
