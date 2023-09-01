@@ -103,12 +103,14 @@ struct   GL_VertexBufferFace {
     Uint32       NumVertices;
     Uint32       VertexIndex;
     bool         UseMaterial;
+    bool         UseTexturing;
     FaceMaterial MaterialInfo;
     Uint8        Opacity;
     Uint8        BlendMode;
-    Uint32       DrawMode;
+    GLenum       DrawMode;
     bool         UseCulling;
     GLenum       CullMode;
+    GLshort      VertexIndices[3];
 };
 struct   GL_VertexBufferEntry {
     float X, Y, Z;
@@ -120,8 +122,27 @@ struct   GL_VertexBuffer {
     vector<GL_VertexBufferFace>* Faces;
     GL_VertexBufferEntry*        Entries;
     Uint32                       Capacity;
+    vector<Uint16>               VertexIndices;
+    bool                         UseVertexIndices;
     bool                         Changed;
 };
+struct   GL_State {
+    bool      CullFace;
+    unsigned  CullMode;
+    unsigned  WindingOrder;
+    GLShader* Shader;
+    Texture*  TexturePtr;
+    bool      DepthMask;
+    unsigned  BlendMode;
+    GLenum    DrawMode;
+};
+struct   GL_Scene3DBatch {
+    bool           ShouldDraw;
+    vector<Uint16> VertexIndices;
+};
+
+Uint16 *GL_VertexIndexBuffer = nullptr;
+size_t GL_VertexIndexBufferCapacity = 0;
 
 #define GL_SUPPORTS_MULTISAMPLING
 #define GL_SUPPORTS_SMOOTHING
@@ -381,11 +402,11 @@ void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int flip) {
         glUniform4f(GLRenderer::CurrentShader->LocColor, 1.0, 1.0, 1.0, 1.0); CHECK_GL();
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), 0);
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)NULL + 8);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), 0); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)NULL + 8); CHECK_GL();
 
-    glDrawArrays(GL_TRIANGLE_STRIP, flip << 2, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, flip << 2, 4); CHECK_GL();
 }
 void   GL_DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     GL_Predraw(texture);
@@ -395,19 +416,16 @@ void   GL_DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, 
         GLRenderer::CurrentShader->CachedBlendColors[1] =
         GLRenderer::CurrentShader->CachedBlendColors[2] =
         GLRenderer::CurrentShader->CachedBlendColors[3] = 1.0;
-        glUniform4f(GLRenderer::CurrentShader->LocColor, 1.0, 1.0, 1.0, 1.0);
+        glUniform4f(GLRenderer::CurrentShader->LocColor, 1.0, 1.0, 1.0, 1.0); CHECK_GL();
     }
 
-    // glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
         GL_Vec2 v[4];
         v[0] = GL_Vec2 { x, y };
         v[1] = GL_Vec2 { x + w, y };
         v[2] = GL_Vec2 { x, y + h };
         v[3] = GL_Vec2 { x + w, y + h };
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
-        // glBindBuffer(GL_ARRAY_BUFFER, GLRenderer::BufferSquareFill);
-        // glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
+        glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v); CHECK_GL();
 
         GL_Vec2 v2[4];
         if (sx >= 0.0) {
@@ -415,16 +433,15 @@ void   GL_DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, 
             v2[1] = GL_Vec2 { (sx + sw) / texture->Width, (sy) / texture->Height };
             v2[2] = GL_Vec2 { (sx) / texture->Width     , (sy + sh) / texture->Height };
             v2[3] = GL_Vec2 { (sx + sw) / texture->Width, (sy + sh) / texture->Height };
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, v2);
+            glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
+            glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, v2); CHECK_GL();
         }
         else {
-            glBindBuffer(GL_ARRAY_BUFFER, GLRenderer::BufferSquareFill);
-            glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, 0); // LocPosition
+            glBindBuffer(GL_ARRAY_BUFFER, GLRenderer::BufferSquareFill); CHECK_GL();
+            glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, 0); CHECK_GL();
         }
 
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    // glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); CHECK_GL();
 }
 GLenum GL_GetBlendFactorFromHatchEnum(int factor) {
     switch (factor) {
@@ -503,6 +520,16 @@ float GL_ProjectPointDepth(VertexAttribute* vertex, Matrix4x4* projMatrix) {
     // FIXME: ouch
     return -w;
 }
+GLenum GL_GetPrimitiveType(Uint32 drawMode) {
+    switch (drawMode & DrawMode_PrimitiveMask) {
+    case DrawMode_POLYGONS:
+        return GL_TRIANGLE_FAN;
+    case DrawMode_LINES:
+        return GL_LINE_LOOP;
+    default:
+        return GL_POINTS;
+    }
+}
 void GL_PrepareVertexBufferUpdate(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode) {
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData->Capacity != vertexBuffer->Capacity)
@@ -543,7 +570,7 @@ void GL_PrepareVertexBufferUpdate(Scene3D* scene, VertexBuffer* vertexBuffer, Ui
         qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), PolygonRenderer::FaceSortFunction);
     }
 }
-void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode) {
+void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode, bool useBatching) {
     GL_PrepareVertexBufferUpdate(scene, vertexBuffer, drawMode);
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
@@ -552,9 +579,18 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
     driverData->Faces->clear();
 
     Uint32 verticesStartIndex = 0;
+
+    if (useBatching) {
+        driverData->UseVertexIndices = true;
+        driverData->VertexIndices.clear();
+    }
+
+    GL_VertexBufferFace lastFace = { 0 };
+    bool hasLastFace = false;
+
     for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
         FaceInfo* face = &vertexBuffer->FaceInfoBuffer[f];
-        GL_VertexBufferFace glFace;
+        GL_VertexBufferFace glFace = { 0 };
 
         Uint32 vertexCount = face->NumVertices;
         int opacity = face->Blend.Opacity;
@@ -598,25 +634,77 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         glFace.VertexIndex = verticesStartIndex;
         glFace.NumVertices = vertexCount;
         glFace.UseMaterial = face->UseMaterial;
+        glFace.UseTexturing = faceDrawMode & DrawMode_TEXTURED;
         glFace.MaterialInfo = face->MaterialInfo;
         glFace.Opacity = face->Blend.Opacity;
         glFace.BlendMode = face->Blend.Mode;
-        glFace.DrawMode = faceDrawMode;
+        glFace.DrawMode = GL_GetPrimitiveType(faceDrawMode);
         glFace.UseCulling = face->CullMode != FaceCull_None;
         glFace.CullMode = face->CullMode == FaceCull_Front ? GL_FRONT : GL_BACK;
 
-        verticesStartIndex += vertexCount;
+        if (useBatching) {
+            Uint32 vtxIdx = verticesStartIndex;
+
+            // Check if the state is consistent between every face
+            // If so, the drawing process can be greatly simplified
+            if (driverData->UseVertexIndices) {
+                if (hasLastFace) {
+                    if (glFace.UseTexturing != lastFace.UseTexturing
+                        || glFace.Opacity != lastFace.Opacity
+                        || glFace.BlendMode != lastFace.BlendMode
+                        || glFace.DrawMode != lastFace.DrawMode
+                        || glFace.UseCulling != lastFace.UseCulling
+                        || glFace.CullMode != lastFace.CullMode)
+                        driverData->UseVertexIndices = false;
+
+                    if (glFace.UseMaterial != lastFace.UseMaterial)
+                        driverData->UseVertexIndices = false;
+                    else if (glFace.UseMaterial == lastFace.UseMaterial
+                        && memcmp(&glFace.MaterialInfo, &lastFace.MaterialInfo, sizeof(FaceMaterial)) != 0)
+                        driverData->UseVertexIndices = false;
+                }
+
+                lastFace = glFace;
+                hasLastFace = true;
+            }
+
+            if (glFace.DrawMode == GL_TRIANGLE_FAN)
+                glFace.DrawMode = GL_TRIANGLES;
+
+            // Make a triangle fan
+            if (vertexCount > 3) {
+                glFace.NumVertices = 3;
+
+                for (unsigned i = 0; i < vertexCount - 2; i++) {
+                    glFace.VertexIndices[0] = vtxIdx;
+                    glFace.VertexIndices[1] = vtxIdx + i + 1;
+                    glFace.VertexIndices[2] = vtxIdx + i + 2;
+                    driverData->Faces->push_back(glFace);
+
+                    for (unsigned i = 0; i < 3; i++)
+                        driverData->VertexIndices.push_back(glFace.VertexIndices[i]);
+                }
+            }
+
+            glFace.VertexIndices[0] = vtxIdx;
+            glFace.VertexIndices[1] = vtxIdx + 1;
+            glFace.VertexIndices[2] = vtxIdx + 2;
+
+            for (unsigned i = 0; i < 3; i++)
+                driverData->VertexIndices.push_back(glFace.VertexIndices[i]);
+        }
 
         driverData->Faces->push_back(glFace);
+
+        verticesStartIndex += vertexCount;
     }
 }
-void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat)
-{
+void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
     GLShader* shader = GLRenderer::CurrentShader;
 
     size_t stride = sizeof(GL_VertexBufferEntry);
 
-    glEnableVertexAttribArray(shader->LocPosition);
+    glEnableVertexAttribArray(shader->LocPosition); CHECK_GL();
     glVertexAttribPointer(shader->LocPosition, 3, GL_FLOAT, GL_FALSE, stride, driverData->Entries); CHECK_GL();
 
     // ShaderShape3D doesn't use o_uv, so the entire attribute just gets optimized out.
@@ -639,6 +727,66 @@ void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Mat
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+}
+void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
+    if (GLRenderer::CurrentShader != state.Shader) {
+        GLRenderer::UseShader(state.Shader);
+        GL_UpdateScene3DShader(driverData, projMat, viewMat);
+    }
+
+    GL_BindTexture(state.TexturePtr);
+
+    if (state.CullFace) {
+        glEnable(GL_CULL_FACE); CHECK_GL();
+    }
+    else {
+        glDisable(GL_CULL_FACE); CHECK_GL();
+    }
+
+    glCullFace(state.CullMode); CHECK_GL();
+    glFrontFace(state.WindingOrder); CHECK_GL();
+
+    glDepthMask(state.DepthMask); CHECK_GL();
+    GL_SetBlendFuncByMode(state.BlendMode); CHECK_GL();
+}
+void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, GLenum cullWindingOrder) {
+    if (face.UseTexturing && face.UseMaterial) {
+        state.Shader = GLRenderer::ShaderTexturedShape3D;
+        state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
+    }
+    else {
+        state.Shader = GLRenderer::ShaderShape3D;
+        state.TexturePtr = nullptr;
+    }
+
+    if (face.UseCulling) {
+        state.CullFace = true;
+        state.WindingOrder = cullWindingOrder;
+    }
+    else {
+        state.CullFace = false;
+        state.WindingOrder = GL_CCW;
+    }
+
+    state.CullMode = face.CullMode;
+    state.DepthMask = face.Opacity == 0xFF ? GL_TRUE : GL_FALSE;
+    state.BlendMode = face.BlendMode;
+    state.DrawMode = face.DrawMode;
+}
+void GL_DrawBatchedScene3D(vector<Uint16>& vertexIndices, GLenum drawMode) {
+    size_t numIndices = vertexIndices.size();
+
+    size_t capacity = numIndices * sizeof(Uint16);
+    if (GL_VertexIndexBuffer == nullptr)
+        GL_VertexIndexBuffer = (Uint16*)Memory::Malloc(capacity);
+    else if (capacity > GL_VertexIndexBufferCapacity)
+        GL_VertexIndexBuffer = (Uint16*)Memory::Realloc(GL_VertexIndexBuffer, capacity);
+    GL_VertexIndexBufferCapacity = capacity;
+
+    for (size_t i = 0; i < numIndices; i++)
+        GL_VertexIndexBuffer[i] = vertexIndices[i];
+
+    glDrawElements(drawMode, numIndices, GL_UNSIGNED_SHORT, (const void *)GL_VertexIndexBuffer); CHECK_GL();
 }
 PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
@@ -716,10 +864,8 @@ PUBLIC STATIC void     GLRenderer::Init() {
     Log::Print(Log::LOG_INFO, "Graphics Card: %s %s", glGetString(GL_VENDOR), glGetString(GL_RENDERER)); CHECK_GL();
     Log::Print(Log::LOG_INFO, "Drawable Size: %d x %d", w, h);
 
-    if (Application::Platform == Platforms::iOS ||
-		Application::Platform == Platforms::Android) {
+    if (Application::Platform == Platforms::iOS || Application::Platform == Platforms::Android)
         UseDepthTesting = false;
-    }
 
     // Enable/Disable GL features
     glEnable(GL_BLEND); CHECK_GL();
@@ -738,7 +884,6 @@ PUBLIC STATIC void     GLRenderer::Init() {
 
     #ifdef GL_SUPPORTS_SMOOTHING
         glEnable(GL_LINE_SMOOTH); CHECK_GL();
-        // glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST); CHECK_GL();
         glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST); CHECK_GL();
     #endif
@@ -909,7 +1054,6 @@ PUBLIC STATIC Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, U
             #ifdef GL_SUPPORTS_RENDERBUFFER
             glGenRenderbuffers(1, &textureData->RBO); CHECK_GL();
             glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO); CHECK_GL();
-            // glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); CHECK_GL();
             glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height); CHECK_GL();
             #endif
 
@@ -947,7 +1091,6 @@ PUBLIC STATIC Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, U
     // Set target
     switch (textureData->TextureTarget) {
         case GL_TEXTURE_2D:
-            // glTexImage2D(textureData->TextureTarget, 0, textureData->TextureStorageFormat, width, height, 0, textureData->PixelDataFormat, textureData->PixelDataType, texture->Pixels); CHECK_GL();
 			glTexImage2D(textureData->TextureTarget, 0, textureData->TextureStorageFormat, width, height, 0, textureData->PixelDataFormat, textureData->PixelDataType, 0); CHECK_GL();
             break;
         {
@@ -971,13 +1114,8 @@ PUBLIC STATIC Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, U
     glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); CHECK_GL();
     glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); CHECK_GL();
 
-    if (texture->Format == SDL_PIXELFORMAT_YV12 ||
-        texture->Format == SDL_PIXELFORMAT_IYUV) {
+    if (texture->Format == SDL_PIXELFORMAT_YV12 || texture->Format == SDL_PIXELFORMAT_IYUV) {
         textureData->YUV = true;
-
-        // offset:
-        // 0x10   , 0x80, 0x80
-        // -0.0625, -0.5, -0.5
 
         glGenTextures(1, &textureData->TextureU); CHECK_GL();
         glGenTextures(1, &textureData->TextureV); CHECK_GL();
@@ -1121,7 +1259,6 @@ PUBLIC STATIC void     GLRenderer::SetRenderTarget(Texture* texture) {
 
         #ifdef GL_SUPPORTS_RENDERBUFFER
         glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO); CHECK_GL();
-        // glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO); CHECK_GL();
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO); CHECK_GL();
         #endif
 
@@ -1217,14 +1354,9 @@ PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float f
 
 // Shader-related functions
 PUBLIC STATIC void     GLRenderer::UseShader(void* shader) {
-    // Override shader
-    // if (Graphics::CurrentShader)
-    //     shader = Graphics::CurrentShader;
-
     if (GLRenderer::CurrentShader != (GLShader*)shader) {
         GLRenderer::CurrentShader = (GLShader*)shader;
         GLRenderer::CurrentShader->Use();
-        // glEnableVertexAttribArray(CurrentShader->LocTexCoord);
 
         glActiveTexture(GL_TEXTURE0); CHECK_GL();
         glUniform1i(GLRenderer::CurrentShader->LocTexture, 0); CHECK_GL();
@@ -1576,12 +1708,18 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     if (!scene->Initialized)
         return;
 
+    bool useBatching = true;
+
     VertexBuffer* vertexBuffer = scene->Buffer;
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData->Changed) {
-        GL_UpdateVertexBuffer(scene, vertexBuffer, drawMode);
+        GL_UpdateVertexBuffer(scene, vertexBuffer, drawMode, useBatching);
         driverData->Changed = false;
     }
+
+    size_t numFaces = driverData->Faces->size();
+    if (numFaces == 0)
+        return;
 
     GL_Predraw(NULL);
     glBindBuffer(GL_ARRAY_BUFFER, 0); CHECK_GL();
@@ -1592,7 +1730,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         }
     #endif
 
-    glPointSize(scene->PointSize);
+    glPointSize(scene->PointSize); CHECK_GL();
 
     Matrix4x4 projMat = scene->ProjectionMatrix;
     Matrix4x4 viewMat = scene->ViewMatrix;
@@ -1615,49 +1753,83 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     // Prepare the shader now
     GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
 
-    GLShader* lastShader = GLRenderer::CurrentShader;
-
     GL_UpdateScene3DShader(driverData, &projMat, &viewMat);
 
     GLRenderer::SetDepthTesting(true);
 
-    // sas
-    size_t numFaces = driverData->Faces->size();
-    for (size_t f = 0; f < numFaces; f++) {
-        GL_VertexBufferFace& face = (*driverData->Faces)[f];
+    // Begin drawing
+    GL_State state = { 0 };
 
-        // Change shader if needed and set texture
-        if (face.DrawMode & DrawMode_TEXTURED && face.UseMaterial) {
-            GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
-            GL_BindTexture((Texture*)face.MaterialInfo.Texture);
+    GLenum cullWindingOrder = currentView->UseDrawTarget ? GL_CCW : GL_CW;
+
+    // Draw it all in one go if we can
+    if (useBatching && driverData->UseVertexIndices) {
+        GL_UpdateStateFromFace(state, (*driverData->Faces)[0], cullWindingOrder);
+        GL_SetState(state, driverData, &projMat, &viewMat);
+        GL_DrawBatchedScene3D(driverData->VertexIndices, state.DrawMode);
+    }
+    else {
+        GL_State lastState = { 0 };
+        GL_Scene3DBatch batch = { 0 };
+
+        batch.VertexIndices.clear();
+
+        for (size_t f = 0; f < numFaces; f++) {
+            bool stateChanged = false;
+
+            GL_VertexBufferFace& face = (*driverData->Faces)[f];
+            GL_UpdateStateFromFace(state, face, cullWindingOrder);
+
+            if (useBatching) {
+                // Force a state change if this is the first face
+                if (f == 0) {
+                    memcpy(&lastState, &state, sizeof(GL_State));
+                    GL_SetState(state, driverData, &projMat, &viewMat);
+                }
+                else if (memcmp(&lastState, &state, sizeof(GL_State)))
+                    stateChanged = true;
+            }
+
+            bool didDraw = false;
+
+            if (useBatching) {
+                if (stateChanged) {
+                    GL_SetState(lastState, driverData, &projMat, &viewMat);
+
+                    // Draw the current batch, then start the next
+                    if (batch.ShouldDraw) {
+                        GL_DrawBatchedScene3D(batch.VertexIndices, lastState.DrawMode);
+                        batch.VertexIndices.clear();
+                        didDraw = true;
+                    }
+                }
+
+                // Push this face's vertex indices
+                for (unsigned i = 0; i < 3; i++)
+                    batch.VertexIndices.push_back(face.VertexIndices[i]);
+
+                batch.ShouldDraw = true;
+            }
+            else {
+                // Just draw the face right away if not batching
+                GL_SetState(state, driverData, &projMat, &viewMat);
+                glDrawArrays(state.DrawMode, face.VertexIndex, face.NumVertices); CHECK_GL();
+            }
+
+            // Remember the current state
+            if (stateChanged)
+                memcpy(&lastState, &state, sizeof(GL_State));
+
+            // If this is the last face and the batch was already drawn, then nothing more needs to be
+            if (f == numFaces - 1 && didDraw)
+                batch.ShouldDraw = false;
         }
-        else {
-            GLRenderer::UseShader(GLRenderer::ShaderShape3D);
-            GL_BindTexture(NULL);
+
+        // Draw the last remaining batch
+        if (batch.ShouldDraw) {
+            GL_SetState(state, driverData, &projMat, &viewMat);
+            GL_DrawBatchedScene3D(batch.VertexIndices, state.DrawMode);
         }
-
-        if (face.UseCulling) {
-            glEnable(GL_CULL_FACE); CHECK_GL();
-            glCullFace(face.CullMode); CHECK_GL();
-            glFrontFace(currentView->UseDrawTarget ? GL_CCW : GL_CW); CHECK_GL();
-        }
-        else {
-            glDisable(GL_CULL_FACE); CHECK_GL();
-            glFrontFace(GL_CCW); CHECK_GL();
-        }
-
-        glDepthMask(face.Opacity == 0xFF ? GL_TRUE : GL_FALSE); CHECK_GL();
-
-        GL_SetBlendFuncByMode(face.BlendMode);
-
-        // Update matrices
-        if (GLRenderer::CurrentShader != lastShader) {
-            GL_UpdateScene3DShader(driverData, &projMat, &viewMat);
-
-            lastShader = GLRenderer::CurrentShader;
-        }
-
-        glDrawArrays(GetPrimitiveType(face.DrawMode), face.VertexIndex, face.NumVertices); CHECK_GL();
     }
 
     GL_Predraw(NULL);
@@ -1675,16 +1847,6 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
     GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
 }
-PRIVATE STATIC int     GLRenderer::GetPrimitiveType(Uint32 drawMode) {
-    switch (drawMode & DrawMode_PrimitiveMask) {
-    case DrawMode_POLYGONS:
-        return GL_TRIANGLE_FAN;
-    case DrawMode_LINES:
-        return GL_LINE_LOOP;
-    default:
-        return GL_POINTS;
-    }
-}
 
 PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
     VertexBuffer* vtxBuf = new VertexBuffer(maxVertices);
@@ -1692,6 +1854,9 @@ PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
 
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vtxBuf->DriverData;
     GL_ReallocVertexBuffer(driverData, maxVertices);
+
+    driverData->VertexIndices.clear();
+    driverData->UseVertexIndices = false;
 
     return (void*)vtxBuf;
 }
