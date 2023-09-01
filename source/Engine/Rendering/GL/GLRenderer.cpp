@@ -776,13 +776,6 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         verticesStartIndex += vertexCount;
     }
 }
-void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
-    GL_SetProjectionMatrix(projMat);
-    GL_SetModelViewMatrix(viewMat);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
-}
 void GL_SetVertexAttribPointers(void* vertexAtrribs) {
     if (GL_VertexAttribPointer == vertexAtrribs)
         return;
@@ -814,12 +807,16 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs) {
 void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
     if (GLRenderer::CurrentShader != state.Shader) {
         GLRenderer::UseShader(state.Shader);
-        GL_UpdateScene3DShader(driverData, projMat, viewMat);
+        GL_SetProjectionMatrix(projMat);
+        GL_SetModelViewMatrix(viewMat);
     }
 
     GL_SetVertexAttribPointers(state.VertexAtrribs);
 
     GL_BindTexture(state.TexturePtr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
 
     if (state.CullFace) {
         glEnable(GL_CULL_FACE); CHECK_GL();
@@ -1864,7 +1861,8 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     // Prepare the shader now
     GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
 
-    GL_UpdateScene3DShader(driverData, &projMat, &viewMat);
+    GL_SetProjectionMatrix(&projMat);
+    GL_SetModelViewMatrix(&viewMat);
 
     GLRenderer::SetDepthTesting(true);
 
