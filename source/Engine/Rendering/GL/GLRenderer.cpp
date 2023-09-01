@@ -69,7 +69,6 @@ GLuint             GLRenderer::BufferSquareFill;
 bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
 Texture*           GL_LastTexture = nullptr;
-void*              GL_VertexAttribPointer = nullptr;
 
 PolygonRenderer    polyRenderer;
 
@@ -116,11 +115,11 @@ struct   GL_VertexBufferFace {
     Uint32                NumVertices;
     Uint32                VertexIndex;
     bool                  UseMaterial;
-    bool                  UseTexturing;
     FaceMaterial          MaterialInfo;
     Uint8                 Opacity;
     Uint8                 BlendMode;
-    GLenum                DrawMode;
+    Uint32                DrawFlags;
+    GLenum                PrimitiveType;
     bool                  UseCulling;
     GLenum                CullMode;
     GL_VertexBufferEntry* Data;
@@ -143,7 +142,8 @@ struct   GL_State {
     Texture*              TexturePtr;
     bool                  DepthMask;
     unsigned              BlendMode;
-    GLenum                DrawMode;
+    Uint32                DrawFlags;
+    GLenum                PrimitiveType;
 };
 struct   GL_PerfStats {
     unsigned StateChanges;
@@ -639,8 +639,6 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
 
     for (Uint32 f = 0; f < vertexBuffer->FaceCount; f++) {
         FaceInfo* face = &vertexBuffer->FaceInfoBuffer[f];
-        GL_VertexBufferFace glFace = { 0 };
-
         Uint32 vertexCount = face->NumVertices;
         int opacity = face->Blend.Opacity;
         if (Graphics::TextureBlend && (face->Blend.Mode == BlendMode_NORMAL && opacity == 0))
@@ -704,14 +702,16 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             entry++;
         }
 
+        GL_VertexBufferFace glFace = { 0 };
         glFace.VertexIndex = verticesStartIndex;
         glFace.NumVertices = vertexCount;
         glFace.UseMaterial = face->UseMaterial;
-        glFace.UseTexturing = faceDrawMode & DrawMode_TEXTURED;
-        glFace.MaterialInfo = face->MaterialInfo;
+        if (glFace.UseMaterial)
+            glFace.MaterialInfo = face->MaterialInfo;
         glFace.Opacity = face->Blend.Opacity;
         glFace.BlendMode = face->Blend.Mode;
-        glFace.DrawMode = GL_GetPrimitiveType(faceDrawMode);
+        glFace.DrawFlags = faceDrawMode & (DrawMode_PrimitiveMask | DrawMode_TEXTURED);
+        glFace.PrimitiveType = GL_GetPrimitiveType(faceDrawMode);
         glFace.UseCulling = face->CullMode != FaceCull_None;
         glFace.CullMode = face->CullMode == FaceCull_Front ? GL_FRONT : GL_BACK;
         glFace.Data = data;
@@ -723,18 +723,17 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             // If so, the drawing process can be greatly simplified
             if (driverData->UseVertexIndices) {
                 if (hasLastFace) {
-                    if (glFace.UseTexturing != lastFace.UseTexturing
-                        || glFace.Opacity != lastFace.Opacity
+                    if (glFace.Opacity != lastFace.Opacity
                         || glFace.BlendMode != lastFace.BlendMode
-                        || glFace.DrawMode != lastFace.DrawMode
+                        || glFace.DrawFlags != lastFace.DrawFlags
+                        || glFace.PrimitiveType != lastFace.PrimitiveType
                         || glFace.UseCulling != lastFace.UseCulling
                         || glFace.CullMode != lastFace.CullMode)
                         driverData->UseVertexIndices = false;
 
                     if (glFace.UseMaterial != lastFace.UseMaterial)
                         driverData->UseVertexIndices = false;
-                    else if (glFace.UseMaterial == lastFace.UseMaterial
-                        && memcmp(&glFace.MaterialInfo, &lastFace.MaterialInfo, sizeof(FaceMaterial)) != 0)
+                    else if (memcmp(&glFace.MaterialInfo, &lastFace.MaterialInfo, sizeof(FaceMaterial)))
                         driverData->UseVertexIndices = false;
                 }
 
@@ -742,8 +741,8 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
                 hasLastFace = true;
             }
 
-            if (glFace.DrawMode == GL_TRIANGLE_FAN)
-                glFace.DrawMode = GL_TRIANGLES;
+            if (glFace.PrimitiveType == GL_TRIANGLE_FAN)
+                glFace.PrimitiveType = GL_TRIANGLES;
 
             // Make a triangle fan
             if (vertexCount > 3) {
@@ -777,9 +776,6 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
     }
 }
 void GL_SetVertexAttribPointers(void* vertexAtrribs) {
-    if (GL_VertexAttribPointer == vertexAtrribs)
-        return;
-
     GLShader* shader = GLRenderer::CurrentShader;
 
     size_t stride = sizeof(GL_VertexBufferEntry);
@@ -801,8 +797,6 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs) {
     // TODO
     // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
     // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 9); CHECK_GL();
-
-    GL_VertexAttribPointer = vertexAtrribs;
 }
 void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
     if (GLRenderer::CurrentShader != state.Shader) {
@@ -815,8 +809,10 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
 
     GL_BindTexture(state.TexturePtr);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+    if (state.TexturePtr) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+    }
 
     if (state.CullFace) {
         glEnable(GL_CULL_FACE); CHECK_GL();
@@ -827,12 +823,12 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
 
     glCullFace(state.CullMode); CHECK_GL();
     glFrontFace(state.WindingOrder); CHECK_GL();
-
     glDepthMask(state.DepthMask); CHECK_GL();
-    GL_SetBlendFuncByMode(state.BlendMode); CHECK_GL();
+
+    GL_SetBlendFuncByMode(state.BlendMode);
 }
 void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, GLenum cullWindingOrder) {
-    if (face.UseTexturing && face.UseMaterial) {
+    if ((face.DrawFlags & DrawMode_TEXTURED) && face.UseMaterial) {
         state.Shader = GLRenderer::ShaderTexturedShape3D;
         state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
     }
@@ -853,10 +849,11 @@ void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, GLenum c
     state.CullMode = face.CullMode;
     state.DepthMask = face.Opacity == 0xFF ? GL_TRUE : GL_FALSE;
     state.BlendMode = face.BlendMode;
-    state.DrawMode = face.DrawMode;
+    state.DrawFlags = face.DrawFlags;
+    state.PrimitiveType = face.PrimitiveType;
     state.VertexAtrribs = face.Data;
 }
-void GL_DrawBatchedScene3D(vector<Uint32>* vertexIndices, GLenum drawMode) {
+void GL_DrawBatchedScene3D(vector<Uint32>* vertexIndices, GLenum primitiveType) {
     size_t numIndices = vertexIndices->size();
 
     size_t capacity = numIndices * GL_VertexIndexBufferStride;
@@ -882,7 +879,7 @@ void GL_DrawBatchedScene3D(vector<Uint32>* vertexIndices, GLenum drawMode) {
             buf[i] = (*vertexIndices)[i];
     }
 
-    glDrawElements(drawMode, numIndices, GL_VertexIndexBufferFormat, (const void *)GL_VertexIndexBuffer); CHECK_GL();
+    glDrawElements(primitiveType, numIndices, GL_VertexIndexBufferFormat, (const void *)GL_VertexIndexBuffer); CHECK_GL();
 }
 PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
@@ -1860,11 +1857,8 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
     // Prepare the shader now
     GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
-
     GL_SetProjectionMatrix(&projMat);
     GL_SetModelViewMatrix(&viewMat);
-
-    GLRenderer::SetDepthTesting(true);
 
     // Begin drawing
     GL_State state = { 0 };
@@ -1876,6 +1870,8 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     PERF_START(perf);
 #endif
 
+    GLRenderer::SetDepthTesting(true);
+
     // Draw it all in one go if we can
     if (useBatching && driverData->UseVertexIndices) {
         GL_UpdateStateFromFace(state, (*driverData->Faces)[0], cullWindingOrder);
@@ -1885,7 +1881,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         size_t numBatches = driverData->VertexIndexList.size();
         for (size_t i = 0; i < numBatches; i++) {
             GL_SetVertexAttribPointers((*driverData->Entries)[i]);
-            GL_DrawBatchedScene3D(driverData->VertexIndexList[i], state.DrawMode);
+            GL_DrawBatchedScene3D(driverData->VertexIndexList[i], state.PrimitiveType);
             PERF_DRAW_CALL(perf);
         }
     }
@@ -1919,7 +1915,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
                     // Draw the current batch, then start the next
                     if (batch.ShouldDraw) {
-                        GL_DrawBatchedScene3D(&batch.VertexIndices, lastState.DrawMode);
+                        GL_DrawBatchedScene3D(&batch.VertexIndices, lastState.PrimitiveType);
                         PERF_DRAW_CALL(perf);
                         batch.VertexIndices.clear();
                         didDraw = true;
@@ -1938,7 +1934,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
                     GL_SetState(state, driverData, &projMat, &viewMat);
                     PERF_STATE_CHANGE(perf);
                 }
-                glDrawArrays(state.DrawMode, face.VertexIndex, face.NumVertices); CHECK_GL();
+                glDrawArrays(state.PrimitiveType, face.VertexIndex, face.NumVertices); CHECK_GL();
                 PERF_DRAW_CALL(perf);
             }
 
@@ -1954,7 +1950,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         // Draw the last remaining batch
         if (batch.ShouldDraw) {
             GL_SetState(state, driverData, &projMat, &viewMat);
-            GL_DrawBatchedScene3D(&batch.VertexIndices, state.DrawMode);
+            GL_DrawBatchedScene3D(&batch.VertexIndices, state.PrimitiveType);
             PERF_STATE_CHANGE(perf);
             PERF_DRAW_CALL(perf);
         }
@@ -1970,8 +1966,6 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     Log::Print(Log::LOG_VERBOSE, "  - Updated vertex buffer: %s", driverDataChanged ? "Yes" : "No");
     Log::Print(Log::LOG_VERBOSE, "  - Time taken: %3.3f ms", perf.Time);
 #endif
-
-    GL_VertexAttribPointer = nullptr;
 
     GL_Predraw(NULL);
 
