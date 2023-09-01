@@ -62,7 +62,8 @@ GLuint             GLRenderer::BufferSquareFill;
 
 bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
-Texture*           GL_LastTexture = NULL;
+Texture*           GL_LastTexture = nullptr;
+void*              GL_VertexAttribPointer = nullptr;
 
 PolygonRenderer    polyRenderer;
 
@@ -99,50 +100,56 @@ struct   GL_TextureData {
     GLenum PixelDataType;
     int    Slot;
 };
-struct   GL_VertexBufferFace {
-    Uint32       NumVertices;
-    Uint32       VertexIndex;
-    bool         UseMaterial;
-    bool         UseTexturing;
-    FaceMaterial MaterialInfo;
-    Uint8        Opacity;
-    Uint8        BlendMode;
-    GLenum       DrawMode;
-    bool         UseCulling;
-    GLenum       CullMode;
-    GLshort      VertexIndices[3];
-};
 struct   GL_VertexBufferEntry {
     float X, Y, Z;
     float TextureU, TextureV;
     float ColorR, ColorG, ColorB, ColorA;
     float NormalX, NormalY, NormalZ;
 };
+struct   GL_VertexBufferFace {
+    Uint32                NumVertices;
+    Uint32                VertexIndex;
+    bool                  UseMaterial;
+    bool                  UseTexturing;
+    FaceMaterial          MaterialInfo;
+    Uint8                 Opacity;
+    Uint8                 BlendMode;
+    GLenum                DrawMode;
+    bool                  UseCulling;
+    GLenum                CullMode;
+    GL_VertexBufferEntry* Data;
+    GLshort               VertexIndices[3];
+};
 struct   GL_VertexBuffer {
-    vector<GL_VertexBufferFace>* Faces;
-    GL_VertexBufferEntry*        Entries;
-    Uint32                       Capacity;
-    vector<Uint16>               VertexIndices;
-    bool                         UseVertexIndices;
-    bool                         Changed;
+    vector<GL_VertexBufferFace>*   Faces;
+    vector<GL_VertexBufferEntry*>* Entries;
+    Uint32                         Capacity;
+    vector<vector<Uint32>*>        VertexIndexList;
+    bool                           UseVertexIndices;
+    bool                           Changed;
 };
 struct   GL_State {
-    bool      CullFace;
-    unsigned  CullMode;
-    unsigned  WindingOrder;
-    GLShader* Shader;
-    Texture*  TexturePtr;
-    bool      DepthMask;
-    unsigned  BlendMode;
-    GLenum    DrawMode;
+    GL_VertexBufferEntry* VertexAtrribs;
+    bool                  CullFace;
+    unsigned              CullMode;
+    unsigned              WindingOrder;
+    GLShader*             Shader;
+    Texture*              TexturePtr;
+    bool                  DepthMask;
+    unsigned              BlendMode;
+    GLenum                DrawMode;
 };
 struct   GL_Scene3DBatch {
     bool           ShouldDraw;
-    vector<Uint16> VertexIndices;
+    vector<Uint32> VertexIndices;
 };
 
-Uint16 *GL_VertexIndexBuffer = nullptr;
+void *GL_VertexIndexBuffer = nullptr;
 size_t GL_VertexIndexBufferCapacity = 0;
+
+GLenum GL_VertexIndexBufferFormat;
+size_t GL_VertexIndexBufferMaxElements;
+size_t GL_VertexIndexBufferStride;
 
 #define GL_SUPPORTS_MULTISAMPLING
 #define GL_SUPPORTS_SMOOTHING
@@ -503,11 +510,19 @@ void GL_ReallocVertexBuffer(GL_VertexBuffer* vtxbuf, Uint32 maxVertices) {
         vtxbuf->Faces = new vector<GL_VertexBufferFace>();
 
     if (vtxbuf->Entries == nullptr) {
-        vtxbuf->Entries = (GL_VertexBufferEntry*)Memory::TrackedCalloc("GL_VertexBuffer::Entries",
-            maxVertices, sizeof(GL_VertexBufferEntry));
+        vtxbuf->Entries = new vector<GL_VertexBufferEntry*>();
+        vtxbuf->Entries->push_back(nullptr);
     }
-    else
-        vtxbuf->Entries = (GL_VertexBufferEntry*)Memory::Realloc(vtxbuf->Entries, maxVertices * sizeof(GL_VertexBufferEntry));
+
+    for (size_t e = 0; e < vtxbuf->Entries->size(); e++) {
+        GL_VertexBufferEntry *entries = (*vtxbuf->Entries)[e];
+        if (vtxbuf->Entries == nullptr) {
+            (*vtxbuf->Entries)[e] = (GL_VertexBufferEntry*)Memory::TrackedCalloc("GL_VertexBuffer::Entries",
+                maxVertices, sizeof(GL_VertexBufferEntry));
+        }
+        else
+            (*vtxbuf->Entries)[e] = (GL_VertexBufferEntry*)Memory::Realloc(entries, maxVertices * sizeof(GL_VertexBufferEntry));
+    }
 }
 float GL_ProjectPointDepth(VertexAttribute* vertex, Matrix4x4* projMatrix) {
     float *M   = projMatrix->Values;
@@ -574,15 +589,25 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
     GL_PrepareVertexBufferUpdate(scene, vertexBuffer, drawMode);
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
-    GL_VertexBufferEntry* entry = driverData->Entries;
+    GL_VertexBufferEntry* data = (*driverData->Entries)[0];
+    GL_VertexBufferEntry* entry = data;
 
     driverData->Faces->clear();
 
     Uint32 verticesStartIndex = 0;
+    Uint32 dataSplit = 0;
+
+    vector<Uint32>* vertexIndices = nullptr;
 
     if (useBatching) {
         driverData->UseVertexIndices = true;
-        driverData->VertexIndices.clear();
+
+        for (size_t i = 0; i < driverData->VertexIndexList.size(); i++)
+            delete driverData->VertexIndexList[i];
+        driverData->VertexIndexList.clear();
+
+        vertexIndices = new vector<Uint32>();
+        driverData->VertexIndexList.push_back(vertexIndices);
     }
 
     GL_VertexBufferFace lastFace = { 0 };
@@ -603,6 +628,30 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         float rgba[4];
         if ((faceDrawMode & DrawMode_SMOOTH_LIGHTING) == 0)
             ColorUtils::Separate(vertex->Color, rgba);
+
+        if (useBatching) {
+            // Check if the faces need to be split into separate batches
+            for (Uint32 v = 0; v < vertexCount; v++) {
+                if (verticesStartIndex + v > GL_VertexIndexBufferMaxElements) {
+                    dataSplit++;
+                    if (dataSplit >= driverData->Entries->size()) {
+                        data = (GL_VertexBufferEntry*)Memory::TrackedCalloc("GL_VertexBuffer::Entries",
+                            driverData->Capacity, sizeof(GL_VertexBufferEntry));
+                        driverData->Entries->push_back(data);
+                    }
+                    else {
+                        data = (*driverData->Entries)[dataSplit];
+                    }
+                    entry = data;
+                    verticesStartIndex = 0;
+                    if (driverData->UseVertexIndices) {
+                        vertexIndices = new vector<Uint32>();
+                        driverData->VertexIndexList.push_back(vertexIndices);
+                    }
+                    break;
+                }
+            }
+        }
 
         for (Uint32 v = 0; v < vertexCount; v++) {
             entry->X = FP16_FROM(vertex->Position.X);
@@ -641,6 +690,7 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         glFace.DrawMode = GL_GetPrimitiveType(faceDrawMode);
         glFace.UseCulling = face->CullMode != FaceCull_None;
         glFace.CullMode = face->CullMode == FaceCull_Front ? GL_FRONT : GL_BACK;
+        glFace.Data = data;
 
         if (useBatching) {
             Uint32 vtxIdx = verticesStartIndex;
@@ -679,10 +729,12 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
                     glFace.VertexIndices[0] = vtxIdx;
                     glFace.VertexIndices[1] = vtxIdx + i + 1;
                     glFace.VertexIndices[2] = vtxIdx + i + 2;
-                    driverData->Faces->push_back(glFace);
 
-                    for (unsigned i = 0; i < 3; i++)
-                        driverData->VertexIndices.push_back(glFace.VertexIndices[i]);
+                    vertexIndices->push_back(glFace.VertexIndices[0]);
+                    vertexIndices->push_back(glFace.VertexIndices[1]);
+                    vertexIndices->push_back(glFace.VertexIndices[2]);
+
+                    driverData->Faces->push_back(glFace);
                 }
             }
 
@@ -690,8 +742,9 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             glFace.VertexIndices[1] = vtxIdx + 1;
             glFace.VertexIndices[2] = vtxIdx + 2;
 
-            for (unsigned i = 0; i < 3; i++)
-                driverData->VertexIndices.push_back(glFace.VertexIndices[i]);
+            vertexIndices->push_back(glFace.VertexIndices[0]);
+            vertexIndices->push_back(glFace.VertexIndices[1]);
+            vertexIndices->push_back(glFace.VertexIndices[2]);
         }
 
         driverData->Faces->push_back(glFace);
@@ -700,39 +753,47 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
     }
 }
 void GL_UpdateScene3DShader(GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
-    GLShader* shader = GLRenderer::CurrentShader;
-
-    size_t stride = sizeof(GL_VertexBufferEntry);
-
-    glEnableVertexAttribArray(shader->LocPosition); CHECK_GL();
-    glVertexAttribPointer(shader->LocPosition, 3, GL_FLOAT, GL_FALSE, stride, driverData->Entries); CHECK_GL();
-
-    // ShaderShape3D doesn't use o_uv, so the entire attribute just gets optimized out.
-    // This case is handled to prevent a GL_INVALID_VALUE error.
-    if (shader->LocTexCoord != -1) {
-        glEnableVertexAttribArray(shader->LocTexCoord); CHECK_GL();
-        glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 3); CHECK_GL();
-    }
-
-    // All shaders used for 3D rendering use o_color, so this is safe to do
-    glEnableVertexAttribArray(shader->LocVaryingColor); CHECK_GL();
-    glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 5); CHECK_GL();
-
-    // TODO
-    // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
-    // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)driverData->Entries + 9); CHECK_GL();
-
     GL_SetProjectionMatrix(projMat);
     GL_SetModelViewMatrix(viewMat);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
 }
+void GL_SetVertexAttribPointers(void* vertexAtrribs) {
+    if (GL_VertexAttribPointer == vertexAtrribs)
+        return;
+
+    GLShader* shader = GLRenderer::CurrentShader;
+
+    size_t stride = sizeof(GL_VertexBufferEntry);
+
+    glEnableVertexAttribArray(shader->LocPosition); CHECK_GL();
+    glVertexAttribPointer(shader->LocPosition, 3, GL_FLOAT, GL_FALSE, stride, vertexAtrribs); CHECK_GL();
+
+    // ShaderShape3D doesn't use o_uv, so the entire attribute just gets optimized out.
+    // This case is handled to prevent a GL_INVALID_VALUE error.
+    if (shader->LocTexCoord != -1) {
+        glEnableVertexAttribArray(shader->LocTexCoord); CHECK_GL();
+        glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 3); CHECK_GL();
+    }
+
+    // All shaders used for 3D rendering use o_color, so this is safe to do
+    glEnableVertexAttribArray(shader->LocVaryingColor); CHECK_GL();
+    glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 5); CHECK_GL();
+
+    // TODO
+    // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
+    // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 9); CHECK_GL();
+
+    GL_VertexAttribPointer = vertexAtrribs;
+}
 void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
     if (GLRenderer::CurrentShader != state.Shader) {
         GLRenderer::UseShader(state.Shader);
         GL_UpdateScene3DShader(driverData, projMat, viewMat);
     }
+
+    GL_SetVertexAttribPointers(state.VertexAtrribs);
 
     GL_BindTexture(state.TexturePtr);
 
@@ -772,21 +833,35 @@ void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, GLenum c
     state.DepthMask = face.Opacity == 0xFF ? GL_TRUE : GL_FALSE;
     state.BlendMode = face.BlendMode;
     state.DrawMode = face.DrawMode;
+    state.VertexAtrribs = face.Data;
 }
-void GL_DrawBatchedScene3D(vector<Uint16>& vertexIndices, GLenum drawMode) {
-    size_t numIndices = vertexIndices.size();
+void GL_DrawBatchedScene3D(vector<Uint32>* vertexIndices, GLenum drawMode) {
+    size_t numIndices = vertexIndices->size();
 
-    size_t capacity = numIndices * sizeof(Uint16);
+    size_t capacity = numIndices * GL_VertexIndexBufferStride;
     if (GL_VertexIndexBuffer == nullptr)
-        GL_VertexIndexBuffer = (Uint16*)Memory::Malloc(capacity);
+        GL_VertexIndexBuffer = (void*)Memory::Malloc(capacity);
     else if (capacity > GL_VertexIndexBufferCapacity)
-        GL_VertexIndexBuffer = (Uint16*)Memory::Realloc(GL_VertexIndexBuffer, capacity);
+        GL_VertexIndexBuffer = (void*)Memory::Realloc(GL_VertexIndexBuffer, capacity);
     GL_VertexIndexBufferCapacity = capacity;
 
-    for (size_t i = 0; i < numIndices; i++)
-        GL_VertexIndexBuffer[i] = vertexIndices[i];
+    if (GL_VertexIndexBufferFormat == GL_UNSIGNED_BYTE) {
+        Uint8* buf = (Uint8*)GL_VertexIndexBuffer;
+        for (size_t i = 0; i < numIndices; i++)
+            buf[i] = (*vertexIndices)[i];
+    }
+    else if (GL_VertexIndexBufferFormat == GL_UNSIGNED_SHORT) {
+        Uint16* buf = (Uint16*)GL_VertexIndexBuffer;
+        for (size_t i = 0; i < numIndices; i++)
+            buf[i] = (*vertexIndices)[i];
+    }
+    else {
+        Uint32* buf = (Uint32*)GL_VertexIndexBuffer;
+        for (size_t i = 0; i < numIndices; i++)
+            buf[i] = (*vertexIndices)[i];
+    }
 
-    glDrawElements(drawMode, numIndices, GL_UNSIGNED_SHORT, (const void *)GL_VertexIndexBuffer); CHECK_GL();
+    glDrawElements(drawMode, numIndices, GL_VertexIndexBufferFormat, (const void *)GL_VertexIndexBuffer); CHECK_GL();
 }
 PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
@@ -887,6 +962,17 @@ PUBLIC STATIC void     GLRenderer::Init() {
         glHint(GL_LINE_SMOOTH_HINT, GL_NICEST); CHECK_GL();
         glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST); CHECK_GL();
     #endif
+
+    if (Application::Platform == Platforms::iOS || Application::Platform == Platforms::Android) {
+        GL_VertexIndexBufferFormat = GL_UNSIGNED_SHORT;
+        GL_VertexIndexBufferMaxElements = 0xFFFF;
+        GL_VertexIndexBufferStride = sizeof(Uint16);
+    }
+    else {
+        GL_VertexIndexBufferFormat = GL_UNSIGNED_INT;
+        GL_VertexIndexBufferMaxElements = 0xFFFFFFFF;
+        GL_VertexIndexBufferStride = sizeof(Uint32);
+    }
 
     GL_MakeShaders();
     GL_MakeShapeBuffers();
@@ -1766,7 +1852,12 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     if (useBatching && driverData->UseVertexIndices) {
         GL_UpdateStateFromFace(state, (*driverData->Faces)[0], cullWindingOrder);
         GL_SetState(state, driverData, &projMat, &viewMat);
-        GL_DrawBatchedScene3D(driverData->VertexIndices, state.DrawMode);
+
+        size_t numBatches = driverData->VertexIndexList.size();
+        for (size_t i = 0; i < numBatches; i++) {
+            GL_SetVertexAttribPointers((*driverData->Entries)[i]);
+            GL_DrawBatchedScene3D(driverData->VertexIndexList[i], state.DrawMode);
+        }
     }
     else {
         GL_State lastState = { 0 };
@@ -1798,7 +1889,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
                     // Draw the current batch, then start the next
                     if (batch.ShouldDraw) {
-                        GL_DrawBatchedScene3D(batch.VertexIndices, lastState.DrawMode);
+                        GL_DrawBatchedScene3D(&batch.VertexIndices, lastState.DrawMode);
                         batch.VertexIndices.clear();
                         didDraw = true;
                     }
@@ -1828,9 +1919,11 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         // Draw the last remaining batch
         if (batch.ShouldDraw) {
             GL_SetState(state, driverData, &projMat, &viewMat);
-            GL_DrawBatchedScene3D(batch.VertexIndices, state.DrawMode);
+            GL_DrawBatchedScene3D(&batch.VertexIndices, state.DrawMode);
         }
     }
+
+    GL_VertexAttribPointer = nullptr;
 
     GL_Predraw(NULL);
 
@@ -1855,7 +1948,7 @@ PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vtxBuf->DriverData;
     GL_ReallocVertexBuffer(driverData, maxVertices);
 
-    driverData->VertexIndices.clear();
+    driverData->VertexIndexList.clear();
     driverData->UseVertexIndices = false;
 
     return (void*)vtxBuf;
@@ -1866,9 +1959,13 @@ PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
     if (!driverData)
         return;
 
+    for (size_t i = 0; i < driverData->VertexIndexList.size(); i++)
+        delete driverData->VertexIndexList[i];
+    for (size_t e = 0; e < driverData->Entries->size(); e++)
+        Memory::Free((*driverData->Entries)[e]);
+    delete driverData->Entries;
     delete driverData->Faces;
 
-    Memory::Free(driverData->Entries);
     Memory::Free(driverData);
 
     delete vertexBuffer;
