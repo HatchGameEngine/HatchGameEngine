@@ -1080,7 +1080,6 @@ PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
         return;
 
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
-    scene->Clear();
 
     if (!scene->UseCustomProjectionMatrix) {
         View* currentView = &Scene::Views[Scene::ViewCurrent];
@@ -1092,6 +1091,13 @@ PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
     if (Graphics::GfxFunctions->BindScene3D)
         Graphics::GfxFunctions->BindScene3D(sceneIndex);
     CurrentScene3D = sceneIndex;
+}
+PUBLIC STATIC void     Graphics::ClearScene3D(Uint32 sceneIndex) {
+    if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
+        return;
+
+    Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
+    scene->Clear();
 }
 PUBLIC STATIC void     Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
     if (Graphics::GfxFunctions->DrawScene3D)
@@ -1144,6 +1150,8 @@ PUBLIC STATIC void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertic
     scene->ClipPolygons = true;
     scene->Initialized = true;
     scene->UnloadPolicy = SCOPE_GAME;
+
+    scene->Clear();
 }
 
 PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {

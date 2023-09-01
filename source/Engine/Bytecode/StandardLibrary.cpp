@@ -2370,7 +2370,9 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
+    Graphics::ClearScene3D(scene3DIndex);
     Graphics::BindScene3D(scene3DIndex);
+
     return NULL_VAL;
 }
 /***
@@ -9677,6 +9679,20 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
     scene3D->PointSize = pointSize;
     return NULL_VAL;
 }
+/***
+ * Scene3D.Clear
+ * \desc Removes all previously drawn elements out of a 3D scene.
+ * \param scene3DIndex (Integer): The index of the 3D scene.
+ * \return
+ * \ns Scene3D
+ */
+VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    GET_SCENE_3D();
+    scene3D->Clear();
+    return NULL_VAL;
+}
 #undef GET_SCENE_3D
 // #endregion
 
@@ -14331,6 +14347,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene3D, SetFogColor);
     DEF_NATIVE(Scene3D, SetFogSmoothness);
     DEF_NATIVE(Scene3D, SetPointSize);
+    DEF_NATIVE(Scene3D, Clear);
 
     /***
     * \enum FaceCull_None
