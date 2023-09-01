@@ -69,6 +69,8 @@ public:
     static bool                 UseDepthTesting;
     static bool                 UseSoftwareRenderer;
 
+    static unsigned             CurrentFrame;
+
     // Rendering functions
     static GraphicsFunctions    Internal;
     static GraphicsFunctions*   GfxFunctions;
@@ -139,6 +141,8 @@ bool                 Graphics::UsePalettes = false;
 bool                 Graphics::UseTinting = false;
 bool                 Graphics::UseDepthTesting = false;
 bool                 Graphics::UseSoftwareRenderer = false;
+
+unsigned             Graphics::CurrentFrame = 0;
 
 GraphicsFunctions    Graphics::Internal;
 GraphicsFunctions*   Graphics::GfxFunctions = &Graphics::Internal;
@@ -408,6 +412,7 @@ PUBLIC STATIC void     Graphics::Clear() {
 }
 PUBLIC STATIC void     Graphics::Present() {
     Graphics::GfxFunctions->Present();
+    Graphics::CurrentFrame++;
 }
 
 PUBLIC STATIC void     Graphics::SoftwareStart() {

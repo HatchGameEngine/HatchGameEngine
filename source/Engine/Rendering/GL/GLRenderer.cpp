@@ -31,6 +31,8 @@ public:
 
 #ifdef USING_OPENGL
 
+// #define HAVE_GL_PERFSTATS
+
 #include <Engine/Rendering/GL/GLRenderer.h>
 
 #include <Engine/Application.h>
@@ -41,6 +43,10 @@ public:
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Utilities/ColorUtils.h>
+
+#ifdef HAVE_GL_PERFSTATS
+#include <Engine/Diagnostics/Clock.h>
+#endif
 
 SDL_GLContext      GLRenderer::Context = NULL;
 
@@ -139,6 +145,12 @@ struct   GL_State {
     unsigned              BlendMode;
     GLenum                DrawMode;
 };
+struct   GL_PerfStats {
+    unsigned StateChanges;
+    unsigned DrawCalls;
+    bool     UpdatedVertexBuffer;
+    double   Time;
+};
 struct   GL_Scene3DBatch {
     bool           ShouldDraw;
     vector<Uint32> VertexIndices;
@@ -150,6 +162,18 @@ size_t GL_VertexIndexBufferCapacity = 0;
 GLenum GL_VertexIndexBufferFormat;
 size_t GL_VertexIndexBufferMaxElements;
 size_t GL_VertexIndexBufferStride;
+
+#ifdef HAVE_GL_PERFSTATS
+#define PERF_START(p) (p).Time = Clock::GetTicks()
+#define PERF_STATE_CHANGE(p) (p).StateChanges++
+#define PERF_DRAW_CALL(p) (p).DrawCalls++
+#define PERF_END(p) (p).Time = Clock::GetTicks() - (p).Time
+#else
+#define PERF_START(p)
+#define PERF_STATE_CHANGE(p)
+#define PERF_DRAW_CALL(p)
+#define PERF_END(p)
+#endif
 
 #define GL_SUPPORTS_MULTISAMPLING
 #define GL_SUPPORTS_SMOOTHING
@@ -1794,11 +1818,12 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     if (!scene->Initialized)
         return;
 
-    bool useBatching = true;
-
     VertexBuffer* vertexBuffer = scene->Buffer;
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
-    if (driverData->Changed) {
+
+    bool useBatching = true;
+    bool driverDataChanged = driverData->Changed;
+    if (driverDataChanged) {
         GL_UpdateVertexBuffer(scene, vertexBuffer, drawMode, useBatching);
         driverData->Changed = false;
     }
@@ -1848,15 +1873,22 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
     GLenum cullWindingOrder = currentView->UseDrawTarget ? GL_CCW : GL_CW;
 
+#ifdef HAVE_GL_PERFSTATS
+    GL_PerfStats perf = { 0 };
+    PERF_START(perf);
+#endif
+
     // Draw it all in one go if we can
     if (useBatching && driverData->UseVertexIndices) {
         GL_UpdateStateFromFace(state, (*driverData->Faces)[0], cullWindingOrder);
         GL_SetState(state, driverData, &projMat, &viewMat);
+        PERF_STATE_CHANGE(perf);
 
         size_t numBatches = driverData->VertexIndexList.size();
         for (size_t i = 0; i < numBatches; i++) {
             GL_SetVertexAttribPointers((*driverData->Entries)[i]);
             GL_DrawBatchedScene3D(driverData->VertexIndexList[i], state.DrawMode);
+            PERF_DRAW_CALL(perf);
         }
     }
     else {
@@ -1871,25 +1903,26 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
             GL_VertexBufferFace& face = (*driverData->Faces)[f];
             GL_UpdateStateFromFace(state, face, cullWindingOrder);
 
-            if (useBatching) {
-                // Force a state change if this is the first face
-                if (f == 0) {
-                    memcpy(&lastState, &state, sizeof(GL_State));
-                    GL_SetState(state, driverData, &projMat, &viewMat);
-                }
-                else if (memcmp(&lastState, &state, sizeof(GL_State)))
-                    stateChanged = true;
+            // Force a state change if this is the first face
+            if (f == 0) {
+                memcpy(&lastState, &state, sizeof(GL_State));
+                GL_SetState(state, driverData, &projMat, &viewMat);
+                PERF_STATE_CHANGE(perf);
             }
+            else if (memcmp(&lastState, &state, sizeof(GL_State)))
+                stateChanged = true;
 
             bool didDraw = false;
 
             if (useBatching) {
                 if (stateChanged) {
                     GL_SetState(lastState, driverData, &projMat, &viewMat);
+                    PERF_STATE_CHANGE(perf);
 
                     // Draw the current batch, then start the next
                     if (batch.ShouldDraw) {
                         GL_DrawBatchedScene3D(&batch.VertexIndices, lastState.DrawMode);
+                        PERF_DRAW_CALL(perf);
                         batch.VertexIndices.clear();
                         didDraw = true;
                     }
@@ -1903,8 +1936,12 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
             }
             else {
                 // Just draw the face right away if not batching
-                GL_SetState(state, driverData, &projMat, &viewMat);
+                if (stateChanged) {
+                    GL_SetState(state, driverData, &projMat, &viewMat);
+                    PERF_STATE_CHANGE(perf);
+                }
                 glDrawArrays(state.DrawMode, face.VertexIndex, face.NumVertices); CHECK_GL();
+                PERF_DRAW_CALL(perf);
             }
 
             // Remember the current state
@@ -1920,8 +1957,21 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         if (batch.ShouldDraw) {
             GL_SetState(state, driverData, &projMat, &viewMat);
             GL_DrawBatchedScene3D(&batch.VertexIndices, state.DrawMode);
+            PERF_STATE_CHANGE(perf);
+            PERF_DRAW_CALL(perf);
         }
     }
+
+#ifdef HAVE_GL_PERFSTATS
+    PERF_END(perf);
+
+    Log::Print(Log::LOG_VERBOSE, "Frame %d:", Graphics::CurrentFrame);
+    Log::Print(Log::LOG_VERBOSE, "  Scene 3D %d:", sceneIndex);
+    Log::Print(Log::LOG_VERBOSE, "  - Draw calls: %d", perf.DrawCalls);
+    Log::Print(Log::LOG_VERBOSE, "  - State changes: %d", perf.StateChanges);
+    Log::Print(Log::LOG_VERBOSE, "  - Updated vertex buffer: %s", driverDataChanged ? "Yes" : "No");
+    Log::Print(Log::LOG_VERBOSE, "  - Time taken: %3.3f ms", perf.Time);
+#endif
 
     GL_VertexAttribPointer = nullptr;
 
