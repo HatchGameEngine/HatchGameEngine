@@ -399,6 +399,8 @@ VMValue ReturnString(char* str) {
         return NULL_VAL; \
     }
 
+#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
+
 // #region Animator
 // return true if we found it in the list
 bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) {
@@ -1248,7 +1250,7 @@ if (InputManager::NumControllers == 0) { \
     return NULL_VAL; \
 } \
 else if (idx < 0 || idx >= InputManager::NumControllers) { \
-    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller index %d out of range. (0 - %d)", idx, InputManager::NumControllers - 1); \
+    OUT_OF_RANGE_ERROR("Controller index", idx, 0, InputManager::NumControllers - 1); \
     return NULL_VAL; \
 }
 /***
@@ -1983,7 +1985,7 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
  */
 #define CHECK_VIEW_INDEX() \
     if (view_index < 0 || view_index >= MAX_SCENE_VIEWS) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View index %d out of range. (0 - %d)", view_index, MAX_SCENE_VIEWS - 1); \
+        OUT_OF_RANGE_ERROR("View index", view_index, 0, MAX_SCENE_VIEWS - 1); \
         return NULL_VAL; \
     }
 #define CHECK_RENDER_VIEW() \
@@ -2118,7 +2120,7 @@ VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Vertex index %d out of range. (0 - %d)", vertexBufferIndex, MAX_VERTEX_BUFFERS);
+        OUT_OF_RANGE_ERROR("Vertex index", vertexBufferIndex, 0, MAX_VERTEX_BUFFERS);
         return NULL_VAL;
     }
 
@@ -2138,7 +2140,7 @@ VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 }
 #define GET_SCENE_3D() \
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES); \
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1); \
         return NULL_VAL; \
     } \
     Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
@@ -2366,7 +2368,7 @@ VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Array buffer %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES);
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
         return NULL_VAL;
     }
 
@@ -2386,7 +2388,7 @@ VMValue Draw_BindScene3D(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", scene3DIndex, MAX_3D_SCENES);
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
         return NULL_VAL;
     }
 
@@ -3847,7 +3849,7 @@ VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int blendMode = GET_ARG(0, GetInteger);
     if (blendMode < 0 || blendMode > BlendMode_MATCH_NOT_EQUAL) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Blend mode %d out of range. (0 - %d)", BlendMode_MATCH_NOT_EQUAL);
+        OUT_OF_RANGE_ERROR("Blend mode", blendMode, 0, BlendMode_MATCH_NOT_EQUAL);
         return NULL_VAL;
     }
     Graphics::SetBlendMode(blendMode);
@@ -3933,7 +3935,7 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int tintMode = GET_ARG(0, GetInteger);
     if (tintMode < 0 || tintMode > TintMode_DST_BLEND) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tint mode %d out of range. (0 - %d)", TintMode_DST_BLEND);
+        OUT_OF_RANGE_ERROR("Tint mode", tintMode, 0, TintMode_DST_BLEND);
         return NULL_VAL;
     }
     Graphics::SetTintMode(tintMode);
@@ -3961,7 +3963,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int filterType = GET_ARG(0, GetInteger);
     if (filterType < 0 || filterType > Filter_INVERT) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Filter %d out of range. (0 - %d)", Filter_INVERT);
+        OUT_OF_RANGE_ERROR("Filter", filterType, 0, Filter_INVERT);
         return NULL_VAL;
     }
     SoftwareRenderer::SetFilter(filterType);
@@ -6587,13 +6589,13 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 
 #define CHECK_ANIMATION_INDEX(animation) \
     if (animation < 0 || animation >= (signed)model->AnimationCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation index %d out of range. (0 - %d)", model->AnimationCount - 1); \
+        OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->AnimationCount - 1); \
         return NULL_VAL; \
     }
 
 #define CHECK_ARMATURE_INDEX(armature) \
     if (armature < 0 || armature >= (signed)model->ArmatureCount) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Armature index %d out of range. (0 - %d)", model->ArmatureCount - 1); \
+        OUT_OF_RANGE_ERROR("Armature index", armature, 0, model->ArmatureCount - 1); \
         return NULL_VAL; \
     }
 
@@ -8426,7 +8428,7 @@ VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
 }
 #define CHECK_TILESET_INDEX \
 if (index < 0 || index >= (int)Scene::Tilesets.size()) { \
-    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tileset index %d out of range. (0 - %d)", index, (int)Scene::Tilesets.size() - 1); \
+    OUT_OF_RANGE_ERROR("Tileset index", index, 0, (int)Scene::Tilesets.size() - 1); \
     return NULL_VAL; \
 }
 /***
@@ -9355,7 +9357,7 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
     if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "3D scene %d out of range. (0 - %d)", MAX_3D_SCENES);
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
         return NULL_VAL;
     }
     Graphics::DeleteScene3D(scene3DIndex);
@@ -9689,8 +9691,12 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    GET_SCENE_3D();
-    scene3D->Clear();
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
+        return NULL_VAL;
+    }
+
+    Graphics::ClearScene3D(scene3DIndex);
     return NULL_VAL;
 }
 #undef GET_SCENE_3D

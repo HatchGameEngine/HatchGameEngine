@@ -909,6 +909,7 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.BindVertexBuffer = D3DRenderer::BindVertexBuffer;
     Graphics::Internal.UnbindVertexBuffer = D3DRenderer::UnbindVertexBuffer;
     Graphics::Internal.BindScene3D = D3DRenderer::BindScene3D;
+    Graphics::Internal.ClearScene3D = D3DRenderer::ClearScene3D;
     Graphics::Internal.DrawScene3D = D3DRenderer::DrawScene3D;
 }
 PUBLIC STATIC void     D3DRenderer::Dispose() {
@@ -1431,6 +1432,9 @@ PUBLIC STATIC void     D3DRenderer::UnbindVertexBuffer() {
 
 }
 PUBLIC STATIC void     D3DRenderer::BindScene3D(Uint32 sceneIndex) {
+
+}
+PUBLIC STATIC void     D3DRenderer::ClearScene3D(Uint32 sceneIndex) {
 
 }
 PUBLIC STATIC void     D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {

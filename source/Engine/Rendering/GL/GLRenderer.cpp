@@ -641,15 +641,18 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         FaceInfo* face = &vertexBuffer->FaceInfoBuffer[f];
         Uint32 vertexCount = face->NumVertices;
         int opacity = face->Blend.Opacity;
-        if (Graphics::TextureBlend && (face->Blend.Mode == BlendMode_NORMAL && opacity == 0))
+        if (!Graphics::TextureBlend)
+            opacity = 0xFF;
+        else if (face->Blend.Mode == BlendMode_NORMAL && opacity == 0)
             continue;
 
         VertexAttribute* vertex = &vertexBuffer->Vertices[face->VerticesStartIndex];
         Uint32 faceDrawMode = face->DrawMode | drawMode;
 
-        float rgba[4];
+        float rgba[4] = { 1.0, 1.0, 1.0, opacity / 255.0f };
+
         if ((faceDrawMode & DrawMode_SMOOTH_LIGHTING) == 0)
-            ColorUtils::Separate(vertex->Color, rgba);
+            ColorUtils::SeparateRGB(vertex->Color, rgba);
 
         if (useBatching) {
             // Check if the faces need to be split into separate batches
@@ -688,15 +691,12 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             entry->TextureV = FP16_FROM(vertex->UV.Y);
 
             if (faceDrawMode & DrawMode_SMOOTH_LIGHTING)
-                ColorUtils::Separate(vertex->Color, rgba);
+                ColorUtils::SeparateRGB(vertex->Color, rgba);
+
             entry->ColorR = rgba[0];
             entry->ColorG = rgba[1];
             entry->ColorB = rgba[2];
-
-            if (Graphics::TextureBlend)
-                entry->ColorA = opacity / 255.0f;
-            else
-                entry->ColorA = 1.0f;
+            entry->ColorA = rgba[3];
 
             vertex++;
             entry++;
@@ -708,7 +708,7 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         glFace.UseMaterial = face->UseMaterial;
         if (glFace.UseMaterial)
             glFace.MaterialInfo = face->MaterialInfo;
-        glFace.Opacity = face->Blend.Opacity;
+        glFace.Opacity = opacity;
         glFace.BlendMode = face->Blend.Mode;
         glFace.DrawFlags = faceDrawMode & (DrawMode_PrimitiveMask | DrawMode_TEXTURED);
         glFace.PrimitiveType = GL_GetPrimitiveType(faceDrawMode);
@@ -1102,7 +1102,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawVertexBuffer = GLRenderer::DrawVertexBuffer;
     Graphics::Internal.BindVertexBuffer = GLRenderer::BindVertexBuffer;
     Graphics::Internal.UnbindVertexBuffer = GLRenderer::UnbindVertexBuffer;
-    Graphics::Internal.BindScene3D = GLRenderer::BindScene3D;
+    Graphics::Internal.ClearScene3D = GLRenderer::ClearScene3D;
     Graphics::Internal.DrawScene3D = GLRenderer::DrawScene3D;
 
     Graphics::Internal.CreateVertexBuffer = GLRenderer::CreateVertexBuffer;
@@ -1799,7 +1799,7 @@ PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 PUBLIC STATIC void     GLRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     GLRenderer::BindScene3D(Uint32 sceneIndex) {
+PUBLIC STATIC void     GLRenderer::ClearScene3D(Uint32 sceneIndex) {
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)scene->Buffer->DriverData;
     driverData->Changed = true;
@@ -1988,8 +1988,10 @@ PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
     vtxBuf->DriverData = Memory::TrackedCalloc("VertexBuffer::DriverData", 1, sizeof(GL_VertexBuffer));
 
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vtxBuf->DriverData;
+
     GL_ReallocVertexBuffer(driverData, maxVertices);
 
+    driverData->Changed = true;
     driverData->VertexIndexList.clear();
     driverData->UseVertexIndices = false;
 

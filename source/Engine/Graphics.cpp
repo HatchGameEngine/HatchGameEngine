@@ -1098,6 +1098,9 @@ PUBLIC STATIC void     Graphics::ClearScene3D(Uint32 sceneIndex) {
 
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     scene->Clear();
+
+    if (Graphics::GfxFunctions->ClearScene3D)
+        Graphics::GfxFunctions->ClearScene3D(sceneIndex);
 }
 PUBLIC STATIC void     Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
     if (Graphics::GfxFunctions->DrawScene3D)

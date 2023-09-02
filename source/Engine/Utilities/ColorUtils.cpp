@@ -27,11 +27,14 @@ PUBLIC STATIC Uint32 ColorUtils::ToRGB(float r, float g, float b) {
 PUBLIC STATIC Uint32 ColorUtils::ToRGB(float *r) {
     return ToRGB(r[0], r[1], r[2]);
 }
-PUBLIC STATIC void ColorUtils::Separate(Uint32 color, float* dest) {
-    dest[3] = (color >> 24 & 0xFF) / 255.f;
+PUBLIC STATIC void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
     dest[0] = (color >> 16 & 0xFF) / 255.f;
     dest[1] = (color >> 8 & 0xFF) / 255.f;
     dest[2] = (color & 0xFF) / 255.f;
+}
+PUBLIC STATIC void ColorUtils::Separate(Uint32 color, float* dest) {
+    dest[3] = (color >> 24 & 0xFF) / 255.f;
+    SeparateRGB(color, dest);
 }
 PUBLIC STATIC Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
     Uint32 dR = (colorMult >> 16) & 0xFF;

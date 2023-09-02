@@ -63,6 +63,7 @@ struct GraphicsFunctions {
     void     (*BindVertexBuffer)(Uint32 vertexBufferIndex);
     void     (*UnbindVertexBuffer)();
     void     (*BindScene3D)(Uint32 sceneIndex);
+    void     (*ClearScene3D)(Uint32 sceneIndex);
     void     (*DrawScene3D)(Uint32 sceneIndex, Uint32 drawMode);
 
     void*    (*CreateVertexBuffer)(Uint32 maxVertices);
