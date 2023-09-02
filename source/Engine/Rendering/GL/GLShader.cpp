@@ -20,6 +20,11 @@ public:
     GLint  LocTextureV;
     GLint  LocColor;
     GLint  LocVaryingColor;
+    GLint  LocFogColor;
+    GLint  LocFogLinearStart;
+    GLint  LocFogLinearEnd;
+    GLint  LocFogDensity;
+    GLint  LocFogTable;
 
     char   FilenameV[256];
     char   FilenameF[256];
@@ -40,12 +45,14 @@ public:
 #define CHECK_GL() \
     GLShader::CheckGLError(__LINE__)
 
-PUBLIC        GLShader::GLShader(const GLchar** vertexShaderSource, size_t vsSZ, const GLchar** fragmentShaderSource, size_t fsSZ) {
+PUBLIC        GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
     GLint compiled = GL_FALSE;
     ProgramID = glCreateProgram(); CHECK_GL();
 
+    const char *vertexShaderSourceStr = vertexShaderSource.c_str();
+
     VertexProgramID = glCreateShader(GL_VERTEX_SHADER); CHECK_GL();
-    glShaderSource(VertexProgramID, vsSZ / sizeof(GLchar*), vertexShaderSource, NULL); CHECK_GL();
+    glShaderSource(VertexProgramID, 1, &vertexShaderSourceStr, NULL); CHECK_GL();
     glCompileShader(VertexProgramID); CHECK_GL();
     glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
     if (compiled != GL_TRUE) {
@@ -54,8 +61,10 @@ PUBLIC        GLShader::GLShader(const GLchar** vertexShaderSource, size_t vsSZ,
         return;
     }
 
+    const char *fragmentShaderSourceStr = fragmentShaderSource.c_str();
+
     FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER); CHECK_GL();
-    glShaderSource(FragmentProgramID, fsSZ / sizeof(GLchar*), fragmentShaderSource, NULL); CHECK_GL();
+    glShaderSource(FragmentProgramID, 1, &fragmentShaderSourceStr, NULL); CHECK_GL();
     glCompileShader(FragmentProgramID); CHECK_GL();
     glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
     if (compiled != GL_TRUE) {
@@ -152,6 +161,12 @@ PRIVATE void  GLShader::AttachAndLink() {
     LocTextureV = GetUniformLocation("u_textureV");
     LocColor = GetUniformLocation("u_color");
     LocVaryingColor = GetAttribLocation("i_color");
+
+    LocFogColor = GetUniformLocation("u_fogColor");
+    LocFogLinearStart = GetUniformLocation("u_fogLinearStart");
+    LocFogLinearEnd = GetUniformLocation("u_fogLinearEnd");
+    LocFogDensity = GetUniformLocation("u_fogDensity");
+    LocFogTable = GetUniformLocation("u_fogTable");
 
     CachedBlendColors[0] = CachedBlendColors[1] = CachedBlendColors[2] = CachedBlendColors[3] = 0.0;
 }
