@@ -99,7 +99,7 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
     if (color_type == PNG_COLOR_TYPE_GRAY || color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
         png_set_gray_to_rgb(png_ptr);
     else if (color_type == PNG_COLOR_TYPE_PALETTE) {
-        if (png_get_PLTE(png_ptr, info_ptr, &palette, &palette_size))
+        if (Graphics::UsePalettes && png_get_PLTE(png_ptr, info_ptr, &palette, &palette_size))
             usePalette = true;
 
         if (!usePalette)
@@ -148,6 +148,8 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
             png->Colors[i] |= palette->green << 8;
             png->Colors[i] |= palette->blue;
         }
+
+        Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
     }
     else {
         int num_channels = PNG_COLOR_TYPE_RGB_ALPHA ? 4 : 3;
