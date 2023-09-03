@@ -20,6 +20,11 @@ public:
     static GLShader*          ShaderShape3D;
     static GLShader*          ShaderTexturedShape3D;
 
+    static GLShader*          ShaderShape3D_FogLinear;
+    static GLShader*          ShaderShape3D_FogExp;
+    static GLShader*          ShaderTexturedShape3D_FogLinear;
+    static GLShader*          ShaderTexturedShape3D_FogExp;
+
     static GLint              DefaultFramebuffer;
     static GLint              DefaultRenderbuffer;
 
@@ -58,6 +63,11 @@ GLShader*          GLRenderer::ShaderTexturedShape = NULL;
 GLShader*          GLRenderer::ShaderTexturedShapeYUV = NULL;
 GLShader*          GLRenderer::ShaderShape3D = NULL;
 GLShader*          GLRenderer::ShaderTexturedShape3D = NULL;
+
+GLShader*          GLRenderer::ShaderShape3D_FogLinear = NULL;
+GLShader*          GLRenderer::ShaderShape3D_FogExp = NULL;
+GLShader*          GLRenderer::ShaderTexturedShape3D_FogLinear = NULL;
+GLShader*          GLRenderer::ShaderTexturedShape3D_FogExp = NULL;
 
 GLint              GLRenderer::DefaultFramebuffer;
 GLint              GLRenderer::DefaultRenderbuffer;
@@ -144,6 +154,9 @@ struct   GL_State {
     unsigned              BlendMode;
     Uint32                DrawFlags;
     GLenum                PrimitiveType;
+    float                 FogColor[4];
+    float                 FogParams[4];
+    unsigned              FogMode;
 };
 struct   GL_PerfStats {
     unsigned StateChanges;
@@ -190,115 +203,230 @@ size_t GL_VertexIndexBufferStride;
 #endif
 
 void   GL_MakeShaders() {
-    const GLchar* vertexShaderSource[] = {
-        "attribute vec3    i_position;\n",
-        "attribute vec2    i_uv;\n",
-        "attribute vec4    i_color;\n",
-        "varying vec2      o_uv;\n",
-        "varying vec4      o_color;\n",
+    std::string vertexShaderSource =
+        "attribute vec3    i_position;\n"
+        "attribute vec2    i_uv;\n"
+        "attribute vec4    i_color;\n"
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
 
-        "uniform mat4      u_projectionMatrix;\n",
-        "uniform mat4      u_modelViewMatrix;\n",
+        "uniform mat4      u_projectionMatrix;\n"
+        "uniform mat4      u_modelViewMatrix;\n"
 
-        "void main() {\n",
-        "    gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n",
+        "void main() {\n"
+        "    gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n"
 
-        "    o_uv = i_uv;\n",
-        "    o_color = i_color;\n",
-        "}",
-    };
-    const GLchar* fragmentShaderSource_Shape[] = {
+        "    o_uv = i_uv;\n"
+        "    o_color = i_color;\n"
+        "}";
+    std::string fragmentShaderSource_Shape =
         #ifdef GL_ES
-        "precision mediump float;\n",
+        "precision mediump float;\n"
         #endif
-        "varying vec2      o_uv;\n",
+        "varying vec2      o_uv;\n"
 
-        "uniform vec4      u_color;\n",
+        "uniform vec4      u_color;\n"
 
-        "void main() {",
-        "    gl_FragColor = u_color;",
-        "}",
-    };
-    const GLchar* fragmentShaderSource_TexturedShape[] = {
+        "void main() {"
+        "    gl_FragColor = u_color;"
+        "}";
+    std::string fragmentShaderSource_TexturedShape =
         #ifdef GL_ES
-        "precision mediump float;\n",
+        "precision mediump float;\n"
         #endif
-        "varying vec2      o_uv;\n",
+        "varying vec2      o_uv;\n"
 
-        "uniform vec4      u_color;\n",
-        "uniform sampler2D u_texture;\n",
+        "uniform vec4      u_color;\n"
+        "uniform sampler2D u_texture;\n"
 
-        "void main() {\n",
-        "    vec4 base = texture2D(u_texture, o_uv);\n",
-        "    if (base.a == 0.0) discard;\n",
-        "    gl_FragColor = base * u_color;\n",
-        "}",
-    };
-    const GLchar* fragmentShaderSource_TexturedShapeYUV[] = {
+        "void main() {\n"
+        "    vec4 base = texture2D(u_texture, o_uv);\n"
+        "    if (base.a == 0.0) discard;\n"
+        "    gl_FragColor = base * u_color;\n"
+        "}";
+    std::string fragmentShaderSource_TexturedShapeYUV =
         #ifdef GL_ES
-        "precision mediump float;\n",
+        "precision mediump float;\n"
         #endif
-        "varying vec2      o_uv;\n",
+        "varying vec2      o_uv;\n"
 
-        "uniform vec4      u_color;\n",
-        "uniform sampler2D u_texture;\n",
-        "uniform sampler2D u_textureU;\n",
-        "uniform sampler2D u_textureV;\n",
+        "uniform vec4      u_color;\n"
+        "uniform sampler2D u_texture;\n"
+        "uniform sampler2D u_textureU;\n"
+        "uniform sampler2D u_textureV;\n"
 
-        "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n",
-        "const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n",
-        "const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n",
-        "const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n",
+        "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
+        "const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
+        "const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n"
+        "const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n"
 
-        "void main() {\n",
-        "    vec3 yuv, rgb;\n",
+        "void main() {\n"
+        "    vec3 yuv, rgb;\n"
         "    vec2 uv = o_uv;\n"
 
-        "    yuv.x = texture2D(u_texture,  uv).r;\n",
-        "    yuv.y = texture2D(u_textureU, uv).r;\n",
-        "    yuv.z = texture2D(u_textureV, uv).r;\n",
-        "    yuv += offset;\n",
+        "    yuv.x = texture2D(u_texture,  uv).r;\n"
+        "    yuv.y = texture2D(u_textureU, uv).r;\n"
+        "    yuv.z = texture2D(u_textureV, uv).r;\n"
+        "    yuv += offset;\n"
 
-        "    rgb.r = dot(yuv, Rcoeff);\n",
-        "    rgb.g = dot(yuv, Gcoeff);\n",
-        "    rgb.b = dot(yuv, Bcoeff);\n",
-        "    gl_FragColor = vec4(rgb, 1.0) * u_color;\n",
-        "}",
-    };
-    const GLchar* fragmentShaderSource_Shape3D[] = {
+        "    rgb.r = dot(yuv, Rcoeff);\n"
+        "    rgb.g = dot(yuv, Gcoeff);\n"
+        "    rgb.b = dot(yuv, Bcoeff);\n"
+        "    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
+        "}";
+    std::string fragmentShaderSource_Shape3D =
         #ifdef GL_ES
-        "precision mediump float;\n",
+        "precision mediump float;\n"
         #endif
-        "varying vec2      o_uv;\n",
-        "varying vec4      o_color;\n",
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
 
-        "void main() {",
-        "    if (o_color.a == 0.0) discard;\n",
-        "    gl_FragColor = o_color;",
-        "}",
-    };
-    const GLchar* fragmentShaderSource_TexturedShape3D[] = {
+        "void main() {"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    gl_FragColor = o_color;"
+        "}";
+    std::string fragmentShaderSource_TexturedShape3D =
         #ifdef GL_ES
-        "precision mediump float;\n",
+        "precision mediump float;\n"
         #endif
-        "varying vec2      o_uv;\n",
-        "varying vec4      o_color;\n",
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
 
-        "uniform sampler2D u_texture;\n",
+        "uniform sampler2D u_texture;\n"
 
-        "void main() {\n",
-        "    if (o_color.a == 0.0) discard;\n",
-        "    vec4 base = texture2D(u_texture, o_uv);\n",
-        "    if (base.a == 0.0) discard;\n",
-        "    gl_FragColor = base * o_color;\n",
-        "}",
-    };
+        "void main() {\n"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    vec4 base = texture2D(u_texture, o_uv);\n"
+        "    if (base.a == 0.0) discard;\n"
+        "    gl_FragColor = base * o_color;\n"
+        "}";
 
-    GLRenderer::ShaderShape             = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_Shape, sizeof(fragmentShaderSource_Shape));
-    GLRenderer::ShaderTexturedShape     = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShape, sizeof(fragmentShaderSource_TexturedShape));
-    GLRenderer::ShaderTexturedShapeYUV  = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShapeYUV, sizeof(fragmentShaderSource_TexturedShapeYUV));
-    GLRenderer::ShaderShape3D           = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_Shape3D, sizeof(fragmentShaderSource_Shape3D));
-    GLRenderer::ShaderTexturedShape3D   = new GLShader(vertexShaderSource, sizeof(vertexShaderSource), fragmentShaderSource_TexturedShape3D, sizeof(fragmentShaderSource_TexturedShape3D));
+    std::string vertexShaderSource_Fog =
+        "attribute vec3    i_position;\n"
+        "attribute vec2    i_uv;\n"
+        "attribute vec4    i_color;\n"
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
+
+        "uniform mat4      u_projectionMatrix;\n"
+        "uniform mat4      u_modelViewMatrix;\n"
+
+        "void main() {\n"
+        "    gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n"
+
+        "    o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n"
+        "    o_uv = i_uv;\n"
+        "    o_color = i_color;\n"
+        "}";
+
+    std::string fragmentShaderSource_FogLinear =
+        "float doFogCalc(float coord, float param1, float param2) {\n"
+        "    float fogValue = (param2 - coord) / (param2 - param1);\n"
+        "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
+        "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
+        "}";
+    std::string fragmentShaderSource_FogExp =
+        "float doFogCalc(float coord, float param1) {\n"
+        "    float fogValue = exp(-param1 * coord);\n"
+        "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
+        "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
+        "}";
+
+    std::string fragmentShaderSource_Shape3D_FogLinear =
+        #ifdef GL_ES
+        "precision mediump float;\n"
+        #endif
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
+
+        "uniform vec4      u_fogColor;\n"
+        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogLinearStart;\n"
+        "uniform float     u_fogLinearEnd;\n" +
+
+        fragmentShaderSource_FogLinear +
+
+        "void main() {"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    gl_FragColor = mix(o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogLinearStart, u_fogLinearEnd));"
+        "}";
+    std::string fragmentShaderSource_Shape3D_FogExp =
+        #ifdef GL_ES
+        "precision mediump float;\n"
+        #endif
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
+
+        "uniform vec4      u_fogColor;\n"
+        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogDensity;\n" +
+
+        fragmentShaderSource_FogExp +
+
+        "void main() {"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    gl_FragColor = mix(o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogDensity));"
+        "}";
+    std::string fragmentShaderSource_TexturedShape3D_FogLinear =
+        #ifdef GL_ES
+        "precision mediump float;\n"
+        #endif
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
+
+        "uniform vec4      u_fogColor;\n"
+        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogLinearStart;\n"
+        "uniform float     u_fogLinearEnd;\n" +
+
+        fragmentShaderSource_FogLinear +
+
+        "uniform sampler2D u_texture;\n"
+
+        "void main() {\n"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    vec4 base = texture2D(u_texture, o_uv);\n"
+        "    if (base.a == 0.0) discard;\n"
+        "    gl_FragColor = mix(base * o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogLinearStart, u_fogLinearEnd));"
+        "}";
+    std::string fragmentShaderSource_TexturedShape3D_FogExp =
+        #ifdef GL_ES
+        "precision mediump float;\n"
+        #endif
+        "varying vec4      o_position;\n"
+        "varying vec2      o_uv;\n"
+        "varying vec4      o_color;\n"
+
+        "uniform vec4      u_fogColor;\n"
+        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogDensity;\n" +
+
+        fragmentShaderSource_FogExp +
+
+        "uniform sampler2D u_texture;\n"
+
+        "void main() {\n"
+        "    if (o_color.a == 0.0) discard;\n"
+        "    vec4 base = texture2D(u_texture, o_uv);\n"
+        "    if (base.a == 0.0) discard;\n"
+        "    gl_FragColor = mix(base * o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogDensity));"
+        "}";
+
+    GLRenderer::ShaderShape             = new GLShader(vertexShaderSource, fragmentShaderSource_Shape);
+    GLRenderer::ShaderTexturedShape     = new GLShader(vertexShaderSource, fragmentShaderSource_TexturedShape);
+    GLRenderer::ShaderTexturedShapeYUV  = new GLShader(vertexShaderSource, fragmentShaderSource_TexturedShapeYUV);
+    GLRenderer::ShaderShape3D           = new GLShader(vertexShaderSource, fragmentShaderSource_Shape3D);
+    GLRenderer::ShaderTexturedShape3D   = new GLShader(vertexShaderSource, fragmentShaderSource_TexturedShape3D);
+
+    GLRenderer::ShaderShape3D_FogLinear         = new GLShader(vertexShaderSource_Fog, fragmentShaderSource_Shape3D_FogLinear);
+    GLRenderer::ShaderShape3D_FogExp            = new GLShader(vertexShaderSource_Fog, fragmentShaderSource_Shape3D_FogExp);
+    GLRenderer::ShaderTexturedShape3D_FogLinear = new GLShader(vertexShaderSource_Fog, fragmentShaderSource_TexturedShape3D_FogLinear);
+    GLRenderer::ShaderTexturedShape3D_FogExp    = new GLShader(vertexShaderSource_Fog, fragmentShaderSource_TexturedShape3D_FogExp);
 }
 void   GL_MakeShapeBuffers() {
     GL_Vec2 verticesSquareFill[4];
@@ -710,7 +838,7 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             glFace.MaterialInfo = face->MaterialInfo;
         glFace.Opacity = opacity;
         glFace.BlendMode = face->Blend.Mode;
-        glFace.DrawFlags = faceDrawMode & (DrawMode_PrimitiveMask | DrawMode_TEXTURED);
+        glFace.DrawFlags = faceDrawMode & (DrawMode_PrimitiveMask | DrawMode_TEXTURED | DrawMode_FOG);
         glFace.PrimitiveType = GL_GetPrimitiveType(faceDrawMode);
         glFace.UseCulling = face->CullMode != FaceCull_None;
         glFace.CullMode = face->CullMode == FaceCull_Front ? GL_FRONT : GL_BACK;
@@ -798,6 +926,25 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs) {
     // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
     // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 9); CHECK_GL();
 }
+void GL_BuildFogTable(float* table, float smoothness) {
+    float value = Math::Clamp(1.0f - smoothness, 0.0f, 1.0f);
+    if (value <= 0.0) {
+        for (size_t i = 0; i < 256; i++)
+            table[i] = (float)i / 255.0f;
+        return;
+    }
+
+    float fog = 0.0f;
+    float inv = 1.0f / value;
+
+    const float recip = 1.0f / 256.0f;
+
+    for (size_t i = 0; i < 256; i++) {
+        float result = (int)(floor(fog) * value * 255.0f);
+        table[i] = result / 255.0f;
+        fog += recip * inv;
+    }
+}
 void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat) {
     if (GLRenderer::CurrentShader != state.Shader) {
         GLRenderer::UseShader(state.Shader);
@@ -826,14 +973,67 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     glDepthMask(state.DepthMask); CHECK_GL();
 
     GL_SetBlendFuncByMode(state.BlendMode);
+
+    if (state.DrawFlags & DrawMode_FOG) {
+        glUniform4f(GLRenderer::CurrentShader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]); CHECK_GL();
+
+        if (state.FogMode == FogEquation_Exp) {
+            glUniform1f(GLRenderer::CurrentShader->LocFogDensity, state.FogParams[2]); CHECK_GL();
+        }
+        else {
+            glUniform1f(GLRenderer::CurrentShader->LocFogLinearStart, state.FogParams[0]); CHECK_GL();
+            glUniform1f(GLRenderer::CurrentShader->LocFogLinearEnd, state.FogParams[1]); CHECK_GL();
+        }
+
+        float fogTable[255];
+        GL_BuildFogTable(fogTable, state.FogParams[3]);
+        glUniform1fv(GLRenderer::CurrentShader->LocFogTable, 255, fogTable);
+    }
 }
-void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, GLenum cullWindingOrder) {
+void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D* scene, GLenum cullWindingOrder) {
+    bool fogEnabled = face.DrawFlags & DrawMode_FOG;
+    if (fogEnabled) {
+        state.FogMode = scene->Fog.Equation;
+
+        state.FogColor[0] = scene->Fog.Color.R;
+        state.FogColor[1] = scene->Fog.Color.G;
+        state.FogColor[2] = scene->Fog.Color.B;
+        state.FogColor[3] = 1.0f;
+
+        state.FogParams[0] = scene->Fog.Start;
+        state.FogParams[1] = scene->Fog.End;
+        state.FogParams[2] = scene->Fog.Density * scene->Fog.Density;
+        state.FogParams[3] = scene->Fog.Smoothness;
+    }
+
     if ((face.DrawFlags & DrawMode_TEXTURED) && face.UseMaterial) {
-        state.Shader = GLRenderer::ShaderTexturedShape3D;
+        if (fogEnabled) {
+            switch (scene->Fog.Equation) {
+            case FogEquation_Exp:
+                state.Shader = GLRenderer::ShaderTexturedShape3D_FogExp;
+                break;
+            default:
+                state.Shader = GLRenderer::ShaderTexturedShape3D_FogLinear;
+                break;
+            }
+        }
+        else
+            state.Shader = GLRenderer::ShaderTexturedShape3D;
         state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
     }
     else {
-        state.Shader = GLRenderer::ShaderShape3D;
+        if (fogEnabled) {
+            switch (scene->Fog.Equation) {
+            case FogEquation_Exp:
+                state.Shader = GLRenderer::ShaderShape3D_FogExp;
+                break;
+            default:
+                state.Shader = GLRenderer::ShaderShape3D_FogLinear;
+                break;
+            }
+        }
+        else
+            state.Shader = GLRenderer::ShaderShape3D;
         state.TexturePtr = nullptr;
     }
 
@@ -1874,7 +2074,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
     // Draw it all in one go if we can
     if (useBatching && driverData->UseVertexIndices) {
-        GL_UpdateStateFromFace(state, (*driverData->Faces)[0], cullWindingOrder);
+        GL_UpdateStateFromFace(state, (*driverData->Faces)[0], scene, cullWindingOrder);
         GL_SetState(state, driverData, &projMat, &viewMat);
         PERF_STATE_CHANGE(perf);
 
@@ -1895,7 +2095,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
             bool stateChanged = false;
 
             GL_VertexBufferFace& face = (*driverData->Faces)[f];
-            GL_UpdateStateFromFace(state, face, cullWindingOrder);
+            GL_UpdateStateFromFace(state, face, scene, cullWindingOrder);
 
             // Force a state change if this is the first face
             if (f == 0) {
