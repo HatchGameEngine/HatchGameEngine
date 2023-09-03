@@ -1537,7 +1537,9 @@ PUBLIC STATIC void     PolygonRasterizer::SetFogColor(float r, float g, float b)
     Uint8 colorR = (Uint32)(r * 0xFF);
     Uint8 colorG = (Uint32)(g * 0xFF);
     Uint8 colorB = (Uint32)(b * 0xFF);
-    FogColor = colorR << 16 | colorG << 8 | colorB;
+    Uint32 result = colorR << 16 | colorG << 8 | colorB;
+    Graphics::ConvertFromARGBtoNative(&result, 1);
+    FogColor = result;
 }
 PUBLIC STATIC void     PolygonRasterizer::SetFogSmoothness(float smoothness) {
     float value = Math::Clamp(1.0f - smoothness, 0.0f, 1.0f);

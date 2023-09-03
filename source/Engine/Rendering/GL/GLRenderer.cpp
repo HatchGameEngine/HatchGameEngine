@@ -80,6 +80,9 @@ bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
 Texture*           GL_LastTexture = nullptr;
 
+float              FogTable[255];
+float              FogSmoothness = -1.0f;
+
 PolygonRenderer    polyRenderer;
 
 // TODO:
@@ -322,14 +325,15 @@ void   GL_MakeShaders() {
         "}";
 
     std::string fragmentShaderSource_FogLinear =
-        "float doFogCalc(float coord, float param1, float param2) {\n"
-        "    float fogValue = (param2 - coord) / (param2 - param1);\n"
-        "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
+        "float doFogCalc(float coord, float start, float end) {\n"
+        "    float invZ = 1.0 / (coord / 192.0);\n"
+        "    float fogValue = (end - (1.0 - invZ)) / (end - start);\n"
+        "    int result = clamp(int(fogValue * 256.0), 0, 255);\n"
         "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
         "}";
     std::string fragmentShaderSource_FogExp =
-        "float doFogCalc(float coord, float param1) {\n"
-        "    float fogValue = exp(-param1 * coord);\n"
+        "float doFogCalc(float coord, float density) {\n"
+        "    float fogValue = exp(-density * coord);\n"
         "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
         "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
         "}";
@@ -343,7 +347,7 @@ void   GL_MakeShaders() {
         "varying vec4      o_color;\n"
 
         "uniform vec4      u_fogColor;\n"
-        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogTable[256];\n"
         "uniform float     u_fogLinearStart;\n"
         "uniform float     u_fogLinearEnd;\n" +
 
@@ -362,7 +366,7 @@ void   GL_MakeShaders() {
         "varying vec4      o_color;\n"
 
         "uniform vec4      u_fogColor;\n"
-        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogTable[256];\n"
         "uniform float     u_fogDensity;\n" +
 
         fragmentShaderSource_FogExp +
@@ -380,7 +384,7 @@ void   GL_MakeShaders() {
         "varying vec4      o_color;\n"
 
         "uniform vec4      u_fogColor;\n"
-        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogTable[256];\n"
         "uniform float     u_fogLinearStart;\n"
         "uniform float     u_fogLinearEnd;\n" +
 
@@ -403,7 +407,7 @@ void   GL_MakeShaders() {
         "varying vec4      o_color;\n"
 
         "uniform vec4      u_fogColor;\n"
-        "uniform float     u_fogTable[255];\n"
+        "uniform float     u_fogTable[256];\n"
         "uniform float     u_fogDensity;\n" +
 
         fragmentShaderSource_FogExp +
@@ -926,22 +930,22 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs) {
     // glEnableVertexAttribArray(shader->LocNormal); CHECK_GL();
     // glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 9); CHECK_GL();
 }
-void GL_BuildFogTable(float* table, float smoothness) {
-    float value = Math::Clamp(1.0f - smoothness, 0.0f, 1.0f);
+void GL_BuildFogTable() {
+    float value = Math::Clamp(1.0f - FogSmoothness, 0.0f, 1.0f);
     if (value <= 0.0) {
         for (size_t i = 0; i < 256; i++)
-            table[i] = (float)i / 255.0f;
+            FogTable[i] = (float)i / 255.0f;
         return;
     }
 
     float fog = 0.0f;
     float inv = 1.0f / value;
 
-    const float recip = 1.0f / 256.0f;
+    const float recip = 1.0f / 254.0f;
 
     for (size_t i = 0; i < 256; i++) {
-        float result = (int)(floor(fog) * value * 255.0f);
-        table[i] = result / 255.0f;
+        float result = (int)(floor(fog) * value * 256.0f);
+        FogTable[i] = Math::Clamp(result / 256.0f, 0.0, 1.0f);
         fog += recip * inv;
     }
 }
@@ -977,17 +981,16 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     if (state.DrawFlags & DrawMode_FOG) {
         glUniform4f(GLRenderer::CurrentShader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]); CHECK_GL();
 
-        if (state.FogMode == FogEquation_Exp) {
-            glUniform1f(GLRenderer::CurrentShader->LocFogDensity, state.FogParams[2]); CHECK_GL();
-        }
-        else {
-            glUniform1f(GLRenderer::CurrentShader->LocFogLinearStart, state.FogParams[0]); CHECK_GL();
-            glUniform1f(GLRenderer::CurrentShader->LocFogLinearEnd, state.FogParams[1]); CHECK_GL();
+        glUniform1f(GLRenderer::CurrentShader->LocFogLinearStart, state.FogParams[0]); CHECK_GL();
+        glUniform1f(GLRenderer::CurrentShader->LocFogLinearEnd, state.FogParams[1]); CHECK_GL();
+        glUniform1f(GLRenderer::CurrentShader->LocFogDensity, state.FogParams[2]); CHECK_GL();
+
+        if (state.FogParams[3] != FogSmoothness) {
+            FogSmoothness = state.FogParams[3];
+            GL_BuildFogTable();
         }
 
-        float fogTable[255];
-        GL_BuildFogTable(fogTable, state.FogParams[3]);
-        glUniform1fv(GLRenderer::CurrentShader->LocFogTable, 255, fogTable);
+        glUniform1fv(GLRenderer::CurrentShader->LocFogTable, 256, FogTable); CHECK_GL();
     }
 }
 void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D* scene, GLenum cullWindingOrder) {
