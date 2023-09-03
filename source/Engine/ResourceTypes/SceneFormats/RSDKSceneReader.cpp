@@ -78,9 +78,9 @@ PUBLIC STATIC void RSDKSceneReader::StageConfig_GetColors(const char* filename) 
                                 // if (Color[0] == 0xFF && Color[1] == 0x00 && Color[2] == 0xFF)
                                 //     continue;
 
-                                SoftwareRenderer::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                                Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                             }
-                            Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
+                            Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[i][(col << 4)], 16);
                         }
                     }
                 }
@@ -132,9 +132,9 @@ PUBLIC STATIC void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
                                 // if (Color[0] == 0xFF && Color[1] == 0x00 && Color[2] == 0xFF)
                                 //     continue;
 
-                                SoftwareRenderer::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                                Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                             }
-                            Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][(col << 4)], 16);
+                            Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[i][(col << 4)], 16);
                         }
                     }
                 }
@@ -588,7 +588,7 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
         if (gif) {
             if (gif->Colors) {
                 for (int p = 0; p < 256; p++)
-                    SoftwareRenderer::PaletteColors[0][p] = gif->Colors[p];
+                    Graphics::PaletteColors[0][p] = gif->Colors[p];
                 Memory::Free(gif->Colors);
             }
             delete gif;

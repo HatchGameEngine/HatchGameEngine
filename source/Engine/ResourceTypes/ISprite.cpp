@@ -57,8 +57,9 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
     Uint32*  data = NULL;
     Uint32   width = 0;
     Uint32   height = 0;
+    Uint32*  paletteColors = NULL;
+    unsigned numPaletteColors = 0;
 
-    bool paletted = false;
     const char* altered = filename;
 
     if (Graphics::SpriteSheetTextureMap->Exists(altered)) {
@@ -78,11 +79,12 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
             height = png->Height;
 
             data = png->Data;
-            paletted = png->Paletted;
             Memory::Track(data, "Texture::Data");
 
-            if (png->Colors)
-                Memory::Free(png->Colors);
+            if (png->Paletted) {
+                paletteColors = png->Colors;
+                numPaletteColors = png->NumPaletteColors;
+            }
 
             delete png;
         }
@@ -102,7 +104,6 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
             height = jpeg->Height;
 
             data = jpeg->Data;
-            paletted = jpeg->Paletted;
             Memory::Track(data, "Texture::Data");
 
             delete jpeg;
@@ -123,10 +124,12 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
             height = gif->Height;
 
             data = gif->Data;
-            paletted = gif->Paletted;
-
             Memory::Track(data, "Texture::Data");
-            Memory::Free(gif->Colors);
+
+            if (gif->Paletted) {
+                paletteColors = gif->Colors;
+                numPaletteColors = 256;
+            }
 
             delete gif;
         }
@@ -140,18 +143,14 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
         return texture;
     }
 
-    // if (!overrideSoftware && (width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight)) {
-	// 	Log::Print(Log::LOG_ERROR, "Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!", altered, width, height, Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
-	// 	return NULL;
-	// }
-
-    bool overrideSoftware = false;
-    Application::Settings->GetBool("display", "forceSoftwareTextures", &overrideSoftware);
-    if (overrideSoftware)
+    bool forceSoftwareTextures = false;
+    Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
+    if (forceSoftwareTextures)
         Graphics::NoInternalTextures = true;
 
     texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
-    texture->Paletted = paletted;
+
+    Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
     Graphics::NoInternalTextures = false;
 

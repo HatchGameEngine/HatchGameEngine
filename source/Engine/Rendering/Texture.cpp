@@ -20,6 +20,8 @@ public:
     Texture* Next;
 
     bool     Paletted;
+    Uint32*  PaletteColors;
+    unsigned NumPaletteColors;
 };
 #endif
 
@@ -36,10 +38,26 @@ PUBLIC STATIC Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, 
     texture->Pixels = Memory::TrackedCalloc("Texture::Pixels", 1, sizeof(Uint32) * texture->Width * texture->Height);
     return texture;
 }
-// PUBLIC STATIC Texture* Texture::FromFilename(const char* filename) {
-//     Texture* tex;
-//     SDL_Surface* temp = IMG_Load(filename);
-//     tex = Application::RendererPtr->CreateTextureFromSurface(temp);
-//     SDL_FreeSurface(temp);
-//     return tex;
-// }
+
+PUBLIC void            Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) {
+    if (palette && numPaletteColors) {
+        Paletted = true;
+        PaletteColors = palette;
+        NumPaletteColors = numPaletteColors;
+    }
+    else {
+        Paletted = false;
+        PaletteColors = nullptr;
+        NumPaletteColors = 0;
+    }
+}
+
+PUBLIC void            Texture::Dispose() {
+    if (PaletteColors)
+        Memory::Free(PaletteColors);
+    if (Pixels)
+        Memory::Free(Pixels);
+
+    PaletteColors = nullptr;
+    Pixels = nullptr;
+}

@@ -14,6 +14,7 @@ struct GraphicsFunctions {
     int      (*LockTexture)(Texture* texture, void** pixels, int* pitch);
     int      (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
     int      (*UpdateYUVTexture)(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV);
+    int      (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
     void     (*UnlockTexture)(Texture* texture);
     void     (*DisposeTexture)(Texture* texture);
 

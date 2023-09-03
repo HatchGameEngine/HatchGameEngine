@@ -7127,9 +7127,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         Uint8 Color[3];
                         for (int d = 0; d < 256; d++) {
                             memoryReader->ReadBytes(Color, 3);
-                            SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                            Graphics::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                         }
-                        Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
+                        Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[palIndex][0], 256);
                     } while (false);
                 }
                 // COL file
@@ -7141,9 +7141,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                     Uint8 Color[4];
                     for (int d = 0; d < 256; d++) {
                         memoryReader->ReadBytes(Color, 3);
-                        SoftwareRenderer::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                        Graphics::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                     }
-                    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[palIndex][0], 256);
+                    Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[palIndex][0], 256);
                 }
                 // HPAL file
                 // .hpal defines color lines that it can load instead of full 256 color .act's
@@ -7167,9 +7167,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                 if ((bitmap & (1 << col)) != 0) {
                                     for (int d = 0; d < 16; d++) {
                                         memoryReader->ReadBytes(Color, 3);
-                                        SoftwareRenderer::PaletteColors[i][lineStart | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
+                                        Graphics::PaletteColors[i][lineStart | d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                                     }
-                                    Graphics::ConvertFromARGBtoNative(&SoftwareRenderer::PaletteColors[i][lineStart], 16);
+                                    Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[i][lineStart], 16);
                                 }
                             }
                         }
@@ -7188,7 +7188,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                     if (gif) {
                         if (gif->Colors) {
                             for (int p = 0; p < 256; p++)
-                                SoftwareRenderer::PaletteColors[palIndex][p] = gif->Colors[p];
+                                Graphics::PaletteColors[palIndex][p] = gif->Colors[p];
                             Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
@@ -7208,7 +7208,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                     if (png) {
                         if (png->Paletted) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
-                                SoftwareRenderer::PaletteColors[palIndex][p] = png->Colors[p];
+                                Graphics::PaletteColors[palIndex][p] = png->Colors[p];
                             Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
@@ -7249,7 +7249,7 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
             length = 0x100;
 
         for (size_t src = 0; src < length && x < 0x100;)
-            SoftwareRenderer::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
+            Graphics::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
         if (x >= 0x100)
             break;
     }
@@ -7267,7 +7267,7 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
-    Uint32 color = SoftwareRenderer::PaletteColors[palIndex][colorIndex];
+    Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
     Graphics::ConvertFromARGBtoNative(&color, 1);
     return INTEGER_VAL((int)(color & 0xFFFFFFU));
 }
@@ -7284,7 +7284,7 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
     Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
-    Uint32* color = &SoftwareRenderer::PaletteColors[palIndex][colorIndex];
+    Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
     *color = (hex & 0xFFFFFFU) | 0xFF000000U;
     Graphics::ConvertFromARGBtoNative(color, 1);
     return NULL_VAL;
@@ -7318,7 +7318,7 @@ VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
 
     int percent = mix * 0x100;
     for (int c = colorIndexStart; c < colorIndexStart + colorCount; c++) {
-        SoftwareRenderer::PaletteColors[palIndexDest][c] = 0xFF000000U | PMP_ColorBlend(SoftwareRenderer::PaletteColors[palIndex1][c], SoftwareRenderer::PaletteColors[palIndex2][c], percent);
+        Graphics::PaletteColors[palIndexDest][c] = 0xFF000000U | PMP_ColorBlend(Graphics::PaletteColors[palIndex1][c], Graphics::PaletteColors[palIndex2][c], percent);
     }
     return NULL_VAL;
 }
@@ -7339,11 +7339,11 @@ VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
     if (count > 0x100 - colorIndexStart)
         count = 0x100 - colorIndexStart;
 
-    Uint32 temp = SoftwareRenderer::PaletteColors[palIndex][colorIndexStart];
+    Uint32 temp = Graphics::PaletteColors[palIndex][colorIndexStart];
     for (int i = colorIndexStart + 1; i < colorIndexStart + count; i++) {
-        SoftwareRenderer::PaletteColors[palIndex][i - 1] = SoftwareRenderer::PaletteColors[palIndex][i];
+        Graphics::PaletteColors[palIndex][i - 1] = Graphics::PaletteColors[palIndex][i];
     }
-    SoftwareRenderer::PaletteColors[palIndex][colorIndexStart + count - 1] = temp;
+    Graphics::PaletteColors[palIndex][colorIndexStart + count - 1] = temp;
     return NULL_VAL;
 }
 /***
@@ -7363,11 +7363,11 @@ VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) 
     if (count > 0x100 - colorIndexStart)
         count = 0x100 - colorIndexStart;
 
-    Uint32 temp = SoftwareRenderer::PaletteColors[palIndex][colorIndexStart + count - 1];
+    Uint32 temp = Graphics::PaletteColors[palIndex][colorIndexStart + count - 1];
     for (int i = colorIndexStart + count - 1; i >= colorIndexStart; i--) {
-        SoftwareRenderer::PaletteColors[palIndex][i] = SoftwareRenderer::PaletteColors[palIndex][i - 1];
+        Graphics::PaletteColors[palIndex][i] = Graphics::PaletteColors[palIndex][i - 1];
     }
-    SoftwareRenderer::PaletteColors[palIndex][colorIndexStart] = temp;
+    Graphics::PaletteColors[palIndex][colorIndexStart] = temp;
     return NULL_VAL;
 }
 /***
@@ -7393,7 +7393,7 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
     if (count > 0x100 - colorIndexStartFrom)
         count = 0x100 - colorIndexStartFrom;
 
-    memcpy(&SoftwareRenderer::PaletteColors[palIndexTo][colorIndexStartTo], &SoftwareRenderer::PaletteColors[palIndexFrom][colorIndexStartFrom], count * sizeof(Uint32));
+    memcpy(&Graphics::PaletteColors[palIndexTo][colorIndexStartTo], &Graphics::PaletteColors[palIndexFrom][colorIndexStartFrom], count * sizeof(Uint32));
     return NULL_VAL;
 }
 /***
@@ -7410,7 +7410,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     Sint32 lineStart = GET_ARG(1, GetInteger);
     Sint32 lineEnd = GET_ARG(2, GetInteger);
 
-    Sint32 lastLine = sizeof(SoftwareRenderer::PaletteIndexLines) - 1;
+    Sint32 lastLine = sizeof(Graphics::PaletteIndexLines) - 1;
     if (lineStart > lastLine)
         lineStart = lastLine;
 
@@ -7418,7 +7418,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
         lineEnd = lastLine;
 
     for (Sint32 i = lineStart; i < lineEnd; i++) {
-        SoftwareRenderer::PaletteIndexLines[i] = (Uint8)palIndex;
+        Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
     }
     return NULL_VAL;
 }

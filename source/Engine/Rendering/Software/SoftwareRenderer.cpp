@@ -16,9 +16,6 @@ class SoftwareRenderer {
 public:
     static GraphicsFunctions BackendFunctions;
     static Uint32            CompareColor;
-    static Sint32            CurrentPalette;
-    static Uint32            PaletteColors[MAX_PALETTE_COUNT][0x100];
-    static Uint8             PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
@@ -46,9 +43,6 @@ public:
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;
-Sint32            SoftwareRenderer::CurrentPalette = -1;
-Uint32            SoftwareRenderer::PaletteColors[MAX_PALETTE_COUNT][0x100];
-Uint8             SoftwareRenderer::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
@@ -141,17 +135,6 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     CurrentBlendState.Opacity = 0xFF;
     CurrentBlendState.FilterTable = nullptr;
 
-    SoftwareRenderer::CurrentPalette = 0;
-    for (int p = 0; p < MAX_PALETTE_COUNT; p++) {
-        for (int c = 0; c < 0x100; c++) {
-            SoftwareRenderer::PaletteColors[p][c]  = 0xFF000000U;
-            SoftwareRenderer::PaletteColors[p][c] |= (c & 0x07) << 5; // Red?
-            SoftwareRenderer::PaletteColors[p][c] |= (c & 0x18) << 11; // Green?
-            SoftwareRenderer::PaletteColors[p][c] |= (c & 0xE0) << 16; // Blue?
-        }
-    }
-    memset(SoftwareRenderer::PaletteIndexLines, 0, sizeof(SoftwareRenderer::PaletteIndexLines));
-
     SoftwareRenderer::BackendFunctions.Init = SoftwareRenderer::Init;
     SoftwareRenderer::BackendFunctions.GetWindowFlags = SoftwareRenderer::GetWindowFlags;
     SoftwareRenderer::BackendFunctions.Dispose = SoftwareRenderer::Dispose;
@@ -226,7 +209,7 @@ PUBLIC STATIC void     SoftwareRenderer::Dispose() {
 
 PUBLIC STATIC void     SoftwareRenderer::RenderStart() {
     for (int i = 0; i < MAX_PALETTE_COUNT; i++)
-        PaletteColors[i][0] &= 0xFFFFFF;
+        Graphics::PaletteColors[i][0] &= 0xFFFFFF;
 }
 PUBLIC STATIC void     SoftwareRenderer::RenderEnd() {
 
@@ -1729,7 +1712,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
                 DEFORM_X; \
@@ -1746,7 +1729,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     #define DRAW_FLIPX(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
                 DEFORM_X; \
@@ -1763,7 +1746,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     #define DRAW_FLIPY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
                 DEFORM_X; \
@@ -1780,7 +1763,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     #define DRAW_FLIPXY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
                 DEFORM_X; \
@@ -1997,7 +1980,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
@@ -2028,7 +2011,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
@@ -2059,7 +2042,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
@@ -2090,7 +2073,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0]; \
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; dst_x++, i_x++) { \
                 DEFORM_X; \
@@ -2567,7 +2550,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         int dst_x = dst_x1, c_dst_x = dst_x1;
         int pixelsOfTileRemaining;
         Sint64 srcX = tScanLine->SrcX, srcY = tScanLine->SrcY;
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0];
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0];
 
         // Draw leftmost tile in scanline
         int srcTX = srcX & 15;
@@ -2912,7 +2895,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         else
             linePixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
-        index = &SoftwareRenderer::PaletteColors[SoftwareRenderer::PaletteIndexLines[dst_y]][0];
+        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0];
 
         for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
             int srcTX = srcX >> 16;

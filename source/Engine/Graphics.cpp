@@ -54,6 +54,9 @@ public:
     static int                  BlendMode;
     static int                  TintMode;
 
+    static Uint32               PaletteColors[MAX_PALETTE_COUNT][0x100];
+    static Uint8                PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+
     static Texture*             CurrentRenderTarget;
     static Sint32               CurrentScene3D;
     static Sint32               CurrentVertexBuffer;
@@ -127,6 +130,9 @@ float                Graphics::TintColors[4];
 int                  Graphics::BlendMode = BlendMode_NORMAL;
 int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
+Uint32               Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
+Uint8                Graphics::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+
 Texture*             Graphics::CurrentRenderTarget = NULL;
 Sint32               Graphics::CurrentScene3D = -1;
 Sint32               Graphics::CurrentVertexBuffer = -1;
@@ -167,6 +173,16 @@ PUBLIC STATIC void     Graphics::Init() {
     Graphics::TintColors[1] =
     Graphics::TintColors[2] =
     Graphics::TintColors[3] = 1.0;
+
+    for (int p = 0; p < MAX_PALETTE_COUNT; p++) {
+        for (int c = 0; c < 0x100; c++) {
+            Graphics::PaletteColors[p][c]  = 0xFF000000U;
+            Graphics::PaletteColors[p][c] |= (c & 0x07) << 5; // Red?
+            Graphics::PaletteColors[p][c] |= (c & 0x18) << 11; // Green?
+            Graphics::PaletteColors[p][c] |= (c & 0xE0) << 16; // Blue?
+        }
+    }
+    memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
 
     int w, h;
     SDL_GetWindowSize(Application::Window, &w, &h);
@@ -349,6 +365,13 @@ PUBLIC STATIC int      Graphics::UpdateYUVTexture(Texture* texture, SDL_Rect* sr
         return 1;
     return Graphics::GfxFunctions->UpdateYUVTexture(texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
 }
+PUBLIC STATIC int      Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
+    texture->SetPalette((Uint32*)palette, numPaletteColors);
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        !Graphics::GfxFunctions->SetTexturePalette || Graphics::NoInternalTextures)
+        return 1;
+    return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
+}
 PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
     Graphics::GfxFunctions->UnlockTexture(texture);
 }
@@ -363,8 +386,7 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
     else
         Graphics::TextureHead = texture->Next;
 
-    if (texture->Pixels)
-        Memory::Free(texture->Pixels);
+    texture->Dispose();
 
     Memory::Free(texture);
 }
