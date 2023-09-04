@@ -7130,6 +7130,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                             Graphics::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                         }
                         Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[palIndex][0], 256);
+                        Graphics::PaletteUpdated = true;
                     } while (false);
                 }
                 // COL file
@@ -7144,6 +7145,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         Graphics::PaletteColors[palIndex][d] = 0xFF000000U | Color[0] << 16 | Color[1] << 8 | Color[2];
                     }
                     Graphics::ConvertFromARGBtoNative(&Graphics::PaletteColors[palIndex][0], 256);
+                    Graphics::PaletteUpdated = true;
                 }
                 // HPAL file
                 // .hpal defines color lines that it can load instead of full 256 color .act's
@@ -7173,6 +7175,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                 }
                             }
                         }
+                        Graphics::PaletteUpdated = true;
                     } while (false);
                 }
                 // GIF file
@@ -7189,6 +7192,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (gif->Colors) {
                             for (int p = 0; p < 256; p++)
                                 Graphics::PaletteColors[palIndex][p] = gif->Colors[p];
+                            Graphics::PaletteUpdated = true;
                             Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
@@ -7209,6 +7213,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                         if (png->Paletted) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 Graphics::PaletteColors[palIndex][p] = png->Colors[p];
+                            Graphics::PaletteUpdated = true;
                             Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
@@ -7250,6 +7255,7 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
 
         for (size_t src = 0; src < length && x < 0x100;)
             Graphics::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
+        Graphics::PaletteUpdated = true;
         if (x >= 0x100)
             break;
     }
@@ -7287,6 +7293,7 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
     *color = (hex & 0xFFFFFFU) | 0xFF000000U;
     Graphics::ConvertFromARGBtoNative(color, 1);
+    Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
 /***
@@ -7317,9 +7324,9 @@ VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
     int colorCount = GET_ARG(5, GetInteger);
 
     int percent = mix * 0x100;
-    for (int c = colorIndexStart; c < colorIndexStart + colorCount; c++) {
+    for (int c = colorIndexStart; c < colorIndexStart + colorCount; c++)
         Graphics::PaletteColors[palIndexDest][c] = 0xFF000000U | PMP_ColorBlend(Graphics::PaletteColors[palIndex1][c], Graphics::PaletteColors[palIndex2][c], percent);
-    }
+    Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
 /***
@@ -7340,10 +7347,10 @@ VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
         count = 0x100 - colorIndexStart;
 
     Uint32 temp = Graphics::PaletteColors[palIndex][colorIndexStart];
-    for (int i = colorIndexStart + 1; i < colorIndexStart + count; i++) {
+    for (int i = colorIndexStart + 1; i < colorIndexStart + count; i++)
         Graphics::PaletteColors[palIndex][i - 1] = Graphics::PaletteColors[palIndex][i];
-    }
     Graphics::PaletteColors[palIndex][colorIndexStart + count - 1] = temp;
+    Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
 /***
@@ -7364,10 +7371,10 @@ VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) 
         count = 0x100 - colorIndexStart;
 
     Uint32 temp = Graphics::PaletteColors[palIndex][colorIndexStart + count - 1];
-    for (int i = colorIndexStart + count - 1; i >= colorIndexStart; i--) {
+    for (int i = colorIndexStart + count - 1; i >= colorIndexStart; i--)
         Graphics::PaletteColors[palIndex][i] = Graphics::PaletteColors[palIndex][i - 1];
-    }
     Graphics::PaletteColors[palIndex][colorIndexStart] = temp;
+    Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
 /***
@@ -7394,6 +7401,8 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
         count = 0x100 - colorIndexStartFrom;
 
     memcpy(&Graphics::PaletteColors[palIndexTo][colorIndexStartTo], &Graphics::PaletteColors[palIndexFrom][colorIndexStartFrom], count * sizeof(Uint32));
+    Graphics::PaletteUpdated = true;
+
     return NULL_VAL;
 }
 /***
@@ -7417,9 +7426,8 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     if (lineEnd > lastLine)
         lineEnd = lastLine;
 
-    for (Sint32 i = lineStart; i < lineEnd; i++) {
+    for (Sint32 i = lineStart; i < lineEnd; i++)
         Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
-    }
     return NULL_VAL;
 }
 // #endregion

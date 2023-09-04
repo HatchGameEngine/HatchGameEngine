@@ -18,6 +18,7 @@ public:
     GLint  LocTexture;
     GLint  LocTextureU;
     GLint  LocTextureV;
+    GLint  LocPalette;
     GLint  LocColor;
     GLint  LocVaryingColor;
     GLint  LocFogColor;
@@ -156,11 +157,13 @@ PRIVATE void  GLShader::AttachAndLink() {
 
     LocPosition = GetAttribLocation("i_position");
     LocTexCoord = GetAttribLocation("i_uv");
+    LocVaryingColor = GetAttribLocation("i_color");
+
+    LocColor = GetUniformLocation("u_color");
     LocTexture = GetUniformLocation("u_texture");
     LocTextureU = GetUniformLocation("u_textureU");
     LocTextureV = GetUniformLocation("u_textureV");
-    LocColor = GetUniformLocation("u_color");
-    LocVaryingColor = GetAttribLocation("i_color");
+    LocPalette = GetUniformLocation("u_paletteTexture");
 
     LocFogColor = GetUniformLocation("u_fogColor");
     LocFogLinearStart = GetUniformLocation("u_fogLinearStart");

@@ -201,6 +201,12 @@
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\gl\GLShaderContainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

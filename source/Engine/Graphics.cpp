@@ -56,6 +56,9 @@ public:
 
     static Uint32               PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8                PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+    static bool                 PaletteUpdated;
+
+    static Texture*             PaletteTexture;
 
     static Texture*             CurrentRenderTarget;
     static Sint32               CurrentScene3D;
@@ -132,6 +135,9 @@ int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
 Uint32               Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8                Graphics::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+bool                 Graphics::PaletteUpdated = false;
+
+Texture*             Graphics::PaletteTexture = NULL;
 
 Texture*             Graphics::CurrentRenderTarget = NULL;
 Sint32               Graphics::CurrentScene3D = -1;
@@ -183,6 +189,7 @@ PUBLIC STATIC void     Graphics::Init() {
         }
     }
     memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
+    Graphics::PaletteUpdated = true;
 
     int w, h;
     SDL_GetWindowSize(Application::Window, &w, &h);
@@ -280,6 +287,7 @@ PUBLIC STATIC void     Graphics::Dispose() {
         Graphics::DisposeTexture(texture);
     }
     Graphics::TextureHead = NULL;
+    Graphics::PaletteTexture = NULL;
 
     Graphics::SpriteSheetTextureMap->Clear();
 
@@ -445,6 +453,23 @@ PUBLIC STATIC void     Graphics::SoftwareEnd() {
     SoftwareRenderer::RenderEnd();
     Graphics::GfxFunctions = &Graphics::Internal;
     Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
+}
+
+PUBLIC STATIC void     Graphics::UpdateGlobalPalette() {
+    if (!Graphics::GfxFunctions->UpdateGlobalPalette)
+        return;
+
+    if (Graphics::PaletteTexture == NULL)
+        Graphics::PaletteTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 0x100, MAX_PALETTE_COUNT);
+
+    if (Graphics::PaletteTexture == NULL) {
+        Log::Print(Log::LOG_ERROR, "Couldn't create palette texture!");
+        abort();
+    }
+
+    Graphics::UpdateTexture(Graphics::PaletteTexture, NULL, (Uint32*)Graphics::PaletteColors, 0x100 * 4);
+
+    Graphics::GfxFunctions->UpdateGlobalPalette();
 }
 
 PUBLIC STATIC void     Graphics::UnloadSceneData() {

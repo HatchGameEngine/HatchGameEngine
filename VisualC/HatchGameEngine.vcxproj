@@ -210,6 +210,8 @@ CD ..</Command>
     <ClCompile Include="..\source\Engine\Rendering\FaceInfo.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
+    <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp" />
+    <ClCompile Include="..\source\engine\rendering\gl\GLShaderContainer.cpp" />
     <ClCompile Include="..\source\Engine\Rendering\Material.cpp" />
     <ClCompile Include="..\source\Engine\Rendering\ModelRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\PolygonRenderer.cpp" />

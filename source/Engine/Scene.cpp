@@ -1104,6 +1104,11 @@ PUBLIC STATIC void Scene::Render() {
 
     Graphics::ResetViewport();
 
+    if (Graphics::PaletteUpdated) {
+        Graphics::UpdateGlobalPalette();
+        Graphics::PaletteUpdated = false;
+    }
+
     int win_w, win_h, ren_w, ren_h;
     SDL_GetWindowSize(Application::Window, &win_w, &win_h);
     SDL_GL_GetDrawableSize(Application::Window, &ren_w, &ren_h);

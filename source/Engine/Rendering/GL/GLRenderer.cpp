@@ -5,6 +5,8 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/GL/GLShader.h>
+#include <Engine/Rendering/GL/GLShaderBuilder.h>
+#include <Engine/Rendering/GL/GLShaderContainer.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Includes/HashMap.h>
 
@@ -205,166 +207,43 @@ size_t GL_VertexIndexBufferStride;
 #define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
 #endif
 
-struct GL_ShaderLinkage {
-    bool link_position;
-    bool link_uv;
-    bool link_color;
-};
-struct GL_ShaderUniforms {
-    bool u_matrix;
-    bool u_color;
-    bool u_texture;
-    bool u_yuv;
-    bool u_fog;
-    bool u_fog_linear;
-    bool u_fog_exp;
-};
-
-void GL_AddUniformsToShaderText(std::string& shaderText, GL_ShaderUniforms uniforms) {
-    if (uniforms.u_matrix) {
-        shaderText += "uniform mat4 u_projectionMatrix;\n";
-        shaderText += "uniform mat4 u_modelViewMatrix;\n";
-    }
-    if (uniforms.u_color) {
-        shaderText += "uniform vec4 u_color;\n";
-    }
-    if (uniforms.u_texture) {
-        shaderText += "uniform sampler2D u_texture;\n";
-    }
-    if (uniforms.u_yuv) {
-        shaderText += "uniform sampler2D u_texture;\n";
-        shaderText += "uniform sampler2D u_textureU;\n";
-        shaderText += "uniform sampler2D u_textureV;\n";
-    }
-    if (uniforms.u_fog) {
-        shaderText += "uniform vec4  u_fogColor;\n";
-        shaderText += "uniform float u_fogTable[256];\n";
-    }
-    if (uniforms.u_fog_linear) {
-        shaderText += "uniform float u_fogLinearStart;\n";
-        shaderText += "uniform float u_fogLinearEnd;\n";
-    }
-    if (uniforms.u_fog_exp) {
-        shaderText += "uniform float u_fogDensity;\n";
-    }
-}
-void GL_AddInputsToVertexShaderText(std::string& shaderText, GL_ShaderLinkage inputs) {
-    if (inputs.link_position) {
-        shaderText += "attribute vec3 i_position;\n";
-    }
-    if (inputs.link_uv) {
-        shaderText += "attribute vec2 i_uv;\n";
-    }
-    if (inputs.link_color) {
-        shaderText += "attribute vec4 i_color;\n";
-    }
-}
-void GL_AddOutputsToVertexShaderText(std::string& shaderText, GL_ShaderLinkage outputs) {
-    if (outputs.link_position) {
-        shaderText += "varying vec4 o_position;\n";
-    }
-    if (outputs.link_uv) {
-        shaderText += "varying vec2 o_uv;\n";
-    }
-    if (outputs.link_color) {
-        shaderText += "varying vec4 o_color;\n";
-    }
-}
-void GL_AddInputsToFragmentShaderText(std::string& shaderText, GL_ShaderLinkage& inputs) {
-    GL_AddOutputsToVertexShaderText(shaderText, inputs);
-}
-
-std::string GL_BuildVertexShader(GL_ShaderLinkage& inputs, GL_ShaderLinkage& outputs, GL_ShaderUniforms& uniforms) {
-    std::string shaderText = "";
-
-    #ifdef GL_ES
-    shaderText += "precision mediump float;\n"
-    #endif
-
-    GL_AddInputsToVertexShaderText(shaderText, inputs);
-    GL_AddOutputsToVertexShaderText(shaderText, outputs);
-    GL_AddUniformsToShaderText(shaderText, uniforms);
-
-    shaderText += "void main() {\n";
-    shaderText += "gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n";
-    if (outputs.link_position) {
-        shaderText += "o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n";
-    }
-    if (outputs.link_color) {
-        shaderText += "o_color = i_color;\n";
-    }
-    if (outputs.link_uv) {
-        shaderText += "o_uv = i_uv;\n";
-    }
-    shaderText += "}";
-
-    return shaderText;
-}
-
-std::string GL_BuildFragmentShader(GL_ShaderLinkage& inputs, GL_ShaderUniforms& uniforms, std::string mainText) {
-    std::string shaderText = "";
-
-    #ifdef GL_ES
-    shaderText += "precision mediump float;\n"
-    #endif
-
-    GL_AddInputsToFragmentShaderText(shaderText, inputs);
-    GL_AddUniformsToShaderText(shaderText, uniforms);
-
-    shaderText += mainText;
-
-    return shaderText;
-}
-
 void   GL_MakeShapeShaders() {
     // Shape
-    GL_ShaderLinkage i_shape = {0};
+    GLShaderLinkage i_shape = {0};
     i_shape.link_position = true;
 
-    GL_ShaderLinkage f_shape = {0};
+    GLShaderLinkage f_shape = {0};
 
-    GL_ShaderUniforms u_vertex = {0};
+    GLShaderUniforms u_vertex = {0};
     u_vertex.u_matrix = true;
 
-    GL_ShaderUniforms u_shape = {0};
+    GLShaderUniforms u_shape = {0};
     u_shape.u_color = true;
 
-    std::string vs_Shape = GL_BuildVertexShader(i_shape, f_shape, u_vertex);
-    std::string fs_Shape = GL_BuildFragmentShader(
-        f_shape, u_shape,
-        "void main() {\n"
-        "    gl_FragColor = u_color;\n"
-        "}"
-    );
+    std::string vs_Shape = GLShaderBuilder::Vertex(i_shape, f_shape, u_vertex);
+    std::string fs_Shape = GLShaderBuilder::Fragment(f_shape, u_shape);
 
     // Textured shape
-    GL_ShaderLinkage i_shapeTextured = {0};
+    GLShaderLinkage i_shapeTextured = {0};
     i_shapeTextured.link_position = true;
     i_shapeTextured.link_uv = true;
 
-    GL_ShaderLinkage f_shapeTextured = {0};
+    GLShaderLinkage f_shapeTextured = {0};
     f_shapeTextured.link_uv = true;
 
-    GL_ShaderUniforms u_shapeTextured = {0};
+    GLShaderUniforms u_shapeTextured = {0};
     u_shapeTextured.u_color = true;
     u_shapeTextured.u_texture = true;
 
-    std::string vs_TexturedShape = GL_BuildVertexShader(i_shapeTextured, f_shapeTextured, u_vertex);
-    std::string fs_TexturedShape = GL_BuildFragmentShader(
-        f_shapeTextured, u_shapeTextured,
-        "void main() {\n"
-        "    vec4 base = texture2D(u_texture, o_uv);\n"
-        "    if (base.a == 0.0) discard;\n"
-        "    gl_FragColor = base * u_color;\n"
-        "}"
-    );
+    std::string vs_TexturedShape = GLShaderBuilder::Vertex(i_shapeTextured, f_shapeTextured, u_vertex);
+    std::string fs_TexturedShape = GLShaderBuilder::Fragment(f_shapeTextured, u_shapeTextured);
 
     // YUV texture fragment shader
-    GL_ShaderUniforms i_YUV = {0};
+    GLShaderUniforms i_YUV = {0};
     i_YUV.u_color = true;
     i_YUV.u_yuv = true;
 
-    std::string fs_TexturedShapeYUV = GL_BuildFragmentShader(
+    std::string fs_TexturedShapeYUV = GLShaderBuilder::Fragment(
         f_shapeTextured, i_YUV,
         "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
         "const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
@@ -393,144 +272,82 @@ void   GL_MakeShapeShaders() {
 }
 void   GL_Make3DShaders() {
     // Shape (3D)
-    GL_ShaderUniforms u_vertex = {0};
+    GLShaderUniforms u_vertex = {0};
     u_vertex.u_matrix = true;
 
-    GL_ShaderLinkage i_3D = {0};
+    GLShaderLinkage i_3D = {0};
     i_3D.link_position = true;
     i_3D.link_color = true;
 
-    GL_ShaderLinkage u_3D = {0};
-    u_3D.link_color = true;
+    GLShaderLinkage f_3D = {0};
+    f_3D.link_color = true;
 
-    std::string vs_Shape3D = GL_BuildVertexShader(i_3D, u_3D, u_vertex);
+    std::string vs_Shape3D = GLShaderBuilder::Vertex(i_3D, f_3D, u_vertex);
 
-    GL_ShaderUniforms shape3D_fragmentUniforms = {0};
+    GLShaderUniforms u_3D = {0};
 
-    std::string fs_Shape3D = GL_BuildFragmentShader(
-        u_3D, shape3D_fragmentUniforms,
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    gl_FragColor = o_color;"
-        "}"
-    );
+    std::string fs_Shape3D = GLShaderBuilder::Fragment(f_3D, u_3D);
 
     // Textured shape (3D)
-    GL_ShaderLinkage i_Textured3D = {0};
+    GLShaderLinkage i_Textured3D = {0};
     i_Textured3D.link_position = true;
     i_Textured3D.link_color = true;
     i_Textured3D.link_uv = true;
 
-    GL_ShaderLinkage f_Textured3D = {0};
+    GLShaderLinkage f_Textured3D = {0};
     f_Textured3D.link_color = true;
     f_Textured3D.link_uv = true;
 
-    std::string vs_TexturedShape3D = GL_BuildVertexShader(i_Textured3D, f_Textured3D, u_vertex);
+    std::string vs_TexturedShape3D = GLShaderBuilder::Vertex(i_Textured3D, f_Textured3D, u_vertex);
 
-    GL_ShaderUniforms u_Textured3D = {0};
+    GLShaderUniforms u_Textured3D = {0};
     u_Textured3D.u_texture = true;
 
-    std::string fs_TexturedShape3D = GL_BuildFragmentShader(
-        f_Textured3D, u_Textured3D,
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    vec4 base = texture2D(u_texture, o_uv);\n"
-        "    if (base.a == 0.0) discard;\n"
-        "    gl_FragColor = base * o_color;\n"
-        "}"
-    );
+    std::string fs_TexturedShape3D = GLShaderBuilder::Fragment(f_Textured3D, u_Textured3D);
 
     GLRenderer::ShaderShape3D           = new GLShader(vs_Shape3D, fs_Shape3D);
     GLRenderer::ShaderTexturedShape3D   = new GLShader(vs_TexturedShape3D, fs_TexturedShape3D);
 }
 void   GL_MakeFogShaders() {
     // Fog
-    std::string func_FogLinear =
-        "float doFogCalc(float coord, float start, float end) {\n"
-        "    float invZ = 1.0 / (coord / 192.0);\n"
-        "    float fogValue = (end - (1.0 - invZ)) / (end - start);\n"
-        "    int result = clamp(int(fogValue * 256.0), 0, 255);\n"
-        "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
-        "}";
-    std::string func_FogExp =
-        "float doFogCalc(float coord, float density) {\n"
-        "    float fogValue = exp(-density * coord);\n"
-        "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
-        "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
-        "}";
-
-    GL_ShaderUniforms u_vertex = {0};
+    GLShaderUniforms u_vertex = {0};
     u_vertex.u_matrix = true;
 
-    GL_ShaderLinkage i_fog = {0};
+    GLShaderLinkage i_fog = {0};
     i_fog.link_position = true;
     i_fog.link_color = true;
 
-    GL_ShaderLinkage f_fog = i_fog;
+    GLShaderLinkage f_fog = i_fog;
 
-    std::string vs_Fog = GL_BuildVertexShader(i_fog, f_fog, u_vertex);
+    std::string vs_Fog = GLShaderBuilder::Vertex(i_fog, f_fog, u_vertex);
 
-    GL_ShaderUniforms u_fogLinear = {0};
-    u_fogLinear.u_fog = true;
+    GLShaderUniforms u_fogLinear = {0};
     u_fogLinear.u_fog_linear = true;
 
-    GL_ShaderUniforms u_fogExp = {0};
-    u_fogExp.u_fog = true;
+    GLShaderUniforms u_fogExp = {0};
     u_fogExp.u_fog_exp = true;
 
-    std::string fs_FogLinear = GL_BuildFragmentShader(
-        f_fog, u_fogLinear,
-        func_FogLinear +
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    gl_FragColor = mix(o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogLinearStart, u_fogLinearEnd));\n"
-        "}"
-    );
-    std::string fs_FogExp = GL_BuildFragmentShader(
-        f_fog, u_fogExp,
-        func_FogExp +
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    gl_FragColor = mix(o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogDensity));\n"
-        "}"
-    );
+    std::string fs_FogLinear = GLShaderBuilder::Fragment(f_fog, u_fogLinear);
+    std::string fs_FogExp = GLShaderBuilder::Fragment(f_fog, u_fogExp);
 
     // Fog (textured)
-    GL_ShaderLinkage i_fogTextured = {0};
+    GLShaderLinkage i_fogTextured = {0};
     i_fogTextured.link_position = true;
     i_fogTextured.link_color = true;
     i_fogTextured.link_uv = true;
 
-    GL_ShaderLinkage f_fogTextured = i_fogTextured;
+    GLShaderLinkage f_fogTextured = i_fogTextured;
 
-    std::string vs_FogTextured = GL_BuildVertexShader(i_fogTextured, f_fogTextured, u_vertex);
+    std::string vs_FogTextured = GLShaderBuilder::Vertex(i_fogTextured, f_fogTextured, u_vertex);
 
-    GL_ShaderUniforms u_fogLinearTextured = u_fogLinear;
+    GLShaderUniforms u_fogLinearTextured = u_fogLinear;
     u_fogLinearTextured.u_texture = true;
 
-    GL_ShaderUniforms u_fogExpTextured = u_fogExp;
+    GLShaderUniforms u_fogExpTextured = u_fogExp;
     u_fogExpTextured.u_texture = true;
 
-    std::string fs_FogTexturedLinear = GL_BuildFragmentShader(
-        f_fogTextured, u_fogLinearTextured,
-        func_FogLinear +
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    vec4 base = texture2D(u_texture, o_uv);\n"
-        "    if (base.a == 0.0) discard;\n"
-        "    gl_FragColor = mix(base * o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogLinearStart, u_fogLinearEnd));\n"
-        "}"
-    );
-    std::string fs_FogTexturedExp = GL_BuildFragmentShader(
-        f_fogTextured, u_fogExpTextured,
-        func_FogExp +
-        "void main() {\n"
-        "    if (o_color.a == 0.0) discard;\n"
-        "    vec4 base = texture2D(u_texture, o_uv);\n"
-        "    if (base.a == 0.0) discard;\n"
-        "    gl_FragColor = mix(base * o_color, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogDensity));\n"
-        "}"
-    );
+    std::string fs_FogTexturedLinear = GLShaderBuilder::Fragment(f_fogTextured, u_fogLinearTextured);
+    std::string fs_FogTexturedExp = GLShaderBuilder::Fragment(f_fogTextured, u_fogExpTextured);
 
     GLRenderer::ShaderFogLinear         = new GLShader(vs_Fog, fs_FogLinear);
     GLRenderer::ShaderFogExp            = new GLShader(vs_Fog, fs_FogExp);
@@ -613,7 +430,15 @@ void   GL_SetTexture(Texture* texture) {
             glBindTexture(GL_TEXTURE_2D, textureData->TextureV); CHECK_GL();
         }
         else {
-            GLRenderer::UseShader(GLRenderer::ShaderTexturedShape);
+            if (texture->Paletted && Graphics::UsePalettes) {
+                glActiveTexture(GL_TEXTURE1); CHECK_GL();
+                glUniform1i(GLRenderer::CurrentShader->LocTextureU, 1); CHECK_GL();
+                glBindTexture(GL_TEXTURE_2D, textureData->TextureU); CHECK_GL();
+
+                GLRenderer::UseShader(GLRenderer::ShaderTexturedShape);
+            }
+            else
+                GLRenderer::UseShader(GLRenderer::ShaderTexturedShape);
         }
 
         glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
@@ -1380,6 +1205,9 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.SetUniformI = GLRenderer::SetUniformI;
     Graphics::Internal.SetUniformTexture = GLRenderer::SetUniformTexture;
 
+    // Palette-related functions
+    Graphics::Internal.UpdateGlobalPalette = GLRenderer::UpdateGlobalPalette;
+
     // These guys
     Graphics::Internal.Clear = GLRenderer::Clear;
     Graphics::Internal.Present = GLRenderer::Present;
@@ -1795,6 +1623,11 @@ PUBLIC STATIC void     GLRenderer::SetUniformTexture(Texture* texture, int unifo
     glActiveTexture(GL_TEXTURE0 + slot); CHECK_GL();
     glUniform1i(uniform_index, slot); CHECK_GL();
     glBindTexture(GL_TEXTURE_2D, textureData->TextureID); CHECK_GL();
+}
+
+// Palette-related functions
+PUBLIC STATIC void     GLRenderer::UpdateGlobalPalette() {
+
 }
 
 // These guys

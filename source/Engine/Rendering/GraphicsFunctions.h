@@ -24,6 +24,8 @@ struct GraphicsFunctions {
     void     (*SetUniformF)(int location, int count, float* values);
     void     (*SetUniformI)(int location, int count, int* values);
 
+    void     (*UpdateGlobalPalette)();
+
     void     (*UpdateViewport)();
     void     (*UpdateClipRect)();
     void     (*UpdateOrtho)(float left, float top, float right, float bottom);
