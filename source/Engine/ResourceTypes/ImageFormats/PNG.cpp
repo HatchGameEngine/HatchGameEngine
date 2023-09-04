@@ -5,7 +5,7 @@
 
 class PNG : public ImageFormat {
 public:
-    Uint8 NumPaletteColors;
+    Uint16 NumPaletteColors;
 };
 #endif
 

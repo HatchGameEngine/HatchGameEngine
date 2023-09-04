@@ -14,18 +14,12 @@ class GLRenderer {
 public:
     static SDL_GLContext      Context;
     static GLShader*          CurrentShader;
-    static GLShader*          SelectedShader;
 
-    static GLShader*          ShaderShape;
-    static GLShader*          ShaderTexturedShape;
-    static GLShader*          ShaderTexturedShapeYUV;
-    static GLShader*          ShaderShape3D;
-    static GLShader*          ShaderTexturedShape3D;
-
-    static GLShader*          ShaderFogLinear;
-    static GLShader*          ShaderFogExp;
-    static GLShader*          ShaderTexturedFogLinear;
-    static GLShader*          ShaderTexturedFogExp;
+    static GLShaderContainer* ShaderShape;
+    static GLShaderContainer* ShaderShape3D;
+    static GLShaderContainer* ShaderFogLinear;
+    static GLShaderContainer* ShaderFogExp;
+    static GLShaderContainer* ShaderYUV;
 
     static GLint              DefaultFramebuffer;
     static GLint              DefaultRenderbuffer;
@@ -58,18 +52,12 @@ public:
 SDL_GLContext      GLRenderer::Context = NULL;
 
 GLShader*          GLRenderer::CurrentShader = NULL;
-GLShader*          GLRenderer::SelectedShader = NULL;
 
-GLShader*          GLRenderer::ShaderShape = NULL;
-GLShader*          GLRenderer::ShaderTexturedShape = NULL;
-GLShader*          GLRenderer::ShaderTexturedShapeYUV = NULL;
-GLShader*          GLRenderer::ShaderShape3D = NULL;
-GLShader*          GLRenderer::ShaderTexturedShape3D = NULL;
-
-GLShader*          GLRenderer::ShaderFogLinear = NULL;
-GLShader*          GLRenderer::ShaderFogExp = NULL;
-GLShader*          GLRenderer::ShaderTexturedFogLinear = NULL;
-GLShader*          GLRenderer::ShaderTexturedFogExp = NULL;
+GLShaderContainer* GLRenderer::ShaderShape = NULL;
+GLShaderContainer* GLRenderer::ShaderShape3D = NULL;
+GLShaderContainer* GLRenderer::ShaderFogLinear = NULL;
+GLShaderContainer* GLRenderer::ShaderFogExp = NULL;
+GLShaderContainer* GLRenderer::ShaderYUV = NULL;
 
 GLint              GLRenderer::DefaultFramebuffer;
 GLint              GLRenderer::DefaultRenderbuffer;
@@ -155,6 +143,8 @@ struct   GL_State {
     unsigned              WindingOrder;
     GLShader*             Shader;
     Texture*              TexturePtr;
+    bool                  UseTexture;
+    bool                  UsePalette;
     bool                  DepthMask;
     unsigned              BlendMode;
     Uint32                DrawFlags;
@@ -207,157 +197,14 @@ size_t GL_VertexIndexBufferStride;
 #define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
 #endif
 
-void   GL_MakeShapeShaders() {
-    // Shape
-    GLShaderLinkage i_shape = {0};
-    i_shape.link_position = true;
-
-    GLShaderLinkage f_shape = {0};
-
-    GLShaderUniforms u_vertex = {0};
-    u_vertex.u_matrix = true;
-
-    GLShaderUniforms u_shape = {0};
-    u_shape.u_color = true;
-
-    std::string vs_Shape = GLShaderBuilder::Vertex(i_shape, f_shape, u_vertex);
-    std::string fs_Shape = GLShaderBuilder::Fragment(f_shape, u_shape);
-
-    // Textured shape
-    GLShaderLinkage i_shapeTextured = {0};
-    i_shapeTextured.link_position = true;
-    i_shapeTextured.link_uv = true;
-
-    GLShaderLinkage f_shapeTextured = {0};
-    f_shapeTextured.link_uv = true;
-
-    GLShaderUniforms u_shapeTextured = {0};
-    u_shapeTextured.u_color = true;
-    u_shapeTextured.u_texture = true;
-
-    std::string vs_TexturedShape = GLShaderBuilder::Vertex(i_shapeTextured, f_shapeTextured, u_vertex);
-    std::string fs_TexturedShape = GLShaderBuilder::Fragment(f_shapeTextured, u_shapeTextured);
-
-    // YUV texture fragment shader
-    GLShaderUniforms i_YUV = {0};
-    i_YUV.u_color = true;
-    i_YUV.u_yuv = true;
-
-    std::string fs_TexturedShapeYUV = GLShaderBuilder::Fragment(
-        f_shapeTextured, i_YUV,
-        "const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
-        "const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
-        "const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n"
-        "const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n"
-
-        "void main() {\n"
-        "    vec3 yuv, rgb;\n"
-        "    vec2 uv = o_uv;\n"
-
-        "    yuv.x = texture2D(u_texture,  uv).r;\n"
-        "    yuv.y = texture2D(u_textureU, uv).r;\n"
-        "    yuv.z = texture2D(u_textureV, uv).r;\n"
-        "    yuv += offset;\n"
-
-        "    rgb.r = dot(yuv, Rcoeff);\n"
-        "    rgb.g = dot(yuv, Gcoeff);\n"
-        "    rgb.b = dot(yuv, Bcoeff);\n"
-        "    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
-        "}"
-    );
-
-    GLRenderer::ShaderShape             = new GLShader(vs_Shape, fs_Shape);
-    GLRenderer::ShaderTexturedShape     = new GLShader(vs_TexturedShape, fs_TexturedShape);
-    GLRenderer::ShaderTexturedShapeYUV  = new GLShader(vs_TexturedShape, fs_TexturedShapeYUV);
-}
-void   GL_Make3DShaders() {
-    // Shape (3D)
-    GLShaderUniforms u_vertex = {0};
-    u_vertex.u_matrix = true;
-
-    GLShaderLinkage i_3D = {0};
-    i_3D.link_position = true;
-    i_3D.link_color = true;
-
-    GLShaderLinkage f_3D = {0};
-    f_3D.link_color = true;
-
-    std::string vs_Shape3D = GLShaderBuilder::Vertex(i_3D, f_3D, u_vertex);
-
-    GLShaderUniforms u_3D = {0};
-
-    std::string fs_Shape3D = GLShaderBuilder::Fragment(f_3D, u_3D);
-
-    // Textured shape (3D)
-    GLShaderLinkage i_Textured3D = {0};
-    i_Textured3D.link_position = true;
-    i_Textured3D.link_color = true;
-    i_Textured3D.link_uv = true;
-
-    GLShaderLinkage f_Textured3D = {0};
-    f_Textured3D.link_color = true;
-    f_Textured3D.link_uv = true;
-
-    std::string vs_TexturedShape3D = GLShaderBuilder::Vertex(i_Textured3D, f_Textured3D, u_vertex);
-
-    GLShaderUniforms u_Textured3D = {0};
-    u_Textured3D.u_texture = true;
-
-    std::string fs_TexturedShape3D = GLShaderBuilder::Fragment(f_Textured3D, u_Textured3D);
-
-    GLRenderer::ShaderShape3D           = new GLShader(vs_Shape3D, fs_Shape3D);
-    GLRenderer::ShaderTexturedShape3D   = new GLShader(vs_TexturedShape3D, fs_TexturedShape3D);
-}
-void   GL_MakeFogShaders() {
-    // Fog
-    GLShaderUniforms u_vertex = {0};
-    u_vertex.u_matrix = true;
-
-    GLShaderLinkage i_fog = {0};
-    i_fog.link_position = true;
-    i_fog.link_color = true;
-
-    GLShaderLinkage f_fog = i_fog;
-
-    std::string vs_Fog = GLShaderBuilder::Vertex(i_fog, f_fog, u_vertex);
-
-    GLShaderUniforms u_fogLinear = {0};
-    u_fogLinear.u_fog_linear = true;
-
-    GLShaderUniforms u_fogExp = {0};
-    u_fogExp.u_fog_exp = true;
-
-    std::string fs_FogLinear = GLShaderBuilder::Fragment(f_fog, u_fogLinear);
-    std::string fs_FogExp = GLShaderBuilder::Fragment(f_fog, u_fogExp);
-
-    // Fog (textured)
-    GLShaderLinkage i_fogTextured = {0};
-    i_fogTextured.link_position = true;
-    i_fogTextured.link_color = true;
-    i_fogTextured.link_uv = true;
-
-    GLShaderLinkage f_fogTextured = i_fogTextured;
-
-    std::string vs_FogTextured = GLShaderBuilder::Vertex(i_fogTextured, f_fogTextured, u_vertex);
-
-    GLShaderUniforms u_fogLinearTextured = u_fogLinear;
-    u_fogLinearTextured.u_texture = true;
-
-    GLShaderUniforms u_fogExpTextured = u_fogExp;
-    u_fogExpTextured.u_texture = true;
-
-    std::string fs_FogTexturedLinear = GLShaderBuilder::Fragment(f_fogTextured, u_fogLinearTextured);
-    std::string fs_FogTexturedExp = GLShaderBuilder::Fragment(f_fogTextured, u_fogExpTextured);
-
-    GLRenderer::ShaderFogLinear         = new GLShader(vs_Fog, fs_FogLinear);
-    GLRenderer::ShaderFogExp            = new GLShader(vs_Fog, fs_FogExp);
-    GLRenderer::ShaderTexturedFogLinear = new GLShader(vs_FogTextured, fs_FogTexturedLinear);
-    GLRenderer::ShaderTexturedFogExp    = new GLShader(vs_FogTextured, fs_FogTexturedExp);
-}
 void   GL_MakeShaders() {
-    GL_MakeShapeShaders();
-    GL_Make3DShaders();
-    GL_MakeFogShaders();
+    GLRenderer::ShaderShape = GLShaderContainer::Make(false);
+    GLRenderer::ShaderYUV = GLShaderContainer::MakeYUV();
+
+    GLRenderer::ShaderShape3D = GLShaderContainer::Make(true);
+
+    GLRenderer::ShaderFogLinear = GLShaderContainer::MakeFog(FogEquation_Linear);
+    GLRenderer::ShaderFogExp = GLShaderContainer::MakeFog(FogEquation_Exp);
 }
 void   GL_MakeShapeBuffers() {
     GL_Vec2 verticesSquareFill[4];
@@ -410,12 +257,25 @@ void   GL_BindTexture(Texture* texture) {
     }
     GL_LastTexture = texture;
 }
+void   GL_PreparePaletteShader() {
+    glActiveTexture(GL_TEXTURE1); CHECK_GL();
+    glUniform1i(GLRenderer::CurrentShader->LocPalette, 1); CHECK_GL();
+
+    if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
+        GL_TextureData* paletteTexture = (GL_TextureData*)Graphics::PaletteTexture->DriverData;
+        glBindTexture(GL_TEXTURE_2D, paletteTexture->TextureID); CHECK_GL();
+    }
+    else
+        glBindTexture(GL_TEXTURE_2D, 0); CHECK_GL();
+
+    glActiveTexture(GL_TEXTURE0); CHECK_GL();
+}
 void   GL_SetTexture(Texture* texture) {
     // Use appropriate shader if changed
     if (texture) {
         GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
         if (textureData && textureData->YUV) {
-            GLRenderer::UseShader(GLRenderer::ShaderTexturedShapeYUV);
+            GLRenderer::UseShader(GLRenderer::ShaderYUV->Textured);
 
             glActiveTexture(GL_TEXTURE0); CHECK_GL();
             glUniform1i(GLRenderer::CurrentShader->LocTexture, 0); CHECK_GL();
@@ -431,26 +291,23 @@ void   GL_SetTexture(Texture* texture) {
         }
         else {
             if (texture->Paletted && Graphics::UsePalettes) {
-                glActiveTexture(GL_TEXTURE1); CHECK_GL();
-                glUniform1i(GLRenderer::CurrentShader->LocTextureU, 1); CHECK_GL();
-                glBindTexture(GL_TEXTURE_2D, textureData->TextureU); CHECK_GL();
-
-                GLRenderer::UseShader(GLRenderer::ShaderTexturedShape);
+                GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true, true));
+                GL_PreparePaletteShader();
             }
             else
-                GLRenderer::UseShader(GLRenderer::ShaderTexturedShape);
+                GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true));
         }
 
         glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
     }
     else {
-        if (GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape
-        || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShape3D
-        || GLRenderer::CurrentShader == GLRenderer::ShaderTexturedShapeYUV) {
+        if (GLRenderer::CurrentShader == GLRenderer::ShaderShape->Textured
+        || GLRenderer::CurrentShader == GLRenderer::ShaderShape3D->Textured
+        || GLRenderer::CurrentShader == GLRenderer::ShaderYUV->Textured) {
             glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord); CHECK_GL();
         }
 
-        GLRenderer::UseShader(GLRenderer::ShaderShape);
+        GLRenderer::UseShader(GLRenderer::ShaderShape->Get());
     }
 
     GL_BindTexture(texture);
@@ -895,6 +752,9 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
 
     GL_BindTexture(state.TexturePtr);
 
+    if (state.UsePalette)
+        GL_PreparePaletteShader();
+
     if (state.TexturePtr) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
@@ -944,36 +804,30 @@ void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D*
         state.FogParams[3] = scene->Fog.Smoothness;
     }
 
+    state.UseTexture = false;
+    state.UsePalette = false;
+
     if ((face.DrawFlags & DrawMode_TEXTURED) && face.UseMaterial) {
-        if (fogEnabled) {
-            switch (scene->Fog.Equation) {
-            case FogEquation_Exp:
-                state.Shader = GLRenderer::ShaderTexturedFogExp;
-                break;
-            default:
-                state.Shader = GLRenderer::ShaderTexturedFogLinear;
-                break;
-            }
-        }
-        else
-            state.Shader = GLRenderer::ShaderTexturedShape3D;
         state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
+        state.UseTexture = state.TexturePtr != nullptr;
+        state.UsePalette = state.UseTexture && Graphics::UsePalettes && state.TexturePtr->Paletted;
     }
-    else {
-        if (fogEnabled) {
-            switch (scene->Fog.Equation) {
-            case FogEquation_Exp:
-                state.Shader = GLRenderer::ShaderFogExp;
-                break;
-            default:
-                state.Shader = GLRenderer::ShaderFogLinear;
-                break;
-            }
-        }
-        else
-            state.Shader = GLRenderer::ShaderShape3D;
+
+    if (!state.UseTexture)
         state.TexturePtr = nullptr;
+
+    if (fogEnabled) {
+        switch (scene->Fog.Equation) {
+        case FogEquation_Exp:
+            state.Shader = GLRenderer::ShaderFogExp->Get(state.UseTexture, state.UsePalette);
+            break;
+        default:
+            state.Shader = GLRenderer::ShaderFogLinear->Get(state.UseTexture, state.UsePalette);
+            break;
+        }
     }
+    else
+        state.Shader = GLRenderer::ShaderShape3D->Get(state.UseTexture);
 
     if (face.UseCulling) {
         state.CullFace = true;
@@ -1133,7 +987,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
     GL_MakeShaders();
     GL_MakeShapeBuffers();
 
-    UseShader(ShaderShape);
+    UseShader(ShaderShape->Get());
     glEnableVertexAttribArray(GLRenderer::CurrentShader->LocPosition); CHECK_GL();
 
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &DefaultFramebuffer); CHECK_GL();
@@ -1257,8 +1111,11 @@ PUBLIC STATIC void     GLRenderer::Dispose() {
     glDeleteBuffers(1, &BufferCircleStroke); CHECK_GL();
     glDeleteBuffers(1, &BufferSquareFill); CHECK_GL();
 
-    ShaderShape->Dispose(); delete ShaderShape;
-    ShaderTexturedShape->Dispose(); delete ShaderTexturedShape;
+    delete ShaderShape;
+    delete ShaderShape3D;
+    delete ShaderFogLinear;
+    delete ShaderFogExp;
+    delete ShaderYUV;
 
     SDL_GL_DeleteContext(Context);
 }
@@ -2002,7 +1859,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     Matrix4x4::Transpose(&viewMat);
 
     // Prepare the shader now
-    GLRenderer::UseShader(GLRenderer::ShaderTexturedShape3D);
+    GLRenderer::UseShader(GLRenderer::ShaderShape3D->Get(true));
     GL_SetProjectionMatrix(&projMat);
     GL_SetModelViewMatrix(&viewMat);
 

@@ -30,7 +30,7 @@ PRIVATE STATIC void GLShaderBuilder::AddUniformsToShaderText(std::string& shader
         shaderText += "uniform sampler2D u_textureV;\n";
     }
     if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
-        shaderText += "uniform vec4  u_fogColor;\n";
+        shaderText += "uniform vec4 u_fogColor;\n";
         shaderText += "uniform float u_fogTable[256];\n";
     }
     if (uniforms.u_fog_linear) {
@@ -93,37 +93,45 @@ PRIVATE STATIC string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinka
             shaderText += "if (o_color.a == 0.0) discard;\n";
             shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
             if (uniforms.u_palette) {
-                shaderText += "base = texture2D(u_palette, vec2(base.r, 0.0));\n";
+                shaderText += "if (base.r == 0.0) discard;\n";
+                shaderText += "base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
             }
-            shaderText += "if (base.a == 0.0) discard;\n";
+            else {
+                shaderText += "if (base.a == 0.0) discard;\n";
+            }
             shaderText += "finalColor = base * o_color;\n";
         }
         else {
             shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
             if (uniforms.u_palette) {
-                shaderText += "base = texture2D(u_palette, vec2(base.r, 0.0));\n";
+                shaderText += "if (base.r == 0.0) discard;\n";
+                shaderText += "base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
             }
-            shaderText += "if (base.a == 0.0) discard;\n";
+            else {
+                shaderText += "if (base.a == 0.0) discard;\n";
+            }
             shaderText += "finalColor = base * u_color;\n";
         }
     }
     else {
         if (inputs.link_color) {
             shaderText += "if (o_color.a == 0.0) discard;\n";
-            shaderText += "finalColor = o_color;";
+            shaderText += "finalColor = o_color;\n";
         }
         else {
             shaderText += "finalColor = u_color;\n";
         }
     }
 
-    if (uniforms.u_fog_linear) {
-        shaderText += "finalColor = ";
-        shaderText += "mix(finalColor, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogLinearStart, u_fogLinearEnd));\n";
-    }
-    else if (uniforms.u_fog_exp) {
-        shaderText += "finalColor = ";
-        shaderText += "mix(finalColor, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), u_fogDensity));\n";
+    if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
+        shaderText += "finalColor = mix(finalColor, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), ";
+        if (uniforms.u_fog_linear) {
+            shaderText += "u_fogLinearStart, u_fogLinearEnd";
+        }
+        else if (uniforms.u_fog_exp) {
+            shaderText += "u_fogDensity";
+        }
+        shaderText += "));\n";
     }
 
     shaderText += "gl_FragColor = finalColor;\n";
