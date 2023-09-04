@@ -36,6 +36,7 @@ struct GraphicsFunctions {
     void     (*Clear)();
     void     (*Present)();
     void     (*SetRenderTarget)(Texture* texture);
+    void     (*CopyScreen)(Texture* texture);
     void     (*UpdateWindowSize)(int width, int height);
 
     void     (*SetBlendColor)(float r, float g, float b, float a);

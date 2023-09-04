@@ -515,6 +515,10 @@ PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();
 }
+PUBLIC STATIC void     Graphics::CopyScreen(Texture* texture) {
+    if (Graphics::GfxFunctions->CopyScreen)
+        Graphics::GfxFunctions->CopyScreen(texture);
+}
 PUBLIC STATIC void     Graphics::UpdateOrtho(float width, float height) {
     Graphics::GfxFunctions->UpdateOrtho(0.0f, 0.0f, width, height);
 }

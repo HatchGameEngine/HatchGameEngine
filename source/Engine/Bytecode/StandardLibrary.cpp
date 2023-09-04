@@ -3332,7 +3332,8 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
 
-    Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
+    if (texture)
+        Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
     return NULL_VAL;
 }
 /***
@@ -3354,7 +3355,8 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
     float w = GET_ARG(3, GetDecimal);
     float h = GET_ARG(4, GetDecimal);
 
-    Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
+    if (texture)
+        Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
     return NULL_VAL;
 }
 /***
@@ -3380,7 +3382,8 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(5, GetDecimal);
     float y = GET_ARG(6, GetDecimal);
 
-    Graphics::DrawTexture(texture, sx, sy, sw, sh, x, y, sw, sh);
+    if (texture)
+        Graphics::DrawTexture(texture, sx, sy, sw, sh, x, y, sw, sh);
     return NULL_VAL;
 }
 
@@ -4370,6 +4373,19 @@ VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(Scene::CurrentDrawGroup);
+}
+/***
+ * Draw.CopyScreen
+ * \desc Copies the contents of the screen into a texture.
+ * \param texture (Integer): Texture index.
+ * \ns Draw
+ */
+VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Texture* texture = GET_ARG(0, GetTexture);
+    if (texture)
+        Graphics::CopyScreen(texture);
+    return NULL_VAL;
 }
 // #endregion
 
@@ -13740,6 +13756,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetSpriteDeformLine);
     DEF_NATIVE(Draw, UseDepthTesting);
     DEF_NATIVE(Draw, GetCurrentDrawGroup);
+    DEF_NATIVE(Draw, CopyScreen);
 
     /***
     * \enum DrawMode_LINES

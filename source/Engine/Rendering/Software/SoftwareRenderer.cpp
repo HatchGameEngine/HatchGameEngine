@@ -241,6 +241,10 @@ PUBLIC STATIC void     SoftwareRenderer::DisposeTexture(Texture* texture) {
 PUBLIC STATIC void     SoftwareRenderer::SetRenderTarget(Texture* texture) {
 
 }
+PUBLIC STATIC void     SoftwareRenderer::CopyScreen(Texture* texture) {
+    if (Graphics::Internal.CopyScreen)
+        Graphics::Internal.CopyScreen(texture);
+}
 PUBLIC STATIC void     SoftwareRenderer::UpdateWindowSize(int width, int height) {
     Graphics::Internal.UpdateWindowSize(width, height);
 }

@@ -1191,8 +1191,7 @@ PUBLIC STATIC void Scene::Render() {
             }
         }
         renderFinishTime = Clock::GetTicks() - renderFinishTime;
-        if (viewPerf)
-            viewPerf->RenderFinishTime += renderFinishTime;
+        viewPerf->RenderFinishTime += renderFinishTime;
 
         PERF_END(RenderTime);
     }
