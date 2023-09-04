@@ -265,8 +265,9 @@ void   GL_PreparePaletteShader() {
         GL_TextureData* paletteTexture = (GL_TextureData*)Graphics::PaletteTexture->DriverData;
         glBindTexture(GL_TEXTURE_2D, paletteTexture->TextureID); CHECK_GL();
     }
-    else
+    else {
         glBindTexture(GL_TEXTURE_2D, 0); CHECK_GL();
+    }
 
     glActiveTexture(GL_TEXTURE0); CHECK_GL();
 }
