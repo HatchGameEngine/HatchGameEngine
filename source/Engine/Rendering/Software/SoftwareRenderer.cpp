@@ -143,12 +143,12 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.CreateTexture = SoftwareRenderer::CreateTexture;
     SoftwareRenderer::BackendFunctions.LockTexture = SoftwareRenderer::LockTexture;
     SoftwareRenderer::BackendFunctions.UpdateTexture = SoftwareRenderer::UpdateTexture;
-    // SoftwareRenderer::BackendFunctions.UpdateYUVTexture = SoftwareRenderer::UpdateTextureYUV;
     SoftwareRenderer::BackendFunctions.UnlockTexture = SoftwareRenderer::UnlockTexture;
     SoftwareRenderer::BackendFunctions.DisposeTexture = SoftwareRenderer::DisposeTexture;
 
     // Viewport and view-related functions
     SoftwareRenderer::BackendFunctions.SetRenderTarget = SoftwareRenderer::SetRenderTarget;
+    SoftwareRenderer::BackendFunctions.ReadFramebuffer = SoftwareRenderer::ReadFramebuffer;
     SoftwareRenderer::BackendFunctions.UpdateWindowSize = SoftwareRenderer::UpdateWindowSize;
     SoftwareRenderer::BackendFunctions.UpdateViewport = SoftwareRenderer::UpdateViewport;
     SoftwareRenderer::BackendFunctions.UpdateClipRect = SoftwareRenderer::UpdateClipRect;
@@ -227,9 +227,6 @@ PUBLIC STATIC int      SoftwareRenderer::LockTexture(Texture* texture, void** pi
 PUBLIC STATIC int      SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
     return 0;
 }
-PUBLIC STATIC int      SoftwareRenderer::UpdateYUVTexture(Texture* texture, SDL_Rect* src, Uint8* pixelsY, int pitchY, Uint8* pixelsU, int pitchU, Uint8* pixelsV, int pitchV) {
-    return 0;
-}
 PUBLIC STATIC void     SoftwareRenderer::UnlockTexture(Texture* texture) {
 
 }
@@ -241,9 +238,9 @@ PUBLIC STATIC void     SoftwareRenderer::DisposeTexture(Texture* texture) {
 PUBLIC STATIC void     SoftwareRenderer::SetRenderTarget(Texture* texture) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::CopyScreen(Texture* texture) {
-    if (Graphics::Internal.CopyScreen)
-        Graphics::Internal.CopyScreen(texture);
+PUBLIC STATIC void     SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+    if (Graphics::Internal.ReadFramebuffer)
+        Graphics::Internal.ReadFramebuffer(pixels, width, height);
 }
 PUBLIC STATIC void     SoftwareRenderer::UpdateWindowSize(int width, int height) {
     Graphics::Internal.UpdateWindowSize(width, height);

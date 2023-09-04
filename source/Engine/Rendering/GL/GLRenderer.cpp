@@ -70,9 +70,6 @@ bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
 Texture*           GL_LastTexture = nullptr;
 
-Uint32*            GL_FramebufferPixels = NULL;
-size_t             GL_FramebufferSize = 0;
-
 float              FogTable[255];
 float              FogSmoothness = -1.0f;
 
@@ -1049,7 +1046,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
 
     // Viewport and view-related functions
     Graphics::Internal.SetRenderTarget = GLRenderer::SetRenderTarget;
-    Graphics::Internal.CopyScreen = GLRenderer::CopyScreen;
+    Graphics::Internal.ReadFramebuffer = GLRenderer::ReadFramebuffer;
     Graphics::Internal.UpdateWindowSize = GLRenderer::UpdateWindowSize;
     Graphics::Internal.UpdateViewport = GLRenderer::UpdateViewport;
     Graphics::Internal.UpdateClipRect = GLRenderer::UpdateClipRect;
@@ -1121,9 +1118,6 @@ PUBLIC STATIC void     GLRenderer::Dispose() {
     delete ShaderFogLinear;
     delete ShaderFogExp;
     delete ShaderYUV;
-
-    if (GL_FramebufferPixels)
-        Memory::Free(GL_FramebufferPixels);
 
     SDL_GL_DeleteContext(Context);
 }
@@ -1378,47 +1372,23 @@ PUBLIC STATIC void     GLRenderer::SetRenderTarget(Texture* texture) {
         CHECK_GL();
     }
 }
-PUBLIC STATIC void     GLRenderer::CopyScreen(Texture* texture) {
-    GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-    if (!textureData)
+PUBLIC STATIC void     GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    if (Graphics::CurrentRenderTarget)
         return;
 
-    size_t sz = Graphics::CurrentViewport.Width * Graphics::CurrentViewport.Height * 4;
+    Uint32* data = (Uint32*)pixels;
+    Uint32* temp = new Uint32[width];
 
-    if (GL_FramebufferPixels == NULL)
-        GL_FramebufferPixels = (Uint32*)Memory::TrackedCalloc("GL_FramebufferPixels", 1, sz);
-    else if (sz != GL_FramebufferSize)
-        GL_FramebufferPixels = (Uint32*)Memory::Realloc(GL_FramebufferPixels, sz);
-
-    GL_FramebufferSize = sz;
-
-    glReadPixels(0, 0, Graphics::CurrentViewport.Width, Graphics::CurrentViewport.Height, GL_RGBA, GL_UNSIGNED_BYTE, GL_FramebufferPixels);
-
-    int src_iw = (int)Graphics::CurrentViewport.Width;
-    int src_ih = (int)Graphics::CurrentViewport.Height;
-
-    int src_w = src_iw << 16;
-    int src_h = src_ih << 16;
-
-    int dest_iw = (int)texture->Width;
-    int dest_ih = (int)texture->Height;
-
-    int dest_w = dest_iw << 16;
-    int dest_h = dest_ih << 16;
-
-    int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w, src_w));
-    int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h, src_h));
-
-    Uint32 *d = (Uint32*)texture->Pixels;
-    Uint32 *s = GL_FramebufferPixels;
-
-    for (int sy = (src_ih - 1) << 16, dy = 0; sy >= 0 && dy < dest_ih; sy -= ys, dy++) {
-        for (int sx = 0, dx = 0; (sx >> 16) < src_iw && dx < dest_iw; sx += xs, dx++) {
-            int isx = sx >> 16;
-            int isy = sy >> 16;
-            d[(dy * texture->Width) + dx] = s[(isy * src_iw) + isx];
-        }
+    for (int i = 0; i < height / 2; i++)
+    {
+        memcpy(temp, &data[i * width], width * 4);
+        memcpy(&data[i * width], &data[(height - 1 - i) * width], width * 4);
+        memcpy(&data[(height - 1 - i) * width], temp, width * 4);
     }
+
+    delete[] temp;
 }
 PUBLIC STATIC void     GLRenderer::UpdateWindowSize(int width, int height) {
     GLRenderer::UpdateViewport();

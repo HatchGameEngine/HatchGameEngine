@@ -54,6 +54,9 @@ public:
     static int                  BlendMode;
     static int                  TintMode;
 
+    static void*                FramebufferPixels;
+    static size_t               FramebufferSize;
+
     static Uint32               PaletteColors[MAX_PALETTE_COUNT][0x100];
     static Uint8                PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
     static bool                 PaletteUpdated;
@@ -132,6 +135,9 @@ float                Graphics::TintColors[4];
 
 int                  Graphics::BlendMode = BlendMode_NORMAL;
 int                  Graphics::TintMode = TintMode_SRC_NORMAL;
+
+void*                Graphics::FramebufferPixels = NULL;
+size_t               Graphics::FramebufferSize = 0;
 
 Uint32               Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8                Graphics::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
@@ -299,6 +305,9 @@ PUBLIC STATIC void     Graphics::Dispose() {
         delete Graphics::MatrixStack.top();
         Graphics::MatrixStack.pop();
     }
+
+    if (Graphics::FramebufferPixels)
+        Memory::Free(Graphics::FramebufferPixels);
 }
 
 PUBLIC STATIC Point    Graphics::ProjectToScreen(float x, float y, float z) {
@@ -516,8 +525,45 @@ PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
     Graphics::GfxFunctions->UpdateClipRect();
 }
 PUBLIC STATIC void     Graphics::CopyScreen(Texture* texture) {
-    if (Graphics::GfxFunctions->CopyScreen)
-        Graphics::GfxFunctions->CopyScreen(texture);
+    if (!Graphics::GfxFunctions->ReadFramebuffer)
+        return;
+
+    int width = Graphics::CurrentViewport.Width;
+    int height = Graphics::CurrentViewport.Height;
+
+    if (texture->Width == width && texture->Height == height) {
+        Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, texture->Width, texture->Height);
+    }
+    else {
+        size_t sz = width * height * 4;
+
+        if (Graphics::FramebufferPixels == NULL)
+            Graphics::FramebufferPixels = (Uint32*)Memory::TrackedCalloc("Graphics::FramebufferPixels", 1, sz);
+        else if (sz != Graphics::FramebufferSize)
+            Graphics::FramebufferPixels = (Uint32*)Memory::Realloc(Graphics::FramebufferPixels, sz);
+
+        Graphics::FramebufferSize = sz;
+
+        Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, width, height);
+
+        Uint32 *d = (Uint32*)texture->Pixels;
+        Uint32 *s = (Uint32*)Graphics::FramebufferPixels;
+
+        int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(texture->Width << 16, width << 16));
+        int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(texture->Height << 16, height << 16));
+
+        for (int sy = 0, dy = 0; dy < texture->Height; dy++, sy += ys) {
+            int isy = sy >> 16;
+            if (isy >= height)
+                return;
+            for (int sx = 0, dx = 0; dx < texture->Width; dx++, sx += xs) {
+                int isx = sx >> 16;
+                if (isx >= width)
+                    break;
+                d[(dy * texture->Width) + dx] = s[(isy * width) + isx];
+            }
+        }
+    }
 }
 PUBLIC STATIC void     Graphics::UpdateOrtho(float width, float height) {
     Graphics::GfxFunctions->UpdateOrtho(0.0f, 0.0f, width, height);

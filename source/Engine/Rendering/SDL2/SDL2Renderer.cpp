@@ -197,8 +197,17 @@ PUBLIC STATIC void     SDL2Renderer::SetRenderTarget(Texture* texture) {
         SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
     }
 }
-PUBLIC STATIC void     SDL2Renderer::CopyScreen(Texture* texture) {
+PUBLIC STATIC void     SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
+    Viewport* vp = &Graphics::CurrentViewport;
 
+    SDL_Rect r = {
+        0,
+        0,
+        width,
+        height
+    };
+
+    SDL_RenderReadPixels(Renderer, &r, Graphics::PreferredPixelFormat, pixels, width * SDL_BYTESPERPIXEL(Graphics::PreferredPixelFormat));
 }
 PUBLIC STATIC void     SDL2Renderer::UpdateWindowSize(int width, int height) {
     SDL2Renderer::UpdateViewport();
