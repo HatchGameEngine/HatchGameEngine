@@ -73,14 +73,14 @@ PRIVATE STATIC string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinka
         shaderText += "float doFogCalc(float coord, float start, float end) {\n"
         "    float invZ = 1.0 / (coord / 192.0);\n"
         "    float fogValue = (end - (1.0 - invZ)) / (end - start);\n"
-        "    int result = clamp(int(fogValue * 256.0), 0, 255);\n"
+        "    int result = int(clamp(int(fogValue * 255.0), 0, 255));\n"
         "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
         "}\n";
     }
     else if (uniforms.u_fog_exp) {
         shaderText += "float doFogCalc(float coord, float density) {\n"
         "    float fogValue = exp(-density * (coord / 192.0));\n"
-        "    int result = clamp(int(fogValue * 255.0), 0, 255);\n"
+        "    int result = int(clamp(int(fogValue * 255.0), 0, 255));\n"
         "    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
         "}\n";
     }
