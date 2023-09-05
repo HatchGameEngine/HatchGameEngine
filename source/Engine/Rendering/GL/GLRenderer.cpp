@@ -775,18 +775,26 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     GL_SetBlendFuncByMode(state.BlendMode);
 
     if (state.DrawFlags & DrawMode_FOG) {
-        glUniform4f(GLRenderer::CurrentShader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]); CHECK_GL();
+        GLShader* shader = GLRenderer::CurrentShader;
 
-        glUniform1f(GLRenderer::CurrentShader->LocFogLinearStart, state.FogParams[0]); CHECK_GL();
-        glUniform1f(GLRenderer::CurrentShader->LocFogLinearEnd, state.FogParams[1]); CHECK_GL();
-        glUniform1f(GLRenderer::CurrentShader->LocFogDensity, state.FogParams[2]); CHECK_GL();
+        glUniform4f(shader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]); CHECK_GL();
+
+        if (shader->LocFogLinearStart != -1) {
+            glUniform1f(shader->LocFogLinearStart, state.FogParams[0]); CHECK_GL();
+        }
+        if (shader->LocFogLinearEnd != -1) {
+            glUniform1f(shader->LocFogLinearEnd, state.FogParams[1]); CHECK_GL();
+        }
+        if (shader->LocFogDensity != -1) {
+            glUniform1f(shader->LocFogDensity, state.FogParams[2]); CHECK_GL();
+        }
 
         if (state.FogParams[3] != FogSmoothness) {
             FogSmoothness = state.FogParams[3];
             GL_BuildFogTable();
         }
 
-        glUniform1fv(GLRenderer::CurrentShader->LocFogTable, 256, FogTable); CHECK_GL();
+        glUniform1fv(shader->LocFogTable, 256, FogTable); CHECK_GL();
     }
 }
 void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D* scene, GLenum cullWindingOrder) {
