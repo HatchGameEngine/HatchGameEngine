@@ -842,6 +842,7 @@ PUBLIC void BytecodeObject::Remove() {
 
     RunFunction(Hash_Dispose);
 
+    Active = false;
     Removed = true;
 }
 PUBLIC void BytecodeObject::Dispose() {
