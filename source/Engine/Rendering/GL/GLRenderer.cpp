@@ -70,7 +70,7 @@ bool               UseDepthTesting = true;
 float              RetinaScale = 1.0;
 Texture*           GL_LastTexture = nullptr;
 
-float              FogTable[255];
+float              FogTable[256];
 float              FogSmoothness = -1.0f;
 
 PolygonRenderer    polyRenderer;
