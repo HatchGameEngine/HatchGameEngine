@@ -48,6 +48,8 @@ public:
     static ClipArea             CurrentClip;
     static ClipArea             BackupClip;
 
+    static View*                CurrentView;
+
     static float                BlendColors[4];
     static float                TintColors[4];
 
@@ -129,6 +131,8 @@ Viewport             Graphics::CurrentViewport;
 Viewport             Graphics::BackupViewport;
 ClipArea             Graphics::CurrentClip;
 ClipArea             Graphics::BackupClip;
+
+View*                Graphics::CurrentView = NULL;
 
 float                Graphics::BlendColors[4];
 float                Graphics::TintColors[4];
@@ -524,18 +528,15 @@ PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();
 }
-PUBLIC STATIC void     Graphics::CopyScreen(Texture* texture) {
+PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int source_w, int source_h, int dest_x, int dest_y, int dest_w, int dest_h, Texture* texture) {
     if (!Graphics::GfxFunctions->ReadFramebuffer)
         return;
 
-    int width = Graphics::CurrentViewport.Width;
-    int height = Graphics::CurrentViewport.Height;
-
-    if (texture->Width == width && texture->Height == height) {
-        Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, texture->Width, texture->Height);
+    if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w && dest_h == source_h) {
+        Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, dest_w, dest_h);
     }
     else {
-        size_t sz = width * height * 4;
+        size_t sz = source_w * source_h * 4;
 
         if (Graphics::FramebufferPixels == NULL)
             Graphics::FramebufferPixels = (Uint32*)Memory::TrackedCalloc("Graphics::FramebufferPixels", 1, sz);
@@ -544,23 +545,23 @@ PUBLIC STATIC void     Graphics::CopyScreen(Texture* texture) {
 
         Graphics::FramebufferSize = sz;
 
-        Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, width, height);
+        Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, source_w, source_h);
 
         Uint32 *d = (Uint32*)texture->Pixels;
         Uint32 *s = (Uint32*)Graphics::FramebufferPixels;
 
-        int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(texture->Width << 16, width << 16));
-        int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(texture->Height << 16, height << 16));
+        int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
+        int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
 
-        for (int sy = 0, dy = 0; dy < texture->Height; dy++, sy += ys) {
-            int isy = sy >> 16;
-            if (isy >= height)
+        for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h; write_y++, read_y += ys) {
+            int isy = read_y >> 16;
+            if (isy >= source_h)
                 return;
-            for (int sx = 0, dx = 0; dx < texture->Width; dx++, sx += xs) {
-                int isx = sx >> 16;
-                if (isx >= width)
+            for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w; write_x++, read_x += xs) {
+                int isx = read_x >> 16;
+                if (isx >= source_w)
                     break;
-                d[(dy * texture->Width) + dx] = s[(isy * width) + isx];
+                d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
             }
         }
     }

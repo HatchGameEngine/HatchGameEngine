@@ -52,6 +52,22 @@ PUBLIC void            Texture::SetPalette(Uint32* palette, unsigned numPaletteC
     }
 }
 
+PUBLIC void            Texture::Copy(Texture* source) {
+    if (!Pixels || !source || !source->Pixels)
+        return;
+
+    Uint32 *dest = (Uint32*)Pixels;
+    Uint32 *src = (Uint32*)source->Pixels;
+    size_t stride = 4;
+
+    for (unsigned y = 0; y < Height; y++) {
+        size_t sz = source->Width;
+        if (sz > Width)
+            sz = Width;
+        memcpy(&dest[y * (Width * stride)], &src[y * (source->Width * stride)], sz * stride);
+    }
+}
+
 PUBLIC void            Texture::Dispose() {
     if (PaletteColors)
         Memory::Free(PaletteColors);

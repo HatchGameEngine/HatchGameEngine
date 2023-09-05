@@ -12,6 +12,7 @@
 #include <Engine/Types/ObjectList.h>
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/DrawGroupList.h>
+#include <Engine/Rendering/GameTexture.h>
 #include <Engine/Scene/SceneConfig.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileConfig.h>
@@ -69,6 +70,7 @@ public:
     static vector<ResourceType*>     MusicList;
     static vector<ResourceType*>     ModelList;
     static vector<ResourceType*>     MediaList;
+    static vector<GameTexture*>      TextureList;
     static vector<Animator*>         AnimatorList;
 
     static int                       Frame;
@@ -253,6 +255,7 @@ vector<ResourceType*>     Scene::SoundList;
 vector<ResourceType*>     Scene::MusicList;
 vector<ResourceType*>     Scene::ModelList;
 vector<ResourceType*>     Scene::MediaList;
+vector<GameTexture*>      Scene::TextureList;
 vector<Animator*>         Scene::AnimatorList;
 
 Entity*                   StaticObject = NULL;
@@ -837,6 +840,8 @@ PUBLIC STATIC void Scene::SortViews() {
 PUBLIC STATIC void Scene::SetView(int viewIndex) {
     View* currentView = &Scene::Views[viewIndex];
 
+    Graphics::CurrentView = currentView;
+
     if (currentView->UseDrawTarget && currentView->DrawTarget) {
         float view_w = currentView->Width;
         float view_h = currentView->Height;
@@ -1192,9 +1197,10 @@ PUBLIC STATIC void Scene::Render() {
         }
         renderFinishTime = Clock::GetTicks() - renderFinishTime;
         viewPerf->RenderFinishTime += renderFinishTime;
-
         PERF_END(RenderTime);
     }
+
+    Graphics::CurrentView = NULL;
 }
 
 PUBLIC STATIC void Scene::AfterScene() {
@@ -2285,6 +2291,13 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
         Scene::MediaList[i] = NULL;
     }
     AudioManager::Unlock();
+    // Textures
+    for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
+        if (!Scene::TextureList[i]) continue;
+        if (Scene::TextureList[i]->UnloadPolicy > scope) continue;
+        delete Scene::TextureList[i];
+        Scene::TextureList[i] = NULL;
+    }
     // Animators
     for (size_t i = 0, i_sz = Scene::AnimatorList.size(); i < i_sz; i++) {
         if (!Scene::AnimatorList[i]) continue;
@@ -2320,6 +2333,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::MusicList.clear();
     Scene::ModelList.clear();
     Scene::MediaList.clear();
+    Scene::TextureList.clear();
     Scene::AnimatorList.clear();
 
     // Dispose of StaticObject

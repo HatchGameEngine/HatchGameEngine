@@ -208,6 +208,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\network\WebSocketClient.cpp" />
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
     <ClCompile Include="..\source\Engine\Rendering\FaceInfo.cpp" />
+    <ClCompile Include="..\source\Engine\Rendering\GameTexture.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp" />
@@ -222,6 +223,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\software\PolygonRasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
+    <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\ImageFormat.cpp" />

@@ -195,6 +195,9 @@
     <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\GameTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -235,6 +238,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp">

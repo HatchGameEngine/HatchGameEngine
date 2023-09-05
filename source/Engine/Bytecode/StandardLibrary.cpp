@@ -34,6 +34,7 @@ public:
 #include <Engine/Math/Math.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Rendering/ViewTexture.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -255,15 +256,17 @@ namespace LOCAL {
 
         return Scene::ImageList[where]->AsImage;
     }
-    inline Texture*       GetTexture(VMValue* args, int index, Uint32 threadID) {
+    inline GameTexture*   GetTexture(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (!Graphics::TextureMap->Exists((Uint32)where)) {
+        if (where < 0 || where > (int)Scene::TextureList.size()) {
             if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                "Texture index \"%d\" does not exist.", where) == ERROR_RES_CONTINUE)
+                "Texture index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 BytecodeObjectManager::Threads[threadID].ReturnFromNative();
         }
 
-        return Graphics::TextureMap->Get((Uint32)where);
+        if (!Scene::TextureList[where]) return NULL;
+
+        return Scene::TextureList[where];
     }
     inline ISound*         GetSound(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
@@ -3328,10 +3331,14 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
 
-    Texture* texture = GET_ARG(0, GetTexture);
+    GameTexture* gameTexture = GET_ARG(0, GetTexture);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
 
+    if (!gameTexture)
+        return NULL_VAL;
+
+    Texture* texture = gameTexture->GetTexture();
     if (texture)
         Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, texture->Width, texture->Height);
     return NULL_VAL;
@@ -3349,12 +3356,16 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
 
-    Texture* texture = GET_ARG(0, GetTexture);
+    GameTexture* gameTexture = GET_ARG(0, GetTexture);
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
     float w = GET_ARG(3, GetDecimal);
     float h = GET_ARG(4, GetDecimal);
 
+    if (!gameTexture)
+        return NULL_VAL;
+
+    Texture* texture = gameTexture->GetTexture();
     if (texture)
         Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
     return NULL_VAL;
@@ -3374,7 +3385,7 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(7);
 
-    Texture* texture = GET_ARG(0, GetTexture);
+    GameTexture* gameTexture = GET_ARG(0, GetTexture);
     float sx = GET_ARG(1, GetDecimal);
     float sy = GET_ARG(2, GetDecimal);
     float sw = GET_ARG(3, GetDecimal);
@@ -3382,6 +3393,10 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(5, GetDecimal);
     float y = GET_ARG(6, GetDecimal);
 
+    if (!gameTexture)
+        return NULL_VAL;
+
+    Texture* texture = gameTexture->GetTexture();
     if (texture)
         Graphics::DrawTexture(texture, sx, sy, sw, sh, x, y, sw, sh);
     return NULL_VAL;
@@ -4290,8 +4305,13 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    Texture* texture = GET_ARG(0, GetTexture);
-    Graphics::SetRenderTarget(texture);
+    GameTexture* gameTexture = GET_ARG(0, GetTexture);
+    if (!gameTexture)
+        return NULL_VAL;
+
+    Texture* texture = gameTexture->GetTexture();
+    if (texture)
+        Graphics::SetRenderTarget(texture);
     return NULL_VAL;
 }
 /***
@@ -4382,9 +4402,33 @@ VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Texture* texture = GET_ARG(0, GetTexture);
-    if (texture)
-        Graphics::CopyScreen(texture);
+    GameTexture* gameTexture = GET_ARG(0, GetTexture);
+    if (!gameTexture)
+        return NULL_VAL;
+
+    Texture* texture = gameTexture->GetTexture();
+    if (texture) {
+        int width = Graphics::CurrentViewport.Width;
+        int height = Graphics::CurrentViewport.Height;
+
+        View* currentView = Graphics::CurrentView;
+        if (currentView) {
+            // If we are using a draw target, then we can't reliably use the
+            // viewport's dimensions, because it might not match the view's size
+            if (currentView->UseDrawTarget && currentView->DrawTarget) {
+                width = Graphics::CurrentView->Width;
+                height = Graphics::CurrentView->Height;
+            }
+        }
+
+        Graphics::CopyScreen(
+            // source
+            0, 0, width, height,
+            // dest
+            0, 0, texture->Width, texture->Height,
+            texture
+        );
+    }
     return NULL_VAL;
 }
 // #endregion
@@ -11500,6 +11544,39 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Texture
+bool GetTextureListSpace(size_t* out) {
+    for (size_t i = 0, listSz = Scene::TextureList.size(); i < listSz; i++) {
+        if (!Scene::TextureList[i]) {
+            *out = i;
+            return true;
+        }
+    }
+    return false;
+}
+size_t AddGameTexture(GameTexture* texture) {
+    size_t i = 0;
+    bool foundEmpty = GetTextureListSpace(&i);
+
+    if (foundEmpty)
+        Scene::TextureList[i] = texture;
+    else {
+        i = Scene::TextureList.size();
+        Scene::TextureList.push_back(texture);
+    }
+
+    return i;
+}
+bool FindGameTextureByID(int id, size_t* out) {
+    for (size_t i = 0, listSz = Scene::TextureList.size(); i < listSz; i++) {
+        if (!Scene::TextureList[i])
+            continue;
+        if (Scene::TextureList[i]->GetID() == id) {
+            *out = i;
+            return true;
+        }
+    }
+    return false;
+}
 /***
  * Texture.Create
  * \desc
@@ -11507,44 +11584,38 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Texture
  */
 VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
+    CHECK_ARGCOUNT(3);
+
     int width = GET_ARG(0, GetInteger);
     int height = GET_ARG(1, GetInteger);
-    Texture* texture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
-    return INTEGER_VAL((int)texture->ID);
+    int unloadPolicy = GET_ARG(2, GetInteger);
+
+    GameTexture* texture = new GameTexture(width, height, unloadPolicy);
+    size_t i = AddGameTexture(texture);
+
+    return INTEGER_VAL((int)i);
 }
 /***
- * Texture.FromSprite
+ * Texture.Copy
  * \desc
  * \return
  * \ns Texture
  */
-VMValue Texture_FromSprite(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    ISprite* arg1 = GET_ARG(0, GetSprite);
-    return INTEGER_VAL((int)arg1->Spritesheets[0]->ID);
-}
-/***
- * Texture.FromImage
- * \desc
- * \return
- * \ns Texture
- */
-VMValue Texture_FromImage(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Image* arg1 = GET_ARG(0, GetImage);
-    return INTEGER_VAL((int)arg1->TexturePtr->ID);
-}
-/***
- * Texture.SetInterpolation
- * \desc
- * \return
- * \ns Texture
- */
-VMValue Texture_SetInterpolation(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int interpolate = GET_ARG(0, GetInteger);
-    Graphics::SetTextureInterpolation(interpolate);
+VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    GameTexture* textureA = GET_ARG(0, GetTexture);
+    GameTexture* textureB = GET_ARG(1, GetTexture);
+
+    if (!textureA || !textureB)
+        return NULL_VAL;
+
+    Texture* destTexture = textureA->GetTexture();
+    Texture* srcTexture = textureB->GetTexture();
+
+    if (destTexture && srcTexture)
+        destTexture->Copy(srcTexture);
+
     return NULL_VAL;
 }
 // #endregion
@@ -12681,7 +12752,15 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
         BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View %d lacks a draw target!", view_index);
         return NULL_VAL;
     }
-    return INTEGER_VAL((int)Scene::Views[view_index].DrawTarget->ID);
+
+    size_t i = 0;
+
+    if (!FindGameTextureByID(-(view_index + 1), &i)) {
+        GameTexture* texture = new ViewTexture(view_index);
+        i = AddGameTexture(texture);
+    }
+
+    return INTEGER_VAL((int)i);
 }
 /***
  * View.IsUsingSoftwareRenderer
@@ -14564,10 +14643,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Texture
     INIT_CLASS(Texture);
-    DEF_NATIVE(Texture, FromSprite);
-    DEF_NATIVE(Texture, FromImage);
     DEF_NATIVE(Texture, Create);
-    DEF_NATIVE(Texture, SetInterpolation);
+    DEF_NATIVE(Texture, Copy);
     // #endregion
 
     // #region Touch
