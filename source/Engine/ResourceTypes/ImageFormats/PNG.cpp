@@ -265,7 +265,7 @@ PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
                 png->Data[i] = pixelData[i];
         }
 
-        png->NumPaletteColors = (Uint8)plte.n_entries;
+        png->NumPaletteColors = plte.n_entries;
         png->Colors = (Uint32*)Memory::TrackedMalloc("PNG::Colors", png->NumPaletteColors * sizeof(Uint32));
         png->Paletted = true;
 
