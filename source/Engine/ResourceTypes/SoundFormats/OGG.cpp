@@ -383,7 +383,7 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 l
 #endif
     return 0;
 }
-PUBLIC VIRTUAL void        OGG::LoadAllSamples(SoundFormat* dest) {
+PUBLIC VIRTUAL void        OGG::LoadAllSamples() {
     if (SampleBuffer == nullptr) {
         SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
         Samples.reserve(TotalPossibleSamples);
