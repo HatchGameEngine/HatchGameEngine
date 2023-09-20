@@ -950,6 +950,30 @@ VMValue Application_SetDescription(int argCount, VMValue* args, Uint32 threadID)
     snprintf(Application::Description, sizeof(Application::Description), "%s", string);
     return NULL_VAL;
 }
+/***
+ * Application.SetCursorVisible
+ * \desc Sets the visibility of the cursor.
+ * \param cursorVisible (Boolean): Whether or not the cursor is visible.
+ * \ns Application
+ */
+VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    SDL_ShowCursor(!!GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Application.GetCursorVisible
+ * \desc Gets the visibility of the cursor.
+ * \return Returns whether ot not the cursor is visible.
+ * \ns Application
+ */
+VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    int state = SDL_ShowCursor(SDL_QUERY);
+    if (state == SDL_ENABLE)
+        return INTEGER_VAL(1);
+    return INTEGER_VAL(0);
+}
 // #endregion
 
 // #region Audio
@@ -13309,6 +13333,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, SetGameTitleShort);
     DEF_NATIVE(Application, SetVersion);
     DEF_NATIVE(Application, SetDescription);
+    DEF_NATIVE(Application, SetCursorVisible);
+    DEF_NATIVE(Application, GetCursorVisible);
     /***
     * \enum KeyBind_Fullscreen
     * \desc Fullscreen keybind.
