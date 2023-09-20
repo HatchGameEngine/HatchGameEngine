@@ -9051,6 +9051,19 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
     return NULL_VAL;
 }
 /***
+ * Scene.SetLayerRepeat
+ * \desc Sets whether or not the specified layer repeats.
+ * \param layerIndex (Integer): Index of layer.
+ * \param doesRepeat (Boolean): Whether or not the layer repeats.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    Scene::Layers[index].Repeat = !!GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
  * Scene.SetDrawGroupEntityDepthSorting
  * \desc Sets the specified draw group to sort objects by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
@@ -14428,6 +14441,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerOffsetPosition);
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
+    DEF_NATIVE(Scene, SetLayerRepeat);
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);

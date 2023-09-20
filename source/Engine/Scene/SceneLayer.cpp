@@ -25,8 +25,7 @@ public:
     int               ConstantY = 0x0000;
     int               OffsetX = 0x0000;
     int               OffsetY = 0x0000;
-    bool              UseDeltaCameraX = false;
-    bool              UseDeltaCameraY = false;
+    bool              Repeat = true;
 
     Uint32*           Tiles = NULL;
     Uint32*           TilesBackup = NULL;

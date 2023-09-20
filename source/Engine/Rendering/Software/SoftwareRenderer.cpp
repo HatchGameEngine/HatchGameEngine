@@ -2338,9 +2338,11 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneL
             for (int i = 0; i < layer->ScrollInfoCount; i++) {
                 info->Offset = Scene::Frame * info->ConstantParallax;
                 info->Position = (info->Offset + ((viewX + layerOffsetX) * info->RelativeParallax)) >> 8;
-                info->Position %= layerWidth;
-                if (info->Position < 0)
-                    info->Position += layerWidth;
+                if (layer->Repeat) {
+                    info->Position %= layerWidth;
+                    if (info->Position < 0)
+                        info->Position += layerWidth;
+                }
                 info++;
             }
 
@@ -2480,6 +2482,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     int layerWidthInPixels = layer->Width * 16;
     int layerWidth = layer->Width;
     int sourceTileCellX, sourceTileCellY;
+    int tileID;
 
     BlendState blendState = GetBlendState();
 
@@ -2543,10 +2546,14 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         tScanLine->SrcY >>= 16;
         dstPxLine = dstPx + dst_strideY;
 
-        if (tScanLine->SrcX < 0)
-            tScanLine->SrcX += layerWidthInPixels;
-        else if (tScanLine->SrcX >= layerWidthInPixels)
-            tScanLine->SrcX -= layerWidthInPixels;
+        bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
+        if (!isInLayer && layer->Repeat) {
+            if (tScanLine->SrcX < 0)
+                tScanLine->SrcX += layerWidthInPixels;
+            else if (tScanLine->SrcX >= layerWidthInPixels)
+                tScanLine->SrcX -= layerWidthInPixels;
+            isInLayer = true;
+        }
 
         int dst_x = dst_x1, c_dst_x = dst_x1;
         int pixelsOfTileRemaining;
@@ -2562,9 +2569,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         pixelsOfTileRemaining = 16 - srcTX;
         tile = &layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 
-        if ((*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-            int tileID = *tile & TILE_IDENT_MASK;
-
+        if (isInLayer && (*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+            tileID = *tile & TILE_IDENT_MASK;
             if (Scene::ShowTileCollisionFlag && baseTileCfg) {
                 c_dst_x = dst_x;
                 if (Scene::ShowTileCollisionFlag == 1)
@@ -2654,9 +2660,16 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         for (j = maxTileDraw; j; j--, dst_x += 16) {
             sourceTileCellX++;
             tile++;
-            if (sourceTileCellX == layerWidth) {
-                sourceTileCellX = 0;
-                tile -= layerWidth;
+            if (sourceTileCellX < 0) {
+                continue;
+            }
+            else if (sourceTileCellX >= layerWidth) {
+                if (layer->Repeat) {
+                    sourceTileCellX -= layerWidth;
+                    tile -= layerWidth;
+                }
+                else
+                    break;
             }
 
             if (Scene::ShowTileCollisionFlag && baseTileCfg) {
@@ -2674,8 +2687,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
             }
 
             int srcTYb = srcTY;
-            if ((*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-                int tileID = *tile & TILE_IDENT_MASK;
+            tileID = *tile & TILE_IDENT_MASK;
+            if (tileID != Scene::EmptyTile) {
                 // If y-flipped
                 if ((*tile & TILE_FLIPY_MASK))
                     srcTYb ^= 15;
