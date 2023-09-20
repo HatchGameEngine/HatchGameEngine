@@ -14846,7 +14846,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     /***
     * \global CameraY
     * \type Decimal
-    * \desc The X position of the first camera.
+    * \desc The Y position of the first camera.
     */
     DEF_LINK_DECIMAL("CameraY", &Scene::Views[0].Y);
     /***
