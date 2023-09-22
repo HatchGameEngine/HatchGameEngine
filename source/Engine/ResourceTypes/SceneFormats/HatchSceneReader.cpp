@@ -98,9 +98,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
         Scene::Layers[i] = layer;
     }
 
-    // Spawn script managers
-    Scene::AddManagers();
-
     // Read classes and entities
     HatchSceneReader::ReadClasses(r);
     HatchSceneReader::ReadEntities(r);

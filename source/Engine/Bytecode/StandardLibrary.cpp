@@ -14213,6 +14213,23 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, Copy);
     // #endregion
 
+    /***
+    * \enum Persistence_NONE
+    * \desc Doesn't persist between scenes.
+    */
+    DEF_ENUM(Persistence_NONE);
+    /***
+    * \enum Persistence_SCENE
+    * \desc Persists between scenes (unless a new scene is loaded through <linkto ref="Scene.LoadNoPersistency"></linkto>.)
+    */
+    DEF_ENUM(Persistence_SCENE);
+    /***
+    * \enum Persistence_GAME
+    * \desc Always persists, unless the game is restarted.
+    */
+    DEF_ENUM(Persistence_GAME);
+    // #endregion
+
     // #region JSON
     INIT_CLASS(JSON);
     DEF_NATIVE(JSON, Parse);

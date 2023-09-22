@@ -18,9 +18,9 @@ public:
     float        InitialY = 0;
     int          Active = true;
     int          Pauseable = true;
-    int          Persistent = false;
     int          Interactable = true;
-    int          ActiveStatus = 4; // Active_BOUNDS
+    int          Persistence = Persistence_NONE;
+    int          ActiveStatus = Active_BOUNDS;
     int          InRange = false;
     bool         Created = false;
     bool         PostCreated = false;
@@ -443,7 +443,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(InitialY);
     COPY(Active);
     COPY(Pauseable);
-    COPY(Persistent);
+    COPY(Persistence);
     COPY(Interactable);
     COPY(ActiveStatus);
     COPY(InRange);
@@ -524,10 +524,6 @@ PUBLIC void Entity::ApplyPhysics() {
 
 }
 
-PUBLIC VIRTUAL void Entity::GameStart() {
-
-}
-
 PUBLIC VIRTUAL void Entity::Initialize() {
 
 }
@@ -546,6 +542,18 @@ PUBLIC VIRTUAL void Entity::UpdateLate() {
 }
 
 PUBLIC VIRTUAL void Entity::OnAnimationFinish() {
+
+}
+
+PUBLIC VIRTUAL void Entity::OnSceneLoad() {
+
+}
+
+PUBLIC VIRTUAL void Entity::OnSceneRestart() {
+
+}
+
+PUBLIC VIRTUAL void Entity::GameStart() {
 
 }
 

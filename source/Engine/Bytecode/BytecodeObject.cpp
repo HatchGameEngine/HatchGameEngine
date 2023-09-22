@@ -19,7 +19,6 @@ public:
 #define LINK_BOOL(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 
 bool   SavedHashes = false;
-Uint32 Hash_GameStart = 0;
 Uint32 Hash_Create = 0;
 Uint32 Hash_PostCreate = 0;
 Uint32 Hash_Update = 0;
@@ -29,6 +28,9 @@ Uint32 Hash_RenderEarly = 0;
 Uint32 Hash_Render = 0;
 Uint32 Hash_RenderLate = 0;
 Uint32 Hash_OnAnimationFinish = 0;
+Uint32 Hash_OnSceneLoad = 0;
+Uint32 Hash_OnSceneRestart = 0;
+Uint32 Hash_GameStart = 0;
 Uint32 Hash_Dispose = 0;
 
 PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
@@ -37,7 +39,6 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
     Properties = new HashMap<VMValue>(NULL, 4);
 
     if (!SavedHashes) {
-        Hash_GameStart = Murmur::EncryptString("GameStart");
         Hash_Create = Murmur::EncryptString("Create");
         Hash_PostCreate = Murmur::EncryptString("PostCreate");
         Hash_Update = Murmur::EncryptString("Update");
@@ -47,6 +48,9 @@ PUBLIC void BytecodeObject::Link(ObjInstance* instance) {
         Hash_Render = Murmur::EncryptString("Render");
         Hash_RenderLate = Murmur::EncryptString("RenderLate");
         Hash_OnAnimationFinish = Murmur::EncryptString("OnAnimationFinish");
+        Hash_OnSceneLoad = Murmur::EncryptString("OnSceneLoad");
+        Hash_OnSceneRestart = Murmur::EncryptString("OnSceneRestart");
+        Hash_GameStart = Murmur::EncryptString("GameStart");
         Hash_Dispose = Murmur::EncryptString("Dispose");
 
         SavedHashes = true;
@@ -554,9 +558,9 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \type Boolean
     * \default false
     * \ns Instance
-    * \desc Whether the entity persists between scenes.
+    * \desc See <linkto ref="instance.Persistence"></linkto> instead.
     */
-    LINK_BOOL(Persistent);
+    LINK_INT(Persistence);
     /***
     * \field Interactable
     * \type Boolean
@@ -565,6 +569,14 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \desc Whether the entity can be interacted with. If set to <code>false</code>, the entity will not be included in <code>with</code> iterations.
     */
     LINK_BOOL(Interactable);
+    /***
+    * \field Persistence
+    * \type Integer
+    * \default Persistence_NONE
+    * \ns Instance
+    * \desc Whether the entity persists between scenes.
+    */
+    LINK_INT(Persistence);
 }
 
 #undef LINK_INT
@@ -604,6 +616,9 @@ PRIVATE ObjFunction* BytecodeObject::GetCallableFunction(Uint32 hash) {
     return NULL;
 }
 PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
+    if (!Instance)
+        return false;
+
     // NOTE:
     // If the function doesn't exist, this is not an error VM side,
     // treat whatever we call from C++ as a virtual-like function.
@@ -704,11 +719,6 @@ PUBLIC void BytecodeObject::CopyVMFields(BytecodeObject* other) {
 }
 
 // Events called from C++
-PUBLIC void BytecodeObject::GameStart() {
-    if (!Instance) return;
-
-    RunFunction(Hash_GameStart);
-}
 PUBLIC void BytecodeObject::Initialize() {
     if (!Instance) return;
 
@@ -772,7 +782,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     OnGround = false;
     Direction = 0;
 
-    Persistent = false;
+    Persistence = Persistence_NONE;
     Interactable = true;
 
     RunCreateFunction(flag);
@@ -792,19 +802,16 @@ PUBLIC void BytecodeObject::PostCreate() {
 }
 PUBLIC void BytecodeObject::UpdateEarly() {
     if (!Active) return;
-    if (!Instance) return;
 
     RunFunction(Hash_UpdateEarly);
 }
 PUBLIC void BytecodeObject::Update() {
     if (!Active) return;
-    if (!Instance) return;
 
     RunFunction(Hash_Update);
 }
 PUBLIC void BytecodeObject::UpdateLate() {
     if (!Active) return;
-    if (!Instance) return;
 
     RunFunction(Hash_UpdateLate);
 
@@ -815,13 +822,11 @@ PUBLIC void BytecodeObject::UpdateLate() {
 }
 PUBLIC void BytecodeObject::RenderEarly() {
     if (!Active) return;
-    if (!Instance) return;
 
     RunFunction(Hash_RenderEarly);
 }
 PUBLIC void BytecodeObject::Render(int CamX, int CamY) {
     if (!Active) return;
-    if (!Instance) return;
 
     if (RunFunction(Hash_Render)) {
         // Default render
@@ -829,12 +834,24 @@ PUBLIC void BytecodeObject::Render(int CamX, int CamY) {
 }
 PUBLIC void BytecodeObject::RenderLate() {
     if (!Active) return;
-    if (!Instance) return;
 
     RunFunction(Hash_RenderLate);
 }
 PUBLIC void BytecodeObject::OnAnimationFinish() {
     RunFunction(Hash_OnAnimationFinish);
+}
+PUBLIC void BytecodeObject::OnSceneLoad() {
+    if (!Active) return;
+
+    RunFunction(Hash_OnSceneLoad);
+}
+PUBLIC void BytecodeObject::OnSceneRestart() {
+    if (!Active) return;
+
+    RunFunction(Hash_OnSceneRestart);
+}
+PUBLIC void BytecodeObject::GameStart() {
+    RunFunction(Hash_GameStart);
 }
 PUBLIC void BytecodeObject::Remove() {
     if (Removed) return;

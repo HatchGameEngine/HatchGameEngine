@@ -101,15 +101,18 @@ PUBLIC void ObjectList::Iterate(std::function<void(Entity* e)> func) {
     for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList)
         func(ent);
 }
-PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
+PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first, int persistence) {
     for (Entity* ent = first, *next; ent; ent = next) {
         // Store the "next" so that when/if the current is removed,
         // it can still be used to point at the end of the loop.
         next = ent->NextEntity;
 
-        if (!ent->Persistent && ent->List == this)
+        if (ent->Persistence <= persistence && ent->List == this)
             Remove(ent);
     }
+}
+PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
+    RemoveNonPersistentFromLinkedList(first, Persistence_NONE);
 }
 PUBLIC void ObjectList::ResetPerf() {
     // AverageUpdateTime = 0.0;

@@ -109,6 +109,7 @@
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
+            <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
@@ -570,6 +571,7 @@
                     <li><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></li>
                     <li><a href="#Reference_fields_instance_Persistent">instance.Persistent</a></li>
                     <li><a href="#Reference_fields_instance_Interactable">instance.Interactable</a></li>
+                    <li><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></li>
                 </ul>
             </p>
             <p id="Reference_JSON">
@@ -1263,6 +1265,7 @@
                     <li><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></li>
                     <li><a href="#Reference_fields_instance_Persistent">instance.Persistent</a></li>
                     <li><a href="#Reference_fields_instance_Interactable">instance.Interactable</a></li>
+                    <li><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></li>
                 </ul>
             </p>
         <h3>Enums</h3>
@@ -1441,6 +1444,14 @@
                     <li><a href="#Reference_enums_KeyBind_DevTileCol">KeyBind_DevTileCol</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevObjectRegions">KeyBind_DevObjectRegions</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevQuit">KeyBind_DevQuit</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Persistence_*">
+                <h2><code>Persistence_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_Persistence_NONE">Persistence_NONE</a></li>
+                    <li><a href="#Reference_enums_Persistence_SCENE">Persistence_SCENE</a></li>
+                    <li><a href="#Reference_enums_Persistence_GAME">Persistence_GAME</a></li>
                 </ul>
             </p>
             <p id="Reference_Platform_*">
@@ -8876,7 +8887,7 @@
         <h3 style="margin-bottom: 8px;"><code>instance.Persistent</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
+        <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></code> instead.</div>
         </p>
         <p id="Reference_fields_instance_Interactable">
         <h3 style="margin-bottom: 8px;"><code>instance.Interactable</code></h2>
@@ -8884,7 +8895,13 @@
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity can be interacted with. If set to <code>false</code>, the entity will not be included in <code>with</code> iterations.</div>
         </p>
-        <p>59 out of 63 fields have descriptions. </p>
+        <p id="Reference_fields_instance_Persistence">
+        <h3 style="margin-bottom: 8px;"><code>instance.Persistence</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
+        </p>
+        <p>60 out of 64 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_Active_NEVER">
@@ -9335,6 +9352,18 @@
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevQuit</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">App quit keybind. (dev)</div>
         </p>
+        <p id="Reference_enums_Persistence_NONE">
+        <h3 style="margin-bottom: 8px;"><code>Persistence_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Doesn't persist between scenes.</div>
+        </p>
+        <p id="Reference_enums_Persistence_SCENE">
+        <h3 style="margin-bottom: 8px;"><code>Persistence_SCENE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Persists between scenes (unless a new scene is loaded through <code><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></code>.)</div>
+        </p>
+        <p id="Reference_enums_Persistence_GAME">
+        <h3 style="margin-bottom: 8px;"><code>Persistence_GAME</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Always persists, unless the game is restarted.</div>
+        </p>
         <p id="Reference_enums_Platform_Windows">
         <h3 style="margin-bottom: 8px;"><code>Platform_Windows</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Windows platform.</div>
@@ -9411,7 +9440,7 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>131 out of 131 enums have descriptions. </p>
+        <p>134 out of 134 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

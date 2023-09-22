@@ -75,6 +75,7 @@ public:
 
     static int                       Frame;
     static bool                      Paused;
+    static bool                      Loaded;
 
     static View                      Views[MAX_SCENE_VIEWS];
     static int                       ViewCurrent;
@@ -167,6 +168,11 @@ public:
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Utilities/StringUtils.h>
 
+// General
+int                       Scene::Frame = 0;
+bool                      Scene::Paused = false;
+bool                      Scene::Loaded = false;
+
 // Layering variables
 vector<SceneLayer>        Scene::Layers;
 bool                      Scene::AnyLayerTileChange = false;
@@ -210,8 +216,6 @@ vector<TileConfig*>       Scene::TileCfg;
 Uint16                    Scene::EmptyTile = 0x000;
 
 // View variables
-int                       Scene::Frame = 0;
-bool                      Scene::Paused = false;
 View                      Scene::Views[MAX_SCENE_VIEWS];
 int                       Scene::ViewCurrent = 0;
 int                       Scene::ViewsActive = 1;
@@ -1210,9 +1214,6 @@ PUBLIC STATIC void Scene::AfterScene() {
     bool& doRestart = Scene::DoRestart;
 
     if (Scene::NextScene[0]) {
-        if (Scene::NoPersistency)
-            Scene::DeleteAllObjects();
-
         BytecodeObjectManager::ForceGarbageCollection();
 
         Scene::LoadScene(Scene::NextScene);
@@ -1235,10 +1236,20 @@ PRIVATE STATIC void Scene::Iterate(Entity* first, std::function<void(Entity* e)>
         func(ent);
     }
 }
+PRIVATE STATIC void Scene::IterateAll(Entity* first, std::function<void(Entity* e)> func) {
+    for (Entity* ent = first, *next; ent; ent = next) {
+        next = ent->NextSceneEntity;
+        func(ent);
+    }
+}
 PRIVATE STATIC void Scene::ResetPriorityListIndex(Entity* first) {
     Scene::Iterate(first, [](Entity* ent) -> void {
         ent->PriorityListIndex = -1;
     });
+}
+
+PRIVATE STATIC int Scene::GetPersistenceScopeForObjectDeletion() {
+    return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
 
 PUBLIC STATIC void Scene::Restart() {
@@ -1277,14 +1288,14 @@ PUBLIC STATIC void Scene::Restart() {
     // Remove all non-persistent objects from lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
-            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst, Scene::GetPersistenceScopeForObjectDeletion());
         });
     }
 
     // Remove all non-persistent objects from registries
     if (Scene::ObjectRegistries) {
         Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
-            registry->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+            registry->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst, Scene::GetPersistenceScopeForObjectDeletion());
         });
     }
 
@@ -1321,7 +1332,7 @@ PUBLIC STATIC void Scene::Restart() {
         // their constructors called again, along with having their positions set
         // to their initial positions. On top of that, their Create event is called.
         // Of course, none of this should be done if the entity is persistent.
-        if (!ent->Persistent) {
+        if (ent->Persistence == Persistence_NONE) {
             ent->Created = false;
             ent->PostCreated = false;
         }
@@ -1360,6 +1371,16 @@ PUBLIC STATIC void Scene::Restart() {
         }
     });
 
+    // Run "OnSceneLoad" or "OnSceneRestart" on all objects
+    Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
+        if (Scene::Loaded)
+            ent->OnSceneRestart();
+        else
+            ent->OnSceneLoad();
+    });
+
+    Scene::Loaded = true;
+
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::RequestGarbageCollection();
 }
@@ -1383,9 +1404,10 @@ PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* cou
     Scene::Clear(first, last, count);
 }
 PRIVATE STATIC void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count) {
+    int persistencyScope = Scene::GetPersistenceScopeForObjectDeletion();
     for (Entity* ent = *first, *next; ent; ent = next) {
         next = ent->NextEntity;
-        if (!ent->Persistent)
+        if (ent->Persistence <= persistencyScope)
             Scene::Remove(first, last, count, ent);
     }
 }
@@ -1414,16 +1436,18 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Remove non-persistent objects from lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
-            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
-            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+            int persistencyScope = Scene::GetPersistenceScopeForObjectDeletion();
+            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst, persistencyScope);
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst, persistencyScope);
         });
     }
 
     // Remove non-persistent objects from registries
     if (Scene::ObjectRegistries) {
         Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* list) -> void {
-            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst);
-            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst);
+            int persistencyScope = Scene::GetPersistenceScopeForObjectDeletion();
+            list->RemoveNonPersistentFromLinkedList(Scene::StaticObjectFirst, persistencyScope);
+            list->RemoveNonPersistentFromLinkedList(Scene::DynamicObjectFirst, persistencyScope);
         });
     }
 
@@ -1557,6 +1581,8 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
         Scene::CallGameStart();
         Application::GameStart = false;
     }
+
+    Scene::Loaded = false;
 }
 
 PUBLIC STATIC void Scene::ProcessSceneTimer() {
@@ -1598,7 +1624,7 @@ PRIVATE STATIC void Scene::AddStaticClass() {
         obj->InitialX = obj->X;
         obj->InitialY = obj->Y;
         obj->List = StaticObjectList;
-        obj->Persistent = true;
+        obj->Persistence = Persistence_GAME;
 
         BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
     }
