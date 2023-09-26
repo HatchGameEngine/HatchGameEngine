@@ -93,16 +93,43 @@ PUBLIC STATIC void Log::Print(int sev, const char* format, ...) {
     int ColorCode = 0;
     #endif
 
-    if (sev < Log::LogLevel) return;
+    if (sev < Log::LogLevel)
+        return;
 
-    char string[1024];
+    static char* stringBuffer = NULL;
+    static size_t stringBufferSize = 0;
     const char* severityText = NULL;
 
     va_list args;
     va_start(args, format);
-    vsnprintf(string, 1024, format, args);
+    int written_chars = vsnprintf(stringBuffer, stringBufferSize, format, args);
     va_end(args);
-    string[1023] = 0;
+
+    if (written_chars <= 0)
+        return;
+    else if (written_chars + 1 >= stringBufferSize) {
+        stringBufferSize = written_chars + 1 + 1023;
+
+        char* newStringBuffer = (char*)realloc(stringBuffer, stringBufferSize * sizeof(char));
+
+        // If the reallocation failed, try again with a smaller buffer size
+        if (!newStringBuffer) {
+            stringBufferSize = 1024;
+            newStringBuffer = (char*)realloc(stringBuffer, stringBufferSize * sizeof(char));
+
+            // If THAT failed too, just give up
+            if (!newStringBuffer)
+                return;
+        }
+        else
+            stringBuffer = newStringBuffer;
+
+        va_start(args, format);
+        vsnprintf(stringBuffer, stringBufferSize, format, args);
+        va_end(args);
+    }
+
+    const char *string = stringBuffer;
 
     #if defined(ANDROID)
         switch (sev) {
@@ -141,8 +168,7 @@ PUBLIC STATIC void Log::Print(int sev, const char* format, ...) {
             case     LOG_ERROR: ColorCode = 91; break;
             case LOG_IMPORTANT: ColorCode = 96; break;
         }
-        // if (!WriteToFile)
-            printf("\x1b[%d;1m", ColorCode);
+        printf("\x1b[%d;1m", ColorCode);
     #endif
 
     switch (sev) {
@@ -160,19 +186,8 @@ PUBLIC STATIC void Log::Print(int sev, const char* format, ...) {
     #if WIN32
 		WORD wColor = (csbi.wAttributes & 0xF0) | 0x07;
         SetConsoleTextAttribute(hStdOut, wColor);
-
-        /*
-        // Sends to notepad
-        HWND notepad, edit;
-        notepad = FindWindow(NULL, "Untitled - Notepad");
-        edit = FindWindowEx(notepad, NULL, "EDIT", NULL);
-        SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)severityText);
-        SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)string);
-        SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)"\r\n");
-        //*/
     #elif USING_COLOR_CODES
-        // if (!WriteToFile)
-            printf("\x1b[0m");
+        printf("\x1b[0m");
     #endif
 
     printf("%s\n", string);

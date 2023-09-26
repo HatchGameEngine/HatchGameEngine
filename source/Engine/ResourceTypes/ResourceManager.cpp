@@ -98,37 +98,20 @@ PUBLIC STATIC void   ResourceManager::Load(const char* filename) {
         return;
 
     // Load directly from Resource folder
-    char resourcePath[256];
+    char resourcePath[4096];
     ResourceManager::PrefixParentPath(resourcePath, filename);
 
-    // SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
-    // if (!rw) {
-    //     // Log::Print(Log::LOG_ERROR, "ResourceManager::Load: No RW!: %s", resourcePath, SDL_GetError());
-    //     return;
-    // }
-    //
-    // Sint64 rwSize = SDL_RWsize(rw);
-    // if (rwSize < 0) {
-    //     Log::Print(Log::LOG_ERROR, "Could not get size of file \"%s\": %s", resourcePath, SDL_GetError());
-    //     return;
-    // }
-
-    // MemoryStream* dataTableStream = MemoryStream::New(rwSize);
     SDLStream* dataTableStream = SDLStream::New(resourcePath, SDLStream::READ_ACCESS);
     if (!dataTableStream) {
         Log::Print(Log::LOG_ERROR, "Could not open MemoryStream!");
         return;
     }
 
-    // SDL_RWread(rw, dataTableStream->pointer_start, rwSize, 1);
-    // SDL_RWclose(rw);
-
     Uint16 fileCount;
     Uint8 magicHATCH[5];
     dataTableStream->ReadBytes(magicHATCH, 5);
     if (memcmp(magicHATCH, "HATCH", 5)) {
         Log::Print(Log::LOG_ERROR, "Invalid HATCH data file \"%s\"! (%02X %02X %02X %02X %02X)", filename, magicHATCH[0], magicHATCH[1], magicHATCH[2], magicHATCH[3], magicHATCH[4]);
-        // Log::Print(Log::LOG_ERROR, "Size: %lld", rwSize);
         dataTableStream->Close();
         return;
     }

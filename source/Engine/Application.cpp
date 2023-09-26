@@ -207,18 +207,15 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
         Application::WindowWidth, Application::WindowHeight, window_flags);
 
     if (Application::Platform == Platforms::iOS) {
-        // SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
     }
     else if (Application::Platform == Platforms::Switch) {
         SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-        // SDL_GetWindowSize(Application::Window, &Application::WIDTH, &Application::HEIGHT);
         AudioManager::MasterVolume = 0.25;
 
         #ifdef SWITCH
         SDL_DisplayMode mode;
         SDL_GetDisplayMode(0, 1 - appletGetOperationMode(), &mode);
-        // SDL_SetWindowDisplayMode(Application::Window, &mode);
         Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
         #endif
     }
@@ -1200,9 +1197,15 @@ static void ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 PRIVATE STATIC void Application::LoadGameConfig() {
     StartingScene[0] = '\0';
 
+    Application::GameConfig = nullptr;
+
+    if (!ResourceManager::ResourceExists("GameConfig.xml"))
+        return;
+
     Application::GameConfig = XMLParser::ParseFromResource("GameConfig.xml");
     if (!Application::GameConfig)
         return;
+
     XMLNode* root = Application::GameConfig->children[0];
     XMLNode* node;
 
@@ -1255,7 +1258,6 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     node = XMLParser::SearchNode(root, "startscene");
     if (node)
         XMLParser::CopyTokenToString(node->children[0]->name, StartingScene, sizeof(StartingScene));
-
 }
 
 PRIVATE STATIC void Application::DisposeGameConfig() {
@@ -1264,32 +1266,77 @@ PRIVATE STATIC void Application::DisposeGameConfig() {
     Application::GameConfig = nullptr;
 }
 
+PRIVATE STATIC string Application::ParseGameVersion(XMLNode* versionNode) {
+    if (versionNode->children.size() == 1)
+        return XMLParser::TokenToStdString(versionNode->children[0]->name);
+
+    std::string versionText = "";
+
+    // major
+    XMLNode* node = XMLParser::SearchNode(versionNode, "major");
+    if (node)
+        versionText += XMLParser::TokenToStdString(node->children[0]->name);
+    else
+        return versionText;
+
+    // minor
+    node = XMLParser::SearchNode(versionNode, "minor");
+    if (node)
+        versionText += "." + XMLParser::TokenToStdString(node->children[0]->name);
+    else
+        return versionText;
+
+    // patch
+    node = XMLParser::SearchNode(versionNode, "patch");
+    if (node)
+        versionText += "." + XMLParser::TokenToStdString(node->children[0]->name);
+    else
+        return versionText;
+
+    // pre-release
+    node = XMLParser::SearchNode(versionNode, "prerelease");
+    if (node)
+        versionText += "-" + XMLParser::TokenToStdString(node->children[0]->name);
+
+    return versionText;
+}
+
 PRIVATE STATIC void Application::LoadGameInfo() {
     StringUtils::Copy(Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
-    StringUtils::Copy(Application::GameTitleShort, "Hatch Engine", sizeof(Application::GameTitleShort));
+    StringUtils::Copy(Application::GameTitleShort, Application::GameTitle, sizeof(Application::GameTitleShort));
     StringUtils::Copy(Application::Version, "1.0", sizeof(Application::Version));
     StringUtils::Copy(Application::Description, "Those who dare to fail miserably can achieve greatly.", sizeof(Application::Description));
 
     if (Application::GameConfig) {
         XMLNode* root = Application::GameConfig->children[0];
+
         XMLNode* node = XMLParser::SearchNode(root, "gameTitle");
-        if (node)
+        if (node == nullptr)
+            node = XMLParser::SearchNode(root, "name");
+        if (node) {
             XMLParser::CopyTokenToString(node->children[0]->name, Application::GameTitle, sizeof(Application::GameTitle));
+            StringUtils::Copy(Application::GameTitleShort, Application::GameTitle, sizeof(Application::GameTitleShort));
+        }
+
         node = XMLParser::SearchNode(root, "shortTitle");
         if (node)
             XMLParser::CopyTokenToString(node->children[0]->name, Application::GameTitleShort, sizeof(Application::GameTitleShort));
+
         node = XMLParser::SearchNode(root, "version");
-        if (node)
-            XMLParser::CopyTokenToString(node->children[0]->name, Application::Version, sizeof(Application::Version));
+        if (node) {
+            std::string versionText = Application::ParseGameVersion(node);
+            if (versionText.size() > 0)
+                StringUtils::Copy(Application::Version, versionText.c_str(), sizeof(Application::Version));
+        }
+
         node = XMLParser::SearchNode(root, "description");
         if (node)
             XMLParser::CopyTokenToString(node->children[0]->name, Application::Description, sizeof(Application::Description));
     }
-    return;
 }
 
 PUBLIC STATIC void Application::LoadSceneInfo() {
-    if (Application::GameConfig) {
+    if (Application::GameConfig && ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
         XMLNode* node;
 
         // Read category and starting scene number to be used by the SceneConfig
@@ -1305,10 +1352,8 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
 
         // Open and read SceneConfig
         Application::SceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
-        if (!Application::SceneConfig) {
-            Log::Print(Log::LOG_WARN, "Could not find SceneConfig.xml file!");
+        if (!Application::SceneConfig)
             return;
-        }
 
         node = Application::SceneConfig->children[0];
 
