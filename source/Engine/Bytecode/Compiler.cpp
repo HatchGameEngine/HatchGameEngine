@@ -1400,13 +1400,12 @@ enum {
 };
 // Reading statements
 struct switch_case {
-    int position;
-    Uint8 type;
-    union {
-        Uint8 constant_index;
-        Uint8 local_slot;
-        Uint32 global_hash;
-    } as;
+    bool   IsDefault;
+    Uint32 CasePosition;
+    Uint32 JumpPosition;
+    Uint32 CodeLength;
+    Uint8* CodeBlock;
+    int*   LineBlock;
 };
 stack<vector<int>*> BreakJumpListStack;
 stack<vector<int>*> ContinueJumpListStack;
@@ -1524,7 +1523,6 @@ PUBLIC void Compiler::GetRepeatStatement() {
 
     EndBreakJumpList();
 }
-// TODO: Implement
 PUBLIC void Compiler::GetSwitchStatement() {
     Chunk* chunk = CurrentChunk();
 
@@ -1547,7 +1545,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
     GetBlockStatement();
     ScopeEnd();
 
-    code_block_length = CodePointer() - code_block_length;
+    code_block_length = CodePointer() - code_block_start;
 
     // Copy code block
     code_block_copy = (Uint8*)malloc(code_block_length * sizeof(Uint8));
@@ -1559,46 +1557,43 @@ PUBLIC void Compiler::GetSwitchStatement() {
 
     chunk->Count -= code_block_length;
 
-    bool all_cases_are_constants = true;
+    switch_case* defaultCase = nullptr;
+
+    int exitJump = -1;
+
     vector<switch_case> cases = *SwitchJumpListStack.top();
     for (size_t i = 0; i < cases.size(); i++) {
-        if (cases[i].type == SWITCH_CASE_TYPE_LOCAL || cases[i].type == SWITCH_CASE_TYPE_GLOBAL) {
-            all_cases_are_constants = false;
-            break;
+        switch_case& case_info = cases[i];
+
+        if (case_info.IsDefault) {
+            defaultCase = &cases[i];
+            continue;
         }
+
+        EmitCopy(1);
+
+        for (int i = 0; i < case_info.CodeLength; i++)
+            ChunkWrite(chunk, case_info.CodeBlock[i], case_info.LineBlock[i]);
+
+        EmitByte(OP_EQUAL);
+        int jumpToPatch = EmitJump(OP_JUMP_IF_FALSE);
+
+        EmitByte(OP_POP);
+        EmitByte(OP_POP);
+
+        case_info.JumpPosition = EmitJump(OP_JUMP);
+
+        PatchJump(jumpToPatch);
+
+        EmitByte(OP_POP);
     }
 
-    if (!all_cases_are_constants) {
-        int switchJump = EmitJump(OP_SWITCH);
-        EmitUint16(cases.size());
-        for (size_t i = 0; i < cases.size(); i++) {
-            int position = cases[i].position - code_block_start;
-            Uint8 type = cases[i].type;
+    EmitByte(OP_POP);
 
-            EmitByte(type);
-            EmitUint16(position);
-
-            if (type == SWITCH_CASE_TYPE_GLOBAL)
-                EmitUint32(cases[i].as.global_hash);
-            else if (type == SWITCH_CASE_TYPE_LOCAL)
-                EmitByte(cases[i].as.local_slot);
-            else if (type == SWITCH_CASE_TYPE_CONSTANT)
-                EmitByte(cases[i].as.constant_index);
-        }
-        PatchJump(switchJump);
-    }
-    else {
-        EmitByte(OP_SWITCH_TABLE);
-        EmitUint16(cases.size());
-        for (size_t i = 0; i < cases.size(); i++) {
-            int position = cases[i].position - code_block_start;
-            Uint8 index = cases[i].as.constant_index;
-            EmitByte(index);
-            EmitUint16(position);
-        }
-    }
-
-    int exitJump = EmitJump(OP_JUMP);
+    if (defaultCase)
+        defaultCase->JumpPosition = EmitJump(OP_JUMP);
+    else
+        exitJump = EmitJump(OP_JUMP);
 
     int new_block_pos = CodePointer();
     // We do this here so that if an allocation is needed, it happens.
@@ -1608,16 +1603,29 @@ PUBLIC void Compiler::GetSwitchStatement() {
     free(code_block_copy);
     free(line_block_copy);
 
-    PatchJump(exitJump);
+    if (exitJump != -1)
+        PatchJump(exitJump);
 
-    // Set the old break opcode positions to the newly placed ones
-    vector<int>* top = BreakJumpListStack.top();
-    for (size_t i = 0; i < top->size(); i++) {
-        (*top)[i] += -code_block_start + new_block_pos;
-        // printf("break at: %d (%d)\n", (*top)[i], chunk->Code[(*top)[i] - 1]);
+    int code_offset = new_block_pos - code_block_start;
+
+    for (size_t i = 0; i < cases.size(); i++) {
+        int jump = cases[i].CasePosition - (cases[i].JumpPosition + 2);
+
+        jump += code_offset;
+
+        if (jump > UINT16_MAX) {
+            Error("Too much code to jump over.");
+        }
+
+        PatchJump(cases[i].JumpPosition, jump);
     }
 
     EndSwitchJumpList();
+
+    // Set the old break opcode positions to the newly placed ones
+    vector<int>* top = BreakJumpListStack.top();
+    for (size_t i = 0; i < top->size(); i++)
+        (*top)[i] += code_offset;
 
     // Pop jump list off break stack, patch all breaks to this code point
     EndBreakJumpList();
@@ -1627,42 +1635,33 @@ PUBLIC void Compiler::GetCaseStatement() {
         Error("Cannot use case label outside of switch statement.");
     }
 
-    int position = CodePointer();
+    Chunk* chunk = CurrentChunk();
 
-    switch_case case_info;
-    case_info.position = position;
+    int code_block_start = CodePointer();
+    int code_block_length = code_block_start;
+    Uint8* code_block_copy = NULL;
+    int*   line_block_copy = NULL;
 
-    if (IsConstant()) {
-        // Will emit OP_CONSTANT and the constant index itself.
-        GetConstant(false);
-
-        case_info.type = SWITCH_CASE_TYPE_CONSTANT;
-        case_info.as.constant_index = CurrentChunk()->Code[position + 1];
-
-        // We don't actually want to emit the opcode and the constant index,
-        // so we "undo" it by restoring the last code point.
-        CurrentChunk()->Count = position;
-    }
-    else {
-        ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
-
-        Token name = parser.Previous;
-        int arg = ResolveLocal(&name);
-        if (arg != -1) {
-            // Is a local
-            case_info.type = SWITCH_CASE_TYPE_LOCAL;
-            case_info.as.local_slot = (Uint8)arg;
-        }
-        else {
-            // Is a global
-            case_info.type = SWITCH_CASE_TYPE_GLOBAL;
-            case_info.as.global_hash = GetHash(name);
-            if (!TokenMap->Exists(case_info.as.global_hash))
-                TokenMap->Put(case_info.as.global_hash, name);
-        }
-    }
+    GetExpression();
 
     ConsumeToken(TOKEN_COLON, "Expected \":\" after \"case\".");
+
+    code_block_length = CodePointer() - code_block_start;
+
+    switch_case case_info;
+    case_info.IsDefault = false;
+    case_info.CasePosition = code_block_start;
+    case_info.CodeLength = code_block_length;
+
+    // Copy code block
+    case_info.CodeBlock = (Uint8*)malloc(code_block_length * sizeof(Uint8));
+    memcpy(case_info.CodeBlock, &chunk->Code[code_block_start], code_block_length * sizeof(Uint8));
+
+    // Copy line info block
+    case_info.LineBlock = (int*)malloc(code_block_length * sizeof(int));
+    memcpy(case_info.LineBlock, &chunk->Lines[code_block_start], code_block_length * sizeof(int));
+
+    chunk->Count -= code_block_length;
 
     SwitchJumpListStack.top()->push_back(case_info);
 }
@@ -1674,9 +1673,8 @@ PUBLIC void Compiler::GetDefaultStatement() {
     ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
 
     switch_case case_info;
-    case_info.position = CodePointer();
-    case_info.type = SWITCH_CASE_TYPE_DEFAULT;
-    case_info.as.constant_index = 0xFF;
+    case_info.IsDefault = true;
+    case_info.CasePosition = CodePointer();
 
     SwitchJumpListStack.top()->push_back(case_info);
 }
@@ -2315,21 +2313,20 @@ PUBLIC int           Compiler::GetPosition() {
     return CurrentChunk()->Count;
 }
 PUBLIC int           Compiler::EmitJump(Uint8 instruction) {
-    EmitByte(instruction);
-    EmitByte(0xFF);
-    EmitByte(0xFF);
-    return CurrentChunk()->Count - 2;
+    return EmitJump(instruction, 0xFFFF);
 }
 PUBLIC int           Compiler::EmitJump(Uint8 instruction, int jump) {
     EmitByte(instruction);
     EmitUint16(jump);
     return CurrentChunk()->Count - 2;
 }
-PUBLIC void          Compiler::PatchJump(int offset) {
-    int jump = GetJump(offset);
-
+PUBLIC void          Compiler::PatchJump(int offset, int jump) {
     CurrentChunk()->Code[offset]     = jump & 0xFF;
     CurrentChunk()->Code[offset + 1] = (jump >> 8) & 0xFF;
+}
+PUBLIC void          Compiler::PatchJump(int offset) {
+    int jump = GetJump(offset);
+    PatchJump(offset, jump);
 }
 PUBLIC void          Compiler::EmitStringHash(char* string) {
     EmitUint32(GetHash(string));
@@ -2384,6 +2381,12 @@ PUBLIC void          Compiler::StartSwitchJumpList() {
 }
 PUBLIC void          Compiler::EndSwitchJumpList() {
     vector<switch_case>* top = SwitchJumpListStack.top();
+    for (size_t i = 0; i < top->size(); i++) {
+        if (!(*top)[i].IsDefault) {
+            free((*top)[i].CodeBlock);
+            free((*top)[i].LineBlock);
+        }
+    }
     delete top;
     SwitchJumpListStack.pop();
     SwitchScopeStack.pop();
