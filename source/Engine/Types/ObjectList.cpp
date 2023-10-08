@@ -5,6 +5,7 @@
 class ObjectList {
 public:
     int     EntityCount = 0;
+    int     Activity = ACTIVE_NORMAL;
     Entity* EntityFirst = NULL;
     Entity* EntityLast = NULL;
 

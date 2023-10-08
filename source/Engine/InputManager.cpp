@@ -47,9 +47,9 @@ void*               InputManager::TouchStates;
 struct TouchState {
     float X;
     float Y;
-    bool Down;
-    bool Pressed;
-    bool Released;
+    bool  Down;
+    bool  Pressed;
+    bool  Released;
 };
 
 PUBLIC STATIC void  InputManager::Init() {
@@ -464,9 +464,9 @@ PUBLIC STATIC bool  InputManager::ControllerIsXbox(int index) {
     GET_CONTROLLER(false);
     return controller->IsXbox();
 }
-PUBLIC STATIC bool  InputManager::ControllerIsPlaystation(int index) {
+PUBLIC STATIC bool  InputManager::ControllerIsPlayStation(int index) {
     GET_CONTROLLER(false);
-    return controller->IsPlaystation();
+    return controller->IsPlayStation();
 }
 PUBLIC STATIC bool  InputManager::ControllerIsJoyCon(int index) {
     GET_CONTROLLER(false);

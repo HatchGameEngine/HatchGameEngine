@@ -14,6 +14,7 @@ need_t BytecodeObject;
 class BytecodeObjectManager {
 public:
     static bool                 LoadAllClasses;
+    static bool                 DisableAutoAnimate;
 
     static HashMap<VMValue>*    Globals;
     static HashMap<VMValue>*    Constants;
@@ -51,6 +52,7 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 
 bool                 BytecodeObjectManager::LoadAllClasses = false;
+bool                 BytecodeObjectManager::DisableAutoAnimate = false;
 
 VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;

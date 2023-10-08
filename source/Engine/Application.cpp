@@ -41,6 +41,8 @@ public:
     static int         SoundVolume;
 
     static int         StartSceneNum;
+
+    static bool        DevMenuActivated;
 };
 #endif
 
@@ -76,13 +78,13 @@ extern "C" {
 #if   WIN32
     Platforms Application::Platform = Platforms::Windows;
 #elif MACOSX
-    Platforms Application::Platform = Platforms::MacOSX;
+    Platforms Application::Platform = Platforms::MacOS;
 #elif LINUX
     Platforms Application::Platform = Platforms::Linux;
 #elif SWITCH
     Platforms Application::Platform = Platforms::Switch;
 #elif PLAYSTATION
-    Platforms Application::Platform = Platforms::Playstation;
+    Platforms Application::Platform = Platforms::PlayStation;
 #elif XBOX
     Platforms Application::Platform = Platforms::Xbox;
 #elif ANDROID
@@ -124,6 +126,8 @@ int         Application::MusicVolume = 100;
 int         Application::SoundVolume = 100;
 
 int         Application::StartSceneNum = 0;
+
+bool        Application::DevMenuActivated = false;
 
 char    StartingScene[256];
 
@@ -241,14 +245,14 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     switch (Application::Platform) {
         case Platforms::Windows:
             platform = "Windows"; break;
-        case Platforms::MacOSX:
+        case Platforms::MacOS:
             platform = "MacOS"; break;
         case Platforms::Linux:
             platform = "Linux"; break;
         case Platforms::Switch:
             platform = "Nintendo Switch"; break;
-        case Platforms::Playstation:
-            platform = "Playstation"; break;
+        case Platforms::PlayStation:
+            platform = "PlayStation"; break;
         case Platforms::Xbox:
             platform = "Xbox"; break;
         case Platforms::Android:
@@ -263,6 +267,10 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::SetWindowTitle(Application::GameTitleShort);
 
     Running = true;
+}
+
+PUBLIC STATIC bool Application::IsPC() {
+    return Application::Platform == Platforms::Windows || Application::Platform == Platforms::MacOS || Application::Platform == Platforms::Linux;
 }
 
 PUBLIC STATIC bool Application::IsMobile() {
@@ -477,6 +485,7 @@ PRIVATE STATIC void Application::Restart() {
     Graphics::SpriteSheetTextureMap->Clear();
 
     BytecodeObjectManager::LoadAllClasses = false;
+    BytecodeObjectManager::DisableAutoAnimate = false;
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
 
@@ -656,6 +665,8 @@ PRIVATE STATIC void Application::PollEvents() {
                     // Quit game (dev)
                     if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
                         Running = false;
+                        // Application::DevMenuActivated ^= 1;
+                        // Log::Print(Log::LOG_VERBOSE, "Dev Menu Activated: %d", DevMenuActivated);
                         break;
                     }
                     // Restart application (dev)
@@ -846,6 +857,8 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             int cols, rows;
             DEBUG_fontSprite->SpritesheetCount = 1;
             DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
+            if (!DEBUG_fontSprite->Spritesheets[0])
+                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/Font.png");
             cols = DEBUG_fontSprite->Spritesheets[0]->Width / 32;
             rows = DEBUG_fontSprite->Spritesheets[0]->Height / 32;
 
@@ -1050,7 +1063,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
 }
 PRIVATE STATIC void Application::DelayFrame() {
     // HACK: MacOS V-Sync timing gets disabled if window is not visible
-    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOSX) {
+    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOS) {
         double frameTime = Clock::GetTicks() - FrameTimeStart;
         double frameDurationRemainder = FrameTimeDesired - frameTime;
         if (frameDurationRemainder >= 0.0) {

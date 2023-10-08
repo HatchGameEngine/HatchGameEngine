@@ -67,6 +67,7 @@
             <li><a href="#Reference_Model">Model</a></li>
             <li><a href="#Reference_Music">Music</a></li>
             <li><a href="#Reference_Number">Number</a></li>
+            <li><a href="#Reference_Object">Object</a></li>
             <li><a href="#Reference_Palette">Palette</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
@@ -96,14 +97,17 @@
         </ul>
         <h3>Enums</h3>
         <ul>
-            <li><a href="#Reference_Active_*">Active_*</a></li>
+            <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
             <li><a href="#Reference_BlendFactor_*">BlendFactor_*</a></li>
             <li><a href="#Reference_BlendMode_*">BlendMode_*</a></li>
             <li><a href="#Reference_Button_*">Button_*</a></li>
+            <li><a href="#Reference_CMODE_*">CMODE_*</a></li>
+            <li><a href="#Reference_C_*">C_*</a></li>
             <li><a href="#Reference_Controller_*">Controller_*</a></li>
             <li><a href="#Reference_DrawBehavior_*">DrawBehavior_*</a></li>
             <li><a href="#Reference_DrawMode_*">DrawMode_*</a></li>
+            <li><a href="#Reference_FLIP_*">FLIP_*</a></li>
             <li><a href="#Reference_FaceCull_*">FaceCull_*</a></li>
             <li><a href="#Reference_FileStream_*">FileStream_*</a></li>
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
@@ -113,6 +117,7 @@
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
+            <li><a href="#Reference_TILECOLLISION_*">TILECOLLISION_*</a></li>
             <li><a href="#Reference_TintMode_*">TintMode_*</a></li>
         </ul>
         <h3>Constants</h3>
@@ -131,12 +136,14 @@
                     <li><a href="#Reference_globals_CameraX">CameraX</a></li>
                     <li><a href="#Reference_globals_CameraY">CameraY</a></li>
                     <li><a href="#Reference_globals_LowPassFilter">LowPassFilter</a></li>
+                    <li><a href="#Reference_globals_CurrentView">CurrentView</a></li>
                     <li><a href="#Reference_globals_Scene_Frame">Scene_Frame</a></li>
                     <li><a href="#Reference_globals_Scene_TimeEnabled">Scene_TimeEnabled</a></li>
                     <li><a href="#Reference_globals_Scene_TimeCounter">Scene_TimeCounter</a></li>
                     <li><a href="#Reference_globals_Scene_Minutes">Scene_Minutes</a></li>
                     <li><a href="#Reference_globals_Scene_Seconds">Scene_Seconds</a></li>
                     <li><a href="#Reference_globals_Scene_Milliseconds">Scene_Milliseconds</a></li>
+                    <li><a href="#Reference_globals_Scene_Filter">Scene_Filter</a></li>
                     <li><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></li>
                     <li><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></li>
                     <li><a href="#Reference_globals_Scene_DebugMode">Scene_DebugMode</a></li>
@@ -252,6 +259,11 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Date_GetEpoch">Date.GetEpoch</a></li>
+                    <li><a href="#Reference_functions_Date_GetWeekday">Date.GetWeekday</a></li>
+                    <li><a href="#Reference_functions_Date_GetSecond">Date.GetSecond</a></li>
+                    <li><a href="#Reference_functions_Date_GetMinute">Date.GetMinute</a></li>
+                    <li><a href="#Reference_functions_Date_GetHour">Date.GetHour</a></li>
+                    <li><a href="#Reference_functions_Date_GetTimeOfDay">Date.GetTimeOfDay</a></li>
                     <li><a href="#Reference_functions_Date_GetTicks">Date.GetTicks</a></li>
                 </ul>
             </p>
@@ -260,6 +272,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Device_GetPlatform">Device.GetPlatform</a></li>
+                    <li><a href="#Reference_functions_Device_IsPC">Device.IsPC</a></li>
                     <li><a href="#Reference_functions_Device_IsMobile">Device.IsMobile</a></li>
                 </ul>
             </p>
@@ -286,6 +299,9 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Draw_Sprite">Draw.Sprite</a></li>
+                    <li><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></li>
+                    <li><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></li>
+                    <li><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></li>
                     <li><a href="#Reference_functions_Draw_SpritePart">Draw.SpritePart</a></li>
                     <li><a href="#Reference_functions_Draw_Image">Draw.Image</a></li>
                     <li><a href="#Reference_functions_Draw_ImagePart">Draw.ImagePart</a></li>
@@ -477,7 +493,9 @@
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
+                    <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
+                    <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
                 </ul>
                 <i>Instance methods:</i>
                 <ul>
@@ -561,7 +579,7 @@
                     <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
                     <li><a href="#Reference_fields_instance_CollisionMode">instance.CollisionMode</a></li>
                     <li><a href="#Reference_fields_instance_TileCollisions">instance.TileCollisions</a></li>
-                    <li><a href="#Reference_fields_instance_ActiveStatus">instance.ActiveStatus</a></li>
+                    <li><a href="#Reference_fields_instance_Activity">instance.Activity</a></li>
                     <li><a href="#Reference_fields_instance_InRange">instance.InRange</a></li>
                     <li><a href="#Reference_fields_instance_SensorX">instance.SensorX</a></li>
                     <li><a href="#Reference_fields_instance_SensorY">instance.SensorY</a></li>
@@ -699,6 +717,15 @@
                     <li><a href="#Reference_functions_Number_AsDecimal">Number.AsDecimal</a></li>
                 </ul>
             </p>
+            <p id="Reference_Object">
+                <h2>Object</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Object_Loaded">Object.Loaded</a></li>
+                    <li><a href="#Reference_functions_Object_SetActivity">Object.SetActivity</a></li>
+                    <li><a href="#Reference_functions_Object_GetActivity">Object.GetActivity</a></li>
+                </ul>
+            </p>
             <p id="Reference_Palette">
                 <h2>Palette</h2>
                 <i>Class methods:</i>
@@ -790,6 +817,9 @@
                     <li><a href="#Reference_functions_Scene_GetCategoryCount">Scene.GetCategoryCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStageCount">Scene.GetStageCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDebugMode">Scene.GetDebugMode</a></li>
+                    <li><a href="#Reference_functions_Scene_GetInstanceCount">Scene.GetInstanceCount</a></li>
+                    <li><a href="#Reference_functions_Scene_GetStaticInstanceCount">Scene.GetStaticInstanceCount</a></li>
+                    <li><a href="#Reference_functions_Scene_GetDynamicInstanceCount">Scene.GetDynamicInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_CheckValidScene">Scene.CheckValidScene</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneFolder">Scene.CheckSceneFolder</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneID">Scene.CheckSceneID</a></li>
@@ -805,6 +835,8 @@
                     <li><a href="#Reference_functions_Scene_SetLayerCollidable">Scene.SetLayerCollidable</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerInternalSize">Scene.SetLayerInternalSize</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOffsetPosition">Scene.SetLayerOffsetPosition</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerOffsetX">Scene.SetLayerOffsetX</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerOffsetY">Scene.SetLayerOffsetY</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerRepeat">Scene.SetLayerRepeat</a></li>
@@ -946,6 +978,7 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameWidth">Sprite.GetFrameWidth</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameHeight">Sprite.GetFrameHeight</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -1038,6 +1071,7 @@
                 <ul>
                     <li><a href="#Reference_functions_TileInfo_SetSpriteInfo">TileInfo.SetSpriteInfo</a></li>
                     <li><a href="#Reference_functions_TileInfo_IsEmptySpace">TileInfo.IsEmptySpace</a></li>
+                    <li><a href="#Reference_functions_TileInfo_GetEmptyTile">TileInfo.GetEmptyTile</a></li>
                     <li><a href="#Reference_functions_TileInfo_GetCollision">TileInfo.GetCollision</a></li>
                     <li><a href="#Reference_functions_TileInfo_GetAngle">TileInfo.GetAngle</a></li>
                     <li><a href="#Reference_functions_TileInfo_GetBehaviorFlag">TileInfo.GetBehaviorFlag</a></li>
@@ -1171,7 +1205,9 @@
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
+                    <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
+                    <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
                 </ul>
                 <i>Instance methods:</i>
                 <ul>
@@ -1255,7 +1291,7 @@
                     <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
                     <li><a href="#Reference_fields_instance_CollisionMode">instance.CollisionMode</a></li>
                     <li><a href="#Reference_fields_instance_TileCollisions">instance.TileCollisions</a></li>
-                    <li><a href="#Reference_fields_instance_ActiveStatus">instance.ActiveStatus</a></li>
+                    <li><a href="#Reference_fields_instance_Activity">instance.Activity</a></li>
                     <li><a href="#Reference_fields_instance_InRange">instance.InRange</a></li>
                     <li><a href="#Reference_fields_instance_SensorX">instance.SensorX</a></li>
                     <li><a href="#Reference_fields_instance_SensorY">instance.SensorY</a></li>
@@ -1269,17 +1305,17 @@
                 </ul>
             </p>
         <h3>Enums</h3>
-            <p id="Reference_Active_*">
-                <h2><code>Active_*</code></h2>
+            <p id="Reference_ACTIVE_*">
+                <h2><code>ACTIVE_*</code></h2>
                 <ul>
-                    <li><a href="#Reference_enums_Active_NEVER">Active_NEVER</a></li>
-                    <li><a href="#Reference_enums_Active_ALWAYS">Active_ALWAYS</a></li>
-                    <li><a href="#Reference_enums_Active_NORMAL">Active_NORMAL</a></li>
-                    <li><a href="#Reference_enums_Active_PAUSED">Active_PAUSED</a></li>
-                    <li><a href="#Reference_enums_Active_BOUNDS">Active_BOUNDS</a></li>
-                    <li><a href="#Reference_enums_Active_XBOUNDS">Active_XBOUNDS</a></li>
-                    <li><a href="#Reference_enums_Active_YBOUNDS">Active_YBOUNDS</a></li>
-                    <li><a href="#Reference_enums_Active_RBOUNDS">Active_RBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_NEVER">ACTIVE_NEVER</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_ALWAYS">ACTIVE_ALWAYS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_NORMAL">ACTIVE_NORMAL</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_PAUSED">ACTIVE_PAUSED</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_BOUNDS">ACTIVE_BOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_XBOUNDS">ACTIVE_XBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                 </ul>
             </p>
             <p id="Reference_Axis_*">
@@ -1347,6 +1383,25 @@
                     <li><a href="#Reference_enums_Button_MISC1">Button_MISC1</a></li>
                 </ul>
             </p>
+            <p id="Reference_CMODE_*">
+                <h2><code>CMODE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_CMODE_FLOOR">CMODE_FLOOR</a></li>
+                    <li><a href="#Reference_enums_CMODE_LWALL">CMODE_LWALL</a></li>
+                    <li><a href="#Reference_enums_CMODE_ROOF">CMODE_ROOF</a></li>
+                    <li><a href="#Reference_enums_CMODE_RWALL">CMODE_RWALL</a></li>
+                </ul>
+            </p>
+            <p id="Reference_C_*">
+                <h2><code>C_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_C_NONE">C_NONE</a></li>
+                    <li><a href="#Reference_enums_C_TOP">C_TOP</a></li>
+                    <li><a href="#Reference_enums_C_LEFT">C_LEFT</a></li>
+                    <li><a href="#Reference_enums_C_RIGHT">C_RIGHT</a></li>
+                    <li><a href="#Reference_enums_C_BOTTOM">C_BOTTOM</a></li>
+                </ul>
+            </p>
             <p id="Reference_Controller_*">
                 <h2><code>Controller_*</code></h2>
                 <ul>
@@ -1396,6 +1451,15 @@
                     <li><a href="#Reference_enums_DrawMode_LightingMask">DrawMode_LightingMask</a></li>
                     <li><a href="#Reference_enums_DrawMode_FillTypeMask">DrawMode_FillTypeMask</a></li>
                     <li><a href="#Reference_enums_DrawMode_FlagsMask">DrawMode_FlagsMask</a></li>
+                </ul>
+            </p>
+            <p id="Reference_FLIP_*">
+                <h2><code>FLIP_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_FLIP_NONE">FLIP_NONE</a></li>
+                    <li><a href="#Reference_enums_FLIP_X">FLIP_X</a></li>
+                    <li><a href="#Reference_enums_FLIP_Y">FLIP_Y</a></li>
+                    <li><a href="#Reference_enums_FLIP_XY">FLIP_XY</a></li>
                 </ul>
             </p>
             <p id="Reference_FaceCull_*">
@@ -1458,13 +1522,13 @@
                 <h2><code>Platform_*</code></h2>
                 <ul>
                     <li><a href="#Reference_enums_Platform_Windows">Platform_Windows</a></li>
-                    <li><a href="#Reference_enums_Platform_MacOSX">Platform_MacOSX</a></li>
+                    <li><a href="#Reference_enums_Platform_MacOS">Platform_MacOS</a></li>
                     <li><a href="#Reference_enums_Platform_Linux">Platform_Linux</a></li>
                     <li><a href="#Reference_enums_Platform_Switch">Platform_Switch</a></li>
-                    <li><a href="#Reference_enums_Platform_Playstation">Platform_Playstation</a></li>
+                    <li><a href="#Reference_enums_Platform_PlayStation">Platform_PlayStation</a></li>
                     <li><a href="#Reference_enums_Platform_Xbox">Platform_Xbox</a></li>
-                    <li><a href="#Reference_enums_Platform_iOS">Platform_iOS</a></li>
                     <li><a href="#Reference_enums_Platform_Android">Platform_Android</a></li>
+                    <li><a href="#Reference_enums_Platform_iOS">Platform_iOS</a></li>
                     <li><a href="#Reference_enums_Platform_Unknown">Platform_Unknown</a></li>
                 </ul>
             </p>
@@ -1482,6 +1546,14 @@
                     <li><a href="#Reference_enums_SensorDirection_Right">SensorDirection_Right</a></li>
                     <li><a href="#Reference_enums_SensorDirection_Up">SensorDirection_Up</a></li>
                     <li><a href="#Reference_enums_SensorDirection_Left">SensorDirection_Left</a></li>
+                </ul>
+            </p>
+            <p id="Reference_TILECOLLISION_*">
+                <h2><code>TILECOLLISION_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_TILECOLLISION_NONE">TILECOLLISION_NONE</a></li>
+                    <li><a href="#Reference_enums_TILECOLLISION_DOWN">TILECOLLISION_DOWN</a></li>
+                    <li><a href="#Reference_enums_TILECOLLISION_UP">TILECOLLISION_UP</a></li>
                 </ul>
             </p>
             <p id="Reference_TintMode_*">
@@ -2226,6 +2298,41 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The amount of seconds from epoch.</div>
         </p>
+        <p id="Reference_functions_Date_GetWeekday">
+        <h2 style="margin-bottom: 8px;">Date.GetWeekday</h2>
+        <code>Date.GetWeekday()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current day of the week, starting from 1 January 1970, 0:00 UTC.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The day of the week (0-6 corresponding to Sunday-Saturday).</div>
+        </p>
+        <p id="Reference_functions_Date_GetSecond">
+        <h2 style="margin-bottom: 8px;">Date.GetSecond</h2>
+        <code>Date.GetSecond()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the the second of the current minute.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The second of the minute (from 0 to 59).</div>
+        </p>
+        <p id="Reference_functions_Date_GetMinute">
+        <h2 style="margin-bottom: 8px;">Date.GetMinute</h2>
+        <code>Date.GetMinute()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the the minute of the current hour.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The minute of the hour (from 0 to 59).</div>
+        </p>
+        <p id="Reference_functions_Date_GetHour">
+        <h2 style="margin-bottom: 8px;">Date.GetHour</h2>
+        <code>Date.GetHour()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the the hour of the current day.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The hour of the day (from 0 to 23).</div>
+        </p>
+        <p id="Reference_functions_Date_GetTimeOfDay">
+        <h2 style="margin-bottom: 8px;">Date.GetTimeOfDay</h2>
+        <code>Date.GetTimeOfDay()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the the current time of the day (Morning, Midday, Evening, Night).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The time of day based on the current hour.</div>
+        </p>
         <p id="Reference_functions_Date_GetTicks">
         <h2 style="margin-bottom: 8px;">Date.GetTicks</h2>
         <code>Date.GetTicks()</code>
@@ -2240,12 +2347,19 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the current <a href="#Reference_Platform_*">platform</a>.</div>
         </p>
+        <p id="Reference_functions_Device_IsPC">
+        <h2 style="margin-bottom: 8px;">Device.IsPC</h2>
+        <code>Device.IsPC()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns 1 if the device is on a PC, 0 if otherwise.</div>
+        </p>
         <p id="Reference_functions_Device_IsMobile">
         <h2 style="margin-bottom: 8px;">Device.IsMobile</h2>
         <code>Device.IsMobile()</code>
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a mobile device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">1 if the device is on a mobile device, 0 if otherwise.</div>
+        <div style="font-size: 14px;">Returns 1 if the device is on a mobile device, 0 if otherwise.</div>
         </p>
         <p id="Reference_functions_Directory_Create">
         <h2 style="margin-bottom: 8px;">Directory.Create</h2>
@@ -2334,6 +2448,43 @@
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
         <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true</li>
         <li>useInteger (Number): Whether or not the rotation argument is already in radians</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SpriteBasic">
+        <h2 style="margin-bottom: 8px;">Draw.SpriteBasic</h2>
+        <code>Draw.SpriteBasic(instance[, sprite])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>instance (Instance): The instance to draw.</li>
+        <li>sprite (Integer): The sprite index to use if not using the entity's sprite index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Animator">
+        <h2 style="margin-bottom: 8px;">Draw.Animator</h2>
+        <code>Draw.Animator(animator, x, y, flipX, flipY[, scaleX, scaleY, rotation])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and other provided values.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Animator): The animator to draw.</li>
+        <li>x (Number): X position of where to draw the sprite.</li>
+        <li>y (Number): Y position of where to draw the sprite.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
+        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
+        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
+        <li>rotation (Number): Rotation of the drawn sprite, from 0-511.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_AnimatorBasic">
+        <h2 style="margin-bottom: 8px;">Draw.AnimatorBasic</h2>
+        <code>Draw.AnimatorBasic(animator, instance[, sprite])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Animator): The animator to draw.</li>
+        <li>instance (Instance): The instance to pull other values from.</li>
+        <li>sprite (Integer): The sprite index to use if not using the entity's sprite index.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SpritePart">
@@ -4170,15 +4321,37 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.</div>
         </p>
+        <p id="Reference_functions_Instance_DisableAutoAnimate">
+        <h2 style="margin-bottom: 8px;">Instance.DisableAutoAnimate</h2>
+        <code>Instance.DisableAutoAnimate(disableAutoAnimate)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Disables the AutoAnimate function of entities.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Instance_Copy">
         <h2 style="margin-bottom: 8px;">Instance.Copy</h2>
-        <code>Instance.Copy(destInstance, srcInstance)</code>
+        <code>Instance.Copy(destInstance, srcInstance[, copyClass])</code>
         <div style="margin-top: 8px; font-size: 14px;">Copies an instance into another.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>destInstance (Instance): The destination instance.</li>
         <li>srcInstance (Instance): The source instance.</li>
+        <li>copyClass (Boolean): Whether to copy the class of the source entity (defaults to true).</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Instance_ChangeClass">
+        <h2 style="margin-bottom: 8px;">Instance.ChangeClass</h2>
+        <code>Instance.ChangeClass(instance, className)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes an instance's class.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>instance (Instance): The instance to swap.</li>
+        <li>className (String): Name of the object class.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the instance was swapped.</div>
         </p>
         <p id="Reference_functions_JSON_Parse">
         <h2 style="margin-bottom: 8px;">JSON.Parse</h2>
@@ -5138,6 +5311,38 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Decimal value.</div>
         </p>
+        <p id="Reference_functions_Object_Loaded">
+        <h2 style="margin-bottom: 8px;">Object.Loaded</h2>
+        <code>Object.Loaded(className)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an object class is loaded.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>className (String): Name of the object class.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the class is loaded.</div>
+        </p>
+        <p id="Reference_functions_Object_SetActivity">
+        <h2 style="margin-bottom: 8px;">Object.SetActivity</h2>
+        <code>Object.SetActivity(className, Activity)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the active state of an object to determine if/when it runs its GlobalUpdate function.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>className (String): Name of the object class.</li>
+        <li>Activity (Integer): The active state to set the object to.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Object_GetActivity">
+        <h2 style="margin-bottom: 8px;">Object.GetActivity</h2>
+        <code>Object.GetActivity(className)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the active state of an object that determines if/when it runs its GlobalUpdate function.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>className (String): Name of the object class.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the active state of the object if it is loaded, otherwise returns -1.</div>
+        </p>
         <p id="Reference_functions_Palette_EnablePaletteUsage">
         <h2 style="margin-bottom: 8px;">Palette.EnablePaletteUsage</h2>
         <code>Palette.EnablePaletteUsage(usePalettes)</code>
@@ -5149,12 +5354,13 @@
         </p>
         <p id="Reference_functions_Palette_LoadFromResource">
         <h2 style="margin-bottom: 8px;">Palette.LoadFromResource</h2>
-        <code>Palette.LoadFromResource(paletteIndex, filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an .act, .col, .gif, or .hpal resource.</div>
+        <code>Palette.LoadFromResource(paletteIndex, filename[, activeRows])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an .act, .col, .gif, .png, or .hpal resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>paletteIndex (Integer): Index of palette to load to.</li>
         <li>filename (String): Filepath of resource.</li>
+        <li>activeRows (Bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_LoadFromImage">
@@ -5240,12 +5446,12 @@
         <p id="Reference_functions_Palette_SetPaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Palette.SetPaletteIndexLines</h2>
         <code>Palette.SetPaletteIndexLines(paletteIndex, lineStart, lineEnd)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the palette to be used for drawing, on certain Y-positions on the screen (between the start and end lines).</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>paletteIndex (Integer): Index of palette.</li>
-        <li>lineStart (Integer): Start line to set to the palette.</li>
-        <li>lineEnd (Integer): Line where to stop setting the palette.</li>
+        <li>lineStart (Number): Start line to set to the palette.</li>
+        <li>lineEnd (Number): Line where to stop setting the palette.</li>
         </ul>
         </p>
         <p id="Reference_functions_Resources_LoadSprite">
@@ -5369,11 +5575,11 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to base the values on.</li>
-        <li>cLayers (Integer): Bitfield of the layers the entity can collide with.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
         <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
         <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
-        <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
-        <li>yOffset (Decimal): How far from the entity's Y value to start from.</li>
+        <li>xOffset (Number): How far from the entity's X value to start from.</li>
+        <li>yOffset (Number): How far from the entity's Y value to start from.</li>
         <li>setPos (Boolean): Whether to set the entity's position if collision is found.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -5386,7 +5592,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to move.</li>
-        <li>cLayers (Integer): Bitfield of the layers the entity can collide with.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
         <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
         <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
         <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
@@ -5895,6 +6101,27 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetInstanceCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetInstanceCount</h2>
+        <code>Scene.GetInstanceCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the count of instances currently in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of instances in the scene.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetStaticInstanceCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetStaticInstanceCount</h2>
+        <code>Scene.GetStaticInstanceCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the count of instances currently in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of instances in the scene.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetDynamicInstanceCount">
+        <h2 style="margin-bottom: 8px;">Scene.GetDynamicInstanceCount</h2>
+        <code>Scene.GetDynamicInstanceCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the count of instances currently in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the amount of instances in the scene.</div>
+        </p>
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
@@ -6027,6 +6254,26 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>offsetX (Number): Offset X position.</li>
+        <li>offsetY (Number): Offset Y position.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerOffsetX">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerOffsetX</h2>
+        <code>Scene.SetLayerOffsetX(layerIndex, offsetX)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the camera offset X value of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>offsetX (Number): Offset X position.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerOffsetY">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerOffsetY</h2>
+        <code>Scene.SetLayerOffsetY(layerIndex, offsetY)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the camera offset Y value of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
         <li>offsetY (Number): Offset Y position.</li>
         </ul>
         </p>
@@ -6984,7 +7231,21 @@
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame ID (in pixels) of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the frame ID of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetHitbox">
+        <h2 style="margin-bottom: 8px;">Sprite.GetHitbox</h2>
+        <code>Sprite.GetHitbox(sprite, animationID, frame, hitboxID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of an animation and frame of a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        <li>hitboxID (Integer): The index number of the hitbox.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
         <p id="Reference_functions_Stream_FromResource">
         <h2 style="margin-bottom: 8px;">Stream.FromResource</h2>
@@ -7568,6 +7829,13 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the tile is empty space, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_functions_TileInfo_GetEmptyTile">
+        <h2 style="margin-bottom: 8px;">TileInfo.GetEmptyTile</h2>
+        <code>TileInfo.GetEmptyTile()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the scene's empty tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the ID of the scene's empty tile space.</div>
         </p>
         <p id="Reference_functions_TileInfo_GetCollision">
         <h2 style="margin-bottom: 8px;">TileInfo.GetCollision</h2>
@@ -8271,7 +8539,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>605 out of 665 functions have descriptions. </p>
+        <p>626 out of 686 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -8835,17 +9103,17 @@
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         </p>
-        <p id="Reference_fields_instance_ActiveStatus">
-        <h3 style="margin-bottom: 8px;"><code>instance.ActiveStatus</code></h2>
+        <p id="Reference_fields_instance_Activity">
+        <h3 style="margin-bottom: 8px;"><code>instance.Activity</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Enumeration</div>
-        <div style="font-size: 14px;"><b>Default: </b><code>Active_BOUNDS</code></div>
+        <div style="font-size: 14px;"><b>Default: </b><code>ACTIVE_BOUNDS</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The active status for this entity.</div>
         </p>
         <p id="Reference_fields_instance_InRange">
         <h3 style="margin-bottom: 8px;"><code>instance.InRange</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether this entity is within active range; see <code><a href="#Reference_fields_instance_ActiveStatus">instance.ActiveStatus</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether this entity is within active range; see <code><a href="#Reference_fields_instance_Activity">instance.Activity</a></code>.</div>
         </p>
         <p id="Reference_fields_instance_SensorX">
         <h3 style="margin-bottom: 8px;"><code>instance.SensorX</code></h2>
@@ -8904,36 +9172,36 @@
         <p>60 out of 64 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
-        <p id="Reference_enums_Active_NEVER">
-        <h3 style="margin-bottom: 8px;"><code>Active_NEVER</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity never updates.</div>
+        <p id="Reference_enums_ACTIVE_NEVER">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_NEVER</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity never updates. Object never runs GlobalUpdate.</div>
         </p>
-        <p id="Reference_enums_Active_ALWAYS">
-        <h3 style="margin-bottom: 8px;"><code>Active_ALWAYS</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity always updates.</div>
+        <p id="Reference_enums_ACTIVE_ALWAYS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_ALWAYS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity always updates. Object always runs GlobalUpdate.</div>
         </p>
-        <p id="Reference_enums_Active_NORMAL">
-        <h3 style="margin-bottom: 8px;"><code>Active_NORMAL</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity updates no matter where it is located on the scene, but does not update if the scene is paused.</div>
+        <p id="Reference_enums_ACTIVE_NORMAL">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_NORMAL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.</div>
         </p>
-        <p id="Reference_enums_Active_PAUSED">
-        <h3 style="margin-bottom: 8px;"><code>Active_PAUSED</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity only updates when the scene is paused.</div>
+        <p id="Reference_enums_ACTIVE_PAUSED">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_PAUSED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.</div>
         </p>
-        <p id="Reference_enums_Active_BOUNDS">
-        <h3 style="margin-bottom: 8px;"><code>Active_BOUNDS</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity only updates when it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).</div>
+        <p id="Reference_enums_ACTIVE_BOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_BOUNDS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).</div>
         </p>
-        <p id="Reference_enums_Active_XBOUNDS">
-        <h3 style="margin-bottom: 8px;"><code>Active_XBOUNDS</code></h2>
+        <p id="Reference_enums_ACTIVE_XBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_XBOUNDS</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity only updates within an X bound. (only uses UpdateRegionW)</div>
         </p>
-        <p id="Reference_enums_Active_YBOUNDS">
-        <h3 style="margin-bottom: 8px;"><code>Active_YBOUNDS</code></h2>
+        <p id="Reference_enums_ACTIVE_YBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_YBOUNDS</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity only updates within a Y bound. (only uses UpdateRegionH)</div>
         </p>
-        <p id="Reference_enums_Active_RBOUNDS">
-        <h3 style="margin-bottom: 8px;"><code>Active_RBOUNDS</code></h2>
+        <p id="Reference_enums_ACTIVE_RBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_RBOUNDS</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity updates within a radius. (uses UpdateRegionW)</div>
         </p>
         <p id="Reference_enums_Axis_LEFTX">
@@ -9116,6 +9384,42 @@
         <h3 style="margin-bottom: 8px;"><code>Button_MISC1</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Controller button for miscellaneous purposes.</div>
         </p>
+        <p id="Reference_enums_CMODE_FLOOR">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_FLOOR</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with a floor.</div>
+        </p>
+        <p id="Reference_enums_CMODE_LWALL">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_LWALL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with the left side of a wall.</div>
+        </p>
+        <p id="Reference_enums_CMODE_ROOF">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_ROOF</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with a roof.</div>
+        </p>
+        <p id="Reference_enums_CMODE_RWALL">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_RWALL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with the right side of a wall.</div>
+        </p>
+        <p id="Reference_enums_C_NONE">
+        <h3 style="margin-bottom: 8px;"><code>C_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">No collided side.</div>
+        </p>
+        <p id="Reference_enums_C_TOP">
+        <h3 style="margin-bottom: 8px;"><code>C_TOP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Top collided side.</div>
+        </p>
+        <p id="Reference_enums_C_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>C_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left collided side.</div>
+        </p>
+        <p id="Reference_enums_C_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>C_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right collided side.</div>
+        </p>
+        <p id="Reference_enums_C_BOTTOM">
+        <h3 style="margin-bottom: 8px;"><code>C_BOTTOM</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom collided side.</div>
+        </p>
         <p id="Reference_enums_Controller_Xbox360">
         <h3 style="margin-bottom: 8px;"><code>Controller_Xbox360</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Xbox 360 controller type.</div>
@@ -9260,6 +9564,22 @@
         <h3 style="margin-bottom: 8px;"><code>DrawMode_FlagsMask</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Masks out <code>~</code><code><a href="#Reference_enums_DrawMode_FillTypeMask">DrawMode_FillTypeMask</a></code> out of a draw mode.</div>
         </p>
+        <p id="Reference_enums_FLIP_NONE">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">No flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_X">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_X</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Horizontal flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_Y">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_Y</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Vertical flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_XY">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_XY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Horizontal and vertical flip.</div>
+        </p>
         <p id="Reference_enums_FaceCull_None">
         <h3 style="margin-bottom: 8px;"><code>FaceCull_None</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Disables face culling.</div>
@@ -9368,9 +9688,9 @@
         <h3 style="margin-bottom: 8px;"><code>Platform_Windows</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Windows platform.</div>
         </p>
-        <p id="Reference_enums_Platform_MacOSX">
-        <h3 style="margin-bottom: 8px;"><code>Platform_MacOSX</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Mac OSX platform.</div>
+        <p id="Reference_enums_Platform_MacOS">
+        <h3 style="margin-bottom: 8px;"><code>Platform_MacOS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">MacOS platform.</div>
         </p>
         <p id="Reference_enums_Platform_Linux">
         <h3 style="margin-bottom: 8px;"><code>Platform_Linux</code></h2>
@@ -9380,21 +9700,21 @@
         <h3 style="margin-bottom: 8px;"><code>Platform_Switch</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Nintendo Switch platform.</div>
         </p>
-        <p id="Reference_enums_Platform_Playstation">
-        <h3 style="margin-bottom: 8px;"><code>Platform_Playstation</code></h2>
+        <p id="Reference_enums_Platform_PlayStation">
+        <h3 style="margin-bottom: 8px;"><code>Platform_PlayStation</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">PlayStation platform.</div>
         </p>
         <p id="Reference_enums_Platform_Xbox">
         <h3 style="margin-bottom: 8px;"><code>Platform_Xbox</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Xbox platform.</div>
         </p>
-        <p id="Reference_enums_Platform_iOS">
-        <h3 style="margin-bottom: 8px;"><code>Platform_iOS</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">iOS platform.</div>
-        </p>
         <p id="Reference_enums_Platform_Android">
         <h3 style="margin-bottom: 8px;"><code>Platform_Android</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Android platform.</div>
+        </p>
+        <p id="Reference_enums_Platform_iOS">
+        <h3 style="margin-bottom: 8px;"><code>Platform_iOS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">iOS platform.</div>
         </p>
         <p id="Reference_enums_Platform_Unknown">
         <h3 style="margin-bottom: 8px;"><code>Platform_Unknown</code></h2>
@@ -9424,6 +9744,18 @@
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Left</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left sensor direction.</div>
         </p>
+        <p id="Reference_enums_TILECOLLISION_NONE">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects no tile collision.</div>
+        </p>
+        <p id="Reference_enums_TILECOLLISION_DOWN">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_DOWN</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects downward gravity for tile collision.</div>
+        </p>
+        <p id="Reference_enums_TILECOLLISION_UP">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_UP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects upward gravity for tile collision.</div>
+        </p>
         <p id="Reference_enums_TintMode_SRC_NORMAL">
         <h3 style="margin-bottom: 8px;"><code>TintMode_SRC_NORMAL</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Tints the source pixel with the tint color.</div>
@@ -9440,7 +9772,7 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>134 out of 134 enums have descriptions. </p>
+        <p>150 out of 165 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
@@ -9498,6 +9830,10 @@
         <h3 style="margin-bottom: 8px;"><code>LowPassFilter</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The low pass filter of the audio.</div>
         </p>
+        <p id="Reference_globals_CurrentView">
+        <h3 style="margin-bottom: 8px;"><code>CurrentView</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current camera index.</div>
+        </p>
         <p id="Reference_globals_Scene_Frame">
         <h3 style="margin-bottom: 8px;"><code>Scene_Frame</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The current scene frame.</div>
@@ -9522,6 +9858,10 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_Milliseconds</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The milliseconds value of the scene timer.</div>
         </p>
+        <p id="Reference_globals_Scene_Filter">
+        <h3 style="margin-bottom: 8px;"><code>Scene_Filter</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The scene's entity filter value.</div>
+        </p>
         <p id="Reference_globals_Scene_ListPos">
         <h3 style="margin-bottom: 8px;"><code>Scene_ListPos</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The position of the current scene in the scene list.</div>
@@ -9534,7 +9874,7 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
         </p>
-        <p>12 out of 12 globals have descriptions. </p>
+        <p>14 out of 14 globals have descriptions. </p>
         <hr/>
     </body>
 </html>

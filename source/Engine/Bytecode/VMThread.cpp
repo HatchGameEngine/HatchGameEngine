@@ -1434,8 +1434,8 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_IMPORT): {
             VMValue value = ReadConstant(frame);
             if (!Import(value)) {
-                if (ThrowRuntimeError(false, "Could not import class!") == ERROR_RES_CONTINUE)
-                    goto FAIL_OP_IMPORT;
+                // if (ThrowRuntimeError(false, "Could not import class!") == ERROR_RES_CONTINUE)
+                    // goto FAIL_OP_IMPORT;
                 return INTERPRET_RUNTIME_ERROR;
             }
 
@@ -1468,7 +1468,7 @@ PUBLIC void    VMThread::RunInstructionSet() {
         int ret;
         if ((ret = RunInstruction()) < INTERPRET_OK) {
             if (ret < INTERPRET_FINISHED)
-                Log::Print(Log::LOG_ERROR, "ret: %d!!!!!!!!!!!!\n", ret);
+                Log::Print(Log::LOG_ERROR, "Error Code: %d!", ret);
             // BytecodeObjectManager::Unlock();
             break;
         }
@@ -1768,7 +1768,7 @@ PUBLIC bool    VMThread::Import(VMValue value) {
                 result = true;
             }
             else {
-                ThrowRuntimeError(false, "Could not import %s!", className);
+                Log::Print(Log::LOG_ERROR, "Could not import \"%s\"!", className);
             }
         }
     }

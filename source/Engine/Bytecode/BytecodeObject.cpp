@@ -488,19 +488,19 @@ PUBLIC void BytecodeObject::LinkFields() {
     LINK_INT(TileCollisions);
 
     /***
-    * \field ActiveStatus
+    * \field Activity
     * \type Enumeration
-    * \default Active_BOUNDS
+    * \default ACTIVE_BOUNDS
     * \ns Instance
     * \desc The active status for this entity.
     */
-    LINK_INT(ActiveStatus);
+    LINK_INT(Activity);
     /***
     * \field InRange
     * \type Boolean
     * \default false
     * \ns Instance
-    * \desc Whether this entity is within active range; see <linkto ref="instance.ActiveStatus"></linkto>.
+    * \desc Whether this entity is within active range; see <linkto ref="instance.Activity"></linkto>.
     */
     LINK_INT(InRange);
 
@@ -680,10 +680,11 @@ PUBLIC bool BytecodeObject::RunInitializer() {
     return true;
 }
 
-PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
+PUBLIC void BytecodeObject::Copy(BytecodeObject* other, bool copyClass, bool destroySrc) {
     CopyFields(other);
 
-    other->Instance->Object.Class = Instance->Object.Class;
+    if (copyClass)
+        other->Instance->Object.Class = Instance->Object.Class;
 
     // Copy properties
     HashMap<VMValue>* srcProperties = Properties;
@@ -694,7 +695,11 @@ PUBLIC void BytecodeObject::Copy(BytecodeObject* other) {
     srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
         destProperties->Put(key, value);
     });
+
+    if (destroySrc)
+        other->Active = false;
 }
+
 
 PUBLIC void BytecodeObject::CopyFields(BytecodeObject* other) {
     Entity::CopyFields(other);
@@ -722,17 +727,11 @@ PUBLIC void BytecodeObject::CopyVMFields(BytecodeObject* other) {
 PUBLIC void BytecodeObject::Initialize() {
     if (!Instance) return;
 
-    RunInitializer();
-}
-PUBLIC void BytecodeObject::Create(VMValue flag) {
-    if (!Instance) return;
-
     // Set defaults
     Active = true;
     Pauseable = true;
-    ActiveStatus = Active_BOUNDS;
+    Activity = ACTIVE_BOUNDS;
     InRange = false;
-    Created = true;
 
     XSpeed = 0.0f;
     YSpeed = 0.0f;
@@ -763,7 +762,7 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
     CurrentFrameCount = 0;
     AnimationSpeedMult = 1.0;
     AnimationSpeedAdd = 0;
-    AutoAnimate = true;
+    AutoAnimate = BytecodeObjectManager::DisableAutoAnimate ? false : true;
     AnimationSpeed = 0;
     AnimationTimer = 0.0;
     AnimationFrameDuration = 0;
@@ -784,6 +783,13 @@ PUBLIC void BytecodeObject::Create(VMValue flag) {
 
     Persistence = Persistence_NONE;
     Interactable = true;
+
+    RunInitializer();
+}
+PUBLIC void BytecodeObject::Create(VMValue flag) {
+    if (!Instance) return;
+
+    Created = true;
 
     RunCreateFunction(flag);
     if (Sprite >= 0 && CurrentAnimation < 0) {

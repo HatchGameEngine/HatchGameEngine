@@ -70,9 +70,9 @@ enum {
 };
 
 enum {
-    TileCollision_NONE = 0,
-    TileCollision_DOWN = 1,
-    TileCollision_UP   = 2
+    TILECOLLISION_NONE = 0,
+    TILECOLLISION_DOWN = 1,
+    TILECOLLISION_UP   = 2
 };
 
 enum {
@@ -84,17 +84,17 @@ enum {
 };
 
 enum {
-    Flip_NONE   = 0,
-    Flip_X      = 1,
-    Flip_Y      = 2,
-    Flip_XY     = 3
+    FLIP_NONE   = 0,
+    FLIP_X      = 1,
+    FLIP_Y      = 2,
+    FLIP_XY     = 3
 };
 
 enum {
-    CMode_FLOOR = 0,
-    CMode_LWALL = 1,
-    CMode_ROOF  = 2,
-    CMode_RWALL = 3
+    CMODE_FLOOR = 0,
+    CMODE_LWALL = 1,
+    CMODE_ROOF  = 2,
+    CMODE_RWALL = 3
 };
 
 enum {
