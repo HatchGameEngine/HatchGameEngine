@@ -283,7 +283,15 @@ PUBLIC        size_t       OGG::SeekSample(int index) {
     SampleIndex = (size_t)index;
     return SampleIndex;
 }
-PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
+PUBLIC        int          OGG::LoadSamples(size_t count) {
+    if (SampleBuffer == NULL) {
+        SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
+        Samples.reserve(TotalPossibleSamples);
+    }
+
+    return GetSamples(SampleBuffer, count, -1);
+}
+PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 #ifdef USING_LIBOGG
     int read;
     Uint32 total = 0,
@@ -294,9 +302,6 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
 
     size_t remainingBytes = count * SampleSize;
     size_t sampleSizeForOneChannel = SampleSize / InputFormat.channels;
-
-    // char* buffer = (char*)SampleBuffer + Samples.size() * SampleSize;
-    // char* bufferStartSample = buffer;
 
     VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;
 
@@ -319,8 +324,8 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
             // Reached end of file, what should be done?
             if (read == 0) {
                 // If we want to loop, seek to loop point and continue reading.
-                if (LoopIndex >= 0) {
-                    SeekSample(LoopIndex);
+                if (loopIndex >= 0) {
+                    SeekSample(loopIndex);
                     continue;
                 }
 
@@ -347,9 +352,6 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
     size_t remainingBytes = count * SampleSize;
     size_t sampleSizeForOneChannel = SampleSize / InputFormat.channels;
 
-    // char* buffer = (char*)SampleBuffer + Samples.size() * SampleSize;
-    // char* bufferStartSample = buffer;
-
     VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;
 
     while (remainingBytes && (read =
@@ -361,8 +363,8 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
         // Reached end of file, what should be done?
         if (read == 0) {
             // If we want to loop, seek to loop point and continue reading.
-            if (LoopIndex >= 0) {
-                SeekSample(LoopIndex);
+            if (loopIndex >= 0) {
+                SeekSample(loopIndex);
                 continue;
             }
 
@@ -380,6 +382,28 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count) {
     return total;
 #endif
     return 0;
+}
+PUBLIC VIRTUAL void        OGG::LoadAllSamples(SoundFormat* dest) {
+    if (SampleBuffer == nullptr) {
+        SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
+        Samples.reserve(TotalPossibleSamples);
+    }
+
+    if (Samples.size() < TotalPossibleSamples) {
+        Samples.clear();
+
+        size_t lastSample = TellSample();
+        SeekSample(0);
+        size_t readSamples = LoadSamples(TotalPossibleSamples);
+        SeekSample(lastSample);
+
+        Uint8* buffer = SampleBuffer;
+        while (readSamples > 0) {
+            Samples.push_back(buffer);
+            buffer += SampleSize;
+            readSamples--;
+        }
+    }
 }
 
 PUBLIC        void         OGG::Dispose() {

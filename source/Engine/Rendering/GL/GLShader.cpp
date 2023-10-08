@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/GL/Includes.h>
+#include <Engine/Math/Matrix4x4.h>
 
 #include <Engine/IO/Stream.h>
 
@@ -18,6 +19,7 @@ public:
     GLint  LocTextureU;
     GLint  LocTextureV;
     GLint  LocColor;
+    GLint  LocVaryingColor;
 
     char   FilenameV[256];
     char   FilenameF[256];
@@ -130,6 +132,7 @@ PRIVATE void  GLShader::AttachAndLink() {
 
     glBindAttribLocation(ProgramID, 0, "i_position");           CHECK_GL();
     glBindAttribLocation(ProgramID, 1, "i_uv");                 CHECK_GL();
+    glBindAttribLocation(ProgramID, 2, "i_color");              CHECK_GL();
 
     glLinkProgram(ProgramID);                                   CHECK_GL();
 
@@ -148,15 +151,7 @@ PRIVATE void  GLShader::AttachAndLink() {
     LocTextureU = GetUniformLocation("u_textureU");
     LocTextureV = GetUniformLocation("u_textureV");
     LocColor = GetUniformLocation("u_color");
-
-    // printf("Shader:\n");
-    // printf("LocPosition: %d\n", LocPosition);
-    // printf("LocTexCoord: %d\n", LocTexCoord);
-    // printf("LocTexture: %d\n", LocTexture);
-    // printf("LocTextureU: %d\n", LocTextureU);
-    // printf("LocTextureV: %d\n", LocTextureV);
-    // printf("LocColor: %d\n", LocColor);
-    // printf("\n");
+    LocVaryingColor = GetAttribLocation("i_color");
 
     CachedBlendColors[0] = CachedBlendColors[1] = CachedBlendColors[2] = CachedBlendColors[3] = 0.0;
 }

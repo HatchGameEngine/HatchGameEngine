@@ -24,29 +24,57 @@
     #undef __on_failure
 #endif
 
+#ifndef R_PI
+    #define R_PI 3.1415927
+#endif
+
 using namespace std;
 
 enum class Platforms {
-    Default,
     Windows,
-    MacOSX,
+    MacOS,
     Linux,
-    Ubuntu,
     Switch,
-    Playstation,
+    PlayStation,
     Xbox,
     Android,
     iOS,
+    Unknown
+};
+
+enum class KeyBind {
+    Fullscreen,
+    DevRestartApp,
+    DevRestartScene,
+    DevRecompile,
+    DevPerfSnapshot,
+    DevLayerInfo,
+    DevFastForward,
+    DevFrameStepper,
+    DevStepFrame,
+    DevTileCol,
+    DevObjectRegions,
+    DevQuit,
+
+    Max
 };
 
 #ifndef __OBJC__
 
 #endif
 
+#define PLAYER_COUNT 8
+#define INPUTDEVICE_COUNT 16
+
+#define INPUT_DEADZONE 0.3f
+
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 32
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
+
+#define SCOPE_SCENE 0
+#define SCOPE_GAME 1
 
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;
@@ -62,4 +90,9 @@ typedef int64_t Sint64;
 #else
 #define NEW_STRUCT_MACRO(n) n
 #endif
+
+constexpr uint32_t MakeFourCC(const char *val) {
+    return (val[0] << 24) | (val[1] << 16) | (val[2] << 8) | val[3];
+}
+
 #endif // STANDARDLIBS_H

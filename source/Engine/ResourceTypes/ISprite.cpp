@@ -6,7 +6,6 @@
 class ISprite {
 public:
     char              Filename[256];
-    bool              Print = false;
 
     Texture*          Spritesheets[32];
     bool              SpritesheetsBorrowed[32];
@@ -89,7 +88,7 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
         }
         else {
             Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
-            exit(-1);
+            return NULL;
         }
     }
     else if (StringUtils::StrCaseStr(altered, ".jpg") || StringUtils::StrCaseStr(altered, ".jpeg")) {
@@ -125,22 +124,15 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 
             data = gif->Data;
             paletted = gif->Paletted;
-            
-            // Palette = gif->Colors;
-            // PaletteAlt = (Uint32*)Memory::TrackedCalloc("Sprite::PaletteAlt", 256, sizeof(Uint32));
-            // PaletteCount = 1;
 
             Memory::Track(data, "Texture::Data");
-            // Memory::Track(Palette, "Sprite::Palette");
-            // SetTransparentColorIndex(gif->TransparentColorIndex);
-
             Memory::Free(gif->Colors);
 
             delete gif;
         }
         else {
             Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
-            exit(-1);
+            return NULL;
         }
     }
     else {
@@ -154,7 +146,7 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 	// }
 
     bool overrideSoftware = false;
-    Application::Settings->GetBool("display", "software", &overrideSoftware);
+    Application::Settings->GetBool("display", "forceSoftwareTextures", &overrideSoftware);
     if (overrideSoftware)
         Graphics::NoInternalTextures = true;
 
@@ -169,25 +161,6 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
 
     return texture;
 }
-
-/*
-// PUBLIC void ISprite::RotatePaletteLeft(Uint32* color, int index, int size) {
-//     color += index;
-//     Uint32 temp = *color;
-//     for (int i = 0; i < size - 1; i++) {
-//         *(color + i) = *(color + i + 1);
-//     }
-//     *(color + size - 1) = temp;
-// }
-// PUBLIC void ISprite::RotatePaletteRight(Uint32* color, int index, int size) {
-//     color += index;
-//     Uint32 temp = *(color + size - 1);
-//     for (int i = size - 1; i >= 1; i--) {
-//         *(color + i) = *(color + i - 1);
-//     }
-//     *color = temp;
-// }
-//*/
 
 PUBLIC void ISprite::ReserveAnimationCount(int count) {
     Animations.reserve(count);
@@ -240,7 +213,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 		return false;
     }
 
-    if (Print) Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
+#ifdef ISPRITE_DEBUG
+    Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
+#endif
 
     /// =======================
     /// RSDKv5 Animation Format
@@ -266,8 +241,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
         }
 
         str = reader->ReadHeaderedString();
-        if (Print)
-            Log::Print(Log::LOG_VERBOSE, " - %s", str);
+#ifdef ISPRITE_DEBUG
+        Log::Print(Log::LOG_VERBOSE, " - %s", str);
+#endif
 
         strcpy(SpritesheetsFilenames[i], str);
 
@@ -294,26 +270,32 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
     Animations.resize(previousAnimationCount + animationCount);
 
     // Load animations
+    int frameID = 0;
     for (int a = 0; a < animationCount; a++) {
         Animation an;
         an.Name = reader->ReadHeaderedString();
-        frameCount = reader->ReadUInt16();
+        an.FrameCount = reader->ReadUInt16();
+        an.FrameListOffset = frameID;
         an.AnimationSpeed = reader->ReadUInt16();
         an.FrameToLoop = reader->ReadByte();
 
-        // 0: Default behavior
-        // 1: Full engine rotation
-        // 2: Partial engine rotation
-        // 3: Static rotation using extra frames
-        // 4: Unknown (used alot in Mania)
+        // 0: No rotation
+        // 1: Full rotation
+        // 2: Snaps to multiples of 45 degrees
+        // 3: Snaps to multiples of 90 degrees
+        // 4: Snaps to multiples of 180 degrees
+        // 5: Static rotation using extra frames
         an.Flags = reader->ReadByte();
 
-        if (Print) Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
-        an.Frames.resize(frameCount);
+#ifdef ISPRITE_DEBUG
+        Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
+#endif
+        an.Frames.resize(an.FrameCount);
 
-        for (int i = 0; i < frameCount; i++) {
+        for (int i = 0; i < an.FrameCount; i++) {
             AnimFrame anfrm;
             anfrm.SheetNumber = reader->ReadByte();
+            frameID++;
 
             if (anfrm.SheetNumber >= SpritesheetCount)
                 Log::Print(Log::LOG_ERROR, "Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)", anfrm.SheetNumber, SpritesheetCount, a, i);
@@ -341,7 +323,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
             // Possibly buffer the position in the renderer.
             Graphics::MakeFrameBufferID(this, &anfrm);
 
-            if (Print) Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
+#ifdef ISPRITE_DEBUG
+            Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
+#endif
             an.Frames[i] = anfrm;
         }
         Animations[previousAnimationCount + a] = an;
@@ -408,11 +392,12 @@ PUBLIC bool ISprite::SaveAnimation(const char* filename) {
         stream->WriteUInt16(an.AnimationSpeed);
         stream->WriteByte(an.FrameToLoop);
 
-        // 0: Default behavior
-        // 1: Full engine rotation
-        // 2: Partial engine rotation
-        // 3: Static rotation using extra frames
-        // 4: Unknown (used alot in Mania)
+        // 0: No rotation
+        // 1: Full rotation
+        // 2: Snaps to multiples of 45 degrees
+        // 3: Snaps to multiples of 90 degrees
+        // 4: Snaps to multiples of 180 degrees
+        // 5: Static rotation using extra frames
         stream->WriteByte(an.Flags);
 
         for (size_t i = 0; i < an.Frames.size(); i++) {

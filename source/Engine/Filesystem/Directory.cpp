@@ -180,8 +180,6 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
             int i;
             struct dirent* d;
 
-            int indexBegin = files->size();
-
             while ((d = readdir(dir)) != NULL) {
                 if (d->d_name[0] == '.' && !d->d_name[1]) continue;
                 if (d->d_name[0] == '.' && d->d_name[1] == '.' && !d->d_name[2]) continue;
@@ -201,8 +199,6 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
                 }
             }
             closedir(dir);
-
-            int indexEnd = files->size();
         }
     #endif
 }

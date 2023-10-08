@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
+#include <Engine/IO/Stream.h>
 
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
@@ -42,6 +43,11 @@ struct Chunk {
     int*             Lines;
     vector<VMValue>* Constants;
     bool             OwnsMemory;
+};
+
+struct Bytecode {
+    Uint8* Data;
+    size_t Size;
 };
 
 struct PrintBuffer {
@@ -124,6 +130,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define IS_STRING(value)        IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value)         IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value)           IsObjectType(value, OBJ_MAP)
+#define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -135,6 +142,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define AS_CSTRING(value)       (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value)         ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value)           ((ObjMap*)AS_OBJECT(value))
+#define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -147,14 +155,16 @@ enum ObjType {
     OBJ_UPVALUE,
     OBJ_ARRAY,
     OBJ_MAP,
+    OBJ_STREAM
 };
 
 typedef HashMap<VMValue> Table;
 
 struct Obj {
-    ObjType     Type;
-    bool        IsDark;
-    struct Obj* Next;
+    ObjType          Type;
+    bool             IsDark;
+    struct ObjClass* Class;
+    struct Obj*      Next;
 };
 struct ObjString {
     Obj    Object;
@@ -167,6 +177,7 @@ struct ObjFunction {
     int          Arity;
     int          UpvalueCount;
     struct Chunk Chunk;
+    size_t       FunctionListOffset;
     ObjString*   Name;
     char         SourceFilename[256];
     Uint32       NameHash;
@@ -192,14 +203,15 @@ struct ObjClass {
     ObjString* Name;
     Uint32     Hash;
     Table*     Methods;
+    Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
+    VMValue    Initializer;
     Uint8      Extended;
     Uint32     ParentHash;
     ObjClass*  Parent;
 };
 struct ObjInstance {
     Obj       Object;
-    ObjClass* Class;
-    Table*    Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjInstance value around
+    Table*    Fields;
     void*     EntityPtr;
 };
 struct ObjBoundMethod {
@@ -216,9 +228,17 @@ struct ObjMap {
     HashMap<VMValue>* Values;
     HashMap<char*>*   Keys;
 };
+struct ObjStream {
+    Obj               Object;
+    Stream*           StreamPtr;
+    bool              Writable;
+    bool              Closed;
+};
 
 ObjString*         TakeString(char* chars, size_t length);
+ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
+ObjString*         CopyString(const char* chars);
 ObjString*         AllocString(size_t length);
 char*              HeapCopyString(const char* str, size_t len);
 ObjFunction*       NewFunction();
@@ -230,6 +250,12 @@ ObjInstance*       NewInstance(ObjClass* klass);
 ObjBoundMethod*    NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray*          NewArray();
 ObjMap*            NewMap();
+ObjStream*         NewStream(Stream* streamPtr, bool writable);
+
+#define FREE_OBJ(obj, type) \
+    assert(GarbageCollector::GarbageSize >= sizeof(type)); \
+    GarbageCollector::GarbageSize -= sizeof(type); \
+    Memory::Free(obj)
 
 bool               ValuesEqual(VMValue a, VMValue b);
 
@@ -237,11 +263,15 @@ static inline bool IsObjectType(VMValue value, ObjType type) {
     return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
 
+static inline bool HasInitializer(ObjClass* klass) {
+    return !IS_NULL(klass->Initializer);
+}
+
 struct WithIter {
     void* entity;
     void* entityNext;
     int   index;
-    void* list;
+    void* registry;
 };
 
 struct CallFrame {
@@ -250,6 +280,7 @@ struct CallFrame {
     Uint8*       IPLast;
     Uint8*       IPStart;
     VMValue*     Slots;
+    int          FunctionListOffset;
 
     VMValue   WithReceiverStack[16];
     VMValue*  WithReceiverStackTop = WithReceiverStack;
@@ -333,172 +364,12 @@ enum   OpCode {
     OP_SWITCH_TABLE,
     OP_FAILSAFE,
     OP_EVENT,
+    OP_TYPEOF,
+    OP_NEW,
+    OP_IMPORT,
+    OP_SWITCH,
 
     OP_SYNC = 0xFF,
-};
-
-static const char* vmvalue_type_strings[] = {
-    "Error",
-    "Integer",
-    "Float",
-    // "Long",
-    // "Double",
-    "String",
-    "Instance",
-    "Array",
-    "Map",
-    "Pointer",
-};
-
-enum   vmvalue_type {
-    VMT_ERROR,
-    VMT_INTEGER,
-    VMT_FLOAT,
-    // VMT_LONG,
-    // VMT_DOUBLE,
-    VMT_STRING,
-    VMT_INSTANCE,
-    VMT_ARRAY,
-    VMT_MAP,
-    VMT_POINTER,
-};
-enum   vmvalue_modifier {
-    VMM_CONSTANT = 0x0001,
-};
-enum   vmopcode {
-    VM_ERROR = 0,
-
-    VM_DEF_GLOBAL,
-    VM_SET_GLOBAL,
-    VM_GET_GLOBAL,
-
-    VM_DEF_LOCAL,
-    VM_SET_LOCAL,
-    VM_GET_LOCAL,
-
-    VM_GET_PROPERTY,
-    VM_SET_PROPERTY,
-    // Arrays
-    VM_NEW_VALUE,
-    VM_GET_ELEMENT,
-    VM_SET_ELEMENT,
-
-    VM_INHERIT,
-    VM_METHOD,
-    VM_CLASS,
-    VM_ENUM,
-    // Function Operations
-    VM_CALL,
-    VM_SUPER,
-    VM_INVOKE,
-    // Jumping
-    VM_JUMP,
-    VM_JUMP_IF_FALSE,
-    VM_LOOP,
-    // Stack Operation
-    VM_POP,
-    VM_PUSH,
-    VM_COPY,
-    // Numeric Operations
-    VM_ADD,
-    VM_SUB,
-    VM_MUL,
-    VM_DIV,
-    VM_MOD,
-    VM_AND,
-    VM_OR,
-    VM_XOR,
-    VM_NOT,
-    VM_BITSHIFTL,
-    VM_BITSHIFTR,
-    // Comparison Operations
-    VM_EQUAL,
-    VM_NOT_EQUAL,
-    VM_LESS_THAN,
-    VM_LESS_EQUAL,
-    VM_GREATER_THAN,
-    VM_GREATER_EQUAL,
-    // Other Operations
-    VM_DUP,
-    VM_WITH,
-    VM_RETURN,
-    //
-    VM_PRINT,
-
-    VM_SYNC = 0xFF,
-};
-
-struct vmvalue_t;
-struct vmstring_t;
-struct vminstance_t;
-struct vmarray_t;
-
-typedef HashMap<vmvalue_t> vmtable_t;
-
-struct vmobject_t {
-    struct vmobject_t* next;
-    bool               is_dark;
-};
-
-struct vmevent_t {
-    vmobject_t          object;
-    uint32_t            name_hash;
-    int                 arg_count;
-    Chunk               chunk;
-    char                source_filename[256];
-};
-struct vmclass_t {
-    vmobject_t          object;
-    char*               name;
-    uint32_t            name_hash;
-    struct vmclass_t*   base_class;
-    HashMap<vmevent_t*> methods;
-};
-struct vmenum_t {
-    vmobject_t          object;
-    char*               name;
-    uint32_t            name_hash;
-    HashMap<vmevent_t*> methods;
-    HashMap<vmvalue_t*> constants;
-};
-
-struct vmstring_t {
-    vmobject_t          object;
-    char*               data;
-    uint32_t            length;
-};
-struct vminstance_t {
-    vmobject_t          object;
-    vmclass_t*          parent_class;
-    vmtable_t           properties;
-};
-struct vmarray_t {
-    vmobject_t          object;
-    vmvalue_t*          data;
-    uint32_t            length;
-};
-
-struct vmvalue_t {
-    uint16_t type;
-    uint16_t modifier;
-    union {
-        int           v_integer;
-        float         v_float;
-        long          v_long;
-        double        v_double;
-        vmstring_t*   v_string;
-        vminstance_t* v_instance;
-        vmarray_t*    v_array;
-        vmtable_t*    v_map;
-        void*         v_pointer;
-    } as;
-};
-
-struct vmcallframe_t {
-    vmevent_t* event;
-    uint8_t*   instruction_pointer;
-    uint8_t*   instruction_pointer_start;
-    vmvalue_t* slots;
 };
 
 #endif /* ENGINE_BYTECODE_TYPES_H */

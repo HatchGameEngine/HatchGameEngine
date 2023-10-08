@@ -27,6 +27,26 @@ extern "C" {
 SDL_Renderer* Renderer = NULL;
 float         SDL2Renderer::RenderScale = 1.0f;
 
+vector<Texture*> TextureList;
+
+// TODO: Would it just be better to turn Graphics::TextureMap into a vector?
+// The OpenGL renderer benefits from it being a map, but this method would
+// make sense for the D3D renderer too.
+void FindTextureID(Texture* texture) {
+    for (size_t i = 0; i <= TextureList.size(); i++) {
+        if (i == TextureList.size()) {
+            texture->ID = TextureList.size();
+            TextureList.push_back(texture);
+            return;
+        }
+        else if (TextureList[i] == nullptr) {
+            texture->ID = i;
+            TextureList[i] = texture;
+            break;
+        }
+    }
+}
+
 // Initialization and disposal functions
 PUBLIC STATIC void     SDL2Renderer::Init() {
     Log::Print(Log::LOG_INFO, "Renderer: SDL2");
@@ -57,11 +77,16 @@ PUBLIC STATIC void     SDL2Renderer::Init() {
 PUBLIC STATIC Uint32   SDL2Renderer::GetWindowFlags() {
     return 0;
 }
+PUBLIC STATIC void     SDL2Renderer::SetVSync(bool enabled) {
+    Graphics::VsyncEnabled = enabled;
+    SDL_RenderSetVSync(Renderer, enabled);
+}
 PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.0f;
 
     Graphics::Internal.Init = SDL2Renderer::Init;
     Graphics::Internal.GetWindowFlags = SDL2Renderer::GetWindowFlags;
+    Graphics::Internal.SetVSync = SDL2Renderer::SetVSync;
     Graphics::Internal.Dispose = SDL2Renderer::Dispose;
 
     // Texture management functions
@@ -80,6 +105,7 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::Internal.UpdateOrtho = SDL2Renderer::UpdateOrtho;
     Graphics::Internal.UpdatePerspective = SDL2Renderer::UpdatePerspective;
     Graphics::Internal.UpdateProjectionMatrix = SDL2Renderer::UpdateProjectionMatrix;
+    Graphics::Internal.MakePerspectiveMatrix = SDL2Renderer::MakePerspectiveMatrix;
 
     // Shader-related functions
     Graphics::Internal.UseShader = SDL2Renderer::UseShader;
@@ -94,6 +120,9 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     // Draw mode setting functions
     Graphics::Internal.SetBlendColor = SDL2Renderer::SetBlendColor;
     Graphics::Internal.SetBlendMode = SDL2Renderer::SetBlendMode;
+    Graphics::Internal.SetTintColor = SDL2Renderer::SetTintColor;
+    Graphics::Internal.SetTintMode = SDL2Renderer::SetTintMode;
+    Graphics::Internal.SetTintEnabled = SDL2Renderer::SetTintEnabled;
     Graphics::Internal.SetLineWidth = SDL2Renderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -110,6 +139,7 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
     Graphics::Internal.DrawSprite = SDL2Renderer::DrawSprite;
     Graphics::Internal.DrawSpritePart = SDL2Renderer::DrawSpritePart;
+
     Graphics::Internal.MakeFrameBufferID = SDL2Renderer::MakeFrameBufferID;
 }
 PUBLIC STATIC void     SDL2Renderer::Dispose() {
@@ -124,8 +154,9 @@ PUBLIC STATIC Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access,
     SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 
     *textureData = SDL_CreateTexture(Renderer, format, access, width, height);
+    SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
 
-    texture->ID = Graphics::TextureMap->Count;
+    FindTextureID(texture);
     Graphics::TextureMap->Put(texture->ID, texture);
 
     return texture;
@@ -149,6 +180,8 @@ PUBLIC STATIC void     SDL2Renderer::DisposeTexture(Texture* texture) {
     if (!textureData)
         return;
 
+    if (texture->ID < TextureList.size())
+        TextureList[texture->ID] = nullptr;
     Graphics::TextureMap->Remove(texture->ID);
 
     SDL_DestroyTexture(*textureData);
@@ -203,6 +236,9 @@ PUBLIC STATIC void     SDL2Renderer::UpdatePerspective(float fovy, float aspect,
 PUBLIC STATIC void     SDL2Renderer::UpdateProjectionMatrix() {
 
 }
+PUBLIC STATIC void     SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+    Matrix4x4::Perspective(out, fov, aspect, near, far);
+}
 
 PUBLIC STATIC void     SDL2Renderer::GetMetalSize(int* width, int* height) {
     // #ifdef IOS
@@ -243,12 +279,52 @@ PUBLIC STATIC void     SDL2Renderer::Present() {
 
 // Draw mode setting functions
 PUBLIC STATIC void     SDL2Renderer::SetBlendColor(float r, float g, float b, float a) {
+    SDL_SetRenderDrawColor(Renderer, r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+}
+PRIVATE STATIC SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA) {
+    SDL_BlendFactor blendFactorToSDL[] = {
+        SDL_BLENDFACTOR_ZERO,
+        SDL_BLENDFACTOR_ONE,
+        SDL_BLENDFACTOR_SRC_COLOR,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR,
+        SDL_BLENDFACTOR_SRC_ALPHA,
+        SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+        SDL_BLENDFACTOR_DST_COLOR,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_COLOR,
+        SDL_BLENDFACTOR_DST_ALPHA,
+        SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA,
+    };
 
+    return SDL_ComposeCustomBlendMode(
+        blendFactorToSDL[srcC], blendFactorToSDL[dstC], SDL_BLENDOPERATION_ADD,
+        blendFactorToSDL[srcA], blendFactorToSDL[srcA], SDL_BLENDOPERATION_ADD
+    );
 }
 PUBLIC STATIC void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
-    // glBlendFuncSeparate(
-    //     GL_GetBlendFactorFromHatchEnum(srcC), GL_GetBlendFactorFromHatchEnum(dstC),
-    //     GL_GetBlendFactorFromHatchEnum(srcA), GL_GetBlendFactorFromHatchEnum(dstA)); CHECK_GL();
+    SDL_BlendMode customBlendMode = GetCustomBlendMode(srcC, dstC, srcA, dstA);
+    if (SDL_SetRenderDrawBlendMode(Renderer, customBlendMode) == 0)
+        return;
+
+    // That failed, so just use regular blend modes and hope they match
+    switch (Graphics::BlendMode) {
+        case BlendMode_NORMAL:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
+            break;
+        case BlendMode_ADD:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_ADD);
+            break;
+        default:
+            SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_NONE);
+    }
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
+
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintMode(int mode) {
+
+}
+PUBLIC STATIC void     SDL2Renderer::SetTintEnabled(bool enabled) {
+
 }
 PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
 

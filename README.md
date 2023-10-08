@@ -18,6 +18,7 @@ Required:
 - devKitPro (for Nintendo Switch homebrew building)
 
 Optional:
+- [Open Asset Import Library](https://github.com/assimp/assimp)
 - FFmpeg (for video playback, currently broken)
 - CURL (for simple HTTP network, currently broken)
 - libpng

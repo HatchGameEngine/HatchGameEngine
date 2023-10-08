@@ -16,16 +16,13 @@
 static Obj*       AllocateObject(size_t size, ObjType type) {
     // Only do this when allocating more memory
     GarbageCollector::GarbageSize += size;
-    // BytecodeObjectManager::RequestGarbageCollection();
 
     Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
     object->Type = type;
+    object->Class = nullptr;
     object->IsDark = false;
     object->Next = GarbageCollector::RootObject;
     GarbageCollector::RootObject = object;
-    #ifdef DEBUG_TRACE_GC
-        Log::Print(Log::LOG_VERBOSE, "%p allocate %ld for %d", object, size, type);
-    #endif
 
     return object;
 }
@@ -35,37 +32,27 @@ static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     string->Length = length;
     string->Chars = chars;
     string->Hash = hash;
-    // BytecodeObjectManager::Push(OBJECT_VAL(string));
-    // BytecodeObjectManager::Strings->Put(hash, OBJECT_VAL(string));
-    // BytecodeObjectManager::Pop();
     return string;
 }
 
 ObjString*        TakeString(char* chars, size_t length) {
     Uint32 hash = FNV1A::EncryptData(chars, length);
-    // ObjString* interned = AS_STRING(BytecodeObjectManager::Strings->Get(hash));
-    // if (interned != NULL) {
-    //     // FREE_ARRAY(char, chars, length + 1);
-    //     free(chars);
-    //     return interned;
-    // }
     return AllocateString(chars, length, hash);
+}
+ObjString*        TakeString(char* chars) {
+    return TakeString(chars, strlen(chars));
 }
 ObjString*        CopyString(const char* chars, size_t length) {
     Uint32 hash = FNV1A::EncryptData(chars, length);
-    // if (BytecodeObjectManager::Strings->Exists(hash)) {
-    //     ObjString* interned = AS_STRING(BytecodeObjectManager::Strings->Get(hash));
-    //     if (interned != NULL) {
-    //         printf("interned: %p\n", interned);
-    //         return interned;
-    //     }
-    // }
 
     char* heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';
 
     return AllocateString(heapChars, length, hash);
+}
+ObjString*        CopyString(const char* chars) {
+    return CopyString(chars, strlen(chars));
 }
 ObjString*        AllocString(size_t length) {
     char* heapChars = ALLOCATE(char, length + 1);
@@ -122,6 +109,8 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->Name = NULL;
     klass->Hash = hash;
     klass->Methods = new Table(NULL, 4);
+    klass->Fields = new Table(NULL, 16);
+    klass->Initializer = NULL_VAL;
     klass->Extended = false;
     klass->ParentHash = 0;
     klass->Parent = NULL;
@@ -130,7 +119,7 @@ ObjClass*         NewClass(Uint32 hash) {
 ObjInstance*      NewInstance(ObjClass* klass) {
     ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
     Memory::Track(instance, "NewInstance");
-    instance->Class = klass;
+    instance->Object.Class = klass;
     instance->Fields = new Table(NULL, 16);
     instance->EntityPtr = NULL;
     return instance;
@@ -154,6 +143,14 @@ ObjMap*           NewMap() {
     map->Values = new HashMap<VMValue>(NULL, 4);
     map->Keys = new HashMap<char*>(NULL, 4);
     return map;
+}
+ObjStream*        NewStream(Stream* streamPtr, bool writable) {
+    ObjStream* stream = ALLOCATE_OBJ(ObjStream, OBJ_STREAM);
+    Memory::Track(stream, "NewStream");
+    stream->StreamPtr = streamPtr;
+    stream->Writable = writable;
+    stream->Closed = false;
+    return stream;
 }
 
 bool              ValuesEqual(VMValue a, VMValue b) {
@@ -180,23 +177,26 @@ const char*       GetTypeString(VMValue value) {
         case VAL_OBJECT:
             switch (OBJECT_TYPE(value)) {
                 case OBJ_BOUND_METHOD:
-                    return "BOUND_METHOD";
-                case OBJ_CLASS:
-                    return "CLASS";
-                case OBJ_CLOSURE:
-                    return "CLOSURE";
                 case OBJ_FUNCTION:
-                    return "FUNCTION";
+                    return "Event";
+                case OBJ_CLASS:
+                    return "Class";
+                case OBJ_CLOSURE:
+                    return "Closure";
                 case OBJ_INSTANCE:
-                    return "INSTANCE";
+                    return "Instance";
                 case OBJ_NATIVE:
-                    return "NATIVE";
+                    return "Native";
                 case OBJ_STRING:
-                    return "STRING";
+                    return "String";
+                case OBJ_UPVALUE:
+                    return "Upvalue";
                 case OBJ_ARRAY:
-                    return "ARRAY";
+                    return "Array";
                 case OBJ_MAP:
-                    return "MAP";
+                    return "Map";
+                case OBJ_STREAM:
+                    return "Stream";
                 default:
                     return "Unknown Object Type";
             }

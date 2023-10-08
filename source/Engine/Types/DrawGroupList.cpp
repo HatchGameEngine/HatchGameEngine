@@ -6,16 +6,15 @@
 
 class DrawGroupList {
 public:
-    int      EntityCount = 0;
-    int      EntityCapacity = 0x1000;
-    Entity** Entities = NULL;
+    vector<Entity*>* Entities = nullptr;
+    bool             EntityDepthSortingEnabled = false;
+    bool             NeedsSorting = false;
 };
 #endif
 
 #include <Engine/Types/DrawGroupList.h>
 
 #include <Engine/Application.h>
-#include <Engine/Diagnostics/Memory.h>
 
 PUBLIC         DrawGroupList::DrawGroupList() {
     Init();
@@ -23,43 +22,49 @@ PUBLIC         DrawGroupList::DrawGroupList() {
 
 // Double linked-list functions
 PUBLIC int    DrawGroupList::Add(Entity* obj) {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        if (Entities[i] == NULL) {
-            Entities[i] = obj;
-            EntityCount++;
-            return i;
-        }
+    Entities->push_back(obj);
+    if (EntityDepthSortingEnabled)
+        NeedsSorting = true;
+    return Entities->size() - 1;
+}
+PUBLIC bool    DrawGroupList::Contains(Entity* obj) {
+    for (size_t i = 0, iSz = Entities->size(); i < iSz; i++) {
+        if ((*Entities)[i] == obj)
+            return true;
     }
-    return -1;
+    return false;
 }
 PUBLIC void    DrawGroupList::Remove(Entity* obj) {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        if (Entities[i] == obj) {
-            Entities[i] = NULL;
-            EntityCount--;
+    for (size_t i = 0, iSz = Entities->size(); i < iSz; i++) {
+        if ((*Entities)[i] == obj) {
+            Entities->erase(Entities->begin() + i);
             return;
         }
     }
 }
 PUBLIC void    DrawGroupList::Clear() {
-    for (int i = 0, iSz = EntityCapacity; i < iSz; i++) {
-        Entities[i] = NULL;
-    }
-    EntityCount = 0;
+    Entities->clear();
+    NeedsSorting = false;
+}
+
+PUBLIC void    DrawGroupList::Sort() {
+    std::stable_sort(Entities->begin(), Entities->end(), [](const Entity* entA, const Entity* entB) {
+        return entA->Depth < entB->Depth;
+    });
+    NeedsSorting = false;
 }
 
 PUBLIC void    DrawGroupList::Init() {
-    EntityCapacity = 0x1000;
-    Entities = (Entity**)Memory::TrackedCalloc("DrawGroupList", sizeof(Entity*), EntityCapacity);
-    EntityCount = 0;
+    Entities = new vector<Entity*>();
 }
 PUBLIC void    DrawGroupList::Dispose() {
-    Memory::Free(Entities);
+    delete Entities;
+    Entities = nullptr;
 }
 PUBLIC         DrawGroupList::~DrawGroupList() {
     // Dispose();
 }
 
 PUBLIC int     DrawGroupList::Count() {
-    return EntityCount;
+    return Entities->size();
 }

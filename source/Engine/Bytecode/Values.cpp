@@ -93,10 +93,13 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             buffer_printf(buffer, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
             break;
         case OBJ_INSTANCE:
-            buffer_printf(buffer, "<class %s> instance", AS_INSTANCE(value)->Class->Name ? AS_INSTANCE(value)->Class->Name->Chars : "(null)");
+            buffer_printf(buffer, "<class %s> instance", AS_INSTANCE(value)->Object.Class->Name ? AS_INSTANCE(value)->Object.Class->Name->Chars : "(null)");
             break;
         case OBJ_NATIVE:
             buffer_printf(buffer, "<native fn>");
+            break;
+        case OBJ_STREAM:
+            buffer_printf(buffer, "<stream>");
             break;
         case OBJ_STRING:
             buffer_printf(buffer, "\"%s\"", AS_CSTRING(value));

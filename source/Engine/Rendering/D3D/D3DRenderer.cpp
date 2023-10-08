@@ -627,7 +627,7 @@ void        D3D_DrawTextureRaw(Texture* texture, float sx, float sy, float sw, f
         memcpy(&matrix.m, D3D_MatrixIdentity->Values, sizeof(float) * 16);
     }
     else {
-        // memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        // memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         Graphics::Save();
         Graphics::Translate(x, y, 0.0f);
         if (texture->Access != SDL_TEXTUREACCESS_TARGET)
@@ -635,7 +635,7 @@ void        D3D_DrawTextureRaw(Texture* texture, float sx, float sy, float sw, f
         else
             Graphics::Translate(-0.5f * fx, -0.5f * fy, 0.0f);
         Graphics::Scale(w, h, 1.0f);
-            memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+            memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         Graphics::Restore();
     }
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
@@ -839,11 +839,15 @@ PUBLIC STATIC void     D3DRenderer::Init() {
 PUBLIC STATIC Uint32   D3DRenderer::GetWindowFlags() {
     return 0;
 }
+PUBLIC STATIC void     D3DRenderer::SetVSync(bool enabled) {
+    
+}
 PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.5f;
 
     Graphics::Internal.Init = D3DRenderer::Init;
     Graphics::Internal.GetWindowFlags = D3DRenderer::GetWindowFlags;
+    Graphics::Internal.SetVSync = D3DRenderer::SetVSync;
     Graphics::Internal.Dispose = D3DRenderer::Dispose;
 
     // Texture management functions
@@ -861,6 +865,7 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.UpdateOrtho = D3DRenderer::UpdateOrtho;
     Graphics::Internal.UpdatePerspective = D3DRenderer::UpdatePerspective;
     Graphics::Internal.UpdateProjectionMatrix = D3DRenderer::UpdateProjectionMatrix;
+    Graphics::Internal.MakePerspectiveMatrix = D3DRenderer::MakePerspectiveMatrix;
 
     // Shader-related functions
     Graphics::Internal.UseShader = D3DRenderer::UseShader;
@@ -875,6 +880,9 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     // Draw mode setting functions
     Graphics::Internal.SetBlendColor = D3DRenderer::SetBlendColor;
     Graphics::Internal.SetBlendMode = D3DRenderer::SetBlendMode;
+    Graphics::Internal.SetTintColor = D3DRenderer::SetTintColor;
+    Graphics::Internal.SetTintMode = D3DRenderer::SetTintMode;
+    Graphics::Internal.SetTintEnabled = D3DRenderer::SetTintEnabled;
     Graphics::Internal.SetLineWidth = D3DRenderer::SetLineWidth;
 
     // Primitive drawing functions
@@ -891,6 +899,17 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
     Graphics::Internal.DrawSprite = D3DRenderer::DrawSprite;
     Graphics::Internal.DrawSpritePart = D3DRenderer::DrawSpritePart;
+
+    // 3D drawing functions
+    Graphics::Internal.DrawPolygon3D = D3DRenderer::DrawPolygon3D;
+    Graphics::Internal.DrawSceneLayer3D = D3DRenderer::DrawSceneLayer3D;
+    Graphics::Internal.DrawModel = D3DRenderer::DrawModel;
+    Graphics::Internal.DrawModelSkinned = D3DRenderer::DrawModelSkinned;
+    Graphics::Internal.DrawVertexBuffer = D3DRenderer::DrawVertexBuffer;
+    Graphics::Internal.BindVertexBuffer = D3DRenderer::BindVertexBuffer;
+    Graphics::Internal.UnbindVertexBuffer = D3DRenderer::UnbindVertexBuffer;
+    Graphics::Internal.BindScene3D = D3DRenderer::BindScene3D;
+    Graphics::Internal.DrawScene3D = D3DRenderer::DrawScene3D;
 }
 PUBLIC STATIC void     D3DRenderer::Dispose() {
     Memory::Free(D3D_BufferCircleFill);
@@ -1082,13 +1101,16 @@ PUBLIC STATIC void     D3DRenderer::UpdateOrtho(float left, float top, float rig
     }
 }
 PUBLIC STATIC void     D3DRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
-    Matrix4x4::Perspective(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, aspect, nearv, farv);
+    MakePerspectiveMatrix(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 PUBLIC STATIC void     D3DRenderer::UpdateProjectionMatrix() {
     D3DMATRIX matrix;
     memcpy(&matrix.m, Scene::Views[Scene::ViewCurrent].ProjectionMatrix->Values, sizeof(float) * 16);
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_PROJECTION, &matrix);
+}
+PUBLIC STATIC void     D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+    Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
 // Shader-related functions
@@ -1216,8 +1238,17 @@ PUBLIC STATIC void     D3DRenderer::SetBlendMode(int srcC, int dstC, int srcA, i
     D3D_Blend_SRC_ALPHA = D3D_GetBlendFactorFromHatch(srcA);
     D3D_Blend_DST_ALPHA = D3D_GetBlendFactorFromHatch(dstA);
 }
+PUBLIC STATIC void     D3DRenderer::SetTintColor(float r, float g, float b, float a) {
+
+}
+PUBLIC STATIC void     D3DRenderer::SetTintMode(int mode) {
+
+}
+PUBLIC STATIC void     D3DRenderer::SetTintEnabled(bool enabled) {
+
+}
 PUBLIC STATIC void     D3DRenderer::SetLineWidth(float n) {
-    // glLineWidth(n);
+
 }
 
 // Primitive drawing functions
@@ -1225,7 +1256,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeLine(float x1, float y1, float x2, flo
     // UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderShape);
 
     Graphics::Save();
-        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix.top()->Values);
+        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix->Values);
 
         float v[6];
         v[0] = x1; v[1] = y1; v[2] = 0.0f;
@@ -1243,7 +1274,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad) {
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1255,7 +1286,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeEllipse(float x, float y, float w, flo
     Graphics::Save();
     Graphics::Translate(x + w / 2, y + h / 2, 0.0f);
     Graphics::Scale(w / 2, h / 2, 1.0f);
-        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix.top()->Values);
+        // glUniformMatrix4fv(D3D_CurrentShader->LocModelViewMatrix, 1, false, Graphics::ModelViewMatrix->Values);
 
         // glBindBuffer(GL_ARRAY_BUFFER, D3D_BufferCircleStroke);
         // glVertexAttribPointer(D3D_CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -1276,7 +1307,7 @@ PUBLIC STATIC void     D3DRenderer::FillCircle(float x, float y, float rad) {
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1292,7 +1323,7 @@ PUBLIC STATIC void     D3DRenderer::FillEllipse(float x, float y, float w, float
     Graphics::Translate(x + w, y + h, 0.0f);
     Graphics::Scale(w, h, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1307,7 +1338,7 @@ PUBLIC STATIC void     D3DRenderer::FillTriangle(float x1, float y1, float x2, f
     D3D_BeginDrawShape(vertices, 3);
 
     D3DMATRIX matrix;
-    memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+    memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 
     D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
@@ -1319,7 +1350,7 @@ PUBLIC STATIC void     D3DRenderer::FillRectangle(float x, float y, float w, flo
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(w, h, 1.0f);
         D3DMATRIX matrix;
-        memcpy(&matrix.m, Graphics::ModelViewMatrix.top()->Values, sizeof(float) * 16);
+        memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
         IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
     Graphics::Restore();
 
@@ -1377,6 +1408,34 @@ PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animatio
             flipX, flipY);
     Graphics::Restore();
 }
+// 3D drawing functions
+PUBLIC STATIC void     D3DRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+
+}
+PUBLIC STATIC void     D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+
+}
+PUBLIC STATIC void     D3DRenderer::UnbindVertexBuffer() {
+
+}
+PUBLIC STATIC void     D3DRenderer::BindScene3D(Uint32 sceneIndex) {
+
+}
+PUBLIC STATIC void     D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+
+}
 
 /*
 // Draw buffering
@@ -1396,7 +1455,7 @@ PUBLIC STATIC void     D3DRenderer::DrawTexturedShapeBuffer(Texture* texture, Ui
     UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderTexturedShape);
 
     GLTextureData* textureData = (GLTextureData*)texture->DriverData;
-    glUniformMatrix4fv(D3DRenderer::D3D_CurrentShader->LocModelViewMatrix, 1, false, D3DRenderer::Graphics::ModelViewMatrix.top()->Values);
+    glUniformMatrix4fv(D3DRenderer::D3D_CurrentShader->LocModelViewMatrix, 1, false, D3DRenderer::Graphics::ModelViewMatrix->Values);
 
     glActiveTexture(GL_TEXTURE0);
     glUniform1i(D3DRenderer::D3D_CurrentShader->LocTexture, 0);

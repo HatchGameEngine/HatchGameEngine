@@ -2,31 +2,32 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Application.h>
-#include <Engine/Audio/StackNode.h>
+#include <Engine/Audio/AudioChannel.h>
 #include <Engine/ResourceTypes/ISound.h>
 
 class AudioManager {
 public:
-    static SDL_AudioDeviceID Device;
-    static SDL_AudioSpec     DeviceFormat;
-    static bool              AudioEnabled;
+    static SDL_AudioDeviceID    Device;
+    static SDL_AudioSpec        DeviceFormat;
+    static bool                 AudioEnabled;
 
-    static deque<StackNode*> MusicStack;
-    static StackNode*        SoundArray;
-    static int               SoundArrayLength;
+    static Uint8                BytesPerSample;
+    static Uint8*               MixBuffer;
+    static size_t               MixBufferSize;
 
-    static double            FadeOutTimer;
-    static double            FadeOutTimerMax;
+    static deque<AudioChannel*> MusicStack;
+    static AudioChannel*        SoundArray;
+    static int                  SoundArrayLength;
 
-    static float             MasterVolume;
-    static float             MusicVolume;
-    static float             SoundVolume;
+    static float                MasterVolume;
+    static float                MusicVolume;
+    static float                SoundVolume;
 
-    static float             LowPassFilter;
+    static float                LowPassFilter;
 
-    static Uint8*            AudioQueue;
-    static size_t            AudioQueueSize;
-    static size_t            AudioQueueMaxSize;
+    static Uint8*               AudioQueue;
+    static size_t               AudioQueueSize;
+    static size_t               AudioQueueMaxSize;
 
     enum {
         REQUEST_EOF = 0,
@@ -37,29 +38,32 @@ public:
 #endif
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Audio/AudioPlayback.h>
+#include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
-SDL_AudioDeviceID AudioManager::Device;
-SDL_AudioSpec     AudioManager::DeviceFormat;
-bool              AudioManager::AudioEnabled = false;
+SDL_AudioDeviceID    AudioManager::Device;
+SDL_AudioSpec        AudioManager::DeviceFormat;
+bool                 AudioManager::AudioEnabled = false;
 
-deque<StackNode*> AudioManager::MusicStack;
-StackNode*        AudioManager::SoundArray = NULL;
-int               AudioManager::SoundArrayLength = 512;
+Uint8                AudioManager::BytesPerSample;
+Uint8*               AudioManager::MixBuffer;
+size_t               AudioManager::MixBufferSize;
 
-double            AudioManager::FadeOutTimer = 1.0;
-double            AudioManager::FadeOutTimerMax = 1.0;
+deque<AudioChannel*> AudioManager::MusicStack;
+AudioChannel*        AudioManager::SoundArray = NULL;
+int                  AudioManager::SoundArrayLength = 512;
 
-float             AudioManager::MasterVolume = 1.0f;
-float             AudioManager::MusicVolume = 1.0f;
-float             AudioManager::SoundVolume = 1.0f;
+float                AudioManager::MasterVolume = 1.0f;
+float                AudioManager::MusicVolume = 1.0f;
+float                AudioManager::SoundVolume = 1.0f;
 
-float             AudioManager::LowPassFilter = 0.0f;
+float                AudioManager::LowPassFilter = 0.0f;
 
-Uint8*            AudioManager::AudioQueue = NULL;
-size_t            AudioManager::AudioQueueSize = 0;
-size_t            AudioManager::AudioQueueMaxSize = 0;
+Uint8*               AudioManager::AudioQueue = NULL;
+size_t               AudioManager::AudioQueueSize = 0;
+size_t               AudioManager::AudioQueueMaxSize = 0;
 
 enum {
     FILTER_TYPE_LOW_PASS,
@@ -151,7 +155,7 @@ PUBLIC STATIC float  AudioManager::ProcessSampleFloat(float inSample, int channe
 PUBLIC STATIC void   AudioManager::Init() {
     CalculateCoeffs();
 
-    SoundArray = (StackNode*)Memory::Calloc(SoundArrayLength, sizeof(StackNode));
+    SoundArray = (AudioChannel*)Memory::Calloc(SoundArrayLength, sizeof(AudioChannel));
     for (int i = 0; i < SoundArrayLength; i++)
         SoundArray[i].Paused = true;
 
@@ -198,76 +202,144 @@ PUBLIC STATIC void   AudioManager::Init() {
     Log::Print(Log::LOG_VERBOSE, "%s = %X", "Samples", DeviceFormat.samples);
     Log::Print(Log::LOG_VERBOSE, "%s = %X", "Channels", DeviceFormat.channels);
 
-    // AudioQueue
-    AudioQueueMaxSize = DeviceFormat.samples * DeviceFormat.channels * (SDL_AUDIO_BITSIZE(DeviceFormat.format) >> 3);
-    // if (AudioQueueMaxSize < 0x1000)
-        AudioQueueMaxSize = 0x1000;
+    BytesPerSample = ((DeviceFormat.format & 0xFF) >> 3) * DeviceFormat.channels;
+
+    if (DeviceFormat.channels == 2) {
+        MixBufferSize = DeviceFormat.samples;
+        MixBuffer = (Uint8*)Memory::Malloc(MixBufferSize * BytesPerSample);
+    }
+
+    // AudioQueueMaxSize = DeviceFormat.samples * DeviceFormat.channels * (SDL_AUDIO_BITSIZE(DeviceFormat.format) >> 3);
+    AudioQueueMaxSize = 0x1000;
     AudioQueueSize    = 0;
     AudioQueue        = (Uint8*)Memory::Calloc(8, AudioQueueMaxSize);
 }
 
-PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* music) {
-    AudioManager::SetSound(channel, music, false, 0, 0.0f, 1.0f, 1.0f);
+PUBLIC STATIC void   AudioManager::ClampParams(float& pan, float& speed, float& volume) {
+    if (pan < -1.0f)
+        pan = -1.0f;
+    else if (pan > 1.0f)
+        pan = 1.0f;
+
+    if (speed < 0.0f)
+        speed = 0.0f;
+
+    if (volume > 1.0f)
+        volume = 1.0f;
+    else if (volume < 0.0f)
+        volume = 0.0f;
 }
-PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* music, bool loop, int loopPoint, float pan, float speed, float volume) {
+
+PRIVATE STATIC void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback, ISound* sound) {
+    if (!playback->SoundData) {
+        playback->SoundData = new SoundFormat;
+        playback->OwnsSoundData = true;
+    }
+
+    SoundFormat* srcSndData = sound->SoundData;
+    if (srcSndData)
+        srcSndData->CopySamples(playback->SoundData);
+    else {
+        playback->SoundData->Samples.clear();
+        playback->SoundData->Samples.shrink_to_fit();
+    }
+
+    playback->SoundData->SampleIndex = 0;
+}
+
+PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* music) {
+    AudioManager::SetSound(channel, music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
+}
+PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* sound, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
     AudioManager::Lock();
 
-    StackNode* audio = &SoundArray[channel];
+    AudioChannel* audio = &SoundArray[channel];
+    AudioPlayback* playback = audio->Playback;
 
-    music->Seek(0);
-	if (music->Stream)
-		SDL_AudioStreamClear(music->Stream);
+    AudioManager::ClampParams(pan, speed, volume);
 
-    // int infoChannels = music->Format.channels;
-    // int infoSampleSize = (music->Format.format & 0xFF) >> 3;
-
-    audio->Audio = music;
+    audio->Audio = sound;
     audio->Stopped = false;
     audio->Paused = false;
+    audio->Origin = origin;
     audio->Loop = loop;
     audio->LoopPoint = loopPoint;
-    audio->FadeOut = false;
+    audio->Fading = MusicFade_None;
     audio->Pan = pan;
     audio->Speed = (Uint32)(speed * 0x10000);
     audio->Volume = volume;
 
+    int requiredSamples = AudioManager::DeviceFormat.samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST;
+    if (playback == nullptr) {
+        playback = new AudioPlayback(sound->Format, requiredSamples, sound->BytesPerSample, AudioManager::BytesPerSample);
+        audio->Playback = playback;
+    }
+    else {
+        playback->Change(sound->Format, requiredSamples, sound->BytesPerSample, AudioManager::BytesPerSample);
+    }
+
+    AudioManager::UpdateChannelPlayer(playback, sound);
+
+    playback->Seek(0);
+    if (playback->ConversionStream)
+        SDL_AudioStreamClear(playback->ConversionStream);
+
     AudioManager::Unlock();
 }
-
-PUBLIC STATIC void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume) {
-    PushMusicAt(music, 0.0, loop, lp, pan, speed, volume);
+PUBLIC STATIC int    AudioManager::PlaySound(ISound* music) {
+    return AudioManager::PlaySound(music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
 }
-PUBLIC STATIC void   AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume) {
+PUBLIC STATIC int    AudioManager::PlaySound(ISound* music, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
+    for (int i = 0; i < SoundArrayLength; i++) {
+        AudioChannel* audio = &SoundArray[i];
+        if (!audio->Audio || audio->Stopped) {
+            AudioManager::SetSound(i, music, loop, loopPoint, pan, speed, volume, origin);
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+PUBLIC STATIC void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
+    PushMusicAt(music, 0.0, loop, lp, pan, speed, volume, fadeInAfterFinished);
+}
+PUBLIC STATIC void   AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
     if (music->LoadFailed) return;
 
     AudioManager::Lock();
 
-    int start_sample = (int)std::ceil(at * music->Format.freq);
+    if (MusicStack.size() > 0 && fadeInAfterFinished > 0.0) {
+        AudioChannel* front = MusicStack.front();
+        front->Fading = MusicFade_In;
+        front->FadeTimer = 0.0f;
+        front->FadeTimerMax = fadeInAfterFinished;
+    }
 
-    music->Seek(start_sample);
-	if (music->Stream)
-		SDL_AudioStreamClear(music->Stream);
+    AudioManager::ClampParams(pan, speed, volume);
 
-    if (loop)
-        music->SoundData->LoopIndex = (Sint32)lp;
-    else
-        music->SoundData->LoopIndex = -1;
-
-    StackNode* newms = new StackNode();
+    AudioChannel* newms = new AudioChannel();
     newms->Audio = music;
+    newms->Playback = music->CreatePlayer();
     newms->Loop = loop;
     newms->LoopPoint = lp;
-    newms->FadeOut = false;
+    newms->Fading = MusicFade_None;
     newms->Pan = pan;
     newms->Speed = (Uint32)(speed * 0x10000);
     newms->Volume = volume;
+    newms->FadeTimer = 1.0;
+    newms->FadeTimerMax = 1.0;
+
+    int start_sample = (int)std::ceil(at * music->Format.freq);
+
+    newms->Playback->Seek(start_sample);
+    if (newms->Playback->ConversionStream)
+        SDL_AudioStreamClear(newms->Playback->ConversionStream);
+
+    if (loop)
+        newms->Playback->LoopIndex = (Sint32)lp;
+
     MusicStack.push_front(newms);
-
-    for (size_t i = 1; i < MusicStack.size(); i++)
-        MusicStack[i]->FadeOut = false;
-
-    FadeOutTimer = 1.0;
-    FadeOutTimerMax = 1.0;
 
     AudioManager::Unlock();
 }
@@ -300,36 +372,93 @@ PUBLIC STATIC void   AudioManager::ClearMusic() {
     MusicStack.clear();
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::FadeMusic(double seconds) {
+PUBLIC STATIC void   AudioManager::ClearSounds() {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        SoundArray[i].Stopped = true;
+        if (SoundArray[i].Playback) {
+            delete SoundArray[i].Playback;
+            SoundArray[i].Playback = NULL;
+        }
+    }
+    AudioManager::Unlock();
+}
+PUBLIC STATIC void   AudioManager::FadeOutMusic(double seconds) {
     AudioManager::Lock();
     if (MusicStack.size() > 0) {
-        MusicStack[0]->FadeOut = true;
-        FadeOutTimer = seconds;
-        FadeOutTimerMax = seconds;
+        MusicStack[0]->Fading = MusicFade_Out;
+        MusicStack[0]->FadeTimer = seconds;
+        MusicStack[0]->FadeTimerMax = seconds;
     }
     AudioManager::Unlock();
 }
 PUBLIC STATIC void   AudioManager::AlterMusic(float pan, float speed, float volume) {
     AudioManager::Lock();
     if (MusicStack.size() > 0) {
+        AudioManager::ClampParams(pan, speed, volume);
         MusicStack[0]->Pan = pan;
         MusicStack[0]->Speed = (Uint32)(speed * 0x10000);
         MusicStack[0]->Volume = volume;
     }
     AudioManager::Unlock();
 }
+PUBLIC STATIC double AudioManager::GetMusicPosition(ISound* music) {
+    AudioManager::Lock();
+    double position = 0.0;
+    for (size_t i = 0; i < MusicStack.size(); i++) {
+        if (MusicStack[i]->Audio == music) {
+            position = MusicStack[i]->Playback->SoundData->GetPosition();
+            break;
+        }
+    }
+    AudioManager::Unlock();
+    return position;
+}
 
 PUBLIC STATIC void   AudioManager::Lock() {
-    SDL_LockAudioDevice(Device); //// SDL_LockAudio();
+    SDL_LockAudioDevice(Device);
 }
 PUBLIC STATIC void   AudioManager::Unlock() {
-    SDL_UnlockAudioDevice(Device); //// SDL_UnlockAudio();
+    SDL_UnlockAudioDevice(Device);
 }
 
+PUBLIC STATIC int    AudioManager::GetFreeChannel() {
+    AudioManager::Lock();
+    int channel = -1;
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Stopped) {
+            channel = i;
+            break;
+        }
+    }
+    AudioManager::Unlock();
+    return channel;
+}
+PUBLIC STATIC void   AudioManager::AlterChannel(int channel, float pan, float speed, float volume) {
+    AudioManager::Lock();
+    if (!SoundArray[channel].Stopped && !SoundArray[channel].Paused) {
+        AudioManager::ClampParams(pan, speed, volume);
+        SoundArray[channel].Pan = pan;
+        SoundArray[channel].Speed = (Uint32)(speed * 0x10000);
+        SoundArray[channel].Volume = volume;
+    }
+    AudioManager::Unlock();
+}
 PUBLIC STATIC bool   AudioManager::AudioIsPlaying(int channel) {
     bool isPlaying = false;
     AudioManager::Lock();
     isPlaying = !SoundArray[channel].Stopped && !SoundArray[channel].Paused;
+    AudioManager::Unlock();
+    return isPlaying;
+}
+PUBLIC STATIC bool   AudioManager::AudioIsPlaying(ISound* audio) {
+    bool isPlaying = false;
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        AudioChannel* channel = &SoundArray[i];
+        if (!channel->Stopped && !channel->Paused && channel->Audio == audio)
+            isPlaying = true;
+    }
     AudioManager::Unlock();
     return isPlaying;
 }
@@ -338,14 +467,38 @@ PUBLIC STATIC void   AudioManager::AudioUnpause(int channel) {
     SoundArray[channel].Paused = false;
     AudioManager::Unlock();
 }
+PUBLIC STATIC void   AudioManager::AudioUnpause(ISound* audio) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Audio == audio)
+            SoundArray[i].Paused = false;
+    }
+    AudioManager::Unlock();
+}
 PUBLIC STATIC void   AudioManager::AudioPause(int channel) {
     AudioManager::Lock();
     SoundArray[channel].Paused = true;
     AudioManager::Unlock();
 }
+PUBLIC STATIC void   AudioManager::AudioPause(ISound* audio) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Audio == audio)
+            SoundArray[i].Paused = true;
+    }
+    AudioManager::Unlock();
+}
 PUBLIC STATIC void   AudioManager::AudioStop(int channel) {
     AudioManager::Lock();
     SoundArray[channel].Stopped = true;
+    AudioManager::Unlock();
+}
+PUBLIC STATIC void   AudioManager::AudioStop(ISound* audio) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Audio == audio)
+            SoundArray[i].Stopped = true;
+    }
     AudioManager::Unlock();
 }
 PUBLIC STATIC void   AudioManager::AudioUnpauseAll() {
@@ -367,21 +520,95 @@ PUBLIC STATIC void   AudioManager::AudioStopAll() {
     AudioManager::Unlock();
 }
 
-PUBLIC STATIC bool   AudioManager::AudioPlayMix(StackNode* audio, Uint8* stream, int len, float volume) {
-    if (audio->FadeOut) {
-        FadeOutTimer -= (double)DeviceFormat.samples / DeviceFormat.freq;
-        if (FadeOutTimer < 0.0) {
-            FadeOutTimer = 1.0;
-            FadeOutTimerMax = 1.0;
+PUBLIC STATIC bool   AudioManager::IsOriginPlaying(void* origin, ISound* audio) {
+    bool isPlaying = false;
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        AudioChannel* channel = &SoundArray[i];
+        if (!channel->Stopped && !channel->Paused && channel->Audio == audio && channel->Origin == origin)
+            isPlaying = true;
+    }
+    AudioManager::Unlock();
+    return isPlaying;
+}
+PUBLIC STATIC void   AudioManager::StopOriginSound(void* origin, ISound* audio) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Audio == audio && SoundArray[i].Origin == origin)
+            SoundArray[i].Stopped = true;
+    }
+    AudioManager::Unlock();
+}
+PUBLIC STATIC void   AudioManager::StopAllOriginSounds(void* origin) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Origin == origin)
+            SoundArray[i].Stopped = true;
+    }
+    AudioManager::Unlock();
+}
+
+PUBLIC STATIC void   AudioManager::MixAudioLR(Uint8* dest, Uint8* src, size_t len, float volumeL, float volumeR) {
+#define DEFINE_STREAM_PTR(type) type* src##type; type* dest##type
+#define PAN_STREAM_PTR(type) \
+    src##type = (type*)(src); \
+    dest##type = (type*)(dest); \
+    for (Uint32 o = 0; o < len; o++) { \
+        dest##type[0] = (type)(src##type[0] * volumeL); \
+        dest##type[1] = (type)(src##type[1] * volumeR); \
+        src##type += 2; \
+        dest##type += 2; \
+    }
+
+    DEFINE_STREAM_PTR(Uint8);
+    DEFINE_STREAM_PTR(Sint8);
+    DEFINE_STREAM_PTR(Uint16);
+    DEFINE_STREAM_PTR(Sint16);
+    DEFINE_STREAM_PTR(Sint32);
+    DEFINE_STREAM_PTR(float);
+
+    switch (DeviceFormat.format) {
+        case AUDIO_U8: PAN_STREAM_PTR(Uint8); break;
+        case AUDIO_S8: PAN_STREAM_PTR(Sint8); break;
+        case AUDIO_U16SYS: PAN_STREAM_PTR(Uint16); break;
+        case AUDIO_S16SYS: PAN_STREAM_PTR(Sint16); break;
+        case AUDIO_S32SYS: PAN_STREAM_PTR(Sint32); break;
+        case AUDIO_F32SYS: PAN_STREAM_PTR(float); break;
+    }
+#undef DEFINE_STREAM_PTR
+#undef PAN_STREAM_PTR
+}
+
+PRIVATE STATIC bool  AudioManager::HandleFading(AudioChannel* audio) {
+    if (audio->Fading == MusicFade_Out) {
+        audio->FadeTimer -= (double)DeviceFormat.samples / DeviceFormat.freq;
+        if (audio->FadeTimer < 0.0) {
+            audio->FadeTimer = 1.0;
+            audio->FadeTimerMax = 1.0;
+            audio->Fading = MusicFade_None;
             return true; // Stop playing audio.
         }
     }
+    else if (audio->Fading == MusicFade_In) {
+        audio->FadeTimer += (double)DeviceFormat.samples / DeviceFormat.freq;
+        if (audio->FadeTimer > audio->FadeTimerMax) {
+            audio->FadeTimer = 1.0;
+            audio->FadeTimerMax = 1.0;
+            audio->Fading = MusicFade_None; // Stop fading in audio.
+        }
+    }
+    return false;
+}
+PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, float volume) {
+    if (AudioManager::HandleFading(audio))
+        return true;
 
-    int bytesPerSample = ((DeviceFormat.format & 0xFF) >> 3) * DeviceFormat.channels;
+    AudioPlayback* playback = audio->Playback;
+    if (!playback || !audio->Playback->SoundData)
+        return false;
 
-    int bytes = 0;
-
-    bytes = audio->Audio->BufferedSamples * bytesPerSample;
+    int bytesPerSample = BytesPerSample;
+    int bytes = playback->BufferedSamples * bytesPerSample;
 
     int advanceAccumulator = 0;
     int advanceReadIndex = 0;
@@ -390,18 +617,28 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(StackNode* audio, Uint8* stream,
 
     // Read more bytes
     if (bytes == 0) {
-        bytes = audio->Audio->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
+        bytes = playback->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
     }
     else {
         advanceReadIndex = len - bytes;
     }
 
-    float volumeL = volume; 
-    float volumeR = volume;
-    if (audio->Pan < 0.f)
-        volumeR = (1.0f + audio->Pan) * volume;
+    int mixVolume;
+    if (audio->Fading)
+        mixVolume = (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume * (audio->FadeTimer / audio->FadeTimerMax));
     else
-        volumeL = (1.0f - audio->Pan) * volume;
+        mixVolume = (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume);
+
+    float volumeL = 1.0f;
+    float volumeR = 1.0f;
+
+    bool doPanning = audio->Pan != 0.0f && DeviceFormat.channels == 2;
+    if (doPanning) {
+        if (audio->Pan < 0.f)
+            volumeR += audio->Pan;
+        else
+            volumeL -= audio->Pan;
+    }
 
     switch (bytes) {
         // End of file
@@ -415,57 +652,41 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(StackNode* audio, Uint8* stream,
             break;
         // Normal
         default:
-            if (speed == 0x10000 && audio->Pan == 0.0f) {
-                if (audio->FadeOut)
-                    SDL_MixAudioFormat(stream, audio->Audio->Buffer, DeviceFormat.format, (Uint32)bytes, (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume * (FadeOutTimer / FadeOutTimerMax)));
-                else
-                    SDL_MixAudioFormat(stream, audio->Audio->Buffer, DeviceFormat.format, (Uint32)bytes, (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume));
-
-                audio->Audio->BufferedSamples -= (bytes / bytesPerSample);
-            }
-            else {
-                for (Uint32 o = 0; o < len; o += bytesPerSample) {
-                    advanceAccumulator += speed;
-                    advance = advanceAccumulator >> 16;
-                    advanceAccumulator &= 0xFFFF;
-
-                    if (audio->FadeOut)
-                        SDL_MixAudioFormat(stream + o, audio->Audio->Buffer + advanceReadIndex, DeviceFormat.format, (Uint32)bytesPerSample, (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume * (FadeOutTimer / FadeOutTimerMax)));
-                    else
-                        SDL_MixAudioFormat(stream + o, audio->Audio->Buffer + advanceReadIndex, DeviceFormat.format, (Uint32)bytesPerSample, (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume));
-
-                    if (audio->Pan != 0.0f && DeviceFormat.channels == 2) {
-#define DEFINE_STREAM_PTR(type, prefix) type* stream##prefix;
-#define PAN_STREAM_PTR(type, prefix) stream##prefix = (type*)(stream + o); stream##prefix[0] = (type)(stream##prefix[0] * volumeL); stream##prefix[1] = (type)(stream##prefix[1] * volumeR);
-                        DEFINE_STREAM_PTR(Uint8, U8);
-                        DEFINE_STREAM_PTR(Sint8, S8);
-                        DEFINE_STREAM_PTR(Uint16, U16);
-                        DEFINE_STREAM_PTR(Sint16, S16);
-                        DEFINE_STREAM_PTR(Sint32, S32);
-                        DEFINE_STREAM_PTR(float, F32);
-
-                        switch (DeviceFormat.format) {
-                        case AUDIO_U8: PAN_STREAM_PTR(Uint8, U8); break;
-                        case AUDIO_S8: PAN_STREAM_PTR(Sint8, S8); break;
-                        case AUDIO_U16SYS: PAN_STREAM_PTR(Uint16, U16); break;
-                        case AUDIO_S16SYS: PAN_STREAM_PTR(Sint16, S16); break;
-                        case AUDIO_S32SYS: PAN_STREAM_PTR(Sint32, S32); break;
-                        case AUDIO_F32SYS: PAN_STREAM_PTR(float, F32); break;
-                        }
-#undef DEFINE_STREAM_PTR
-#undef PAN_STREAM_PTR
+            if (speed == 0x10000) {
+                if (!doPanning)
+                    SDL_MixAudioFormat(stream, playback->Buffer, DeviceFormat.format, (Uint32)bytes, mixVolume);
+                else {
+                    Uint32 mixAdvance = MixBufferSize * bytesPerSample;
+                    for (Uint32 o = 0; o < len; o += mixAdvance) {
+                        AudioManager::MixAudioLR(MixBuffer, playback->Buffer + advanceReadIndex, MixBufferSize, volumeL, volumeR);
+                        SDL_MixAudioFormat(stream + o, MixBuffer, DeviceFormat.format, mixAdvance, mixVolume);
+                        advanceReadIndex += mixAdvance;
                     }
-
-                    advanceReadIndex += advance * bytesPerSample;
-                    if (audio->Audio->BufferedSamples <= advance) {
-                        audio->Audio->BufferedSamples = 0;
-                        advanceReadIndex = 0;
-                        
-                        bytes = audio->Audio->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
-                    }
-                    else
-                        audio->Audio->BufferedSamples -= advance;
                 }
+
+                playback->BufferedSamples -= bytes / bytesPerSample;
+            }
+            else for (Uint32 o = 0; o < len; o += bytesPerSample) {
+                advanceAccumulator += speed;
+                advance = advanceAccumulator >> 16;
+                advanceAccumulator &= 0xFFFF;
+
+                if (doPanning) {
+                    AudioManager::MixAudioLR(MixBuffer, playback->Buffer + advanceReadIndex, 1, volumeL, volumeR);
+                    SDL_MixAudioFormat(stream + o, MixBuffer, DeviceFormat.format, (Uint32)bytesPerSample, mixVolume);
+                }
+                else
+                    SDL_MixAudioFormat(stream + o, playback->Buffer + advanceReadIndex, DeviceFormat.format, (Uint32)bytesPerSample, mixVolume);
+
+                advanceReadIndex += advance * bytesPerSample;
+                if (playback->BufferedSamples <= advance) {
+                    playback->BufferedSamples = 0;
+                    advanceReadIndex = 0;
+
+                    bytes = playback->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
+                }
+                else
+                    playback->BufferedSamples -= advance;
             }
     }
     return false;
@@ -475,8 +696,7 @@ PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int 
     memset(stream, 0x00, len);
 
     if (AudioManager::AudioQueueSize >= (size_t)len) {
-        // memcpy(stream, AudioManager::AudioQueue, len);
-        SDL_MixAudioFormat(stream, AudioManager::AudioQueue, DeviceFormat.format, (Uint32)len, (int)(SDL_MIX_MAXVOLUME * MasterVolume * 1.0f * (FadeOutTimer / FadeOutTimerMax)));
+        SDL_MixAudioFormat(stream, AudioManager::AudioQueue, DeviceFormat.format, (Uint32)len, (int)(SDL_MIX_MAXVOLUME * MasterVolume));
 
         AudioManager::AudioQueueSize -= len;
         if (AudioManager::AudioQueueSize > 0)
@@ -485,7 +705,7 @@ PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int 
 
     // Make track system
     if (MusicStack.size() > 0) {
-        StackNode* audio = MusicStack.front();
+        AudioChannel* audio = MusicStack.front();
         if (!audio->Paused) {
             if (AudioManager::AudioPlayMix(audio, stream, len, audio->Volume * MusicVolume)) {
                 delete audio;
@@ -495,7 +715,7 @@ PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int 
     }
 
     for (int i = 0; i < SoundArrayLength; i++) {
-        StackNode* audio = &SoundArray[i];
+        AudioChannel* audio = &SoundArray[i];
         if (!audio->Audio || audio->Stopped || audio->Paused)
             continue;
 
@@ -532,7 +752,8 @@ PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int 
 PUBLIC STATIC void   AudioManager::Dispose() {
     Memory::Free(SoundArray);
     Memory::Free(AudioQueue);
+    Memory::Free(MixBuffer);
 
-    SDL_PauseAudioDevice(Device, 1); // SDL_PauseAudio(1); //
-    SDL_CloseAudioDevice(Device); // SDL_CloseAudio(); //
+    SDL_PauseAudioDevice(Device, 1);
+    SDL_CloseAudioDevice(Device);
 }

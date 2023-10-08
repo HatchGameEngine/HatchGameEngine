@@ -24,10 +24,119 @@ enum {
 };
 
 enum {
+    TintMode_SRC_NORMAL,
+    TintMode_DST_NORMAL,
+    TintMode_SRC_BLEND,
+    TintMode_DST_BLEND
+};
+
+enum {
+    Filter_NONE,
+    Filter_BLACK_AND_WHITE,
+    Filter_INVERT
+};
+
+enum {
     DrawBehavior_HorizontalParallax = 0,
     DrawBehavior_VerticalParallax = 1,
     DrawBehavior_CustomTileScanLines = 2,
     DrawBehavior_PGZ1_BG = 3,
+};
+
+enum {
+    DrawMode_POLYGONS        = 0x0, // 0b0000
+    DrawMode_LINES           = 0x1, // 0b0001
+    DrawMode_POINTS          = 0x2, // 0b0010
+    DrawMode_PrimitiveMask   = 0x3, // 0b0011
+
+    DrawMode_FLAT_LIGHTING   = 0x4, // 0b0100
+    DrawMode_SMOOTH_LIGHTING = 0x8, // 0b1000
+    DrawMode_LightingMask    = 0xC, // 0b1100
+
+    DrawMode_LINES_FLAT      = DrawMode_LINES | DrawMode_FLAT_LIGHTING,
+    DrawMode_LINES_SMOOTH    = DrawMode_LINES | DrawMode_SMOOTH_LIGHTING,
+
+    DrawMode_POLYGONS_FLAT   = DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
+    DrawMode_POLYGONS_SMOOTH = DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
+
+    DrawMode_FillTypeMask    = 0xF, // 0b1111
+
+    DrawMode_TEXTURED        = 1<<4,
+    DrawMode_AFFINE          = 1<<5,
+    DrawMode_DEPTH_TEST      = 1<<6,
+    DrawMode_FOG             = 1<<7,
+    DrawMode_ORTHOGRAPHIC    = 1<<8,
+    DrawMode_FlagsMask       = ~0xF
+};
+
+enum {
+    TILECOLLISION_NONE = 0,
+    TILECOLLISION_DOWN = 1,
+    TILECOLLISION_UP   = 2
+};
+
+enum {
+    C_NONE      = 0,
+    C_TOP       = 1,
+    C_LEFT      = 2,
+    C_RIGHT     = 3,
+    C_BOTTOM    = 4
+};
+
+enum {
+    FLIP_NONE   = 0,
+    FLIP_X      = 1,
+    FLIP_Y      = 2,
+    FLIP_XY     = 3
+};
+
+enum {
+    CMODE_FLOOR = 0,
+    CMODE_LWALL = 1,
+    CMODE_ROOF  = 2,
+    CMODE_RWALL = 3
+};
+
+enum {
+    H_TYPE_TOUCH    = 0,
+    H_TYPE_CIRCLE   = 1,
+    H_TYPE_BOX      = 2,
+    H_TYPE_PLAT     = 3
+};
+
+enum {
+    LEFT    = 0,
+    TOP     = 1,
+    RIGHT   = 2,
+    BOTTOM  = 3
+};
+
+enum {
+    ACTIVE_NEVER   = 0, // Never updates
+    ACTIVE_ALWAYS  = 1, // Updates no matter what
+    ACTIVE_NORMAL  = 2, // Updates no matter where the object is in the scene, but not if scene is paused
+    ACTIVE_PAUSED  = 3, // Only updates when the scene is paused
+    ACTIVE_BOUNDS  = 4, // Updates only when the object is within bounds
+    ACTIVE_XBOUNDS = 5, // Updates within an x bound (not accounting for y bound)
+    ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting for x bound)
+    ACTIVE_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
+};
+
+enum {
+    SUNDAY      = 0,
+    MONDAY      = 1,
+    TUESDAY     = 2,
+    WEDNESDAY   = 3,
+    THURSDAY    = 4,
+    FRIDAY      = 5,
+    SATURDAY    = 6
+};
+
+enum {
+    MORNING = 0, // Hours 5AM to 11AM. 0500 to 1100.
+    MIDDAY  = 1, // Hours 12PM to 4PM. 1200 to 1600.
+    EVENING = 2, // Hours 5PM to 8PM.  1700 to 2000.
+    NIGHT   = 3  // Hours 9PM to 4AM.  2100 to 400.
 };
 
 #define TILE_FLIPX_MASK 0x80000000U
@@ -65,57 +174,29 @@ struct Point {
     float Y;
     float Z;
 };
-
-struct GraphicsFunctions {
-    void     (*Init)();
-	Uint32   (*GetWindowFlags)();
-	void     (*SetGraphicsFunctions)();
-	void     (*Dispose)();
-
-	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 width, Uint32 height, void* pixels, int pitch);
-	Texture* (*CreateTextureFromSurface)(SDL_Surface* surface);
-	int      (*LockTexture)(Texture* texture, void** pixels, int* pitch);
-	int      (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
-	int      (*UpdateYUVTexture)(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV);
-	void     (*UnlockTexture)(Texture* texture);
-	void     (*DisposeTexture)(Texture* texture);
-
-	void     (*UseShader)(void* shader);
-    void     (*SetTextureInterpolation)(bool interpolate);
-	void     (*SetUniformTexture)(Texture* texture, int uniform_index, int slot);
-	void     (*SetUniformF)(int location, int count, float* values);
-	void     (*SetUniformI)(int location, int count, int* values);
-
-	void     (*UpdateViewport)();
-	void     (*UpdateClipRect)();
-	void     (*UpdateOrtho)(float left, float top, float right, float bottom);
-	void     (*UpdatePerspective)(float fovy, float aspect, float near, float far);
-	void     (*UpdateProjectionMatrix)();
-
-	void     (*Clear)();
-	void     (*Present)();
-	void     (*SetRenderTarget)(Texture* texture);
-	void     (*UpdateWindowSize)(int width, int height);
-
-	void     (*SetBlendColor)(float r, float g, float b, float a);
-	void     (*SetBlendMode)(int srcC, int dstC, int srcA, int dstA);
-	void     (*SetLineWidth)(float n);
-
-	void     (*StrokeLine)(float x1, float y1, float x2, float y2);
-	void     (*StrokeCircle)(float x, float y, float rad);
-	void     (*StrokeEllipse)(float x, float y, float w, float h);
-	void     (*StrokeRectangle)(float x, float y, float w, float h);
-	void     (*FillCircle)(float x, float y, float rad);
-	void     (*FillEllipse)(float x, float y, float w, float h);
-	void     (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
-	void     (*FillRectangle)(float x, float y, float w, float h);
-
-	void     (*DrawTexture)(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h);
-	void     (*DrawSprite)(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation);
-    void     (*DrawSpritePart)(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation);
-
-    void     (*MakeFrameBufferID)(ISprite* sprite, AnimFrame* frame);
+struct GraphicsState {
+    Viewport           CurrentViewport;
+    ClipArea           CurrentClip;
+    float              BlendColors[4];
+    float              TintColors[4];
+    int                BlendMode;
+    int                TintMode;
+    bool               TextureBlend;
+    bool               UseTinting;
+    bool               UseDepthTesting;
+    bool               UsePalettes;
+};
+struct TintState {
+    bool   Enabled;
+    Uint32 Color;
+    Uint16 Amount;
+    Uint8  Mode;
+};
+struct BlendState {
+    int Opacity;
+    int Mode;
+    TintState Tint;
+    int *FilterTable;
 };
 
 #endif /* ENGINE_RENDERING_ENUMS */

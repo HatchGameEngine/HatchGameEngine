@@ -21,6 +21,7 @@ HatchGameEngine.exe
 *-Debug.exe
 *-Release.exe
 makeheaders.bin
+include/*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

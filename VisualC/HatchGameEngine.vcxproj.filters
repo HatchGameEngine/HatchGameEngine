@@ -24,6 +24,9 @@
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -129,6 +132,9 @@
     <ClCompile Include="..\source\engine\io\SDLStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\io\Serializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\io\Stream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -142,6 +148,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\math\Matrix4x4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\math\Vector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\math\Clipper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\media\Decoder.cpp">
@@ -180,10 +192,22 @@
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Engine\Rendering\Material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\ModelRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\PolygonRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp">
@@ -192,10 +216,19 @@
     <ClCompile Include="..\source\engine\rendering\Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\software\Scanline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\software\PolygonRasterizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp">
@@ -222,10 +255,13 @@
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\resourcetypes\modelformats\COLLADAReader.cpp">
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\sceneformats\HatchSceneReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\RSDKSceneReader.cpp">
@@ -264,7 +300,7 @@
     <ClCompile Include="..\source\engine\scene\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\textformats\INI.cpp">
+    <ClCompile Include="..\source\engine\textformats\ini\INI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp">
@@ -274,6 +310,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\types\ObjectList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\types\Tileset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp">
@@ -291,12 +336,12 @@
     <ClCompile Include="..\source\Libraries\stb_vorbis.c">
       <Filter>Source Files\External Libs</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\Engine\ResourceTypes\SceneFormats\HatchSceneReader.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\source\Libraries\spng.c">
+      <Filter>Source Files\External Libs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\engine\audio\StackNode.h">
+    <ClInclude Include="..\include\engine\audio\AudioChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h">
@@ -306,6 +351,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\includes\BijectiveMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\includes\HashMap.h">
@@ -347,6 +395,12 @@
     <ClInclude Include="..\include\engine\rendering\3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\engine\rendering\Mesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\engine\rendering\Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -362,13 +416,19 @@
     <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\COLLADA.h">
+    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\engine\scene\SceneConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\include\engine\sprites\Animation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\textformats\json\jsmn.h">
@@ -390,9 +450,6 @@
       <Filter>Source Files\External Libs</Filter>
     </ClInclude>
     <ClInclude Include="..\source\Libraries\stb_vorbis.h">
-      <Filter>Source Files\External Libs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\Libraries\ini.h">
       <Filter>Source Files\External Libs</Filter>
     </ClInclude>
   </ItemGroup>

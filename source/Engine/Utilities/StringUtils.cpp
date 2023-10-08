@@ -7,8 +7,15 @@ public:
 #endif
 
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Memory.h>
 
-PUBLIC STATIC bool  StringUtils::WildcardMatch(const char* first, const char* second) {
+PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
+    size_t length = strlen(src) + 1;
+    char* string = (char*)Memory::Malloc(length);
+    memcpy(string, src, length);
+    return string;
+}
+PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
         return true;
     if (*first == 0 && *second == '*' && *(second + 1) != 0)
@@ -41,10 +48,9 @@ PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* ne
     }
     return NULL;
 }
-// This is the FreeBSD strlcpy.
 PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
-    char *d = dst;
-    const char *s = src;
+    char* d = dst;
+    const char* s = src;
     size_t n = sz;
 
     // Copy as many bytes as will fit
@@ -58,10 +64,109 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     // Not enough room in dst, add NUL and traverse rest of src
     if (n == 0) {
         if (sz != 0)
-            *d = '\0';      // NUL-terminate dst
+            *d = '\0'; // NUL-terminate dst
         while (*s++)
             ;
     }
 
-    return (s - src - 1);   // count does not include NUL
+    return s - src - 1; // count does not include NUL
+}
+PUBLIC STATIC size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
+    char *d = dst;
+    const char *s = src;
+    size_t n = sz;
+    size_t dlen;
+
+    // Find the end of dst and adjust bytes left but don't go past end
+    while (n-- != 0 && *d != '\0')
+        d++;
+    dlen = d - dst;
+    n = sz - dlen;
+
+    if (n == 0)
+        return dlen + strlen(s);
+    while (*s != '\0') {
+        if (n != 1) {
+            *d++ = *s;
+            n--;
+        }
+        s++;
+    }
+    *d = '\0';
+
+    return dlen + (s - src); // count does not include NUL
+}
+PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
+    char* end;
+    long num = strtol(src, &end, 10);
+
+    if (*end != '\0')
+        return false;
+    else if (num > INT_MAX || (errno == ERANGE && num == LONG_MAX))
+        return false;
+    else if (num < INT_MIN || (errno == ERANGE && num == LONG_MIN))
+        return false;
+
+    (*dst) = num;
+    return true;
+}
+PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
+    char* end;
+    double num = strtod(src, &end);
+
+    if (*end != '\0')
+        return false;
+    if (errno == ERANGE && (num == HUGE_VAL || num == -HUGE_VAL))
+        return false;
+
+    (*dst) = num;
+    return true;
+}
+PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
+    if (!filename)
+        return nullptr;
+
+    const char* sep = strrchr(filename, '/');
+    if (!sep)
+        sep = strrchr(filename, '\\');
+    if (!sep)
+        return nullptr;
+
+    size_t len = sep - filename;
+    char* path = (char*)Memory::Malloc(len + 1);
+    if (!path)
+        return nullptr;
+
+    memcpy(path, filename, len);
+    path[len] = '\0';
+
+    return path;
+}
+PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
+    if (!pathA || !pathB)
+        return nullptr;
+
+    size_t lenA = strlen(pathA);
+    size_t lenB = strlen(pathB) + 1;
+    size_t totalLen = lenA + lenB;
+
+    bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
+    if (!hasSep)
+        totalLen++;
+
+    char* newPath = (char*)Memory::Malloc(totalLen);
+    char* out = newPath;
+    if (!newPath)
+        return nullptr;
+
+    memcpy(newPath, pathA, lenA);
+    newPath += lenA;
+
+    if (!hasSep) {
+        newPath[0] = '/';
+        newPath++;
+    }
+
+    memcpy(newPath, pathB, lenB);
+    return out;
 }

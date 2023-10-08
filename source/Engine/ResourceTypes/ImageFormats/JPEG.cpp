@@ -189,7 +189,6 @@ PUBLIC STATIC JPEG*   JPEG::Load(const char* filename) {
     }
 
     jpeg->Data = (Uint32*)Memory::TrackedMalloc("JPEG::Data", jpeg->Width * jpeg->Height * sizeof(Uint32));
-    jpeg->TransparentColorIndex = -1;
     for (Uint32 i = 0; i < jpeg->Width * (jpeg->Height / 2); i++) {
         jpeg->Data[i] = 0xFF41D1F2;
     }

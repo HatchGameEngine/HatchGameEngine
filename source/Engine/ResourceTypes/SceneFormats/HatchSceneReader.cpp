@@ -54,19 +54,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* pare
 }
 
 PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
-    // Init scene
-    Scene::TileSize = 16;
-    Scene::EmptyTile = 0;
-
-    if (Scene::ObjectLists == NULL) {
-        Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
-        Scene::ObjectRegistries = new HashMap<ObjectList*>(CombinedHash::EncryptData, 16);
-    }
-
-    for (size_t i = 0; i < Scene::Layers.size(); i++)
-        Scene::Layers[i].Dispose();
-    Scene::Layers.clear();
-
     // Start reading
     if (r->ReadUInt32() != HatchSceneReader::Magic) {
         Log::Print(Log::LOG_ERROR, "Not a Hatch scene!");
@@ -90,16 +77,13 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Load the tileset
     HatchSceneReader::LoadTileset(parentFolder);
 
-    // Load tile collisions
-    HatchSceneReader::LoadTileCollisions(parentFolder);
-
     r->ReadUInt32(); // Editor background color 1
     r->ReadUInt32(); // Editor background color 2
     if (verPatch >= 1)
         r->ReadByte(); // ?
 
-    // Read kits
-    Uint8 numKits = r->ReadByte();
+    // Unused (number of kits)
+    r->ReadByte();
 
     // Read layers
     Uint8 numLayers = r->ReadByte();
@@ -123,23 +107,6 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 
     // Free classes
     HatchSceneReader::FreeClasses();
-
-    if (Scene::PriorityLists) {
-        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
-            Scene::PriorityLists[i].Dispose();
-    }
-    else {
-        Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc("Scene::PriorityLists",
-            Scene::PriorityPerLayer, sizeof(DrawGroupList));
-
-        if (!Scene::PriorityLists) {
-            Log::Print(Log::LOG_ERROR, "Out of memory!");
-            exit(-1);
-        }
-    }
-
-    for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
-        Scene::PriorityLists[i].Init();
 
     return true;
 }
@@ -201,7 +168,7 @@ PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
     size_t streamPos = r->Position();
 
-    Uint32 layerCompSize = r->ReadUInt32() - 4;
+    r->ReadUInt32(); // compressed size
     Uint32 layerUncompSize = r->ReadUInt32BE();
 
     r->Seek(streamPos);
@@ -214,7 +181,7 @@ PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) 
 }
 
 PRIVATE STATIC void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
-    for (size_t i = 0; i < layer->Width * layer->Height; i++) {
+    for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
         if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
             layer->Tiles[i] = Scene::EmptyTile;
             continue;
@@ -258,7 +225,7 @@ PRIVATE STATIC void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer
 
     size_t streamPos = r->Position();
 
-    Uint32 layerCompSize = r->ReadUInt32() - 4;
+    r->ReadUInt32(); // compressed size
     Uint32 layerUncompSize = r->ReadUInt32BE();
 
     r->Seek(streamPos);
@@ -366,24 +333,22 @@ PRIVATE STATIC void HatchSceneReader::FreeClasses() {
 }
 
 PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
-    ISprite* tileSprite = new ISprite();
-    Scene::TileSprites.push_back(tileSprite);
-
-    TileSpriteInfo info;
-    Scene::TileSpriteInfos.clear();
+    int curTileCount = (int)Scene::TileSpriteInfos.size();
 
     char tilesetFile[4096];
     snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
 
-    int cols, rows;
+    ISprite* tileSprite = new ISprite();
     tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetFile);
-    cols = tileSprite->Spritesheets[0]->Width / Scene::TileSize;
-    rows = tileSprite->Spritesheets[0]->Height / Scene::TileSize;
+
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
     // Add tiles
+    TileSpriteInfo info;
     for (int i = 0; i < cols * rows; i++) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
@@ -391,9 +356,9 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
-            (i % cols) * Scene::TileSize,
-            (i / cols) * Scene::TileSize,
-            Scene::TileSize, Scene::TileSize, -Scene::TileSize / 2, -Scene::TileSize / 2);
+            (i % cols) * Scene::TileWidth,
+            (i / cols) * Scene::TileHeight,
+            Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
     Scene::EmptyTile = Scene::TileSpriteInfos.size();
@@ -405,13 +370,9 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     Scene::TileSpriteInfos.push_back(info);
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
-}
 
-PRIVATE STATIC void HatchSceneReader::LoadTileCollisions(const char* parentFolder) {
-    char tileColFile[4096];
-    snprintf(tileColFile, sizeof(tileColFile), "%s/TileCol.bin", parentFolder);
-
-    Scene::LoadTileCollisions(tileColFile);
+    Tileset sceneTileset(tileSprite, curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
+    Scene::Tilesets.push_back(sceneTileset);
 }
 
 PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
@@ -455,25 +416,11 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         // Get the correct object list from the class name
         Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
         char* objectName = scnClass->Name;
-        ObjectList* objectList;
-
-        if (Scene::ObjectLists->Exists(objectHash)) {
-            objectList = Scene::ObjectLists->Get(objectHash);
-            objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectHash, objectName);
-        } else {
-            objectList = new ObjectList();
-            StringUtils::Copy(objectList->ObjectName, objectName, sizeof(objectList->ObjectName));
-            Scene::ObjectLists->Put(objectHash, objectList);
-            objectList->SpawnFunction = (Entity*(*)())BytecodeObjectManager::GetSpawnFunction(objectHash, objectName);
-
-            char objLoadFunc[sizeof(objectList->ObjectName) + 6];
-            snprintf(objLoadFunc, sizeof(objLoadFunc), "%s_Load", objectList->ObjectName);
-            BytecodeObjectManager::CallFunction(objLoadFunc);
-        }
 
         // Spawn the object, if the class exists
+        ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
-            BytecodeObject* obj = (BytecodeObject*)objectList->SpawnFunction();
+            BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
             obj->X = posX;
             obj->Y = posY;
             obj->InitialX = posX;

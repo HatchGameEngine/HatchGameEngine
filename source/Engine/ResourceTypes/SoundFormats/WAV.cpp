@@ -116,6 +116,9 @@ PUBLIC        int          WAV::LoadSamples(size_t count) {
         bytesForSample = 0,
         total = 0;
 
+    if (StreamPtr == nullptr)
+        return 0;
+
     if (SampleBuffer == NULL) {
         SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
         Samples.reserve(TotalPossibleSamples);

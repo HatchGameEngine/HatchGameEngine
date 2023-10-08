@@ -7,7 +7,6 @@ public:
     Uint32* Data = NULL;
     Uint32  Width = 0;
     Uint32  Height = 0;
-    Uint32  TransparentColorIndex = 0;
     bool    Paletted = false;
 };
 #endif
