@@ -19,6 +19,7 @@ public:
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileAnimation.h>
 #include <Engine/Scene.h>
 
 #include <Engine/TextFormats/XML/XMLParser.h>
@@ -224,6 +225,91 @@ PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
     return array;
 }
 
+PRIVATE STATIC Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
+    char imagePath[4096];
+
+    Token image_source = node->attributes.Get("source");
+    snprintf(imagePath, sizeof(imagePath), "%s%.*s", parentFolder, (int)image_source.Length, image_source.Start);
+
+    ISprite* tileSprite = new ISprite();
+    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(imagePath);
+
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+
+    tileSprite->ReserveAnimationCount(1);
+    tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
+
+    size_t curTileCount = Scene::TileSpriteInfos.size();
+    size_t numEmptyTiles = firstgid - curTileCount;
+
+    if (firstgid == 1)
+        numEmptyTiles = 0;
+
+    // Add empty tile
+    TileSpriteInfo info;
+    for (int i = (int)curTileCount; i < firstgid; i++) {
+        info.Sprite = tileSprite;
+        info.AnimationIndex = 0;
+        info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        Scene::TileSpriteInfos.push_back(info);
+
+        tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
+    }
+
+    // Add tiles
+    for (int i = 0; i < cols * rows; i++) {
+        info.Sprite = tileSprite;
+        info.AnimationIndex = 0;
+        info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        Scene::TileSpriteInfos.push_back(info);
+
+        tileSprite->AddFrame(0,
+            (i % cols) * Scene::TileWidth,
+            (i / cols) * Scene::TileHeight,
+            Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
+    }
+
+    Tileset sceneTileset(tileSprite, curTileCount + numEmptyTiles, (cols * rows) + 1, imagePath);
+    Scene::Tilesets.push_back(sceneTileset);
+
+    return &Scene::Tilesets.back();
+}
+
+PRIVATE STATIC void TiledMapReader::ParseTileAnimation(int tileID, Tileset* tilesetPtr, XMLNode* node) {
+    ISprite* tileSprite = tilesetPtr->Sprite;
+
+    tileSprite->AddAnimation("TileAnimation", 1, 0);
+
+    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
+
+    for (size_t e = 0; e < node->children.size(); e++) {
+        if (XMLParser::MatchToken(node->children[e]->name, "frame")) {
+            XMLNode* child = node->children[e];
+            int otherTileID = (int)XMLParser::TokenToNumber(child->attributes.Get("tileid"));
+            float duration = ceil(XMLParser::TokenToNumber(child->attributes.Get("duration")) / (1000.0 / 60));
+            tileSprite->AddFrame((int)duration,
+                (otherTileID % cols) * Scene::TileWidth,
+                (otherTileID / cols) * Scene::TileHeight,
+                Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
+        }
+    }
+
+    TileAnimator animator(&Scene::TileSpriteInfos[tileID], tileSprite, tileSprite->Animations.size() - 1);
+    tilesetPtr->Animators.push_back(animator);
+}
+
+PRIVATE STATIC void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
+    for (size_t e = 0; e < node->children.size(); e++) {
+        if (tilesetPtr && XMLParser::MatchToken(node->children[e]->name, "animation")) {
+            int startTileID = tilesetPtr->StartTile;
+            int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id")) + startTileID;
+            if ((size_t)tileID < Scene::TileSpriteInfos.size())
+                ParseTileAnimation(tileID, tilesetPtr, node->children[e]);
+        }
+    }
+}
+
 PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
     int firstgid = (int)XMLParser::TokenToNumber(tileset->attributes.Get("firstgid"));
 
@@ -232,6 +318,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
 
     char tilesetXMLPath[4096];
 
+    // If this is an external tileset, read the XML from that file.
     if (tileset->attributes.Exists("source")) {
         Token source = tileset->attributes.Get("source");
         snprintf(tilesetXMLPath, sizeof(tilesetXMLPath), "%s%.*s", parentFolder, (int)source.Length, source.Start);
@@ -245,52 +332,14 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
         tilesetNode = tileset;
     }
 
+    Tileset* tilesetPtr = nullptr;
+
     for (size_t e = 0; e < tilesetNode->children.size(); e++) {
         if (XMLParser::MatchToken(tilesetNode->children[e]->name, "image")) {
-            Token image_source = tilesetNode->children[e]->attributes.Get("source");
-            snprintf(tilesetXMLPath, sizeof(tilesetXMLPath), "%s%.*s", parentFolder, (int)image_source.Length, image_source.Start);
-
-            ISprite* tileSprite = new ISprite();
-            tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetXMLPath);
-
-            int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-            int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
-
-            tileSprite->ReserveAnimationCount(1);
-            tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
-
-            size_t curTileCount = Scene::TileSpriteInfos.size();
-            size_t numEmptyTiles = firstgid - curTileCount;
-
-            if (firstgid == 1)
-                numEmptyTiles = 0;
-
-            // Add empty tile
-            TileSpriteInfo info;
-            for (int i = (int)curTileCount; i < firstgid; i++) {
-                info.Sprite = tileSprite;
-                info.AnimationIndex = 0;
-                info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-                Scene::TileSpriteInfos.push_back(info);
-
-                tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
-            }
-
-            // Add tiles
-            for (int i = 0; i < cols * rows; i++) {
-                info.Sprite = tileSprite;
-                info.AnimationIndex = 0;
-                info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
-                Scene::TileSpriteInfos.push_back(info);
-
-                tileSprite->AddFrame(0,
-                    (i % cols) * Scene::TileWidth,
-                    (i / cols) * Scene::TileHeight,
-                    Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
-            }
-
-            Tileset sceneTileset(tileSprite, curTileCount + numEmptyTiles, (cols * rows) + 1, tilesetXMLPath);
-            Scene::Tilesets.push_back(sceneTileset);
+            tilesetPtr = ParseTilesetImage(tilesetNode->children[e], firstgid, parentFolder);
+        }
+        else if (XMLParser::MatchToken(tilesetNode->children[e]->name, "tile")) {
+            ParseTile(tilesetPtr, tilesetNode->children[e]);
         }
     }
 
@@ -306,9 +355,11 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     }
 
     XMLNode* map = tileMapXML->children[0];
+#if 0
     if (!XMLParser::MatchToken(map->attributes.Get("version"), "1.2")) {
         Log::Print(Log::LOG_VERBOSE, "Official support is for Tiled version 1.2; this may still work, however.");
     }
+#endif
 
     // 'infinite' maps will not work
     if (XMLParser::MatchToken(map->attributes.Get("infinite"), "1")) {

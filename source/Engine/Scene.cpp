@@ -17,6 +17,7 @@
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileConfig.h>
 #include <Engine/Scene/TileSpriteInfo.h>
+#include <Engine/Scene/TileAnimation.h>
 
 #include <Engine/Scene/View.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
@@ -76,6 +77,7 @@ public:
     static int                       Frame;
     static bool                      Paused;
     static bool                      Loaded;
+    static int                       RunTileAnimations;
 
     static View                      Views[MAX_SCENE_VIEWS];
     static int                       ViewCurrent;
@@ -174,6 +176,7 @@ public:
 int                       Scene::Frame = 0;
 bool                      Scene::Paused = false;
 bool                      Scene::Loaded = false;
+int                       Scene::RunTileAnimations = 1;
 
 // Layering variables
 vector<SceneLayer>        Scene::Layers;
@@ -728,6 +731,14 @@ PUBLIC STATIC void Scene::ResetPerf() {
     }
 }
 PUBLIC STATIC void Scene::Update() {
+    // Do tile animations
+    if ((Scene::RunTileAnimations == 1 && !Scene::Paused) || Scene::RunTileAnimations == 2) {
+        for (Tileset& tileset : Scene::Tilesets) {
+            for (TileAnimator& animator : tileset.Animators)
+                animator.Animate();
+        }
+    }
+
     // Call global updates
     if (Scene::ObjectLists)
         Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
@@ -1263,6 +1274,7 @@ PUBLIC STATIC void Scene::Restart() {
     currentView->Z = 0.0f;
     Scene::Frame = 0;
     Scene::Paused = false;
+    Scene::RunTileAnimations = 1;
 
     Scene::TimeCounter = 0;
     Scene::Minutes = 0;
@@ -1320,6 +1332,11 @@ PUBLIC STATIC void Scene::Restart() {
     if (Scene::BaseTileCount != Scene::TileCount) {
         Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
         Scene::SetTileCount(Scene::BaseTileCount);
+    }
+
+    for (Tileset& tileset : Scene::Tilesets) {
+        for (TileAnimator& animator : tileset.Animators)
+            animator.ResetAnimation();
     }
 
     // Run "Load" on all object classes

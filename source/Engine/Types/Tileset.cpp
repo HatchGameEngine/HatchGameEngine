@@ -1,13 +1,15 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/TileAnimation.h>
 
 class Tileset {
 public:
-    ISprite* Sprite = nullptr;
-    char*    Filename = nullptr;
-    size_t   StartTile = 0;
-    size_t   TileCount = 0;
+    ISprite*             Sprite = nullptr;
+    char*                Filename = nullptr;
+    size_t               StartTile = 0;
+    size_t               TileCount = 0;
+    vector<TileAnimator> Animators;
 };
 #endif
 

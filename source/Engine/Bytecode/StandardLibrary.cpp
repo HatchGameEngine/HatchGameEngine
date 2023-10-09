@@ -9149,6 +9149,15 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)Scene::Paused);
 }
 /***
+ * Scene.GetTileAnimationEnabled
+ * \desc Gets whether or not tile animation is enabled.
+ * \return Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
+    return INTEGER_VAL((int)Scene::RunTileAnimations);
+}
+/***
  * Scene.SetListPos
  * \desc Sets the current list position of the scene.
  * \ns Scene
@@ -9282,6 +9291,17 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
 VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Scene::Paused = GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimationEnabled
+ * \desc Sets whether or not tile animation is enabled.
+ * \param isEnabled (Integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Scene::RunTileAnimations = GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 /***
@@ -15047,6 +15067,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, CheckSceneFolder);
     DEF_NATIVE(Scene, CheckSceneID);
     DEF_NATIVE(Scene, IsPaused);
+    DEF_NATIVE(Scene, GetTileAnimationEnabled);
     DEF_NATIVE(Scene, SetListPos);
     DEF_NATIVE(Scene, SetActiveCategory);
     DEF_NATIVE(Scene, SetDebugMode);
@@ -15054,6 +15075,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
+    DEF_NATIVE(Scene, SetTileAnimationEnabled);
     DEF_NATIVE(Scene, SetLayerVisible);
     DEF_NATIVE(Scene, SetLayerCollidable);
     DEF_NATIVE(Scene, SetLayerInternalSize);
