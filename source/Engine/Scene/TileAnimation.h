@@ -17,6 +17,8 @@ struct TileAnimator {
     float Timer = 0.0;
     float FrameDuration = 0.0;
 
+    bool Paused = false;
+
     TileAnimator(TileSpriteInfo* tileSpriteInfo, ISprite* sprite, int animationID) {
         TileInfo = tileSpriteInfo;
         Sprite = sprite;
@@ -38,7 +40,7 @@ struct TileAnimator {
         Timer = 0.0;
     }
 
-    void ResetAnimation() {
+    void RestartAnimation() {
         SetAnimation(AnimationIndex, 0);
         UpdateTile();
     }

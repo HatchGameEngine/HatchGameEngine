@@ -1113,6 +1113,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
     Graphics::Internal.CreateVertexBuffer = GLRenderer::CreateVertexBuffer;
     Graphics::Internal.DeleteVertexBuffer = GLRenderer::DeleteVertexBuffer;
     Graphics::Internal.MakeFrameBufferID = GLRenderer::MakeFrameBufferID;
+    Graphics::Internal.DeleteFrameBufferID = GLRenderer::DeleteFrameBufferID;
 
     Graphics::Internal.SetDepthTesting = GLRenderer::SetDepthTesting;
 }
@@ -2088,7 +2089,12 @@ PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame*
     glBindBuffer(GL_ARRAY_BUFFER, frame->ID); CHECK_GL();
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); CHECK_GL();
 }
-
+PUBLIC STATIC void     GLRenderer::DeleteFrameBufferID(AnimFrame* frame) {
+    if (frame->ID) {
+        glDeleteBuffers(1, (GLuint*)&frame->ID); CHECK_GL();
+        frame->ID = 0;
+    }
+}
 PUBLIC STATIC void     GLRenderer::SetDepthTesting(bool enable) {
     if (UseDepthTesting) {
         if (enable) {

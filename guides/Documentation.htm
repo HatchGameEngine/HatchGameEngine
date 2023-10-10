@@ -820,6 +820,12 @@
                     <li><a href="#Reference_functions_Scene_GetInstanceCount">Scene.GetInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStaticInstanceCount">Scene.GetStaticInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDynamicInstanceCount">Scene.GetDynamicInstanceCount</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimationEnabled">Scene.GetTileAnimationEnabled</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimSequence">Scene.GetTileAnimSequence</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimSequenceDurations">Scene.GetTileAnimSequenceDurations</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimSequencePaused">Scene.GetTileAnimSequencePaused</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimSequenceSpeed">Scene.GetTileAnimSequenceSpeed</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTileAnimSequenceFrame">Scene.GetTileAnimSequenceFrame</a></li>
                     <li><a href="#Reference_functions_Scene_CheckValidScene">Scene.CheckValidScene</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneFolder">Scene.CheckSceneFolder</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneID">Scene.CheckSceneID</a></li>
@@ -831,6 +837,11 @@
                     <li><a href="#Reference_functions_Scene_SetTile">Scene.SetTile</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileCollisionSides">Scene.SetTileCollisionSides</a></li>
                     <li><a href="#Reference_functions_Scene_SetPaused">Scene.SetPaused</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimationEnabled">Scene.SetTileAnimationEnabled</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequence">Scene.SetTileAnimSequence</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequencePaused">Scene.SetTileAnimSequencePaused</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequenceSpeed">Scene.SetTileAnimSequenceSpeed</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFrame">Scene.SetTileAnimSequenceFrame</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerVisible">Scene.SetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerCollidable">Scene.SetLayerCollidable</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerInternalSize">Scene.SetLayerInternalSize</a></li>
@@ -6122,6 +6133,68 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the amount of instances in the scene.</div>
         </p>
+        <p id="Reference_functions_Scene_GetTileAnimationEnabled">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimationEnabled</h2>
+        <code>Scene.GetTileAnimationEnabled()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not tile animation is enabled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTileAnimSequence">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimSequence</h2>
+        <code>Scene.GetTileAnimSequence(tileID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile IDs of the animation sequence for a tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): Which tile ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an array of tile IDs.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTileAnimSequenceDurations">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimSequenceDurations</h2>
+        <code>Scene.GetTileAnimSequenceDurations(tileID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the frame durations of the animation sequence for a tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): Which tile ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an array of frame durations.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTileAnimSequencePaused">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimSequencePaused</h2>
+        <code>Scene.GetTileAnimSequencePaused(tileID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns if a tile ID animation sequence is paused.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Whether the animation is paused.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTileAnimSequenceSpeed">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimSequenceSpeed</h2>
+        <code>Scene.GetTileAnimSequenceSpeed(tileID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the speed of a tile ID animation sequence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The frame speed.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTileAnimSequenceFrame">
+        <h2 style="margin-bottom: 8px;">Scene.GetTileAnimSequenceFrame</h2>
+        <code>Scene.GetTileAnimSequenceFrame(tileID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current frame of a tile ID animation sequence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The frame index.</div>
+        </p>
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
@@ -6219,6 +6292,56 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isPaused (Boolean): Whether or not the scene is paused.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimationEnabled">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimationEnabled</h2>
+        <code>Scene.SetTileAnimationEnabled(isEnabled)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not tile animation is enabled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>isEnabled (Integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequence">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequence</h2>
+        <code>Scene.SetTileAnimSequence(tileID, tileIDs, frameDurations)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
+        <li>tileIDs (Array): Tile ID list.</li>
+        <li>frameDurations (Array): Frame duration list.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequencePaused">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequencePaused</h2>
+        <code>Scene.SetTileAnimSequencePaused(tileID, isPaused)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Pauses a tile ID animation sequence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        <li>isPaused (Boolean): Whether the animation is paused.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequenceSpeed">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequenceSpeed</h2>
+        <code>Scene.SetTileAnimSequenceSpeed(tileID, speed)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the speed of a tile ID animation sequence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        <li>speed (Decimal): The frame speed.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequenceFrame">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequenceFrame</h2>
+        <code>Scene.SetTileAnimSequenceFrame(tileID, index)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current frame of a tile ID animation sequence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): The tile ID.</li>
+        <li>index (Integer): The frame index.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerVisible">
@@ -8539,7 +8662,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>626 out of 686 functions have descriptions. </p>
+        <p>637 out of 697 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

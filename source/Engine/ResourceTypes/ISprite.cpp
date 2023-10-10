@@ -184,6 +184,9 @@ PUBLIC void ISprite::AddFrame(int duration, int left, int top, int width, int he
     ISprite::AddFrame(duration, left, top, width, height, pivotX, pivotY, 0);
 }
 PUBLIC void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
+    AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
+}
+PUBLIC void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
     AnimFrame anfrm;
     anfrm.Advance = id;
     anfrm.Duration = duration;
@@ -194,16 +197,21 @@ PUBLIC void ISprite::AddFrame(int duration, int left, int top, int width, int he
     anfrm.OffsetX = pivotX;
     anfrm.OffsetY = pivotY;
     anfrm.SheetNumber = 0;
-    anfrm.BoxCount = 0; // this->CollisionBoxCount;
+    anfrm.BoxCount = 0;
 
     // Possibly buffer the position in the renderer.
     Graphics::MakeFrameBufferID(this, &anfrm);
 
-    Animations.back().Frames.push_back(anfrm);
+    Animations[animID].Frames.push_back(anfrm);
+}
+PUBLIC void ISprite::RemoveFrames(int animID) {
+    for (size_t i = 0; i < Animations[animID].Frames.size(); i++)
+        Graphics::DeleteFrameBufferID(&Animations[animID].Frames[i]);
+    Animations[animID].Frames.clear();
 }
 
 PUBLIC bool ISprite::LoadAnimation(const char* filename) {
-    char* str, altered[256];
+    char* str, altered[4096];
     int animationCount, previousAnimationCount, frameCount;
 
     Stream* reader = ResourceStream::New(filename);
@@ -437,6 +445,8 @@ PUBLIC void ISprite::Dispose() {
             Memory::Free(Animations[a].Name);
             Animations[a].Name = NULL;
         }
+
+        RemoveFrames(a);
 
         Animations[a].Frames.clear();
         Animations[a].Frames.shrink_to_fit();

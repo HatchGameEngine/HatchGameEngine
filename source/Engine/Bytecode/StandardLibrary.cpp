@@ -9093,6 +9093,136 @@ VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 thread
     return INTEGER_VAL(Scene::DynamicObjectCount);
 }
 /***
+ * Scene.GetTileAnimationEnabled
+ * \desc Gets whether or not tile animation is enabled.
+ * \return Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
+    return INTEGER_VAL((int)Scene::TileAnimationEnabled);
+}
+/***
+ * Scene.GetTileAnimSequence
+ * \desc Gets the tile IDs of the animation sequence for a tile ID.
+ * \param tileID (Integer): Which tile ID.
+ * \return Returns an array of tile IDs.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    Tileset* tileset = Scene::GetTileset(tileID);
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (!tileset || !animator)
+        return NULL_VAL;
+
+    if (BytecodeObjectManager::Lock()) {
+        ObjArray* array = NewArray();
+        ISprite* tileSprite = animator->Sprite;
+        Animation* animation = animator->CurrentAnimation;
+        for (int i = 0; i < animation->Frames.size(); i++) {
+            int x = animation->Frames[i].X / tileset->TileWidth;
+            int y = animation->Frames[i].Y / tileset->TileHeight;
+            int tileID = ((y * tileset->NumCols) + x) + tileset->StartTile;
+            array->Values->push_back(INTEGER_VAL(tileID));
+        }
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(array);
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Scene.GetTileAnimSequenceDurations
+ * \desc Gets the frame durations of the animation sequence for a tile ID.
+ * \param tileID (Integer): Which tile ID.
+ * \return Returns an array of frame durations.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    Tileset* tileset = Scene::GetTileset(tileID);
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (!tileset || !animator)
+        return NULL_VAL;
+
+    if (BytecodeObjectManager::Lock()) {
+        ObjArray* array = NewArray();
+        ISprite* tileSprite = animator->Sprite;
+        Animation* animation = animator->CurrentAnimation;
+        for (int i = 0; i < animation->Frames.size(); i++)
+            array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
+        BytecodeObjectManager::Unlock();
+        return OBJECT_VAL(array);
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Scene.GetTileAnimSequencePaused
+ * \desc Returns if a tile ID animation sequence is paused.
+ * \param tileID (Integer): The tile ID.
+ * \return Whether the animation is paused.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator)
+        return INTEGER_VAL(animator->Paused);
+
+    return NULL_VAL;
+}
+/***
+ * Scene.GetTileAnimSequenceSpeed
+ * \desc Gets the speed of a tile ID animation sequence.
+ * \param tileID (Integer): The tile ID.
+ * \return The frame speed.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator)
+        return DECIMAL_VAL(animator->Speed);
+
+    return NULL_VAL;
+}
+/***
+ * Scene.GetTileAnimSequenceFrame
+ * \desc Gets the current frame of a tile ID animation sequence.
+ * \param tileID (Integer): The tile ID.
+ * \return The frame index.
+ * \ns Scene
+ */
+VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator)
+        return INTEGER_VAL(animator->AnimationIndex);
+
+    return NULL_VAL;
+}
+/***
  * Scene.CheckValidScene
  * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded.
  * \return Returns a Boolean value.
@@ -9137,7 +9267,7 @@ VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
     if (Scene::ListData.size())
         return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].id, GET_ARG(0, GetString)) == 0));
     else
-        return INTEGER_VAL(0);;
+        return INTEGER_VAL(0);
 }
 /***
  * Scene.IsPaused
@@ -9147,15 +9277,6 @@ VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)Scene::Paused);
-}
-/***
- * Scene.GetTileAnimationEnabled
- * \desc Gets whether or not tile animation is enabled.
- * \return Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
- * \ns Scene
- */
-VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
-    return INTEGER_VAL((int)Scene::RunTileAnimations);
 }
 /***
  * Scene.SetListPos
@@ -9301,7 +9422,125 @@ VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Scene::RunTileAnimations = GET_ARG(0, GetInteger);
+    Scene::TileAnimationEnabled = GET_ARG(0, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimSequence
+ * \desc Sets an animation sequence for a tile ID.
+ * \param tileID (Integer): Which tile ID to add an animated sequence to.
+ * \param tileIDs (Array): Tile ID list.
+ * \param frameDurations (Array): Frame duration list.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    std::vector<int> tileIDs;
+    std::vector<int> frameDurations;
+
+    if (IS_ARRAY(args[1])) {
+        ObjArray* array = GET_ARG(1, GetArray);
+
+        int otherTileID = 0;
+
+        for (size_t i = 0; i < array->Values->size(); i++) {
+            VMValue val = (*array->Values)[i];
+            if (IS_INTEGER(val))
+                otherTileID = AS_INTEGER(val);
+            else
+                BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 2) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+
+            tileIDs.push_back(otherTileID);
+            frameDurations.push_back(30);
+        }
+
+        if (argCount >= 3) {
+            array = GET_ARG(2, GetArray);
+
+            for (size_t i = 0; i < array->Values->size() && i < tileIDs.size(); i++) {
+                VMValue val = (*array->Values)[i];
+                if (!IS_INTEGER(val)) {
+                    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 3) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+                    continue;
+                }
+
+                frameDurations[i] = AS_INTEGER(val);
+            }
+        }
+    }
+
+    Tileset* tileset = Scene::GetTileset(tileID);
+    if (tileset)
+        tileset->AddTileAnimSequence(tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations);
+
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimSequencePaused
+ * \desc Pauses a tile ID animation sequence.
+ * \param tileID (Integer): The tile ID.
+ * \param isPaused (Boolean): Whether the animation is paused.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int tileID = GET_ARG(0, GetInteger);
+    bool isPaused = GET_ARG(1, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator)
+        animator->Paused = isPaused;
+
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimSequenceSpeed
+ * \desc Changes the speed of a tile ID animation sequence.
+ * \param tileID (Integer): The tile ID.
+ * \param speed (Decimal): The frame speed.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int tileID = GET_ARG(0, GetInteger);
+    float speed = GET_ARG(1, GetDecimal);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator) {
+        if (speed < 0.0)
+            speed = 0.0;
+        animator->Speed = speed;
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimSequenceFrame
+ * \desc Sets the current frame of a tile ID animation sequence.
+ * \param tileID (Integer): The tile ID.
+ * \param index (Integer): The frame index.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int tileID = GET_ARG(0, GetInteger);
+    int frameIndex = GET_ARG(1, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    TileAnimator* animator = Scene::GetTileAnimator(tileID);
+    if (animator)
+        animator->SetAnimation(animator->AnimationIndex, frameIndex);
+
     return NULL_VAL;
 }
 /***
@@ -12244,25 +12483,21 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
     int spriteIndex = GET_ARG(1, GetInteger);
     int animationIndex = GET_ARG(2, GetInteger);
     int frameIndex = GET_ARG(3, GetInteger);
-    if (spriteIndex <= -1) {
-        if (tileID < (int)Scene::TileSpriteInfos.size()) {
-            TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+    if (tileID >= 0 && tileID < (int)Scene::TileSpriteInfos.size()) {
+        if (spriteIndex <= -1) {
+            TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
             info.Sprite = Scene::Tilesets[0].Sprite;
             info.AnimationIndex = 0;
             if (frameIndex > -1)
                 info.FrameIndex = frameIndex;
             else
                 info.FrameIndex = tileID;
-            Scene::TileSpriteInfos[tileID] = info;
         }
-    }
-    else {
-        if (tileID < (int)Scene::TileSpriteInfos.size()) {
-            TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+        else {
+            TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
             info.Sprite = GET_ARG(1, GetSprite);
             info.AnimationIndex = animationIndex;
             info.FrameIndex = frameIndex;
-            Scene::TileSpriteInfos[tileID] = info;
         }
     }
     return NULL_VAL;
@@ -12316,7 +12551,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionField >= Scene::TileCfg.size())
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() || collisionField >= Scene::TileCfg.size())
         return INTEGER_VAL(-1);
 
     TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
@@ -12368,7 +12603,7 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionField >= Scene::TileCfg.size())
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() || collisionField >= Scene::TileCfg.size())
         return INTEGER_VAL(-1);
 
     TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
@@ -12410,7 +12645,7 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionPlane >= Scene::TileCfg.size())
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() || collisionPlane >= Scene::TileCfg.size())
         return INTEGER_VAL(0);
 
     TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
@@ -12435,7 +12670,7 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    if (collisionPlane >= Scene::TileCfg.size())
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() || collisionPlane >= Scene::TileCfg.size())
         return INTEGER_VAL(0);
 
     TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
@@ -15063,11 +15298,16 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetInstanceCount);
     DEF_NATIVE(Scene, GetStaticInstanceCount);
     DEF_NATIVE(Scene, GetDynamicInstanceCount);
+    DEF_NATIVE(Scene, GetTileAnimationEnabled);
+    DEF_NATIVE(Scene, GetTileAnimSequence);
+    DEF_NATIVE(Scene, GetTileAnimSequenceDurations);
+    DEF_NATIVE(Scene, GetTileAnimSequencePaused);
+    DEF_NATIVE(Scene, GetTileAnimSequenceSpeed);
+    DEF_NATIVE(Scene, GetTileAnimSequenceFrame);
     DEF_NATIVE(Scene, CheckValidScene);
     DEF_NATIVE(Scene, CheckSceneFolder);
     DEF_NATIVE(Scene, CheckSceneID);
     DEF_NATIVE(Scene, IsPaused);
-    DEF_NATIVE(Scene, GetTileAnimationEnabled);
     DEF_NATIVE(Scene, SetListPos);
     DEF_NATIVE(Scene, SetActiveCategory);
     DEF_NATIVE(Scene, SetDebugMode);
@@ -15076,6 +15316,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
     DEF_NATIVE(Scene, SetTileAnimationEnabled);
+    DEF_NATIVE(Scene, SetTileAnimSequence);
+    DEF_NATIVE(Scene, SetTileAnimSequencePaused);
+    DEF_NATIVE(Scene, SetTileAnimSequenceSpeed);
+    DEF_NATIVE(Scene, SetTileAnimSequenceFrame);
     DEF_NATIVE(Scene, SetLayerVisible);
     DEF_NATIVE(Scene, SetLayerCollidable);
     DEF_NATIVE(Scene, SetLayerInternalSize);

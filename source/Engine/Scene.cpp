@@ -77,7 +77,7 @@ public:
     static int                       Frame;
     static bool                      Paused;
     static bool                      Loaded;
-    static int                       RunTileAnimations;
+    static int                       TileAnimationEnabled;
 
     static View                      Views[MAX_SCENE_VIEWS];
     static int                       ViewCurrent;
@@ -176,7 +176,7 @@ public:
 int                       Scene::Frame = 0;
 bool                      Scene::Paused = false;
 bool                      Scene::Loaded = false;
-int                       Scene::RunTileAnimations = 1;
+int                       Scene::TileAnimationEnabled = 1;
 
 // Layering variables
 vector<SceneLayer>        Scene::Layers;
@@ -731,13 +731,8 @@ PUBLIC STATIC void Scene::ResetPerf() {
     }
 }
 PUBLIC STATIC void Scene::Update() {
-    // Do tile animations
-    if ((Scene::RunTileAnimations == 1 && !Scene::Paused) || Scene::RunTileAnimations == 2) {
-        for (Tileset& tileset : Scene::Tilesets) {
-            for (TileAnimator& animator : tileset.Animators)
-                animator.Animate();
-        }
-    }
+    // Animate tiles
+    Scene::RunTileAnimations();
 
     // Call global updates
     if (Scene::ObjectLists)
@@ -807,7 +802,27 @@ PUBLIC STATIC void Scene::Update() {
         Scene::ProcessSceneTimer();
     }
 }
-
+PRIVATE STATIC void Scene::RunTileAnimations() {
+    if ((Scene::TileAnimationEnabled == 1 && !Scene::Paused) || Scene::TileAnimationEnabled == 2) {
+        for (Tileset& tileset : Scene::Tilesets)
+            tileset.RunAnimations();
+    }
+}
+PUBLIC STATIC Tileset* Scene::GetTileset(int tileID) {
+    for (Tileset& tileset : Scene::Tilesets) {
+        if (tileID >= tileset.StartTile)
+            return &tileset;
+    }
+    return nullptr;
+}
+PUBLIC STATIC TileAnimator* Scene::GetTileAnimator(int tileID) {
+    for (Tileset& tileset : Scene::Tilesets) {
+        TileAnimator* animator = tileset.GetTileAnimSequence(tileID);
+        if (animator)
+            return animator;
+    }
+    return nullptr;
+}
 PUBLIC STATIC void Scene::SetViewActive(int viewIndex, bool active) {
     if (Scene::Views[viewIndex].Active == active)
         return;
@@ -1274,7 +1289,7 @@ PUBLIC STATIC void Scene::Restart() {
     currentView->Z = 0.0f;
     Scene::Frame = 0;
     Scene::Paused = false;
-    Scene::RunTileAnimations = 1;
+    Scene::TileAnimationEnabled = 1;
 
     Scene::TimeCounter = 0;
     Scene::Minutes = 0;
@@ -1334,10 +1349,9 @@ PUBLIC STATIC void Scene::Restart() {
         Scene::SetTileCount(Scene::BaseTileCount);
     }
 
-    for (Tileset& tileset : Scene::Tilesets) {
-        for (TileAnimator& animator : tileset.Animators)
-            animator.ResetAnimation();
-    }
+    // Restart tile animations
+    for (Tileset& tileset : Scene::Tilesets)
+        tileset.RestartAnimations();
 
     // Run "Load" on all object classes
     // This is done (on purpose) before object lists are cleared.
@@ -2204,7 +2218,7 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
-    Tileset sceneTileset(tileSprite, Scene::TileSpriteInfos.size(), cols * rows, path);
+    Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, 0, Scene::TileSpriteInfos.size(), cols * rows, path);
     Scene::Tilesets.push_back(sceneTileset);
 
     // Add tiles

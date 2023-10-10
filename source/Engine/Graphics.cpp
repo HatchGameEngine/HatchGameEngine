@@ -1323,6 +1323,10 @@ PUBLIC STATIC void     Graphics::MakeFrameBufferID(ISprite* sprite, AnimFrame* f
     if (Graphics::GfxFunctions->MakeFrameBufferID)
         Graphics::GfxFunctions->MakeFrameBufferID(sprite, frame);
 }
+PUBLIC STATIC void     Graphics::DeleteFrameBufferID(AnimFrame* frame) {
+    if (Graphics::GfxFunctions->DeleteFrameBufferID)
+        Graphics::GfxFunctions->DeleteFrameBufferID(frame);
+}
 
 PUBLIC STATIC void     Graphics::SetDepthTesting(bool enabled) {
     if (Graphics::GfxFunctions->SetDepthTesting)

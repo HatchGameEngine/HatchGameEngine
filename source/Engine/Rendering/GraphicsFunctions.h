@@ -73,6 +73,7 @@ struct GraphicsFunctions {
     void*    (*CreateVertexBuffer)(Uint32 maxVertices);
     void     (*DeleteVertexBuffer)(void* vtxBuf);
     void     (*MakeFrameBufferID)(ISprite* sprite, AnimFrame* frame);
+    void     (*DeleteFrameBufferID)(AnimFrame* frame);
 
     void     (*SetDepthTesting)(bool enabled);
 };

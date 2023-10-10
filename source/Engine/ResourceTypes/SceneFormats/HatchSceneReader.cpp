@@ -368,7 +368,7 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
 
-    Tileset sceneTileset(tileSprite, curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
+    Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, 0, curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
     Scene::Tilesets.push_back(sceneTileset);
 }
 
