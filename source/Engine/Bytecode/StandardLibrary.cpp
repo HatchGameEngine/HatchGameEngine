@@ -11425,6 +11425,38 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
 }
 /***
+ * Sprite.GetFrameOffsetX
+ * \desc Gets the X offset of the specified sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the X offset of the specified sprite frame.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetX);
+}
+/***
+ * Sprite.GetFrameOffsetY
+ * \desc Gets the Y offset of the specified sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the Y offset of the specified sprite frame.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
+}
+/***
  * Sprite.GetHitbox
  * \desc Gets the hitbox of an animation and frame of a sprite.
  * \param sprite (Integer): The sprite index to check.
@@ -15496,6 +15528,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameWidth);
     DEF_NATIVE(Sprite, GetFrameHeight);
     DEF_NATIVE(Sprite, GetFrameID);
+    DEF_NATIVE(Sprite, GetFrameOffsetX);
+    DEF_NATIVE(Sprite, GetFrameOffsetY);
     DEF_NATIVE(Sprite, GetHitbox);
     // #endregion
 
