@@ -11306,6 +11306,17 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Sprite
+#define CHECK_ANIMATION_INDEX(idx) \
+    if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
+        OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
+        return NULL_VAL; \
+    }
+#define CHECK_ANIMFRAME_INDEX(anim, idx) \
+    CHECK_ANIMATION_INDEX(anim); \
+    if (idx < 0 || idx >= (int)sprite->Animations[anim].Frames.size()) { \
+        OUT_OF_RANGE_ERROR("Frame index", idx, 0, sprite->Animations[anim].Frames.size() - 1); \
+        return NULL_VAL; \
+    }
 /***
  * Sprite.GetAnimationCount
  * \desc Gets the amount of animations in the sprite.
@@ -11319,6 +11330,39 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)sprite->Animations.size());
 }
 /***
+ * Sprite.GetAnimationName
+ * \desc Gets the name of the specified animation index in the sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationIndex (Integer): The animation index.
+ * \return Returns the name of the specified animation index.
+ * \ns Sprite
+ */
+VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int index = GET_ARG(1, GetInteger);
+    CHECK_ANIMATION_INDEX(index);
+    return OBJECT_VAL(CopyString(sprite->Animations[index].Name));
+}
+/***
+ * Sprite.GetAnimationIndexByName
+ * \desc Gets the first animation in the sprite which matches the specified name.
+ * \param sprite (Integer): The sprite index to check.
+ * \param name (String): The animation name to search for.
+ * \return Returns the first animation index with the specified name, or -1 if there was no match.
+ * \ns Sprite
+ */
+VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    char* name = GET_ARG(1, GetString);
+    for (size_t i = 0; i < sprite->Animations.size(); i++) {
+        if (strcmp(name, sprite->Animations[i].Name) == 0)
+            return INTEGER_VAL((int)i);
+    }
+    return INTEGER_VAL(-1);
+}
+/***
  * Sprite.GetFrameLoopIndex
  * \desc Gets the index of the frame that the specified animation will loop back to when it finishes.
  * \param sprite (Integer): The sprite index to check.
@@ -11330,6 +11374,7 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL(sprite->Animations[animation].FrameToLoop);
 }
 /***
@@ -11344,6 +11389,7 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)sprite->Animations[animation].Frames.size());
 }
 /***
@@ -11360,6 +11406,7 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Duration);
 }
 /***
@@ -11374,6 +11421,7 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL(sprite->Animations[animation].AnimationSpeed);
 }
 /***
@@ -11390,6 +11438,7 @@ VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Width);
 }
 /***
@@ -11406,6 +11455,7 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Height);
 }
 /***
@@ -11422,6 +11472,7 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
 }
 /***
@@ -11438,6 +11489,7 @@ VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetX);
 }
 /***
@@ -11454,10 +11506,11 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
- * Sprite.GetHitbox
+ * Sprite.GetFrameHitbox
  * \desc Gets the hitbox of an animation and frame of a sprite.
  * \param sprite (Integer): The sprite index to check.
  * \param animationID (Integer): The animation index of the sprite to check.
@@ -11466,7 +11519,7 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
-VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animationID = GET_ARG(1, GetInteger);
@@ -11495,6 +11548,8 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
         return OBJECT_VAL(array);
     }
 }
+#undef CHECK_ANIMATION_INDEX
+#undef CHECK_ANIMFRAME_INDEX
 // #endregion
 
 // #region Stream
@@ -15521,6 +15576,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Sprite
     INIT_CLASS(Sprite);
     DEF_NATIVE(Sprite, GetAnimationCount);
+    DEF_NATIVE(Sprite, GetAnimationName);
+    DEF_NATIVE(Sprite, GetAnimationIndexByName);
     DEF_NATIVE(Sprite, GetFrameLoopIndex);
     DEF_NATIVE(Sprite, GetFrameCount);
     DEF_NATIVE(Sprite, GetFrameDuration);
@@ -15530,7 +15587,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameID);
     DEF_NATIVE(Sprite, GetFrameOffsetX);
     DEF_NATIVE(Sprite, GetFrameOffsetY);
-    DEF_NATIVE(Sprite, GetHitbox);
+    DEF_NATIVE(Sprite, GetFrameHitbox);
     // #endregion
 
     // #region Stream

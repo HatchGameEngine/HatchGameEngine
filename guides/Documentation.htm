@@ -982,6 +982,8 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetAnimationName">Sprite.GetAnimationName</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameDuration">Sprite.GetFrameDuration</a></li>
@@ -991,7 +993,7 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameHitbox">Sprite.GetFrameHitbox</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -7270,6 +7272,30 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the amount of animations in the sprite.</div>
         </p>
+        <p id="Reference_functions_Sprite_GetAnimationName">
+        <h2 style="margin-bottom: 8px;">Sprite.GetAnimationName</h2>
+        <code>Sprite.GetAnimationName(sprite, animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index in the sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the specified animation index.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetAnimationIndexByName">
+        <h2 style="margin-bottom: 8px;">Sprite.GetAnimationIndexByName</h2>
+        <code>Sprite.GetAnimationIndexByName(sprite, name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>name (String): The animation name to search for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the first animation index with the specified name, or -1 if there was no match.</div>
+        </p>
         <p id="Reference_functions_Sprite_GetFrameLoopIndex">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameLoopIndex</h2>
         <code>Sprite.GetFrameLoopIndex(sprite, animation)</code>
@@ -7384,9 +7410,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the Y offset of the specified sprite frame.</div>
         </p>
-        <p id="Reference_functions_Sprite_GetHitbox">
-        <h2 style="margin-bottom: 8px;">Sprite.GetHitbox</h2>
-        <code>Sprite.GetHitbox(sprite, animationID, frame, hitboxID)</code>
+        <p id="Reference_functions_Sprite_GetFrameHitbox">
+        <h2 style="margin-bottom: 8px;">Sprite.GetFrameHitbox</h2>
+        <code>Sprite.GetFrameHitbox(sprite, animationID, frame, hitboxID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of an animation and frame of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -8690,7 +8716,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>639 out of 699 functions have descriptions. </p>
+        <p>641 out of 701 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
