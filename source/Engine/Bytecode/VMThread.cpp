@@ -1358,7 +1358,7 @@ PUBLIC int     VMThread::RunInstruction() {
             else if (IS_OBJECT(receiver)) {
                 ObjClass* klass = AS_OBJECT(receiver)->Class;
                 if (!klass) {
-                    ThrowRuntimeError(false, "Only instances and classes have events.");
+                    ThrowRuntimeError(false, "Only instances and classes have methods.");
                     goto FAIL_OP_INVOKE;
                 }
 
@@ -1376,6 +1376,9 @@ PUBLIC int     VMThread::RunInstruction() {
 
                     return INTERPRET_RUNTIME_ERROR;
                 }
+            }
+            else {
+                ThrowRuntimeError(false, "Only instances and classes have methods.");
             }
 
             FAIL_OP_INVOKE:
