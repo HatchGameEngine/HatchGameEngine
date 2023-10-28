@@ -13,8 +13,8 @@ public:
     static vector<const char*>  FunctionNames;
     static bool                 PrettyPrint;
 
-    class Compiler* Enclosing = NULL;
-    ObjFunction*    Function = NULL;
+    class Compiler* Enclosing = nullptr;
+    ObjFunction*    Function = nullptr;
     int             Type = 0;
     Local           Locals[0x100];
     int             LocalCount = 0;
@@ -22,6 +22,7 @@ public:
     int             WithDepth = 0;
     vector<Uint32>  ClassHashList;
     vector<Uint32>  ClassExtendedList;
+    vector<Local>*  UnusedVariables = nullptr;
 };
 #endif
 
@@ -746,8 +747,12 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
     buffer.WriteIndex = 0;
     buffer.BufferSize = 512;
 
-    if (Function && Function->Name)
-        buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
+    if (Function && Function->Name) {
+        if (strcmp(Function->Name->Chars, "main") == 0)
+            buffer_printf(&buffer, "In top level function of file '%s':\n    %s\n", scanner.SourceFilename, message);
+        else
+            buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
+    }
     else
         buffer_printf(&buffer, "In file '%s':\n    %s\n", scanner.SourceFilename, message);
 
@@ -790,6 +795,24 @@ PUBLIC void  Compiler::DeclareVariable(Token* name) {
     }
 
     AddLocal(*name);
+}
+PRIVATE void Compiler::WarnVariablesUnused() {
+    size_t numUnused = UnusedVariables->size();
+    if (numUnused == 0)
+        return;
+
+    std::string message;
+    char temp[4096];
+
+    for (int i = numUnused - 1; i >= 0; i--) {
+        Local& local = (*UnusedVariables)[i];
+        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (declared on line %d)", local.Name.Length, local.Name.Start, local.Name.Line);
+        message += std::string(temp);
+        if (i != 0)
+            message += "\n    ";
+    }
+
+    WarningInFunction("%s", message.c_str());
 }
 
 PUBLIC void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
@@ -925,33 +948,13 @@ PUBLIC void  Compiler::ScopeEnd() {
     ClearToScope(ScopeDepth);
 }
 PUBLIC void  Compiler::ClearToScope(int depth) {
-    vector<Local> unusedVars;
-
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
         if (!Locals[LocalCount - 1].Resolved)
-            unusedVars.push_back(Locals[LocalCount - 1]);
+            UnusedVariables->push_back(Locals[LocalCount - 1]);
 
         EmitByte(OP_POP); // pop locals
 
         LocalCount--;
-    }
-
-    WarnVariablesUnused(unusedVars);
-}
-PRIVATE void Compiler::WarnVariablesUnused(vector<Local>& unusedVars) {
-    size_t numUnused = unusedVars.size();
-    if (numUnused > 0) {
-        std::string message;
-
-        for (int i = numUnused - 1; i >= 0; i--) {
-            char temp[4096];
-            snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (declared on line %d)", unusedVars[i].Name.Length, unusedVars[i].Name.Start, unusedVars[i].Name.Line);
-            message += std::string(temp);
-            if (i != 0)
-                message += "\n    ";
-        }
-
-        WarningInFunction("%s", message.c_str());
     }
 }
 PUBLIC void  Compiler::PopToScope(int depth) {
@@ -2865,6 +2868,7 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
     ScopeDepth = scope;
     Enclosing = enclosing;
     Function = NewFunction();
+    UnusedVariables = new vector<Local>();
     Compiler::Functions.push_back(Function);
 
     switch (type) {
@@ -3002,6 +3006,11 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     return !parser.HadError;
 }
 PUBLIC void          Compiler::FinishCompiler() {
+    if (UnusedVariables) {
+        WarnVariablesUnused();
+        delete UnusedVariables;
+    }
+
     EmitReturn();
 }
 
