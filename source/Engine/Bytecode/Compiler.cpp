@@ -12,6 +12,7 @@ public:
     static const char*          Magic;
     static vector<const char*>  FunctionNames;
     static bool                 PrettyPrint;
+    static bool                 ShowWarnings;
 
     class Compiler* Enclosing = nullptr;
     ObjFunction*    Function = nullptr;
@@ -48,6 +49,7 @@ HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
+bool                 Compiler::ShowWarnings = false;
 
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
 
@@ -632,6 +634,9 @@ PUBLIC void          Compiler::SynchronizeToken() {
 
 // Error handling
 PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
+    if (!fatal && !Compiler::ShowWarnings)
+        return true;
+
     char message[4096];
     memset(message, 0, sizeof message);
 
@@ -648,6 +653,9 @@ PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* str
     return !fatal;
 }
 PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+    if (!fatal && !Compiler::ShowWarnings)
+        return true;
+
     char message[4096];
     memset(message, 0, sizeof message);
 
@@ -667,6 +675,7 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, con
 
 	if (!fatal) {
         Log::Print(Log::LOG_WARN, textBuffer);
+        free(textBuffer);
         return true;
     }
 
@@ -733,6 +742,9 @@ PUBLIC void          Compiler::Warning(const char* message) {
     ErrorAt(&parser.Current, message, false);
 }
 PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
+    if (!Compiler::ShowWarnings)
+        return;
+
     char message[4096];
     memset(message, 0, sizeof message);
 
@@ -760,6 +772,8 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
         buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
 
     Log::Print(Log::LOG_WARN, textBuffer);
+
+    free(textBuffer);
 }
 
 PUBLIC void  Compiler::ParseVariable(const char* errorMessage) {
@@ -2868,6 +2882,9 @@ PUBLIC STATIC void   Compiler::Init() {
     if (Compiler::TokenMap == NULL) {
         Compiler::TokenMap = new HashMap<Token>(NULL, 8);
     }
+
+    if (Application::Settings->PropertyExists("compiler", "showWarnings"))
+        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
 }
 PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int type) {
     Type = type;
