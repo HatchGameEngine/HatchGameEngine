@@ -16,6 +16,7 @@ public:
     class Compiler* Enclosing = nullptr;
     ObjFunction*    Function = nullptr;
     int             Type = 0;
+    string          ClassName;
     Local           Locals[0x100];
     int             LocalCount = 0;
     int             ScopeDepth = 0;
@@ -747,14 +748,16 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
     buffer.WriteIndex = 0;
     buffer.BufferSize = 512;
 
-    if (Function && Function->Name) {
-        if (strcmp(Function->Name->Chars, "main") == 0)
-            buffer_printf(&buffer, "In top level function of file '%s':\n    %s\n", scanner.SourceFilename, message);
-        else
-            buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
+    if (strcmp(Function->Name->Chars, "main") == 0)
+        buffer_printf(&buffer, "In top level code of file '%s':\n    %s\n", scanner.SourceFilename, message);
+    else if (ClassName.size() > 0) {
+        buffer_printf(&buffer, "In method '%s::%s' of file '%s':\n    %s\n",
+            ClassName.c_str(),
+            Function->Name->Chars, scanner.SourceFilename,
+            message);
     }
     else
-        buffer_printf(&buffer, "In file '%s':\n    %s\n", scanner.SourceFilename, message);
+        buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
 
     Log::Print(Log::LOG_WARN, textBuffer);
 }
@@ -806,7 +809,7 @@ PRIVATE void Compiler::WarnVariablesUnused() {
 
     for (int i = numUnused - 1; i >= 0; i--) {
         Local& local = (*UnusedVariables)[i];
-        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (declared on line %d)", local.Name.Length, local.Name.Start, local.Name.Line);
+        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", local.Name.Length, local.Name.Start, local.Name.Line);
         message += std::string(temp);
         if (i != 0)
             message += "\n    ";
@@ -1995,10 +1998,11 @@ PUBLIC void Compiler::GetStatement() {
     }
 }
 // Reading declarations
-PUBLIC int  Compiler::GetFunction(int type) {
+PUBLIC int  Compiler::GetFunction(int type, string className) {
     int index = (int)Compiler::Functions.size();
 
     Compiler* compiler = new Compiler;
+    compiler->ClassName = className;
     compiler->Initialize(this, 1, type);
 
     // Compile the parameter list.
@@ -2029,6 +2033,9 @@ PUBLIC int  Compiler::GetFunction(int type) {
 
     return index;
 }
+PUBLIC int  Compiler::GetFunction(int type) {
+    return GetFunction(type, "");
+}
 PUBLIC void Compiler::GetMethod(Token className) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect method name.");
     Token constantToken = parser.Previous;
@@ -2038,7 +2045,7 @@ PUBLIC void Compiler::GetMethod(Token className) {
     if (IdentifiersEqual(&className, &parser.Previous))
         type = TYPE_CONSTRUCTOR;
 
-    int index = GetFunction(type);
+    int index = GetFunction(type, std::string(className.Start, className.Length));
 
     EmitByte(OP_METHOD);
     EmitByte(index);
@@ -2068,11 +2075,11 @@ PUBLIC void Compiler::GetVariableDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
-PUBLIC void Compiler::GetPropertyDeclaration(Token className) {
+PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
     do {
         ParseVariable("Expected property name.");
 
-        NamedVariable(className, false);
+        NamedVariable(propertyName, false);
 
         Token token = parser.Previous;
 
