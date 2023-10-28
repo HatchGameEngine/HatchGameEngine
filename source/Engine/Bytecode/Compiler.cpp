@@ -629,26 +629,25 @@ PUBLIC void          Compiler::SynchronizeToken() {
 }
 
 // Error handling
-PUBLIC bool          Compiler::ReportError(int line, const char* string, ...) {
-    char message[1024];
-    memset(message, 0, 1024);
+PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
+    char message[4096];
+    memset(message, 0, sizeof message);
 
     va_list args;
     va_start(args, string);
     vsprintf(message, string, args);
     va_end(args);
 
-    if (line > 0)
-        Log::Print(Log::LOG_ERROR, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
-    else
-        Log::Print(Log::LOG_ERROR, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
+    Log::Print(fatal ? Log::LOG_ERROR : Log::LOG_WARN, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
 
-    assert(false);
-    return false;
+    if (fatal)
+        assert(false);
+
+    return !fatal;
 }
-PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, const char* string, ...) {
-    char message[1024];
-    memset(message, 0, 1024);
+PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+    char message[4096];
+    memset(message, 0, sizeof message);
 
     va_list args;
     va_start(args, string);
@@ -662,30 +661,25 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, const char* str
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
-    if (line > 0)
-		buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
-    else
-		buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
+	buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
 
-	bool fatal = true;
+	if (!fatal) {
+        Log::Print(Log::LOG_WARN, textBuffer);
+        return true;
+    }
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
-	const SDL_MessageBoxButtonData buttonsError[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
-		{ 0                                      , 2, "Ignore All" },
-		{ SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue" },
-	};
 	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
+		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit" },
 	};
 
 	const SDL_MessageBoxData messageBoxData = {
 		SDL_MESSAGEBOX_ERROR, NULL,
 		"Syntax Error",
 		textBuffer,
-		(int)(fatal ? SDL_arraysize(buttonsFatal) : SDL_arraysize(buttonsError)),
-		fatal ? buttonsFatal : buttonsError,
+		SDL_arraysize(buttonsFatal),
+		buttonsFatal,
 		NULL,
 	};
 
@@ -711,45 +705,53 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, const char* str
 
     return false;
 }
-PUBLIC void          Compiler::ErrorAt(Token* token, const char* message) {
-    // SynchronizeToken();
-    if (parser.PanicMode) return;
-    parser.PanicMode = true;
+PUBLIC void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
+    if (fatal) {
+        if (parser.PanicMode) return;
+            parser.PanicMode = true;
+    }
 
     if (token->Type == TOKEN_EOF)
-        ReportError(token->Line, " at end: %s", message);
+        ReportError(token->Line, fatal, " at end of file: %s", message);
     else if (token->Type == TOKEN_ERROR)
-        ReportErrorPos(token->Line, (int)token->Pos, "%s", message);
+        ReportErrorPos(token->Line, (int)token->Pos, fatal, "%s", message);
     else
-        ReportErrorPos(token->Line, (int)token->Pos, " at '%.*s': %s", token->Length, token->Start, message);
+        ReportErrorPos(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
 
-    parser.HadError = true;
+    if (fatal)
+        parser.HadError = true;
 }
 PUBLIC void          Compiler::Error(const char* message) {
-    ErrorAt(&parser.Previous, message);
+    ErrorAt(&parser.Previous, message, true);
 }
 PUBLIC void          Compiler::ErrorAtCurrent(const char* message) {
-    ErrorAt(&parser.Current, message);
+    ErrorAt(&parser.Current, message, true);
 }
+PUBLIC void          Compiler::Warning(const char* message) {
+    ErrorAt(&parser.Current, message, false);
+}
+PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
+    char message[4096];
+    memset(message, 0, sizeof message);
 
-PUBLIC bool          Compiler::IsValueType(char* str) {
-    return
-        // Integer types
-        !strcmp(str, "bool") ||
-        !strcmp(str, "char") ||
-        !strcmp(str, "uchar") ||
-        !strcmp(str, "short") ||
-        !strcmp(str, "ushort") ||
-        !strcmp(str, "int") ||
-        !strcmp(str, "uint") ||
-        !strcmp(str, "long") ||
-        !strcmp(str, "ulong") ||
-        // Floating-point types
-        !strcmp(str, "float") ||
-        !strcmp(str, "double");
-}
-PUBLIC bool          Compiler::IsReferenceType(char* str) {
-    return !IsValueType(str);
+    va_list args;
+    va_start(args, format);
+    vsprintf(message, format, args);
+    va_end(args);
+
+    char* textBuffer = (char*)malloc(512);
+
+    PrintBuffer buffer;
+    buffer.Buffer = &textBuffer;
+    buffer.WriteIndex = 0;
+    buffer.BufferSize = 512;
+
+    if (Function && Function->Name)
+        buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
+    else
+        buffer_printf(&buffer, "In file '%s':\n    %s\n", scanner.SourceFilename, message);
+
+    Log::Print(Log::LOG_WARN, textBuffer);
 }
 
 PUBLIC void  Compiler::ParseVariable(const char* errorMessage) {
@@ -923,10 +925,33 @@ PUBLIC void  Compiler::ScopeEnd() {
     ClearToScope(ScopeDepth);
 }
 PUBLIC void  Compiler::ClearToScope(int depth) {
+    vector<Local> unusedVars;
+
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
+        if (!Locals[LocalCount - 1].Resolved)
+            unusedVars.push_back(Locals[LocalCount - 1]);
+
         EmitByte(OP_POP); // pop locals
 
         LocalCount--;
+    }
+
+    WarnVariablesUnused(unusedVars);
+}
+PRIVATE void Compiler::WarnVariablesUnused(vector<Local>& unusedVars) {
+    size_t numUnused = unusedVars.size();
+    if (numUnused > 0) {
+        std::string message;
+
+        for (int i = numUnused - 1; i >= 0; i--) {
+            char temp[4096];
+            snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (declared on line %d)", unusedVars[i].Name.Length, unusedVars[i].Name.Start, unusedVars[i].Name.Line);
+            message += std::string(temp);
+            if (i != 0)
+                message += "\n    ";
+        }
+
+        WarningInFunction("%s", message.c_str());
     }
 }
 PUBLIC void  Compiler::PopToScope(int depth) {
@@ -944,6 +969,7 @@ PUBLIC int   Compiler::AddLocal(Token name) {
     Local* local = &Locals[LocalCount++];
     local->Name = name;
     local->Depth = -1;
+    local->Resolved = false;
     return LocalCount - 1;
 }
 PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
@@ -955,6 +981,7 @@ PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
     local->Name.Start = (char*)name;
     local->Name.Length = len;
     local->Depth = -1;
+    local->Resolved = false;
     return LocalCount - 1;
 }
 PUBLIC int   Compiler::ResolveLocal(Token* name) {
@@ -964,6 +991,7 @@ PUBLIC int   Compiler::ResolveLocal(Token* name) {
             if (local->Depth == -1) {
                 Error("Cannot read local variable in its own initializer.");
             }
+            local->Resolved = true;
             return i;
         }
     }
@@ -1377,7 +1405,7 @@ PUBLIC void Compiler::GetBinary(bool canAssign) {
         case TOKEN_LESS:                EmitByte(OP_LESS); break;
         case TOKEN_LESS_EQUAL:          EmitByte(OP_LESS_EQUAL); break;
         default:
-            ErrorAt(&operato, "Unknown binary operator.");
+            ErrorAt(&operato, "Unknown binary operator.", true);
             return; // Unreachable.
     }
 }
@@ -1756,6 +1784,7 @@ PUBLIC void Compiler::GetWithStatement() {
 
     // Add "other"
     int otherSlot = AddLocal("other", 5);
+    Locals[otherSlot].Resolved = true;
     MarkInitialized();
 
     // Make a copy of "this", which is at the very first slot, into "other"
