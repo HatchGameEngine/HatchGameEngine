@@ -6604,7 +6604,7 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Matrix.Create256
- * \desc Creates a 4x4 matrix based on the decimal 256.0. <br/>\
+ * \desc Creates a 4x4 matrix based on the decimal 256.0.
  * \return Returns the Matrix as an Array.
  * \ns Matrix
  */
@@ -12297,20 +12297,30 @@ VMValue String_LastIndexOf(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ParseInteger
- * \desc Convert a String value to an Integer value if possible.
- * \param string (String):
+ * \desc Converts a String value to an Integer value, if possible.
+ * \param string (String): The string to parse.
+ * \paramOpt radix (Integer): The numerical base, or radix. If <code>0</code>, the radix is detected by the value of <code>string</code>: <br/>\
+If <code>string</code> begins with <code>0x</code>, it is a hexadecimal number (base 16);<br/>\
+Else, if <code>string</code> begins with <code>0</code>, it is an octal number (base 8);<br/>\
+Else, if <code>string</code> begins with <code>0b</code>, it is a binary number (base 2);<br/>\
+Else, the number is assumed to be in base 10.
  * \return Returns the value as an Integer.
  * \ns String
  */
 VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
+    CHECK_AT_LEAST_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
-    return INTEGER_VAL((int)strtol(string, NULL, 10));
+    int radix = GET_ARG_OPT(1, GetInteger, 10);
+    if (radix < 0 || radix > 36) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid radix of %d. (0 - 36)", radix);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL((int)strtol(string, NULL, radix));
 }
 /***
  * String.ParseDecimal
  * \desc Convert a String value to an Decimal value if possible.
- * \param string (String):
+ * \param string (String): The string to parse.
  * \return Returns the value as an Decimal.
  * \ns String
  */

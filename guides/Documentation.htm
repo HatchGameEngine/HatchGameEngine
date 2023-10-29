@@ -4949,7 +4949,9 @@
         <p id="Reference_functions_Matrix_Create256">
         <h2 style="margin-bottom: 8px;">Matrix.Create256</h2>
         <code>Matrix.Create256()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0. <br/>* \return Returns the Matrix as an Array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the Matrix as an Array.</div>
         </p>
         <p id="Reference_functions_Matrix_Identity256">
         <h2 style="margin-bottom: 8px;">Matrix.Identity256</h2>
@@ -7904,11 +7906,12 @@
         </p>
         <p id="Reference_functions_String_ParseInteger">
         <h2 style="margin-bottom: 8px;">String.ParseInteger</h2>
-        <code>String.ParseInteger(string)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Integer value if possible.</div>
+        <code>String.ParseInteger(string[, radix])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a String value to an Integer value, if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to parse.</li>
+        <li>radix (Integer): The numerical base, or radix. If <code>0</code>, the radix is detected by the value of <code>string</code>: <br/>If <code>string</code> begins with <code>0x</code>, it is a hexadecimal number (base 16);<br/>Else, if <code>string</code> begins with <code>0</code>, it is an octal number (base 8);<br/>Else, if <code>string</code> begins with <code>0b</code>, it is a binary number (base 2);<br/>Else, the number is assumed to be in base 10.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as an Integer.</div>
@@ -7919,7 +7922,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Decimal value if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as an Decimal.</div>
