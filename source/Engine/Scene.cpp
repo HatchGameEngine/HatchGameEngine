@@ -143,6 +143,7 @@ public:
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -670,6 +671,8 @@ PUBLIC STATIC void Scene::Init() {
     Scene::CurrentScene[0] = '\0';
 
     GarbageCollector::Init();
+
+    Compiler::Init();
 
     SourceFileMap::CheckForUpdate();
 
@@ -2501,6 +2504,7 @@ PUBLIC STATIC void Scene::Dispose() {
 
     BytecodeObjectManager::Dispose();
     SourceFileMap::Dispose();
+    Compiler::Dispose();
 }
 
 PUBLIC STATIC void Scene::UnloadTilesets() {

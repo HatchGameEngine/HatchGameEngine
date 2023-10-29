@@ -23,7 +23,6 @@ public:
     static VMThread             Threads[8];
     static Uint32               ThreadCount;
 
-    static char                 CurrentObjectName[256];
     static vector<ObjFunction*> FunctionList;
     static vector<ObjFunction*> AllFunctionList;
 
@@ -60,7 +59,6 @@ HashMap<VMValue>*    BytecodeObjectManager::Constants = NULL;
 
 std::set<Obj*>       BytecodeObjectManager::FreedGlobals;
 
-char                 BytecodeObjectManager::CurrentObjectName[256];
 vector<ObjFunction*> BytecodeObjectManager::FunctionList;
 vector<ObjFunction*> BytecodeObjectManager::AllFunctionList;
 
@@ -714,11 +712,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
         }
     }
 
-    if (CurrentObjectName[0]) {
-        for (ObjFunction* function : FunctionList)
-            StringUtils::Copy(function->SourceFilename, CurrentObjectName, sizeof(function->SourceFilename));
-    }
-    else if (hasSourceFilename) {
+    if (hasSourceFilename) {
         char* fn = stream->ReadString();
         for (ObjFunction* function : FunctionList)
             StringUtils::Copy(function->SourceFilename, fn, sizeof(function->SourceFilename));
@@ -726,7 +720,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
     }
     else {
         char sourceFilename[256];
-        snprintf(sourceFilename, sizeof(sourceFilename), "Objects/%08X.ibc", filenameHash);
+        snprintf(sourceFilename, sizeof(sourceFilename), "%08X", filenameHash);
         for (ObjFunction* function : FunctionList)
             StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
     }
@@ -825,9 +819,6 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
                 Log::Print(Log::LOG_VERBOSE, "Loading the object %s%s%s class, %d filenames...",
                     Log::WriteToFile ? "" : FG_YELLOW, objectName, Log::WriteToFile ? "" : FG_RESET,
                     (int)filenameHashList->size());
-
-                memset(CurrentObjectName, 0, 256);
-                strncpy(CurrentObjectName, objectName, 256);
             }
 
             RunFromIBC(bytecode, filenameHash);
@@ -839,7 +830,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
         // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
         ObjClass* klass = AS_CLASS(Globals->Get(objectName));
         if (!klass) {
-            Log::Print(Log::LOG_ERROR, "Could not find class of: %s", objectName);
+            Log::Print(Log::LOG_ERROR, "Could not find class of %s", objectName);
             return false;
         }
         if (klass->Extended == 0) {
@@ -882,8 +873,6 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction(const char* objectNam
     return BytecodeObjectManager::SpawnObject(objectName);
 }
 PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
-    memset(CurrentObjectName, 0, 256);
-
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
         for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
             Uint32 filenameHash = (*filenameHashList)[fn];

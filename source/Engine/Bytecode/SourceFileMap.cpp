@@ -7,6 +7,8 @@ public:
     static HashMap<Uint32>*          Checksums;
     static HashMap<vector<Uint32>*>* ClassMap;
     static Uint32                    DirectoryChecksum;
+
+    static bool                      DoLogging;
 };
 #endif
 
@@ -27,7 +29,7 @@ HashMap<Uint32>*          SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32                    SourceFileMap::DirectoryChecksum = 0;
 
-bool PreventObjectSaving = false;
+bool                      SourceFileMap::DoLogging = false;
 
 PUBLIC STATIC void SourceFileMap::CheckInit() {
     if (SourceFileMap::Initialized) return;
@@ -39,10 +41,7 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
         SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
     }
 
-    if (PreventObjectSaving) {
-        SourceFileMap::Initialized = true;
-        return;
-    }
+    SourceFileMap::DoLogging = false;
 
     if (ResourceManager::ResourceExists("Objects/Objects.hcm")) {
         ResourceStream* stream = ResourceStream::New("Objects/Objects.hcm");
@@ -68,6 +67,9 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
                     SourceFileMap::ClassMap->Put(classHash, fnList);
                 }
             }
+            else {
+                Log::Print(Log::LOG_ERROR, "Invalid ClassMap!");
+            }
             stream->Close();
         }
     }
@@ -87,6 +89,14 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
 
     #endif
 
+    Application::Settings->GetBool("compiler", "log", &SourceFileMap::DoLogging);
+    if (SourceFileMap::DoLogging) {
+        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
+    }
+
+    Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+    Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
+
     SourceFileMap::Initialized = true;
 }
 PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
@@ -94,10 +104,6 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
 
     #ifndef NO_SCRIPT_COMPILING
     bool anyChanges = false;
-
-    anyChanges |= PreventObjectSaving;
-
-    bool freeTokens = true;
 
     const char* scriptFolder = "Scripts";
     size_t      scriptFolderNameLen = strlen(scriptFolder);
@@ -146,18 +152,23 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
     for (size_t i = 0; i < list.size(); i++) {
         char* filename = strrchr(list[i], '/');
         Uint32 filenameHash = 0;
-        Uint32 newChecksum, oldChecksum;
         if (filename) {
             filename++;
-            int dot = strlen(filename) - 4;
-            filename[dot] = 0;
+            char* dot = strrchr(filename, '.');
+            if (dot)
+                *dot = '\0';
             filenameHash = CombinedHash::EncryptString(list[i] + scriptFolderNameLen);
-            filename[dot] = '.';
+            if (dot)
+                *dot = '.';
         }
-        if (!filenameHash) { Memory::Free(list[i]); continue; }
+        if (!filenameHash) {
+            Memory::Free(list[i]);
+            continue;
+        }
 
-        newChecksum = 0;
-        oldChecksum = 0;
+        Uint32 newChecksum = 0;
+        Uint32 oldChecksum = 0;
+        bool doRecompile = false;
 
         char*  source;
         File::ReadAllBytes(list[i], &source);
@@ -168,13 +179,22 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         if (SourceFileMap::Checksums->Exists(filenameHash)) {
             oldChecksum = SourceFileMap::Checksums->Get(filenameHash);
         }
-        anyChanges |= (newChecksum != oldChecksum);
+        doRecompile = newChecksum != oldChecksum;
+        anyChanges |= doRecompile;
 
         char outFile[35];
-        sprintf(outFile, "Resources/Objects/%08X.ibc", filenameHash);
+        snprintf(outFile, sizeof outFile, "Resources/Objects/%08X.ibc", filenameHash);
+
         // If changed, then compile.
-        if (newChecksum != oldChecksum || !File::Exists(outFile) || !freeTokens) {
-            Compiler::Init();
+        if (doRecompile || !File::Exists(outFile)) {
+            Compiler::PrepareCompiling();
+
+            if (SourceFileMap::DoLogging) {
+                if (doRecompile)
+                    Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", list[i]);
+                else
+                    Log::Print(Log::LOG_VERBOSE, "Compiling %s...", list[i]);
+            }
 
             Compiler* compiler = new Compiler;
             compiler->Compile(list[i], source, outFile);
@@ -202,10 +222,10 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
             }
 
             delete compiler;
-            Compiler::Dispose(freeTokens);
+            Compiler::FinishCompiling();
         }
-        if (freeTokens)
-            Memory::Free(source);
+
+        Memory::Free(source);
 
         // Log::Print(Log::LOG_INFO, "List: %s (%08X) (old: %08X, new: %08X) %d", list[i], filenameHash, oldChecksum, newChecksum, false);
 

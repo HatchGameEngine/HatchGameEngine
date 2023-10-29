@@ -142,7 +142,7 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
             buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
         }
         else {
-            buffer_printf(buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
+            buffer_printf(buffer, "On line %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
         }
     }
     else {

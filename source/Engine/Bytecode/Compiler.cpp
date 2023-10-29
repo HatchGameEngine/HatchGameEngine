@@ -13,6 +13,8 @@ public:
     static vector<const char*>  FunctionNames;
     static bool                 PrettyPrint;
     static bool                 ShowWarnings;
+    static bool                 WriteDebugInfo;
+    static bool                 WriteSourceFilename;
 
     class Compiler* Enclosing = nullptr;
     ObjFunction*    Function = nullptr;
@@ -50,6 +52,8 @@ const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
 bool                 Compiler::ShowWarnings = false;
+bool                 Compiler::WriteDebugInfo = false;
+bool                 Compiler::WriteSourceFilename = false;
 
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
 
@@ -2020,7 +2024,7 @@ PUBLIC int  Compiler::GetFunction(int type, string className) {
     compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
     compiler->GetBlockStatement();
 
-    compiler->FinishCompiler();
+    compiler->Finish();
 
     delete compiler;
 
@@ -2858,12 +2862,14 @@ PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int ar
 PUBLIC STATIC void   Compiler::Init() {
     Compiler::MakeRules();
 
+    Compiler::ShowWarnings = false;
+    Compiler::WriteDebugInfo = true;
+    Compiler::WriteSourceFilename = true;
+}
+PUBLIC STATIC void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
         Compiler::TokenMap = new HashMap<Token>(NULL, 8);
     }
-
-    if (Application::Settings->PropertyExists("compiler", "showWarnings"))
-        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
 }
 PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int type) {
     Type = type;
@@ -2916,7 +2922,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     }
 
     ConsumeToken(TOKEN_EOF, "Expected end of file.");
-    FinishCompiler();
+    Finish();
 
     bool debugCompiler = false;
     Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
@@ -2931,13 +2937,8 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
     if (!stream) return false;
 
-    bool doLineNumbers = false;
-    bool hasSourceFilename = false;
-
-    // #ifdef DEBUG
-    doLineNumbers = true;
-    hasSourceFilename = true;
-    // #endif
+    bool doLineNumbers = Compiler::WriteDebugInfo;
+    bool hasSourceFilename = Compiler::WriteSourceFilename;
 
     stream->WriteBytes((char*)Compiler::Magic, 4);
     stream->WriteByte(0x00);
@@ -3008,7 +3009,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     return !parser.HadError;
 }
-PUBLIC void          Compiler::FinishCompiler() {
+PUBLIC void          Compiler::Finish() {
     if (UnusedVariables) {
         WarnVariablesUnused();
         delete UnusedVariables;
@@ -3020,13 +3021,14 @@ PUBLIC void          Compiler::FinishCompiler() {
 PUBLIC VIRTUAL       Compiler::~Compiler() {
 
 }
-PUBLIC STATIC void   Compiler::Dispose(bool freeTokens) {
+PUBLIC STATIC void   Compiler::FinishCompiling() {
     Compiler::Functions.clear();
 
-    Memory::Free(Rules);
-
-    if (TokenMap && freeTokens) {
+    if (TokenMap) {
         delete TokenMap;
         TokenMap = NULL;
     }
+}
+PUBLIC STATIC void   Compiler::Dispose() {
+    Memory::Free(Rules);
 }
