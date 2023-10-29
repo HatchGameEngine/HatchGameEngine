@@ -112,7 +112,6 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         return;
 
     vector<char*> list;
-    Directory::GetFiles(&list, scriptFolder, "*.obj", true);
     Directory::GetFiles(&list, scriptFolder, "*.hsl", true);
 
     if (list.size() == 0) {
