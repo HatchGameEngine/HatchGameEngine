@@ -12100,22 +12100,27 @@ VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 // #region String
 /***
  * String.Split
- * \desc
- * \return
+ * \desc Splits a string by a delimiter.
+ * \param string (String): The string to split.
+ * \param delimiter (Integer): The delimiter string.
+ * \return Returns an array of strings.
  * \ns String
  */
 VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    // char* string = GET_ARG(0, GetString);
-    // char* delimt = GET_ARG(1, GetString);
+    char* string = GET_ARG(0, GetString);
+    char* delimt = GET_ARG(1, GetString);
 
     if (BytecodeObjectManager::Lock()) {
         ObjArray* array = NewArray();
-        int       length = 1;
-        for (int i = 0; i < length; i++) {
-            ObjString* part = AllocString(16);
-            array->Values->push_back(OBJECT_VAL(part));
+
+        char* input = StringUtils::Duplicate(string);
+        char* tok = strtok(input, delimt);
+        while (tok != NULL) {
+            array->Values->push_back(OBJECT_VAL(CopyString(tok)));
+            tok = strtok(NULL, delimt);
         }
+        Memory::Free(input);
 
         BytecodeObjectManager::Unlock();
         return OBJECT_VAL(array);
