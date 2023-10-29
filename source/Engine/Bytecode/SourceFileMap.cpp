@@ -149,6 +149,7 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
     }
 
     const char* scriptFolderPath = (std::string(scriptFolder) + "/").c_str();
+    size_t scriptFolderPathLen = strlen(scriptFolderPath);
 
     for (size_t i = 0; i < list.size(); i++) {
         char* filename = strrchr(list[i], '/');
@@ -191,7 +192,8 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
             Compiler::PrepareCompiling();
 
             char* scriptFilename = list[i];
-            scriptFilename += strspn(scriptFilename, scriptFolderPath);
+            if (StringUtils::StartsWith(scriptFilename, scriptFolderPath))
+                scriptFilename += scriptFolderPathLen;
 
             if (SourceFileMap::DoLogging) {
                 if (doRecompile)

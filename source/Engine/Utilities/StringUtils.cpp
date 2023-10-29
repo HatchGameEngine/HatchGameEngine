@@ -26,6 +26,13 @@ PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* sec
         return StringUtils::WildcardMatch(first, second + 1) || StringUtils::WildcardMatch(first + 1, second);
     return false;
 }
+PUBLIC STATIC bool StringUtils::StartsWith(const char* string, const char* compare) {
+    size_t cmpLen = strlen(compare);
+    if (strlen(string) < cmpLen)
+        return false;
+
+    return memcmp(string, compare, cmpLen) == 0;
+}
 PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
     if (!needle[0]) return (char*)haystack;
 
