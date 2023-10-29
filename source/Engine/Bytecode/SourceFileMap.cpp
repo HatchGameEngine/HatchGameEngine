@@ -149,6 +149,8 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         SourceFileMap::ClassMap->Clear();
     }
 
+    const char* scriptFolderPath = (std::string(scriptFolder) + "/").c_str();
+
     for (size_t i = 0; i < list.size(); i++) {
         char* filename = strrchr(list[i], '/');
         Uint32 filenameHash = 0;
@@ -189,15 +191,18 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         if (doRecompile || !File::Exists(outFile)) {
             Compiler::PrepareCompiling();
 
+            char* scriptFilename = list[i];
+            scriptFilename += strspn(scriptFilename, scriptFolderPath);
+
             if (SourceFileMap::DoLogging) {
                 if (doRecompile)
-                    Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", list[i]);
+                    Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", scriptFilename);
                 else
-                    Log::Print(Log::LOG_VERBOSE, "Compiling %s...", list[i]);
+                    Log::Print(Log::LOG_VERBOSE, "Compiling %s...", scriptFilename);
             }
 
             Compiler* compiler = new Compiler;
-            compiler->Compile(list[i], source, outFile);
+            compiler->Compile(scriptFilename, source, outFile);
 
             // Add this file to the list
             // Log::Print(Log::LOG_INFO, "filename: %s (0x%08X)", filename, filenameHash);

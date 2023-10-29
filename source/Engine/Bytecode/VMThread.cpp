@@ -98,12 +98,21 @@ std::jmp_buf VMThread::JumpBuffer;
             VMThread::InstructionIgnoreMap[000000000] = true; \
             return ERROR_RES_CONTINUE; \
     }
-#define GET_FUNCTION_NAME(hash) \
-    std::string functionName(GetToken(hash)); \
-    if (functionName == "main") \
-        functionName = "top-level function"; \
-    else if (functionName != "<anonymous-fn>") \
-        functionName = "event " + functionName
+
+PRIVATE string VMThread::GetFunctionName(ObjFunction* function) {
+    std::string functionName(GetToken(function->NameHash));
+
+    if (functionName == "main")
+        return "top-level function";
+    else if (functionName != "<anonymous-fn>") {
+        if (function->ClassName)
+            return "method " + std::string(function->ClassName->Chars) + "::" + functionName;
+        else
+            return "function " + functionName;
+    }
+
+    return functionName;
+}
 
 PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
     static char GetTokenBuffer[256];
@@ -138,7 +147,7 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
             size_t bpos = (frame->IPLast - frame->IPStart);
             line = function->Chunk.Lines[bpos] & 0xFFFF;
 
-            GET_FUNCTION_NAME(function->NameHash);
+            std::string functionName = GetFunctionName(function);
             buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
         }
         else {
@@ -159,8 +168,8 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
             CallFrame* fr2 = &Frames[i - 1];
             line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
         }
-        GET_FUNCTION_NAME(function->NameHash);
-        buffer_printf(buffer, "    called \"%s\" of \"%s\"", functionName.c_str(), source);
+        std::string functionName = GetFunctionName(function);
+        buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 
         if (line > 0) {
             buffer_printf(buffer, " on Line %d", line);
@@ -193,7 +202,7 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
             }
 
             if (function) {
-                GET_FUNCTION_NAME(function->NameHash);
+                std::string functionName = GetFunctionName(function);
                 buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->SourceFilename, errorString);
             }
             else {

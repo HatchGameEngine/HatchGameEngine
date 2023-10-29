@@ -545,13 +545,21 @@ PUBLIC STATIC void    BytecodeObjectManager::Unlock() {
 }
 
 PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(int index, Uint32 hash) {
-    VMValue method = OBJECT_VAL(AllFunctionList[index]);
-    ObjClass* klass = AS_CLASS(Threads[0].Peek(0)); // AS_CLASS(Peek(1));
-    klass->Methods->Put(hash, method);
+    if ((unsigned)index >= AllFunctionList.size())
+        return;
+
+    ObjFunction* function = AllFunctionList[index];
+    VMValue methodValue = OBJECT_VAL(function);
+
+    ObjClass* klass = AS_CLASS(Threads[0].Peek(0));
+    klass->Methods->Put(hash, methodValue);
+
     if (hash == klass->Hash)
-        klass->Initializer = method;
+        klass->Initializer = methodValue;
+
+    function->ClassName = klass->Name;
+
     Threads[0].Pop();
-    // Pop();
 }
 PUBLIC STATIC void    BytecodeObjectManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
     if (function == NULL) return;

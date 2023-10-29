@@ -75,6 +75,7 @@ ObjFunction*      NewFunction() {
     function->Arity = 0;
     function->UpvalueCount = 0;
     function->Name = NULL;
+    function->ClassName = NULL;
     ChunkInit(&function->Chunk);
     return function;
 }
