@@ -4,6 +4,8 @@
 
 class BytecodeObject : public Entity {
 public:
+    static bool DisableAutoAnimate;
+
     ObjInstance* Instance = NULL;
     HashMap<VMValue>* Properties;
 };
@@ -13,6 +15,8 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Scene.h>
+
+bool BytecodeObject::DisableAutoAnimate = false;
 
 #define LINK_INT(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 #define LINK_DEC(VAR) Instance->Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
@@ -762,7 +766,7 @@ PUBLIC void BytecodeObject::Initialize() {
     CurrentFrameCount = 0;
     AnimationSpeedMult = 1.0;
     AnimationSpeedAdd = 0;
-    AutoAnimate = BytecodeObjectManager::DisableAutoAnimate ? false : true;
+    AutoAnimate = BytecodeObject::DisableAutoAnimate ? false : true;
     AnimationSpeed = 0;
     AnimationTimer = 0.0;
     AnimationFrameDuration = 0;

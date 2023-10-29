@@ -5496,7 +5496,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    BytecodeObjectManager::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+    BytecodeObject::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 // TODO: Finish these

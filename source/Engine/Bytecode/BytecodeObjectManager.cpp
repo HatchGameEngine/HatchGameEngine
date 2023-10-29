@@ -14,7 +14,6 @@ need_t BytecodeObject;
 class BytecodeObjectManager {
 public:
     static bool                 LoadAllClasses;
-    static bool                 DisableAutoAnimate;
 
     static HashMap<VMValue>*    Globals;
     static HashMap<VMValue>*    Constants;
@@ -52,7 +51,6 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 
 bool                 BytecodeObjectManager::LoadAllClasses = false;
-bool                 BytecodeObjectManager::DisableAutoAnimate = false;
 
 VMThread             BytecodeObjectManager::Threads[8];
 Uint32               BytecodeObjectManager::ThreadCount = 1;
@@ -612,61 +610,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkStandardLibrary() {
     StandardLibrary::Link();
 }
 PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
-    return;
-    /*
-    XMLNode* extensionHCEX = XMLParser::ParseFromResource("DiscordRPC.hcex");
-    if (!extensionHCEX) return;
 
-    XMLNode* extension = extensionHCEX->children[0];
-
-    Token title;
-    if (extension->attributes.Exists("title"))
-        title = extension->attributes.Get("title");
-
-    void* sharedObject = NULL;
-
-    for (size_t i = 0; i < extension->children.size(); i++) {
-        if (XMLParser::MatchToken(extension->children[i]->name, "sofiles")) {
-            XMLNode* sofiles = extension->children[i];
-            for (size_t j = 0; j < sofiles->children.size(); j++) {
-                if (Application::Platform == Platforms::Windows && XMLParser::MatchToken(sofiles->children[i]->name, "win")) {
-                    Token sofile = sofiles->children[i]->children[0]->name;
-
-                    char* sofile_filename = (char*)malloc(sofile.Length + 1);
-                    memcpy(sofile_filename, sofile.Start, sofile.Length);
-                    sofile_filename[sofile.Length] = 0;
-
-                    sharedObject = SDL_LoadObject(sofile_filename);
-                }
-            }
-            // Token value = configItem->children[0]->name;
-            // memcpy(StartingScene, value.Start, value.Length);
-            // StartingScene[value.Length] = 0;
-        }
-        else if (XMLParser::MatchToken(extension->children[i]->name, "import")) {
-            // XMLNode* import = extension->children[i];
-        }
-        else if (XMLParser::MatchToken(extension->children[i]->name, "functions")) {
-            // XMLNode* functions = extension->children[i];
-
-            NativeFn exFunction = (NativeFn)SDL_LoadFunction(sharedObject, "HVM_Discord_Init");
-            if (exFunction) {
-                ObjClass* klass;
-                klass = NewClass(Murmur::EncryptString("Discord"));
-                klass->Name = CopyString("Discord", strlen("Discord"));
-
-                // VMValue val = OBJECT_VAL(klass);
-                BytecodeObjectManager::Globals->Put(klass->Hash, OBJECT_VAL(klass));
-                BytecodeObjectManager::DefineNative(klass, "Init", exFunction);
-            }
-        }
-        else if (XMLParser::MatchToken(extension->children[i]->name, "enums")) {
-            // XMLNode* enums = extension->children[i];
-        }
-    }
-
-    XMLParser::Free(extensionHCEX);
-    // */
 }
 // #endregion
 

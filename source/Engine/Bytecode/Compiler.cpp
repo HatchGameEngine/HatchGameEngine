@@ -503,7 +503,6 @@ PUBLIC VIRTUAL Token Compiler::ScanToken() {
         case ':': return MakeToken(TOKEN_COLON);
         case '?': return MakeToken(TOKEN_TERNARY);
         case '~': return MakeToken(TOKEN_BITWISE_NOT);
-        // case '#': return MakeToken(TOKEN_HASH);
         // Two-char punctuations
         case '!': return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS : TOKEN_LOGICAL_NOT);
         case '=': return MakeToken(MatchChar('=') ? TOKEN_EQUALS : TOKEN_ASSIGNMENT);
@@ -682,7 +681,7 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, con
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
 	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit" },
+		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit" },
 	};
 
 	const SDL_MessageBoxData messageBoxData = {
@@ -694,32 +693,21 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, con
 		NULL,
 	};
 
-	int buttonClicked;
-	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
-		buttonClicked = 2;
-	}
+    int buttonClicked;
+	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
 
 	free(textBuffer);
 
-	switch (buttonClicked) {
-		// Exit Game
-		case 1:
-			Application::Cleanup();
-			exit(-1);
-			// NOTE: This is for later, this doesn't actually execute.
-			return ERROR_RES_EXIT;
-			// Ignore All
-		case 2:
-			// VMThread::InstructionIgnoreMap[000000000] = true;
-			return ERROR_RES_CONTINUE;
-	}
+	Application::Cleanup();
+	exit(-1);
 
     return false;
 }
 PUBLIC void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
     if (fatal) {
-        if (parser.PanicMode) return;
-            parser.PanicMode = true;
+        if (parser.PanicMode)
+            return;
+        parser.PanicMode = true;
     }
 
     if (token->Type == TOKEN_EOF)
@@ -814,6 +802,9 @@ PUBLIC void  Compiler::DeclareVariable(Token* name) {
     AddLocal(*name);
 }
 PRIVATE void Compiler::WarnVariablesUnused() {
+    if (!Compiler::ShowWarnings)
+        return;
+
     size_t numUnused = UnusedVariables->size();
     if (numUnused == 0)
         return;
@@ -1440,12 +1431,6 @@ PUBLIC void Compiler::GetCall(bool canAssign) {
 PUBLIC void Compiler::GetExpression() {
     ParsePrecedence(PREC_ASSIGNMENT);
 }
-enum {
-    SWITCH_CASE_TYPE_CONSTANT,
-    SWITCH_CASE_TYPE_LOCAL,
-    SWITCH_CASE_TYPE_GLOBAL,
-    SWITCH_CASE_TYPE_DEFAULT
-};
 // Reading statements
 struct switch_case {
     bool   IsDefault;
@@ -1528,12 +1513,6 @@ PUBLIC void Compiler::GetReturnStatement() {
     if (Type == TYPE_TOP_LEVEL) {
         Error("Cannot return from top-level code.");
     }
-
-    // int lclCnt = LocalCount;
-    // while (lclCnt > 0 && Locals[lclCnt - 1].Depth > ScopeDepth - 1) {
-    //     EmitByte(OP_POP);
-    //     lclCnt--;
-    // }
 
     if (MatchToken(TOKEN_SEMICOLON)) {
         EmitReturn();

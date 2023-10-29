@@ -50,6 +50,7 @@ public:
 #include <Engine/Graphics.h>
 
 #include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Clock.h>
@@ -485,7 +486,8 @@ PRIVATE STATIC void Application::Restart() {
     Graphics::SpriteSheetTextureMap->Clear();
 
     BytecodeObjectManager::LoadAllClasses = false;
-    BytecodeObjectManager::DisableAutoAnimate = false;
+    BytecodeObject::DisableAutoAnimate = false;
+
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
 
