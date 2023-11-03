@@ -333,7 +333,7 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \type Integer
     * \default 0
     * \ns Instance
-    * \desc A bitfield similar to <linkto ref="instance.ViewRenderFlag"></linkto>. Bypasses each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.
+    * \desc A bitfield similar to <linkto ref="instance.ViewRenderFlag"></linkto>. Bypasses each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
     */
     LINK_INT(ViewOverrideFlag);
 
@@ -342,7 +342,7 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \type Decimal
     * \default 0.0
     * \ns Instance
-    * \desc The horizontal on-screen range where the entity can update. If this and <linkto ref="instance.UpdateRegionH"></linkto> are set to <code>0.0</code>, the entity will update regardless of the camera's position.
+    * \desc The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.
     */
     Instance->Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
     /***
@@ -350,9 +350,41 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \type Decimal
     * \default 0.0
     * \ns Instance
-    * \desc The vertical on-screen range where the entity can update. If this and <linkto ref="instance.UpdateRegionW"></linkto> are set to <code>0.0</code>, the entity will update regardless of the camera's position.
+    * \desc The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.
     */
     Instance->Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
+    /***
+    * \field UpdateRegionTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
+    */
+    Instance->Fields->Put("UpdateRegionTop", DECIMAL_LINK_VAL(&OnScreenRegionTop));
+    /***
+    * \field UpdateRegionLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
+    */
+    Instance->Fields->Put("UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
+    /***
+    * \field UpdateRegionRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
+    */
+    Instance->Fields->Put("UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
+    /***
+    * \field UpdateRegionBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
+    */
+    Instance->Fields->Put("UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
     /***
     * \field RenderRegionW
     * \type Decimal
@@ -369,6 +401,38 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \desc The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.
     */
     LINK_DEC(RenderRegionH);
+    /***
+    * \field RenderRegionTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
+    */
+    LINK_DEC(RenderRegionTop);
+    /***
+    * \field RenderRegionLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can render. If this and <linkto ref="instance.RenderRegionRight"></linkto> are set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
+    */
+    LINK_DEC(RenderRegionLeft);
+    /***
+    * \field RenderRegionRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can render. If this and <linkto ref="instance.RenderRegionLeft"></linkto> are set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
+    */
+    LINK_DEC(RenderRegionRight);
+    /***
+    * \field RenderRegionBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
+    */
+    LINK_DEC(RenderRegionBottom);
 
     /***
     * \field HitboxW
@@ -755,10 +819,18 @@ PUBLIC void BytecodeObject::Initialize() {
     OnScreen = true;
     OnScreenHitboxW = 0.0f;
     OnScreenHitboxH = 0.0f;
+    OnScreenRegionTop = 0.0f;
+    OnScreenRegionLeft = 0.0f;
+    OnScreenRegionRight = 0.0f;
+    OnScreenRegionBottom = 0.0f;
     ViewRenderFlag = 0xFFFFFFFF;
     ViewOverrideFlag = 0;
     RenderRegionW = 0.0f;
     RenderRegionH = 0.0f;
+    RenderRegionTop = 0.0f;
+    RenderRegionLeft = 0.0f;
+    RenderRegionRight = 0.0f;
+    RenderRegionBottom = 0.0f;
 
     Angle = 0;
     AngleMode = 0;
@@ -767,7 +839,7 @@ PUBLIC void BytecodeObject::Initialize() {
 
     Priority = 0;
     PriorityListIndex = -1;
-    PriorityOld = 0;
+    PriorityOld = -1;
 
     Sprite = -1;
     CurrentAnimation = -1;
@@ -1339,7 +1411,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetViewVisibility(int argCount, VMValue
 }
 /***
  * \method SetViewOverride
- * \desc Toggles the bypass for each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.
+ * \desc Toggles the bypass for each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
  * \param viewIndex (Integer): The view index.
  * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
  * \ns Instance

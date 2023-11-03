@@ -562,8 +562,16 @@
                     <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
@@ -1290,8 +1298,16 @@
                     <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
@@ -8900,7 +8916,7 @@
         <p id="Reference_methods_instance_SetViewOverride">
         <h2 style="margin-bottom: 8px;">instance.SetViewOverride</h2>
         <code>instance.SetViewOverride(viewIndex, visible)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Toggles the bypass for each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Toggles the bypass for each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): The view index.</li>
@@ -9181,19 +9197,43 @@
         <h3 style="margin-bottom: 8px;"><code>instance.ViewOverrideFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         </p>
         <p id="Reference_fields_instance_UpdateRegionW">
         <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can update. If this and <code><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></code> are set to <code>0.0</code>, the entity will update regardless of the camera's position.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.</div>
         </p>
         <p id="Reference_fields_instance_UpdateRegionH">
         <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can update. If this and <code><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></code> are set to <code>0.0</code>, the entity will update regardless of the camera's position.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionTop</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionLeft</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionRight</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionBottom</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
         </p>
         <p id="Reference_fields_instance_RenderRegionW">
         <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionW</code></h2>
@@ -9206,6 +9246,30 @@
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionTop</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionLeft</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionRight</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionBottom</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
         </p>
         <p id="Reference_fields_instance_HitboxW">
         <h3 style="margin-bottom: 8px;"><code>instance.HitboxW</code></h2>
@@ -9365,7 +9429,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>61 out of 65 fields have descriptions. </p>
+        <p>69 out of 73 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">

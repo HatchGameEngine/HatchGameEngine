@@ -372,8 +372,33 @@ void UpdateObject(Entity* ent) {
     if (!ent->Active)
         return;
 
-    bool onScreenX = (ent->OnScreenHitboxW == 0.0f);
-    bool onScreenY = (ent->OnScreenHitboxH == 0.0f);
+    bool onScreenX = false;
+    bool onScreenY = false;
+
+    float entX1, entX2;
+    float entY1, entY2;
+
+    if (ent->OnScreenRegionLeft || ent->OnScreenRegionRight) {
+        entX1 = ent->X - ent->OnScreenRegionLeft;
+        entX2 = ent->X + ent->OnScreenRegionRight;
+        onScreenX = ent->OnScreenRegionLeft != 0.0 || ent->OnScreenRegionRight != 0.0;
+    }
+    else {
+        onScreenX = ent->OnScreenHitboxW == 0.0f;
+        entX1 = ent->X - ent->OnScreenHitboxW * 0.5f;
+        entX2 = ent->X + ent->OnScreenHitboxW * 0.5f;
+    }
+
+    if (ent->OnScreenRegionTop || ent->OnScreenRegionBottom) {
+        entY1 = ent->Y - ent->OnScreenRegionTop;
+        entY2 = ent->Y + ent->OnScreenRegionBottom;
+        onScreenY = ent->OnScreenRegionTop != 0.0 || ent->OnScreenRegionBottom != 0.0;
+    }
+    else {
+        onScreenY = ent->OnScreenHitboxH == 0.0f;
+        entY1 = ent->Y - ent->OnScreenHitboxH * 0.5f;
+        entY2 = ent->Y + ent->OnScreenHitboxH * 0.5f;
+    }
 
     switch (ent->Activity) {
     default:
@@ -395,14 +420,10 @@ void UpdateObject(Entity* ent) {
         for (int i = 0; i < Scene::ViewsActive; i++) {
             if (onScreenX && onScreenY)
                 break;
-            if (!onScreenX) {
-                onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
-                    ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
-            }
-            if (!onScreenY) {
-                onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[i].Y &&
-                    ent->Y - ent->OnScreenHitboxH * 0.5f < Scene::Views[i].Y + Scene::Views[i].Height);
-            }
+            if (!onScreenX)
+                onScreenX = entX2 >= Scene::Views[i].X && entX1 < Scene::Views[i].X + Scene::Views[i].Width;
+            if (!onScreenY)
+                onScreenY = entY2 >= Scene::Views[i].Y && entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
         }
 
         if (onScreenX && onScreenY)
@@ -416,10 +437,7 @@ void UpdateObject(Entity* ent) {
         for (int i = 0; i < Scene::ViewsActive; i++) {
             if (onScreenX)
                 break;
-            if (!onScreenX) {
-                onScreenX = (ent->X + ent->OnScreenHitboxW * 0.5f >= Scene::Views[i].X &&
-                    ent->X - ent->OnScreenHitboxW * 0.5f < Scene::Views[i].X + Scene::Views[i].Width);
-            }
+            onScreenX = entX2 >= Scene::Views[i].X && entX1 < Scene::Views[i].X + Scene::Views[i].Width;
         }
 
         if (onScreenX)
@@ -433,10 +451,7 @@ void UpdateObject(Entity* ent) {
         for (int i = 0; i < Scene::ViewsActive; i++) {
             if (onScreenY)
                 break;
-            if (!onScreenY) {
-                onScreenY = (ent->Y + ent->OnScreenHitboxH * 0.5f >= Scene::Views[i].Y &&
-                    ent->Y - ent->OnScreenHitboxH * 0.5f < Scene::Views[i].Y + Scene::Views[i].Height);
-            }
+            onScreenY = entY2 >= Scene::Views[i].Y && entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
         }
 
         if (onScreenY)
@@ -449,9 +464,6 @@ void UpdateObject(Entity* ent) {
 
         // TODO: Double check this works properly
         for (int v = 0; v < Scene::ViewsActive; v++) {
-            if (ent->InRange)
-                break;
-
             float sx = abs(ent->X - Scene::Views[v].X);
             float sy = abs(ent->Y - Scene::Views[v].Y);
 
@@ -513,7 +525,8 @@ void UpdateObject(Entity* ent) {
     // If Priority is changed.
     else if (ent->Priority != oldPriority) {
         // Remove entry in old list.
-        Scene::PriorityLists[oldPriority].Remove(ent);
+        if (oldPriority != -1)
+            Scene::PriorityLists[oldPriority].Remove(ent);
         int index = Scene::PriorityLists[ent->Priority].Contains(ent);
         if (index == -1)
             index = Scene::PriorityLists[ent->Priority].Add(ent);
@@ -547,8 +560,8 @@ PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity*
 
     // Add to proper list
     if (!obj->List) {
-        Log::Print(Log::LOG_ERROR, "obj->List == NULL");
-        exit(-1);
+        Log::Print(Log::LOG_ERROR, "Entity %p has no list!", obj);
+        abort();
     }
     obj->List->Add(obj);
 
@@ -1002,6 +1015,8 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
     }
     PERF_END(ObjectRenderEarlyTime);
 
+    bool showObjectRegions = Scene::ShowObjectRegions;
+
     // Render Objects and Layer Tiles
     float _vx = currentView->X;
     float _vy = currentView->Y;
@@ -1015,10 +1030,10 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
 
         double elapsed;
         double objectTime;
-        float hbW;
-        float hbH;
         float _ox;
         float _oy;
+        float entX1, entX2;
+        float entY1, entY2;
         objectTime = Clock::GetTicks();
 
         Scene::CurrentDrawGroup = l;
@@ -1026,30 +1041,73 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
         drawGroupList = &PriorityLists[l];
         for (Entity* ent : *drawGroupList->Entities) {
             if (ent->Active) {
-                if (ent->RenderRegionW == 0.0f || ent->RenderRegionH == 0.0f)
-                    goto DoCheckRender;
-
-                hbW = ent->RenderRegionW * 0.5f;
-                hbH = ent->RenderRegionH * 0.5f;
                 _ox = ent->X - _vx;
                 _oy = ent->Y - _vy;
-                if ((_ox + hbW) < 0.0f || (_ox - hbW) >= _vw ||
-                    (_oy + hbH) < 0.0f || (_oy - hbH) >= _vh)
-                    continue;
 
-                if (Scene::ShowObjectRegions) {
-                    _ox = ent->X - ent->RenderRegionW * 0.5f;
-                    _oy = ent->Y - ent->RenderRegionH * 0.5f;
-                    Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
-                    Graphics::FillRectangle(_ox, _oy, ent->RenderRegionW, ent->RenderRegionH);
+                if (ent->RenderRegionLeft || ent->RenderRegionRight) {
+                    if (ent->RenderRegionLeft == 0.0f && ent->RenderRegionRight == 0.0f)
+                        goto DoCheckRender;
 
-                    _ox = ent->X - ent->OnScreenHitboxW * 0.5f;
-                    _oy = ent->Y - ent->OnScreenHitboxH * 0.5f;
-                    Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, 0.5f);
-                    Graphics::FillRectangle(_ox, _oy, ent->OnScreenHitboxW, ent->OnScreenHitboxH);
+                    entX1 = _ox - ent->RenderRegionLeft;
+                    entX2 = _ox + ent->RenderRegionRight;
+                }
+                else {
+                    if (ent->RenderRegionW == 0.0f)
+                        goto DoCheckRender;
+
+                    entX1 = _ox - ent->RenderRegionW * 0.5f;
+                    entX2 = _ox + ent->RenderRegionW * 0.5f;
                 }
 
-                DoCheckRender:
+                if (ent->RenderRegionTop || ent->RenderRegionBottom) {
+                    if (ent->RenderRegionTop == 0.0f && ent->RenderRegionBottom == 0.0f)
+                        goto DoCheckRender;
+
+                    entY1 = _oy - ent->RenderRegionTop;
+                    entY2 = _oy + ent->RenderRegionBottom;
+                }
+                else {
+                    if (ent->RenderRegionH == 0.0f)
+                        goto DoCheckRender;
+
+                    entY1 = _oy - ent->RenderRegionH * 0.5f;
+                    entY2 = _oy + ent->RenderRegionH * 0.5f;
+                }
+
+                if (entX2 < 0.0f || entX1 >= _vw || entY2 < 0.0f || entY1 >= _vh)
+                    continue;
+
+                // Show render region
+                if (showObjectRegions) {
+                    Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
+                    Graphics::FillRectangle(entX1 + _vx, entY1 + _vy, entX2 - entX1, entY2 - entY1);
+                }
+
+DoCheckRender:
+                // Show update region
+                if (showObjectRegions) {
+                    if (ent->OnScreenRegionLeft || ent->OnScreenRegionRight) {
+                        entX1 = ent->X - ent->OnScreenRegionLeft;
+                        entX2 = ent->X + ent->OnScreenRegionRight;
+                    }
+                    else {
+                        entX1 = ent->X - ent->OnScreenHitboxW * 0.5f;
+                        entX2 = ent->X + ent->OnScreenHitboxW * 0.5f;
+                    }
+
+                    if (ent->OnScreenRegionTop || ent->OnScreenRegionBottom) {
+                        entY1 = ent->Y - ent->OnScreenRegionTop;
+                        entY2 = ent->Y + ent->OnScreenRegionBottom;
+                    }
+                    else {
+                        entY1 = ent->Y - ent->OnScreenHitboxH * 0.5f;
+                        entY2 = ent->Y + ent->OnScreenHitboxH * 0.5f;
+                    }
+
+                    Graphics::SetBlendColor(1.0f, 0.0f, 0.0f, 0.5f);
+                    Graphics::FillRectangle(entX1, entY1, entX2 - entX1, entY2 - entY1);
+                }
+
                 if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
                     continue;
                 if ((ent->ViewOverrideFlag & viewRenderFlag) == 0 && (Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
