@@ -848,6 +848,7 @@
                     <li><a href="#Reference_functions_Scene_SetPaused">Scene.SetPaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimationEnabled">Scene.SetTileAnimationEnabled</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequence">Scene.SetTileAnimSequence</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFromSprite">Scene.SetTileAnimSequenceFromSprite</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequencePaused">Scene.SetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceSpeed">Scene.SetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFrame">Scene.SetTileAnimSequenceFrame</a></li>
@@ -2048,8 +2049,8 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>array (Array): Array to set values to.</li>
-        <li>startIndex (Integer): Index of value to start setting. (-1 for first index)</li>
-        <li>endIndex (Integer): Index of value to end setting. (-1 for last index)</li>
+        <li>startIndex (Integer): Index of value to start setting. (<code>-1</code> for first index)</li>
+        <li>endIndex (Integer): Index of value to end setting. (<code>-1</code> for last index)</li>
         <li>value (Value): Value to set to.</li>
         </ul>
         </p>
@@ -6329,13 +6330,24 @@
         </p>
         <p id="Reference_functions_Scene_SetTileAnimSequence">
         <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequence</h2>
-        <code>Scene.SetTileAnimSequence(tileID, tileIDs, frameDurations)</code>
+        <code>Scene.SetTileAnimSequence(tileID, tileIDs[, frameDurations])</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
         <li>tileIDs (Array): Tile ID list.</li>
         <li>frameDurations (Array): Frame duration list.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequenceFromSprite">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequenceFromSprite</h2>
+        <code>Scene.SetTileAnimSequenceFromSprite(tileID, spriteIndex, animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
+        <li>spriteIndex (Integer): Sprite index. (<code>null</code> to disable)</li>
+        <li>animationIndex (Integer): Animation index in sprite.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetTileAnimSequencePaused">
@@ -8019,9 +8031,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): ID of tile to check.</li>
-        <li>spriteIndex (Integer): Sprite index. (-1 for default tile sprite)</li>
+        <li>spriteIndex (Integer): Sprite index. (<code>-1</code> for default tile sprite)</li>
         <li>animationIndex (Integer): Animation index.</li>
-        <li>frameIndex (Integer): Frame index. (-1 for default tile frame)</li>
+        <li>frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)</li>
         </ul>
         </p>
         <p id="Reference_functions_TileInfo_IsEmptySpace">
@@ -8745,7 +8757,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>642 out of 701 functions have descriptions. </p>
+        <p>643 out of 702 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

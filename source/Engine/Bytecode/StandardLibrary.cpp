@@ -550,7 +550,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
     animator->AnimationTimer += animator->AnimationSpeed;
 
     // TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
-    while (animator->AnimationTimer > animator->Duration) {
+    while (animator->Duration && animator->AnimationTimer > animator->Duration) {
         ++animator->CurrentFrame;
 
         animator->AnimationTimer -= animator->Duration;
@@ -1244,8 +1244,8 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
  * Array.SetAll
  * \desc Sets values in the array from startIndex to endIndex (includes the value at endIndex.)
  * \param array (Array): Array to set values to.
- * \param startIndex (Integer): Index of value to start setting. (-1 for first index)
- * \param endIndex (Integer): Index of value to end setting. (-1 for last index)
+ * \param startIndex (Integer): Index of value to start setting. (<code>-1</code> for first index)
+ * \param endIndex (Integer): Index of value to end setting. (<code>-1</code> for last index)
  * \param value (Value): Value to set to.
  * \ns Array
  */
@@ -9430,7 +9430,7 @@ VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
  * \desc Sets an animation sequence for a tile ID.
  * \param tileID (Integer): Which tile ID to add an animated sequence to.
  * \param tileIDs (Array): Tile ID list.
- * \param frameDurations (Array): Frame duration list.
+ * \paramOpt frameDurations (Array): Frame duration list.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
@@ -9443,7 +9443,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
     std::vector<int> tileIDs;
     std::vector<int> frameDurations;
 
-    if (IS_ARRAY(args[1])) {
+    if (!IS_NULL(args[1])) {
         ObjArray* array = GET_ARG(1, GetArray);
 
         int otherTileID = 0;
@@ -9477,6 +9477,33 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
     Tileset* tileset = Scene::GetTileset(tileID);
     if (tileset)
         tileset->AddTileAnimSequence(tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations);
+
+    return NULL_VAL;
+}
+/***
+ * Scene.SetTileAnimSequenceFromSprite
+ * \desc Sets an animation sequence for a tile ID.
+ * \param tileID (Integer): Which tile ID to add an animated sequence to.
+ * \param spriteIndex (Integer): Sprite index. (<code>null</code> to disable)
+ * \param animationIndex (Integer): Animation index in sprite.
+ * \ns Scene
+ */
+VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int tileID = GET_ARG(0, GetInteger);
+    if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size())
+        return NULL_VAL;
+
+    ISprite* sprite = nullptr;
+    if (!IS_NULL(args[1]))
+        sprite = GET_ARG(1, GetSprite);
+
+    int animationIndex = GET_ARG(2, GetInteger);
+
+    Tileset* tileset = Scene::GetTileset(tileID);
+    if (tileset)
+        tileset->AddTileAnimSequence(tileID, &Scene::TileSpriteInfos[tileID], sprite, animationIndex);
 
     return NULL_VAL;
 }
@@ -12574,9 +12601,9 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
  * \param tileID (Integer): ID of tile to check.
- * \param spriteIndex (Integer): Sprite index. (-1 for default tile sprite)
+ * \param spriteIndex (Integer): Sprite index. (<code>-1</code> for default tile sprite)
  * \param animationIndex (Integer): Animation index.
- * \param frameIndex (Integer): Frame index. (-1 for default tile frame)
+ * \param frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)
  * \ns TileInfo
  */
 VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
@@ -15419,6 +15446,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetPaused);
     DEF_NATIVE(Scene, SetTileAnimationEnabled);
     DEF_NATIVE(Scene, SetTileAnimSequence);
+    DEF_NATIVE(Scene, SetTileAnimSequenceFromSprite);
     DEF_NATIVE(Scene, SetTileAnimSequencePaused);
     DEF_NATIVE(Scene, SetTileAnimSequenceSpeed);
     DEF_NATIVE(Scene, SetTileAnimSequenceFrame);
