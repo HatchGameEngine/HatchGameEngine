@@ -35,6 +35,7 @@ public:
     float        Gravity = 0.0f;
     int          Ground = false;
 
+    int          WasOffScreen = false;
     int          OnScreen = true;
     float        OnScreenHitboxW = 0.0f;
     float        OnScreenHitboxH = 0.0f;
@@ -457,6 +458,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(Gravity);
     COPY(Ground);
 
+    COPY(WasOffScreen);
     COPY(OnScreen);
     COPY(OnScreenHitboxW);
     COPY(OnScreenHitboxH);

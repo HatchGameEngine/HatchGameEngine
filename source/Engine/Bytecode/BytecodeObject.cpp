@@ -297,6 +297,14 @@ PUBLIC void BytecodeObject::LinkFields() {
     */
     LINK_INT(OnScreen);
     /***
+    * \field WasOffScreen
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Indicates if the entity was previously off-screen.
+    */
+    LINK_INT(WasOffScreen);
+    /***
     * \field OnScreenHitboxW
     * \type Decimal
     * \default 0.0
@@ -743,6 +751,7 @@ PUBLIC void BytecodeObject::Initialize() {
     Gravity = 0.0f;
     Ground = false;
 
+    WasOffScreen = false;
     OnScreen = true;
     OnScreenHitboxW = 0.0f;
     OnScreenHitboxH = 0.0f;

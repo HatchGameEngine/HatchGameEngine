@@ -485,9 +485,12 @@ void UpdateObject(Entity* ent) {
                 list->AverageUpdateItemCount = count;
             }
         }
+
+        ent->WasOffScreen = false;
     }
     else {
         ent->OnScreen = false;
+        ent->WasOffScreen = true;
     }
 
     if (!Scene::PriorityLists)
