@@ -9706,6 +9706,22 @@ VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Scene.SetDrawGroupCount
+ * \desc Sets the amount of draw groups in the active scene.
+ * \param count (Integer): Draw group count.
+ * \ns Scene
+ */
+VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int count = GET_ARG(0, GetInteger);
+    if (count < 1) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group count cannot be lower than 1.");
+        return NULL_VAL;
+    }
+    Scene::SetPriorityPerLayer(count);
+    return NULL_VAL;
+}
+/***
  * Scene.SetDrawGroupEntityDepthSorting
  * \desc Sets the specified draw group to sort objects by depth.
  * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
@@ -15459,6 +15475,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
     DEF_NATIVE(Scene, SetLayerRepeat);
+    DEF_NATIVE(Scene, SetDrawGroupCount);
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);

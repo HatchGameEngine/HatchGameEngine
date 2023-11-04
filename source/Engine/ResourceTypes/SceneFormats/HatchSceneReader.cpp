@@ -85,6 +85,9 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Unused (number of kits)
     r->ReadByte();
 
+    Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+    Scene::InitPriorityLists();
+
     // Read layers
     Uint8 numLayers = r->ReadByte();
     Scene::Layers.resize(numLayers);

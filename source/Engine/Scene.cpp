@@ -47,6 +47,7 @@ public:
     static Entity*                   ObjectFirst;
     static Entity*                   ObjectLast;
 
+    static int                       BasePriorityPerLayer;
     static int                       PriorityPerLayer;
     static DrawGroupList*            PriorityLists;
 
@@ -182,7 +183,8 @@ int                       Scene::TileAnimationEnabled = 1;
 // Layering variables
 vector<SceneLayer>        Scene::Layers;
 bool                      Scene::AnyLayerTileChange = false;
-int                       Scene::PriorityPerLayer = 16;
+int                       Scene::BasePriorityPerLayer = 32;
+int                       Scene::PriorityPerLayer = 0;
 DrawGroupList*            Scene::PriorityLists = NULL;
 
 // Rendering variables
@@ -515,14 +517,14 @@ void UpdateObject(Entity* ent) {
     if (ent->Priority > maxPriority)
         ent->Priority = maxPriority;
 
-    // If hasn't been put in a list yet.
+    // If hasn't been put in a list yet:
     if (ent->PriorityListIndex == -1) {
         int index = Scene::PriorityLists[ent->Priority].Contains(ent);
         if (index == -1)
             index = Scene::PriorityLists[ent->Priority].Add(ent);
         ent->PriorityListIndex = index;
     }
-    // If Priority is changed.
+    // If Priority has changed:
     else if (ent->Priority != oldPriority) {
         // Remove entry in old list.
         if (oldPriority != -1)
@@ -532,10 +534,12 @@ void UpdateObject(Entity* ent) {
             index = Scene::PriorityLists[ent->Priority].Add(ent);
         ent->PriorityListIndex = index;
     }
-    // Sort list.
+
+    // Sort list if needed
     if (ent->Depth != ent->OldDepth) {
         Scene::PriorityLists[ent->Priority].NeedsSorting = true;
     }
+
     ent->PriorityOld = ent->Priority;
     ent->OldDepth = ent->Depth;
 }
@@ -1002,7 +1006,6 @@ PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
             break;
 
         DrawGroupList* drawGroupList = &PriorityLists[l];
-
         if (drawGroupList->NeedsSorting)
             drawGroupList->Sort();
 
@@ -1614,7 +1617,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::EmptyTile = 0;
 
     Scene::InitObjectListsAndRegistries();
-    Scene::InitPriorityLists();
+    Scene::FreePriorityLists();
 
     for (size_t i = 0; i < Scene::Layers.size(); i++)
         Scene::Layers[i].Dispose();
@@ -1624,7 +1627,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     if (Application::GameStart)
         Scene::AddStaticClass();
 
-    // Actually try to read the scene now
+    // Read the scene file
     Log::Print(Log::LOG_INFO, "Starting scene \"%s\"...", filename);
 
     Stream* r = ResourceStream::New(filename);
@@ -1797,14 +1800,27 @@ PUBLIC STATIC void Scene::AddManagers() {
     Scene::SpawnStaticObject("InputManager");
     Scene::SpawnStaticObject("FadeManager");
 }
+
+PUBLIC STATIC void Scene::FreePriorityLists() {
+    if (Scene::PriorityLists) {
+        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
+            Scene::PriorityLists[i].Dispose();
+        }
+        Memory::Free(Scene::PriorityLists);
+    }
+    Scene::PriorityLists = NULL;
+    Scene::PriorityPerLayer = 0;
+}
 PUBLIC STATIC void Scene::InitPriorityLists() {
+    if (Scene::PriorityPerLayer == 0)
+        Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+
     if (Scene::PriorityLists) {
         for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
             Scene::PriorityLists[i].Dispose();
     }
     else {
         Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc("Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
-
         if (!Scene::PriorityLists) {
             Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
             exit(-1);
@@ -1814,6 +1830,28 @@ PUBLIC STATIC void Scene::InitPriorityLists() {
     for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
         Scene::PriorityLists[i].Init();
 }
+PUBLIC STATIC void Scene::SetPriorityPerLayer(int count) {
+    if (count < 1)
+        count = 1;
+    else if (count > 256)
+        count = 256;
+
+    int currentCount = Scene::PriorityPerLayer;
+    if (count < currentCount) {
+        for (int i = count; i < currentCount; i++) {
+            Scene::PriorityLists[i].Dispose();
+        }
+    }
+    else if (count > currentCount) {
+        Scene::PriorityLists = (DrawGroupList*)Memory::Realloc(Scene::PriorityLists, Scene::PriorityPerLayer * sizeof(DrawGroupList));
+        for (int i = currentCount; i < count; i++) {
+            Scene::PriorityLists[i].Init();
+        }
+    }
+
+    Scene::PriorityPerLayer = count;
+}
+
 PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
     int bufferPos = 0;
 
@@ -2527,13 +2565,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Scene::ObjectLast = NULL;
 
     // Free Priority Lists
-    if (Scene::PriorityLists) {
-        for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
-            Scene::PriorityLists[i].Dispose();
-        }
-        Memory::Free(Scene::PriorityLists);
-    }
-    Scene::PriorityLists = NULL;
+    Scene::FreePriorityLists();
 
     for (size_t i = 0; i < Scene::Layers.size(); i++) {
         Scene::Layers[i].Dispose();

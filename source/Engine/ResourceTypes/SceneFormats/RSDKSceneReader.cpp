@@ -487,6 +487,9 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
     Scene::TileCount = 0x400;
     Scene::EmptyTile = 0x3FF;
 
+    Scene::PriorityPerLayer = 16;
+    Scene::InitPriorityLists();
+
     if (r->ReadUInt32BE() == 0x53434E00) {
         r->Skip(16); // 16 bytes
         r->Skip(r->ReadByte()); // RSDKString
