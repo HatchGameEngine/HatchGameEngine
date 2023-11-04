@@ -7459,6 +7459,16 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
     Graphics::UsePalettes = usePalettes;
     return NULL_VAL;
 }
+#define CHECK_PALETTE_INDEX(index) \
+if (index < 0 || index >= MAX_PALETTE_COUNT) { \
+    OUT_OF_RANGE_ERROR("Palette index", index, 0, MAX_PALETTE_COUNT - 1); \
+    return NULL_VAL; \
+}
+#define CHECK_COLOR_INDEX(index) \
+if (index < 0 || index >= 0x100) { \
+    OUT_OF_RANGE_ERROR("Palette color index", index, 0, 255); \
+    return NULL_VAL; \
+}
 /***
  * Palette.LoadFromResource
  * \desc Loads palette from an .act, .col, .gif, .png, or .hpal resource.
@@ -7471,7 +7481,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     int palIndex        = GET_ARG(0, GetInteger);
     char* filename      = GET_ARG(1, GetString);
-    int disabledRows    = argCount > 2 ? GET_ARG(2, GetInteger) : 0x0000;
+    int disabledRows    = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_PALETTE_INDEX(palIndex);
 
     // RSDK StageConfig
     if (StringUtils::StrCaseStr(filename, "StageConfig.bin"))
@@ -7627,6 +7639,8 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
     Image* image = GET_ARG(1, GetImage);
     Texture* texture = image->TexturePtr;
 
+    CHECK_PALETTE_INDEX(palIndex);
+
     size_t x = 0;
 
     for (size_t y = 0; y < texture->Height; y++) {
@@ -7655,6 +7669,8 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
     Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
     Graphics::ConvertFromARGBtoNative(&color, 1);
     return INTEGER_VAL((int)(color & 0xFFFFFFU));
@@ -7671,6 +7687,8 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
     Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
     *color = (hex & 0xFFFFFFU) | 0xFF000000U;
@@ -7701,11 +7719,21 @@ VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
     int palIndexDest = GET_ARG(0, GetInteger);
     int palIndex1 = GET_ARG(1, GetInteger);
     int palIndex2 = GET_ARG(2, GetInteger);
-    float mix = GET_ARG(3, GetDecimal);
+    float mixRatio = GET_ARG(3, GetDecimal);
     int colorIndexStart = GET_ARG(4, GetInteger);
     int colorCount = GET_ARG(5, GetInteger);
 
-    int percent = mix * 0x100;
+    CHECK_PALETTE_INDEX(palIndexDest);
+    CHECK_PALETTE_INDEX(palIndex1);
+    CHECK_PALETTE_INDEX(palIndex2);
+    CHECK_COLOR_INDEX(colorIndexStart);
+
+    if (colorCount > 0x100)
+        colorCount = 0x100;
+
+    mixRatio = Math::Clamp(mixRatio, 0.0f, 1.0f);
+
+    int percent = mixRatio * 0x100;
     for (int c = colorIndexStart; c < colorIndexStart + colorCount; c++)
         Graphics::PaletteColors[palIndexDest][c] = 0xFF000000U | PMP_ColorBlend(Graphics::PaletteColors[palIndex1][c], Graphics::PaletteColors[palIndex2][c], percent);
     Graphics::PaletteUpdated = true;
@@ -7724,6 +7752,9 @@ VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndexStart = GET_ARG(1, GetInteger);
     int count = GET_ARG(2, GetInteger);
+
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndexStart);
 
     if (count > 0x100 - colorIndexStart)
         count = 0x100 - colorIndexStart;
@@ -7748,6 +7779,9 @@ VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) 
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndexStart = GET_ARG(1, GetInteger);
     int count = GET_ARG(2, GetInteger);
+
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndexStart);
 
     if (count > 0x100 - colorIndexStart)
         count = 0x100 - colorIndexStart;
@@ -7777,6 +7811,11 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
     int colorIndexStartTo = GET_ARG(3, GetInteger);
     int count = GET_ARG(4, GetInteger);
 
+    CHECK_PALETTE_INDEX(palIndexFrom);
+    CHECK_COLOR_INDEX(colorIndexStartFrom);
+    CHECK_PALETTE_INDEX(palIndexTo);
+    CHECK_COLOR_INDEX(colorIndexStartTo);
+
     if (count > 0x100 - colorIndexStartTo)
         count = 0x100 - colorIndexStartTo;
     if (count > 0x100 - colorIndexStartFrom)
@@ -7801,6 +7840,8 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     Sint32 lineStart    = (int)GET_ARG(1, GetDecimal);
     Sint32 lineEnd      = (int)GET_ARG(2, GetDecimal);
 
+    CHECK_PALETTE_INDEX(palIndex);
+
     Sint32 lastLine = sizeof(Graphics::PaletteIndexLines) - 1;
     if (lineStart > lastLine)
         lineStart = lastLine;
@@ -7812,6 +7853,8 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
         Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
     return NULL_VAL;
 }
+#undef CHECK_COLOR_INDEX
+#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Resources
