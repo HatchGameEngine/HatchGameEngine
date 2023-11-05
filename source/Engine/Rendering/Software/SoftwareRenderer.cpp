@@ -93,6 +93,9 @@ Uint8 StencilMask = 0xFF;
 
 size_t StencilBufferSize = 0;
 
+Uint8 DotMaskH = 0;
+Uint8 DotMaskV = 0;
+
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
@@ -111,7 +114,12 @@ int FilterBlackAndWhite[0x8000];
 PUBLIC STATIC void     SoftwareRenderer::Init() {
     SoftwareRenderer::BackendFunctions.Init();
 
+    UseStencil = false;
     UseSpriteDeform = false;
+
+    SetDotMask(0);
+    FreeStencilBuffer();
+    ResetStencilFuncs();
 }
 PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
@@ -726,6 +734,11 @@ PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
     if (StencilBuffer)
         memset(StencilBuffer, 0x00, StencilBufferSize * sizeof(*StencilBuffer));
 }
+PUBLIC STATIC void     SoftwareRenderer::ResetStencilFuncs() {
+    StencilFuncTest = StencilTestAlways;
+    StencilFuncPass = StencilOpKeep;
+    StencilFuncFail = StencilOpKeep;
+}
 PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
     StencilTestFunction funcList[] = {
         StencilTestNever,
@@ -778,6 +791,65 @@ PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, Blen
     }
     else
         StencilFuncFail(buffer, StencilValue);
+}
+
+PUBLIC STATIC void SoftwareRenderer::SetDotMask(int mask) {
+    SetDotMaskH(mask);
+    SetDotMaskV(mask);
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskH(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+
+    DotMaskH = mask;
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskV(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+
+    DotMaskV = mask;
+}
+
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    unsigned x = pos % Graphics::CurrentRenderTarget->Width;
+    if (x & DotMaskH)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+}
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    unsigned y = pos / Graphics::CurrentRenderTarget->Width;
+    if (y & DotMaskV)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+}
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskHV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    unsigned x = pos % Graphics::CurrentRenderTarget->Width;
+    unsigned y = pos / Graphics::CurrentRenderTarget->Width;
+    if (x & DotMaskH || y & DotMaskV)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 }
 
 // TODO: Material support
@@ -1365,7 +1437,15 @@ PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
     else
         CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
-    if (UseStencil)
+    if (DotMaskH || DotMaskV) {
+        if (DotMaskH && DotMaskV)
+            return SoftwareRenderer::PixelDotMaskHV;
+        else if (DotMaskH)
+            return SoftwareRenderer::PixelDotMaskH;
+        else if (DotMaskV)
+            return SoftwareRenderer::PixelDotMaskV;
+    }
+    else if (UseStencil)
         return SoftwareRenderer::PixelStencil;
 
     return CurrentPixelFunction;

@@ -4277,6 +4277,39 @@ VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.SetDotMask
+ * \desc Sets the dot mask.
+ * \param mask (Integer): The mask.
+ * \ns Draw
+ */
+VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    SoftwareRenderer::SetDotMask(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetHorizontalDotMask
+ * \desc Sets the horizontal dot mask.
+ * \param mask (Integer): The mask.
+ * \ns Draw
+ */
+VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    SoftwareRenderer::SetDotMaskH(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetVerticalDotMask
+ * \desc Sets the vertical dot mask.
+ * \param mask (Integer): The mask.
+ * \ns Draw
+ */
+VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    SoftwareRenderer::SetDotMaskV(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
  * Draw.Line
  * \desc Draws a line.
  * \param x1 (Number): X position of where to start drawing the line.
@@ -14805,6 +14838,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetStencilValue);
     DEF_NATIVE(Draw, SetStencilMask);
     DEF_NATIVE(Draw, ClearStencil);
+    DEF_NATIVE(Draw, SetDotMask);
+    DEF_NATIVE(Draw, SetHorizontalDotMask);
+    DEF_NATIVE(Draw, SetVerticalDotMask);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
     DEF_NATIVE(Draw, Ellipse);
