@@ -117,6 +117,8 @@
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
+            <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
+            <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
             <li><a href="#Reference_TILECOLLISION_*">TILECOLLISION_*</a></li>
             <li><a href="#Reference_TintMode_*">TintMode_*</a></li>
         </ul>
@@ -373,6 +375,13 @@
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
+                    <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilPassOperation">Draw.SetStencilPassOperation</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilFailOperation">Draw.SetStencilFailOperation</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilValue">Draw.SetStencilValue</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilMask">Draw.SetStencilMask</a></li>
+                    <li><a href="#Reference_functions_Draw_ClearStencil">Draw.ClearStencil</a></li>
                     <li><a href="#Reference_functions_Draw_Line">Draw.Line</a></li>
                     <li><a href="#Reference_functions_Draw_Circle">Draw.Circle</a></li>
                     <li><a href="#Reference_functions_Draw_Ellipse">Draw.Ellipse</a></li>
@@ -1583,6 +1592,32 @@
                     <li><a href="#Reference_enums_SensorDirection_Left">SensorDirection_Left</a></li>
                 </ul>
             </p>
+            <p id="Reference_StencilOp_*">
+                <h2><code>StencilOp_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_StencilOp_Keep">StencilOp_Keep</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Zero">StencilOp_Zero</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Incr">StencilOp_Incr</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Decr">StencilOp_Decr</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Invert">StencilOp_Invert</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Replace">StencilOp_Replace</a></li>
+                    <li><a href="#Reference_enums_StencilOp_IncrWrap">StencilOp_IncrWrap</a></li>
+                    <li><a href="#Reference_enums_StencilOp_DecrWrap">StencilOp_DecrWrap</a></li>
+                </ul>
+            </p>
+            <p id="Reference_StencilTest_*">
+                <h2><code>StencilTest_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_StencilTest_Never">StencilTest_Never</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Always">StencilTest_Always</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Equal">StencilTest_Equal</a></li>
+                    <li><a href="#Reference_enums_StencilTest_NotEqual">StencilTest_NotEqual</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Less">StencilTest_Less</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Greater">StencilTest_Greater</a></li>
+                    <li><a href="#Reference_enums_StencilTest_LEqual">StencilTest_LEqual</a></li>
+                    <li><a href="#Reference_enums_StencilTest_GEqual">StencilTest_GEqual</a></li>
+                </ul>
+            </p>
             <p id="Reference_TILECOLLISION_*">
                 <h2><code>TILECOLLISION_*</code></h2>
                 <ul>
@@ -1867,7 +1902,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets a <a href="#Reference_KeyBind_*">keybind</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyBind (Integer): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
+        <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the key ID of the keybind.</div>
@@ -1878,7 +1913,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_KeyBind_*">keybind</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyBind (Integer): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
+        <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         <li>keyID (Integer): The key ID.</li>
         </ul>
         </p>
@@ -2194,7 +2229,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Integer): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
@@ -2206,7 +2241,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>axisIndex (Integer): Index of the <a href="#Reference_Axis_*">axis</a> to check.</li>
+        <li>axisIndex (Enum): Index of the <a href="#Reference_Axis_*">axis</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
@@ -3361,7 +3396,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_BlendMode_*">blend mode</a> used for drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>blendMode (Integer): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
+        <li>blendMode (Enum): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendFactor">
@@ -3370,8 +3405,8 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_BlendFactor_*">blend factors</a> used for drawing. (Only for hardware-rendering)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sourceFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending.</li>
-        <li>destinationFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending.</li>
+        <li>sourceFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending.</li>
+        <li>destinationFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendFactorExtended">
@@ -3380,10 +3415,10 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets all the <a href="#Reference_BlendFactor_*">blend factors</a> used for drawing. (Only for hardware-rendering)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sourceColorFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending color.</li>
-        <li>destinationColorFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending color.</li>
-        <li>sourceAlphaFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending alpha.</li>
-        <li>destinationAlphaFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending alpha.</li>
+        <li>sourceColorFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending color.</li>
+        <li>destinationColorFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending color.</li>
+        <li>sourceAlphaFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending alpha.</li>
+        <li>destinationAlphaFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending alpha.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetCompareColor">
@@ -3411,7 +3446,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_TintMode_*">tint mode</a> used for drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>tintMode (Integer): The desired <a href="#Reference_TintMode_*">tint mode</a>.</li>
+        <li>tintMode (Enum): The desired <a href="#Reference_TintMode_*">tint mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_UseTinting">
@@ -3429,8 +3464,67 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_Filter_*">filter type</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filterType (Integer): The <a href="#Reference_Filter_*">filter type</a>.</li>
+        <li>filterType (Enum): The <a href="#Reference_Filter_*">filter type</a>.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Draw_UseStencil">
+        <h2 style="margin-bottom: 8px;">Draw.UseStencil</h2>
+        <code>Draw.UseStencil(enabled)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables stencil operations.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>enabled (Boolean): Whether to enable or disable stencil operations.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilTestFunction">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilTestFunction</h2>
+        <code>Draw.SetStencilTestFunction(stencilTest)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil test</a> function.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilTest (Enum): One of the <a href="#Reference_StencilTest_*">stencil test</a> functions.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilPassOperation">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilPassOperation</h2>
+        <code>Draw.SetStencilPassOperation(stencilOp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil operation</a> for when the stencil test passes.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilOp (Enum): One of the <a href="#Reference_StencilTest_*">stencil operations</a>.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilFailOperation">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilFailOperation</h2>
+        <code>Draw.SetStencilFailOperation(stencilOp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil operation</a> for when the stencil test fails.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilOp (Enum): One of the <a href="#Reference_StencilTest_*">stencil operations</a>.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilValue">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilValue</h2>
+        <code>Draw.SetStencilValue(value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the stencil value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>value (Integer): The stencil value. This value is clamped by the stencil buffer's bit depth.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilMask">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilMask</h2>
+        <code>Draw.SetStencilMask(mask)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the mask used for all stencil tests.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mask (Integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_ClearStencil">
+        <h2 style="margin-bottom: 8px;">Draw.ClearStencil</h2>
+        <code>Draw.ClearStencil()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Clears the stencil.</div>
         </p>
         <p id="Reference_functions_Draw_Line">
         <h2 style="margin-bottom: 8px;">Draw.Line</h2>
@@ -6454,7 +6548,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>drawBehavior (Integer): The <a href="#Reference_DrawBehavior_*">draw behavior</a>.</li>
+        <li>drawBehavior (Enum): The <a href="#Reference_DrawBehavior_*">draw behavior</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerRepeat">
@@ -6494,7 +6588,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>doBlend (Boolean): Whether or not to use blending.</li>
-        <li>blendMode (Integer): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
+        <li>blendMode (Enum): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerOpacity">
@@ -6671,7 +6765,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene. See <code><a href="#Reference_DrawMode_*">DrawMode_*</a></code> for a list of accepted draw modes.</li>
+        <li>drawMode (Enum): The type of drawing to use for the vertices in the 3D scene. See <code><a href="#Reference_DrawMode_*">DrawMode_*</a></code> for a list of accepted draw modes.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFaceCullMode">
@@ -6681,7 +6775,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>cullMode (Integer): The type of face culling to use for the vertices in the 3D scene. See <code><a href="#Reference_FaceCull_*">FaceCull_*</a></code> for a list of accepted face cull modes.</li>
+        <li>cullMode (Enum): The type of face culling to use for the vertices in the 3D scene. See <code><a href="#Reference_FaceCull_*">FaceCull_*</a></code> for a list of accepted face cull modes.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFieldOfView">
@@ -6777,7 +6871,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>fogEquation (Integer): The <a href="#Reference_FogEquation_*">fog equation</a> to use.</li>
+        <li>fogEquation (Enum): The <a href="#Reference_FogEquation_*">fog equation</a> to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFogStart">
@@ -7484,7 +7578,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Path of the file.</li>
-        <li>mode (Integer): <a href="#Reference_FileStream_*">File access mode</a>.</li>
+        <li>mode (Enum): <a href="#Reference_FileStream_*">File access mode</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the newly opened stream.</div>
@@ -8767,7 +8861,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>644 out of 703 functions have descriptions. </p>
+        <p>651 out of 710 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10026,6 +10120,70 @@
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Left</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left sensor direction.</div>
         </p>
+        <p id="Reference_enums_StencilOp_Keep">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Keep</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Doesn't modify the stencil buffer value (keeps it the same.)</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Zero">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Zero</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the stencil buffer value to zero.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Incr">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Incr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, saturating it if it would wrap around (the value is set to a specific maximum.)</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Decr">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Decr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, setting it to zero if it would wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Invert">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Invert</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Inverts the bits of the stencil buffer value.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Replace">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Replace</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Replaces the bits of the stencil buffer value with the masked value.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_IncrWrap">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_IncrWrap</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, letting it wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_DecrWrap">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_DecrWrap</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, letting it wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Never">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Never</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Always fails.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Always">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Always</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Always passes.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Equal">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Equal</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does an "equals" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_NotEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_NotEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "not equal" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Less">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Less</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "less than" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Greater">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Greater</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "greater than" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_LEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_LEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "less than or equal to" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_GEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_GEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "greater than or equal to" operation.</div>
+        </p>
         <p id="Reference_enums_TILECOLLISION_NONE">
         <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects no tile collision.</div>
@@ -10054,7 +10212,7 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>150 out of 165 enums have descriptions. </p>
+        <p>166 out of 181 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

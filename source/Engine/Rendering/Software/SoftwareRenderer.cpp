@@ -20,6 +20,7 @@ public:
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+    static Uint8*            StencilBuffer;
     static int               MultTable[0x10000];
     static int               MultTableInv[0x10000];
     static int               MultSubTable[0x10000];
@@ -47,6 +48,7 @@ TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
 Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+Uint8*            SoftwareRenderer::StencilBuffer = NULL;
 int               SoftwareRenderer::MultTable[0x10000];
 int               SoftwareRenderer::MultTableInv[0x10000];
 int               SoftwareRenderer::MultSubTable[0x10000];
@@ -81,11 +83,15 @@ Uint8 ColG;
 Uint8 ColB;
 Uint32 ColRGB;
 
-typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
-typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
-
 PixelFunction CurrentPixelFunction = NULL;
 TintFunction CurrentTintFunction = NULL;
+
+bool UseStencil = false;
+
+Uint8 StencilValue = 0x00;
+Uint8 StencilMask = 0xFF;
+
+size_t StencilBufferSize = 0;
 
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
@@ -622,6 +628,156 @@ PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlags) {
         CurrentTintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
     else if (blendFlags & BlendFlag_TINT_BIT)
         CurrentTintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
+}
+
+// Stencil ops (test)
+static bool StencilTestNever(Uint8* buf, Uint8 value, Uint8 mask) {
+    return false;
+}
+static bool StencilTestAlways(Uint8* buf, Uint8 value, Uint8 mask) {
+    return true;
+}
+static bool StencilTestEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) == (*buf & mask);
+}
+static bool StencilTestNotEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) != (*buf & mask);
+}
+static bool StencilTestLess(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) < (*buf & mask);
+}
+static bool StencilTestGreater(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) > (*buf & mask);
+}
+static bool StencilTestLEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) <= (*buf & mask);
+}
+static bool StencilTestGEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) >= (*buf & mask);
+}
+
+// Stencil ops (write)
+static void StencilOpKeep(Uint8* buf, Uint8 value) {
+    // Do nothing
+}
+static void StencilOpZero(Uint8* buf, Uint8 value) {
+    *buf = 0;
+}
+static void StencilOpIncr(Uint8* buf, Uint8 value) {
+    int val = *buf + 1;
+    if (val > 255)
+        val = 255;
+    *buf = (Uint8)val;
+}
+static void StencilOpDecr(Uint8* buf, Uint8 value) {
+    int val = *buf - 1;
+    if (val < 0)
+        val = 0;
+    *buf = (Uint8)val;
+}
+static void StencilOpInvert(Uint8* buf, Uint8 value) {
+    *buf = ~(*buf);
+}
+static void StencilOpReplace(Uint8* buf, Uint8 value) {
+    *buf = value;
+}
+static void StencilOpIncrWrap(Uint8* buf, Uint8 value) {
+    *buf++;
+}
+static void StencilOpDecrWrap(Uint8* buf, Uint8 value) {
+    *buf--;
+}
+
+// Stencil buffer funcs
+static StencilOpFunction StencilOpFunctionList[] = {
+    StencilOpKeep,
+    StencilOpZero,
+    StencilOpIncr,
+    StencilOpDecr,
+    StencilOpInvert,
+    StencilOpReplace,
+    StencilOpIncrWrap,
+    StencilOpDecrWrap
+};
+
+// Stencil buffer management
+StencilTestFunction StencilFuncTest = StencilTestAlways;
+StencilOpFunction StencilFuncPass = StencilOpKeep;
+StencilOpFunction StencilFuncFail = StencilOpKeep;
+
+PUBLIC STATIC void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
+    UseStencil = enabled;
+    if (!UseStencil)
+        return;
+
+    size_t bufSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
+
+    if (StencilBuffer == NULL || bufSize != StencilBufferSize) {
+        StencilBufferSize = bufSize;
+        StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
+    }
+
+    SoftwareRenderer::ClearStencil();
+}
+PUBLIC STATIC bool     SoftwareRenderer::GetStencilEnabled() {
+    return UseStencil;
+}
+PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
+    if (StencilBuffer)
+        memset(StencilBuffer, 0x00, StencilBufferSize * sizeof(*StencilBuffer));
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
+    StencilTestFunction funcList[] = {
+        StencilTestNever,
+        StencilTestAlways,
+        StencilTestEqual,
+        StencilTestNotEqual,
+        StencilTestLess,
+        StencilTestGreater,
+        StencilTestLEqual,
+        StencilTestGEqual
+    };
+
+    if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual)
+        StencilFuncTest = funcList[stencilTest];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilPassFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
+        StencilFuncPass = StencilOpFunctionList[stencilOp];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilFailFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
+        StencilFuncFail = StencilOpFunctionList[stencilOp];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilValue(int value) {
+    if (value < 0)
+        value = 0;
+    else if (value > 255)
+        value = 255;
+    StencilValue = value;
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilMask(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+    StencilMask = mask;
+}
+PUBLIC STATIC void     SoftwareRenderer::FreeStencilBuffer() {
+    Memory::Free(StencilBuffer);
+    StencilBuffer = NULL;
+}
+
+PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    Uint8* buffer = &StencilBuffer[pos];
+    if (StencilFuncTest(buffer, StencilValue, StencilMask)) {
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+        StencilFuncPass(buffer, StencilValue);
+    }
+    else
+        StencilFuncFail(buffer, StencilValue);
 }
 
 // TODO: Material support
@@ -1203,11 +1359,16 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     rend.DrawVertexBuffer();
 }
 
-static PixelFunction GetPixelFunction(int blendFlag) {
+PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
     if (blendFlag & BlendFlag_TINT_BIT)
-        return PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
+        CurrentPixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
     else
-        return PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+        CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+
+    if (UseStencil)
+        return SoftwareRenderer::PixelStencil;
+
+    return CurrentPixelFunction;
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
@@ -1371,7 +1532,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    if (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE) {
+    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Contour contour = ContourBuffer[dst_y];
             if (contour.MaxX < contour.MinX) {
@@ -1461,7 +1622,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    if (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE) {
+    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
             dst_strideY += dstStride;
@@ -1602,7 +1763,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         } \
     }
 
-    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+    PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
     #define DRAW_PLACEPIXEL() \
         if ((color = srcPxLine[src_x]) & 0xFF000000U) \
@@ -1865,7 +2026,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         } \
     }
 
-    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+    PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
     #define DRAW_PLACEPIXEL() \
         if ((color = srcPx[src_x + src_strideY]) & 0xFF000000U) \
@@ -2788,6 +2949,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         multTableAt = &MultTable[blendState.Opacity << 8];
         multSubTableAt = &MultSubTable[blendState.Opacity << 8];
 
+        // TODO: Set CurrentPixelFunction instead whenever this supports the stencil.
         if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
             linePixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
             SetTintFunction(blendFlag);

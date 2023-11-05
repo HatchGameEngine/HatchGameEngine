@@ -839,7 +839,7 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Application.GetKeyBind
  * \desc Gets a <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyBind (Integer): The <linkto ref="KeyBind_*">keybind</linkto>.
+ * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
  * \return Returns the key ID of the keybind.
  * \ns Application
  */
@@ -851,7 +851,7 @@ VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Application.SetKeyBind
  * \desc Sets a <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyBind (Integer): The <linkto ref="KeyBind_*">keybind</linkto>.
+ * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyID (Integer): The key ID.
  * \ns Application
  */
@@ -1382,7 +1382,7 @@ CONTROLLER_GET_BOOL(HasPaddles)
  * Controller.GetButton
  * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Integer): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
  * \return Returns the button value from the controller at the index.
  * \ns Controller
  */
@@ -1401,7 +1401,7 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.GetAxis
  * \desc Gets the <linkto ref="Axis_*">axis</linkto> value from the controller at the index.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param axisIndex (Integer): Index of the <linkto ref="Axis_*">axis</linkto> to check.
+ * \param axisIndex (Enum): Index of the <linkto ref="Axis_*">axis</linkto> to check.
  * \return Returns the axis value from the controller at the index.
  * \ns Controller
  */
@@ -4055,7 +4055,7 @@ VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetBlendMode
  * \desc Sets the <linkto ref="BlendMode_*">blend mode</linkto> used for drawing.
- * \param blendMode (Integer): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
+ * \param blendMode (Enum): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
  * \return
  * \ns Draw
  */
@@ -4072,8 +4072,8 @@ VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetBlendFactor
  * \desc Sets the <linkto ref="BlendFactor_*">blend factors</linkto> used for drawing. (Only for hardware-rendering)
- * \param sourceFactor (Integer): <linkto ref="BlendFactor_*">Source factor</linkto> for blending.
- * \param destinationFactor (Integer): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending.
+ * \param sourceFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending.
+ * \param destinationFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending.
  * \return
  * \ns Draw
  */
@@ -4087,10 +4087,10 @@ VMValue Draw_SetBlendFactor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetBlendFactorExtended
  * \desc Sets all the <linkto ref="BlendFactor_*">blend factors</linkto> used for drawing. (Only for hardware-rendering)
- * \param sourceColorFactor (Integer): <linkto ref="BlendFactor_*">Source factor</linkto> for blending color.
- * \param destinationColorFactor (Integer): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending color.
- * \param sourceAlphaFactor (Integer): <linkto ref="BlendFactor_*">Source factor</linkto> for blending alpha.
- * \param destinationAlphaFactor (Integer): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending alpha.
+ * \param sourceColorFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending color.
+ * \param destinationColorFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending color.
+ * \param sourceAlphaFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending alpha.
+ * \param destinationAlphaFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending alpha.
  * \return
  * \ns Draw
  */
@@ -4141,7 +4141,7 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetTintMode
  * \desc Sets the <linkto ref="TintMode_*">tint mode</linkto> used for drawing.
- * \param tintMode (Integer): The desired <linkto ref="TintMode_*">tint mode</linkto>.
+ * \param tintMode (Enum): The desired <linkto ref="TintMode_*">tint mode</linkto>.
  * \return
  * \ns Draw
  */
@@ -4170,7 +4170,7 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
- * \param filterType (Integer): The <linkto ref="Filter_*">filter type</linkto>.
+ * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
  * \ns Draw
  */
 VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
@@ -4181,6 +4181,99 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
     SoftwareRenderer::SetFilter(filterType);
+    return NULL_VAL;
+}
+/***
+ * Draw.UseStencil
+ * \desc Enables or disables stencil operations.
+ * \param enabled (Boolean): Whether to enable or disable stencil operations.
+ * \ns Draw
+ */
+VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    SoftwareRenderer::SetStencilEnabled(!!GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetStencilTestFunction
+ * \desc Sets a <linkto ref="StencilTest_*">stencil test</linkto> function.
+ * \param stencilTest (Enum): One of the <linkto ref="StencilTest_*">stencil test</linkto> functions.
+ * \ns Draw
+ */
+VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int stencilTest = GET_ARG(0, GetInteger);
+    if (stencilTest < StencilTest_Never || stencilTest > StencilTest_GEqual) {
+        OUT_OF_RANGE_ERROR("Stencil test function", stencilTest, StencilTest_Never, StencilTest_GEqual);
+        return NULL_VAL;
+    }
+    SoftwareRenderer::SetStencilTestFunc(stencilTest);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetStencilPassOperation
+ * \desc Sets a <linkto ref="StencilTest_*">stencil operation</linkto> for when the stencil test passes.
+ * \param stencilOp (Enum): One of the <linkto ref="StencilTest_*">stencil operations</linkto>.
+ * \ns Draw
+ */
+VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int stencilOp = GET_ARG(0, GetInteger);
+    if (stencilOp < StencilOp_Keep || stencilOp > StencilOp_DecrWrap) {
+        OUT_OF_RANGE_ERROR("Stencil operation", stencilOp, StencilOp_Keep, StencilOp_DecrWrap);
+        return NULL_VAL;
+    }
+    SoftwareRenderer::SetStencilPassFunc(stencilOp);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetStencilFailOperation
+ * \desc Sets a <linkto ref="StencilTest_*">stencil operation</linkto> for when the stencil test fails.
+ * \param stencilOp (Enum): One of the <linkto ref="StencilTest_*">stencil operations</linkto>.
+ * \ns Draw
+ */
+VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int stencilOp = GET_ARG(0, GetInteger);
+    if (stencilOp < StencilOp_Keep || stencilOp > StencilOp_DecrWrap) {
+        OUT_OF_RANGE_ERROR("Stencil operation", stencilOp, StencilOp_Keep, StencilOp_DecrWrap);
+        return NULL_VAL;
+    }
+    SoftwareRenderer::SetStencilFailFunc(stencilOp);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetStencilValue
+ * \desc Sets the stencil value.
+ * \param value (Integer): The stencil value. This value is clamped by the stencil buffer's bit depth.
+ * \ns Draw
+ */
+VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int value = GET_ARG(0, GetInteger);
+    SoftwareRenderer::SetStencilValue(value);
+    return NULL_VAL;
+}
+/***
+ * Draw.SetStencilMask
+ * \desc Sets the mask used for all stencil tests.
+ * \param mask (Integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.
+ * \ns Draw
+ */
+VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int mask = GET_ARG(0, GetInteger);
+    SoftwareRenderer::SetStencilMask(mask);
+    return NULL_VAL;
+}
+/***
+ * Draw.ClearStencil
+ * \desc Clears the stencil.
+ * \ns Draw
+ */
+VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    SoftwareRenderer::ClearStencil();
     return NULL_VAL;
 }
 /***
@@ -9725,7 +9818,7 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.SetLayerDrawBehavior
  * \desc Sets the parallax direction of the layer. See <linkto ref="DrawBehavior_*"></linkto> for a list of accepted draw behaviors.
  * \param layerIndex (Integer): Index of layer.
- * \param drawBehavior (Integer): The <linkto ref="DrawBehavior_*">draw behavior</linkto>.
+ * \param drawBehavior (Enum): The <linkto ref="DrawBehavior_*">draw behavior</linkto>.
  * \ns Scene
  */
 VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID) {
@@ -9788,7 +9881,7 @@ VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
  * \desc Sets whether or not to use color and alpha blending on this layer. See <linkto ref="BlendMode_*"></linkto> for a list of accepted blend modes.
  * \param layerIndex (Integer): Index of layer.
  * \param doBlend (Boolean): Whether or not to use blending.
- * \paramOpt blendMode (Integer): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
+ * \paramOpt blendMode (Enum): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
  * \ns Scene
  */
 VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -10173,7 +10266,7 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
  * Scene3D.SetDrawMode
  * \desc Sets the <linkto ref="DrawMode_*">draw mode</linkto> of the 3D scene.
  * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param drawMode (Integer): The type of drawing to use for the vertices in the 3D scene. See <linkto ref="DrawMode_*"></linkto> for a list of accepted draw modes.
+ * \param drawMode (Enum): The type of drawing to use for the vertices in the 3D scene. See <linkto ref="DrawMode_*"></linkto> for a list of accepted draw modes.
  * \return
  * \ns Scene3D
  */
@@ -10189,7 +10282,7 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
  * Scene3D.SetFaceCullMode
  * \desc Sets the <linkto ref="FaceCull_*">face culling mode</linkto> of the 3D scene. (hardware-renderer only)
  * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param cullMode (Integer): The type of face culling to use for the vertices in the 3D scene. See <linkto ref="FaceCull_*"></linkto> for a list of accepted face cull modes.
+ * \param cullMode (Enum): The type of face culling to use for the vertices in the 3D scene. See <linkto ref="FaceCull_*"></linkto> for a list of accepted face cull modes.
  * \return
  * \ns Scene3D
  */
@@ -10374,7 +10467,7 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
  * Scene3D.SetFogEquation
  * \desc Sets the <linkto ref="FogEquation_*">fog equation</linkto> of the 3D scene. (software-renderer only) 
  * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param fogEquation (Integer): The <linkto ref="FogEquation_*">fog equation</linkto> to use.
+ * \param fogEquation (Enum): The <linkto ref="FogEquation_*">fog equation</linkto> to use.
  * \return
  * \ns Scene3D
  */
@@ -11666,7 +11759,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
  * Stream.FromFile
  * \desc Opens a stream from a file. See <linkto ref="FileStream_*"></linkto> for a list of accepted file access modes.
  * \param filename (String): Path of the file.
- * \param mode (Integer): <linkto ref="FileStream_*">File access mode</linkto>.
+ * \param mode (Enum): <linkto ref="FileStream_*">File access mode</linkto>.
  * \return Returns the newly opened stream.
  * \ns Stream
  */
@@ -14705,6 +14798,13 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetTintMode);
     DEF_NATIVE(Draw, UseTinting);
     DEF_NATIVE(Draw, SetFilter);
+    DEF_NATIVE(Draw, UseStencil);
+    DEF_NATIVE(Draw, SetStencilTestFunction);
+    DEF_NATIVE(Draw, SetStencilPassOperation);
+    DEF_NATIVE(Draw, SetStencilFailOperation);
+    DEF_NATIVE(Draw, SetStencilValue);
+    DEF_NATIVE(Draw, SetStencilMask);
+    DEF_NATIVE(Draw, ClearStencil);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
     DEF_NATIVE(Draw, Ellipse);
@@ -14892,6 +14992,88 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Invert filter.
     */
     DEF_ENUM(Filter_INVERT);
+
+    /***
+    * \enum StencilTest_Never
+    * \desc Always fails.
+    */
+    DEF_ENUM(StencilTest_Never);
+    /***
+    * \enum StencilTest_Always
+    * \desc Always passes.
+    */
+    DEF_ENUM(StencilTest_Always);
+    /***
+    * \enum StencilTest_Equal
+    * \desc Does an "equals" operation.
+    */
+    DEF_ENUM(StencilTest_Equal);
+    /***
+    * \enum StencilTest_NotEqual
+    * \desc Does a "not equal" operation.
+    */
+    DEF_ENUM(StencilTest_NotEqual);
+    /***
+    * \enum StencilTest_Less
+    * \desc Does a "less than" operation.
+    */
+    DEF_ENUM(StencilTest_Less);
+    /***
+    * \enum StencilTest_Greater
+    * \desc Does a "greater than" operation.
+    */
+    DEF_ENUM(StencilTest_Greater);
+    /***
+    * \enum StencilTest_LEqual
+    * \desc Does a "less than or equal to" operation.
+    */
+    DEF_ENUM(StencilTest_LEqual);
+    /***
+    * \enum StencilTest_GEqual
+    * \desc Does a "greater than or equal to" operation.
+    */
+    DEF_ENUM(StencilTest_GEqual);
+
+    /***
+    * \enum StencilOp_Keep
+    * \desc Doesn't modify the stencil buffer value (keeps it the same.)
+    */
+    DEF_ENUM(StencilOp_Keep);
+    /***
+    * \enum StencilOp_Zero
+    * \desc Sets the stencil buffer value to zero.
+    */
+    DEF_ENUM(StencilOp_Zero);
+    /***
+    * \enum StencilOp_Incr
+    * \desc Increases the stencil buffer value, saturating it if it would wrap around (the value is set to a specific maximum.)
+    */
+    DEF_ENUM(StencilOp_Incr);
+    /***
+    * \enum StencilOp_Decr
+    * \desc Increases the stencil buffer value, setting it to zero if it would wrap around.
+    */
+    DEF_ENUM(StencilOp_Decr);
+    /***
+    * \enum StencilOp_Invert
+    * \desc Inverts the bits of the stencil buffer value.
+    */
+    DEF_ENUM(StencilOp_Invert);
+    /***
+    * \enum StencilOp_Replace
+    * \desc Replaces the bits of the stencil buffer value with the masked value.
+    */
+    DEF_ENUM(StencilOp_Replace);
+    /***
+    * \enum StencilOp_IncrWrap
+    * \desc Increases the stencil buffer value, letting it wrap around.
+    */
+    DEF_ENUM(StencilOp_IncrWrap);
+    /***
+    * \enum StencilOp_DecrWrap
+    * \desc Increases the stencil buffer value, letting it wrap around.
+    */
+    DEF_ENUM(StencilOp_DecrWrap);
 
     /***
     * \enum BlendFactor_ZERO
