@@ -4327,6 +4327,28 @@ VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.SetHorizontalDotMaskOffset
+ * \desc Sets the offset of the horizontal dot mask.
+ * \param offsetH (Integer): The offset.
+ * \ns Draw
+ */
+VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    SoftwareRenderer::SetDotMaskOffsetH(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Draw.SetVerticalDotMaskOffset
+ * \desc Sets the offset of the vertical dot mask.
+ * \param offsetV (Integer): The offset.
+ * \ns Draw
+ */
+VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    SoftwareRenderer::SetDotMaskOffsetV(GET_ARG(0, GetInteger));
+    return NULL_VAL;
+}
+/***
  * Draw.Line
  * \desc Draws a line.
  * \param x1 (Number): X position of where to start drawing the line.
@@ -14872,6 +14894,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SetDotMask);
     DEF_NATIVE(Draw, SetHorizontalDotMask);
     DEF_NATIVE(Draw, SetVerticalDotMask);
+    DEF_NATIVE(Draw, SetHorizontalDotMaskOffset);
+    DEF_NATIVE(Draw, SetVerticalDotMaskOffset);
     DEF_NATIVE(Draw, Line);
     DEF_NATIVE(Draw, Circle);
     DEF_NATIVE(Draw, Ellipse);

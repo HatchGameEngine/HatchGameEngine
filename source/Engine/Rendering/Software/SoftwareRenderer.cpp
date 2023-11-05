@@ -94,6 +94,9 @@ size_t StencilBufferSize = 0;
 Uint8 DotMaskH = 0;
 Uint8 DotMaskV = 0;
 
+int DotMaskOffsetH = 0;
+int DotMaskOffsetV = 0;
+
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
@@ -116,6 +119,8 @@ PUBLIC STATIC void     SoftwareRenderer::Init() {
     UseSpriteDeform = false;
 
     SetDotMask(0);
+    SetDotMaskOffsetH(0);
+    SetDotMaskOffsetV(0);
 }
 PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
@@ -794,11 +799,17 @@ PUBLIC STATIC void SoftwareRenderer::SetDotMaskV(int mask) {
 
     DotMaskV = mask;
 }
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
+    DotMaskOffsetH = offset;
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
+    DotMaskOffsetV = offset;
+}
 
 PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-    unsigned x = pos % Graphics::CurrentRenderTarget->Width;
+    int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
     if (x & DotMaskH)
         return;
 
@@ -810,7 +821,7 @@ PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, Ble
 PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-    unsigned y = pos / Graphics::CurrentRenderTarget->Width;
+    int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
     if (y & DotMaskV)
         return;
 
@@ -822,8 +833,8 @@ PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, Ble
 PUBLIC STATIC void SoftwareRenderer::PixelDotMaskHV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-    unsigned x = pos % Graphics::CurrentRenderTarget->Width;
-    unsigned y = pos / Graphics::CurrentRenderTarget->Width;
+    int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
+    int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
     if (x & DotMaskH || y & DotMaskV)
         return;
 
