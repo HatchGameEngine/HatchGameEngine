@@ -1172,7 +1172,7 @@ DoCheckRender:
                 else
                     Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 
-                Graphics::DrawSceneLayer(layer, currentView);
+                Graphics::DrawSceneLayer(layer, currentView, (int)li, true);
                 Graphics::ClearClip();
 
                 Graphics::Restore();

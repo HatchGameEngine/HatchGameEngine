@@ -2175,6 +2175,22 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.Layer
+ * \desc Draws a layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \ns Draw
+ */
+VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    if (index < 0 || index >= (int)Scene::Layers.size()) {
+        OUT_OF_RANGE_ERROR("Layer index", index, 0, (int)Scene::Layers.size() - 1);
+        return NULL_VAL;
+    }
+    Graphics::DrawSceneLayer(&Scene::Layers[index], &Scene::Views[Scene::ViewCurrent], index, false);
+    return NULL_VAL;
+}
+/***
  * Draw.View
  * \desc Draws a view.
  * \param viewIndex (Integer): Index of the view.
@@ -10217,6 +10233,26 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Scene.SetLayerCustomRenderFunction
+ * \desc Sets the function to be used for rendering a specific layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param function (Function): Function to call to render the layer. (Use <code>null</code> to reset functionality.)
+ * \ns Scene
+ */
+VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    if (args[0].Type == VAL_NULL) {
+        Scene::Layers[index].UsingCustomRenderFunction = false;
+    }
+    else {
+        ObjFunction* function = GET_ARG(1, GetFunction);
+        Scene::Layers[index].CustomRenderFunction = *function;
+        Scene::Layers[index].UsingCustomRenderFunction = true;
+    }
+    return NULL_VAL;
+}
+/***
  * Scene.SetObjectViewRender
  * \desc Sets whether or not objects can render on the specified view.
  * \param viewIndex (Integer): Index of the view.
@@ -14765,6 +14801,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ImagePart);
     DEF_NATIVE(Draw, ImageSized);
     DEF_NATIVE(Draw, ImagePartSized);
+    DEF_NATIVE(Draw, Layer);
     DEF_NATIVE(Draw, View);
     DEF_NATIVE(Draw, ViewPart);
     DEF_NATIVE(Draw, ViewSized);
@@ -15751,6 +15788,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerDeformOffsetB);
     DEF_NATIVE(Scene, SetLayerCustomScanlineFunction);
     DEF_NATIVE(Scene, SetTileScanline);
+    DEF_NATIVE(Scene, SetLayerCustomRenderFunction);
     DEF_NATIVE(Scene, SetObjectViewRender);
     DEF_NATIVE(Scene, SetTileViewRender);
 

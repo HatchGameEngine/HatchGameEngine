@@ -309,6 +309,7 @@
                     <li><a href="#Reference_functions_Draw_ImagePart">Draw.ImagePart</a></li>
                     <li><a href="#Reference_functions_Draw_ImageSized">Draw.ImageSized</a></li>
                     <li><a href="#Reference_functions_Draw_ImagePartSized">Draw.ImagePartSized</a></li>
+                    <li><a href="#Reference_functions_Draw_Layer">Draw.Layer</a></li>
                     <li><a href="#Reference_functions_Draw_View">Draw.View</a></li>
                     <li><a href="#Reference_functions_Draw_ViewPart">Draw.ViewPart</a></li>
                     <li><a href="#Reference_functions_Draw_ViewSized">Draw.ViewSized</a></li>
@@ -888,6 +889,7 @@
                     <li><a href="#Reference_functions_Scene_SetLayerDeformOffsetB">Scene.SetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerCustomScanlineFunction">Scene.SetLayerCustomScanlineFunction</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileScanline">Scene.SetTileScanline</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerCustomRenderFunction">Scene.SetLayerCustomRenderFunction</a></li>
                     <li><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileViewRender">Scene.SetTileViewRender</a></li>
                 </ul>
@@ -2637,6 +2639,15 @@
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
         <li>height (Number): Height to draw the image.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Layer">
+        <h2 style="margin-bottom: 8px;">Draw.Layer</h2>
+        <code>Draw.Layer(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_View">
@@ -6748,6 +6759,16 @@
         <li>maxVertCells (Number):</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetLayerCustomRenderFunction">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerCustomRenderFunction</h2>
+        <code>Scene.SetLayerCustomRenderFunction(layerIndex, function)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the function to be used for rendering a specific layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>function (Function): Function to call to render the layer. (Use <code>null</code> to reset functionality.)</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetObjectViewRender">
         <h2 style="margin-bottom: 8px;">Scene.SetObjectViewRender</h2>
         <code>Scene.SetObjectViewRender(viewIndex, enableViewRender)</code>
@@ -8891,7 +8912,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>654 out of 713 functions have descriptions. </p>
+        <p>656 out of 715 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

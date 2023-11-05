@@ -3259,9 +3259,14 @@ scanlineDone:
         dst_strideY += dstStride;
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView) {
+PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
+    if (layer->UsingCustomRenderFunction && useCustomFunction) {
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+        return;
+    }
+
     if (layer->UsingCustomScanlineFunction && layer->DrawBehavior == DrawBehavior_CustomTileScanLines) {
-        BytecodeObjectManager::Threads[0].RunFunction(&layer->CustomScanlineFunction, 0);
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
     }
     else {
         SoftwareRenderer::DrawSceneLayer_InitTileScanLines(layer, currentView);

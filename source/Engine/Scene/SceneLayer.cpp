@@ -50,6 +50,9 @@ public:
     bool              UsingCustomScanlineFunction = false;
     ObjFunction       CustomScanlineFunction;
 
+    bool              UsingCustomRenderFunction = false;
+    ObjFunction       CustomRenderFunction;
+
     int               ScrollInfoCount = 0;
     ScrollingInfo*    ScrollInfos = NULL;
     int               ScrollInfosSplitIndexesCount = 0;

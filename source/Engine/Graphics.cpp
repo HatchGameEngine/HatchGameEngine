@@ -1117,10 +1117,15 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 PUBLIC STATIC void     Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
 
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView) {
+PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
     // If possible, uses optimized software-renderer call instead.
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-        SoftwareRenderer::DrawSceneLayer(layer, currentView);
+        SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
+        return;
+    }
+
+    if (layer->UsingCustomRenderFunction && useCustomFunction) {
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
         return;
     }
 
@@ -1134,6 +1139,16 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
         // case DrawBehavior_VerticalParallax:
         //  Graphics::DrawSceneLayer_VerticalParallax(layer, currentView);
             break;
+    }
+}
+PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
+    VMThread* thread = &BytecodeObjectManager::Threads[0];
+    if (func->Arity == 1) {
+        thread->Push(INTEGER_VAL(layerIndex));
+        thread->RunEntityFunction(func, 1);
+    }
+    else {
+        thread->RunEntityFunction(func, 0);
     }
 }
 
