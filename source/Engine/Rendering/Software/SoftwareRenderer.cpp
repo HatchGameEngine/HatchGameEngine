@@ -718,17 +718,18 @@ PUBLIC STATIC void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
     if (!UseStencil)
         return;
 
-    size_t bufSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
-
-    if (StencilBuffer == NULL || bufSize != StencilBufferSize) {
-        StencilBufferSize = bufSize;
-        StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
-    }
-
-    SoftwareRenderer::ClearStencil();
+    SoftwareRenderer::ReallocStencil();
 }
 PUBLIC STATIC bool     SoftwareRenderer::GetStencilEnabled() {
     return UseStencil;
+}
+PUBLIC STATIC void     SoftwareRenderer::ReallocStencil() {
+    size_t bufSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
+    if (StencilBuffer == NULL || bufSize > StencilBufferSize) {
+        StencilBufferSize = bufSize;
+        StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
+        SoftwareRenderer::ClearStencil();
+    }
 }
 PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
     if (StencilBuffer)
@@ -779,6 +780,7 @@ PUBLIC STATIC void     SoftwareRenderer::SetStencilMask(int mask) {
 PUBLIC STATIC void     SoftwareRenderer::FreeStencilBuffer() {
     Memory::Free(StencilBuffer);
     StencilBuffer = NULL;
+    StencilBufferSize = 0;
 }
 
 PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
@@ -1366,7 +1368,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     }
 
 #undef SET_BLENDFLAG_AND_OPACITY
-#undef CHECK_TEXTURE
 
 #undef PROJECT_X
 #undef PROJECT_Y
@@ -1437,6 +1438,9 @@ PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
     else
         CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
+    if (UseStencil)
+        SoftwareRenderer::ReallocStencil();
+
     if (DotMaskH || DotMaskV) {
         if (DotMaskH && DotMaskV)
             return SoftwareRenderer::PixelDotMaskHV;
@@ -1449,6 +1453,52 @@ PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
         return SoftwareRenderer::PixelStencil;
 
     return CurrentPixelFunction;
+}
+
+static void DoLineStroke(int dst_x1, int dst_y1, int dst_x2, int dst_y2, PixelFunction pixelFunction, Uint32 col, BlendState& blendState, int* multTableAt, int* multSubTableAt, Uint32* dstPx, Uint32 dstStride) {
+    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
+    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
+
+    if (dy == 0) {
+        int dst_strideY = dst_y1 * dstStride;
+        while (dst_x1 < dst_x2) {
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_strideY], blendState, multTableAt, multSubTableAt);
+            dst_x1++;
+        }
+        return;
+    }
+    else if (dx == 0) {
+        int dst_strideY = dst_y1 * dstStride;
+        while (dst_y1 < dst_y2) {
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_strideY], blendState, multTableAt, multSubTableAt);
+            dst_strideY += dstStride;
+            dst_y1++;
+        }
+        return;
+    }
+
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+    while (true) {
+        pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt);
+        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break;
+        e2 = err;
+        if (e2 > -dx) { err -= dy; dst_x1 += sx; }
+        if (e2 <  dy) { err += dx; dst_y1 += sy; }
+    }
+}
+static void DoLineStrokeBounded(int dst_x1, int dst_y1, int dst_x2, int dst_y2, int minX, int maxX, int minY, int maxY, PixelFunction pixelFunction, Uint32 col, BlendState& blendState, int* multTableAt, int* multSubTableAt, Uint32* dstPx, Uint32 dstStride) {
+    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
+    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+
+    while (true) {
+        if (dst_x1 >= minX && dst_y1 >= minY && dst_x1 < maxX && dst_y1 < maxY)
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt);
+        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break;
+        e2 = err;
+        if (e2 > -dx) { err -= dy; dst_x1 += sx; }
+        if (e2 <  dy) { err += dx; dst_y1 += sy; }
+    }
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
@@ -1479,9 +1529,146 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     if (!CheckClipRegion(minX, minY, maxX, maxY))
         return;
 
-    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
-    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
-    int err = (dx > dy ? dx : -dy) / 2, e2;
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+    DoLineStrokeBounded(dst_x1, dst_y1, dst_x2, dst_y2, minX, maxX, minY, maxY, pixelFunction, ColRGB, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
+}
+PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int dst_x1 = x - rad - 1;
+    int dst_y1 = y - rad - 1;
+    int dst_x2 = x + rad + 1;
+    int dst_y2 = y + rad + 1;
+
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+
+    #define DRAW_POINT(our_x, our_y) \
+        if ((our_x) >= dst_x1 && (our_x) < dst_x2 && (our_y) >= dst_y1 && (our_y) < dst_y2) { \
+            int dst_strideY = (our_y) * dstStride; \
+            pixelFunction((Uint32*)&col, &dstPx[(our_x) + dst_strideY], blendState, multTableAt, multSubTableAt); \
+        }
+
+    Uint32 col = ColRGB;
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+    int ccx = x, ccy = y;
+    int bx = 0, by = rad;
+    int bd = 3 - 2 * rad;
+    while (bx <= by) {
+        DRAW_POINT(ccx + bx, ccy - by);
+        DRAW_POINT(ccx - bx, ccy - by);
+        DRAW_POINT(ccx + by, ccy - bx);
+        DRAW_POINT(ccx - by, ccy - bx);
+        ccy--;
+        DRAW_POINT(ccx + bx, ccy + by);
+        DRAW_POINT(ccx - bx, ccy + by);
+        DRAW_POINT(ccx + by, ccy + bx);
+        DRAW_POINT(ccx - by, ccy + bx);
+        ccy++;
+        if (bd <= 0) {
+            bd += 4 * bx + 6;
+        }
+        else {
+            bd += 4 * (bx - by) + 10;
+            by--;
+        }
+        bx++;
+    }
+
+    #undef DRAW_POINT
+}
+PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
+
+}
+PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int dst_x1 = x;
+    int dst_y1 = y;
+    int dst_x2 = x + w;
+    int dst_y2 = y + h;
+
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+        return;
 
     BlendState blendState = GetBlendState();
     if (!AlterBlendState(blendState))
@@ -1494,30 +1681,22 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SetTintFunction(blendFlag);
 
-    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
-
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
 
-    while (true) {
-        if (dst_x1 >= minX && dst_y1 >= minY && dst_x1 < maxX && dst_y1 < maxY)
-            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt);
-        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break;
-        e2 = err;
-        if (e2 > -dx) { err -= dy; dst_x1 += sx; }
-        if (e2 <  dy) { err += dx; dst_y1 += sy; }
-    }
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
 
-    #undef DRAW_LINE
-}
-PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad) {
+    // top
+    DoLineStroke(dst_x1, dst_y1, dst_x2, dst_y1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 
-}
-PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
+    // bottom
+    DoLineStroke(dst_x1, dst_y2 - 1, dst_x2, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 
-}
-PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
+    // left
+    DoLineStroke(dst_x1, dst_y1 + 1, dst_x1, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 
+    // right
+    DoLineStroke(dst_x2 - 1, dst_y1 + 1, dst_x2 - 1, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 }
 
 PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad) {
@@ -1536,10 +1715,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     x -= cx;
     y -= cy;
 
-    int dst_x1 = x - rad;
-    int dst_y1 = y - rad;
-    int dst_x2 = x + rad;
-    int dst_y2 = y + rad;
+    int dst_x1 = x - rad - 1;
+    int dst_y1 = y - rad - 1;
+    int dst_x2 = x + rad + 1;
+    int dst_y2 = y + rad + 1;
 
     int clip_x1, clip_y1, clip_x2, clip_y2;
     GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
@@ -1583,14 +1762,6 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int bx = 0, by = rad;
     int bd = 3 - 2 * rad;
     while (bx <= by) {
-        if (bd <= 0) {
-            bd += 4 * bx + 6;
-        }
-        else {
-            bd += 4 * (bx - by) + 10;
-            by--;
-        }
-        bx++;
         SEEK_MAX(ccx + bx, ccy - by);
         SEEK_MIN(ccx - bx, ccy - by);
         SEEK_MAX(ccx + by, ccy - bx);
@@ -1601,6 +1772,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
         SEEK_MAX(ccx + by, ccy + bx);
         SEEK_MIN(ccx - by, ccy + bx);
         ccy++;
+        if (bd <= 0) {
+            bd += 4 * bx + 6;
+        }
+        else {
+            bd += 4 * (bx - by) + 10;
+            by--;
+        }
+        bx++;
     }
 
     Uint32 col = ColRGB;
@@ -1645,8 +1824,6 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
             dst_strideY += dstStride;
         }
     }
-
-    #undef DRAW_CIRCLE
 }
 PUBLIC STATIC void     SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
 
