@@ -81,7 +81,11 @@ Uint8 ColG;
 Uint8 ColB;
 Uint32 ColRGB;
 
-Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32) = NULL;
+typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
+typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
+
+PixelFunction CurrentPixelFunction = NULL;
+TintFunction CurrentTintFunction = NULL;
 
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
@@ -495,8 +499,6 @@ PUBLIC STATIC bool     SoftwareRenderer::AlterBlendState(BlendState& state) {
     return true;
 }
 
-typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
-
 // Filterless versions
 #define ISOLATE_R(color) (color & 0xFF0000)
 #define ISOLATE_G(color) (color & 0x00FF00)
@@ -550,27 +552,27 @@ static PixelFunction PixelNoFiltFunctions[] = {
 
 // Tinted versions
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetTransparent(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetAdditive(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetSubtract(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 
 static PixelFunction PixelTintFunctions[] = {
@@ -604,22 +606,22 @@ static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlags) {
-    Uint32 (*tintFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+    TintFunction tintFunctions[] = {
         TintNormalSource,
         TintNormalDest,
         TintBlendSource,
         TintBlendDest
     };
 
-    Uint32 (*filterFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+    TintFunction filterFunctions[] = {
         TintFilterSource,
         TintFilterDest
     };
 
     if (blendFlags & BlendFlag_FILTER_BIT)
-        TintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
+        CurrentTintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
     else if (blendFlags & BlendFlag_TINT_BIT)
-        TintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
+        CurrentTintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
 }
 
 // TODO: Material support
