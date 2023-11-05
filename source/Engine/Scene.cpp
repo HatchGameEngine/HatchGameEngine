@@ -1306,6 +1306,8 @@ PUBLIC STATIC void Scene::Render() {
     }
 
     Graphics::CurrentView = NULL;
+
+    Scene::ViewCurrent = -1;
 }
 
 PUBLIC STATIC void Scene::AfterScene() {
@@ -1355,6 +1357,7 @@ PRIVATE STATIC int Scene::GetPersistenceScopeForObjectDeletion() {
 
 PUBLIC STATIC void Scene::Restart() {
     Scene::ViewCurrent = 0;
+    Graphics::CurrentView = NULL;
 
     View* currentView = &Scene::Views[Scene::ViewCurrent];
     currentView->X = 0.0f;
@@ -2531,6 +2534,11 @@ PUBLIC STATIC void Scene::Dispose() {
         if (Scene::Views[i].BaseProjectionMatrix) {
             delete Scene::Views[i].BaseProjectionMatrix;
             Scene::Views[i].BaseProjectionMatrix = NULL;
+        }
+
+        if (Scene::Views[i].UseStencil) {
+            Scene::Views[i].DeleteStencil();
+            Scene::Views[i].UseStencil = false;
         }
     }
 

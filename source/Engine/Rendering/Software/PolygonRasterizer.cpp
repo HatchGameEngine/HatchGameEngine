@@ -247,7 +247,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    if (!SoftwareRenderer::GetStencilEnabled() && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+    if (!SoftwareRenderer::IsStencilEnabled() && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Contour contour = ContourField[dst_y];
             if (contour.MaxX < contour.MinX) {
@@ -1304,8 +1304,7 @@ PUBLIC STATIC void     PolygonRasterizer::SetDepthTest(bool enabled) {
         return;
 
     size_t dpSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
-
-    if (DepthBuffer == NULL || dpSize != DepthBufferSize) {
+    if (DepthBuffer == NULL || dpSize > DepthBufferSize) {
         DepthBufferSize = dpSize;
         DepthBuffer = (Uint32*)Memory::Realloc(DepthBuffer, DepthBufferSize * sizeof(*DepthBuffer));
     }

@@ -75,6 +75,15 @@ struct GraphicsFunctions {
     void     (*MakeFrameBufferID)(ISprite* sprite, AnimFrame* frame);
     void     (*DeleteFrameBufferID)(AnimFrame* frame);
 
+    void     (*SetStencilEnabled)(bool enabled);
+    bool     (*IsStencilEnabled)();
+    void     (*SetStencilTestFunc)(int stencilTest);
+    void     (*SetStencilPassFunc)(int stencilOp);
+    void     (*SetStencilFailFunc)(int stencilOp);
+    void     (*SetStencilValue)(int value);
+    void     (*SetStencilMask)(int mask);
+    void     (*ClearStencil)();
+
     void     (*SetDepthTesting)(bool enabled);
 };
 

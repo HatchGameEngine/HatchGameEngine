@@ -488,8 +488,7 @@ PRIVATE STATIC void Application::Restart() {
     BytecodeObjectManager::LoadAllClasses = false;
     BytecodeObject::DisableAutoAnimate = false;
 
-    Graphics::UseSoftwareRenderer = false;
-    Graphics::UsePalettes = false;
+    Graphics::Reset();
 
     Application::LoadGameConfig();
     Application::LoadGameInfo();

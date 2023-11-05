@@ -20,7 +20,6 @@ public:
     static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
     static bool              UseSpriteDeform;
     static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static Uint8*            StencilBuffer;
     static int               MultTable[0x10000];
     static int               MultTableInv[0x10000];
     static int               MultSubTable[0x10000];
@@ -48,7 +47,6 @@ TileScanLine      SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32            SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool              SoftwareRenderer::UseSpriteDeform = false;
 Contour           SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-Uint8*            SoftwareRenderer::StencilBuffer = NULL;
 int               SoftwareRenderer::MultTable[0x10000];
 int               SoftwareRenderer::MultTableInv[0x10000];
 int               SoftwareRenderer::MultSubTable[0x10000];
@@ -118,8 +116,6 @@ PUBLIC STATIC void     SoftwareRenderer::Init() {
     UseSpriteDeform = false;
 
     SetDotMask(0);
-    FreeStencilBuffer();
-    ResetStencilFuncs();
 }
 PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
@@ -218,6 +214,15 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.UnbindVertexBuffer = SoftwareRenderer::UnbindVertexBuffer;
     SoftwareRenderer::BackendFunctions.BindScene3D = SoftwareRenderer::BindScene3D;
     SoftwareRenderer::BackendFunctions.DrawScene3D = SoftwareRenderer::DrawScene3D;
+
+    SoftwareRenderer::BackendFunctions.SetStencilEnabled = SoftwareRenderer::SetStencilEnabled;
+    SoftwareRenderer::BackendFunctions.IsStencilEnabled = SoftwareRenderer::IsStencilEnabled;
+    SoftwareRenderer::BackendFunctions.SetStencilTestFunc = SoftwareRenderer::SetStencilTestFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilPassFunc = SoftwareRenderer::SetStencilPassFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilFailFunc = SoftwareRenderer::SetStencilFailFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilValue = SoftwareRenderer::SetStencilValue;
+    SoftwareRenderer::BackendFunctions.SetStencilMask = SoftwareRenderer::SetStencilMask;
+    SoftwareRenderer::BackendFunctions.ClearStencil = SoftwareRenderer::ClearStencil;
 
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
@@ -714,31 +719,13 @@ StencilOpFunction StencilFuncPass = StencilOpKeep;
 StencilOpFunction StencilFuncFail = StencilOpKeep;
 
 PUBLIC STATIC void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
-    UseStencil = enabled;
-    if (!UseStencil)
-        return;
-
-    SoftwareRenderer::ReallocStencil();
-}
-PUBLIC STATIC bool     SoftwareRenderer::GetStencilEnabled() {
-    return UseStencil;
-}
-PUBLIC STATIC void     SoftwareRenderer::ReallocStencil() {
-    size_t bufSize = Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
-    if (StencilBuffer == NULL || bufSize > StencilBufferSize) {
-        StencilBufferSize = bufSize;
-        StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
-        SoftwareRenderer::ClearStencil();
+    if (Scene::ViewCurrent >= 0) {
+        UseStencil = enabled;
+        Scene::Views[Scene::ViewCurrent].SetStencilEnabled(enabled);
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
-    if (StencilBuffer)
-        memset(StencilBuffer, 0x00, StencilBufferSize * sizeof(*StencilBuffer));
-}
-PUBLIC STATIC void     SoftwareRenderer::ResetStencilFuncs() {
-    StencilFuncTest = StencilTestAlways;
-    StencilFuncPass = StencilOpKeep;
-    StencilFuncFail = StencilOpKeep;
+PUBLIC STATIC bool     SoftwareRenderer::IsStencilEnabled() {
+    return UseStencil;
 }
 PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
     StencilTestFunction funcList[] = {
@@ -764,29 +751,21 @@ PUBLIC STATIC void     SoftwareRenderer::SetStencilFailFunc(int stencilOp) {
         StencilFuncFail = StencilOpFunctionList[stencilOp];
 }
 PUBLIC STATIC void     SoftwareRenderer::SetStencilValue(int value) {
-    if (value < 0)
-        value = 0;
-    else if (value > 255)
-        value = 255;
     StencilValue = value;
 }
 PUBLIC STATIC void     SoftwareRenderer::SetStencilMask(int mask) {
-    if (mask < 0)
-        mask = 0;
-    else if (mask > 255)
-        mask = 255;
     StencilMask = mask;
 }
-PUBLIC STATIC void     SoftwareRenderer::FreeStencilBuffer() {
-    Memory::Free(StencilBuffer);
-    StencilBuffer = NULL;
-    StencilBufferSize = 0;
+PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
+    if (UseStencil && Graphics::CurrentView)
+        Graphics::CurrentView->ClearStencil();
 }
 
 PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-    Uint8* buffer = &StencilBuffer[pos];
+    View* currentView = Graphics::CurrentView;
+    Uint8* buffer = &currentView->StencilBuffer[pos];
     if (StencilFuncTest(buffer, StencilValue, StencilMask)) {
         CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
         StencilFuncPass(buffer, StencilValue);
@@ -946,7 +925,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     if (!scene->Initialized)
         return;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1438,9 +1420,6 @@ PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
     else
         CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 
-    if (UseStencil)
-        SoftwareRenderer::ReallocStencil();
-
     if (DotMaskH || DotMaskV) {
         if (DotMaskH && DotMaskV)
             return SoftwareRenderer::PixelDotMaskHV;
@@ -1509,7 +1488,10 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1550,7 +1532,10 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float ra
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1638,7 +1623,10 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1705,7 +1693,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1832,7 +1823,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1897,10 +1891,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     }
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -1915,10 +1913,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, GetBlendState());
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -1934,10 +1936,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, GetBlendState());
 }
 PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -2478,7 +2484,10 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
 }
 
 PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2508,7 +2517,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2566,7 +2578,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int ani
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 

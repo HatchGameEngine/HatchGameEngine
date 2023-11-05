@@ -2187,7 +2187,8 @@ VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
         OUT_OF_RANGE_ERROR("Layer index", index, 0, (int)Scene::Layers.size() - 1);
         return NULL_VAL;
     }
-    Graphics::DrawSceneLayer(&Scene::Layers[index], &Scene::Views[Scene::ViewCurrent], index, false);
+    if (Graphics::CurrentView)
+        Graphics::DrawSceneLayer(&Scene::Layers[index], Graphics::CurrentView, index, false);
     return NULL_VAL;
 }
 /***
@@ -4207,7 +4208,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    SoftwareRenderer::SetStencilEnabled(!!GET_ARG(0, GetInteger));
+    Graphics::SetStencilEnabled(!!GET_ARG(0, GetInteger));
     return NULL_VAL;
 }
 /***
@@ -4223,7 +4224,7 @@ VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID
         OUT_OF_RANGE_ERROR("Stencil test function", stencilTest, StencilTest_Never, StencilTest_GEqual);
         return NULL_VAL;
     }
-    SoftwareRenderer::SetStencilTestFunc(stencilTest);
+    Graphics::SetStencilTestFunc(stencilTest);
     return NULL_VAL;
 }
 /***
@@ -4239,7 +4240,7 @@ VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadI
         OUT_OF_RANGE_ERROR("Stencil operation", stencilOp, StencilOp_Keep, StencilOp_DecrWrap);
         return NULL_VAL;
     }
-    SoftwareRenderer::SetStencilPassFunc(stencilOp);
+    Graphics::SetStencilPassFunc(stencilOp);
     return NULL_VAL;
 }
 /***
@@ -4255,7 +4256,7 @@ VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadI
         OUT_OF_RANGE_ERROR("Stencil operation", stencilOp, StencilOp_Keep, StencilOp_DecrWrap);
         return NULL_VAL;
     }
-    SoftwareRenderer::SetStencilFailFunc(stencilOp);
+    Graphics::SetStencilFailFunc(stencilOp);
     return NULL_VAL;
 }
 /***
@@ -4267,7 +4268,7 @@ VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadI
 VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int value = GET_ARG(0, GetInteger);
-    SoftwareRenderer::SetStencilValue(value);
+    Graphics::SetStencilValue(value);
     return NULL_VAL;
 }
 /***
@@ -4279,7 +4280,7 @@ VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int mask = GET_ARG(0, GetInteger);
-    SoftwareRenderer::SetStencilMask(mask);
+    Graphics::SetStencilMask(mask);
     return NULL_VAL;
 }
 /***
@@ -4289,7 +4290,7 @@ VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    SoftwareRenderer::ClearStencil();
+    Graphics::ClearStencil();
     return NULL_VAL;
 }
 /***
@@ -4671,15 +4672,10 @@ VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    Graphics::SetRenderTarget(!Scene::Views[Scene::ViewCurrent].UseDrawTarget ? NULL : Scene::Views[Scene::ViewCurrent].DrawTarget);
-    // Graphics::UpdateOrtho(Scene::Views[Scene::ViewCurrent].Width, Scene::Views[Scene::ViewCurrent].Height);
-
-    // View* currentView = &Scene::Views[Scene::ViewCurrent];
-    // Graphics::UpdatePerspective(45.0, currentView->Width / currentView->Height, 0.1, 1000.0);
-    // currentView->Z = 500.0;
-    // Matrix4x4::Scale(currentView->ProjectionMatrix, currentView->ProjectionMatrix, 1.0, -1.0, 1.0);
-    // Matrix4x4::Translate(currentView->ProjectionMatrix, currentView->ProjectionMatrix, -currentView->X - currentView->Width / 2, -currentView->Y - currentView->Height / 2, -currentView->Z);
-	Graphics::UpdateProjectionMatrix();
+    if (Graphics::CurrentView) {
+        Graphics::SetRenderTarget(!Graphics::CurrentView->UseDrawTarget ? NULL : Graphics::CurrentView->DrawTarget);
+        Graphics::UpdateProjectionMatrix();
+    }
     return NULL_VAL;
 }
 /***
@@ -13596,9 +13592,7 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
     float view_w = GET_ARG(1, GetDecimal);
     float view_h = GET_ARG(2, GetDecimal);
     CHECK_VIEW_INDEX();
-    Scene::Views[view_index].Width = view_w;
-    Scene::Views[view_index].Height = view_h;
-    Scene::Views[view_index].Stride = Math::CeilPOT(view_w);
+    Scene::Views[view_index].SetSize(view_w, view_h);
     return NULL_VAL;
 }
 /***
