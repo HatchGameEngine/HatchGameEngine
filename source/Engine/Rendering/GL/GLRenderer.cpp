@@ -1837,15 +1837,15 @@ PUBLIC STATIC void     GLRenderer::ClearScene3D(Uint32 sceneIndex) {
     driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
-    View* currentView = Graphics::CurrentView;
-    if (!currentView)
-        return;
-
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     if (!scene->Initialized)
+        return;
+
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
         return;
 
     VertexBuffer* vertexBuffer = scene->Buffer;

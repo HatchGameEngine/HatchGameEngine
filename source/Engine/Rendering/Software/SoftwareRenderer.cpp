@@ -2514,12 +2514,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx,
 PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
-    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
+
+    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
@@ -2575,12 +2575,12 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
 PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
-    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
+
+    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
