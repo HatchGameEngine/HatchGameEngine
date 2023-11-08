@@ -138,6 +138,7 @@ enum TokenTYPE {
     TOKEN_OR,
     TOKEN_AND,
     TOKEN_FOR,
+    TOKEN_FOREACH,
     TOKEN_CASE,
     TOKEN_ELSE,
     TOKEN_THIS,
@@ -153,6 +154,7 @@ enum TokenTYPE {
     TOKEN_CONTINUE,
     TOKEN_IMPORT,
     TOKEN_AS,
+    TOKEN_IN,
 
     TOKEN_PRINT,
 
@@ -343,7 +345,19 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'a': return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
-                    case 'o': return CheckKeyword(2, 1, "r", TOKEN_FOR);
+                    case 'o':
+                        if (scanner.Current - scanner.Start > 2) {
+                            switch (*(scanner.Start + 2)) {
+                                case 'r':
+                                    if (scanner.Current - scanner.Start > 3) {
+                                        switch (*(scanner.Start + 3)) {
+                                            case 'e': return CheckKeyword(4, 3, "ach", TOKEN_FOREACH);
+                                        }
+                                    }
+                                    return CheckKeyword(3, 0, NULL, TOKEN_FOR);
+                            }
+                        }
+                        break;
                 }
             }
             break;
@@ -351,6 +365,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'f': return CheckKeyword(2, 0, NULL, TOKEN_IF);
+                    case 'n': return CheckKeyword(2, 0, NULL, TOKEN_IN);
                     case 'm': return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
                 }
             }
@@ -915,6 +930,17 @@ PUBLIC void  Compiler::EmitCopy(Uint8 count) {
     EmitByte(count);
 }
 
+PUBLIC void  Compiler::EmitCall(const char *name, int argCount, bool isSuper) {
+    EmitBytes(OP_INVOKE, argCount);
+    EmitStringHash(name);
+    EmitByte(isSuper ? 1 : 0);
+}
+PUBLIC void  Compiler::EmitCall(Token name, int argCount, bool isSuper) {
+    EmitBytes(OP_INVOKE, argCount);
+    EmitStringHash(name);
+    EmitByte(isSuper ? 1 : 0);
+}
+
 PUBLIC void  Compiler::NamedVariable(Token name, bool canAssign) {
     Uint8 getOp, setOp;
     int arg = ResolveLocal(&name);
@@ -966,20 +992,38 @@ PUBLIC void  Compiler::ScopeEnd() {
     ClearToScope(ScopeDepth);
 }
 PUBLIC void  Compiler::ClearToScope(int depth) {
+    int popCount = 0;
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
         if (!Locals[LocalCount - 1].Resolved)
             UnusedVariables->push_back(Locals[LocalCount - 1]);
 
-        EmitByte(OP_POP); // pop locals
+        popCount++; // pop locals
 
         LocalCount--;
     }
+    PopMultiple(popCount);
 }
 PUBLIC void  Compiler::PopToScope(int depth) {
     int lcl = LocalCount;
+    int popCount = 0;
     while (lcl > 0 && Locals[lcl - 1].Depth > depth) {
-        EmitByte(OP_POP); // pop locals
+        popCount++; // pop locals
         lcl--;
+    }
+    PopMultiple(popCount);
+}
+PUBLIC void  Compiler::PopMultiple(int count) {
+    if (count == 1) {
+        EmitByte(OP_POP);
+        return;
+    }
+
+    while (count > 0) {
+        int max = count;
+        if (max > 0xFF)
+            max = 0xFF;
+        EmitBytes(OP_POPN, max);
+        count -= max;
     }
 }
 PUBLIC int   Compiler::AddLocal(Token name) {
@@ -1003,6 +1047,12 @@ PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
     local->Resolved = false;
     RenameLocal(local, name, len);
     return LocalCount - 1;
+}
+PUBLIC int   Compiler::AddHiddenLocal(const char* name, size_t len) {
+    int local = AddLocal(name, len);
+    Locals[local].Resolved = true;
+    MarkInitialized();
+    return local;
 }
 PUBLIC void  Compiler::RenameLocal(Local* local, const char* name, size_t len) {
     local->Name.Start = (char*)name;
@@ -1098,12 +1148,8 @@ PUBLIC void  Compiler::GetDot(bool canAssign) {
     }
     else if (MatchToken(TOKEN_LEFT_PAREN)) {
         uint8_t argCount = GetArgumentList();
-        EmitBytes(OP_INVOKE, argCount);
 
-        // EmitByte(name);
-        EmitStringHash(nameToken);
-        // For supers
-        EmitByte((instanceToken.Type == TOKEN_SUPER));
+        EmitCall(nameToken, argCount, instanceToken.Type == TOKEN_SUPER);
     }
     else {
         EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
@@ -1625,8 +1671,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
         EmitByte(OP_EQUAL);
         int jumpToPatch = EmitJump(OP_JUMP_IF_FALSE);
 
-        EmitByte(OP_POP);
-        EmitByte(OP_POP);
+        PopMultiple(2);
 
         case_info.JumpPosition = EmitJump(OP_JUMP);
 
@@ -1803,9 +1848,7 @@ PUBLIC void Compiler::GetWithStatement() {
     EmitByte(OP_NULL);
 
     // Add "other"
-    int otherSlot = AddLocal("other", 5);
-    Locals[otherSlot].Resolved = true;
-    MarkInitialized();
+    int otherSlot = AddHiddenLocal("other", 5);
 
     // If the function has "this", make a copy of "this" (which is at the first slot) into "other"
     if (hasThis) {
@@ -1970,6 +2013,90 @@ PUBLIC void Compiler::GetForStatement() {
     // End new scope
     ScopeEnd();
 }
+PUBLIC void Compiler::GetForEachStatement() {
+    // Start new scope
+    ScopeBegin();
+
+    ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+
+    // Variable name
+    ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+
+    Token variableToken = parser.Previous;
+
+    ConsumeToken(TOKEN_IN, "Expect 'in' after variable name.");
+
+    // Iterator after 'in'
+    GetExpression();
+
+    // Add a local for the object to be iterated
+    // The programmer cannot refer to it by name, so it begins with a dollar sign.
+    // The value in it is what GetExpression() left on the top of the stack
+    int iterObj = AddHiddenLocal("$iterObj", 8);
+
+    // Add a local for the iteration state
+    // Its initial value is null
+    EmitByte(OP_NULL);
+
+    int iterValue = AddHiddenLocal("$iterValue", 10);
+
+    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+
+    int exitJump = -1;
+    int loopStart = CurrentChunk()->Count;
+
+    // Call $iterObj.$iterate($iterValue)
+    // $iterValue is initially null, which signals that the iteration just began.
+    EmitBytes(OP_GET_LOCAL, iterObj);
+    EmitBytes(OP_GET_LOCAL, iterValue);
+    EmitCall("iterate", 1, false);
+
+    // Set the result to iterValue, updating the iteration state
+    EmitBytes(OP_SET_LOCAL, iterValue);
+
+    // If it evaluates to false, the iteration ends
+    exitJump = EmitJump(OP_JUMP_IF_FALSE);
+    EmitByte(OP_POP);
+
+    // Call $iterObj.$iteratorValue($iterValue)
+    EmitBytes(OP_GET_LOCAL, iterObj);
+    EmitBytes(OP_GET_LOCAL, iterValue);
+    EmitCall("iteratorValue", 1, false);
+
+    // Push new jump list on break stack
+    StartBreakJumpList();
+
+    // Push new jump list on continue stack
+    StartContinueJumpList();
+
+    // Begin a new scope
+    ScopeBegin();
+
+    // Make the variable name visible
+    AddLocal(variableToken);
+    MarkInitialized();
+
+    // Execute code block
+    GetStatement();
+
+    // End that new scope
+    ScopeEnd();
+
+    // Pop jump list off continue stack, patch all continue to this code point
+    EndContinueJumpList();
+
+    // After block, return to evaluation of condition.
+    EmitLoop(loopStart);
+
+    PatchJump(exitJump);
+    EmitByte(OP_POP);
+
+    // Pop jump list off break stack, patch all break to this code point
+    EndBreakJumpList();
+
+    // End new scope
+    ScopeEnd();
+}
 PUBLIC void Compiler::GetIfStatement() {
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     GetExpression();
@@ -2021,6 +2148,9 @@ PUBLIC void Compiler::GetStatement() {
     }
     else if (MatchToken(TOKEN_FOR)) {
         GetForStatement();
+    }
+    else if (MatchToken(TOKEN_FOREACH)) {
+        GetForEachStatement();
     }
     else if (MatchToken(TOKEN_DO)) {
         GetDoWhileStatement();
@@ -2131,6 +2261,8 @@ PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
         }
 
         EmitSetOperation(OP_SET_PROPERTY, -1, token);
+
+        EmitByte(OP_POP);
     }
     while (MatchToken(TOKEN_COMMA));
 
@@ -2407,8 +2539,15 @@ PUBLIC void          Compiler::PatchJump(int offset) {
     int jump = GetJump(offset);
     PatchJump(offset, jump);
 }
-PUBLIC void          Compiler::EmitStringHash(char* string) {
-    EmitUint32(GetHash(string));
+PUBLIC void          Compiler::EmitStringHash(const char* string) {
+    Uint32 hash = GetHash((char*)string);
+    if (!TokenMap->Exists(hash)) {
+        Token tk;
+        tk.Start = (char*)string;
+        tk.Length = strlen(string);
+        TokenMap->Put(hash, tk);
+    }
+    EmitUint32(hash);
 }
 PUBLIC void          Compiler::EmitStringHash(Token token) {
     if (!TokenMap->Exists(GetHash(token)))

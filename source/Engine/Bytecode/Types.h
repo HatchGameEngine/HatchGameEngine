@@ -370,6 +370,7 @@ enum   OpCode {
     OP_NEW,
     OP_IMPORT,
     OP_SWITCH,
+    OP_POPN,
 
     OP_SYNC = 0xFF,
 };

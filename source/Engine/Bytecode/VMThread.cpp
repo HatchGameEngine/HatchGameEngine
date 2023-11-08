@@ -381,6 +381,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_NEW),
             VM_ADD_DISPATCH(OP_IMPORT),
             VM_ADD_DISPATCH(OP_SWITCH),
+            VM_ADD_DISPATCH(OP_POPN),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -467,6 +468,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_NEW)
                 PRINT_CASE(OP_IMPORT)
                 PRINT_CASE(OP_SWITCH)
+                PRINT_CASE(OP_POPN)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -1036,6 +1038,12 @@ PUBLIC int     VMThread::RunInstruction() {
         // Stack Operations
         VM_CASE(OP_POP): {
             Pop();
+            VM_BREAK;
+        }
+        VM_CASE(OP_POPN): {
+            Uint8 count = ReadByte(frame);
+            for (int i = 0; i < count; i++)
+                Pop();
             VM_BREAK;
         }
         VM_CASE(OP_COPY): {
