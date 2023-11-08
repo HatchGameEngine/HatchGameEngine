@@ -150,6 +150,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\Application.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeObjectManager.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />

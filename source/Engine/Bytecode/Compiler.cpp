@@ -2054,7 +2054,8 @@ PUBLIC void Compiler::GetForEachStatement() {
     // Set the result to iterValue, updating the iteration state
     EmitBytes(OP_SET_LOCAL, iterValue);
 
-    // If it evaluates to false, the iteration ends
+    // If it returns null, the iteration ends
+    EmitBytes(OP_NULL, OP_EQUAL_NOT);
     exitJump = EmitJump(OP_JUMP_IF_FALSE);
     EmitByte(OP_POP);
 
@@ -2087,8 +2088,9 @@ PUBLIC void Compiler::GetForEachStatement() {
 
     // After block, return to evaluation of condition.
     EmitLoop(loopStart);
-
     PatchJump(exitJump);
+
+    // We land here if $iterate returns null, so we need to pop the value left on the stack
     EmitByte(OP_POP);
 
     // Pop jump list off break stack, patch all break to this code point

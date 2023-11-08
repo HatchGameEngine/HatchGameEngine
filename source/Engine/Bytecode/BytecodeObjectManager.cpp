@@ -30,6 +30,7 @@ public:
     static HashMap<ObjClass*>*  Classes;
     static HashMap<char*>*      Tokens;
     static vector<char*>        TokensList;
+    static vector<ObjClass*>    ClassImplList;
 
     static SDL_mutex*           GlobalLock;
 };
@@ -40,6 +41,7 @@ public:
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -66,6 +68,7 @@ HashMap<Bytecode>*   BytecodeObjectManager::Sources = NULL;
 HashMap<ObjClass*>*  BytecodeObjectManager::Classes = NULL;
 HashMap<char*>*      BytecodeObjectManager::Tokens = NULL;
 vector<char*>        BytecodeObjectManager::TokensList;
+vector<ObjClass*>    BytecodeObjectManager::ClassImplList;
 
 SDL_mutex*           BytecodeObjectManager::GlobalLock = NULL;
 
@@ -113,6 +116,8 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
         Classes = new HashMap<ObjClass*>(NULL, 8);
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
+
+    ArrayImpl::Init();
 
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
@@ -190,6 +195,8 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
         delete Tokens;
         Tokens = NULL;
     }
+
+    ClassImplList.clear();
 
     SDL_DestroyMutex(GlobalLock);
 }

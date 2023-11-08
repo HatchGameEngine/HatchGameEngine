@@ -100,6 +100,11 @@ PUBLIC STATIC void GarbageCollector::Collect() {
         GrayObject(BytecodeObjectManager::AllFunctionList[i]);
     }
 
+    // Mark classes
+    for (size_t i = 0; i < BytecodeObjectManager::ClassImplList.size(); i++) {
+        GrayObject(BytecodeObjectManager::ClassImplList[i]);
+    }
+
     grayElapsed = Clock::GetTicks() - grayElapsed;
 
     double blackenElapsed = Clock::GetTicks();

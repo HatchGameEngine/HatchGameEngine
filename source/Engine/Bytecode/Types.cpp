@@ -2,6 +2,7 @@
 
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
+#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -135,6 +136,7 @@ ObjBoundMethod*   NewBoundMethod(VMValue receiver, ObjFunction* method) {
 ObjArray*         NewArray() {
     ObjArray* array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
     Memory::Track(array, "NewArray");
+    array->Object.Class = ArrayImpl::Class;
     array->Values = new vector<VMValue>();
     return array;
 }

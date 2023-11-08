@@ -1375,7 +1375,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
                 }
                 else {
-                    if (ThrowRuntimeError(false, "Event %s does not exist in class %s.", GetVariableOrMethodName(hash), klass->Name ? klass->Name->Chars : GetToken(klass->Hash)) == ERROR_RES_CONTINUE)
+                    if (ThrowRuntimeError(false, "Method %s does not exist in class %s.", GetVariableOrMethodName(hash), klass->Name ? klass->Name->Chars : GetToken(klass->Hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_INVOKE;
 
                     return INTERPRET_RUNTIME_ERROR;
@@ -1384,12 +1384,12 @@ PUBLIC int     VMThread::RunInstruction() {
             else if (IS_OBJECT(receiver)) {
                 ObjClass* klass = AS_OBJECT(receiver)->Class;
                 if (!klass) {
-                    ThrowRuntimeError(false, "Only instances and classes have methods.");
+                    ThrowRuntimeError(false, "Method %s does not exist in object.");
                     goto FAIL_OP_INVOKE;
                 }
 
                 if (klass->Methods->GetIfExists(hash, &result)) {
-                    if (!CallValue(result, argCount)) {
+                    if (!CallForObject(result, argCount)) {
                         if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_INVOKE;
 
@@ -1397,7 +1397,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
                 }
                 else {
-                    if (ThrowRuntimeError(false, "Event %s does not exist in object.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                    if (ThrowRuntimeError(false, "Method %s does not exist in object.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_INVOKE;
 
                     return INTERPRET_RUNTIME_ERROR;
@@ -1658,6 +1658,26 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
         BytecodeObjectManager::Unlock();
     }
 
+    return false;
+}
+PUBLIC bool    VMThread::CallForObject(VMValue callee, int argCount) {
+    if (BytecodeObjectManager::Lock()) {
+        if (IS_NATIVE(callee)) {
+            NativeFn native = AS_NATIVE(callee);
+            VMValue result;
+            try {
+                result = native(argCount + 1, StackTop - argCount - 1, ID);
+            }
+            catch (const char* err) { }
+            StackTop -= argCount + 1;
+            Push(result);
+            BytecodeObjectManager::Unlock();
+            return true;
+        }
+
+        BytecodeObjectManager::Unlock();
+        return Call(AS_FUNCTION(callee), argCount);
+    }
     return false;
 }
 PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
