@@ -30,6 +30,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

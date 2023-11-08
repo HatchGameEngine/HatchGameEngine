@@ -351,6 +351,9 @@ PUBLIC STATIC char*        StandardLibrary::GetString(VMValue* args, int index, 
 PUBLIC STATIC ObjArray*    StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetArray(args, index, threadID);
 }
+PUBLIC STATIC ObjMap*      StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
+    return LOCAL::GetMap(args, index, threadID);
+}
 PUBLIC STATIC ISprite*     StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetSprite(args, index, threadID);
 }

@@ -344,6 +344,15 @@ public:
         }
         while (nextKey);
     }
+    Uint32 GetFirstKey() {
+        return FirstKey;
+    }
+    Uint32 GetNextKey(Uint32 key) {
+        Uint32 index = FindKey(key);
+        if (index != 0xFFFFFFFFU)
+            return Data[index].NextKey;
+        return 0;
+    }
 
     void   PrintHashes() {
         printf("Printing...\n");

@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -143,6 +144,7 @@ ObjArray*         NewArray() {
 ObjMap*           NewMap() {
     ObjMap* map = ALLOCATE_OBJ(ObjMap, OBJ_MAP);
     Memory::Track(map, "NewMap");
+    map->Object.Class = MapImpl::Class;
     map->Values = new HashMap<VMValue>(NULL, 4);
     map->Keys = new HashMap<char*>(NULL, 4);
     return map;

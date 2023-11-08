@@ -42,6 +42,7 @@ public:
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -118,6 +119,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
         Tokens = new HashMap<char*>(NULL, 64);
 
     ArrayImpl::Init();
+    MapImpl::Init();
 
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
