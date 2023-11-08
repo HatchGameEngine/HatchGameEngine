@@ -23,7 +23,6 @@ public:
     Local           Locals[0x100];
     int             LocalCount = 0;
     int             ScopeDepth = 0;
-    int             WithDepth = 0;
     vector<Uint32>  ClassHashList;
     vector<Uint32>  ClassExtendedList;
     vector<Local>*  UnusedVariables = nullptr;
@@ -153,6 +152,7 @@ enum TokenTYPE {
     TOKEN_DEFAULT,
     TOKEN_CONTINUE,
     TOKEN_IMPORT,
+    TOKEN_AS,
 
     TOKEN_PRINT,
 
@@ -305,7 +305,13 @@ PUBLIC int           Compiler::CheckKeyword(int start, int length, const char* r
 PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
     switch (*scanner.Start) {
         case 'a':
-            return CheckKeyword(1, 2, "nd", TOKEN_AND);
+            if (scanner.Current - scanner.Start > 1) {
+                switch (*(scanner.Start + 1)) {
+                    case 'n': return CheckKeyword(2, 1, "d", TOKEN_AND);
+                    case 's': return CheckKeyword(2, 0, NULL, TOKEN_AS);
+                }
+            }
+            break;
         case 'b':
             return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
         case 'c':
@@ -993,11 +999,21 @@ PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
         return -1;
     }
     Local* local = &Locals[LocalCount++];
-    local->Name.Start = (char*)name;
-    local->Name.Length = len;
     local->Depth = -1;
     local->Resolved = false;
+    RenameLocal(local, name, len);
     return LocalCount - 1;
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, const char* name, size_t len) {
+    local->Name.Start = (char*)name;
+    local->Name.Length = len;
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, const char* name) {
+    local->Name.Start = (char*)name;
+    local->Name.Length = strlen(name);
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, Token name) {
+    local->Name = name;
 }
 PUBLIC int   Compiler::ResolveLocal(Token* name) {
     for (int i = LocalCount - 1; i >= 0; i--) {
@@ -1773,11 +1789,12 @@ PUBLIC void Compiler::GetWithStatement() {
         WITH_STATE_INIT,
         WITH_STATE_ITERATE,
         WITH_STATE_FINISH,
+        WITH_STATE_INIT_SLOTTED
     };
 
-    // Ensure "this" is available
-    if (!HasThis())
-        Compiler::SetReceiverName("this");
+    bool useOther = true;
+    bool useOtherSlot = false;
+    bool hasThis = HasThis();
 
     // Start new scope
     ScopeBegin();
@@ -1790,23 +1807,56 @@ PUBLIC void Compiler::GetWithStatement() {
     Locals[otherSlot].Resolved = true;
     MarkInitialized();
 
-    // Make a copy of "this", which is at the very first slot, into "other"
-    EmitBytes(OP_GET_LOCAL, 0);
-    EmitBytes(OP_SET_LOCAL, otherSlot);
-    EmitByte(OP_POP);
+    // If the function has "this", make a copy of "this" (which is at the first slot) into "other"
+    if (hasThis) {
+        EmitBytes(OP_GET_LOCAL, 0);
+        EmitBytes(OP_SET_LOCAL, otherSlot);
+        EmitByte(OP_POP);
+    }
+    else {
+        // If the function does not have "this", we cannot always use frame slot zero
+        // (For example, slot zero is invalid in top-level functions.)
+        // So we store the slot that will receive the value.
+        useOtherSlot = true;
+    }
+
+    // For 'as'
+    Token receiverName;
 
     // With "expression"
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
     GetExpression();
+    if (MatchToken(TOKEN_AS)) {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expect receiver name.");
+
+        receiverName = parser.Previous;
+
+        // Turns out we're using 'as', so rename "other" to the true receiver name
+        RenameLocal(&Locals[otherSlot], receiverName);
+
+        // Don't rename "other" anymore
+        useOther = false;
+
+        // Using a specific slot for "other", rather than slot zero
+        useOtherSlot = true;
+    }
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    // Rename "other" to "this" if the function doesn't have "this"
+    if (useOther && !hasThis)
+        RenameLocal(&Locals[otherSlot], "this");
 
     // Init "with" iteration
     EmitByte(OP_WITH);
-    EmitByte(WITH_STATE_INIT);
+    EmitByte(useOtherSlot ? WITH_STATE_INIT_SLOTTED : WITH_STATE_INIT);
     EmitByte(0xFF);
     EmitByte(0xFF);
 
     int loopStart = CurrentChunk()->Count;
+
+    // Store the slot where the receiver will land
+    if (useOtherSlot)
+        EmitByte(otherSlot);
 
     // Push new jump list on break stack
     StartBreakJumpList();
@@ -1814,12 +1864,8 @@ PUBLIC void Compiler::GetWithStatement() {
     // Push new jump list on continue stack
     StartContinueJumpList();
 
-    WithDepth++;
-
     // Execute code block
     GetStatement();
-
-    WithDepth--;
 
     // Pop jump list off continue stack, patch all continue to this code point
     EndContinueJumpList();
@@ -1829,7 +1875,8 @@ PUBLIC void Compiler::GetWithStatement() {
     EmitByte(WITH_STATE_ITERATE);
 
     int offset = CurrentChunk()->Count - loopStart + 2;
-    if (offset > UINT16_MAX) Error("Loop body too large.");
+    if (offset > UINT16_MAX)
+        Error("Loop body too large.");
 
     EmitByte(offset & 0xFF);
     EmitByte((offset >> 8) & 0xFF);
@@ -1849,10 +1896,6 @@ PUBLIC void Compiler::GetWithStatement() {
 
     // End scope (will pop "other")
     ScopeEnd();
-
-    // Remove "this" if this function is not supposed to have it
-    if (!HasThis())
-        Compiler::SetReceiverName("");
 }
 PUBLIC void Compiler::GetForStatement() {
     // Start new scope
@@ -1913,7 +1956,6 @@ PUBLIC void Compiler::GetForStatement() {
     // After block, return to evaluation of condition.
     EmitLoop(loopStart);
 
-    //
     if (exitJump != -1) {
         PatchJump(exitJump);
         EmitByte(OP_POP); // Condition.
@@ -1924,13 +1966,11 @@ PUBLIC void Compiler::GetForStatement() {
 
     // End new scope
     ScopeEnd();
-
-    // EmitByte(OP_PRINT_STACK);
 }
 PUBLIC void Compiler::GetIfStatement() {
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     GetExpression();
-    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition."); // [paren]
+    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
     int thenJump = EmitJump(OP_JUMP_IF_FALSE);
     EmitByte(OP_POP);
@@ -2445,8 +2485,7 @@ PUBLIC int           Compiler::MakeConstant(VMValue value) {
 }
 
 PUBLIC bool          Compiler::HasThis() {
-    switch (Type)
-    {
+    switch (Type) {
     case TYPE_CONSTRUCTOR:
     case TYPE_METHOD:
         return true;
@@ -2458,6 +2497,10 @@ PUBLIC void          Compiler::SetReceiverName(const char *name) {
     Local* local = &Locals[0];
     local->Name.Start = (char*)name;
     local->Name.Length = strlen(name);
+}
+PUBLIC void          Compiler::SetReceiverName(Token name) {
+    Local* local = &Locals[0];
+    local->Name = name;
 }
 
 int  justin_print(char** buffer, int* buf_start, const char *format, ...) {

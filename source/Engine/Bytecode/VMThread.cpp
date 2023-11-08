@@ -310,7 +310,7 @@ PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
 }
 
 PUBLIC int     VMThread::RunInstruction() {
-    // #define VM_DEBUG_INSTRUCTIONS 1
+    // #define VM_DEBUG_INSTRUCTIONS
 
     // NOTE: MSVC cannot take advantage of the dispatch table.
     #ifdef USING_VM_DISPATCH_TABLE
@@ -401,7 +401,6 @@ PUBLIC int     VMThread::RunInstruction() {
     frame->IPLast = frame->IP;
 
     #ifdef VM_DEBUG_INSTRUCTIONS
-        DebugInfo = false;
         if (DebugInfo) {
             #define PRINT_CASE(n) case n: Log::Print(Log::LOG_VERBOSE, #n); break;
 
@@ -1148,13 +1147,18 @@ PUBLIC int     VMThread::RunInstruction() {
                 WITH_STATE_INIT,
                 WITH_STATE_ITERATE,
                 WITH_STATE_FINISH,
+                WITH_STATE_INIT_SLOTTED,
             };
 
             int state = ReadByte(frame);
             int offset = ReadSInt16(frame);
+            Uint8 receiverSlot = 0;
 
             switch (state) {
-                case WITH_STATE_INIT: {
+                case WITH_STATE_INIT:
+                case WITH_STATE_INIT_SLOTTED: {
+                    if (state == WITH_STATE_INIT_SLOTTED)
+                        receiverSlot = ReadByte(frame);
                     VMValue receiver = Peek(0);
                     if (receiver.Type == VAL_NULL) {
                         frame->IP += offset;
@@ -1220,24 +1224,24 @@ PUBLIC int     VMThread::RunInstruction() {
 
                         // Add iterator
                         if (registry)
-                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { NULL, NULL, startIndex, registry };
+                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { NULL, NULL, startIndex, registry, receiverSlot };
                         else
-                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { objectStart, objectStart->NextEntityInList, 0, NULL };
+                            *frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter) { objectStart, objectStart->NextEntityInList, 0, NULL, receiverSlot };
                         frame->WithIteratorStackTop++;
 
                         // Backup original receiver
-                        *frame->WithReceiverStackTop = frame->Slots[0];
+                        *frame->WithReceiverStackTop = frame->Slots[receiverSlot];
                         frame->WithReceiverStackTop++;
                         // Replace receiver
-                        frame->Slots[0] = OBJECT_VAL(objectStart->Instance);
+                        frame->Slots[receiverSlot] = OBJECT_VAL(objectStart->Instance);
                         break;
                     }
                     else if (IS_INSTANCE(receiver)) {
                         // Backup original receiver
-                        *frame->WithReceiverStackTop = frame->Slots[0];
+                        *frame->WithReceiverStackTop = frame->Slots[receiverSlot];
                         frame->WithReceiverStackTop++;
                         // Replace receiver
-                        frame->Slots[0] = receiver;
+                        frame->Slots[receiverSlot] = receiver;
 
                         Pop(); // pop receiver
 
@@ -1249,11 +1253,13 @@ PUBLIC int     VMThread::RunInstruction() {
                     break;
                 }
                 case WITH_STATE_ITERATE: {
+                    WithIter it = frame->WithIteratorStackTop[-1];
+
+                    receiverSlot = it.receiverSlot;
+
                     VMValue originalReceiver = frame->WithReceiverStackTop[-1];
                     // Restore original receiver
-                    frame->Slots[0] = originalReceiver;
-
-                    WithIter it = frame->WithIteratorStackTop[-1];
+                    frame->Slots[receiverSlot] = originalReceiver;
 
                     // If in list,
                     if (it.entity) {
@@ -1278,7 +1284,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             frame->WithReceiverStackTop[-1] = originalReceiver;
                             // Replace receiver
                             BytecodeObject* object = (BytecodeObject*)it.entity;
-                            frame->Slots[0] = OBJECT_VAL(object->Instance);
+                            frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
                         }
                     }
                     // Otherwise in registry,
@@ -1294,7 +1300,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             frame->WithReceiverStackTop[-1] = originalReceiver;
                             // Replace receiver
                             BytecodeObject* object = (BytecodeObject*)registry->GetNth(it.index);
-                            frame->Slots[0] = OBJECT_VAL(object->Instance);
+                            frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
                         }
                     }
                     else {
@@ -1305,10 +1311,12 @@ PUBLIC int     VMThread::RunInstruction() {
                     break;
                 }
                 case WITH_STATE_FINISH: {
+                    WithIter it = frame->WithIteratorStackTop[-1];
+
                     frame->WithReceiverStackTop--;
 
                     VMValue originalReceiver = *frame->WithReceiverStackTop;
-                    frame->Slots[0] = originalReceiver;
+                    frame->Slots[it.receiverSlot] = originalReceiver;
 
                     frame->WithIteratorStackTop--;
                     break;
