@@ -1848,15 +1848,18 @@ PUBLIC void Compiler::GetWithStatement() {
 
     // Init "with" iteration
     EmitByte(OP_WITH);
-    EmitByte(useOtherSlot ? WITH_STATE_INIT_SLOTTED : WITH_STATE_INIT);
+
+    if (useOtherSlot) {
+        EmitByte(WITH_STATE_INIT_SLOTTED);
+        EmitByte(otherSlot); // Store the slot where the receiver will land
+    }
+    else
+        EmitByte(WITH_STATE_INIT);
+
     EmitByte(0xFF);
     EmitByte(0xFF);
 
     int loopStart = CurrentChunk()->Count;
-
-    // Store the slot where the receiver will land
-    if (useOtherSlot)
-        EmitByte(otherSlot);
 
     // Push new jump list on break stack
     StartBreakJumpList();

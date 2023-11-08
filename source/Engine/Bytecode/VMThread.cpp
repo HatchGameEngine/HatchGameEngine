@@ -1150,15 +1150,16 @@ PUBLIC int     VMThread::RunInstruction() {
                 WITH_STATE_INIT_SLOTTED,
             };
 
-            int state = ReadByte(frame);
-            int offset = ReadSInt16(frame);
             Uint8 receiverSlot = 0;
+
+            int state = ReadByte(frame);
+            if (state == WITH_STATE_INIT_SLOTTED)
+                receiverSlot = ReadByte(frame);
+            int offset = ReadSInt16(frame);
 
             switch (state) {
                 case WITH_STATE_INIT:
                 case WITH_STATE_INIT_SLOTTED: {
-                    if (state == WITH_STATE_INIT_SLOTTED)
-                        receiverSlot = ReadByte(frame);
                     VMValue receiver = Peek(0);
                     if (receiver.Type == VAL_NULL) {
                         frame->IP += offset;
