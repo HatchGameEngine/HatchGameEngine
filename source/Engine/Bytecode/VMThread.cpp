@@ -1802,6 +1802,11 @@ PUBLIC void    VMThread::DoClassExtension(VMValue value, VMValue originalValue) 
         dst->Methods->Put(hash, value);
     });
     src->Methods->Clear();
+
+    src->Fields->WithAll([dst](Uint32 hash, VMValue value) -> void {
+        dst->Fields->Put(hash, value);
+    });
+    src->Fields->Clear();
 }
 PUBLIC bool    VMThread::Import(VMValue value) {
     bool result = false;
