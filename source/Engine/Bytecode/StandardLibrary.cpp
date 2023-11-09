@@ -363,6 +363,9 @@ PUBLIC STATIC ISound*      StandardLibrary::GetSound(VMValue* args, int index, U
 PUBLIC STATIC ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetInstance(args, index, threadID);
 }
+PUBLIC STATIC ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
+    return LOCAL::GetFunction(args, index, threadID);
+}
 
 PUBLIC STATIC void      StandardLibrary::CheckArgCount(int argCount, int expects) {
     Uint32 threadID = 0;

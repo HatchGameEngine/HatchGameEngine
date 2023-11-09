@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -74,6 +75,7 @@ char*             HeapCopyString(const char* str, size_t len) {
 ObjFunction*      NewFunction() {
     ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     Memory::Track(function, "NewFunction");
+    function->Object.Class = FunctionImpl::Class;
     function->Arity = 0;
     function->UpvalueCount = 0;
     function->Name = NULL;

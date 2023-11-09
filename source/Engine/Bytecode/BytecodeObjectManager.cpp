@@ -43,6 +43,7 @@ public:
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -120,6 +121,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
 
     ArrayImpl::Init();
     MapImpl::Init();
+    FunctionImpl::Init();
 
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
@@ -152,6 +154,8 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
         Globals->ForAll(RemoveNonGlobalableValue);
     if (Constants)
         Constants->ForAll(RemoveNonGlobalableValue);
+
+    ClassImplList.clear();
 
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
@@ -726,6 +730,11 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
             }
             else
                 Memory::Free(string);
+        }
+
+        for (ObjFunction* function : FunctionList) {
+            if (Tokens->Exists(function->NameHash))
+                function->Name = CopyString(Tokens->Get(function->NameHash));
         }
     }
 

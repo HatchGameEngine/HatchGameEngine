@@ -1612,18 +1612,19 @@ PUBLIC bool    VMThread::BindMethod(VMValue receiver, VMValue method) {
     Push(OBJECT_VAL(bound));
     return true;
 }
+PUBLIC bool    VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
+    // Replace the bound method with the receiver so it's in the
+    // right slot when the method is called.
+    StackTop[-argCount - 1] = bound->Receiver;
+    return Call(bound->Method, argCount);
+}
 PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
     if (BytecodeObjectManager::Lock()) {
         bool result;
         if (IS_OBJECT(callee)) {
             switch (OBJECT_TYPE(callee)) {
                 case OBJ_BOUND_METHOD: {
-                    ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
-
-                    // Replace the bound method with the receiver so it's in the
-                    // right slot when the method is called.
-                    StackTop[-argCount - 1] = bound->Receiver;
-                    result = Call(bound->Method, argCount);
+                    result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
                     BytecodeObjectManager::Unlock();
                     return result;
                 }
@@ -1635,7 +1636,6 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
                     NativeFn native = AS_NATIVE(callee);
 
                     VMValue result = NULL_VAL;
-
                     try {
                         result = native(argCount, StackTop - argCount, ID);
                     }
@@ -1662,21 +1662,39 @@ PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
 }
 PUBLIC bool    VMThread::CallForObject(VMValue callee, int argCount) {
     if (BytecodeObjectManager::Lock()) {
-        if (IS_NATIVE(callee)) {
-            NativeFn native = AS_NATIVE(callee);
-            VMValue result;
-            try {
-                result = native(argCount + 1, StackTop - argCount - 1, ID);
+        bool result = false;
+        switch (OBJECT_TYPE(callee)) {
+            case OBJ_BOUND_METHOD:
+                result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
+                break;
+            case OBJ_NATIVE: {
+                NativeFn native = AS_NATIVE(callee);
+
+                VMValue returnValue = NULL_VAL;
+                try {
+                    // Calling a native function for some object needs to correctly pass the
+                    // receiver, which is why the +1 and -1 are there.
+                    returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
+                }
+                catch (const char* err) { }
+
+                // Pop arguments
+                StackTop -= argCount;
+                // Pop receiver / class
+                StackTop -= 1;
+                // Push returned value
+                Push(returnValue);
+                BytecodeObjectManager::Unlock();
+                result = true;
+                break;
             }
-            catch (const char* err) { }
-            StackTop -= argCount + 1;
-            Push(result);
-            BytecodeObjectManager::Unlock();
-            return true;
+            default:
+                result = Call(AS_FUNCTION(callee), argCount);
+                break;
         }
 
         BytecodeObjectManager::Unlock();
-        return Call(AS_FUNCTION(callee), argCount);
+        return result;
     }
     return false;
 }
@@ -1750,17 +1768,8 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
             return false;
         }
 
-        if (IS_NATIVE(method)) {
-            NativeFn native = AS_NATIVE(method);
-            VMValue result = native(argCount + 1, StackTop - argCount - 1, ID);
-            StackTop -= argCount + 1;
-            Push(result);
-            BytecodeObjectManager::Unlock();
-            return true;
-        }
-
         BytecodeObjectManager::Unlock();
-        return Call(AS_FUNCTION(method), argCount);
+        return CallForObject(method, argCount);
     }
     return false;
 }
