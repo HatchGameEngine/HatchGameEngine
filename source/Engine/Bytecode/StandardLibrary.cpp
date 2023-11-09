@@ -16290,7 +16290,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \type Integer
     * \desc The max amount of scene views.
     */
-    DEF_CONST_INT("MAX_SCENE_VIEWS", MAX_SCENE_VIEWS);
+    DEF_ENUM(MAX_SCENE_VIEWS);
 
     /***
     * \constant Math_PI
@@ -16323,6 +16323,13 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Count of keyboard keys.
     */
     DEF_ENUM(NUM_KEYBOARD_KEYS);
+
+    /***
+    * \constant MAX_PALETTE_COUNT
+    * \type Integer
+    * \desc The max amount of palettes.
+    */
+    DEF_ENUM(MAX_PALETTE_COUNT);
 
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
