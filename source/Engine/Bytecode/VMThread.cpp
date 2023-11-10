@@ -651,7 +651,7 @@ PUBLIC int     VMThread::RunInstruction() {
             }
             // If it's any other object,
             else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
-                ObjClass* klass = AS_CLASS(object);
+                ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (BytecodeObjectManager::Lock()) {
                     if (klass->ParentHash && !klass->Parent) {
