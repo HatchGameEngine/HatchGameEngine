@@ -382,6 +382,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_IMPORT),
             VM_ADD_DISPATCH(OP_SWITCH),
             VM_ADD_DISPATCH(OP_POPN),
+            VM_ADD_DISPATCH(OP_HAS_PROPERTY),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -469,6 +470,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_IMPORT)
                 PRINT_CASE(OP_SWITCH)
                 PRINT_CASE(OP_POPN)
+                PRINT_CASE(OP_HAS_PROPERTY),
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -745,6 +747,89 @@ PUBLIC int     VMThread::RunInstruction() {
             Pop();
             Pop(); // Instance / Class
             Push(NULL_VAL);
+            BytecodeObjectManager::Unlock();
+            VM_BREAK;
+        }
+        VM_CASE(OP_HAS_PROPERTY): {
+            Uint32 hash = ReadUInt32(frame);
+
+            VMValue object = Peek(0);
+
+            // If it's an instance,
+            if (IS_INSTANCE(object)) {
+                ObjInstance* instance = AS_INSTANCE(object);
+
+                if (BytecodeObjectManager::Lock()) {
+                    // Fields have priority over methods
+                    if (instance->Fields->Exists(hash)) {
+                        Pop();
+                        Push(INTEGER_VAL(true));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    ObjClass* klass = instance->Object.Class;
+                    if (klass->ParentHash && !klass->Parent) {
+                        BytecodeObjectManager::SetClassParent(klass);
+                    }
+
+                    if (HasMethod(klass, hash)) {
+                        Pop();
+                        Push(INTEGER_VAL(true));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+                }
+            }
+            // Otherwise, if it's a class,
+            else if (IS_CLASS(object)) {
+                ObjClass* klass = AS_CLASS(object);
+
+                if (BytecodeObjectManager::Lock()) {
+                    // Fields have priority over methods
+                    if (klass->Fields->Exists(hash)) {
+                        Pop();
+                        Push(INTEGER_VAL(true));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    if (klass->ParentHash && !klass->Parent) {
+                        BytecodeObjectManager::SetClassParent(klass);
+                    }
+
+                    if (HasMethod(klass, hash)) {
+                        Pop();
+                        Push(INTEGER_VAL(true));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+                }
+            }
+            // If it's any other object,
+            else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+                ObjClass* klass = AS_OBJECT(object)->Class;
+
+                if (BytecodeObjectManager::Lock()) {
+                    if (klass->ParentHash && !klass->Parent) {
+                        BytecodeObjectManager::SetClassParent(klass);
+                    }
+
+                    if (HasMethod(klass, hash)) {
+                        Pop();
+                        Push(INTEGER_VAL(true));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+                }
+            }
+            else {
+                ThrowRuntimeError(false, "Only instances and classes have properties.");
+            }
+
+            FAIL_OP_HAS_PROPERTY:
+            Pop();
+            Push(INTEGER_VAL(false));
             BytecodeObjectManager::Unlock();
             VM_BREAK;
         }
@@ -1604,6 +1689,20 @@ PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
 
         BytecodeObjectManager::Unlock();
         return true;
+    }
+    return false;
+}
+PUBLIC bool    VMThread::HasMethod(ObjClass* klass, Uint32 hash) {
+    if (BytecodeObjectManager::Lock()) {
+        bool hasMethod = false;
+        if (klass->Methods->Exists(hash)) {
+            hasMethod = true;
+        }
+        else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
+            hasMethod = true;
+        }
+        BytecodeObjectManager::Unlock();
+        return hasMethod;
     }
     return false;
 }

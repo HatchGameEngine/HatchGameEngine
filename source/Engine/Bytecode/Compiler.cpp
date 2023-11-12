@@ -93,6 +93,7 @@ enum TokenTYPE {
     // Precedence 10
     TOKEN_EQUALS,
     TOKEN_NOT_EQUALS,
+    TOKEN_HAS,
     // Precedence 11
     TOKEN_BITWISE_AND,
     TOKEN_BITWISE_XOR,
@@ -361,6 +362,8 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                 }
             }
             break;
+        case 'h':
+            return CheckKeyword(1, 2, "as", TOKEN_HAS);
         case 'i':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
@@ -1451,7 +1454,6 @@ PUBLIC void Compiler::GetNew(bool canAssign) {
     EmitBytes(OP_NEW, argCount);
 }
 PUBLIC void Compiler::GetBinary(bool canAssign) {
-    // printf("GetBinary()\n");
     Token operato = parser.Previous;
     int operatorType = operato.Type;
 
@@ -1485,6 +1487,11 @@ PUBLIC void Compiler::GetBinary(bool canAssign) {
             ErrorAt(&operato, "Unknown binary operator.", true);
             return; // Unreachable.
     }
+}
+PUBLIC void Compiler::GetHas(bool canAssign) {
+    ConsumeToken(TOKEN_IDENTIFIER, "Expect property name.");
+    EmitByte(OP_HAS_PROPERTY);
+    EmitStringHash(parser.Previous);
 }
 PUBLIC void Compiler::GetSuffix(bool canAssign) {
 
@@ -2405,6 +2412,7 @@ PUBLIC STATIC void   Compiler::MakeRules() {
     Rules[TOKEN_NEW] = ParseRule { &Compiler::GetNew, NULL, NULL, PREC_UNARY };
     Rules[TOKEN_NOT_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
+    Rules[TOKEN_HAS] = ParseRule { NULL, &Compiler::GetHas, NULL, PREC_EQUALITY };
     Rules[TOKEN_GREATER] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
     Rules[TOKEN_GREATER_EQUAL] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
     Rules[TOKEN_LESS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
