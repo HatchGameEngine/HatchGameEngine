@@ -5575,6 +5575,24 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(false);
 }
 /***
+ * Instance.GetClass
+ * \desc Gets the object class of a instance.
+ * \param instance (Instance): The instance to check.
+ * \return Returns a String value.
+ * \ns Instance
+ */
+VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    ObjInstance* instance = GET_ARG(0, GetInstance);
+
+    Entity* self = (Entity*)instance->EntityPtr;
+    if (!self || !self->List)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(self->List->ObjectName));
+}
+/***
  * Instance.GetCount
  * \desc Gets amount of currently active instances in an object class.
  * \param className (String): Name of the object class.
@@ -7121,7 +7139,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     if (!animationName)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(animationName, strlen(animationName)));
+    return OBJECT_VAL(CopyString(animationName));
 }
 /***
  * Model.GetAnimationIndex
@@ -7503,7 +7521,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
         case VAL_LINKED_DECIMAL: {
             float n = GET_ARG(0, GetDecimal);
             char temp[16];
-            sprintf(temp, "%f", n);
+            snprintf(temp, sizeof temp, "%f", n);
 
             VMValue strng = NULL_VAL;
             if (BytecodeObjectManager::Lock()) {
@@ -7517,9 +7535,9 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
             int n = GET_ARG(0, GetInteger);
             char temp[16];
             if (base == 16)
-                sprintf(temp, "0x%X", n);
+                snprintf(temp, sizeof temp, "0x%X", n);
             else
-                sprintf(temp, "%d", n);
+                snprintf(temp, sizeof temp, "%d", n);
 
             VMValue strng = NULL_VAL;
             if (BytecodeObjectManager::Lock()) {
@@ -8458,7 +8476,7 @@ VMValue Scene_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.CheckObjectCollisionTouch
  * \desc Checks if an instance is touching another instance with their respective hitboxes.
- * \param thisEnity (Instance): The first instance to check.
+ * \param thisEntity (Instance): The first instance to check.
  * \param thisHitbox (Array): Array containing the first entity's hitbox.
  * \param otherEntity (Instance): The other instance to check.
  * \param otherHitbox (Array): Array containing the other entity's hitbox.
@@ -9270,6 +9288,38 @@ VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(Scene::DebugMode);
+}
+/***
+ * Scene.GetFirstInstance
+ * \desc Gets the first active instance in the scene.
+ * \return Returns the first active instance in the scene, or <code>null</code> if there are no instances in the scene.
+ * \ns Scene
+ */
+VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+
+    BytecodeObject* object = (BytecodeObject*)Scene::ObjectFirst;
+    if (object) {
+        return OBJECT_VAL(object->Instance);
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Scene.GetLastInstance
+ * \desc Gets the last active instance in the scene.
+ * \return Returns the last active instance in the scene, or <code>null</code> if there are no instances in the scene.
+ * \ns Scene
+ */
+VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+
+    BytecodeObject* object = (BytecodeObject*)Scene::ObjectLast;
+    if (object) {
+        return OBJECT_VAL(object->Instance);
+    }
+
+    return NULL_VAL;
 }
 /***
  * Scene.GetInstanceCount
@@ -15519,6 +15569,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, Create);
     DEF_NATIVE(Instance, GetNth);
     DEF_NATIVE(Instance, IsClass);
+    DEF_NATIVE(Instance, GetClass);
     DEF_NATIVE(Instance, GetCount);
     DEF_NATIVE(Instance, GetNextInstance);
     DEF_NATIVE(Instance, GetBySlotID);
@@ -15762,6 +15813,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetCategoryCount);
     DEF_NATIVE(Scene, GetStageCount);
     DEF_NATIVE(Scene, GetDebugMode);
+    DEF_NATIVE(Scene, GetFirstInstance);
+    DEF_NATIVE(Scene, GetLastInstance);
     DEF_NATIVE(Scene, GetInstanceCount);
     DEF_NATIVE(Scene, GetStaticInstanceCount);
     DEF_NATIVE(Scene, GetDynamicInstanceCount);

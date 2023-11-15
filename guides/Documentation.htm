@@ -506,6 +506,7 @@
                     <li><a href="#Reference_functions_Instance_Create">Instance.Create</a></li>
                     <li><a href="#Reference_functions_Instance_GetNth">Instance.GetNth</a></li>
                     <li><a href="#Reference_functions_Instance_IsClass">Instance.IsClass</a></li>
+                    <li><a href="#Reference_functions_Instance_GetClass">Instance.GetClass</a></li>
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
@@ -842,6 +843,8 @@
                     <li><a href="#Reference_functions_Scene_GetCategoryCount">Scene.GetCategoryCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStageCount">Scene.GetStageCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDebugMode">Scene.GetDebugMode</a></li>
+                    <li><a href="#Reference_functions_Scene_GetFirstInstance">Scene.GetFirstInstance</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLastInstance">Scene.GetLastInstance</a></li>
                     <li><a href="#Reference_functions_Scene_GetInstanceCount">Scene.GetInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStaticInstanceCount">Scene.GetStaticInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDynamicInstanceCount">Scene.GetDynamicInstanceCount</a></li>
@@ -1245,6 +1248,7 @@
                     <li><a href="#Reference_functions_Instance_Create">Instance.Create</a></li>
                     <li><a href="#Reference_functions_Instance_GetNth">Instance.GetNth</a></li>
                     <li><a href="#Reference_functions_Instance_IsClass">Instance.IsClass</a></li>
+                    <li><a href="#Reference_functions_Instance_GetClass">Instance.GetClass</a></li>
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
@@ -4478,6 +4482,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether or not the instance is of a specified object class.</div>
         </p>
+        <p id="Reference_functions_Instance_GetClass">
+        <h2 style="margin-bottom: 8px;">Instance.GetClass</h2>
+        <code>Instance.GetClass(instance)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the object class of a instance.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>instance (Instance): The instance to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
         <p id="Reference_functions_Instance_GetCount">
         <h2 style="margin-bottom: 8px;">Instance.GetCount</h2>
         <code>Instance.GetCount(className)</code>
@@ -5797,11 +5812,11 @@
         </p>
         <p id="Reference_functions_Scene_CheckObjectCollisionTouch">
         <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionTouch</h2>
-        <code>Scene.CheckObjectCollisionTouch(thisEnity, thisHitbox, otherEntity, otherHitbox)</code>
+        <code>Scene.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisEntity (Instance): The first instance to check.</li>
         <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
         <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
@@ -6293,6 +6308,20 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets whether Debug Mode has been turned on in the current scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetFirstInstance">
+        <h2 style="margin-bottom: 8px;">Scene.GetFirstInstance</h2>
+        <code>Scene.GetFirstInstance()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first active instance in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the first active instance in the scene, or <code>null</code> if there are no instances in the scene.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLastInstance">
+        <h2 style="margin-bottom: 8px;">Scene.GetLastInstance</h2>
+        <code>Scene.GetLastInstance()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the last active instance in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the last active instance in the scene, or <code>null</code> if there are no instances in the scene.</div>
         </p>
         <p id="Reference_functions_Scene_GetInstanceCount">
         <h2 style="margin-bottom: 8px;">Scene.GetInstanceCount</h2>
@@ -8933,7 +8962,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>658 out of 717 functions have descriptions. </p>
+        <p>661 out of 720 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
