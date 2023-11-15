@@ -560,7 +560,7 @@ PUBLIC void BytecodeObject::LinkFields() {
     * \ns Instance
     * \desc See <linkto ref="instance.Persistence"></linkto> instead.
     */
-    LINK_INT(Persistence);
+    Instance->Fields->Put("Persistent", INTEGER_LINK_VAL(&Persistence));
     /***
     * \field Interactable
     * \type Boolean
