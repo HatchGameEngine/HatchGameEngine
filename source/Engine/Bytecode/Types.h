@@ -94,6 +94,8 @@ const char* GetTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
+#define IS_NOT_NUMBER(value) (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
+
 // NOTE: Engine can either use integer or decimal for the number value.
 //   Set this to integer for Sonic, and decimal for non-optimized, floating-point projects.
 // #define IE_FIXED_POINT_MATH
@@ -118,7 +120,6 @@ const char* GetTypeString(VMValue value);
 #endif
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
-
 
 #define OBJECT_TYPE(value)      (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value)  IsObjectType(value, OBJ_BOUND_METHOD)
@@ -354,7 +355,7 @@ enum   OpCode {
     OP_LESS_EQUAL,
     //
     OP_PRINT,
-    OP_ENUM,
+    OP_ENUM_NEXT,
     OP_SAVE_VALUE,
     OP_LOAD_VALUE,
     OP_WITH,

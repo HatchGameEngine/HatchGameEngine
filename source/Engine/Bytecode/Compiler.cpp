@@ -147,6 +147,7 @@ enum TokenTYPE {
     TOKEN_SUPER,
     TOKEN_BREAK,
     TOKEN_CLASS,
+    TOKEN_ENUM,
     TOKEN_WHILE,
     TOKEN_REPEAT,
     TOKEN_RETURN,
@@ -339,6 +340,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'l': return CheckKeyword(2, 2, "se", TOKEN_ELSE);
+                    case 'n': return CheckKeyword(2, 2, "um", TOKEN_ENUM);
                     case 'v': return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
                 }
             }
@@ -2328,6 +2330,45 @@ PUBLIC void Compiler::GetClassDeclaration() {
 
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
+PUBLIC void Compiler::GetEnumDeclaration() {
+    ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
+
+    while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+        bool didStart = false;
+        do {
+            if (CheckToken(TOKEN_RIGHT_BRACE))
+                break;
+
+            ParseVariable("Expected constant name.");
+
+            Token token = parser.Previous;
+
+            if (MatchToken(TOKEN_ASSIGNMENT)) {
+                GetExpression();
+                EmitCopy(1);
+                EmitByte(OP_SAVE_VALUE);
+            }
+            else {
+                if (didStart) {
+                    EmitByte(OP_LOAD_VALUE);
+                    EmitConstant(INTEGER_VAL(1));
+                    EmitByte(OP_ENUM_NEXT);
+                }
+                else {
+                    EmitConstant(INTEGER_VAL(0));
+                }
+                EmitCopy(1);
+                EmitByte(OP_SAVE_VALUE);
+            }
+
+            didStart = true;
+
+            DefineVariableToken(token);
+        } while (MatchToken(TOKEN_COMMA));
+    }
+
+    ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
+}
 PUBLIC void Compiler::GetImportDeclaration() {
     bool importModules = MatchToken(TOKEN_FROM);
 
@@ -2369,6 +2410,8 @@ PUBLIC void Compiler::GetEventDeclaration() {
 PUBLIC void Compiler::GetDeclaration() {
     if (MatchToken(TOKEN_CLASS))
         GetClassDeclaration();
+    else if (MatchToken(TOKEN_ENUM))
+        GetEnumDeclaration();
     else if (MatchToken(TOKEN_IMPORT))
         GetImportDeclaration();
     else if (MatchToken(TOKEN_VAR))

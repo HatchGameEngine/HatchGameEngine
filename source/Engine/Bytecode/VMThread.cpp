@@ -366,7 +366,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_LESS),
             VM_ADD_DISPATCH(OP_LESS_EQUAL),
             VM_ADD_DISPATCH(OP_PRINT),
-            VM_ADD_DISPATCH_NULL(OP_ENUM),
+            VM_ADD_DISPATCH(OP_ENUM_NEXT),
             VM_ADD_DISPATCH(OP_SAVE_VALUE),
             VM_ADD_DISPATCH(OP_LOAD_VALUE),
             VM_ADD_DISPATCH(OP_WITH),
@@ -457,7 +457,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_LESS)
                 PRINT_CASE(OP_LESS_EQUAL)
                 PRINT_CASE(OP_PRINT)
-                PRINT_CASE(OP_ENUM)
+                PRINT_CASE(OP_ENUM_NEXT)
                 PRINT_CASE(OP_SAVE_VALUE)
                 PRINT_CASE(OP_LOAD_VALUE)
                 PRINT_CASE(OP_WITH)
@@ -1565,6 +1565,21 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_BREAK;
         }
 
+        VM_CASE(OP_ENUM_NEXT): {
+            VMValue b = Peek(0);
+            VMValue a = Peek(1);
+
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
+                Pop();
+                Pop();
+                Push(NULL_VAL);
+                VM_BREAK;
+            }
+
+            Push(Values_Plus());
+            VM_BREAK;
+        }
+
         VM_CASE(OP_FAILSAFE): {
             int offset = ReadUInt16(frame);
             frame->Function->Chunk.Failsafe = frame->IPStart + offset;
@@ -1967,7 +1982,6 @@ PUBLIC bool    VMThread::ImportModule(VMValue value) {
 }
 
 // #region Value Operations
-#define IS_NOT_NUMBER(a) (a.Type != VAL_DECIMAL && a.Type != VAL_INTEGER && a.Type != VAL_LINKED_DECIMAL && a.Type != VAL_LINKED_INTEGER)
 #define CHECK_IS_NUM(a, b, def) \
     if (IS_NOT_NUMBER(a)) { \
         ThrowRuntimeError(false, "Cannot perform %s operation on non-number value of type %s.", #b, GetTypeString(a)); \
