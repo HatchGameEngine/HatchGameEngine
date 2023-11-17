@@ -644,19 +644,19 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint32 filenameHash) {
+PUBLIC STATIC bool    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint32 filenameHash) {
     MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
     if (!stream)
-        return;
+        return false;
 
     FunctionList.clear();
 
     Uint8 magic[4];
     stream->ReadBytes(magic, 4);
     if (memcmp(Compiler::Magic, magic, 4) != 0) {
-        printf("Incorrect magic!\n");
+        Log::Print(Log::LOG_ERROR, "Incorrect magic!");
         stream->Close();
-        return;
+        return false;
     }
 
     // Uint8 version = stream->ReadByte();
@@ -754,6 +754,8 @@ PUBLIC STATIC void    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint3
     stream->Close();
 
     Threads[0].RunFunction(FunctionList[0], 0);
+
+    return true;
 }
 PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     if (!Globals->Exists(functionName))
@@ -774,7 +776,7 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
     Uint32 hash = Globals->HashFunction(objectName, strlen(objectName));
     ObjClass* klass = AS_CLASS(Globals->Get(hash));
     if (!klass) {
-        Log::Print(Log::LOG_ERROR, "No class! Can't find: %s\n", objectName);
+        Log::Print(Log::LOG_ERROR, "No class! Can't find: %s", objectName);
         exit(-1);
     }
 
@@ -784,6 +786,13 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
     object->Link(instance);
 
     return object;
+}
+PUBLIC STATIC Uint32 BytecodeObjectManager::MakeFilenameHash(char *filename) {
+    size_t length = strlen(filename);
+    char* dot = strrchr(filename, '.');
+    if (dot)
+        length = dot - filename;
+    return CombinedHash::EncryptData((const void*)filename, length);
 }
 PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
     if (Sources->Exists(filenameHash))
@@ -818,6 +827,24 @@ PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32
 PUBLIC STATIC bool    BytecodeObjectManager::ClassExists(const char* objectName) {
     return SourceFileMap::ClassMap->Exists(objectName);
 }
+PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(char* filename) {
+    if (!filename || !*filename)
+        return false;
+
+    Uint32 hash = MakeFilenameHash(filename);
+    return LoadScript(hash);
+}
+PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
+    if (!Sources->Exists(hash)) {
+        Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(hash);
+        if (!bytecode.Data)
+            return false;
+
+        return RunFromIBC(bytecode, hash);
+    }
+
+    return true;
+}
 PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
     if (!objectName || !*objectName)
         return false;
@@ -836,7 +863,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
         if (!Sources->Exists(filenameHash)) {
             Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
-                Log::Print(Log::LOG_WARN, "Object \"%s\" does not exist!", objectName);
+                Log::Print(Log::LOG_WARN, "Code for object \"%s\" does not exist!", objectName);
                 return false;
             }
 
@@ -856,7 +883,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
         // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
         ObjClass* klass = AS_CLASS(Globals->Get(objectName));
         if (!klass) {
-            Log::Print(Log::LOG_ERROR, "Could not find class of %s", objectName);
+            Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
             return false;
         }
         if (klass->Extended == 0) {

@@ -154,15 +154,8 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
     for (size_t i = 0; i < list.size(); i++) {
         char* filename = strrchr(list[i], '/');
         Uint32 filenameHash = 0;
-        if (filename) {
-            filename++;
-            char* dot = strrchr(filename, '.');
-            if (dot)
-                *dot = '\0';
-            filenameHash = CombinedHash::EncryptString(list[i] + scriptFolderNameLen);
-            if (dot)
-                *dot = '.';
-        }
+        if (filename)
+            filenameHash = BytecodeObjectManager::MakeFilenameHash(list[i] + scriptFolderNameLen + 1);
         if (!filenameHash) {
             Memory::Free(list[i]);
             continue;

@@ -383,6 +383,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_SWITCH),
             VM_ADD_DISPATCH(OP_POPN),
             VM_ADD_DISPATCH(OP_HAS_PROPERTY),
+            VM_ADD_DISPATCH(OP_IMPORT_MODULE),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -471,6 +472,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_SWITCH)
                 PRINT_CASE(OP_POPN)
                 PRINT_CASE(OP_HAS_PROPERTY),
+                PRINT_CASE(OP_IMPORT_MODULE),
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -1548,12 +1550,18 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_IMPORT): {
             VMValue value = ReadConstant(frame);
             if (!Import(value)) {
-                // if (ThrowRuntimeError(false, "Could not import class!") == ERROR_RES_CONTINUE)
-                    // goto FAIL_OP_IMPORT;
-                return INTERPRET_RUNTIME_ERROR;
+                // ThrowRuntimeError(false, "Could not import class!");
             }
 
-            FAIL_OP_IMPORT:
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_IMPORT_MODULE): {
+            VMValue value = ReadConstant(frame);
+            if (!ImportModule(value)) {
+                ThrowRuntimeError(false, "Could not import module!");
+            }
+
             VM_BREAK;
         }
 
@@ -1930,7 +1938,27 @@ PUBLIC bool    VMThread::Import(VMValue value) {
                 result = true;
             }
             else {
-                Log::Print(Log::LOG_ERROR, "Could not import \"%s\"!", className);
+                BytecodeObjectManager::Unlock();
+                return ImportModule(value);
+            }
+        }
+    }
+    BytecodeObjectManager::Unlock();
+    return result;
+}
+PUBLIC bool    VMThread::ImportModule(VMValue value) {
+    bool result = false;
+    if (BytecodeObjectManager::Lock()) {
+        if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
+            ThrowRuntimeError(false, "Cannot import from a %s.", GetTypeString(value));
+        }
+        else {
+            char* scriptName = AS_CSTRING(value);
+            if (BytecodeObjectManager::LoadScript(scriptName)) {
+                result = true;
+            }
+            else {
+                Log::Print(Log::LOG_ERROR, "Could not import \"%s\"!", scriptName);
             }
         }
     }

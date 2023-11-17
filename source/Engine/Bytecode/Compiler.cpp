@@ -156,6 +156,7 @@ enum TokenTYPE {
     TOKEN_IMPORT,
     TOKEN_AS,
     TOKEN_IN,
+    TOKEN_FROM,
 
     TOKEN_PRINT,
 
@@ -359,6 +360,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                             }
                         }
                         break;
+                    case 'r': return CheckKeyword(2, 2, "om", TOKEN_FROM);
                 }
             }
             break;
@@ -2327,13 +2329,15 @@ PUBLIC void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
 PUBLIC void Compiler::GetImportDeclaration() {
+    bool importModules = MatchToken(TOKEN_FROM);
+
     do {
         ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
 
         Token className = parser.Previous;
         VMValue value = OBJECT_VAL(Compiler::MakeString(className));
 
-        EmitByte(OP_IMPORT);
+        EmitByte(importModules ? OP_IMPORT_MODULE : OP_IMPORT);
         EmitUint32(GetConstantIndex(value));
     }
     while (MatchToken(TOKEN_COMMA));
