@@ -834,6 +834,9 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(char* filename) {
     Uint32 hash = MakeFilenameHash(filename);
     return LoadScript(hash);
 }
+PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(const char* filename) {
+    return LoadScript((char*)filename);
+}
 PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
     if (!Sources->Exists(hash)) {
         Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(hash);
@@ -863,13 +866,12 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
         if (!Sources->Exists(filenameHash)) {
             Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
-                Log::Print(Log::LOG_WARN, "Code for object \"%s\" does not exist!", objectName);
+                Log::Print(Log::LOG_WARN, "Code for the object class \"%s\" does not exist!", objectName);
                 return false;
             }
 
-            // Load the object class
             if (fn == 0) {
-                Log::Print(Log::LOG_VERBOSE, "Loading the object %s%s%s class, %d filenames...",
+                Log::Print(Log::LOG_VERBOSE, "Loading class %s%s%s, %d filename(s)...",
                     Log::WriteToFile ? "" : FG_YELLOW, objectName, Log::WriteToFile ? "" : FG_RESET,
                     (int)filenameHashList->size());
             }

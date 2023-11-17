@@ -740,6 +740,8 @@ PUBLIC STATIC void Scene::Init() {
 
     Application::Settings->GetBool("dev", "loadAllClasses", &BytecodeObjectManager::LoadAllClasses);
 
+    BytecodeObjectManager::LoadScript("init.hsl");
+
     if (BytecodeObjectManager::LoadAllClasses)
         BytecodeObjectManager::LoadClasses();
 }
