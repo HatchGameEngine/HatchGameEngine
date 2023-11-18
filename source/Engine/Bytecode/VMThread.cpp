@@ -673,7 +673,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                if (ThrowRuntimeError(false, "Only instances and classes have properties.") == ERROR_RES_CONTINUE)
+                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_GET_PROPERTY;
             }
             VM_BREAK;
@@ -703,7 +703,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 fields = klass->Fields;
             }
             else {
-                if (ThrowRuntimeError(false, "Only instances and classes have properties.") == ERROR_RES_CONTINUE)
+                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_SET_PROPERTY;
             }
 
@@ -826,7 +826,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                ThrowRuntimeError(false, "Only instances and classes have properties.");
+                ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object));
             }
 
             FAIL_OP_HAS_PROPERTY:

@@ -2331,6 +2331,22 @@ PUBLIC void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
 PUBLIC void Compiler::GetEnumDeclaration() {
+    Token enumName;
+    bool isNamed = false;
+
+    if (MatchToken(TOKEN_IDENTIFIER)) {
+        enumName = parser.Previous;
+        DeclareVariable(&enumName);
+
+        EmitByte(OP_CLASS);
+        EmitStringHash(enumName);
+        EmitByte(false);
+
+        DefineVariableToken(enumName);
+
+        isNamed = true;
+    }
+
     ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
 
     while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
@@ -2342,6 +2358,10 @@ PUBLIC void Compiler::GetEnumDeclaration() {
             ParseVariable("Expected constant name.");
 
             Token token = parser.Previous;
+
+            // Push the enum class to the stack
+            if (isNamed)
+                NamedVariable(enumName, false);
 
             if (MatchToken(TOKEN_ASSIGNMENT)) {
                 GetExpression();
@@ -2363,7 +2383,10 @@ PUBLIC void Compiler::GetEnumDeclaration() {
 
             didStart = true;
 
-            DefineVariableToken(token);
+            if (isNamed)
+                EmitSetOperation(OP_SET_PROPERTY, -1, token);
+            else
+                DefineVariableToken(token);
         } while (MatchToken(TOKEN_COMMA));
     }
 
