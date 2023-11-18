@@ -2294,11 +2294,11 @@ PUBLIC void Compiler::GetClassDeclaration() {
 
     // Check for class extension
     if (MatchToken(TOKEN_PLUS)) {
-        EmitByte(true);
+        EmitByte(CLASS_TYPE_EXTENDED);
         ClassExtendedList.push_back(1);
     }
     else {
-        EmitByte(false);
+        EmitByte(CLASS_TYPE_NORMAL);
         ClassExtendedList.push_back(0);
     }
 
@@ -2340,7 +2340,7 @@ PUBLIC void Compiler::GetEnumDeclaration() {
 
         EmitByte(OP_CLASS);
         EmitStringHash(enumName);
-        EmitByte(false);
+        EmitByte(CLASS_TYPE_ENUM);
 
         DefineVariableToken(enumName);
 
@@ -2383,8 +2383,10 @@ PUBLIC void Compiler::GetEnumDeclaration() {
 
             didStart = true;
 
-            if (isNamed)
-                EmitSetOperation(OP_SET_PROPERTY, -1, token);
+            if (isNamed) {
+                EmitByte(OP_ADD_ENUM);
+                EmitStringHash(token);
+            }
             else
                 DefineVariableToken(token);
         } while (MatchToken(TOKEN_COMMA));

@@ -22,6 +22,12 @@ typedef enum {
     VAL_LINKED_DECIMAL,
 } ValueType;
 
+enum {
+    CLASS_TYPE_NORMAL,
+    CLASS_TYPE_EXTENDED,
+    CLASS_TYPE_ENUM
+};
+
 struct Obj;
 
 struct VMValue {
@@ -207,7 +213,7 @@ struct ObjClass {
     Table*     Methods;
     Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
     VMValue    Initializer;
-    Uint8      Extended;
+    Uint8      Type;
     Uint32     ParentHash;
     ObjClass*  Parent;
 };
@@ -374,6 +380,7 @@ enum   OpCode {
     OP_POPN,
     OP_HAS_PROPERTY,
     OP_IMPORT_MODULE,
+    OP_ADD_ENUM,
 
     OP_SYNC = 0xFF,
 };

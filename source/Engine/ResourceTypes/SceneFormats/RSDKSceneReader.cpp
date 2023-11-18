@@ -381,10 +381,14 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
             doAdd = false;
         }
 
+        Entity* obj = nullptr;
         Uint32 X = r->ReadUInt32();
         Uint32 Y = r->ReadUInt32();
 
-        if (objectList->SpawnFunction) {
+        if (objectList->SpawnFunction)
+            obj = objectList->Spawn();
+
+        if (obj != nullptr) {
             Entity* obj = objectList->Spawn();
             obj->X = (X / 65536.f);
             obj->Y = (Y / 65536.f);

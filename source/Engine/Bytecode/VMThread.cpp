@@ -384,6 +384,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_POPN),
             VM_ADD_DISPATCH(OP_HAS_PROPERTY),
             VM_ADD_DISPATCH(OP_IMPORT_MODULE),
+            VM_ADD_DISPATCH(OP_ADD_ENUM),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -473,6 +474,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_POPN)
                 PRINT_CASE(OP_HAS_PROPERTY),
                 PRINT_CASE(OP_IMPORT_MODULE),
+                PRINT_CASE(OP_ADD_ENUM),
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -528,7 +530,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         if (IS_NULL(result)) {
                             // Conversion failed
                             if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Integer", GetTypeString(value)) == ERROR_RES_CONTINUE)
-                                goto FAIL_OP_SET_PROPERTY;
+                                goto FAIL_OP_SET_GLOBAL;
                         }
                         AS_LINKED_INTEGER(LHS) = AS_INTEGER(result);
                         break;
@@ -538,7 +540,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         if (IS_NULL(result)) {
                             // Conversion failed
                             if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Decimal", GetTypeString(value)) == ERROR_RES_CONTINUE)
-                                goto FAIL_OP_SET_PROPERTY;
+                                goto FAIL_OP_SET_GLOBAL;
                         }
                         AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(result);
                         break;
@@ -685,7 +687,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_BREAK;
         }
         VM_CASE(OP_SET_PROPERTY): {
-            Uint32 hash;
+            Uint32 hash = ReadUInt32(frame);
             VMValue field;
             VMValue value;
             VMValue result;
@@ -700,14 +702,16 @@ PUBLIC int     VMThread::RunInstruction() {
             }
             else if (IS_CLASS(object)) {
                 ObjClass* klass = AS_CLASS(object);
+                if (klass->Type == CLASS_TYPE_ENUM) {
+                    if (ThrowRuntimeError(false, "Cannot modify the values of an enumeration.") == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_SET_PROPERTY;
+                }
                 fields = klass->Fields;
             }
             else {
                 if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_SET_PROPERTY;
             }
-
-            hash = ReadUInt32(frame);
 
             if (BytecodeObjectManager::Lock()) {
                 value = Pop();
@@ -1500,7 +1504,7 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_CLASS): {
             Uint32 hash = ReadUInt32(frame);
             ObjClass* klass = NewClass(hash);
-            klass->Extended = ReadByte(frame);
+            klass->Type = ReadByte(frame);
 
             if (!__Tokens__ || !__Tokens__->Exists(hash)) {
                 char name[9];
@@ -1577,6 +1581,40 @@ PUBLIC int     VMThread::RunInstruction() {
             }
 
             Push(Values_Plus());
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_ADD_ENUM): {
+            ObjClass* klass = nullptr;
+            VMValue object = Peek(1);
+            Uint32 hash = ReadUInt32(frame);
+
+            if (IS_CLASS(object)) {
+                klass = AS_CLASS(object);
+                if (klass->Type != CLASS_TYPE_ENUM) {
+                    if (ThrowRuntimeError(false, "Cannot add entry to non-enumeration.") == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_ADD_ENUM;
+                }
+            }
+            else {
+                if (ThrowRuntimeError(false, "Unexpected value type; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_ADD_ENUM;
+            }
+
+            if (BytecodeObjectManager::Lock()) {
+                VMValue value = Pop();
+                klass->Fields->Put(hash, value);
+                Pop();
+                Push(value);
+                BytecodeObjectManager::Unlock();
+            }
+            VM_BREAK;
+
+            FAIL_OP_ADD_ENUM:
+            Pop();
+            Pop();
+            Push(NULL_VAL);
+            BytecodeObjectManager::Unlock();
             VM_BREAK;
         }
 
@@ -1828,18 +1866,23 @@ PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
         }
         else {
             ObjClass* klass = AS_CLASS(callee);
+            if (klass->Type == CLASS_TYPE_ENUM) {
+                ThrowRuntimeError(false, "Cannot instantiate enumeration.");
+            }
+            else {
+                // Create the instance.
+                StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
 
-            // Create the instance.
-            StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
+                result = true;
 
-            result = true;
+                // Call the initializer, if there is one.
+                if (HasInitializer(klass))
+                    result = Call(AS_FUNCTION(klass->Initializer), argCount);
+                else if (argCount != 0) {
+                    ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
+                    result = false;
+                }
 
-            // Call the initializer, if there is one.
-            if (HasInitializer(klass))
-                result = Call(AS_FUNCTION(klass->Initializer), argCount);
-            else if (argCount != 0) {
-                ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
-                result = false;
             }
         }
 
@@ -1925,9 +1968,18 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
     }
     return InvokeFromClass(klass, hash, argCount);
 }
-PUBLIC void    VMThread::DoClassExtension(VMValue value, VMValue originalValue) {
+PUBLIC bool    VMThread::DoClassExtension(VMValue value, VMValue originalValue) {
     ObjClass* src = AS_CLASS(value);
     ObjClass* dst = AS_CLASS(originalValue);
+
+    if (dst->Type == CLASS_TYPE_ENUM && src->Type != CLASS_TYPE_ENUM) {
+        ThrowRuntimeError(false, "Cannot extend enumeration with class.");
+        return false;
+    }
+    else if (src->Type == CLASS_TYPE_ENUM && dst->Type != CLASS_TYPE_ENUM) {
+        ThrowRuntimeError(false, "Cannot extend class with enumeration.");
+        return false;
+    }
 
     src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
         dst->Methods->Put(hash, value);
@@ -1938,6 +1990,8 @@ PUBLIC void    VMThread::DoClassExtension(VMValue value, VMValue originalValue) 
         dst->Fields->Put(hash, value);
     });
     src->Fields->Clear();
+
+    return true;
 }
 PUBLIC bool    VMThread::Import(VMValue value) {
     bool result = false;
@@ -1949,7 +2003,7 @@ PUBLIC bool    VMThread::Import(VMValue value) {
             char* className = AS_CSTRING(value);
             if (BytecodeObjectManager::ClassExists(className)) {
                 if (!BytecodeObjectManager::Classes->Exists(className))
-                    BytecodeObjectManager::LoadClass(className);
+                    BytecodeObjectManager::LoadObjectClass(className, true);
                 result = true;
             }
             else {

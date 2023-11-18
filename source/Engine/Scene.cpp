@@ -1719,8 +1719,8 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
 
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (nothrow) ObjectList(objectName);
-    if (objectList && BytecodeObjectManager::LoadClass(objectName))
-        objectList->SpawnFunction = BytecodeObjectManager::SpawnFunction;
+    if (objectList && BytecodeObjectManager::LoadObjectClass(objectName, true))
+        objectList->SpawnFunction = BytecodeObjectManager::ObjectSpawnFunction;
     return objectList;
 }
 PRIVATE STATIC void Scene::AddStaticClass() {
@@ -1792,6 +1792,8 @@ PRIVATE STATIC void Scene::SpawnStaticObject(const char* objectName) {
     ObjectList* objectList = Scene::GetObjectList(objectName, false);
     if (objectList->SpawnFunction) {
         Entity* obj = objectList->Spawn();
+        if (!obj)
+            return;
         obj->X = 0.0f;
         obj->Y = 0.0f;
         obj->InitialX = obj->X;

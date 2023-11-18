@@ -776,8 +776,12 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
     Uint32 hash = Globals->HashFunction(objectName, strlen(objectName));
     ObjClass* klass = AS_CLASS(Globals->Get(hash));
     if (!klass) {
-        Log::Print(Log::LOG_ERROR, "No class! Can't find: %s", objectName);
-        exit(-1);
+        Log::Print(Log::LOG_ERROR, "Can't find class of \"%s\"!", objectName);
+        return nullptr;
+    }
+    else if (klass->Type == CLASS_TYPE_ENUM) {
+        Log::Print(Log::LOG_ERROR, "Cannot spawn an object of enumerated class \"%s\"!", objectName);
+        return nullptr;
     }
 
     BytecodeObject* object = new BytecodeObject;
@@ -848,7 +852,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
 
     return true;
 }
-PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
+PUBLIC STATIC bool    BytecodeObjectManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
     if (!objectName || !*objectName)
         return false;
 
@@ -888,15 +892,16 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadClass(const char* objectName) {
             Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
             return false;
         }
-        if (klass->Extended == 0) {
-            BytecodeObjectManager::AddNativeFunctions(klass);
+        // FIXME: Do this in a better way. Probably just remove CLASS_TYPE_EXTENDED to begin with.
+        if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
+            BytecodeObjectManager::AddNativeObjectFunctions(klass);
         }
         Classes->Put(objectName, klass);
     }
 
     return true;
 }
-PUBLIC STATIC void   BytecodeObjectManager::AddNativeFunctions(ObjClass* klass) {
+PUBLIC STATIC void   BytecodeObjectManager::AddNativeObjectFunctions(ObjClass* klass) {
 #define DEF_NATIVE(name) BytecodeObjectManager::DefineNative(klass, #name, BytecodeObject::VM_##name)
     DEF_NATIVE(InView);
     DEF_NATIVE(Animate);
@@ -924,7 +929,7 @@ PUBLIC STATIC void   BytecodeObjectManager::AddNativeFunctions(ObjClass* klass) 
     DEF_NATIVE(StopAllSounds);
 #undef DEF_NATIVE
 }
-PUBLIC STATIC Entity* BytecodeObjectManager::SpawnFunction(const char* objectName) {
+PUBLIC STATIC Entity* BytecodeObjectManager::ObjectSpawnFunction(const char* objectName) {
     return BytecodeObjectManager::SpawnObject(objectName);
 }
 PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {

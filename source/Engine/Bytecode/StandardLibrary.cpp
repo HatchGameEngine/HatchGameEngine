@@ -5495,11 +5495,16 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjectList* objectList = Scene::GetObjectList(objectName);
     if (!objectList || !objectList->SpawnFunction) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Object \"%s\" does not exist.", objectName);
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Object class \"%s\" does not exist.", objectName);
         return NULL_VAL;
     }
 
     BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+    if (!obj) {
+        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not spawn object of class \"%s\"!", objectName);
+        return NULL_VAL;
+    }
+
     obj->X = x;
     obj->Y = y;
     obj->InitialX = x;
@@ -5726,7 +5731,7 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 
     if (BytecodeObjectManager::ClassExists(objectName)) {
         if (!BytecodeObjectManager::Classes->Exists(objectName))
-            BytecodeObjectManager::LoadClass(objectName);
+            BytecodeObjectManager::LoadObjectClass(objectName, true);
 
         ObjClass* klass = AS_CLASS(BytecodeObjectManager::Globals->Get(objectName));
         if (!klass) {

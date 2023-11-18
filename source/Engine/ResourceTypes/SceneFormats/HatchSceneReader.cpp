@@ -421,6 +421,11 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
             BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+            if (!obj) {
+                HatchSceneReader::SkipEntityProperties(r, numProps);
+                continue;
+            }
+
             obj->X = posX;
             obj->Y = posY;
             obj->InitialX = posX;
