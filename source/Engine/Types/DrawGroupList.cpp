@@ -27,7 +27,10 @@ PUBLIC int    DrawGroupList::Add(Entity* obj) {
         NeedsSorting = true;
     return Entities->size() - 1;
 }
-PUBLIC int    DrawGroupList::Contains(Entity* obj) {
+PUBLIC bool   DrawGroupList::Contains(Entity* obj) {
+    return GetEntityIndex(obj) == -1 ? false : true;
+}
+PUBLIC int    DrawGroupList::GetEntityIndex(Entity* obj) {
     for (size_t i = 0, iSz = Entities->size(); i < iSz; i++) {
         if ((*Entities)[i] == obj)
             return (int)i;

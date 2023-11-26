@@ -519,7 +519,7 @@ void UpdateObject(Entity* ent) {
 
     // If hasn't been put in a list yet:
     if (ent->PriorityListIndex == -1) {
-        int index = Scene::PriorityLists[ent->Priority].Contains(ent);
+        int index = Scene::PriorityLists[ent->Priority].GetEntityIndex(ent);
         if (index == -1)
             index = Scene::PriorityLists[ent->Priority].Add(ent);
         ent->PriorityListIndex = index;
@@ -529,7 +529,7 @@ void UpdateObject(Entity* ent) {
         // Remove entry in old list.
         if (oldPriority != -1)
             Scene::PriorityLists[oldPriority].Remove(ent);
-        int index = Scene::PriorityLists[ent->Priority].Contains(ent);
+        int index = Scene::PriorityLists[ent->Priority].GetEntityIndex(ent);
         if (index == -1)
             index = Scene::PriorityLists[ent->Priority].Add(ent);
         ent->PriorityListIndex = index;
