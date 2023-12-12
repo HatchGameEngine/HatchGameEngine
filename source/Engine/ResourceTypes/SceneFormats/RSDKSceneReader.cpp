@@ -593,7 +593,6 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
                 for (int p = 0; p < 256; p++)
                     Graphics::PaletteColors[0][p] = gif->Colors[p];
                 Graphics::PaletteUpdated = true;
-                Memory::Free(gif->Colors);
             }
             delete gif;
         }

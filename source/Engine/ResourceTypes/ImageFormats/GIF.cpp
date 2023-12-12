@@ -292,6 +292,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
 #endif
 
     gif->Paletted = loadPalette;
+    gif->NumPaletteColors = 256;
 
     memset(gif->Colors + paletteTableSize, 0, (0x100 - paletteTableSize) * sizeof(Uint32));
 
@@ -512,6 +513,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
         Memory::Free(codeTable);
         return gif;
 }
+
 PUBLIC STATIC  bool   GIF::Save(GIF* gif, const char* filename) {
     return gif->Save(filename);
 }

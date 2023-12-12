@@ -7776,7 +7776,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                 }
                             }
                             Graphics::PaletteUpdated = true;
-                            Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
                         delete gif;
@@ -7797,7 +7796,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 Graphics::PaletteColors[palIndex][p] = png->Colors[p];
                             Graphics::PaletteUpdated = true;
-                            Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
                         delete png;
@@ -8043,7 +8041,6 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
-#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Resources
@@ -11875,8 +11872,36 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
         return OBJECT_VAL(array);
     }
 }
+/***
+ * Sprite.MakePalettized
+ * \desc Converts a sprite's colors to the ones in the specified palette index.
+ * \param sprite (Integer): The sprite index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Sprite
+ */
+VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int palIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    sprite->ConvertToPalette(palIndex);
+    return NULL_VAL;
+}
+/***
+ * Sprite.MakeNonPalettized
+ * \desc Removes a sprite's palette.
+ * \param sprite (Integer): The sprite index.
+ * \ns Sprite
+ */
+VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    sprite->ConvertToRGBA();
+    return NULL_VAL;
+}
 #undef CHECK_ANIMATION_INDEX
 #undef CHECK_ANIMFRAME_INDEX
+#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Stream
@@ -16029,6 +16054,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameOffsetX);
     DEF_NATIVE(Sprite, GetFrameOffsetY);
     DEF_NATIVE(Sprite, GetFrameHitbox);
+    DEF_NATIVE(Sprite, MakePalettized);
+    DEF_NATIVE(Sprite, MakeNonPalettized);
     // #endregion
 
     // #region Stream

@@ -79,7 +79,7 @@ PUBLIC STATIC Texture* Image::LoadTextureFromResource(const char* filename) {
             Memory::Track(data, "Texture::Data");
 
             if (png->Paletted) {
-                paletteColors = png->Colors;
+                paletteColors = png->GetPalette();
                 numPaletteColors = png->NumPaletteColors;
             }
 
@@ -121,7 +121,7 @@ PUBLIC STATIC Texture* Image::LoadTextureFromResource(const char* filename) {
             Memory::Track(data, "Texture::Data");
 
             if (gif->Paletted) {
-                paletteColors = gif->Colors;
+                paletteColors = gif->GetPalette();
                 numPaletteColors = 256;
             }
 

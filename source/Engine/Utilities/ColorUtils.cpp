@@ -36,6 +36,15 @@ PUBLIC STATIC void ColorUtils::Separate(Uint32 color, float* dest) {
     dest[3] = (color >> 24 & 0xFF) / 255.f;
     SeparateRGB(color, dest);
 }
+PUBLIC STATIC void ColorUtils::SeparateRGB(Uint32 color, Uint32* dest) {
+    dest[0] = (color >> 16) & 0xFF;
+    dest[1] = (color >> 8) & 0xFF;
+    dest[2] = color & 0xFF;
+}
+PUBLIC STATIC void ColorUtils::Separate(Uint32 color, Uint32* dest) {
+    dest[3] = (color >> 24) & 0xFF;
+    SeparateRGB(color, dest);
+}
 PUBLIC STATIC Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
     Uint32 dR = (colorMult >> 16) & 0xFF;
     Uint32 dG = (colorMult >> 8) & 0xFF;
@@ -81,4 +90,28 @@ PUBLIC STATIC void   ColorUtils::ConvertFromABGRtoARGB(Uint32* argb, int count) 
         *argb = 0xFF000000U | red << 16 | green << 8 | blue;
         argb++;
     }
+}
+PUBLIC STATIC int    ColorUtils::NearestColor(Uint8 r, Uint8 g, Uint8 b, Uint32* palette, unsigned numColors) {
+    Sint64 minDist = 255 * 255 * 3;
+
+    int bestColor = 0;
+
+    for (unsigned i = 0; i < numColors; i++) {
+        Uint32 color = palette[i];
+
+        Sint64 diffR = ((Sint64)r) - ((color >> 16) & 0xFF);
+        Sint64 diffG = ((Sint64)g) - ((color >> 8) & 0xFF);
+        Sint64 diffB = ((Sint64)b) - (color & 0xFF);
+
+        Sint64 dist = diffR*diffR + diffG*diffG + diffB*diffB;
+        if (dist < minDist) {
+            bestColor = (int)i;
+            if (!dist)
+                return bestColor;
+
+            minDist = dist;
+        }
+    }
+
+    return bestColor;
 }

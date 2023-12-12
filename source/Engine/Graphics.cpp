@@ -411,6 +411,36 @@ PUBLIC STATIC int      Graphics::SetTexturePalette(Texture* texture, void* palet
         return 1;
     return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
 }
+PUBLIC STATIC int      Graphics::ConvertTextureToRGBA(Texture* texture) {
+    texture->ConvertToRGBA();
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+    return Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+}
+PUBLIC STATIC int      Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
+    Uint32* colors = (Uint32*)Memory::TrackedMalloc("Texture::Colors", 256 * sizeof(Uint32));
+    if (!colors)
+        return 0;
+
+    memcpy(colors, Graphics::PaletteColors[paletteNumber], 256 * sizeof(Uint32));
+
+    texture->ConvertToPalette(colors, 256);
+    texture->SetPalette(colors, 256);
+
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+
+    int ok = Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+    if (!ok)
+        return 0;
+
+    if (Graphics::GfxFunctions->SetTexturePalette)
+        ok |= Graphics::GfxFunctions->SetTexturePalette(texture, texture->PaletteColors, texture->NumPaletteColors);
+
+    return ok;
+}
 PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
     Graphics::GfxFunctions->UnlockTexture(texture);
 }
@@ -1386,6 +1416,10 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
 PUBLIC STATIC void     Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
         ColorUtils::ConvertFromARGBtoABGR(argb, count);
+}
+PUBLIC STATIC void     Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
+    if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
+        ColorUtils::ConvertFromABGRtoARGB(argb, count);
 }
 
 PUBLIC STATIC void     Graphics::SetStencilEnabled(bool enabled) {
