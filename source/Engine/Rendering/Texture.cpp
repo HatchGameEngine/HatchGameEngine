@@ -28,6 +28,7 @@ public:
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Utilities/ColorUtils.h>
+#include <Engine/Includes/HashMap.h>
 
 PUBLIC STATIC Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
@@ -73,15 +74,27 @@ PUBLIC         bool  Texture::ConvertToPalette(Uint32 *palColors, unsigned numPa
     ConvertToRGBA();
 
     Uint32 *pixels = (Uint32*)Pixels;
-    Uint32 colors[4];
+    int nearestColor;
+
+    HashMap<int>* colorsHash = new HashMap<int>(NULL, 256);
 
     for (size_t i = 0; i < Width * Height; i++) {
-        ColorUtils::Separate(pixels[i], colors);
-        if (colors[3])
-            pixels[i] = ColorUtils::NearestColor(colors[0], colors[1], colors[2], palColors, numPaletteColors);
+        Uint32 color = pixels[i];
+        if (color & 0xFF000000) {
+            if (!colorsHash->GetIfExists(color, &nearestColor)) {
+                Uint32 rgb[3];
+                ColorUtils::SeparateRGB(color, rgb);
+                nearestColor = ColorUtils::NearestColor(rgb[0], rgb[1], rgb[2], palColors, numPaletteColors);
+                colorsHash->Put(color, nearestColor);
+            }
+
+            pixels[i] = nearestColor;
+        }
         else
             pixels[i] = 0;
     }
+
+    delete colorsHash;
 
     Paletted = true;
 
