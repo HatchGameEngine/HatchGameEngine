@@ -23,7 +23,6 @@ public:
         for (size_t i = 0; i < KeyVector.size(); i++)
             free(KeyVector[i]);
 
-        ValueMap.Dispose();
         KeyVector.clear();
     }
     ~XMLAttributes() {
