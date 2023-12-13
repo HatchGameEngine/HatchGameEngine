@@ -56,13 +56,6 @@ struct Bytecode {
     size_t Size;
 };
 
-struct PrintBuffer {
-    char** Buffer;
-    int WriteIndex;
-    int BufferSize;
-};
-int buffer_printf(PrintBuffer* printBuffer, const char *format, ...);
-
 void ChunkInit(Chunk* chunk);
 void ChunkFree(Chunk* chunk);
 void ChunkWrite(Chunk* chunk, Uint8 byte, int line);

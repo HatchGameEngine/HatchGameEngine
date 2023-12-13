@@ -1,9 +1,10 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Includes/PrintBuffer.h>
+
 class Values {
 public:
-    static bool PrettyPrint;
 };
 #endif
 
@@ -11,54 +12,19 @@ public:
 
 #include <Engine/Diagnostics/Log.h>
 
-int buffer_printf(PrintBuffer* printBuffer, const char *format, ...) {
-    va_list args;
-    va_list argsCopy;
-    va_start(args, format);
-    va_copy(argsCopy, args);
-
-    // Do a simple print if printBuffer is missing
-    if (!printBuffer || !printBuffer->Buffer) {
-        vprintf(format, args);
-        va_end(argsCopy);
-        va_end(args);
-        return 0;
-    }
-
-    // Get the character count we would write if we did
-    int count = vsnprintf(NULL, 0, format, argsCopy);
-
-    while (printBuffer->WriteIndex + count >= printBuffer->BufferSize) {
-        // Increase the buffer size
-        printBuffer->BufferSize <<= 1;
-
-        // Reallocate buffer
-        *printBuffer->Buffer = (char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
-        if (!*printBuffer->Buffer) {
-            Log::Print(Log::LOG_ERROR, "Could not reallocate print buffer of size %d!", printBuffer->BufferSize);
-            va_end(argsCopy);
-            va_end(args);
-            return -1;
-        }
-    }
-
-    // Write the characters
-    printBuffer->WriteIndex += vsnprintf(*printBuffer->Buffer + printBuffer->WriteIndex, printBuffer->BufferSize - printBuffer->WriteIndex, format, args);
-    va_end(argsCopy);
-    va_end(args);
-    return 0;
-}
-
-bool Values::PrettyPrint = false;
+#include <Engine/Includes/PrintBuffer.h>
 
 // NOTE: This is for printing, not string conversion
 PUBLIC STATIC void Values::PrintValue(VMValue value) {
     Values::PrintValue(NULL, value);
 }
 PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value) {
-    Values::PrintValue(buffer, value, 0);
+    Values::PrintValue(buffer, value, 0, false);
 }
-PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, int indent) {
+PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, bool prettyPrint) {
+    Values::PrintValue(buffer, value, 0, prettyPrint);
+}
+PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
     switch (value.Type) {
         case VAL_NULL:
             buffer_printf(buffer, "null");
@@ -72,13 +38,13 @@ PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, int in
             buffer_printf(buffer, "%f", AS_DECIMAL(value));
             break;
         case VAL_OBJECT:
-            PrintObject(buffer, value, indent);
+            PrintObject(buffer, value, indent, prettyPrint);
             break;
         default:
             buffer_printf(buffer, "<unknown value type 0x%02X>", value.Type);
     }
 }
-PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent) {
+PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
     switch (OBJECT_TYPE(value)) {
         case OBJ_CLASS:
             buffer_printf(buffer, "<class %s>", AS_CLASS(value)->Name ? AS_CLASS(value)->Name->Chars : "(null)");
@@ -114,17 +80,17 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             ObjArray* array = (ObjArray*)AS_OBJECT(value);
 
             buffer_printf(buffer, "[");
-            if (PrettyPrint)
+            if (prettyPrint)
                 buffer_printf(buffer, "\n");
 
             for (size_t i = 0; i < array->Values->size(); i++) {
                 if (i > 0) {
                     buffer_printf(buffer, ",");
-                    if (PrettyPrint)
+                    if (prettyPrint)
                         buffer_printf(buffer, "\n");
                 }
 
-                if (PrettyPrint) {
+                if (prettyPrint) {
                     for (int k = 0; k < indent + 1; k++)
                         buffer_printf(buffer, "    ");
                 }
@@ -132,7 +98,7 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
                 PrintValue(buffer, (*array->Values)[i], indent + 1);
             }
 
-            if (PrettyPrint) {
+            if (prettyPrint) {
                 buffer_printf(buffer, "\n");
                 for (int i = 0; i < indent; i++)
                     buffer_printf(buffer, "    ");
@@ -147,7 +113,7 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             Uint32 hash;
             VMValue value;
             buffer_printf(buffer, "{");
-            if (PrettyPrint)
+            if (prettyPrint)
                 buffer_printf(buffer, "\n");
 
             bool first = false;
@@ -158,11 +124,11 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
                     }
                     else {
                         buffer_printf(buffer, ",");
-                        if (PrettyPrint)
+                        if (prettyPrint)
                             buffer_printf(buffer, "\n");
                     }
 
-                    for (int k = 0; k < indent + 1 && PrettyPrint; k++)
+                    for (int k = 0; k < indent + 1 && prettyPrint; k++)
                         buffer_printf(buffer, "    ");
 
                     hash = map->Values->Data[i].Key;
@@ -174,9 +140,9 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
                     PrintValue(buffer, value, indent + 1);
                 }
             }
-            if (PrettyPrint)
+            if (prettyPrint)
                 buffer_printf(buffer, "\n");
-            for (int k = 0; k < indent && PrettyPrint; k++)
+            for (int k = 0; k < indent && prettyPrint; k++)
                 buffer_printf(buffer, "    ");
 
             buffer_printf(buffer, "}");

@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Includes/PrintBuffer.h>
 
 class VMThread {
 public:
@@ -23,7 +24,6 @@ public:
 
     char      Name[THREAD_NAME_MAX];
     Uint32    ID;
-    Uint32    State;
     bool      DebugInfo;
 
     static    bool InstructionIgnoreMap[0x100];
@@ -223,7 +223,7 @@ PUBLIC void    VMThread::PrintStack() {
     printf("Stack:\n");
     for (VMValue* v = StackTop - 1; v >= Stack; v--) {
         printf("%4d '", i);
-        Compiler::PrintValue(*v);
+        Values::PrintValue(*v);
         printf("'\n");
         i--;
     }

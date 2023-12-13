@@ -41,6 +41,7 @@ public:
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Bytecode/Values.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -135,7 +136,6 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
 
         Threads[i].FrameCount = 0;
         Threads[i].ReturnFrame = 0;
-        Threads[i].State = 0;
         Threads[i].DebugInfo = false;
 
         Threads[i].ID = i;
@@ -363,16 +363,22 @@ PUBLIC STATIC void    BytecodeObjectManager::PrintHashTableValues(Uint32 hash, V
 // #endregion
 
 // #region ValueFuncs
-PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v) {
+PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v, bool prettyPrint) {
     if (IS_STRING(v))
         return v;
 
     char* buffer = (char*)malloc(512);
-    int   buffer_info[2] = { 0, 512 };
-    Compiler::PrintValue(&buffer, buffer_info, v);
-    v = OBJECT_VAL(CopyString(buffer, buffer_info[0]));
+    PrintBuffer buffer_info;
+    buffer_info.Buffer = &buffer;
+    buffer_info.WriteIndex = 0;
+    buffer_info.BufferSize = 512;
+    Values::PrintValue(&buffer_info, v, prettyPrint);
+    v = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
     free(buffer);
     return v;
+}
+PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v) {
+    return CastValueAsString(v, false);
 }
 PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsInteger(VMValue v) {
     float a;

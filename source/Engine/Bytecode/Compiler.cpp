@@ -11,7 +11,6 @@ public:
     static HashMap<Token>*      TokenMap;
     static const char*          Magic;
     static vector<const char*>  FunctionNames;
-    static bool                 PrettyPrint;
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
     static bool                 WriteSourceFilename;
@@ -38,6 +37,7 @@ public:
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/Values.h>
 #include <Engine/IO/FileStream.h>
 
 #include <Engine/Application.h>
@@ -49,7 +49,6 @@ vector<ObjFunction*> Compiler::Functions;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
-bool                 Compiler::PrettyPrint = true;
 bool                 Compiler::ShowWarnings = false;
 bool                 Compiler::WriteDebugInfo = false;
 bool                 Compiler::WriteSourceFilename = false;
@@ -2727,169 +2726,6 @@ PUBLIC void          Compiler::SetReceiverName(Token name) {
     local->Name = name;
 }
 
-int  justin_print(char** buffer, int* buf_start, const char *format, ...) {
-    va_list args;
-    va_list argsCopy;
-    va_start(args, format);
-    va_copy(argsCopy, args);
-
-    if (!buffer) {
-        vprintf(format, args);
-        return 0;
-    }
-
-    int count = vsnprintf(NULL, 0, format, argsCopy);
-
-    // printf("pos %04d | adding %04d | size %04d\n", buf_start[0], count, buf_start[1]);
-
-    while (buf_start[0] + count >= buf_start[1]) {
-        buf_start[1] *= 2;
-
-        // printf("\x1b[1;93m#%d buffer increased from %d -> %d (pos: %d + %d = %d)\x1b[m\n", i++, buf_start[1] / 2, buf_start[1], buf_start[0], count, buf_start[0] + count);
-        *buffer = (char*)realloc(*buffer, buf_start[1]);
-        if (!*buffer) {
-            Log::Print(Log::LOG_ERROR, "Could not realloc for justin_print!");
-            exit(-1);
-        }
-    }
-
-    buf_start[0] += vsnprintf(*buffer + buf_start[0], buf_start[1] - buf_start[0], format, args);
-    va_end(args);
-    va_end(argsCopy);
-    return 0;
-}
-PUBLIC STATIC void   Compiler::PrintValue(VMValue value) {
-    Compiler::PrintValue(NULL, NULL, value);
-}
-PUBLIC STATIC void   Compiler::PrintValue(char** buffer, int* buf_start, VMValue value) {
-    Compiler::PrintValue(buffer, buf_start, value, 0);
-}
-PUBLIC STATIC void   Compiler::PrintValue(char** buffer, int* buf_start, VMValue value, int indent) {
-    switch (value.Type) {
-        case VAL_NULL:
-            justin_print(buffer, buf_start, "null");
-            break;
-        case VAL_INTEGER:
-        case VAL_LINKED_INTEGER:
-            justin_print(buffer, buf_start, "%d", AS_INTEGER(value));
-            break;
-        case VAL_DECIMAL:
-        case VAL_LINKED_DECIMAL:
-            justin_print(buffer, buf_start, "%f", AS_DECIMAL(value));
-            break;
-        case VAL_OBJECT:
-            PrintObject(buffer, buf_start, value, indent);
-            break;
-        default:
-            justin_print(buffer, buf_start, "UNKNOWN VALUE TYPE");
-    }
-}
-PUBLIC STATIC void   Compiler::PrintObject(char** buffer, int* buf_start, VMValue value, int indent) {
-    switch (OBJECT_TYPE(value)) {
-        case OBJ_CLASS:
-            justin_print(buffer, buf_start, "<class %s>", AS_CLASS(value)->Name ? AS_CLASS(value)->Name->Chars : "(null)");
-            break;
-        case OBJ_BOUND_METHOD:
-            justin_print(buffer, buf_start, "<bound method %s>", AS_BOUND_METHOD(value)->Method->Name ? AS_BOUND_METHOD(value)->Method->Name->Chars : "(null)");
-            break;
-        case OBJ_CLOSURE:
-            justin_print(buffer, buf_start, "<closure %s>", AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars : "(null)");
-            break;
-        case OBJ_FUNCTION:
-            justin_print(buffer, buf_start, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
-            break;
-        case OBJ_INSTANCE:
-            justin_print(buffer, buf_start, "<class %s> instance", AS_INSTANCE(value)->Object.Class->Name ? AS_INSTANCE(value)->Object.Class->Name->Chars : "(null)");
-            break;
-        case OBJ_NATIVE:
-            justin_print(buffer, buf_start, "<native fn>");
-            break;
-        case OBJ_STREAM:
-            justin_print(buffer, buf_start, "<stream>");
-            break;
-        case OBJ_NAMESPACE:
-            justin_print(buffer, buf_start, "<namespace %s>", AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)");
-            break;
-        case OBJ_STRING:
-            justin_print(buffer, buf_start, "\"%s\"", AS_CSTRING(value));
-            break;
-        case OBJ_UPVALUE:
-            justin_print(buffer, buf_start, "<upvalue>");
-            break;
-        case OBJ_ARRAY: {
-            ObjArray* array = (ObjArray*)AS_OBJECT(value);
-
-            justin_print(buffer, buf_start, "[", (int)array->Values->size());
-            if (PrettyPrint)
-                justin_print(buffer, buf_start, "\n");
-            for (size_t i = 0; i < array->Values->size(); i++) {
-                if (i > 0) {
-                    justin_print(buffer, buf_start, ",");
-                    if (PrettyPrint)
-                        justin_print(buffer, buf_start, "\n");
-                }
-
-                for (int k = 0; k < indent + 1 && PrettyPrint; k++)
-                    justin_print(buffer, buf_start, "    ");
-
-                PrintValue(buffer, buf_start, (*array->Values)[i], indent + 1);
-            }
-
-            if (PrettyPrint)
-                justin_print(buffer, buf_start, "\n");
-
-            for (int i = 0; i < indent && PrettyPrint; i++)
-                justin_print(buffer, buf_start, "    ");
-
-            justin_print(buffer, buf_start, "]");
-            break;
-        }
-        case OBJ_MAP: {
-            ObjMap* map = (ObjMap*)AS_OBJECT(value);
-
-            Uint32 hash;
-            VMValue value;
-            justin_print(buffer, buf_start, "{");
-            if (PrettyPrint)
-                justin_print(buffer, buf_start, "\n");
-
-            bool first = false;
-            for (int i = 0; i < map->Values->Capacity; i++) {
-                if (map->Values->Data[i].Used) {
-                    if (!first) {
-                        first = true;
-                    }
-                    else {
-                        justin_print(buffer, buf_start, ",");
-                        if (PrettyPrint)
-                            justin_print(buffer, buf_start, "\n");
-                    }
-
-                    for (int k = 0; k < indent + 1 && PrettyPrint; k++)
-                        justin_print(buffer, buf_start, "    ");
-
-                    hash = map->Values->Data[i].Key;
-                    value = map->Values->Data[i].Data;
-                    if (map->Keys && map->Keys->Exists(hash))
-                        justin_print(buffer, buf_start, "\"%s\": ", map->Keys->Get(hash));
-                    else
-                        justin_print(buffer, buf_start, "0x%08X: ", hash);
-                    PrintValue(buffer, buf_start, value, indent + 1);
-                }
-            }
-            if (PrettyPrint)
-                justin_print(buffer, buf_start, "\n");
-            for (int k = 0; k < indent && PrettyPrint; k++)
-                justin_print(buffer, buf_start, "    ");
-
-            justin_print(buffer, buf_start, "}");
-            break;
-        }
-        default:
-            justin_print(buffer, buf_start, "UNKNOWN OBJECT TYPE %d", OBJECT_TYPE(value));
-    }
-}
-
 // Debugging functions
 PUBLIC STATIC int    Compiler::HashInstruction(const char* name, Chunk* chunk, int offset) {
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
@@ -2904,7 +2740,7 @@ PUBLIC STATIC int    Compiler::HashInstruction(const char* name, Chunk* chunk, i
 PUBLIC STATIC int    Compiler::ConstantInstruction(const char* name, Chunk* chunk, int offset) {
     int constant = *(int*)&chunk->Code[offset + 1];
     printf("%-16s %9d '", name, constant);
-    PrintValue(NULL, NULL, (*chunk->Constants)[constant]);
+    Values::PrintValue(NULL, (*chunk->Constants)[constant]);
     printf("'\n");
     return offset + 5;
 }
@@ -2929,7 +2765,7 @@ PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk,
     uint8_t slot = chunk->Code[offset + 1];
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
     printf("%-13s %2d", name, slot);
-    // PrintValue(NULL, NULL, (*chunk->Constants)[constant]);
+    // Values::PrintValue(NULL, (*chunk->Constants)[constant]);
     printf(" #%08X", hash);
     if (TokenMap->Exists(hash)) {
         Token t = TokenMap->Get(hash);
@@ -3085,7 +2921,7 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             offset++;
             uint8_t constant = chunk->Code[offset++];
             printf("%-16s %4d ", "OP_PRINT_STACK", constant);
-            PrintValue(NULL, NULL, (*chunk->Constants)[constant]);
+            Values::PrintValue(NULL, (*chunk->Constants)[constant]);
             printf("\n");
 
             ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
@@ -3123,7 +2959,7 @@ PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int ar
     printf("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
     for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
         printf(" %2d '", (int)i);
-        PrintValue(NULL, NULL, (*chunk->Constants)[i]);
+        Values::PrintValue(NULL, (*chunk->Constants)[i]);
         printf("'\n");
     }
 }

@@ -18,6 +18,7 @@ public:
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Values.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Directory.h>
@@ -6079,10 +6080,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    Compiler::PrettyPrint = !!GET_ARG(1, GetInteger);
-    VMValue value = BytecodeObjectManager::CastValueAsString(args[0]);
-    Compiler::PrettyPrint = true;
-    return value;
+    return BytecodeObjectManager::CastValueAsString(args[0], !!GET_ARG(1, GetInteger));
 }
 // #endregion
 
@@ -13254,7 +13252,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     if (callback == NULL) {
-        Compiler::PrintValue(args[0]);
+        Values::PrintValue(args[0]);
         printf("\n");
         Log::Print(Log::LOG_ERROR, "No callback.");
         return NULL_VAL;
