@@ -1601,9 +1601,11 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     BytecodeObjectManager::ResetStack();
     BytecodeObjectManager::ForceGarbageCollection();
 
+#if 0
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_STRING);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
+#endif
 
     char pathParent[4096];
     StringUtils::Copy(pathParent, filename, sizeof(pathParent));

@@ -833,6 +833,74 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Application
 /***
+ * Application.GetEngineVersionString
+ * \desc Gets the engine version string.
+ * \return Returns a String value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::EngineVersion));
+}
+/***
+ * Application.GetEngineVersionMajor
+ * \desc Gets the major engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_MAJOR);
+}
+/***
+ * Application.GetEngineVersionMinor
+ * \desc Gets the minor engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_MINOR);
+}
+/***
+ * Application.GetEngineVersionPatch
+ * \desc Gets the minor engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_PATCH);
+}
+/***
+ * Application.GetEngineVersionPrerelease
+ * \desc Gets the prerelease engine version.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+#ifdef VERSION_PRERELEASE
+    return OBJECT_VAL(CopyString(VERSION_PRERELEASE));
+#else
+    return NULL_VAL;
+#endif
+}
+/***
+ * Application.GetEngineVersionCodename
+ * \desc Gets the engine version codename.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+#ifdef VERSION_CODENAME
+    return OBJECT_VAL(CopyString(VERSION_CODENAME));
+#else
+    return NULL_VAL;
+#endif
+}
+/***
  * Application.GetFPS
  * \desc Gets the current FPS.
  * \return Returns a Decimal value.
@@ -897,73 +965,69 @@ VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 thread
     return OBJECT_VAL(CopyString(Application::GameTitleShort));
 }
 /***
- * Application.GetVersion
+ * Application.GetGameVersion
  * \desc Gets the version of the application.
  * \ns Application
  */
-VMValue Application_GetVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::Version));
+    return OBJECT_VAL(CopyString(Application::GameVersion));
 }
 /***
- * Application.GetDescription
- * \desc Gets the description of the application.
+ * Application.GetGameDescription
+ * \desc Gets the description of the game.
  * \ns Application
  */
-VMValue Application_GetDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::Description));
+    return OBJECT_VAL(CopyString(Application::GameDescription));
 }
 /***
  * Application.SetGameTitle
- * \desc Sets the game title of the application.
+ * \desc Sets the title of the game.
  * \param title (String): Game title.
  * \ns Application
  */
 VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::GameTitle, 0, sizeof(Application::GameTitle));
-    snprintf(Application::GameTitle, sizeof(Application::GameTitle), "%s", string);
+    StringUtils::Copy(Application::GameTitle, string, sizeof(Application::GameTitle));
     return NULL_VAL;
 }
 /***
  * Application.SetGameTitleShort
- * \desc Sets the short game title of the application.
+ * \desc Sets the short title of the game.
  * \param title (String): Short game title.
  * \ns Application
  */
 VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::GameTitleShort, 0, sizeof(Application::GameTitleShort));
-    snprintf(Application::GameTitleShort, sizeof(Application::GameTitleShort), "%s", string);
+    StringUtils::Copy(Application::GameTitleShort, string, sizeof(Application::GameTitleShort));
     return NULL_VAL;
 }
 /***
- * Application.SetVersion
- * \desc Sets the version of the application.
+ * Application.SetGameVersion
+ * \desc Sets the version of the game.
  * \param title (String): Game version.
  * \ns Application
  */
-VMValue Application_SetVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::Version, 0, sizeof(Application::Version));
-    snprintf(Application::Version, sizeof(Application::Version), "%s", string);
+    StringUtils::Copy(Application::GameVersion, string, sizeof(Application::GameVersion));
     return NULL_VAL;
 }
 /***
- * Application.SetDescription
- * \desc Sets the description of the application.
+ * Application.SetGameDescription
+ * \desc Sets the description of the game.
  * \param title (String): Game description.
  * \ns Application
  */
-VMValue Application_SetDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::Description, 0, sizeof(Application::Description));
-    snprintf(Application::Description, sizeof(Application::Description), "%s", string);
+    StringUtils::Copy(Application::GameDescription, string, sizeof(Application::GameDescription));
     return NULL_VAL;
 }
 /***
@@ -14447,18 +14511,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Application
     INIT_CLASS(Application);
+    DEF_NATIVE(Application, GetEngineVersionString);
+    DEF_NATIVE(Application, GetEngineVersionMajor);
+    DEF_NATIVE(Application, GetEngineVersionMinor);
+    DEF_NATIVE(Application, GetEngineVersionPatch);
+    DEF_NATIVE(Application, GetEngineVersionPrerelease);
+    DEF_NATIVE(Application, GetEngineVersionCodename);
     DEF_NATIVE(Application, GetFPS);
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
     DEF_NATIVE(Application, GetGameTitle);
     DEF_NATIVE(Application, GetGameTitleShort);
-    DEF_NATIVE(Application, GetVersion);
-    DEF_NATIVE(Application, GetDescription);
+    DEF_NATIVE(Application, GetGameVersion);
+    DEF_NATIVE(Application, GetGameDescription);
     DEF_NATIVE(Application, SetGameTitle);
     DEF_NATIVE(Application, SetGameTitleShort);
-    DEF_NATIVE(Application, SetVersion);
-    DEF_NATIVE(Application, SetDescription);
+    DEF_NATIVE(Application, SetGameVersion);
+    DEF_NATIVE(Application, SetGameDescription);
     DEF_NATIVE(Application, SetCursorVisible);
     DEF_NATIVE(Application, GetCursorVisible);
     /***

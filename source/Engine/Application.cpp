@@ -1,5 +1,6 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
+#include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Scene.h>
@@ -27,10 +28,12 @@ public:
     static int         DefaultMonitor;
     static Platforms   Platform;
 
+    static char        EngineVersion[256];
+
     static char        GameTitle[256];
     static char        GameTitleShort[256];
-    static char        Version[256];
-    static char        Description[256];
+    static char        GameVersion[256];
+    static char        GameDescription[256];
 
     static int         UpdatesPerFrame;
     static bool        Stepper;
@@ -113,10 +116,12 @@ int         Application::WindowWidth = 848;
 int         Application::WindowHeight = 480;
 int         Application::DefaultMonitor = 0;
 
+char        Application::EngineVersion[256];
+
 char        Application::GameTitle[256];
 char        Application::GameTitleShort[256];
-char        Application::Version[256];
-char        Application::Description[256];
+char        Application::GameVersion[256];
+char        Application::GameDescription[256];
 
 int         Application::UpdatesPerFrame = 1;
 bool        Application::Stepper = false;
@@ -163,7 +168,11 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     freopen_s((FILE **)stderr, "CONOUT$", "w", stderr);
 #endif
 
+    Application::MakeEngineVersion();
+
     Log::Init();
+    Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+
     MemoryPools::Init();
 
     SDL_SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "1");
@@ -270,10 +279,32 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Running = true;
 }
 
+PRIVATE STATIC void Application::MakeEngineVersion() {
+    std::string versionText = std::to_string(VERSION_MAJOR) + "." + std::to_string(VERSION_MINOR);
+
+#ifdef VERSION_PATCH
+    versionText += ".";
+    versionText += std::to_string(VERSION_MINOR);
+#endif
+
+#ifdef VERSION_PRERELEASE
+    versionText += "-";
+    versionText += VERSION_PRERELEASE;
+#endif
+
+#ifdef VERSION_CODENAME
+    versionText += " (";
+    versionText += VERSION_CODENAME;
+    versionText += ")";
+#endif
+
+    if (versionText.size() > 0)
+        StringUtils::Copy(Application::EngineVersion, versionText.c_str(), sizeof(Application::EngineVersion));
+}
+
 PUBLIC STATIC bool Application::IsPC() {
     return Application::Platform == Platforms::Windows || Application::Platform == Platforms::MacOS || Application::Platform == Platforms::Linux;
 }
-
 PUBLIC STATIC bool Application::IsMobile() {
     return Application::Platform == Platforms::iOS || Application::Platform == Platforms::Android;
 }
@@ -1318,8 +1349,8 @@ PRIVATE STATIC string Application::ParseGameVersion(XMLNode* versionNode) {
 PRIVATE STATIC void Application::LoadGameInfo() {
     StringUtils::Copy(Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
     StringUtils::Copy(Application::GameTitleShort, Application::GameTitle, sizeof(Application::GameTitleShort));
-    StringUtils::Copy(Application::Version, "1.0", sizeof(Application::Version));
-    StringUtils::Copy(Application::Description, "Those who dare to fail miserably can achieve greatly.", sizeof(Application::Description));
+    StringUtils::Copy(Application::GameVersion, "1.0", sizeof(Application::GameVersion));
+    StringUtils::Copy(Application::GameDescription, "Cluck cluck I'm a chicken", sizeof(Application::GameDescription));
 
     if (Application::GameConfig) {
         XMLNode* root = Application::GameConfig->children[0];
@@ -1340,12 +1371,12 @@ PRIVATE STATIC void Application::LoadGameInfo() {
         if (node) {
             std::string versionText = Application::ParseGameVersion(node);
             if (versionText.size() > 0)
-                StringUtils::Copy(Application::Version, versionText.c_str(), sizeof(Application::Version));
+                StringUtils::Copy(Application::GameVersion, versionText.c_str(), sizeof(Application::GameVersion));
         }
 
         node = XMLParser::SearchNode(root, "description");
         if (node)
-            XMLParser::CopyTokenToString(node->children[0]->name, Application::Description, sizeof(Application::Description));
+            XMLParser::CopyTokenToString(node->children[0]->name, Application::GameDescription, sizeof(Application::GameDescription));
     }
 }
 
