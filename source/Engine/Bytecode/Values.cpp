@@ -87,7 +87,7 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             buffer_printf(buffer, "<bound method %s>", AS_BOUND_METHOD(value)->Method->Name ? AS_BOUND_METHOD(value)->Method->Name->Chars : "(null)");
             break;
         case OBJ_CLOSURE:
-            buffer_printf(buffer, "<clsr %s>", AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars : "(null)");
+            buffer_printf(buffer, "<closure %s>", AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars : "(null)");
             break;
         case OBJ_FUNCTION:
             buffer_printf(buffer, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
@@ -100,6 +100,9 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             break;
         case OBJ_STREAM:
             buffer_printf(buffer, "<stream>");
+            break;
+        case OBJ_NAMESPACE:
+            buffer_printf(buffer, "<namespace %s>", AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)");
             break;
         case OBJ_STRING:
             buffer_printf(buffer, "\"%s\"", AS_CSTRING(value));

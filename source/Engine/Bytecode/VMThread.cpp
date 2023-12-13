@@ -529,7 +529,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         VMValue result = BytecodeObjectManager::CastValueAsInteger(value);
                         if (IS_NULL(result)) {
                             // Conversion failed
-                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Integer", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
                                 goto FAIL_OP_SET_GLOBAL;
                         }
                         AS_LINKED_INTEGER(LHS) = AS_INTEGER(result);
@@ -539,7 +539,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         VMValue result = BytecodeObjectManager::CastValueAsDecimal(value);
                         if (IS_NULL(result)) {
                             // Conversion failed
-                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Decimal", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                            if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
                                 goto FAIL_OP_SET_GLOBAL;
                         }
                         AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(result);
@@ -647,6 +647,23 @@ PUBLIC int     VMThread::RunInstruction() {
                     goto FAIL_OP_GET_PROPERTY;
                 }
             }
+            // Otherwise, if it's a namespace,
+            else if (IS_NAMESPACE(object)) {
+                ObjNamespace* ns = AS_NAMESPACE(object);
+
+                if (BytecodeObjectManager::Lock()) {
+                    if (ns->Fields->GetIfExists(hash, &result)) {
+                        Pop();
+                        Push(BytecodeObjectManager::DelinkValue(result));
+                        BytecodeObjectManager::Unlock();
+                        VM_BREAK;
+                    }
+
+                    if (ThrowRuntimeError(false, "Could not find %s in namespace!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        goto FAIL_OP_GET_PROPERTY;
+                    goto FAIL_OP_GET_PROPERTY;
+                }
+            }
             // If it's any other object,
             else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
                 ObjClass* klass = AS_OBJECT(object)->Class;
@@ -663,7 +680,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
+                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetValueTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_GET_PROPERTY;
             }
             VM_BREAK;
@@ -696,8 +713,12 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
                 fields = klass->Fields;
             }
+            else if (IS_NAMESPACE(object)) {
+                if (ThrowRuntimeError(false, "Cannot modify a namespace.") == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_SET_PROPERTY;
+            }
             else {
-                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
+                if (ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetValueTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_SET_PROPERTY;
             }
 
@@ -709,7 +730,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             result = BytecodeObjectManager::CastValueAsInteger(value);
                             if (IS_NULL(result)) {
                                 // Conversion failed
-                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Integer", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
                                     goto FAIL_OP_SET_PROPERTY;
                             }
                             AS_LINKED_INTEGER(field) = AS_INTEGER(result);
@@ -718,7 +739,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             result = BytecodeObjectManager::CastValueAsDecimal(value);
                             if (IS_NULL(result)) {
                                 // Conversion failed
-                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", "Decimal", GetTypeString(value)) == ERROR_RES_CONTINUE)
+                                if (ThrowRuntimeError(false, "Expected value to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
                                     goto FAIL_OP_SET_PROPERTY;
                             }
                             AS_LINKED_DECIMAL(field) = AS_DECIMAL(result);
@@ -792,21 +813,28 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
                 }
             }
+            // Otherwise, if it's a namespace,
+            else if (IS_NAMESPACE(object)) {
+                ObjNamespace* ns = AS_NAMESPACE(object);
+                if (BytecodeObjectManager::Lock() && ns->Fields->Exists(hash)) {
+                    Pop();
+                    Push(INTEGER_VAL(true));
+                    BytecodeObjectManager::Unlock();
+                    VM_BREAK;
+                }
+            }
             // If it's any other object,
             else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
                 ObjClass* klass = AS_OBJECT(object)->Class;
-
-                if (BytecodeObjectManager::Lock()) {
-                    if (HasMethod(klass, hash)) {
-                        Pop();
-                        Push(INTEGER_VAL(true));
-                        BytecodeObjectManager::Unlock();
-                        VM_BREAK;
-                    }
+                if (BytecodeObjectManager::Lock() && HasMethod(klass, hash)) {
+                    Pop();
+                    Push(INTEGER_VAL(true));
+                    BytecodeObjectManager::Unlock();
+                    VM_BREAK;
                 }
             }
             else {
-                ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetTypeString(object));
+                ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetValueTypeString(object));
             }
 
             FAIL_OP_HAS_PROPERTY:
@@ -1435,7 +1463,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_CLASS(receiver);
                 if (klass->Methods->GetIfExists(hash, &result)) {
                     if (!CallValue(result, argCount)) {
-                        if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_INVOKE;
 
                         return INTERPRET_RUNTIME_ERROR;
@@ -1457,7 +1485,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
                 if (klass->Methods->GetIfExists(hash, &result)) {
                     if (!CallForObject(result, argCount)) {
-                        if (ThrowRuntimeError(false, "Could not call value %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
+                        if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_INVOKE;
 
                         return INTERPRET_RUNTIME_ERROR;
@@ -1573,7 +1601,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                if (ThrowRuntimeError(false, "Unexpected value type; value was of type %s.", GetTypeString(object)) == ERROR_RES_CONTINUE)
+                if (ThrowRuntimeError(false, "Unexpected value type; value was of type %s.", GetValueTypeString(object)) == ERROR_RES_CONTINUE)
                     goto FAIL_OP_ADD_ENUM;
             }
 
@@ -1975,7 +2003,7 @@ PUBLIC bool    VMThread::Import(VMValue value) {
     bool result = false;
     if (BytecodeObjectManager::Lock()) {
         if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
-            ThrowRuntimeError(false, "Cannot import from a %s.", GetTypeString(value));
+            ThrowRuntimeError(false, "Cannot import from a %s.", GetValueTypeString(value));
         }
         else {
             char* className = AS_CSTRING(value);
@@ -1997,7 +2025,7 @@ PUBLIC bool    VMThread::ImportModule(VMValue value) {
     bool result = false;
     if (BytecodeObjectManager::Lock()) {
         if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
-            ThrowRuntimeError(false, "Cannot import from a %s.", GetTypeString(value));
+            ThrowRuntimeError(false, "Cannot import from a %s.", GetValueTypeString(value));
         }
         else {
             char* scriptName = AS_CSTRING(value);
@@ -2016,7 +2044,7 @@ PUBLIC bool    VMThread::ImportModule(VMValue value) {
 // #region Value Operations
 #define CHECK_IS_NUM(a, b, def) \
     if (IS_NOT_NUMBER(a)) { \
-        ThrowRuntimeError(false, "Cannot perform %s operation on non-number value of type %s.", #b, GetTypeString(a)); \
+        ThrowRuntimeError(false, "Cannot perform %s operation on non-number value of type %s.", #b, GetValueTypeString(a)); \
         a = def; \
     }
 
@@ -2418,6 +2446,9 @@ PUBLIC VMValue VMThread::Value_TypeOf() {
                     break;
                 case OBJ_STREAM:
                     valueType = "stream";
+                    break;
+                case OBJ_NAMESPACE:
+                    valueType = "namespace";
                     break;
             }
         }

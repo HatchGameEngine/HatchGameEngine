@@ -79,7 +79,7 @@ namespace LOCAL {
                 break;
             default:
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Integer", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetTypeString(VAL_INTEGER), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
         }
         return value;
@@ -97,7 +97,7 @@ namespace LOCAL {
                 break;
             default:
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Decimal", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetTypeString(VAL_DECIMAL), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
         }
         return value;
@@ -107,7 +107,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_STRING(args[index])) {
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "String", GetTypeString(args[index])) == ERROR_RES_CONTINUE) {
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STRING), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
                     BytecodeObjectManager::Unlock();
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
                 }
@@ -128,7 +128,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_ARRAY(args[index])) {
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Array", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
             }
 
@@ -147,7 +147,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_MAP(args[index]))
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Map", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_MAP), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjMap*)(AS_OBJECT(args[index]));
@@ -165,7 +165,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_BOUND_METHOD(args[index]))
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Event", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_BOUND_METHOD), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
@@ -183,7 +183,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_FUNCTION(args[index]))
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Event", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_FUNCTION), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjFunction*)(AS_OBJECT(args[index]));
@@ -201,7 +201,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_INSTANCE(args[index]))
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Instance", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_INSTANCE), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjInstance*)(AS_OBJECT(args[index]));
@@ -219,7 +219,7 @@ namespace LOCAL {
         if (BytecodeObjectManager::Lock()) {
             if (!IS_STREAM(args[index]))
                 if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Stream", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STREAM), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     BytecodeObjectManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjStream*)(AS_OBJECT(args[index]));
@@ -6390,10 +6390,13 @@ VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return DECIMAL_VAL(std::exp(GET_ARG(0, GetDecimal)));
 }
+// #endregion
+
+// #region RSDK.Math
 /***
- * Math.ClearTrigLookupTables
+ * RSDK.Math.ClearTrigLookupTables
  * \desc Clears the engine's angle lookup tables.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6401,9 +6404,9 @@ VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID)
     return NULL_VAL;
 }
 /***
- * Math.CalculateTrigAngles
+ * RSDK.Math.CalculateTrigAngles
  * \desc Sets the engine's angle lookup tables.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6411,187 +6414,187 @@ VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Math.Sin1024
+ * RSDK.Math.Sin1024
  * \desc Returns the sine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos1024
+ * RSDK.Math.Cos1024
  * \desc Returns the cosine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan1024
+ * RSDK.Math.Tan1024
  * \desc Returns the tangent of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin1024
+ * RSDK.Math.ASin1024
  * \desc Returns the arc sine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos1024
+ * RSDK.Math.ACos1024
  * \desc Returns the arc cosine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos1024(GET_ARG(0, GetInteger)));
 }
 /**
- * Math.Sin512
+ * RSDK.Math.Sin512
  * \desc Returns the sine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos512
+ * RSDK.Math.Cos512
  * \desc Returns the cosine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan512
+ * RSDK.Math.Tan512
  * \desc Returns the tangent of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin512
+ * RSDK.Math.ASin512
  * \desc Returns the arc sine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos512
+ * RSDK.Math.ACos512
  * \desc Returns the arc cosine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos512(GET_ARG(0, GetInteger)));
 }
 /**
- * Math.Sin256
+ * RSDK.Math.Sin256
  * \desc Returns the sine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos256
+ * RSDK.Math.Cos256
  * \desc Returns the cosine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan256
+ * RSDK.Math.Tan256
  * \desc Returns the tangent of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin256
+ * RSDK.Math.ASin256
  * \desc Returns the arc sine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos256
+ * RSDK.Math.ACos256
  * \desc Returns the arc cosine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.RadianToInteger
+ * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
  * \param radian (Decimal): Radian value to convert.
  * \return An integer value of the converted radian.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL((int)((float)GET_ARG(0, GetDecimal) * 256.0 / M_PI));
 }
 /***
- * Math.IntegerToRadian
+ * RSDK.Math.IntegerToRadian
  * \desc Gets the radian decimal conversion of an integer, based on 256.
  * \param integer (Integer): Integer value to convert.
  * \return A radian decimal value of the converted integer.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -6855,11 +6858,14 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
     MatrixHelper_CopyTo(&helper, out);
     return NULL_VAL;
 }
+// #endregion
+
+// #region RSDK.Matrix
 /***
- * Matrix.Create256
+ * RSDK.Matrix.Create256
  * \desc Creates a 4x4 matrix based on the decimal 256.0.
  * \return Returns the Matrix as an Array.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6870,10 +6876,10 @@ VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
     return OBJECT_VAL(array);
 }
 /***
- * Matrix.Identity256
+ * RSDK.Matrix.Identity256
  * \desc Sets the matrix to the identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -6900,15 +6906,14 @@ VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Multiply256
+ * RSDK.Matrix.Multiply256
  * \desc Multiplies two matrices based on the deciaml 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param a (Matrix): The first matrix to use for multiplying.
  * \param b (Matrix): The second matrix to use for multiplying.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
-
     ObjArray* dest = GET_ARG(0, GetArray);
     ObjArray* matrixA = GET_ARG(1, GetArray);
     ObjArray* matrixB = GET_ARG(2, GetArray);
@@ -6926,14 +6931,14 @@ VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Translate256
+ * RSDK.Matrix.Translate256
  * \desc Translates the matrix based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param x (Number): X position value.
  * \param y (Number): Y position value.
  * \param z (Number): Z position value.
  * \param setIdentity (Boolean): Whether or not to set the matrix as the identity.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
@@ -6966,13 +6971,13 @@ VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Scale256
+ * RSDK.Matrix.Scale256
  * \desc Sets the matrix to a scale identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param scaleX (Number): X scale value.
  * \param scaleY (Number): Y scale value.
  * \param scaleZ (Number): Z scale value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
@@ -7002,11 +7007,11 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateX256
+ * RSDK.Matrix.RotateX256
  * \desc Sets the matrix to a rotation X identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationY (Number): X rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7036,11 +7041,11 @@ VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateY256
+ * RSDK.Matrix.RotateY256
  * \desc Sets the matrix to a rotation Y identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationY (Number): Y rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7070,11 +7075,11 @@ VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateZ256
+ * RSDK.Matrix.RotateZ256
  * \desc Sets the matrix to a rotation Z identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationZ (Number): Z rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7104,13 +7109,13 @@ VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Rotate256
+ * RSDK.Matrix.Rotate256
  * \desc Sets the matrix to a rotation identity based on 256.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationX (Number): X rotation value.
  * \param rotationY (Number): Y rotation value.
  * \param rotationZ (Number): Z rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
@@ -7148,7 +7153,7 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#define CHECK_ANIMATION_INDEX(animation) \
+#define CHECK_MODEL_ANIMATION_INDEX(animation) \
     if (animation < 0 || animation >= (signed)model->AnimationCount) { \
         OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->AnimationCount - 1); \
         return NULL_VAL; \
@@ -7202,7 +7207,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     if (model->AnimationCount == 0)
         return NULL_VAL;
 
-    CHECK_ANIMATION_INDEX(animation);
+    CHECK_MODEL_ANIMATION_INDEX(animation);
 
     const char* animationName = model->Animations[animation]->Name;
     if (!animationName)
@@ -7248,7 +7253,7 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int animation = GET_ARG(1, GetInteger);
-    CHECK_ANIMATION_INDEX(animation);
+    CHECK_MODEL_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)model->Animations[animation]->Length);
 }
 /***
@@ -7310,7 +7315,7 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
         if (frame < 0)
             frame = 0;
 
-        CHECK_ANIMATION_INDEX(animation);
+        CHECK_MODEL_ANIMATION_INDEX(animation);
 
         model->Animate(model->ArmatureList[armature], model->Animations[animation], frame);
     } else {
@@ -7354,7 +7359,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#undef CHECK_ANIMATION_INDEX
+#undef CHECK_MODEL_ANIMATION_INDEX
 #undef CHECK_ARMATURE_INDEX
 
 // #region Music
@@ -7617,7 +7622,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
         }
         default:
             BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                "Expected argument %d to be of type %s instead of %s.", 0 + 1, "Number", GetTypeString(args[0]));
+                "Expected argument %d to be of type %s instead of %s.", 0 + 1, "Number", GetValueTypeString(args[0]));
     }
 
     return NULL_VAL;
@@ -9778,7 +9783,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
             if (IS_INTEGER(val))
                 otherTileID = AS_INTEGER(val);
             else
-                BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 2) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+                BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 2) to be of type %s instead of %s.", i, GetTypeString(VAL_INTEGER), GetValueTypeString(val));
 
             tileIDs.push_back(otherTileID);
             frameDurations.push_back(30);
@@ -9790,7 +9795,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
             for (size_t i = 0; i < array->Values->size() && i < tileIDs.size(); i++) {
                 VMValue val = (*array->Values)[i];
                 if (!IS_INTEGER(val)) {
-                    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 3) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+                    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 3) to be of type %s instead of %s.", i, GetTypeString(VAL_INTEGER), GetValueTypeString(val));
                     continue;
                 }
 
@@ -14450,8 +14455,18 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM_CLASS(a, b)    DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
+ObjClass* InitClass(const char* className) {
+    ObjClass* klass = NewClass(Murmur::EncryptString(className));
+    klass->Name = CopyString(className);
+    return klass;
+}
+ObjNamespace* InitNamespace(const char* nsName) {
+    ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
+    ns->Name = CopyString(nsName);
+    return ns;
+}
+
 PUBLIC STATIC void StandardLibrary::Link() {
-    VMValue val;
     ObjClass* klass;
 
     for (int i = 0; i < 0x100; i++) {
@@ -14474,12 +14489,21 @@ PUBLIC STATIC void StandardLibrary::Link() {
     String_CaseMapBind(L'ç', L'Ç');
 
     #define INIT_CLASS(className) \
-        klass = NewClass(Murmur::EncryptString(#className)); \
-        klass->Name = CopyString(#className, strlen(#className)); \
-        val = OBJECT_VAL(klass); \
+        klass = InitClass(#className); \
         BytecodeObjectManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
         BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    #define INIT_NAMESPACE(nsName) \
+        ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+        BytecodeObjectManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName))
+    #define INIT_NAMESPACED_CLASS(nsName, className) \
+        klass = InitClass(#className); \
+        ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
+    #define DEF_NAMESPACED_NATIVE(className, funcName) \
+        BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    INIT_NAMESPACE(RSDK);
 
     // #region Animator
     INIT_CLASS(Animator);
@@ -15729,25 +15753,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Sqrt);
     DEF_NATIVE(Math, Pow);
     DEF_NATIVE(Math, Exp);
-    DEF_NATIVE(Math, ClearTrigLookupTables);
-    DEF_NATIVE(Math, CalculateTrigAngles);
-    DEF_NATIVE(Math, Sin1024);
-    DEF_NATIVE(Math, Cos1024);
-    DEF_NATIVE(Math, Tan1024);
-    DEF_NATIVE(Math, ASin1024);
-    DEF_NATIVE(Math, ACos1024);
-    DEF_NATIVE(Math, Sin512);
-    DEF_NATIVE(Math, Cos512);
-    DEF_NATIVE(Math, Tan512);
-    DEF_NATIVE(Math, ASin512);
-    DEF_NATIVE(Math, ACos512);
-    DEF_NATIVE(Math, Sin256);
-    DEF_NATIVE(Math, Cos256);
-    DEF_NATIVE(Math, Tan256);
-    DEF_NATIVE(Math, ASin256);
-    DEF_NATIVE(Math, ACos256);
-    DEF_NATIVE(Math, RadianToInteger);
-    DEF_NATIVE(Math, IntegerToRadian);
+    // #endregion
+
+    // #region RSDK.Math
+    INIT_NAMESPACED_CLASS(RSDK, Math);
+    DEF_NAMESPACED_NATIVE(Math, ClearTrigLookupTables);
+    DEF_NAMESPACED_NATIVE(Math, CalculateTrigAngles);
+    DEF_NAMESPACED_NATIVE(Math, Sin1024);
+    DEF_NAMESPACED_NATIVE(Math, Cos1024);
+    DEF_NAMESPACED_NATIVE(Math, Tan1024);
+    DEF_NAMESPACED_NATIVE(Math, ASin1024);
+    DEF_NAMESPACED_NATIVE(Math, ACos1024);
+    DEF_NAMESPACED_NATIVE(Math, Sin512);
+    DEF_NAMESPACED_NATIVE(Math, Cos512);
+    DEF_NAMESPACED_NATIVE(Math, Tan512);
+    DEF_NAMESPACED_NATIVE(Math, ASin512);
+    DEF_NAMESPACED_NATIVE(Math, ACos512);
+    DEF_NAMESPACED_NATIVE(Math, Sin256);
+    DEF_NAMESPACED_NATIVE(Math, Cos256);
+    DEF_NAMESPACED_NATIVE(Math, Tan256);
+    DEF_NAMESPACED_NATIVE(Math, ASin256);
+    DEF_NAMESPACED_NATIVE(Math, ACos256);
+    DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
+    DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
     // #endregion
 
     // #region Matrix
@@ -15760,6 +15788,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Matrix, Translate);
     DEF_NATIVE(Matrix, Scale);
     DEF_NATIVE(Matrix, Rotate);
+    // #endregion
+
+    // #region RSDK.Matrix
+    INIT_NAMESPACED_CLASS(RSDK, Matrix);
     DEF_NATIVE(Matrix, Create256);
     DEF_NATIVE(Matrix, Identity256);
     DEF_NATIVE(Matrix, Multiply256);

@@ -2793,7 +2793,7 @@ PUBLIC STATIC void   Compiler::PrintObject(char** buffer, int* buf_start, VMValu
             justin_print(buffer, buf_start, "<bound method %s>", AS_BOUND_METHOD(value)->Method->Name ? AS_BOUND_METHOD(value)->Method->Name->Chars : "(null)");
             break;
         case OBJ_CLOSURE:
-            justin_print(buffer, buf_start, "<clsr %s>", AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars : "(null)");
+            justin_print(buffer, buf_start, "<closure %s>", AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars : "(null)");
             break;
         case OBJ_FUNCTION:
             justin_print(buffer, buf_start, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
@@ -2806,6 +2806,9 @@ PUBLIC STATIC void   Compiler::PrintObject(char** buffer, int* buf_start, VMValu
             break;
         case OBJ_STREAM:
             justin_print(buffer, buf_start, "<stream>");
+            break;
+        case OBJ_NAMESPACE:
+            justin_print(buffer, buf_start, "<namespace %s>", AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)");
             break;
         case OBJ_STRING:
             justin_print(buffer, buf_start, "\"%s\"", AS_CSTRING(value));

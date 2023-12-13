@@ -595,8 +595,8 @@ PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int sour
 
         Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, source_w, source_h);
 
-        Uint32 *d = (Uint32*)texture->Pixels;
-        Uint32 *s = (Uint32*)Graphics::FramebufferPixels;
+        Uint32* d = (Uint32*)texture->Pixels;
+        Uint32* s = (Uint32*)Graphics::FramebufferPixels;
 
         int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
         int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));

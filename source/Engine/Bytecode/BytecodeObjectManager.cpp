@@ -212,6 +212,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 has
             case OBJ_CLASS:
             case OBJ_FUNCTION:
             case OBJ_NATIVE:
+            case OBJ_NAMESPACE:
                 break;
             default:
                 if (hash)
@@ -280,9 +281,9 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
 
 #ifdef DEBUG_FREE_GLOBALS
         if (Tokens->Get(hash))
-            Log::Print(Log::LOG_VERBOSE, "Freeing global %s, type %s", Tokens->Get(hash), GetTypeString(value));
+            Log::Print(Log::LOG_VERBOSE, "Freeing global %s, type %s", Tokens->Get(hash), GetValueTypeString(value));
         else
-            Log::Print(Log::LOG_VERBOSE, "Freeing global %08X, type %s", hash, GetTypeString(value));
+            Log::Print(Log::LOG_VERBOSE, "Freeing global %08X, type %s", hash, GetValueTypeString(value));
 #endif
 
         switch (OBJECT_TYPE(value)) {
@@ -294,6 +295,11 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
             }
             case OBJ_NATIVE: {
                 FREE_OBJ(AS_OBJECT(value), ObjNative);
+                FreedGlobals.insert(object);
+                break;
+            }
+            case OBJ_NAMESPACE: {
+                FREE_OBJ(AS_OBJECT(value), ObjNamespace);
                 FreedGlobals.insert(object);
                 break;
             }

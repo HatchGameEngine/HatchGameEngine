@@ -151,7 +151,7 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
             break;
         }
         default:
-            Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetTypeString(OBJECT_VAL(obj)));
+            Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetObjectTypeString(obj->Type));
             WriteObjectPreamble(Serializer::OBJ_TYPE_UNIMPLEMENTED);
     }
 

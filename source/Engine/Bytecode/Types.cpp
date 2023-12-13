@@ -159,6 +159,14 @@ ObjStream*        NewStream(Stream* streamPtr, bool writable) {
     stream->Closed = false;
     return stream;
 }
+ObjNamespace*     NewNamespace(Uint32 hash) {
+    ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
+    Memory::Track(ns, "NewNamespace");
+    ns->Name = NULL;
+    ns->Hash = hash;
+    ns->Fields = new Table(NULL, 16);
+    return ns;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -171,8 +179,8 @@ bool              ValuesEqual(VMValue a, VMValue b) {
     return false;
 }
 
-const char*       GetTypeString(VMValue value) {
-    switch (value.Type) {
+const char*       GetTypeString(Uint32 type) {
+    switch (type) {
         case VAL_NULL:
             return "Null";
         case VAL_INTEGER:
@@ -182,34 +190,44 @@ const char*       GetTypeString(VMValue value) {
         case VAL_LINKED_DECIMAL:
             return "Decimal";
         case VAL_OBJECT:
-            switch (OBJECT_TYPE(value)) {
-                case OBJ_BOUND_METHOD:
-                case OBJ_FUNCTION:
-                    return "Event";
-                case OBJ_CLASS:
-                    return "Class";
-                case OBJ_CLOSURE:
-                    return "Closure";
-                case OBJ_INSTANCE:
-                    return "Instance";
-                case OBJ_NATIVE:
-                    return "Native";
-                case OBJ_STRING:
-                    return "String";
-                case OBJ_UPVALUE:
-                    return "Upvalue";
-                case OBJ_ARRAY:
-                    return "Array";
-                case OBJ_MAP:
-                    return "Map";
-                case OBJ_STREAM:
-                    return "Stream";
-                default:
-                    return "Unknown Object Type";
-            }
-            break;
+            return "Object";
     }
     return "Unknown Type";
+}
+const char*       GetObjectTypeString(Uint32 type) {
+    switch (type) {
+        case OBJ_BOUND_METHOD:
+            return "Bound Method";
+        case OBJ_FUNCTION:
+            return "Function";
+        case OBJ_CLASS:
+            return "Class";
+        case OBJ_CLOSURE:
+            return "Closure";
+        case OBJ_INSTANCE:
+            return "Instance";
+        case OBJ_NATIVE:
+            return "Native";
+        case OBJ_STRING:
+            return "String";
+        case OBJ_UPVALUE:
+            return "Upvalue";
+        case OBJ_ARRAY:
+            return "Array";
+        case OBJ_MAP:
+            return "Map";
+        case OBJ_STREAM:
+            return "Stream";
+        case OBJ_NAMESPACE:
+            return "Namespace";
+    }
+    return "Unknown Object Type";
+}
+const char*       GetValueTypeString(VMValue value) {
+    if (value.Type == VAL_OBJECT)
+        return GetObjectTypeString(OBJECT_TYPE(value));
+    else
+        return GetTypeString(value.Type);
 }
 
 void              ChunkInit(Chunk* chunk) {
