@@ -6074,13 +6074,13 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
  * JSON.ToString
  * \desc Converts a Map value into a String value.
  * \param json (Map): Map value.
- * \param prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
+ * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
  * \return Returns a JSON string based on the Map value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    return BytecodeObjectManager::CastValueAsString(args[0], !!GET_ARG(1, GetInteger));
+    return BytecodeObjectManager::CastValueAsString(args[0], !!GET_ARG_OPT(1, GetInteger, false));
 }
 // #endregion
 
