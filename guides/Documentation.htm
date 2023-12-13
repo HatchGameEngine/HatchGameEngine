@@ -187,18 +187,24 @@
                 <h2>Application</h2>
                 <i>Class methods:</i>
                 <ul>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionString">Application.GetEngineVersionString</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionMajor">Application.GetEngineVersionMajor</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionMinor">Application.GetEngineVersionMinor</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionPatch">Application.GetEngineVersionPatch</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionPrerelease">Application.GetEngineVersionPrerelease</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitle">Application.GetGameTitle</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitleShort">Application.GetGameTitleShort</a></li>
-                    <li><a href="#Reference_functions_Application_GetVersion">Application.GetVersion</a></li>
-                    <li><a href="#Reference_functions_Application_GetDescription">Application.GetDescription</a></li>
+                    <li><a href="#Reference_functions_Application_GetGameVersion">Application.GetGameVersion</a></li>
+                    <li><a href="#Reference_functions_Application_GetGameDescription">Application.GetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitle">Application.SetGameTitle</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitleShort">Application.SetGameTitleShort</a></li>
-                    <li><a href="#Reference_functions_Application_SetVersion">Application.SetVersion</a></li>
-                    <li><a href="#Reference_functions_Application_SetDescription">Application.SetDescription</a></li>
+                    <li><a href="#Reference_functions_Application_SetGameVersion">Application.SetGameVersion</a></li>
+                    <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
                 </ul>
@@ -1903,6 +1909,48 @@
         <li>amount (Integer): The amount to adjust the animator's duration.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Application_GetEngineVersionString">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionString</h2>
+        <code>Application.GetEngineVersionString()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine version string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionMajor">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionMajor</h2>
+        <code>Application.GetEngineVersionMajor()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the major engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionMinor">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionMinor</h2>
+        <code>Application.GetEngineVersionMinor()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the minor engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionPatch">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionPatch</h2>
+        <code>Application.GetEngineVersionPatch()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the minor engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionPrerelease">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionPrerelease</h2>
+        <code>Application.GetEngineVersionPrerelease()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the prerelease engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionCodename">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionCodename</h2>
+        <code>Application.GetEngineVersionCodename()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine version codename.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_Application_GetFPS">
         <h2 style="margin-bottom: 8px;">Application.GetFPS</h2>
         <code>Application.GetFPS()</code>
@@ -1946,20 +1994,20 @@
         <code>Application.GetGameTitleShort()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the short game title of the application.</div>
         </p>
-        <p id="Reference_functions_Application_GetVersion">
-        <h2 style="margin-bottom: 8px;">Application.GetVersion</h2>
-        <code>Application.GetVersion()</code>
+        <p id="Reference_functions_Application_GetGameVersion">
+        <h2 style="margin-bottom: 8px;">Application.GetGameVersion</h2>
+        <code>Application.GetGameVersion()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the version of the application.</div>
         </p>
-        <p id="Reference_functions_Application_GetDescription">
-        <h2 style="margin-bottom: 8px;">Application.GetDescription</h2>
-        <code>Application.GetDescription()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the description of the application.</div>
+        <p id="Reference_functions_Application_GetGameDescription">
+        <h2 style="margin-bottom: 8px;">Application.GetGameDescription</h2>
+        <code>Application.GetGameDescription()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the description of the game.</div>
         </p>
         <p id="Reference_functions_Application_SetGameTitle">
         <h2 style="margin-bottom: 8px;">Application.SetGameTitle</h2>
         <code>Application.SetGameTitle(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the game title of the application.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the title of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game title.</li>
@@ -1968,25 +2016,25 @@
         <p id="Reference_functions_Application_SetGameTitleShort">
         <h2 style="margin-bottom: 8px;">Application.SetGameTitleShort</h2>
         <code>Application.SetGameTitleShort(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the short game title of the application.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the short title of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Short game title.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Application_SetVersion">
-        <h2 style="margin-bottom: 8px;">Application.SetVersion</h2>
-        <code>Application.SetVersion(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the version of the application.</div>
+        <p id="Reference_functions_Application_SetGameVersion">
+        <h2 style="margin-bottom: 8px;">Application.SetGameVersion</h2>
+        <code>Application.SetGameVersion(title)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the version of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game version.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Application_SetDescription">
-        <h2 style="margin-bottom: 8px;">Application.SetDescription</h2>
-        <code>Application.SetDescription(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the description of the application.</div>
+        <p id="Reference_functions_Application_SetGameDescription">
+        <h2 style="margin-bottom: 8px;">Application.SetGameDescription</h2>
+        <code>Application.SetGameDescription(title)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the description of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game description.</li>
@@ -8983,7 +9031,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>663 out of 722 functions have descriptions. </p>
+        <p>669 out of 728 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
