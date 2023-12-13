@@ -614,10 +614,6 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (GetMethod(klass, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
@@ -641,10 +637,6 @@ PUBLIC int     VMThread::RunInstruction() {
                         VM_BREAK;
                     }
 
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (GetMethod(klass, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
@@ -660,10 +652,6 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (BytecodeObjectManager::Lock()) {
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (GetMethod(klass, hash)) {
                         BytecodeObjectManager::Unlock();
                         VM_BREAK;
@@ -775,10 +763,6 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (HasMethod(klass, hash)) {
                         Pop();
                         Push(INTEGER_VAL(true));
@@ -800,10 +784,6 @@ PUBLIC int     VMThread::RunInstruction() {
                         VM_BREAK;
                     }
 
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (HasMethod(klass, hash)) {
                         Pop();
                         Push(INTEGER_VAL(true));
@@ -817,10 +797,6 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (BytecodeObjectManager::Lock()) {
-                    if (klass->ParentHash && !klass->Parent) {
-                        BytecodeObjectManager::SetClassParent(klass);
-                    }
-
                     if (HasMethod(klass, hash)) {
                         Pop();
                         Push(INTEGER_VAL(true));
@@ -1547,7 +1523,7 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_METHOD): {
             int index = ReadByte(frame);
             Uint32 hash = ReadUInt32(frame);
-            BytecodeObjectManager::DefineMethod(frame->FunctionListOffset + index, hash);
+            BytecodeObjectManager::DefineMethod(this, frame->FunctionListOffset + index, hash);
             VM_BREAK;
         }
 
@@ -1737,17 +1713,19 @@ PUBLIC bool    VMThread::GetMethod(ObjClass* klass, Uint32 hash) {
             Pop(); // Instance.
             Push(method);
         }
-        else if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &method)) {
-            Pop(); // Instance.
-            Push(method);
-        }
         else {
-            ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
-            Pop(); // Instance.
-            Push(NULL_VAL);
-            return false;
+            ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+            if (parentClass) {
+                BytecodeObjectManager::Unlock();
+                return GetMethod(parentClass, hash);
+            }
+            else {
+                ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
+                Pop(); // Instance.
+                Push(NULL_VAL);
+                return false;
+            }
         }
-
         BytecodeObjectManager::Unlock();
         return true;
     }
@@ -1759,8 +1737,12 @@ PUBLIC bool    VMThread::HasMethod(ObjClass* klass, Uint32 hash) {
         if (klass->Methods->Exists(hash)) {
             hasMethod = true;
         }
-        else if (klass->Parent && klass->Parent->Methods->Exists(hash)) {
-            hasMethod = true;
+        else {
+            ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+            if (parentClass) {
+                BytecodeObjectManager::Unlock();
+                return HasMethod(parentClass, hash);
+            }
         }
         BytecodeObjectManager::Unlock();
         return hasMethod;
@@ -1918,19 +1900,19 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
     if (BytecodeObjectManager::Lock()) {
         VMValue method;
 
-        if (klass->ParentHash && !klass->Parent) {
-            BytecodeObjectManager::SetClassParent(klass);
-        }
-
         if (klass->Methods->GetIfExists(hash, &method)) {
             // Done
         }
-        else if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &method)) {
-            // Ditto
-        }
         else {
-            BytecodeObjectManager::Unlock();
-            return false;
+            ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+            if (parentClass) {
+                BytecodeObjectManager::Unlock();
+                return InvokeFromClass(parentClass, hash, argCount);
+            }
+            else {
+                BytecodeObjectManager::Unlock();
+                return false;
+            }
         }
 
         BytecodeObjectManager::Unlock();
@@ -1955,15 +1937,11 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
         }
     }
     else {
-        if (klass->ParentHash && !klass->Parent) {
-            BytecodeObjectManager::SetClassParent(klass);
-        }
-
-        if (klass->Parent) {
-            return InvokeFromClass(klass->Parent, hash, argCount);
-        }
-
-        ThrowRuntimeError(false, "Instance's class does not have a parent to call method from.");
+        ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+        if (parentClass)
+            return InvokeFromClass(parentClass, hash, argCount);
+        else
+            ThrowRuntimeError(false, "Instance's class does not have a parent to call method from.");
         return false;
     }
     return InvokeFromClass(klass, hash, argCount);

@@ -673,13 +673,9 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
         return true;
     }
     else {
-        if (!klass->Parent && klass->ParentHash) {
-            BytecodeObjectManager::SetClassParent(klass);
-        }
-        if (klass->Parent && klass->Parent->Methods->GetIfExists(hash, &result)) {
-            value = result;
+        value = BytecodeObjectManager::GetClassMethod(klass, hash);
+        if (!IS_NULL(value))
             return true;
-        }
     }
 
     return false;

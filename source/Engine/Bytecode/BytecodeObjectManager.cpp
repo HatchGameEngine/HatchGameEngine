@@ -557,14 +557,14 @@ PUBLIC STATIC void    BytecodeObjectManager::Unlock() {
     SDL_UnlockMutex(GlobalLock);
 }
 
-PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(int index, Uint32 hash) {
+PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(VMThread* thread, int index, Uint32 hash) {
     if ((unsigned)index >= AllFunctionList.size())
         return;
 
     ObjFunction* function = AllFunctionList[index];
     VMValue methodValue = OBJECT_VAL(function);
 
-    ObjClass* klass = AS_CLASS(Threads[0].Peek(0));
+    ObjClass* klass = AS_CLASS(thread->Peek(0));
     klass->Methods->Put(hash, methodValue);
 
     if (hash == klass->Hash)
@@ -572,7 +572,7 @@ PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(int index, Uint32 hash
 
     function->ClassName = klass->Name;
 
-    Threads[0].Pop();
+    thread->Pop();
 }
 PUBLIC STATIC void    BytecodeObjectManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
     if (function == NULL) return;
@@ -616,13 +616,25 @@ PUBLIC STATIC void    BytecodeObjectManager::GlobalConstDecimal(ObjClass* klass,
     else
         klass->Methods->Put(name, DECIMAL_VAL(value));
 }
-PUBLIC STATIC void    BytecodeObjectManager::SetClassParent(ObjClass* klass) {
-    Uint32 shash = klass->ParentHash;
-    if (BytecodeObjectManager::Globals->Exists(shash)) {
-        VMValue val = BytecodeObjectManager::Globals->Get(shash);
-        if (IS_CLASS(val))
-            klass->Parent = AS_CLASS(val);
+PUBLIC STATIC ObjClass* BytecodeObjectManager::GetClassParent(ObjClass* klass) {
+    if (!klass->Parent && klass->ParentHash) {
+        VMValue parent;
+        if (BytecodeObjectManager::Globals->GetIfExists(klass->ParentHash, &parent) && IS_CLASS(parent))
+            klass->Parent = AS_CLASS(parent);
     }
+    return klass->Parent;
+}
+PUBLIC STATIC VMValue BytecodeObjectManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
+    VMValue method;
+    if (klass->Methods->GetIfExists(hash, &method)) {
+        return method;
+    }
+    else {
+        ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+        if (parentClass)
+            return GetClassMethod(parentClass, hash);
+    }
+    return NULL_VAL;
 }
 
 PUBLIC STATIC void    BytecodeObjectManager::LinkStandardLibrary() {
@@ -644,7 +656,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC bool    BytecodeObjectManager::RunFromIBC(Bytecode bytecode, Uint32 filenameHash) {
+PUBLIC STATIC bool    BytecodeObjectManager::RunBytecode(Bytecode bytecode, Uint32 filenameHash) {
     MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
     if (!stream)
         return false;
@@ -847,7 +859,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
         if (!bytecode.Data)
             return false;
 
-        return RunFromIBC(bytecode, hash);
+        return RunBytecode(bytecode, hash);
     }
 
     return true;
@@ -880,7 +892,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadObjectClass(const char* objectN
                     (int)filenameHashList->size());
             }
 
-            RunFromIBC(bytecode, filenameHash);
+            RunBytecode(bytecode, filenameHash);
         }
     }
 
@@ -943,7 +955,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
                 continue;
             }
 
-            RunFromIBC(bytecode, filenameHash);
+            RunBytecode(bytecode, filenameHash);
         }
     });
 
