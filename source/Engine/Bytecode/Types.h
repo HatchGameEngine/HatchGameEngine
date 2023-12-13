@@ -252,7 +252,6 @@ ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
 ObjString*         AllocString(size_t length);
-char*              HeapCopyString(const char* str, size_t len);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);
 ObjUpvalue*        NewUpvalue(VMValue* slot);

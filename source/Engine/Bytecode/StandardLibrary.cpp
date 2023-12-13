@@ -5831,7 +5831,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
     for (int i = 0; i < t->size; i++) {
         key = t + 1 + tokcount;
         keyHash = map->Keys->HashFunction(text + key->start, key->end - key->start);
-        map->Keys->Put(keyHash, HeapCopyString(text + key->start, key->end - key->start));
+        map->Keys->Put(keyHash, StringUtils::Duplicate(text + key->start, key->end - key->start));
         tokcount += 1;
         if (key->size > 0) {
             VMValue val = NULL_VAL;
@@ -14342,10 +14342,9 @@ static VMValue XML_FillMap(XMLNode* parent) {
         Token text = parent->children[0]->name;
 
         if (numAttr) {
-            const char* textKey = "#text";
-            keyHash = map->Keys->HashFunction(textKey, strlen(textKey));
-
-            map->Keys->Put(keyHash, HeapCopyString(textKey, strlen(textKey)));
+            char* textKey = StringUtils::Duplicate("#text");
+            keyHash = map->Keys->HashFunction(textKey, 5);
+            map->Keys->Put(keyHash, textKey);
             map->Values->Put(keyHash, OBJECT_VAL(CopyString(text.Start, text.Length)));
         }
         else
@@ -14375,7 +14374,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
                 thisArray->Values->push_back(XML_FillMap(node));
             }
             else {
-                map->Keys->Put(keyHash, HeapCopyString(nodeName->Start, nodeName->Length));
+                map->Keys->Put(keyHash, StringUtils::Duplicate(nodeName->Start, nodeName->Length));
                 map->Values->Put(keyHash, XML_FillMap(node));
             }
         }
@@ -14386,21 +14385,26 @@ static VMValue XML_FillMap(XMLNode* parent) {
         return OBJECT_VAL(map);
 
     char* attrName = NULL;
+    size_t attrNameSize = 0;
 
     for (size_t i = 0; i < numAttr; i++) {
         char *key = attributes->KeyVector[i];
         char *value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
 
-        attrName = (char*)realloc(attrName, strlen(key) + 2);
-        if (!attrName) {
-            Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
-            abort();
+        size_t length = strlen(key) + 2;
+        if (length > attrNameSize) {
+            attrNameSize = length;
+            attrName = (char*)realloc(attrName, attrNameSize);
+            if (!attrName) {
+                Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
+                abort();
+            }
         }
 
-        sprintf(attrName, "#%s", key);
+        snprintf(attrName, attrNameSize, "#%s", key);
 
-        keyHash = map->Keys->HashFunction(attrName, strlen(attrName));
-        map->Keys->Put(keyHash, HeapCopyString(attrName, strlen(attrName)));
+        keyHash = map->Keys->HashFunction(attrName, attrNameSize - 1);
+        map->Keys->Put(keyHash, StringUtils::Duplicate(attrName));
         map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
     }
 

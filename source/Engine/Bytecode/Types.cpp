@@ -64,14 +64,6 @@ ObjString*        AllocString(size_t length) {
     return AllocateString(heapChars, length, 0x00000000);
 }
 
-char*             HeapCopyString(const char* str, size_t len) {
-    char* out = (char*)malloc(len + 1);
-    if (!out) return NULL;
-    memcpy(out, str, len);
-    out[len] = 0;
-    return out;
-}
-
 ObjFunction*      NewFunction() {
     ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     Memory::Track(function, "NewFunction");

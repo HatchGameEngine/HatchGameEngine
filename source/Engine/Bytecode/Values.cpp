@@ -149,6 +149,6 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             break;
         }
         default:
-            buffer_printf(buffer, "UNKNOWN OBJECT TYPE %d", OBJECT_TYPE(value));
+            buffer_printf(buffer, "<unknown object type 0x%02X>", OBJECT_TYPE(value));
     }
 }

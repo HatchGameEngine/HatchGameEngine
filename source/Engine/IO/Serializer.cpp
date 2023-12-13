@@ -56,6 +56,8 @@ public:
 
 #include <Engine/IO/Serializer.h>
 
+#include <Engine/Utilities/StringUtils.h>
+
 Uint32 Serializer::Magic = 0x9D939FF0;
 Uint32 Serializer::Version = 0x00000001;
 
@@ -406,7 +408,7 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
             }
             else if (StringList[stringID].Chars != nullptr) {
                 Uint32 length = StringList[stringID].Length;
-                char* mapKey = HeapCopyString(StringList[stringID].Chars, length);
+                char* mapKey = StringUtils::Duplicate(StringList[stringID].Chars, length);
                 if (mapKey)
                     map->Keys->Put(mapKey, mapKey);
             }

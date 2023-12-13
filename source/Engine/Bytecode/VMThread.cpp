@@ -942,7 +942,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     map->Values->Put(index, value);
-                    map->Keys->Put(index, HeapCopyString(index, strlen(index)));
+                    map->Keys->Put(index, StringUtils::Duplicate(index));
                     BytecodeObjectManager::Unlock();
                 }
             }
@@ -999,7 +999,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 for (int i = count - 1; i >= 0; i--) {
                     char* keystr = AS_CSTRING(Peek(i * 2 + 1));
                     map->Values->Put(keystr, Peek(i * 2));
-                    map->Keys->Put(keystr, HeapCopyString(keystr, strlen(keystr)));
+                    map->Keys->Put(keystr, StringUtils::Duplicate(keystr));
                 }
                 for (int i = count - 1; i >= 0; i--) {
                     Pop();
