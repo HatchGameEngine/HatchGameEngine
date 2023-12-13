@@ -117,6 +117,8 @@
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
+            <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
+            <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
             <li><a href="#Reference_TILECOLLISION_*">TILECOLLISION_*</a></li>
             <li><a href="#Reference_TintMode_*">TintMode_*</a></li>
         </ul>
@@ -130,6 +132,7 @@
                     <li><a href="#Reference_constants_Math_PI_HALF">Math_PI_HALF</a></li>
                     <li><a href="#Reference_constants_Math_R_PI">Math_R_PI</a></li>
                     <li><a href="#Reference_constants_NUM_KEYBOARD_KEYS">NUM_KEYBOARD_KEYS</a></li>
+                    <li><a href="#Reference_constants_MAX_PALETTE_COUNT">MAX_PALETTE_COUNT</a></li>
         </ul>
         <h3>Globals</h3>
         <ul>
@@ -307,6 +310,7 @@
                     <li><a href="#Reference_functions_Draw_ImagePart">Draw.ImagePart</a></li>
                     <li><a href="#Reference_functions_Draw_ImageSized">Draw.ImageSized</a></li>
                     <li><a href="#Reference_functions_Draw_ImagePartSized">Draw.ImagePartSized</a></li>
+                    <li><a href="#Reference_functions_Draw_Layer">Draw.Layer</a></li>
                     <li><a href="#Reference_functions_Draw_View">Draw.View</a></li>
                     <li><a href="#Reference_functions_Draw_ViewPart">Draw.ViewPart</a></li>
                     <li><a href="#Reference_functions_Draw_ViewSized">Draw.ViewSized</a></li>
@@ -373,6 +377,18 @@
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
+                    <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilPassOperation">Draw.SetStencilPassOperation</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilFailOperation">Draw.SetStencilFailOperation</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilValue">Draw.SetStencilValue</a></li>
+                    <li><a href="#Reference_functions_Draw_SetStencilMask">Draw.SetStencilMask</a></li>
+                    <li><a href="#Reference_functions_Draw_ClearStencil">Draw.ClearStencil</a></li>
+                    <li><a href="#Reference_functions_Draw_SetDotMask">Draw.SetDotMask</a></li>
+                    <li><a href="#Reference_functions_Draw_SetHorizontalDotMask">Draw.SetHorizontalDotMask</a></li>
+                    <li><a href="#Reference_functions_Draw_SetVerticalDotMask">Draw.SetVerticalDotMask</a></li>
+                    <li><a href="#Reference_functions_Draw_SetHorizontalDotMaskOffset">Draw.SetHorizontalDotMaskOffset</a></li>
+                    <li><a href="#Reference_functions_Draw_SetVerticalDotMaskOffset">Draw.SetVerticalDotMaskOffset</a></li>
                     <li><a href="#Reference_functions_Draw_Line">Draw.Line</a></li>
                     <li><a href="#Reference_functions_Draw_Circle">Draw.Circle</a></li>
                     <li><a href="#Reference_functions_Draw_Ellipse">Draw.Ellipse</a></li>
@@ -490,6 +506,7 @@
                     <li><a href="#Reference_functions_Instance_Create">Instance.Create</a></li>
                     <li><a href="#Reference_functions_Instance_GetNth">Instance.GetNth</a></li>
                     <li><a href="#Reference_functions_Instance_IsClass">Instance.IsClass</a></li>
+                    <li><a href="#Reference_functions_Instance_GetClass">Instance.GetClass</a></li>
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
@@ -555,14 +572,23 @@
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
+                    <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
                     <li><a href="#Reference_fields_instance_OnScreenHitboxW">instance.OnScreenHitboxW</a></li>
                     <li><a href="#Reference_fields_instance_OnScreenHitboxH">instance.OnScreenHitboxH</a></li>
                     <li><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></li>
                     <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
@@ -817,6 +843,8 @@
                     <li><a href="#Reference_functions_Scene_GetCategoryCount">Scene.GetCategoryCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStageCount">Scene.GetStageCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDebugMode">Scene.GetDebugMode</a></li>
+                    <li><a href="#Reference_functions_Scene_GetFirstInstance">Scene.GetFirstInstance</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLastInstance">Scene.GetLastInstance</a></li>
                     <li><a href="#Reference_functions_Scene_GetInstanceCount">Scene.GetInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStaticInstanceCount">Scene.GetStaticInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDynamicInstanceCount">Scene.GetDynamicInstanceCount</a></li>
@@ -839,6 +867,7 @@
                     <li><a href="#Reference_functions_Scene_SetPaused">Scene.SetPaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimationEnabled">Scene.SetTileAnimationEnabled</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequence">Scene.SetTileAnimSequence</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFromSprite">Scene.SetTileAnimSequenceFromSprite</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequencePaused">Scene.SetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceSpeed">Scene.SetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFrame">Scene.SetTileAnimSequenceFrame</a></li>
@@ -851,6 +880,7 @@
                     <li><a href="#Reference_functions_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerRepeat">Scene.SetLayerRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_SetDrawGroupCount">Scene.SetDrawGroupCount</a></li>
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
@@ -865,6 +895,7 @@
                     <li><a href="#Reference_functions_Scene_SetLayerDeformOffsetB">Scene.SetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerCustomScanlineFunction">Scene.SetLayerCustomScanlineFunction</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileScanline">Scene.SetTileScanline</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerCustomRenderFunction">Scene.SetLayerCustomRenderFunction</a></li>
                     <li><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileViewRender">Scene.SetTileViewRender</a></li>
                 </ul>
@@ -994,6 +1025,8 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameHitbox">Sprite.GetFrameHitbox</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -1217,6 +1250,7 @@
                     <li><a href="#Reference_functions_Instance_Create">Instance.Create</a></li>
                     <li><a href="#Reference_functions_Instance_GetNth">Instance.GetNth</a></li>
                     <li><a href="#Reference_functions_Instance_IsClass">Instance.IsClass</a></li>
+                    <li><a href="#Reference_functions_Instance_GetClass">Instance.GetClass</a></li>
                     <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
@@ -1282,14 +1316,23 @@
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
+                    <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
                     <li><a href="#Reference_fields_instance_OnScreenHitboxW">instance.OnScreenHitboxW</a></li>
                     <li><a href="#Reference_fields_instance_OnScreenHitboxH">instance.OnScreenHitboxH</a></li>
                     <li><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></li>
                     <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
                     <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
                     <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
                     <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
@@ -1561,6 +1604,32 @@
                     <li><a href="#Reference_enums_SensorDirection_Right">SensorDirection_Right</a></li>
                     <li><a href="#Reference_enums_SensorDirection_Up">SensorDirection_Up</a></li>
                     <li><a href="#Reference_enums_SensorDirection_Left">SensorDirection_Left</a></li>
+                </ul>
+            </p>
+            <p id="Reference_StencilOp_*">
+                <h2><code>StencilOp_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_StencilOp_Keep">StencilOp_Keep</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Zero">StencilOp_Zero</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Incr">StencilOp_Incr</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Decr">StencilOp_Decr</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Invert">StencilOp_Invert</a></li>
+                    <li><a href="#Reference_enums_StencilOp_Replace">StencilOp_Replace</a></li>
+                    <li><a href="#Reference_enums_StencilOp_IncrWrap">StencilOp_IncrWrap</a></li>
+                    <li><a href="#Reference_enums_StencilOp_DecrWrap">StencilOp_DecrWrap</a></li>
+                </ul>
+            </p>
+            <p id="Reference_StencilTest_*">
+                <h2><code>StencilTest_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_StencilTest_Never">StencilTest_Never</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Always">StencilTest_Always</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Equal">StencilTest_Equal</a></li>
+                    <li><a href="#Reference_enums_StencilTest_NotEqual">StencilTest_NotEqual</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Less">StencilTest_Less</a></li>
+                    <li><a href="#Reference_enums_StencilTest_Greater">StencilTest_Greater</a></li>
+                    <li><a href="#Reference_enums_StencilTest_LEqual">StencilTest_LEqual</a></li>
+                    <li><a href="#Reference_enums_StencilTest_GEqual">StencilTest_GEqual</a></li>
                 </ul>
             </p>
             <p id="Reference_TILECOLLISION_*">
@@ -1847,7 +1916,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets a <a href="#Reference_KeyBind_*">keybind</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyBind (Integer): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
+        <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the key ID of the keybind.</div>
@@ -1858,7 +1927,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_KeyBind_*">keybind</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyBind (Integer): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
+        <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         <li>keyID (Integer): The key ID.</li>
         </ul>
         </p>
@@ -2030,8 +2099,8 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>array (Array): Array to set values to.</li>
-        <li>startIndex (Integer): Index of value to start setting. (-1 for first index)</li>
-        <li>endIndex (Integer): Index of value to end setting. (-1 for last index)</li>
+        <li>startIndex (Integer): Index of value to start setting. (<code>-1</code> for first index)</li>
+        <li>endIndex (Integer): Index of value to end setting. (<code>-1</code> for last index)</li>
         <li>value (Value): Value to set to.</li>
         </ul>
         </p>
@@ -2174,7 +2243,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Integer): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
@@ -2186,7 +2255,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>axisIndex (Integer): Index of the <a href="#Reference_Axis_*">axis</a> to check.</li>
+        <li>axisIndex (Enum): Index of the <a href="#Reference_Axis_*">axis</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
@@ -2579,6 +2648,15 @@
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
         <li>height (Number): Height to draw the image.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Layer">
+        <h2 style="margin-bottom: 8px;">Draw.Layer</h2>
+        <code>Draw.Layer(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_View">
@@ -3341,7 +3419,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_BlendMode_*">blend mode</a> used for drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>blendMode (Integer): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
+        <li>blendMode (Enum): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendFactor">
@@ -3350,8 +3428,8 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_BlendFactor_*">blend factors</a> used for drawing. (Only for hardware-rendering)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sourceFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending.</li>
-        <li>destinationFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending.</li>
+        <li>sourceFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending.</li>
+        <li>destinationFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendFactorExtended">
@@ -3360,10 +3438,10 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets all the <a href="#Reference_BlendFactor_*">blend factors</a> used for drawing. (Only for hardware-rendering)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sourceColorFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending color.</li>
-        <li>destinationColorFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending color.</li>
-        <li>sourceAlphaFactor (Integer): <a href="#Reference_BlendFactor_*">Source factor</a> for blending alpha.</li>
-        <li>destinationAlphaFactor (Integer): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending alpha.</li>
+        <li>sourceColorFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending color.</li>
+        <li>destinationColorFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending color.</li>
+        <li>sourceAlphaFactor (Enum): <a href="#Reference_BlendFactor_*">Source factor</a> for blending alpha.</li>
+        <li>destinationAlphaFactor (Enum): <a href="#Reference_BlendFactor_*">Destination factor</a> for blending alpha.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetCompareColor">
@@ -3391,7 +3469,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_TintMode_*">tint mode</a> used for drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>tintMode (Integer): The desired <a href="#Reference_TintMode_*">tint mode</a>.</li>
+        <li>tintMode (Enum): The desired <a href="#Reference_TintMode_*">tint mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_UseTinting">
@@ -3409,7 +3487,111 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_Filter_*">filter type</a>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filterType (Integer): The <a href="#Reference_Filter_*">filter type</a>.</li>
+        <li>filterType (Enum): The <a href="#Reference_Filter_*">filter type</a>.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_UseStencil">
+        <h2 style="margin-bottom: 8px;">Draw.UseStencil</h2>
+        <code>Draw.UseStencil(enabled)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables stencil operations.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>enabled (Boolean): Whether to enable or disable stencil operations.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilTestFunction">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilTestFunction</h2>
+        <code>Draw.SetStencilTestFunction(stencilTest)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil test</a> function.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilTest (Enum): One of the <a href="#Reference_StencilTest_*">stencil test</a> functions.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilPassOperation">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilPassOperation</h2>
+        <code>Draw.SetStencilPassOperation(stencilOp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil operation</a> for when the stencil test passes.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilOp (Enum): One of the <a href="#Reference_StencilTest_*">stencil operations</a>.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilFailOperation">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilFailOperation</h2>
+        <code>Draw.SetStencilFailOperation(stencilOp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a <a href="#Reference_StencilTest_*">stencil operation</a> for when the stencil test fails.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stencilOp (Enum): One of the <a href="#Reference_StencilTest_*">stencil operations</a>.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilValue">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilValue</h2>
+        <code>Draw.SetStencilValue(value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the stencil value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>value (Integer): The stencil value. This value is clamped by the stencil buffer's bit depth.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetStencilMask">
+        <h2 style="margin-bottom: 8px;">Draw.SetStencilMask</h2>
+        <code>Draw.SetStencilMask(mask)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the mask used for all stencil tests.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mask (Integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_ClearStencil">
+        <h2 style="margin-bottom: 8px;">Draw.ClearStencil</h2>
+        <code>Draw.ClearStencil()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Clears the stencil.</div>
+        </p>
+        <p id="Reference_functions_Draw_SetDotMask">
+        <h2 style="margin-bottom: 8px;">Draw.SetDotMask</h2>
+        <code>Draw.SetDotMask(mask)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the dot mask.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mask (Integer): The mask.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetHorizontalDotMask">
+        <h2 style="margin-bottom: 8px;">Draw.SetHorizontalDotMask</h2>
+        <code>Draw.SetHorizontalDotMask(mask)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the horizontal dot mask.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mask (Integer): The mask.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetVerticalDotMask">
+        <h2 style="margin-bottom: 8px;">Draw.SetVerticalDotMask</h2>
+        <code>Draw.SetVerticalDotMask(mask)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the vertical dot mask.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mask (Integer): The mask.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetHorizontalDotMaskOffset">
+        <h2 style="margin-bottom: 8px;">Draw.SetHorizontalDotMaskOffset</h2>
+        <code>Draw.SetHorizontalDotMaskOffset(offsetH)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the offset of the horizontal dot mask.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>offsetH (Integer): The offset.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetVerticalDotMaskOffset">
+        <h2 style="margin-bottom: 8px;">Draw.SetVerticalDotMaskOffset</h2>
+        <code>Draw.SetVerticalDotMaskOffset(offsetV)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the offset of the vertical dot mask.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>offsetV (Integer): The offset.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Line">
@@ -4302,6 +4484,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether or not the instance is of a specified object class.</div>
         </p>
+        <p id="Reference_functions_Instance_GetClass">
+        <h2 style="margin-bottom: 8px;">Instance.GetClass</h2>
+        <code>Instance.GetClass(instance)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the object class of a instance.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>instance (Instance): The instance to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
         <p id="Reference_functions_Instance_GetCount">
         <h2 style="margin-bottom: 8px;">Instance.GetCount</h2>
         <code>Instance.GetCount(className)</code>
@@ -4949,7 +5142,9 @@
         <p id="Reference_functions_Matrix_Create256">
         <h2 style="margin-bottom: 8px;">Matrix.Create256</h2>
         <code>Matrix.Create256()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0. <br/>* \return Returns the Matrix as an Array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the Matrix as an Array.</div>
         </p>
         <p id="Reference_functions_Matrix_Identity256">
         <h2 style="margin-bottom: 8px;">Matrix.Identity256</h2>
@@ -5619,11 +5814,11 @@
         </p>
         <p id="Reference_functions_Scene_CheckObjectCollisionTouch">
         <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionTouch</h2>
-        <code>Scene.CheckObjectCollisionTouch(thisEnity, thisHitbox, otherEntity, otherHitbox)</code>
+        <code>Scene.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisEntity (Instance): The first instance to check.</li>
         <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
         <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
@@ -6116,6 +6311,20 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetFirstInstance">
+        <h2 style="margin-bottom: 8px;">Scene.GetFirstInstance</h2>
+        <code>Scene.GetFirstInstance()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first active instance in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the first active instance in the scene, or <code>null</code> if there are no instances in the scene.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLastInstance">
+        <h2 style="margin-bottom: 8px;">Scene.GetLastInstance</h2>
+        <code>Scene.GetLastInstance()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the last active instance in the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the last active instance in the scene, or <code>null</code> if there are no instances in the scene.</div>
+        </p>
         <p id="Reference_functions_Scene_GetInstanceCount">
         <h2 style="margin-bottom: 8px;">Scene.GetInstanceCount</h2>
         <code>Scene.GetInstanceCount()</code>
@@ -6309,13 +6518,24 @@
         </p>
         <p id="Reference_functions_Scene_SetTileAnimSequence">
         <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequence</h2>
-        <code>Scene.SetTileAnimSequence(tileID, tileIDs, frameDurations)</code>
+        <code>Scene.SetTileAnimSequence(tileID, tileIDs[, frameDurations])</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
         <li>tileIDs (Array): Tile ID list.</li>
         <li>frameDurations (Array): Frame duration list.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetTileAnimSequenceFromSprite">
+        <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequenceFromSprite</h2>
+        <code>Scene.SetTileAnimSequenceFromSprite(tileID, spriteIndex, animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
+        <li>spriteIndex (Integer): Sprite index. (<code>null</code> to disable)</li>
+        <li>animationIndex (Integer): Animation index in sprite.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetTileAnimSequencePaused">
@@ -6421,7 +6641,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>drawBehavior (Integer): The <a href="#Reference_DrawBehavior_*">draw behavior</a>.</li>
+        <li>drawBehavior (Enum): The <a href="#Reference_DrawBehavior_*">draw behavior</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerRepeat">
@@ -6432,6 +6652,15 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>doesRepeat (Boolean): Whether or not the layer repeats.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetDrawGroupCount">
+        <h2 style="margin-bottom: 8px;">Scene.SetDrawGroupCount</h2>
+        <code>Scene.SetDrawGroupCount(count)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the amount of draw groups in the active scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>count (Integer): Draw group count.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetDrawGroupEntityDepthSorting">
@@ -6452,7 +6681,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>doBlend (Boolean): Whether or not to use blending.</li>
-        <li>blendMode (Integer): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
+        <li>blendMode (Enum): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerOpacity">
@@ -6582,6 +6811,16 @@
         <li>maxVertCells (Number):</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetLayerCustomRenderFunction">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerCustomRenderFunction</h2>
+        <code>Scene.SetLayerCustomRenderFunction(layerIndex, function)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the function to be used for rendering a specific layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>function (Function): Function to call to render the layer. (Use <code>null</code> to reset functionality.)</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetObjectViewRender">
         <h2 style="margin-bottom: 8px;">Scene.SetObjectViewRender</h2>
         <code>Scene.SetObjectViewRender(viewIndex, enableViewRender)</code>
@@ -6629,7 +6868,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene. See <code><a href="#Reference_DrawMode_*">DrawMode_*</a></code> for a list of accepted draw modes.</li>
+        <li>drawMode (Enum): The type of drawing to use for the vertices in the 3D scene. See <code><a href="#Reference_DrawMode_*">DrawMode_*</a></code> for a list of accepted draw modes.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFaceCullMode">
@@ -6639,7 +6878,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>cullMode (Integer): The type of face culling to use for the vertices in the 3D scene. See <code><a href="#Reference_FaceCull_*">FaceCull_*</a></code> for a list of accepted face cull modes.</li>
+        <li>cullMode (Enum): The type of face culling to use for the vertices in the 3D scene. See <code><a href="#Reference_FaceCull_*">FaceCull_*</a></code> for a list of accepted face cull modes.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFieldOfView">
@@ -6735,7 +6974,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
-        <li>fogEquation (Integer): The <a href="#Reference_FogEquation_*">fog equation</a> to use.</li>
+        <li>fogEquation (Enum): The <a href="#Reference_FogEquation_*">fog equation</a> to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene3D_SetFogStart">
@@ -7424,6 +7663,25 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
+        <p id="Reference_functions_Sprite_MakePalettized">
+        <h2 style="margin-bottom: 8px;">Sprite.MakePalettized</h2>
+        <code>Sprite.MakePalettized(sprite, paletteIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a sprite's colors to the ones in the specified palette index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>paletteIndex (Integer): The palette index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Sprite_MakeNonPalettized">
+        <h2 style="margin-bottom: 8px;">Sprite.MakeNonPalettized</h2>
+        <code>Sprite.MakeNonPalettized(sprite)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes a sprite's palette.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Stream_FromResource">
         <h2 style="margin-bottom: 8px;">Stream.FromResource</h2>
         <code>Stream.FromResource(filename)</code>
@@ -7442,7 +7700,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Path of the file.</li>
-        <li>mode (Integer): <a href="#Reference_FileStream_*">File access mode</a>.</li>
+        <li>mode (Enum): <a href="#Reference_FileStream_*">File access mode</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the newly opened stream.</div>
@@ -7793,8 +8051,16 @@
         </ul>
         </p>
         <p id="Reference_functions_String_Split">
-        <h2 style="margin-bottom: 8px; color: red;">String.Split</h2>
-        <code>String.Split()</code>
+        <h2 style="margin-bottom: 8px;">String.Split</h2>
+        <code>String.Split(string, delimiter)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Splits a string by a delimiter.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The string to split.</li>
+        <li>delimiter (Integer): The delimiter string.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an array of strings.</div>
         </p>
         <p id="Reference_functions_String_CharAt">
         <h2 style="margin-bottom: 8px;">String.CharAt</h2>
@@ -7904,11 +8170,12 @@
         </p>
         <p id="Reference_functions_String_ParseInteger">
         <h2 style="margin-bottom: 8px;">String.ParseInteger</h2>
-        <code>String.ParseInteger(string)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Integer value if possible.</div>
+        <code>String.ParseInteger(string[, radix])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a String value to an Integer value, if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to parse.</li>
+        <li>radix (Integer): The numerical base, or radix. If <code>0</code>, the radix is detected by the value of <code>string</code>: <br/>If <code>string</code> begins with <code>0x</code>, it is a hexadecimal number (base 16);<br/>Else, if <code>string</code> begins with <code>0</code>, it is an octal number (base 8);<br/>Else, if <code>string</code> begins with <code>0b</code>, it is a binary number (base 2);<br/>Else, the number is assumed to be in base 10.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as an Integer.</div>
@@ -7919,7 +8186,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Decimal value if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as an Decimal.</div>
@@ -7990,9 +8257,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): ID of tile to check.</li>
-        <li>spriteIndex (Integer): Sprite index. (-1 for default tile sprite)</li>
+        <li>spriteIndex (Integer): Sprite index. (<code>-1</code> for default tile sprite)</li>
         <li>animationIndex (Integer): Animation index.</li>
-        <li>frameIndex (Integer): Frame index. (-1 for default tile frame)</li>
+        <li>frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)</li>
         </ul>
         </p>
         <p id="Reference_functions_TileInfo_IsEmptySpace">
@@ -8716,7 +8983,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>641 out of 701 functions have descriptions. </p>
+        <p>663 out of 722 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -8887,7 +9154,7 @@
         <p id="Reference_methods_instance_SetViewOverride">
         <h2 style="margin-bottom: 8px;">instance.SetViewOverride</h2>
         <code>instance.SetViewOverride(viewIndex, visible)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Toggles the bypass for each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Toggles the bypass for each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): The view index.</li>
@@ -9140,6 +9407,12 @@
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_instance_InRange">instance.InRange</a></code>.</div>
         </p>
+        <p id="Reference_fields_instance_WasOffScreen">
+        <h3 style="margin-bottom: 8px;"><code>instance.WasOffScreen</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">Indicates if the entity was previously off-screen.</div>
+        </p>
         <p id="Reference_fields_instance_OnScreenHitboxW">
         <h3 style="margin-bottom: 8px;"><code>instance.OnScreenHitboxW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
@@ -9162,19 +9435,43 @@
         <h3 style="margin-bottom: 8px;"><code>instance.ViewOverrideFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code>Scene.SetObjectViewRender</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         </p>
         <p id="Reference_fields_instance_UpdateRegionW">
         <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can update. If this and <code><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></code> are set to <code>0.0</code>, the entity will update regardless of the camera's position.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.</div>
         </p>
         <p id="Reference_fields_instance_UpdateRegionH">
         <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can update. If this and <code><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></code> are set to <code>0.0</code>, the entity will update regardless of the camera's position.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionTop</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionLeft</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionRight</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_UpdateRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionBottom</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
         </p>
         <p id="Reference_fields_instance_RenderRegionW">
         <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionW</code></h2>
@@ -9187,6 +9484,30 @@
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionTop</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionLeft</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionRight</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        </p>
+        <p id="Reference_fields_instance_RenderRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionBottom</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
         </p>
         <p id="Reference_fields_instance_HitboxW">
         <h3 style="margin-bottom: 8px;"><code>instance.HitboxW</code></h2>
@@ -9346,7 +9667,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>60 out of 64 fields have descriptions. </p>
+        <p>69 out of 73 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -9921,6 +10242,70 @@
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Left</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left sensor direction.</div>
         </p>
+        <p id="Reference_enums_StencilOp_Keep">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Keep</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Doesn't modify the stencil buffer value (keeps it the same.)</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Zero">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Zero</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the stencil buffer value to zero.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Incr">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Incr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, saturating it if it would wrap around (the value is set to a specific maximum.)</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Decr">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Decr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, setting it to zero if it would wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Invert">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Invert</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Inverts the bits of the stencil buffer value.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_Replace">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_Replace</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Replaces the bits of the stencil buffer value with the masked value.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_IncrWrap">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_IncrWrap</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, letting it wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilOp_DecrWrap">
+        <h3 style="margin-bottom: 8px;"><code>StencilOp_DecrWrap</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Increases the stencil buffer value, letting it wrap around.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Never">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Never</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Always fails.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Always">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Always</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Always passes.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Equal">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Equal</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does an "equals" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_NotEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_NotEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "not equal" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Less">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Less</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "less than" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_Greater">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_Greater</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "greater than" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_LEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_LEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "less than or equal to" operation.</div>
+        </p>
+        <p id="Reference_enums_StencilTest_GEqual">
+        <h3 style="margin-bottom: 8px;"><code>StencilTest_GEqual</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does a "greater than or equal to" operation.</div>
+        </p>
         <p id="Reference_enums_TILECOLLISION_NONE">
         <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects no tile collision.</div>
@@ -9949,7 +10334,7 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>150 out of 165 enums have descriptions. </p>
+        <p>166 out of 181 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
@@ -9992,7 +10377,12 @@
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="margin-top: 8px; font-size: 14px;">Count of keyboard keys.</div>
         </p>
-        <p>8 out of 8 constants have descriptions. </p>
+        <p id="Reference_constants_MAX_PALETTE_COUNT">
+        <h3 style="margin-bottom: 8px;"><code>MAX_PALETTE_COUNT</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="margin-top: 8px; font-size: 14px;">The max amount of palettes.</div>
+        </p>
+        <p>9 out of 9 constants have descriptions. </p>
         <hr/>
         <h3>Globals</h3>
         <p id="Reference_globals_CameraX">

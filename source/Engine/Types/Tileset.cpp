@@ -75,6 +75,20 @@ PUBLIC void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteI
     }
 
     TileAnimator animator(tileSpriteInfo, tileSprite, animID);
+    animator.RestartAnimation();
+
+    AnimatorMap.insert( { tileID, animator } );
+}
+
+PUBLIC void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, ISprite* animSprite, int animID) {
+    if (animSprite == nullptr) {
+        AnimatorMap.erase(tileID);
+        return;
+    }
+
+    TileAnimator animator(tileSpriteInfo, animSprite, animID);
+    animator.RestartAnimation();
+
     AnimatorMap.insert( { tileID, animator } );
 }
 

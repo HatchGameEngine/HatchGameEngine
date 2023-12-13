@@ -69,7 +69,7 @@ enum class KeyBind {
 #define INPUT_DEADZONE 0.3f
 
 #define MAX_SCENE_VIEWS 8
-#define MAX_PALETTE_COUNT 32
+#define MAX_PALETTE_COUNT 256
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 

@@ -183,7 +183,3 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
             buffer_printf(buffer, "UNKNOWN OBJECT TYPE %d", OBJECT_TYPE(value));
     }
 }
-
-PUBLIC STATIC bool Values::GetMethodFromClass(VMValue* value) {
-    return false;
-}

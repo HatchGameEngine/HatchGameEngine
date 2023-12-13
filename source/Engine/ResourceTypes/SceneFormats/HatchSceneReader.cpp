@@ -85,6 +85,9 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Unused (number of kits)
     r->ReadByte();
 
+    Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+    Scene::InitPriorityLists();
+
     // Read layers
     Uint8 numLayers = r->ReadByte();
     Scene::Layers.resize(numLayers);
@@ -418,6 +421,11 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
             BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+            if (!obj) {
+                HatchSceneReader::SkipEntityProperties(r, numProps);
+                continue;
+            }
+
             obj->X = posX;
             obj->Y = posY;
             obj->InitialX = posX;

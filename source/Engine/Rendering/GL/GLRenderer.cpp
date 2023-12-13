@@ -1430,7 +1430,7 @@ PUBLIC STATIC void     GLRenderer::UpdateClipRect() {
             float scaleW = RetinaScale, scaleH = RetinaScale;
             SDL_GetWindowSize(Application::Window, &w, &h);
 
-            View* currentView = &Scene::Views[Scene::ViewCurrent];
+            View* currentView = Graphics::CurrentView;
             scaleW *= w / currentView->Width;
             scaleH *= h / currentView->Height;
 
@@ -1844,6 +1844,10 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     if (!scene->Initialized)
         return;
 
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     VertexBuffer* vertexBuffer = scene->Buffer;
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
 
@@ -1872,7 +1876,6 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     Matrix4x4 projMat = scene->ProjectionMatrix;
     Matrix4x4 viewMat = scene->ViewMatrix;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
     Matrix4x4* out = Graphics::ModelViewMatrix;
     float cx = (float)(out->Values[12] - currentView->X) / currentView->Width;
     float cy = (float)(out->Values[13] - currentView->Y) / currentView->Height;

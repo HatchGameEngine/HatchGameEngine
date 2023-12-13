@@ -186,13 +186,13 @@ PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMV
 
     Token    property_name = node->attributes.Get("name");
 
-    char*  object_attribute_name = (char*)malloc(property_name.Length + 1);
-    memcpy(object_attribute_name, property_name.Start, property_name.Length);
-    object_attribute_name[property_name.Length] = 0;
+    char*  scene_attribute_name = (char*)malloc(property_name.Length + 1);
+    memcpy(scene_attribute_name, property_name.Start, property_name.Length);
+    scene_attribute_name[property_name.Length] = 0;
 
-    properties->Put(object_attribute_name, TiledMapReader::ParseProperty(node));
+    properties->Put(scene_attribute_name, TiledMapReader::ParseProperty(node));
 
-    free(object_attribute_name);
+    free(scene_attribute_name);
 }
 
 PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
@@ -368,6 +368,9 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
     Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
     Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
 
+    Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+    Scene::InitPriorityLists();
+
     int layer_width = (int)XMLParser::TokenToNumber(map->attributes.Get("width"));
     int layer_height = (int)XMLParser::TokenToNumber(map->attributes.Get("height"));
 
@@ -504,6 +507,9 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                 ObjectList* objectList = Scene::GetStaticObjectList(object_type_string);
                 if (objectList->SpawnFunction) {
                     BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+                    if (!obj)
+                        continue;
+
                     obj->X = object_x;
                     obj->Y = object_y;
                     obj->InitialX = obj->X;

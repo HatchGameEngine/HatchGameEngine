@@ -381,10 +381,14 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
             doAdd = false;
         }
 
+        Entity* obj = nullptr;
         Uint32 X = r->ReadUInt32();
         Uint32 Y = r->ReadUInt32();
 
-        if (objectList->SpawnFunction) {
+        if (objectList->SpawnFunction)
+            obj = objectList->Spawn();
+
+        if (obj != nullptr) {
             Entity* obj = objectList->Spawn();
             obj->X = (X / 65536.f);
             obj->Y = (Y / 65536.f);
@@ -487,6 +491,9 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
     Scene::TileCount = 0x400;
     Scene::EmptyTile = 0x3FF;
 
+    Scene::PriorityPerLayer = 16;
+    Scene::InitPriorityLists();
+
     if (r->ReadUInt32BE() == 0x53434E00) {
         r->Skip(16); // 16 bytes
         r->Skip(r->ReadByte()); // RSDKString
@@ -586,7 +593,6 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
                 for (int p = 0; p < 256; p++)
                     Graphics::PaletteColors[0][p] = gif->Colors[p];
                 Graphics::PaletteUpdated = true;
-                Memory::Free(gif->Colors);
             }
             delete gif;
         }

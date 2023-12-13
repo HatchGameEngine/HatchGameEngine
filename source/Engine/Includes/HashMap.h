@@ -8,7 +8,19 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <functional>
 
-#include <Engine/Diagnostics/MemoryPools.h>
+inline Uint32 TranslateHashMapIndex(Uint32 index) {
+    // Find index that works to put new data in.
+    index += (index << 12);
+    index ^= (index >> 22);
+    index += (index << 4);
+    index ^= (index >> 9);
+    index += (index << 10);
+    index ^= (index >> 2);
+    index += (index << 7);
+    index ^= (index >> 12);
+    index = (index >> 3) * 0x9E3779B1U;
+    return index;
+}
 
 template <typename T> struct HashMapElement {
     Uint32 Key;
@@ -21,11 +33,7 @@ template <typename T> class HashMap {
 public:
     int Count = 0;
     int Capacity = 0;
-    int CapacityMask = 0;
-    int ChainLength = 64;
     HashMapElement<T>* Data = NULL;
-    Uint32 FirstKey = 0;
-    Uint32 LastKey = 0;
 
     Uint32 (*HashFunction)(const void*, size_t) = NULL;
 
@@ -39,139 +47,16 @@ public:
         CapacityMask = Capacity - 1;
 
         Data = (HashMapElement<T>*)Memory::TrackedCalloc("HashMap::Data", Capacity, sizeof(HashMapElement<T>));
-        // MemoryPools::Alloc(&Data, Capacity * sizeof(HashMapElement<T>), MemoryPools::MEMPOOL_HASHMAP, true);
-    	if (!Data) {
-            Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
-            exit(-1);
-        }
-    }
-
-    void Dispose() {
-        if (Data)
-            Memory::Free(Data);
-        Data = NULL;
-    }
-    ~HashMap<T>() {
-        Dispose();
-    }
-
-    Uint32 TranslateIndex(Uint32 index) {
-        // Find index that works to put new data in.
-        index += (index << 12);
-        index ^= (index >> 22);
-        index += (index << 4);
-        index ^= (index >> 9);
-        index += (index << 10);
-        index ^= (index >> 2);
-        index += (index << 7);
-        index ^= (index >> 12);
-        index = (index >> 3) * 0x9E3779B1U;
-        index = index & CapacityMask; // index = index % Capacity;
-        return index;
-    }
-    Uint32 FindKey(Uint32 key) {
-        Uint32 index = TranslateIndex(key);
-        for (int i = 0; i < ChainLength; i++) {
-            if (Data[index].Used && Data[index].Key == key)
-                return index;
-
-            index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
-        }
-        return 0xFFFFFFFFU;
-    }
-    void   RemoveKey(HashMapElement<T>* data) {
-        Uint32 index;
-        if (data->PrevKey == 0 && data->NextKey != 0) {
-            FirstKey = data->NextKey;
-            index = FindKey(FirstKey);
-            if (index != 0xFFFFFFFFU)
-                Data[index].PrevKey = 0;
-        }
-        else if (data->PrevKey != 0 && data->NextKey == 0) {
-            LastKey = data->PrevKey;
-            index = FindKey(LastKey);
-            if (index != 0xFFFFFFFFU)
-                Data[index].NextKey = 0;
-        }
-        else {
-            index = FindKey(data->PrevKey);
-            if (index != 0xFFFFFFFFU)
-                Data[index].NextKey = data->NextKey;
-
-            index = FindKey(data->NextKey);
-            if (index != 0xFFFFFFFFU)
-                Data[index].PrevKey = data->PrevKey;
-        }
-    }
-    void   AppendKey(HashMapElement<T>* data) {
-        data->PrevKey = LastKey;
-        data->NextKey = 0;
-        if (LastKey != 0) {
-            Uint32 lastIndex = FindKey(LastKey);
-            if (lastIndex != 0xFFFFFFFFU)
-                Data[lastIndex].NextKey = data->Key;
-        }
-        else {
-            FirstKey = data->Key;
-        }
-        LastKey = data->Key;
-    }
-
-    int    Resize() {
-        Capacity <<= 1;
-        CapacityMask = Capacity - 1;
-
-        HashMapElement<T>* oldData = Data;
-        HashMapElement<T>* newData = NULL;
-        const char* oldTrack = Memory::GetName(oldData);
-
-        Data = (HashMapElement<T>*)Memory::TrackedCalloc(oldTrack, Capacity, sizeof(HashMapElement<T>));
-        // MemoryPools::Alloc(&newData, Capacity * sizeof(HashMapElement<T>), MemoryPools::MEMPOOL_HASHMAP, true);
         if (!Data) {
-        // if (!newData) {
             Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
-            Memory::Free(oldData);
             exit(-1);
         }
-
-        newData = Data;
-
-        Count = 0;
-        Uint32 index;
-        for (int i = 0; i < Capacity / 2; i++) {
-            if (oldData[i].Used) {
-                index = TranslateIndex(oldData[i].Key);
-
-                for (int c = 0; c < ChainLength; c++) {
-                    if (!newData[index].Used) {
-                        Count++;
-            			break;
-                    }
-            		if (newData[index].Used && newData[index].Key == oldData[i].Key)
-            			break;
-            		index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
-            	}
-
-                newData[index].Key = oldData[i].Key;
-                newData[index].PrevKey = oldData[i].PrevKey;
-                newData[index].NextKey = oldData[i].NextKey;
-                newData[index].Used = true;
-                newData[index].Data = oldData[i].Data;
-            }
-        }
-
-        // MemoryPools::PassReference(&Data, &newData, MemoryPools::MEMPOOL_HASHMAP);
-
-        Memory::Free(oldData);
-
-        return Capacity;
     }
 
     void   Put(Uint32 hash, T data) {
         Uint32 index;
         do {
-            index = hash;
-            index = TranslateIndex(index);
+            index = TranslateIndex(hash);
 
             for (int i = 0; i < ChainLength; i++) {
                 if (!Data[index].Used) {
@@ -181,14 +66,14 @@ public:
                         Resize();
                         break;
                     }
-        			break;
+                    break;
                 }
 
-        		if (Data[index].Used && Data[index].Key == hash)
-        			break;
+                if (Data[index].Used && Data[index].Key == hash)
+                    break;
 
-        		index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
-        	}
+                index = (index + 1) & CapacityMask;
+            }
         }
         while (index == 0xFFFFFFFFU);
 
@@ -202,11 +87,9 @@ public:
         Uint32 hash = HashFunction(key, strlen(key));
         Put(hash, data);
     }
-    T      Get(Uint32 hash) {
-        Uint32 index;
 
-        index = hash;
-        index = TranslateIndex(index);
+    T      Get(Uint32 hash) {
+        Uint32 index = TranslateIndex(hash);
 
         for (int i = 0; i < ChainLength; i++) {
             if (Data[index].Used && Data[index].Key == hash) {
@@ -217,7 +100,7 @@ public:
         }
 
 #ifdef IOS
-		return T();
+        return T();
 #else
         return T { 0 };
 #endif
@@ -227,10 +110,7 @@ public:
         return Get(hash);
     }
     bool   Exists(Uint32 hash) {
-        Uint32 index;
-
-        index = hash;
-        index = TranslateIndex(index);
+        Uint32 index = TranslateIndex(hash);
 
         for (int i = 0; i < ChainLength; i++) {
             if (Data[index].Used && Data[index].Key == hash) {
@@ -248,10 +128,7 @@ public:
     }
 
     bool   GetIfExists(Uint32 hash, T* result) {
-        Uint32 index;
-
-        index = hash;
-        index = TranslateIndex(index);
+        Uint32 index = TranslateIndex(hash);
 
         for (int i = 0; i < ChainLength; i++) {
             if (Data[index].Used && Data[index].Key == hash) {
@@ -270,10 +147,7 @@ public:
     }
 
     bool   Remove(Uint32 hash) {
-        Uint32 index;
-
-        index = hash;
-        index = TranslateIndex(index);
+        Uint32 index = TranslateIndex(hash);
 
         for (int i = 0; i < ChainLength; i++) {
             if (Data[index].Used && Data[index].Key == hash) {
@@ -283,7 +157,7 @@ public:
                 return true;
             }
 
-            index = (index + 1) & CapacityMask; // index = (index + 1) % Capacity;
+            index = (index + 1) & CapacityMask;
         }
         return false;
     }
@@ -344,14 +218,14 @@ public:
         }
         while (nextKey);
     }
-
-    void   PrintHashes() {
-        printf("Printing...\n");
-        for (int i = 0; i < Capacity; i++) {
-            if (Data[i].Used) {
-                printf("Data[%d].Key: %X\n", i, Data[i].Key);
-            }
-        }
+    Uint32 GetFirstKey() {
+        return FirstKey;
+    }
+    Uint32 GetNextKey(Uint32 key) {
+        Uint32 index = FindKey(key);
+        if (index != 0xFFFFFFFFU)
+            return Data[index].NextKey;
+        return 0;
     }
 
     Uint8* GetBytes(bool exportHashes) {
@@ -382,6 +256,114 @@ public:
             Put(*(Uint32*)(bytes + i * stride),
                 *(T*)(bytes + i * stride + 4));
         }
+    }
+
+    ~HashMap<T>() {
+        Memory::Free(Data);
+    }
+
+private:
+    int CapacityMask = 0;
+    int ChainLength = 64;
+    Uint32 FirstKey = 0;
+    Uint32 LastKey = 0;
+
+    Uint32 TranslateIndex(Uint32 index) {
+        return TranslateHashMapIndex(index) & CapacityMask;
+    }
+
+    Uint32 FindKey(Uint32 key) {
+        Uint32 index = TranslateIndex(key);
+        for (int i = 0; i < ChainLength; i++) {
+            if (Data[index].Used && Data[index].Key == key)
+                return index;
+
+            index = (index + 1) & CapacityMask;
+        }
+        return 0xFFFFFFFFU;
+    }
+    void   RemoveKey(HashMapElement<T>* data) {
+        Uint32 index;
+        if (data->PrevKey == 0 && data->NextKey != 0) {
+            FirstKey = data->NextKey;
+            index = FindKey(FirstKey);
+            if (index != 0xFFFFFFFFU)
+                Data[index].PrevKey = 0;
+        }
+        else if (data->PrevKey != 0 && data->NextKey == 0) {
+            LastKey = data->PrevKey;
+            index = FindKey(LastKey);
+            if (index != 0xFFFFFFFFU)
+                Data[index].NextKey = 0;
+        }
+        else {
+            index = FindKey(data->PrevKey);
+            if (index != 0xFFFFFFFFU)
+                Data[index].NextKey = data->NextKey;
+
+            index = FindKey(data->NextKey);
+            if (index != 0xFFFFFFFFU)
+                Data[index].PrevKey = data->PrevKey;
+        }
+    }
+    void   AppendKey(HashMapElement<T>* data) {
+        data->PrevKey = LastKey;
+        data->NextKey = 0;
+        if (LastKey != 0) {
+            Uint32 lastIndex = FindKey(LastKey);
+            if (lastIndex != 0xFFFFFFFFU)
+                Data[lastIndex].NextKey = data->Key;
+        }
+        else {
+            FirstKey = data->Key;
+        }
+        LastKey = data->Key;
+    }
+
+    int    Resize() {
+        int oldCapacity = Capacity;
+
+        Capacity <<= 1;
+        CapacityMask = Capacity - 1;
+
+        HashMapElement<T>* oldData = Data;
+        HashMapElement<T>* newData = NULL;
+        const char* oldTrack = Memory::GetName(oldData);
+
+        newData = (HashMapElement<T>*)Memory::TrackedCalloc(oldTrack, Capacity, sizeof(HashMapElement<T>));
+        if (!newData) {
+            Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
+            exit(-1);
+        }
+
+        Data = newData;
+        Count = 0;
+
+        for (int i = 0; i < oldCapacity; i++) {
+            if (oldData[i].Used) {
+                Uint32 index = TranslateIndex(oldData[i].Key);
+
+                for (int c = 0; c < ChainLength; c++) {
+                    if (!newData[index].Used) {
+                        Count++;
+                        break;
+                    }
+                    if (newData[index].Used && newData[index].Key == oldData[i].Key)
+                        break;
+                    index = (index + 1) & CapacityMask;
+                }
+
+                newData[index].Key = oldData[i].Key;
+                newData[index].PrevKey = oldData[i].PrevKey;
+                newData[index].NextKey = oldData[i].NextKey;
+                newData[index].Used = true;
+                newData[index].Data = oldData[i].Data;
+            }
+        }
+
+        Memory::Free(oldData);
+
+        return Capacity;
     }
 };
 

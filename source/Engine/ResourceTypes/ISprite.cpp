@@ -31,7 +31,6 @@ public:
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Diagnostics/MemoryPools.h>
 
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/ResourceStream.h>
@@ -82,7 +81,7 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
             Memory::Track(data, "Texture::Data");
 
             if (png->Paletted) {
-                paletteColors = png->Colors;
+                paletteColors = png->GetPalette();
                 numPaletteColors = png->NumPaletteColors;
             }
 
@@ -127,8 +126,8 @@ PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
             Memory::Track(data, "Texture::Data");
 
             if (gif->Paletted) {
-                paletteColors = gif->Colors;
-                numPaletteColors = 256;
+                paletteColors = gif->GetPalette();
+                numPaletteColors = gif->NumPaletteColors;
             }
 
             delete gif;
@@ -208,6 +207,19 @@ PUBLIC void ISprite::RemoveFrames(int animID) {
     for (size_t i = 0; i < Animations[animID].Frames.size(); i++)
         Graphics::DeleteFrameBufferID(&Animations[animID].Frames[i]);
     Animations[animID].Frames.clear();
+}
+
+PUBLIC void ISprite::ConvertToRGBA() {
+    for (int a = 0; a < SpritesheetCount; a++) {
+        if (Spritesheets[a])
+            Graphics::ConvertTextureToRGBA(Spritesheets[a]);
+    }
+}
+PUBLIC void ISprite::ConvertToPalette(unsigned paletteNumber) {
+    for (int a = 0; a < SpritesheetCount; a++) {
+        if (Spritesheets[a])
+            Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
+    }
 }
 
 PUBLIC bool ISprite::LoadAnimation(const char* filename) {

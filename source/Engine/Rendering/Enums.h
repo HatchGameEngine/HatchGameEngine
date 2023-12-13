@@ -37,6 +37,28 @@ enum {
 };
 
 enum {
+    StencilTest_Never,
+    StencilTest_Always,
+    StencilTest_Equal,
+    StencilTest_NotEqual,
+    StencilTest_Less,
+    StencilTest_Greater,
+    StencilTest_LEqual,
+    StencilTest_GEqual
+};
+
+enum {
+    StencilOp_Keep,
+    StencilOp_Zero,
+    StencilOp_Incr,
+    StencilOp_Decr,
+    StencilOp_Invert,
+    StencilOp_Replace,
+    StencilOp_IncrWrap,
+    StencilOp_DecrWrap
+};
+
+enum {
     DrawBehavior_HorizontalParallax = 0,
     DrawBehavior_VerticalParallax = 1,
     DrawBehavior_CustomTileScanLines = 2,
@@ -163,5 +185,10 @@ struct BlendState {
     TintState Tint;
     int *FilterTable;
 };
+
+typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
+typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
+typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
+typedef void (*StencilOpFunction)(Uint8*, Uint8);
 
 #endif /* ENGINE_RENDERING_ENUMS */

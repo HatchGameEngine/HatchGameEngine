@@ -100,6 +100,11 @@ PUBLIC STATIC void GarbageCollector::Collect() {
         GrayObject(BytecodeObjectManager::AllFunctionList[i]);
     }
 
+    // Mark classes
+    for (size_t i = 0; i < BytecodeObjectManager::ClassImplList.size(); i++) {
+        GrayObject(BytecodeObjectManager::ClassImplList[i]);
+    }
+
     grayElapsed = Clock::GetTicks() - grayElapsed;
 
     double blackenElapsed = Clock::GetTicks();
@@ -149,7 +154,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     Log::Print(Log::LOG_VERBOSE, "Sweep: Blackening took %.1f ms", blackenElapsed);
     Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
-#define LOG_ME(yo) Log::Print(Log::LOG_VERBOSE, "Freed %d " #yo " objects out of %d.", objectTypeFreed[yo], objectTypeCounts[yo]);
+#define LOG_ME(type) \
+    if (objectTypeCounts[type]) \
+        Log::Print(Log::LOG_VERBOSE, "Freed %d " #type " objects out of %d.", objectTypeFreed[type], objectTypeCounts[type])
 
     LOG_ME(OBJ_BOUND_METHOD);
     LOG_ME(OBJ_CLASS);
@@ -162,11 +169,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     LOG_ME(OBJ_UPVALUE);
     LOG_ME(OBJ_STREAM);
 
-    GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+#undef LOG_ME
 
-    // Max GC Size = 1 MiB
-    // if (GarbageCollector::NextGC < 1024 * 1024)
-        // GarbageCollector::NextGC = GarbageCollector::GarbageSize * GC_HEAP_GROW_FACTOR;
+    GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
 PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {

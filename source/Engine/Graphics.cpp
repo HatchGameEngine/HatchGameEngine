@@ -56,6 +56,10 @@ public:
     static int                  BlendMode;
     static int                  TintMode;
 
+    static int                  StencilTest;
+    static int                  StencilOpPass;
+    static int                  StencilOpFail;
+
     static void*                FramebufferPixels;
     static size_t               FramebufferSize;
 
@@ -140,6 +144,10 @@ float                Graphics::TintColors[4];
 int                  Graphics::BlendMode = BlendMode_NORMAL;
 int                  Graphics::TintMode = TintMode_SRC_NORMAL;
 
+int                  Graphics::StencilTest = StencilTest_Always;
+int                  Graphics::StencilOpPass = StencilOp_Keep;
+int                  Graphics::StencilOpFail = StencilOp_Keep;
+
 void*                Graphics::FramebufferPixels = NULL;
 size_t               Graphics::FramebufferSize = 0;
 
@@ -180,26 +188,7 @@ PUBLIC STATIC void     Graphics::Init() {
     Graphics::CurrentClip.Enabled = false;
     Graphics::BackupClip.Enabled = false;
 
-    Graphics::BlendColors[0] =
-    Graphics::BlendColors[1] =
-    Graphics::BlendColors[2] =
-    Graphics::BlendColors[3] = 1.0;
-
-    Graphics::TintColors[0] =
-    Graphics::TintColors[1] =
-    Graphics::TintColors[2] =
-    Graphics::TintColors[3] = 1.0;
-
-    for (int p = 0; p < MAX_PALETTE_COUNT; p++) {
-        for (int c = 0; c < 0x100; c++) {
-            Graphics::PaletteColors[p][c]  = 0xFF000000U;
-            Graphics::PaletteColors[p][c] |= (c & 0x07) << 5; // Red?
-            Graphics::PaletteColors[p][c] |= (c & 0x18) << 11; // Green?
-            Graphics::PaletteColors[p][c] |= (c & 0xE0) << 16; // Blue?
-        }
-    }
-    memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
-    Graphics::PaletteUpdated = true;
+    Graphics::Reset();
 
     int w, h;
     SDL_GetWindowSize(Application::Window, &w, &h);
@@ -284,6 +273,35 @@ PUBLIC STATIC Uint32   Graphics::GetWindowFlags() {
 }
 PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
     Graphics::GfxFunctions->SetVSync(enabled);
+}
+PUBLIC STATIC void     Graphics::Reset() {
+    Graphics::UseSoftwareRenderer = false;
+    Graphics::UsePalettes = false;
+
+    Graphics::BlendColors[0] =
+    Graphics::BlendColors[1] =
+    Graphics::BlendColors[2] =
+    Graphics::BlendColors[3] = 1.0;
+
+    Graphics::TintColors[0] =
+    Graphics::TintColors[1] =
+    Graphics::TintColors[2] =
+    Graphics::TintColors[3] = 1.0;
+
+    for (int p = 0; p < MAX_PALETTE_COUNT; p++) {
+        for (int c = 0; c < 0x100; c++) {
+            Graphics::PaletteColors[p][c]  = 0xFF000000U;
+            Graphics::PaletteColors[p][c] |= (c & 0x07) << 5; // Red?
+            Graphics::PaletteColors[p][c] |= (c & 0x18) << 11; // Green?
+            Graphics::PaletteColors[p][c] |= (c & 0xE0) << 16; // Blue?
+        }
+    }
+    memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
+    Graphics::PaletteUpdated = true;
+
+    Graphics::StencilTest = StencilTest_Always;
+    Graphics::StencilOpPass = StencilOp_Keep;
+    Graphics::StencilOpFail = StencilOp_Keep;
 }
 PUBLIC STATIC void     Graphics::Dispose() {
     for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++)
@@ -392,6 +410,36 @@ PUBLIC STATIC int      Graphics::SetTexturePalette(Texture* texture, void* palet
         !Graphics::GfxFunctions->SetTexturePalette || Graphics::NoInternalTextures)
         return 1;
     return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
+}
+PUBLIC STATIC int      Graphics::ConvertTextureToRGBA(Texture* texture) {
+    texture->ConvertToRGBA();
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+    return Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+}
+PUBLIC STATIC int      Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
+    Uint32* colors = (Uint32*)Memory::TrackedMalloc("Texture::Colors", 256 * sizeof(Uint32));
+    if (!colors)
+        return 0;
+
+    memcpy(colors, Graphics::PaletteColors[paletteNumber], 256 * sizeof(Uint32));
+
+    texture->ConvertToPalette(colors, 256);
+    texture->SetPalette(colors, 256);
+
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+
+    int ok = Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+    if (!ok)
+        return 0;
+
+    if (Graphics::GfxFunctions->SetTexturePalette)
+        ok |= Graphics::GfxFunctions->SetTexturePalette(texture, texture->PaletteColors, texture->NumPaletteColors);
+
+    return ok;
 }
 PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
     Graphics::GfxFunctions->UnlockTexture(texture);
@@ -1117,10 +1165,15 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
 PUBLIC STATIC void     Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
 
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView) {
+PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
     // If possible, uses optimized software-renderer call instead.
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-        SoftwareRenderer::DrawSceneLayer(layer, currentView);
+        SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
+        return;
+    }
+
+    if (layer->UsingCustomRenderFunction && useCustomFunction) {
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
         return;
     }
 
@@ -1134,6 +1187,16 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
         // case DrawBehavior_VerticalParallax:
         //  Graphics::DrawSceneLayer_VerticalParallax(layer, currentView);
             break;
+    }
+}
+PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
+    VMThread* thread = &BytecodeObjectManager::Threads[0];
+    if (func->Arity == 1) {
+        thread->Push(INTEGER_VAL(layerIndex));
+        thread->RunEntityFunction(func, 1);
+    }
+    else {
+        thread->RunEntityFunction(func, 0);
     }
 }
 
@@ -1180,10 +1243,12 @@ PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
 
     if (!scene->UseCustomProjectionMatrix) {
-        View* currentView = &Scene::Views[Scene::ViewCurrent];
-        float fov = scene->FOV * M_PI / 180.0f;
-        float aspect = currentView->Width / currentView->Height;
-        Graphics::MakePerspectiveMatrix(&scene->ProjectionMatrix, fov, scene->NearClippingPlane, scene->FarClippingPlane, aspect);
+        View* currentView = Graphics::CurrentView;
+        if (currentView) {
+            float fov = scene->FOV * M_PI / 180.0f;
+            float aspect = currentView->Width / currentView->Height;
+            Graphics::MakePerspectiveMatrix(&scene->ProjectionMatrix, fov, scene->NearClippingPlane, scene->FarClippingPlane, aspect);
+        }
     }
 
     if (Graphics::GfxFunctions->BindScene3D)
@@ -1348,7 +1413,63 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
     return false;
 }
 
-PUBLIC STATIC void   Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
+PUBLIC STATIC void     Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
         ColorUtils::ConvertFromARGBtoABGR(argb, count);
+}
+PUBLIC STATIC void     Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
+    if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
+        ColorUtils::ConvertFromABGRtoARGB(argb, count);
+}
+
+PUBLIC STATIC void     Graphics::SetStencilEnabled(bool enabled) {
+    if (Graphics::GfxFunctions->SetStencilEnabled)
+        Graphics::GfxFunctions->SetStencilEnabled(enabled);
+}
+PUBLIC STATIC bool     Graphics::GetStencilEnabled() {
+    if (Graphics::GfxFunctions->IsStencilEnabled)
+        return Graphics::GfxFunctions->IsStencilEnabled();
+
+    return false;
+}
+PUBLIC STATIC void     Graphics::SetStencilTestFunc(int stencilTest) {
+    if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual) {
+        StencilTest = stencilTest;
+        if (Graphics::GfxFunctions->SetStencilTestFunc)
+            Graphics::GfxFunctions->SetStencilTestFunc(stencilTest);
+    }
+}
+PUBLIC STATIC void     Graphics::SetStencilPassFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap) {
+        StencilOpPass = stencilOp;
+        if (Graphics::GfxFunctions->SetStencilPassFunc)
+            Graphics::GfxFunctions->SetStencilPassFunc(stencilOp);
+    }
+}
+PUBLIC STATIC void     Graphics::SetStencilFailFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap) {
+        StencilOpFail = stencilOp;
+        if (Graphics::GfxFunctions->SetStencilFailFunc)
+            Graphics::GfxFunctions->SetStencilFailFunc(stencilOp);
+    }
+}
+PUBLIC STATIC void     Graphics::SetStencilValue(int value) {
+    if (value < 0)
+        value = 0;
+    else if (value > 255)
+        value = 255;
+    if (Graphics::GfxFunctions->SetStencilValue)
+        Graphics::GfxFunctions->SetStencilValue(value);
+}
+PUBLIC STATIC void     Graphics::SetStencilMask(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+    if (Graphics::GfxFunctions->SetStencilMask)
+        Graphics::GfxFunctions->SetStencilMask(mask);
+}
+PUBLIC STATIC void     Graphics::ClearStencil() {
+    if (Graphics::GfxFunctions->ClearStencil)
+        Graphics::GfxFunctions->ClearStencil();
 }

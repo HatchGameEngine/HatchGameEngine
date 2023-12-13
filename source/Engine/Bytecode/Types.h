@@ -22,6 +22,12 @@ typedef enum {
     VAL_LINKED_DECIMAL,
 } ValueType;
 
+enum {
+    CLASS_TYPE_NORMAL,
+    CLASS_TYPE_EXTENDED,
+    CLASS_TYPE_ENUM
+};
+
 struct Obj;
 
 struct VMValue {
@@ -94,6 +100,8 @@ const char* GetTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
+#define IS_NOT_NUMBER(value) (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
+
 // NOTE: Engine can either use integer or decimal for the number value.
 //   Set this to integer for Sonic, and decimal for non-optimized, floating-point projects.
 // #define IE_FIXED_POINT_MATH
@@ -118,7 +126,6 @@ const char* GetTypeString(VMValue value);
 #endif
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
-
 
 #define OBJECT_TYPE(value)      (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value)  IsObjectType(value, OBJ_BOUND_METHOD)
@@ -179,6 +186,7 @@ struct ObjFunction {
     struct Chunk Chunk;
     size_t       FunctionListOffset;
     ObjString*   Name;
+    ObjString*   ClassName;
     char         SourceFilename[256];
     Uint32       NameHash;
 };
@@ -205,7 +213,7 @@ struct ObjClass {
     Table*     Methods;
     Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
     VMValue    Initializer;
-    Uint8      Extended;
+    Uint8      Type;
     Uint32     ParentHash;
     ObjClass*  Parent;
 };
@@ -272,6 +280,7 @@ struct WithIter {
     void* entityNext;
     int   index;
     void* registry;
+    Uint8 receiverSlot;
 };
 
 struct CallFrame {
@@ -352,7 +361,7 @@ enum   OpCode {
     OP_LESS_EQUAL,
     //
     OP_PRINT,
-    OP_ENUM,
+    OP_ENUM_NEXT,
     OP_SAVE_VALUE,
     OP_LOAD_VALUE,
     OP_WITH,
@@ -368,6 +377,10 @@ enum   OpCode {
     OP_NEW,
     OP_IMPORT,
     OP_SWITCH,
+    OP_POPN,
+    OP_HAS_PROPERTY,
+    OP_IMPORT_MODULE,
+    OP_ADD_ENUM,
 
     OP_SYNC = 0xFF,
 };

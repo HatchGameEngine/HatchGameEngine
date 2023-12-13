@@ -52,6 +52,7 @@ typedef void (Compiler::*ParseFn)(bool canAssign);
 struct Local {
     Token Name;
     int   Depth;
+    bool  Resolved;
 };
 
 struct ParseRule {

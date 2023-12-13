@@ -15,7 +15,6 @@ public:
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
@@ -292,6 +291,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
 #endif
 
     gif->Paletted = loadPalette;
+    gif->NumPaletteColors = 256;
 
     memset(gif->Colors + paletteTableSize, 0, (0x100 - paletteTableSize) * sizeof(Uint32));
 
@@ -512,6 +512,7 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
         Memory::Free(codeTable);
         return gif;
 }
+
 PUBLIC STATIC  bool   GIF::Save(GIF* gif, const char* filename) {
     return gif->Save(filename);
 }

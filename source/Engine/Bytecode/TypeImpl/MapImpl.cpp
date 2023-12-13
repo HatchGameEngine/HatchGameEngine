@@ -1,0 +1,74 @@
+#if INTERFACE
+#include <Engine/Includes/Standard.h>
+#include <Engine/Bytecode/Types.h>
+
+class MapImpl {
+public:
+    static ObjClass *Class;
+};
+#endif
+
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
+
+ObjClass* MapImpl::Class = nullptr;
+
+PUBLIC STATIC void MapImpl::Init() {
+    const char *name = "$$MapImpl";
+
+    Class = NewClass(Murmur::EncryptString(name));
+    Class->Name = CopyString(name);
+
+    BytecodeObjectManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
+    BytecodeObjectManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
+    BytecodeObjectManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
+
+    BytecodeObjectManager::ClassImplList.push_back(Class);
+}
+
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+
+PUBLIC STATIC VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 1);
+
+    ObjMap* map = GET_ARG(0, GetMap);
+
+    ObjArray* array = NewArray();
+
+    map->Keys->WithAllOrdered([array](Uint32, char* key) -> void {
+        array->Values->push_back(OBJECT_VAL(CopyString(key)));
+    });
+
+    return OBJECT_VAL(array);
+}
+
+PUBLIC STATIC VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+
+    ObjMap* map = GET_ARG(0, GetMap);
+
+    int key;
+    if (IS_NULL(args[1]))
+        key = map->Values->GetFirstKey();
+    else
+        key = map->Values->GetNextKey(GET_ARG(1, GetInteger));
+
+    if (key)
+        return INTEGER_VAL(key);
+
+    return NULL_VAL;
+}
+
+PUBLIC STATIC VMValue MapImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+
+    ObjMap* map = GET_ARG(0, GetMap);
+    int key = GET_ARG(1, GetInteger);
+
+    VMValue value;
+    if (map->Values->GetIfExists(key, &value))
+        return value;
+
+    return NULL_VAL;
+}

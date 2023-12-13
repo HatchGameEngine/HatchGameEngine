@@ -26,8 +26,9 @@ public:
 #endif
 
 #include <Engine/Rendering/Texture.h>
-
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Utilities/ColorUtils.h>
+#include <Engine/Includes/ChainedHashMap.h>
 
 PUBLIC STATIC Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
@@ -40,6 +41,8 @@ PUBLIC STATIC Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, 
 }
 
 PUBLIC void            Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) {
+    Memory::Free(PaletteColors);
+
     if (palette && numPaletteColors) {
         Paletted = true;
         PaletteColors = palette;
@@ -50,6 +53,52 @@ PUBLIC void            Texture::SetPalette(Uint32* palette, unsigned numPaletteC
         PaletteColors = nullptr;
         NumPaletteColors = 0;
     }
+}
+
+PUBLIC         bool  Texture::ConvertToRGBA() {
+    if (!Paletted)
+        return false;
+
+    Uint32 *pixels = (Uint32*)Pixels;
+
+    for (size_t i = 0; i < Width * Height; i++) {
+        if (pixels[i])
+            pixels[i] = PaletteColors[pixels[i]];
+    }
+
+    SetPalette(nullptr, 0);
+
+    return true;
+}
+PUBLIC         bool  Texture::ConvertToPalette(Uint32 *palColors, unsigned numPaletteColors) {
+    ConvertToRGBA();
+
+    Uint32 *pixels = (Uint32*)Pixels;
+    int nearestColor;
+
+    ChainedHashMap<int>* colorsHash = new ChainedHashMap<int>(NULL, 256);
+
+    for (size_t i = 0; i < Width * Height; i++) {
+        Uint32 color = pixels[i];
+        if (color & 0xFF000000) {
+            if (!colorsHash->GetIfExists(color, &nearestColor)) {
+                Uint32 rgb[3];
+                ColorUtils::SeparateRGB(color, rgb);
+                nearestColor = ColorUtils::NearestColor(rgb[0], rgb[1], rgb[2], palColors, numPaletteColors);
+                colorsHash->Put(color, nearestColor);
+            }
+
+            pixels[i] = nearestColor;
+        }
+        else
+            pixels[i] = 0;
+    }
+
+    delete colorsHash;
+
+    Paletted = true;
+
+    return true;
 }
 
 PUBLIC void            Texture::Copy(Texture* source) {
@@ -69,10 +118,8 @@ PUBLIC void            Texture::Copy(Texture* source) {
 }
 
 PUBLIC void            Texture::Dispose() {
-    if (PaletteColors)
-        Memory::Free(PaletteColors);
-    if (Pixels)
-        Memory::Free(Pixels);
+    Memory::Free(PaletteColors);
+    Memory::Free(Pixels);
 
     PaletteColors = nullptr;
     Pixels = nullptr;

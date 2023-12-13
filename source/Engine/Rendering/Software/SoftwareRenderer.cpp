@@ -81,7 +81,21 @@ Uint8 ColG;
 Uint8 ColB;
 Uint32 ColRGB;
 
-Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32) = NULL;
+PixelFunction CurrentPixelFunction = NULL;
+TintFunction CurrentTintFunction = NULL;
+
+bool UseStencil = false;
+
+Uint8 StencilValue = 0x00;
+Uint8 StencilMask = 0xFF;
+
+size_t StencilBufferSize = 0;
+
+Uint8 DotMaskH = 0;
+Uint8 DotMaskV = 0;
+
+int DotMaskOffsetH = 0;
+int DotMaskOffsetV = 0;
 
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
@@ -101,7 +115,12 @@ int FilterBlackAndWhite[0x8000];
 PUBLIC STATIC void     SoftwareRenderer::Init() {
     SoftwareRenderer::BackendFunctions.Init();
 
+    UseStencil = false;
     UseSpriteDeform = false;
+
+    SetDotMask(0);
+    SetDotMaskOffsetH(0);
+    SetDotMaskOffsetV(0);
 }
 PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
@@ -200,6 +219,15 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
     SoftwareRenderer::BackendFunctions.UnbindVertexBuffer = SoftwareRenderer::UnbindVertexBuffer;
     SoftwareRenderer::BackendFunctions.BindScene3D = SoftwareRenderer::BindScene3D;
     SoftwareRenderer::BackendFunctions.DrawScene3D = SoftwareRenderer::DrawScene3D;
+
+    SoftwareRenderer::BackendFunctions.SetStencilEnabled = SoftwareRenderer::SetStencilEnabled;
+    SoftwareRenderer::BackendFunctions.IsStencilEnabled = SoftwareRenderer::IsStencilEnabled;
+    SoftwareRenderer::BackendFunctions.SetStencilTestFunc = SoftwareRenderer::SetStencilTestFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilPassFunc = SoftwareRenderer::SetStencilPassFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilFailFunc = SoftwareRenderer::SetStencilFailFunc;
+    SoftwareRenderer::BackendFunctions.SetStencilValue = SoftwareRenderer::SetStencilValue;
+    SoftwareRenderer::BackendFunctions.SetStencilMask = SoftwareRenderer::SetStencilMask;
+    SoftwareRenderer::BackendFunctions.ClearStencil = SoftwareRenderer::ClearStencil;
 
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
@@ -529,19 +557,15 @@ PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src, Uint32*
     *dst = 0xFF000000U | R | G | B;
 }
 PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    // if (*dst == SoftwareRenderer::CompareColor)
-        // *dst = *src;
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
 PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    // if (*dst != SoftwareRenderer::CompareColor)
-        // *dst = *src;
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
 
-static void (*PixelNoFiltFunctions[])(Uint32*, Uint32*, BlendState&, int*, int*) = {
+static PixelFunction PixelNoFiltFunctions[] = {
     SoftwareRenderer::PixelNoFiltSetOpaque,
     SoftwareRenderer::PixelNoFiltSetTransparent,
     SoftwareRenderer::PixelNoFiltSetAdditive,
@@ -552,30 +576,30 @@ static void (*PixelNoFiltFunctions[])(Uint32*, Uint32*, BlendState&, int*, int*)
 
 // Tinted versions
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetTransparent(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetAdditive(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
-    Uint32 col = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+    Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetSubtract(&col, dst, state, multTableAt, multSubTableAt);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
-        *dst = 0xFF000000 | TintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
+        *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
 
-static void (*PixelTintFunctions[])(Uint32*, Uint32*, BlendState&, int*, int*) = {
+static PixelFunction PixelTintFunctions[] = {
     SoftwareRenderer::PixelTintSetOpaque,
     SoftwareRenderer::PixelTintSetTransparent,
     SoftwareRenderer::PixelTintSetAdditive,
@@ -606,125 +630,219 @@ static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 
 }
 
 PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlags) {
-    Uint32 (*tintFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+    TintFunction tintFunctions[] = {
         TintNormalSource,
         TintNormalDest,
         TintBlendSource,
         TintBlendDest
     };
 
-    Uint32 (*filterFunctions[])(Uint32*, Uint32*, Uint32, Uint32) = {
+    TintFunction filterFunctions[] = {
         TintFilterSource,
         TintFilterDest
     };
 
     if (blendFlags & BlendFlag_FILTER_BIT)
-        TintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
+        CurrentTintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
     else if (blendFlags & BlendFlag_TINT_BIT)
-        TintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
+        CurrentTintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
 }
 
-// Cases for PixelNoFiltSet
-#define PIXEL_NO_FILT_CASES(drawMacro) \
-    case BlendFlag_OPAQUE: \
-        drawMacro(PixelNoFiltSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT: \
-        drawMacro(PixelNoFiltSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE: \
-        drawMacro(PixelNoFiltSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT: \
-        drawMacro(PixelNoFiltSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL: \
-        drawMacro(PixelNoFiltSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL: \
-        drawMacro(PixelNoFiltSetMatchNotEqual); \
-        break \
+// Stencil ops (test)
+static bool StencilTestNever(Uint8* buf, Uint8 value, Uint8 mask) {
+    return false;
+}
+static bool StencilTestAlways(Uint8* buf, Uint8 value, Uint8 mask) {
+    return true;
+}
+static bool StencilTestEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) == (*buf & mask);
+}
+static bool StencilTestNotEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) != (*buf & mask);
+}
+static bool StencilTestLess(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) < (*buf & mask);
+}
+static bool StencilTestGreater(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) > (*buf & mask);
+}
+static bool StencilTestLEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) <= (*buf & mask);
+}
+static bool StencilTestGEqual(Uint8* buf, Uint8 value, Uint8 mask) {
+    return (value & mask) >= (*buf & mask);
+}
 
-// Cases for PixelNoFiltSet (without BlendFlag_OPAQUE)
-#define PIXEL_NO_FILT_CASES_NO_OPAQUE(drawMacro) \
-    case BlendFlag_TRANSPARENT: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetMatchNotEqual); \
-        break \
+// Stencil ops (write)
+static void StencilOpKeep(Uint8* buf, Uint8 value) {
+    // Do nothing
+}
+static void StencilOpZero(Uint8* buf, Uint8 value) {
+    *buf = 0;
+}
+static void StencilOpIncr(Uint8* buf, Uint8 value) {
+    int val = *buf + 1;
+    if (val > 255)
+        val = 255;
+    *buf = (Uint8)val;
+}
+static void StencilOpDecr(Uint8* buf, Uint8 value) {
+    int val = *buf - 1;
+    if (val < 0)
+        val = 0;
+    *buf = (Uint8)val;
+}
+static void StencilOpInvert(Uint8* buf, Uint8 value) {
+    *buf = ~(*buf);
+}
+static void StencilOpReplace(Uint8* buf, Uint8 value) {
+    *buf = value;
+}
+static void StencilOpIncrWrap(Uint8* buf, Uint8 value) {
+    *buf++;
+}
+static void StencilOpDecrWrap(Uint8* buf, Uint8 value) {
+    *buf--;
+}
 
-// Cases for PixelTintSet
-#define PIXEL_TINT_CASES(drawMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetOpaque); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetTransparent); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetAdditive); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetSubtract); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetMatchEqual); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetMatchNotEqual); \
-        break \
+// Stencil buffer funcs
+static StencilOpFunction StencilOpFunctionList[] = {
+    StencilOpKeep,
+    StencilOpZero,
+    StencilOpIncr,
+    StencilOpDecr,
+    StencilOpInvert,
+    StencilOpReplace,
+    StencilOpIncrWrap,
+    StencilOpDecrWrap
+};
 
-// Cases for PixelNoFiltSet (for sprite images)
-#define SPRITE_PIXEL_NO_FILT_CASES(drawMacro, placePixelMacro) \
-    case BlendFlag_OPAQUE: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetOpaque, placePixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetTransparent, placePixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetAdditive, placePixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetSubtract, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetMatchEqual, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL: \
-        drawMacro(SoftwareRenderer::PixelNoFiltSetMatchNotEqual, placePixelMacro); \
-        break \
+// Stencil buffer management
+StencilTestFunction StencilFuncTest = StencilTestAlways;
+StencilOpFunction StencilFuncPass = StencilOpKeep;
+StencilOpFunction StencilFuncFail = StencilOpKeep;
 
-// Cases for PixelTintSet (for sprite images)
-#define SPRITE_PIXEL_TINT_CASES(drawMacro, placePixelMacro) \
-    case BlendFlag_OPAQUE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetOpaque, placePixelMacro); \
-        break; \
-    case BlendFlag_TRANSPARENT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetTransparent, placePixelMacro); \
-        break; \
-    case BlendFlag_ADDITIVE | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetAdditive, placePixelMacro); \
-        break; \
-    case BlendFlag_SUBTRACT | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetSubtract, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetMatchEqual, placePixelMacro); \
-        break; \
-    case BlendFlag_MATCH_NOT_EQUAL | BlendFlag_TINT_BIT: \
-        drawMacro(SoftwareRenderer::PixelTintSetMatchNotEqual, placePixelMacro); \
-        break \
+PUBLIC STATIC void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
+    if (Scene::ViewCurrent >= 0) {
+        UseStencil = enabled;
+        Scene::Views[Scene::ViewCurrent].SetStencilEnabled(enabled);
+    }
+}
+PUBLIC STATIC bool     SoftwareRenderer::IsStencilEnabled() {
+    return UseStencil;
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
+    StencilTestFunction funcList[] = {
+        StencilTestNever,
+        StencilTestAlways,
+        StencilTestEqual,
+        StencilTestNotEqual,
+        StencilTestLess,
+        StencilTestGreater,
+        StencilTestLEqual,
+        StencilTestGEqual
+    };
+
+    if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual)
+        StencilFuncTest = funcList[stencilTest];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilPassFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
+        StencilFuncPass = StencilOpFunctionList[stencilOp];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilFailFunc(int stencilOp) {
+    if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
+        StencilFuncFail = StencilOpFunctionList[stencilOp];
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilValue(int value) {
+    StencilValue = value;
+}
+PUBLIC STATIC void     SoftwareRenderer::SetStencilMask(int mask) {
+    StencilMask = mask;
+}
+PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
+    if (UseStencil && Graphics::CurrentView)
+        Graphics::CurrentView->ClearStencil();
+}
+
+PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    View* currentView = Graphics::CurrentView;
+    Uint8* buffer = &currentView->StencilBuffer[pos];
+    if (StencilFuncTest(buffer, StencilValue, StencilMask)) {
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+        StencilFuncPass(buffer, StencilValue);
+    }
+    else
+        StencilFuncFail(buffer, StencilValue);
+}
+
+PUBLIC STATIC void SoftwareRenderer::SetDotMask(int mask) {
+    SetDotMaskH(mask);
+    SetDotMaskV(mask);
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskH(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+
+    DotMaskH = mask;
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskV(int mask) {
+    if (mask < 0)
+        mask = 0;
+    else if (mask > 255)
+        mask = 255;
+
+    DotMaskV = mask;
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
+    DotMaskOffsetH = offset;
+}
+PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
+    DotMaskOffsetV = offset;
+}
+
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
+    if (x & DotMaskH)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+}
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
+    if (y & DotMaskV)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+}
+PUBLIC STATIC void SoftwareRenderer::PixelDotMaskHV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+    size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+
+    int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
+    int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
+    if (x & DotMaskH || y & DotMaskV)
+        return;
+
+    if (UseStencil)
+        PixelStencil(src, dst, state, multTableAt, multSubTableAt);
+    else
+        CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
+}
 
 // TODO: Material support
 static int CalcVertexColor(Scene3D* scene, VertexAttribute *vertex, int normalY) {
@@ -818,7 +936,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     if (!scene->Initialized)
         return;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1240,7 +1361,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
     }
 
 #undef SET_BLENDFLAG_AND_OPACITY
-#undef CHECK_TEXTURE
 
 #undef PROJECT_X
 #undef PROJECT_Y
@@ -1305,6 +1425,72 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     rend.DrawVertexBuffer();
 }
 
+PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
+    if (blendFlag & BlendFlag_TINT_BIT)
+        CurrentPixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
+    else
+        CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+
+    if (DotMaskH || DotMaskV) {
+        if (DotMaskH && DotMaskV)
+            return SoftwareRenderer::PixelDotMaskHV;
+        else if (DotMaskH)
+            return SoftwareRenderer::PixelDotMaskH;
+        else if (DotMaskV)
+            return SoftwareRenderer::PixelDotMaskV;
+    }
+    else if (UseStencil)
+        return SoftwareRenderer::PixelStencil;
+
+    return CurrentPixelFunction;
+}
+
+static void DoLineStroke(int dst_x1, int dst_y1, int dst_x2, int dst_y2, PixelFunction pixelFunction, Uint32 col, BlendState& blendState, int* multTableAt, int* multSubTableAt, Uint32* dstPx, Uint32 dstStride) {
+    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
+    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
+
+    if (dy == 0) {
+        int dst_strideY = dst_y1 * dstStride;
+        while (dst_x1 < dst_x2) {
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_strideY], blendState, multTableAt, multSubTableAt);
+            dst_x1++;
+        }
+        return;
+    }
+    else if (dx == 0) {
+        int dst_strideY = dst_y1 * dstStride;
+        while (dst_y1 < dst_y2) {
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_strideY], blendState, multTableAt, multSubTableAt);
+            dst_strideY += dstStride;
+            dst_y1++;
+        }
+        return;
+    }
+
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+    while (true) {
+        pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt);
+        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break;
+        e2 = err;
+        if (e2 > -dx) { err -= dy; dst_x1 += sx; }
+        if (e2 <  dy) { err += dx; dst_y1 += sy; }
+    }
+}
+static void DoLineStrokeBounded(int dst_x1, int dst_y1, int dst_x2, int dst_y2, int minX, int maxX, int minY, int maxY, PixelFunction pixelFunction, Uint32 col, BlendState& blendState, int* multTableAt, int* multSubTableAt, Uint32* dstPx, Uint32 dstStride) {
+    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
+    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
+    int err = (dx > dy ? dx : -dy) / 2, e2;
+
+    while (true) {
+        if (dst_x1 >= minX && dst_y1 >= minY && dst_x1 < maxX && dst_y1 < maxY)
+            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt);
+        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break;
+        e2 = err;
+        if (e2 > -dx) { err -= dy; dst_x1 += sx; }
+        if (e2 <  dy) { err += dx; dst_y1 += sy; }
+    }
+}
+
 PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
 
 }
@@ -1313,7 +1499,10 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1333,56 +1522,31 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
     if (!CheckClipRegion(minX, minY, maxX, maxY))
         return;
 
-    int dx = Math::Abs(dst_x2 - dst_x1), sx = dst_x1 < dst_x2 ? 1 : -1;
-    int dy = Math::Abs(dst_y2 - dst_y1), sy = dst_y1 < dst_y2 ? 1 : -1;
-    int err = (dx > dy ? dx : -dy) / 2, e2;
-
     BlendState blendState = GetBlendState();
     if (!AlterBlendState(blendState))
         return;
 
-    Uint32 col = ColRGB;
     int blendFlag = blendState.Mode;
     int opacity = blendState.Opacity;
-
-    #define DRAW_LINE(pixelFunction) while (true) { \
-        if (dst_x1 >= minX && dst_y1 >= minY && dst_x1 < maxX && dst_y1 < maxY) \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x1 + dst_y1 * dstStride], blendState, multTableAt, multSubTableAt); \
-        if (dst_x1 == dst_x2 && dst_y1 == dst_y2) break; \
-        e2 = err; \
-        if (e2 > -dx) { err -= dy; dst_x1 += sx; } \
-        if (e2 <  dy) { err += dx; dst_y1 += sy; } \
-    }
 
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SetTintFunction(blendFlag);
 
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
-    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
-        PIXEL_NO_FILT_CASES(DRAW_LINE);
-        PIXEL_TINT_CASES(DRAW_LINE);
-    }
 
-    #undef DRAW_LINE
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+    DoLineStrokeBounded(dst_x1, dst_y1, dst_x2, dst_y2, minX, maxX, minY, maxY, pixelFunction, ColRGB, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 }
 PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad) {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
-
-}
-
-PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad) {
-    // just checks to see if the pixel is within a radius range, uses a bounding box constructed by the diameter
-
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1392,10 +1556,171 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     x -= cx;
     y -= cy;
 
-    int dst_x1 = x - rad;
-    int dst_y1 = y - rad;
-    int dst_x2 = x + rad;
-    int dst_y2 = y + rad;
+    int dst_x1 = x - rad - 1;
+    int dst_y1 = y - rad - 1;
+    int dst_x2 = x + rad + 1;
+    int dst_y2 = y + rad + 1;
+
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+
+    #define DRAW_POINT(our_x, our_y) \
+        if ((our_x) >= dst_x1 && (our_x) < dst_x2 && (our_y) >= dst_y1 && (our_y) < dst_y2) { \
+            int dst_strideY = (our_y) * dstStride; \
+            pixelFunction((Uint32*)&col, &dstPx[(our_x) + dst_strideY], blendState, multTableAt, multSubTableAt); \
+        }
+
+    Uint32 col = ColRGB;
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+    int ccx = x, ccy = y;
+    int bx = 0, by = rad;
+    int bd = 3 - 2 * rad;
+    while (bx <= by) {
+        DRAW_POINT(ccx + bx, ccy - by);
+        DRAW_POINT(ccx - bx, ccy - by);
+        DRAW_POINT(ccx + by, ccy - bx);
+        DRAW_POINT(ccx - by, ccy - bx);
+        ccy--;
+        DRAW_POINT(ccx + bx, ccy + by);
+        DRAW_POINT(ccx - bx, ccy + by);
+        DRAW_POINT(ccx + by, ccy + bx);
+        DRAW_POINT(ccx - by, ccy + bx);
+        ccy++;
+        if (bd <= 0) {
+            bd += 4 * bx + 6;
+        }
+        else {
+            bd += 4 * (bx - by) + 10;
+            by--;
+        }
+        bx++;
+    }
+
+    #undef DRAW_POINT
+}
+PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
+
+}
+PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int dst_x1 = x;
+    int dst_y1 = y;
+    int dst_x2 = x + w;
+    int dst_y2 = y + h;
+
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
+    Uint32 col = ColRGB;
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+    // top
+    DoLineStroke(dst_x1, dst_y1, dst_x2, dst_y1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
+
+    // bottom
+    DoLineStroke(dst_x1, dst_y2 - 1, dst_x2, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
+
+    // left
+    DoLineStroke(dst_x1, dst_y1 + 1, dst_x1, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
+
+    // right
+    DoLineStroke(dst_x2 - 1, dst_y1 + 1, dst_x2 - 1, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
+}
+
+PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad) {
+    // just checks to see if the pixel is within a radius range, uses a bounding box constructed by the diameter
+
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int dst_x1 = x - rad - 1;
+    int dst_y1 = y - rad - 1;
+    int dst_x2 = x + rad + 1;
+    int dst_y2 = y + rad + 1;
 
     int clip_x1, clip_y1, clip_x2, clip_y2;
     GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
@@ -1439,14 +1764,6 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int bx = 0, by = rad;
     int bd = 3 - 2 * rad;
     while (bx <= by) {
-        if (bd <= 0) {
-            bd += 4 * bx + 6;
-        }
-        else {
-            bd += 4 * (bx - by) + 10;
-            by--;
-        }
-        bx++;
         SEEK_MAX(ccx + bx, ccy - by);
         SEEK_MIN(ccx - bx, ccy - by);
         SEEK_MAX(ccx + by, ccy - bx);
@@ -1457,21 +1774,17 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
         SEEK_MAX(ccx + by, ccy + bx);
         SEEK_MIN(ccx - by, ccy + bx);
         ccy++;
+        if (bd <= 0) {
+            bd += 4 * bx + 6;
+        }
+        else {
+            bd += 4 * (bx - by) + 10;
+            by--;
+        }
+        bx++;
     }
 
     Uint32 col = ColRGB;
-
-    #define DRAW_CIRCLE(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        Contour contour = ContourBuffer[dst_y]; \
-        if (contour.MaxX < contour.MinX) { \
-            dst_strideY += dstStride; \
-            continue; \
-        } \
-        for (int dst_x = contour.MinX >= dst_x1 ? contour.MinX : dst_x1; dst_x < contour.MaxX && dst_x < dst_x2; dst_x++) { \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt); \
-        } \
-        dst_strideY += dstStride; \
-    }
 
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SetTintFunction(blendFlag);
@@ -1479,31 +1792,40 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
-        case BlendFlag_OPAQUE:
-            for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-                Contour contour = ContourBuffer[dst_y];
-                if (contour.MaxX < contour.MinX) {
-                    dst_strideY += dstStride;
-                    continue;
-                }
-                int dst_min_x = contour.MinX;
-                if (dst_min_x < dst_x1)
-                    dst_min_x = dst_x1;
-                int dst_max_x = contour.MaxX;
-                if (dst_max_x > dst_x2 - 1)
-                    dst_max_x = dst_x2 - 1;
 
-                Memory::Memset4(&dstPx[dst_min_x + dst_strideY], col, dst_max_x - dst_min_x);
+    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+            Contour contour = ContourBuffer[dst_y];
+            if (contour.MaxX < contour.MinX) {
                 dst_strideY += dstStride;
+                continue;
             }
+            int dst_min_x = contour.MinX;
+            if (dst_min_x < dst_x1)
+                dst_min_x = dst_x1;
+            int dst_max_x = contour.MaxX;
+            if (dst_max_x > dst_x2 - 1)
+                dst_max_x = dst_x2 - 1;
 
-            break;
-        PIXEL_NO_FILT_CASES_NO_OPAQUE(DRAW_CIRCLE);
-        PIXEL_TINT_CASES(DRAW_CIRCLE);
+            Memory::Memset4(&dstPx[dst_min_x + dst_strideY], col, dst_max_x - dst_min_x);
+            dst_strideY += dstStride;
+        }
     }
+    else {
+        PixelFunction pixelFunction = GetPixelFunction(blendFlag);
 
-    #undef DRAW_CIRCLE
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+            Contour contour = ContourBuffer[dst_y];
+            if (contour.MaxX < contour.MinX) {
+                dst_strideY += dstStride;
+                continue;
+            }
+            for (int dst_x = contour.MinX >= dst_x1 ? contour.MinX : dst_x1; dst_x < contour.MaxX && dst_x < dst_x2; dst_x++) {
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt);
+            }
+            dst_strideY += dstStride;
+        }
+    }
 }
 PUBLIC STATIC void     SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
 
@@ -1512,7 +1834,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -1552,37 +1877,39 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     int blendFlag = blendState.Mode;
     int opacity = blendState.Opacity;
 
-    #define DRAW_RECT(pixelFunction) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
-        for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) { \
-            pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt); \
-        } \
-        dst_strideY += dstStride; \
-    }
-
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SetTintFunction(blendFlag);
 
     int* multTableAt = &MultTable[opacity << 8];
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) {
-        case BlendFlag_OPAQUE:
-            for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-                Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
-                dst_strideY += dstStride;
-            }
-            break;
-        PIXEL_NO_FILT_CASES_NO_OPAQUE(DRAW_RECT);
-        PIXEL_TINT_CASES(DRAW_RECT);
-    }
 
-    #undef DRAW_RECT
+    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+            Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
+            dst_strideY += dstStride;
+        }
+    }
+    else {
+        PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+            for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt);
+            }
+            dst_strideY += dstStride;
+        }
+    }
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -1597,10 +1924,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, GetBlendState());
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -1616,10 +1947,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, GetBlendState());
 }
 PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
-    int x = 0, y = 0;
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
 
     Matrix4x4* out = Graphics::ModelViewMatrix;
     x += out->Values[12];
@@ -1702,14 +2037,16 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         } \
     }
 
-    #define DRAW_PLACEPIXEL(pixelFunction) \
+    PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
+
+    #define DRAW_PLACEPIXEL() \
         if ((color = srcPxLine[src_x]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction) \
+    #define DRAW_PLACEPIXEL_PAL() \
         if ((color = srcPxLine[src_x])) \
             pixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
 
-    #define DRAW_NOFLIP(pixelFunction, placePixelMacro) \
+    #define DRAW_NOFLIP(placePixelMacro) \
     for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
@@ -1717,73 +2054,67 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
                 DEFORM_X; \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
                 dst_x -= *deformValues;\
             } \
         else \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
             } \
         \
         dst_strideY += dstStride; src_strideY += srcStride; deformValues++; \
     }
-    #define DRAW_FLIPX(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_FLIPX(placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
                 DEFORM_X; \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
                 dst_x -= *deformValues;\
             } \
         else \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
             } \
         dst_strideY += dstStride; src_strideY += srcStride; \
         deformValues++; \
     }
-    #define DRAW_FLIPY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_FLIPY(placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
                 DEFORM_X; \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
                 dst_x -= *deformValues;\
             } \
         else \
             for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; dst_x++, src_x++) { \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
             } \
         dst_strideY += dstStride; src_strideY -= srcStride; \
         deformValues++; \
     }
-    #define DRAW_FLIPXY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
+    #define DRAW_FLIPXY(placePixelMacro) for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
         srcPxLine = srcPx + src_strideY; \
         dstPxLine = dstPx + dst_strideY; \
         index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
         if (SoftwareRenderer::UseSpriteDeform) \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
                 DEFORM_X; \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
                 dst_x -= *deformValues;\
             } \
         else \
             for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; dst_x++, src_x--) { \
-                placePixelMacro(pixelFunction) \
+                placePixelMacro() \
             } \
         dst_strideY += dstStride; src_strideY -= srcStride; \
         deformValues++; \
     }
-
-    #define BLENDFLAGS(flipMacro, placePixelMacro) \
-        switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
-            SPRITE_PIXEL_NO_FILT_CASES(flipMacro, placePixelMacro); \
-            SPRITE_PIXEL_TINT_CASES(flipMacro, placePixelMacro); \
-        }
 
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
@@ -1800,22 +2131,22 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
             case 0:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y1 * srcStride;
-                BLENDFLAGS(DRAW_NOFLIP, DRAW_PLACEPIXEL_PAL);
+                DRAW_NOFLIP(DRAW_PLACEPIXEL_PAL);
                 break;
             case 1:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y1 * srcStride;
-                BLENDFLAGS(DRAW_FLIPX, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPX(DRAW_PLACEPIXEL_PAL);
                 break;
             case 2:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y2 * srcStride;
-                BLENDFLAGS(DRAW_FLIPY, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPY(DRAW_PLACEPIXEL_PAL);
                 break;
             case 3:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y2 * srcStride;
-                BLENDFLAGS(DRAW_FLIPXY, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPXY(DRAW_PLACEPIXEL_PAL);
                 break;
         }
     }
@@ -1824,22 +2155,22 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
             case 0:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y1 * srcStride;
-                BLENDFLAGS(DRAW_NOFLIP, DRAW_PLACEPIXEL);
+                DRAW_NOFLIP(DRAW_PLACEPIXEL);
                 break;
             case 1:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y1 * srcStride;
-                BLENDFLAGS(DRAW_FLIPX, DRAW_PLACEPIXEL);
+                DRAW_FLIPX(DRAW_PLACEPIXEL);
                 break;
             case 2:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y2 * srcStride;
-                BLENDFLAGS(DRAW_FLIPY, DRAW_PLACEPIXEL);
+                DRAW_FLIPY(DRAW_PLACEPIXEL);
                 break;
             case 3:
                 dst_strideY = dst_y1 * dstStride;
                 src_strideY = src_y2 * srcStride;
-                BLENDFLAGS(DRAW_FLIPXY, DRAW_PLACEPIXEL);
+                DRAW_FLIPXY(DRAW_PLACEPIXEL);
                 break;
         }
     }
@@ -1850,7 +2181,6 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
     #undef DRAW_FLIPX
     #undef DRAW_FLIPY
     #undef DRAW_FLIPXY
-    #undef BLENDFLAGS
 }
 void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int offy, int w, int h, int sx, int sy, int sw, int sh, int flipFlag, int rotation, BlendState blendState) {
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1970,14 +2300,16 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         } \
     }
 
-    #define DRAW_PLACEPIXEL(pixelFunction) \
+    PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
+
+    #define DRAW_PLACEPIXEL() \
         if ((color = srcPx[src_x + src_strideY]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
-    #define DRAW_PLACEPIXEL_PAL(pixelFunction) \
+    #define DRAW_PLACEPIXEL_PAL() \
         if ((color = srcPx[src_x + src_strideY])) \
             pixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
 
-    #define DRAW_NOFLIP(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
+    #define DRAW_NOFLIP(placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
@@ -1991,7 +2323,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
                     src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
                 dst_x -= *deformValues; \
             } \
@@ -2003,12 +2335,12 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
                     src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
             } \
         dst_strideY += dstStride; deformValues++; \
     }
-    #define DRAW_FLIPX(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
+    #define DRAW_FLIPX(placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
@@ -2022,7 +2354,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
                     src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
                 dst_x -= *deformValues; \
             } \
@@ -2034,12 +2366,12 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
                     src_strideY = (src_y1 + (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
             } \
         dst_strideY += dstStride; deformValues++; \
     }
-    #define DRAW_FLIPY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
+    #define DRAW_FLIPY(placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
@@ -2053,7 +2385,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
                     src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
                 dst_x -= *deformValues; \
             } \
@@ -2065,12 +2397,12 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x1 + (src_x - _x1) * sw / w); \
                     src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
             } \
         dst_strideY += dstStride; deformValues++; \
     }
-    #define DRAW_FLIPXY(pixelFunction, placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
+    #define DRAW_FLIPXY(placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
         i_y_rsin = -i_y * rsin; \
         i_y_rcos =  i_y * rcos; \
         dstPxLine = dstPx + dst_strideY; \
@@ -2084,7 +2416,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
                     src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
                 dst_x -= *deformValues; \
             } \
@@ -2096,17 +2428,11 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
                     src_x <  _x2 && src_y <  _y2) { \
                     src_x       = (src_x2 - (src_x - _x1) * sw / w); \
                     src_strideY = (src_y2 - (src_y - _y1) * sh / h) * srcStride; \
-                    placePixelMacro(pixelFunction); \
+                    placePixelMacro(); \
                 } \
             } \
         dst_strideY += dstStride; deformValues++; \
     }
-
-    #define BLENDFLAGS(flipMacro, placePixelMacro) \
-        switch (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) { \
-            SPRITE_PIXEL_NO_FILT_CASES(flipMacro, placePixelMacro); \
-            SPRITE_PIXEL_TINT_CASES(flipMacro, placePixelMacro); \
-        }
 
     if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
         SoftwareRenderer::SetTintFunction(blendFlag);
@@ -2123,19 +2449,19 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         switch (flipFlag) {
             case 0:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_NOFLIP, DRAW_PLACEPIXEL_PAL);
+                DRAW_NOFLIP(DRAW_PLACEPIXEL_PAL);
                 break;
             case 1:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPX, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPX(DRAW_PLACEPIXEL_PAL);
                 break;
             case 2:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPY, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPY(DRAW_PLACEPIXEL_PAL);
                 break;
             case 3:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPXY, DRAW_PLACEPIXEL_PAL);
+                DRAW_FLIPXY(DRAW_PLACEPIXEL_PAL);
                 break;
         }
     }
@@ -2143,19 +2469,19 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         switch (flipFlag) {
             case 0:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_NOFLIP, DRAW_PLACEPIXEL);
+                DRAW_NOFLIP(DRAW_PLACEPIXEL);
                 break;
             case 1:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPX, DRAW_PLACEPIXEL);
+                DRAW_FLIPX(DRAW_PLACEPIXEL);
                 break;
             case 2:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPY, DRAW_PLACEPIXEL);
+                DRAW_FLIPY(DRAW_PLACEPIXEL);
                 break;
             case 3:
                 dst_strideY = dst_y1 * dstStride;
-                BLENDFLAGS(DRAW_FLIPXY, DRAW_PLACEPIXEL);
+                DRAW_FLIPXY(DRAW_PLACEPIXEL);
                 break;
         }
     }
@@ -2166,11 +2492,13 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     #undef DRAW_FLIPX
     #undef DRAW_FLIPY
     #undef DRAW_FLIPXY
-    #undef BLENDFLAGS
 }
 
 PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2197,10 +2525,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx,
 PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2255,10 +2586,13 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
 PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
     AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
     Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
 
-    View* currentView = &Scene::Views[Scene::ViewCurrent];
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2533,11 +2867,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
             baseTileCfg = Scene::TileCfg[collisionPlane];
     }
 
-    void (*pixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*) = NULL;
-    if (blendFlag & BlendFlag_TINT_BIT)
-        pixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
-    else
-        pixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+    PixelFunction pixelFunction = GetPixelFunction(blendFlag);
 
     int j;
     TileScanLine* tScanLine = &TileScanLineBuffer[dst_y1];
@@ -2878,7 +3208,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         Uint32 maxHorzCells = scanLine->MaxHorzCells;
         Uint32 maxVertCells = scanLine->MaxVertCells;
 
-        void (*linePixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*) = NULL;
+        PixelFunction linePixelFunction = NULL;
 
         BlendState blendState = GetBlendState();
         if (Graphics::TextureBlend) {
@@ -2902,6 +3232,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
         multTableAt = &MultTable[blendState.Opacity << 8];
         multSubTableAt = &MultSubTable[blendState.Opacity << 8];
 
+        // TODO: Set CurrentPixelFunction instead whenever this supports the stencil.
         if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
             linePixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
             SetTintFunction(blendFlag);
@@ -2954,9 +3285,14 @@ scanlineDone:
         dst_strideY += dstStride;
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView) {
+PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
+    if (layer->UsingCustomRenderFunction && useCustomFunction) {
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+        return;
+    }
+
     if (layer->UsingCustomScanlineFunction && layer->DrawBehavior == DrawBehavior_CustomTileScanLines) {
-        BytecodeObjectManager::Threads[0].RunFunction(&layer->CustomScanlineFunction, 0);
+        Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
     }
     else {
         SoftwareRenderer::DrawSceneLayer_InitTileScanLines(layer, currentView);

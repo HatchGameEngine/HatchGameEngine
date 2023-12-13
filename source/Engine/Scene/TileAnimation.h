@@ -12,6 +12,8 @@ struct TileAnimator {
     Animation* CurrentAnimation = nullptr;
     int AnimationIndex = -1;
     int FrameIndex = -1;
+    int FrameCount = 0;
+    int LoopIndex = 0;
 
     float Speed = 0.0;
     float Timer = 0.0;
@@ -36,6 +38,8 @@ struct TileAnimator {
         CurrentAnimation = &((*Animations)[AnimationIndex]);
         FrameIndex = frame;
         FrameDuration = CurrentAnimation->Frames[FrameIndex].Duration;
+        FrameCount = (int)CurrentAnimation->Frames.size();
+        LoopIndex = CurrentAnimation->FrameToLoop;
         Speed = CurrentAnimation->AnimationSpeed;
         Timer = 0.0;
     }
@@ -52,27 +56,18 @@ struct TileAnimator {
     }
 
     void Animate() {
-        if ((float)FrameDuration - Timer > 0.0f) {
-            Timer += Speed;
-            if ((float)FrameDuration - Timer <= 0.0f) {
-                int frameCount = (int)CurrentAnimation->Frames.size();
+        Timer += Speed;
 
-                FrameIndex++;
-                if (FrameIndex >= frameCount)
-                    FrameIndex = 0;
+        while (FrameDuration && Timer > FrameDuration) {
+            FrameIndex++;
 
-                UpdateTile();
+            Timer -= FrameDuration;
+            if (FrameIndex >= FrameCount)
+                FrameIndex = LoopIndex;
 
-                if (FrameIndex < frameCount)
-                    FrameDuration = CurrentAnimation->Frames[FrameIndex].Duration;
-                else
-                    FrameDuration = 1.0f;
+            UpdateTile();
 
-                Timer = 0.0f;
-            }
-        }
-        else {
-            Timer = 0.0f;
+            FrameDuration = CurrentAnimation->Frames[FrameIndex].Duration;
         }
     }
 };

@@ -1,6 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Texture.h>
 
 class View {
 public:
@@ -26,11 +27,52 @@ public:
     float      FarPlane = 1000.f;
     bool       UsePerspective = false;
     bool       UseDrawTarget = false;
+    bool       UseStencil = false;
     Texture*   DrawTarget = NULL;
+    Uint8*     StencilBuffer = NULL;
+    size_t     StencilBufferSize = 0;
     Matrix4x4* ProjectionMatrix = NULL;
     Matrix4x4* BaseProjectionMatrix = NULL;
 };
 #endif
 
-// #include <Engine/Scene/View.h>
-// #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Scene/View.h>
+#include <Engine/Diagnostics/Memory.h>
+#include <Engine/Math/Math.h>
+
+PUBLIC void     View::SetSize(float w, float h) {
+    Width = w;
+    Height = h;
+    Stride = Math::CeilPOT(w);
+
+    if (UseStencil)
+        ReallocStencil();
+}
+
+PUBLIC void     View::SetStencilEnabled(bool enabled) {
+    UseStencil = enabled;
+    if (!UseStencil)
+        return;
+
+    ReallocStencil();
+}
+PUBLIC void     View::ReallocStencil() {
+    if (DrawTarget == nullptr)
+        return;
+
+    size_t bufSize = DrawTarget->Width * DrawTarget->Height;
+    if (StencilBuffer == NULL || bufSize > StencilBufferSize) {
+        StencilBufferSize = bufSize;
+        StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
+        ClearStencil();
+    }
+}
+PUBLIC void     View::ClearStencil() {
+    if (StencilBuffer)
+        memset(StencilBuffer, 0x00, StencilBufferSize * sizeof(*StencilBuffer));
+}
+PUBLIC void     View::DeleteStencil() {
+    Memory::Free(StencilBuffer);
+    StencilBuffer = NULL;
+    StencilBufferSize = 0;
+}

@@ -35,13 +35,22 @@ public:
     float        Gravity = 0.0f;
     int          Ground = false;
 
+    int          WasOffScreen = false;
     int          OnScreen = true;
     float        OnScreenHitboxW = 0.0f;
     float        OnScreenHitboxH = 0.0f;
+    float        OnScreenRegionTop = 0.0f;
+    float        OnScreenRegionLeft = 0.0f;
+    float        OnScreenRegionRight = 0.0f;
+    float        OnScreenRegionBottom = 0.0f;
     int          ViewRenderFlag = 0xFFFFFFFF;
     int          ViewOverrideFlag = 0;
     float        RenderRegionW = 0.0f;
     float        RenderRegionH = 0.0f;
+    float        RenderRegionTop = 0.0f;
+    float        RenderRegionLeft = 0.0f;
+    float        RenderRegionRight = 0.0f;
+    float        RenderRegionBottom = 0.0f;
 
     int          Angle = 0;
     int          AngleMode = 0;
@@ -53,7 +62,7 @@ public:
 
     int          Priority = 0;
     int          PriorityListIndex = -1;
-    int          PriorityOld = 0;
+    int          PriorityOld = -1;
 
     float        Depth = 0.0f;
     float        OldDepth = 0.0f;
@@ -457,13 +466,22 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(Gravity);
     COPY(Ground);
 
+    COPY(WasOffScreen);
     COPY(OnScreen);
     COPY(OnScreenHitboxW);
     COPY(OnScreenHitboxH);
+    COPY(OnScreenRegionTop);
+    COPY(OnScreenRegionLeft);
+    COPY(OnScreenRegionRight);
+    COPY(OnScreenRegionBottom);
     COPY(ViewRenderFlag);
     COPY(ViewOverrideFlag);
     COPY(RenderRegionW);
     COPY(RenderRegionH);
+    COPY(RenderRegionTop);
+    COPY(RenderRegionLeft);
+    COPY(RenderRegionRight);
+    COPY(RenderRegionBottom);
 
     COPY(Angle);
     COPY(AngleMode);

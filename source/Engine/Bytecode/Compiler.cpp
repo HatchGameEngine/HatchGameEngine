@@ -12,16 +12,20 @@ public:
     static const char*          Magic;
     static vector<const char*>  FunctionNames;
     static bool                 PrettyPrint;
+    static bool                 ShowWarnings;
+    static bool                 WriteDebugInfo;
+    static bool                 WriteSourceFilename;
 
-    class Compiler* Enclosing = NULL;
-    ObjFunction*    Function = NULL;
+    class Compiler* Enclosing = nullptr;
+    ObjFunction*    Function = nullptr;
     int             Type = 0;
+    string          ClassName;
     Local           Locals[0x100];
     int             LocalCount = 0;
     int             ScopeDepth = 0;
-    int             WithDepth = 0;
     vector<Uint32>  ClassHashList;
     vector<Uint32>  ClassExtendedList;
+    vector<Local>*  UnusedVariables = nullptr;
 };
 #endif
 
@@ -46,6 +50,9 @@ HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::PrettyPrint = true;
+bool                 Compiler::ShowWarnings = false;
+bool                 Compiler::WriteDebugInfo = false;
+bool                 Compiler::WriteSourceFilename = false;
 
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
 
@@ -86,6 +93,7 @@ enum TokenTYPE {
     // Precedence 10
     TOKEN_EQUALS,
     TOKEN_NOT_EQUALS,
+    TOKEN_HAS,
     // Precedence 11
     TOKEN_BITWISE_AND,
     TOKEN_BITWISE_XOR,
@@ -131,6 +139,7 @@ enum TokenTYPE {
     TOKEN_OR,
     TOKEN_AND,
     TOKEN_FOR,
+    TOKEN_FOREACH,
     TOKEN_CASE,
     TOKEN_ELSE,
     TOKEN_THIS,
@@ -138,6 +147,7 @@ enum TokenTYPE {
     TOKEN_SUPER,
     TOKEN_BREAK,
     TOKEN_CLASS,
+    TOKEN_ENUM,
     TOKEN_WHILE,
     TOKEN_REPEAT,
     TOKEN_RETURN,
@@ -145,6 +155,9 @@ enum TokenTYPE {
     TOKEN_DEFAULT,
     TOKEN_CONTINUE,
     TOKEN_IMPORT,
+    TOKEN_AS,
+    TOKEN_IN,
+    TOKEN_FROM,
 
     TOKEN_PRINT,
 
@@ -297,7 +310,13 @@ PUBLIC int           Compiler::CheckKeyword(int start, int length, const char* r
 PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
     switch (*scanner.Start) {
         case 'a':
-            return CheckKeyword(1, 2, "nd", TOKEN_AND);
+            if (scanner.Current - scanner.Start > 1) {
+                switch (*(scanner.Start + 1)) {
+                    case 'n': return CheckKeyword(2, 1, "d", TOKEN_AND);
+                    case 's': return CheckKeyword(2, 0, NULL, TOKEN_AS);
+                }
+            }
+            break;
         case 'b':
             return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
         case 'c':
@@ -321,6 +340,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'l': return CheckKeyword(2, 2, "se", TOKEN_ELSE);
+                    case 'n': return CheckKeyword(2, 2, "um", TOKEN_ENUM);
                     case 'v': return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
                 }
             }
@@ -329,14 +349,30 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'a': return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
-                    case 'o': return CheckKeyword(2, 1, "r", TOKEN_FOR);
+                    case 'o':
+                        if (scanner.Current - scanner.Start > 2) {
+                            switch (*(scanner.Start + 2)) {
+                                case 'r':
+                                    if (scanner.Current - scanner.Start > 3) {
+                                        switch (*(scanner.Start + 3)) {
+                                            case 'e': return CheckKeyword(4, 3, "ach", TOKEN_FOREACH);
+                                        }
+                                    }
+                                    return CheckKeyword(3, 0, NULL, TOKEN_FOR);
+                            }
+                        }
+                        break;
+                    case 'r': return CheckKeyword(2, 2, "om", TOKEN_FROM);
                 }
             }
             break;
+        case 'h':
+            return CheckKeyword(1, 2, "as", TOKEN_HAS);
         case 'i':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
                     case 'f': return CheckKeyword(2, 0, NULL, TOKEN_IF);
+                    case 'n': return CheckKeyword(2, 0, NULL, TOKEN_IN);
                     case 'm': return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
                 }
             }
@@ -499,7 +535,6 @@ PUBLIC VIRTUAL Token Compiler::ScanToken() {
         case ':': return MakeToken(TOKEN_COLON);
         case '?': return MakeToken(TOKEN_TERNARY);
         case '~': return MakeToken(TOKEN_BITWISE_NOT);
-        // case '#': return MakeToken(TOKEN_HASH);
         // Two-char punctuations
         case '!': return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS : TOKEN_LOGICAL_NOT);
         case '=': return MakeToken(MatchChar('=') ? TOKEN_EQUALS : TOKEN_ASSIGNMENT);
@@ -629,26 +664,31 @@ PUBLIC void          Compiler::SynchronizeToken() {
 }
 
 // Error handling
-PUBLIC bool          Compiler::ReportError(int line, const char* string, ...) {
-    char message[1024];
-    memset(message, 0, 1024);
+PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
+    if (!fatal && !Compiler::ShowWarnings)
+        return true;
+
+    char message[4096];
+    memset(message, 0, sizeof message);
 
     va_list args;
     va_start(args, string);
     vsprintf(message, string, args);
     va_end(args);
 
-    if (line > 0)
-        Log::Print(Log::LOG_ERROR, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
-    else
-        Log::Print(Log::LOG_ERROR, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
+    Log::Print(fatal ? Log::LOG_ERROR : Log::LOG_WARN, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
 
-    assert(false);
-    return false;
+    if (fatal)
+        assert(false);
+
+    return !fatal;
 }
-PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, const char* string, ...) {
-    char message[1024];
-    memset(message, 0, 1024);
+PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+    if (!fatal && !Compiler::ShowWarnings)
+        return true;
+
+    char message[4096];
+    memset(message, 0, sizeof message);
 
     va_list args;
     va_start(args, string);
@@ -662,94 +702,98 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, const char* str
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
-    if (line > 0)
-		buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
-    else
-		buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
+	buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
 
-	bool fatal = true;
+	if (!fatal) {
+        Log::Print(Log::LOG_WARN, textBuffer);
+        free(textBuffer);
+        return true;
+    }
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
-	const SDL_MessageBoxButtonData buttonsError[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
-		{ 0                                      , 2, "Ignore All" },
-		{ SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue" },
-	};
 	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
+		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit" },
 	};
 
 	const SDL_MessageBoxData messageBoxData = {
 		SDL_MESSAGEBOX_ERROR, NULL,
 		"Syntax Error",
 		textBuffer,
-		(int)(fatal ? SDL_arraysize(buttonsFatal) : SDL_arraysize(buttonsError)),
-		fatal ? buttonsFatal : buttonsError,
+		SDL_arraysize(buttonsFatal),
+		buttonsFatal,
 		NULL,
 	};
 
-	int buttonClicked;
-	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
-		buttonClicked = 2;
-	}
+    int buttonClicked;
+	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
 
 	free(textBuffer);
 
-	switch (buttonClicked) {
-		// Exit Game
-		case 1:
-			Application::Cleanup();
-			exit(-1);
-			// NOTE: This is for later, this doesn't actually execute.
-			return ERROR_RES_EXIT;
-			// Ignore All
-		case 2:
-			// VMThread::InstructionIgnoreMap[000000000] = true;
-			return ERROR_RES_CONTINUE;
-	}
+	Application::Cleanup();
+	exit(-1);
 
     return false;
 }
-PUBLIC void          Compiler::ErrorAt(Token* token, const char* message) {
-    // SynchronizeToken();
-    if (parser.PanicMode) return;
-    parser.PanicMode = true;
+PUBLIC void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
+    if (fatal) {
+        if (parser.PanicMode)
+            return;
+        parser.PanicMode = true;
+    }
 
     if (token->Type == TOKEN_EOF)
-        ReportError(token->Line, " at end: %s", message);
+        ReportError(token->Line, fatal, " at end of file: %s", message);
     else if (token->Type == TOKEN_ERROR)
-        ReportErrorPos(token->Line, (int)token->Pos, "%s", message);
+        ReportErrorPos(token->Line, (int)token->Pos, fatal, "%s", message);
     else
-        ReportErrorPos(token->Line, (int)token->Pos, " at '%.*s': %s", token->Length, token->Start, message);
+        ReportErrorPos(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
 
-    parser.HadError = true;
+    if (fatal)
+        parser.HadError = true;
 }
 PUBLIC void          Compiler::Error(const char* message) {
-    ErrorAt(&parser.Previous, message);
+    ErrorAt(&parser.Previous, message, true);
 }
 PUBLIC void          Compiler::ErrorAtCurrent(const char* message) {
-    ErrorAt(&parser.Current, message);
+    ErrorAt(&parser.Current, message, true);
 }
+PUBLIC void          Compiler::Warning(const char* message) {
+    ErrorAt(&parser.Current, message, false);
+}
+PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
+    if (!Compiler::ShowWarnings)
+        return;
 
-PUBLIC bool          Compiler::IsValueType(char* str) {
-    return
-        // Integer types
-        !strcmp(str, "bool") ||
-        !strcmp(str, "char") ||
-        !strcmp(str, "uchar") ||
-        !strcmp(str, "short") ||
-        !strcmp(str, "ushort") ||
-        !strcmp(str, "int") ||
-        !strcmp(str, "uint") ||
-        !strcmp(str, "long") ||
-        !strcmp(str, "ulong") ||
-        // Floating-point types
-        !strcmp(str, "float") ||
-        !strcmp(str, "double");
-}
-PUBLIC bool          Compiler::IsReferenceType(char* str) {
-    return !IsValueType(str);
+    char message[4096];
+    memset(message, 0, sizeof message);
+
+    va_list args;
+    va_start(args, format);
+    vsprintf(message, format, args);
+    va_end(args);
+
+    char* textBuffer = (char*)malloc(512);
+
+    PrintBuffer buffer;
+    buffer.Buffer = &textBuffer;
+    buffer.WriteIndex = 0;
+    buffer.BufferSize = 512;
+
+    if (strcmp(Function->Name->Chars, "main") == 0)
+        buffer_printf(&buffer, "In top level code of file '%s':\n    %s\n", scanner.SourceFilename, message);
+    else if (ClassName.size() > 0) {
+        buffer_printf(&buffer, "In method '%s::%s' of file '%s':\n    %s\n",
+            ClassName.c_str(),
+            Function->Name->Chars, scanner.SourceFilename,
+            message);
+    }
+    else
+        buffer_printf(&buffer, "In function '%s' of file '%s':\n    %s\n", Function->Name->Chars, scanner.SourceFilename, message);
+
+    Log::Print(Log::LOG_WARN, textBuffer);
+
+    free(textBuffer);
 }
 
 PUBLIC void  Compiler::ParseVariable(const char* errorMessage) {
@@ -788,6 +832,27 @@ PUBLIC void  Compiler::DeclareVariable(Token* name) {
     }
 
     AddLocal(*name);
+}
+PRIVATE void Compiler::WarnVariablesUnused() {
+    if (!Compiler::ShowWarnings)
+        return;
+
+    size_t numUnused = UnusedVariables->size();
+    if (numUnused == 0)
+        return;
+
+    std::string message;
+    char temp[4096];
+
+    for (int i = numUnused - 1; i >= 0; i--) {
+        Local& local = (*UnusedVariables)[i];
+        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", local.Name.Length, local.Name.Start, local.Name.Line);
+        message += std::string(temp);
+        if (i != 0)
+            message += "\n    ";
+    }
+
+    WarningInFunction("%s", message.c_str());
 }
 
 PUBLIC void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
@@ -872,6 +937,17 @@ PUBLIC void  Compiler::EmitCopy(Uint8 count) {
     EmitByte(count);
 }
 
+PUBLIC void  Compiler::EmitCall(const char *name, int argCount, bool isSuper) {
+    EmitBytes(OP_INVOKE, argCount);
+    EmitStringHash(name);
+    EmitByte(isSuper ? 1 : 0);
+}
+PUBLIC void  Compiler::EmitCall(Token name, int argCount, bool isSuper) {
+    EmitBytes(OP_INVOKE, argCount);
+    EmitStringHash(name);
+    EmitByte(isSuper ? 1 : 0);
+}
+
 PUBLIC void  Compiler::NamedVariable(Token name, bool canAssign) {
     Uint8 getOp, setOp;
     int arg = ResolveLocal(&name);
@@ -923,17 +999,38 @@ PUBLIC void  Compiler::ScopeEnd() {
     ClearToScope(ScopeDepth);
 }
 PUBLIC void  Compiler::ClearToScope(int depth) {
+    int popCount = 0;
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
-        EmitByte(OP_POP); // pop locals
+        if (!Locals[LocalCount - 1].Resolved)
+            UnusedVariables->push_back(Locals[LocalCount - 1]);
+
+        popCount++; // pop locals
 
         LocalCount--;
     }
+    PopMultiple(popCount);
 }
 PUBLIC void  Compiler::PopToScope(int depth) {
     int lcl = LocalCount;
+    int popCount = 0;
     while (lcl > 0 && Locals[lcl - 1].Depth > depth) {
-        EmitByte(OP_POP); // pop locals
+        popCount++; // pop locals
         lcl--;
+    }
+    PopMultiple(popCount);
+}
+PUBLIC void  Compiler::PopMultiple(int count) {
+    if (count == 1) {
+        EmitByte(OP_POP);
+        return;
+    }
+
+    while (count > 0) {
+        int max = count;
+        if (max > 0xFF)
+            max = 0xFF;
+        EmitBytes(OP_POPN, max);
+        count -= max;
     }
 }
 PUBLIC int   Compiler::AddLocal(Token name) {
@@ -944,6 +1041,7 @@ PUBLIC int   Compiler::AddLocal(Token name) {
     Local* local = &Locals[LocalCount++];
     local->Name = name;
     local->Depth = -1;
+    local->Resolved = false;
     return LocalCount - 1;
 }
 PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
@@ -952,10 +1050,27 @@ PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
         return -1;
     }
     Local* local = &Locals[LocalCount++];
+    local->Depth = -1;
+    local->Resolved = false;
+    RenameLocal(local, name, len);
+    return LocalCount - 1;
+}
+PUBLIC int   Compiler::AddHiddenLocal(const char* name, size_t len) {
+    int local = AddLocal(name, len);
+    Locals[local].Resolved = true;
+    MarkInitialized();
+    return local;
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, const char* name, size_t len) {
     local->Name.Start = (char*)name;
     local->Name.Length = len;
-    local->Depth = -1;
-    return LocalCount - 1;
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, const char* name) {
+    local->Name.Start = (char*)name;
+    local->Name.Length = strlen(name);
+}
+PUBLIC void  Compiler::RenameLocal(Local* local, Token name) {
+    local->Name = name;
 }
 PUBLIC int   Compiler::ResolveLocal(Token* name) {
     for (int i = LocalCount - 1; i >= 0; i--) {
@@ -964,6 +1079,7 @@ PUBLIC int   Compiler::ResolveLocal(Token* name) {
             if (local->Depth == -1) {
                 Error("Cannot read local variable in its own initializer.");
             }
+            local->Resolved = true;
             return i;
         }
     }
@@ -1039,12 +1155,8 @@ PUBLIC void  Compiler::GetDot(bool canAssign) {
     }
     else if (MatchToken(TOKEN_LEFT_PAREN)) {
         uint8_t argCount = GetArgumentList();
-        EmitBytes(OP_INVOKE, argCount);
 
-        // EmitByte(name);
-        EmitStringHash(nameToken);
-        // For supers
-        EmitByte((instanceToken.Type == TOKEN_SUPER));
+        EmitCall(nameToken, argCount, instanceToken.Type == TOKEN_SUPER);
     }
     else {
         EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
@@ -1346,7 +1458,6 @@ PUBLIC void Compiler::GetNew(bool canAssign) {
     EmitBytes(OP_NEW, argCount);
 }
 PUBLIC void Compiler::GetBinary(bool canAssign) {
-    // printf("GetBinary()\n");
     Token operato = parser.Previous;
     int operatorType = operato.Type;
 
@@ -1377,9 +1488,14 @@ PUBLIC void Compiler::GetBinary(bool canAssign) {
         case TOKEN_LESS:                EmitByte(OP_LESS); break;
         case TOKEN_LESS_EQUAL:          EmitByte(OP_LESS_EQUAL); break;
         default:
-            ErrorAt(&operato, "Unknown binary operator.");
+            ErrorAt(&operato, "Unknown binary operator.", true);
             return; // Unreachable.
     }
+}
+PUBLIC void Compiler::GetHas(bool canAssign) {
+    ConsumeToken(TOKEN_IDENTIFIER, "Expect property name.");
+    EmitByte(OP_HAS_PROPERTY);
+    EmitStringHash(parser.Previous);
 }
 PUBLIC void Compiler::GetSuffix(bool canAssign) {
 
@@ -1392,12 +1508,6 @@ PUBLIC void Compiler::GetCall(bool canAssign) {
 PUBLIC void Compiler::GetExpression() {
     ParsePrecedence(PREC_ASSIGNMENT);
 }
-enum {
-    SWITCH_CASE_TYPE_CONSTANT,
-    SWITCH_CASE_TYPE_LOCAL,
-    SWITCH_CASE_TYPE_GLOBAL,
-    SWITCH_CASE_TYPE_DEFAULT
-};
 // Reading statements
 struct switch_case {
     bool   IsDefault;
@@ -1480,12 +1590,6 @@ PUBLIC void Compiler::GetReturnStatement() {
     if (Type == TYPE_TOP_LEVEL) {
         Error("Cannot return from top-level code.");
     }
-
-    // int lclCnt = LocalCount;
-    // while (lclCnt > 0 && Locals[lclCnt - 1].Depth > ScopeDepth - 1) {
-    //     EmitByte(OP_POP);
-    //     lclCnt--;
-    // }
 
     if (MatchToken(TOKEN_SEMICOLON)) {
         EmitReturn();
@@ -1578,8 +1682,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
         EmitByte(OP_EQUAL);
         int jumpToPatch = EmitJump(OP_JUMP_IF_FALSE);
 
-        EmitByte(OP_POP);
-        EmitByte(OP_POP);
+        PopMultiple(2);
 
         case_info.JumpPosition = EmitJump(OP_JUMP);
 
@@ -1742,11 +1845,12 @@ PUBLIC void Compiler::GetWithStatement() {
         WITH_STATE_INIT,
         WITH_STATE_ITERATE,
         WITH_STATE_FINISH,
+        WITH_STATE_INIT_SLOTTED
     };
 
-    // Ensure "this" is available
-    if (!HasThis())
-        Compiler::SetReceiverName("this");
+    bool useOther = true;
+    bool useOtherSlot = false;
+    bool hasThis = HasThis();
 
     // Start new scope
     ScopeBegin();
@@ -1755,22 +1859,57 @@ PUBLIC void Compiler::GetWithStatement() {
     EmitByte(OP_NULL);
 
     // Add "other"
-    int otherSlot = AddLocal("other", 5);
-    MarkInitialized();
+    int otherSlot = AddHiddenLocal("other", 5);
 
-    // Make a copy of "this", which is at the very first slot, into "other"
-    EmitBytes(OP_GET_LOCAL, 0);
-    EmitBytes(OP_SET_LOCAL, otherSlot);
-    EmitByte(OP_POP);
+    // If the function has "this", make a copy of "this" (which is at the first slot) into "other"
+    if (hasThis) {
+        EmitBytes(OP_GET_LOCAL, 0);
+        EmitBytes(OP_SET_LOCAL, otherSlot);
+        EmitByte(OP_POP);
+    }
+    else {
+        // If the function does not have "this", we cannot always use frame slot zero
+        // (For example, slot zero is invalid in top-level functions.)
+        // So we store the slot that will receive the value.
+        useOtherSlot = true;
+    }
+
+    // For 'as'
+    Token receiverName;
 
     // With "expression"
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
     GetExpression();
+    if (MatchToken(TOKEN_AS)) {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expect receiver name.");
+
+        receiverName = parser.Previous;
+
+        // Turns out we're using 'as', so rename "other" to the true receiver name
+        RenameLocal(&Locals[otherSlot], receiverName);
+
+        // Don't rename "other" anymore
+        useOther = false;
+
+        // Using a specific slot for "other", rather than slot zero
+        useOtherSlot = true;
+    }
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    // Rename "other" to "this" if the function doesn't have "this"
+    if (useOther && !hasThis)
+        RenameLocal(&Locals[otherSlot], "this");
 
     // Init "with" iteration
     EmitByte(OP_WITH);
-    EmitByte(WITH_STATE_INIT);
+
+    if (useOtherSlot) {
+        EmitByte(WITH_STATE_INIT_SLOTTED);
+        EmitByte(otherSlot); // Store the slot where the receiver will land
+    }
+    else
+        EmitByte(WITH_STATE_INIT);
+
     EmitByte(0xFF);
     EmitByte(0xFF);
 
@@ -1782,12 +1921,8 @@ PUBLIC void Compiler::GetWithStatement() {
     // Push new jump list on continue stack
     StartContinueJumpList();
 
-    WithDepth++;
-
     // Execute code block
     GetStatement();
-
-    WithDepth--;
 
     // Pop jump list off continue stack, patch all continue to this code point
     EndContinueJumpList();
@@ -1797,7 +1932,8 @@ PUBLIC void Compiler::GetWithStatement() {
     EmitByte(WITH_STATE_ITERATE);
 
     int offset = CurrentChunk()->Count - loopStart + 2;
-    if (offset > UINT16_MAX) Error("Loop body too large.");
+    if (offset > UINT16_MAX)
+        Error("Loop body too large.");
 
     EmitByte(offset & 0xFF);
     EmitByte((offset >> 8) & 0xFF);
@@ -1817,10 +1953,6 @@ PUBLIC void Compiler::GetWithStatement() {
 
     // End scope (will pop "other")
     ScopeEnd();
-
-    // Remove "this" if this function is not supposed to have it
-    if (!HasThis())
-        Compiler::SetReceiverName("");
 }
 PUBLIC void Compiler::GetForStatement() {
     // Start new scope
@@ -1881,7 +2013,6 @@ PUBLIC void Compiler::GetForStatement() {
     // After block, return to evaluation of condition.
     EmitLoop(loopStart);
 
-    //
     if (exitJump != -1) {
         PatchJump(exitJump);
         EmitByte(OP_POP); // Condition.
@@ -1892,13 +2023,97 @@ PUBLIC void Compiler::GetForStatement() {
 
     // End new scope
     ScopeEnd();
+}
+PUBLIC void Compiler::GetForEachStatement() {
+    // Start new scope
+    ScopeBegin();
 
-    // EmitByte(OP_PRINT_STACK);
+    ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+
+    // Variable name
+    ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+
+    Token variableToken = parser.Previous;
+
+    ConsumeToken(TOKEN_IN, "Expect 'in' after variable name.");
+
+    // Iterator after 'in'
+    GetExpression();
+
+    // Add a local for the object to be iterated
+    // The programmer cannot refer to it by name, so it begins with a dollar sign.
+    // The value in it is what GetExpression() left on the top of the stack
+    int iterObj = AddHiddenLocal("$iterObj", 8);
+
+    // Add a local for the iteration state
+    // Its initial value is null
+    EmitByte(OP_NULL);
+
+    int iterValue = AddHiddenLocal("$iterValue", 10);
+
+    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+
+    int exitJump = -1;
+    int loopStart = CurrentChunk()->Count;
+
+    // Call $iterObj.$iterate($iterValue)
+    // $iterValue is initially null, which signals that the iteration just began.
+    EmitBytes(OP_GET_LOCAL, iterObj);
+    EmitBytes(OP_GET_LOCAL, iterValue);
+    EmitCall("iterate", 1, false);
+
+    // Set the result to iterValue, updating the iteration state
+    EmitBytes(OP_SET_LOCAL, iterValue);
+
+    // If it returns null, the iteration ends
+    EmitBytes(OP_NULL, OP_EQUAL_NOT);
+    exitJump = EmitJump(OP_JUMP_IF_FALSE);
+    EmitByte(OP_POP);
+
+    // Call $iterObj.$iteratorValue($iterValue)
+    EmitBytes(OP_GET_LOCAL, iterObj);
+    EmitBytes(OP_GET_LOCAL, iterValue);
+    EmitCall("iteratorValue", 1, false);
+
+    // Push new jump list on break stack
+    StartBreakJumpList();
+
+    // Push new jump list on continue stack
+    StartContinueJumpList();
+
+    // Begin a new scope
+    ScopeBegin();
+
+    // Make the variable name visible
+    AddLocal(variableToken);
+    MarkInitialized();
+
+    // Execute code block
+    GetStatement();
+
+    // End that new scope
+    ScopeEnd();
+
+    // Pop jump list off continue stack, patch all continue to this code point
+    EndContinueJumpList();
+
+    // After block, return to evaluation of condition.
+    EmitLoop(loopStart);
+    PatchJump(exitJump);
+
+    // We land here if $iterate returns null, so we need to pop the value left on the stack
+    EmitByte(OP_POP);
+
+    // Pop jump list off break stack, patch all break to this code point
+    EndBreakJumpList();
+
+    // End new scope
+    ScopeEnd();
 }
 PUBLIC void Compiler::GetIfStatement() {
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     GetExpression();
-    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition."); // [paren]
+    ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
     int thenJump = EmitJump(OP_JUMP_IF_FALSE);
     EmitByte(OP_POP);
@@ -1947,6 +2162,9 @@ PUBLIC void Compiler::GetStatement() {
     else if (MatchToken(TOKEN_FOR)) {
         GetForStatement();
     }
+    else if (MatchToken(TOKEN_FOREACH)) {
+        GetForEachStatement();
+    }
     else if (MatchToken(TOKEN_DO)) {
         GetDoWhileStatement();
     }
@@ -1963,10 +2181,11 @@ PUBLIC void Compiler::GetStatement() {
     }
 }
 // Reading declarations
-PUBLIC int  Compiler::GetFunction(int type) {
+PUBLIC int  Compiler::GetFunction(int type, string className) {
     int index = (int)Compiler::Functions.size();
 
     Compiler* compiler = new Compiler;
+    compiler->ClassName = className;
     compiler->Initialize(this, 1, type);
 
     // Compile the parameter list.
@@ -1991,11 +2210,14 @@ PUBLIC int  Compiler::GetFunction(int type) {
     compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
     compiler->GetBlockStatement();
 
-    compiler->FinishCompiler();
+    compiler->Finish();
 
     delete compiler;
 
     return index;
+}
+PUBLIC int  Compiler::GetFunction(int type) {
+    return GetFunction(type, "");
 }
 PUBLIC void Compiler::GetMethod(Token className) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect method name.");
@@ -2006,7 +2228,7 @@ PUBLIC void Compiler::GetMethod(Token className) {
     if (IdentifiersEqual(&className, &parser.Previous))
         type = TYPE_CONSTRUCTOR;
 
-    int index = GetFunction(type);
+    int index = GetFunction(type, std::string(className.Start, className.Length));
 
     EmitByte(OP_METHOD);
     EmitByte(index);
@@ -2036,11 +2258,11 @@ PUBLIC void Compiler::GetVariableDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
-PUBLIC void Compiler::GetPropertyDeclaration(Token className) {
+PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
     do {
         ParseVariable("Expected property name.");
 
-        NamedVariable(className, false);
+        NamedVariable(propertyName, false);
 
         Token token = parser.Previous;
 
@@ -2052,6 +2274,8 @@ PUBLIC void Compiler::GetPropertyDeclaration(Token className) {
         }
 
         EmitSetOperation(OP_SET_PROPERTY, -1, token);
+
+        EmitByte(OP_POP);
     }
     while (MatchToken(TOKEN_COMMA));
 
@@ -2070,11 +2294,11 @@ PUBLIC void Compiler::GetClassDeclaration() {
 
     // Check for class extension
     if (MatchToken(TOKEN_PLUS)) {
-        EmitByte(true);
+        EmitByte(CLASS_TYPE_EXTENDED);
         ClassExtendedList.push_back(1);
     }
     else {
-        EmitByte(false);
+        EmitByte(CLASS_TYPE_NORMAL);
         ClassExtendedList.push_back(0);
     }
 
@@ -2106,14 +2330,80 @@ PUBLIC void Compiler::GetClassDeclaration() {
 
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
+PUBLIC void Compiler::GetEnumDeclaration() {
+    Token enumName;
+    bool isNamed = false;
+
+    if (MatchToken(TOKEN_IDENTIFIER)) {
+        enumName = parser.Previous;
+        DeclareVariable(&enumName);
+
+        EmitByte(OP_CLASS);
+        EmitStringHash(enumName);
+        EmitByte(CLASS_TYPE_ENUM);
+
+        DefineVariableToken(enumName);
+
+        isNamed = true;
+    }
+
+    ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
+
+    while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+        bool didStart = false;
+        do {
+            if (CheckToken(TOKEN_RIGHT_BRACE))
+                break;
+
+            ParseVariable("Expected constant name.");
+
+            Token token = parser.Previous;
+
+            // Push the enum class to the stack
+            if (isNamed)
+                NamedVariable(enumName, false);
+
+            if (MatchToken(TOKEN_ASSIGNMENT)) {
+                GetExpression();
+                EmitCopy(1);
+                EmitByte(OP_SAVE_VALUE);
+            }
+            else {
+                if (didStart) {
+                    EmitByte(OP_LOAD_VALUE);
+                    EmitConstant(INTEGER_VAL(1));
+                    EmitByte(OP_ENUM_NEXT);
+                }
+                else {
+                    EmitConstant(INTEGER_VAL(0));
+                }
+                EmitCopy(1);
+                EmitByte(OP_SAVE_VALUE);
+            }
+
+            didStart = true;
+
+            if (isNamed) {
+                EmitByte(OP_ADD_ENUM);
+                EmitStringHash(token);
+            }
+            else
+                DefineVariableToken(token);
+        } while (MatchToken(TOKEN_COMMA));
+    }
+
+    ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
+}
 PUBLIC void Compiler::GetImportDeclaration() {
+    bool importModules = MatchToken(TOKEN_FROM);
+
     do {
         ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
 
         Token className = parser.Previous;
         VMValue value = OBJECT_VAL(Compiler::MakeString(className));
 
-        EmitByte(OP_IMPORT);
+        EmitByte(importModules ? OP_IMPORT_MODULE : OP_IMPORT);
         EmitUint32(GetConstantIndex(value));
     }
     while (MatchToken(TOKEN_COMMA));
@@ -2145,6 +2435,8 @@ PUBLIC void Compiler::GetEventDeclaration() {
 PUBLIC void Compiler::GetDeclaration() {
     if (MatchToken(TOKEN_CLASS))
         GetClassDeclaration();
+    else if (MatchToken(TOKEN_ENUM))
+        GetEnumDeclaration();
     else if (MatchToken(TOKEN_IMPORT))
         GetImportDeclaration();
     else if (MatchToken(TOKEN_VAR))
@@ -2192,6 +2484,7 @@ PUBLIC STATIC void   Compiler::MakeRules() {
     Rules[TOKEN_NEW] = ParseRule { &Compiler::GetNew, NULL, NULL, PREC_UNARY };
     Rules[TOKEN_NOT_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
     Rules[TOKEN_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
+    Rules[TOKEN_HAS] = ParseRule { NULL, &Compiler::GetHas, NULL, PREC_EQUALITY };
     Rules[TOKEN_GREATER] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
     Rules[TOKEN_GREATER_EQUAL] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
     Rules[TOKEN_LESS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
@@ -2328,8 +2621,15 @@ PUBLIC void          Compiler::PatchJump(int offset) {
     int jump = GetJump(offset);
     PatchJump(offset, jump);
 }
-PUBLIC void          Compiler::EmitStringHash(char* string) {
-    EmitUint32(GetHash(string));
+PUBLIC void          Compiler::EmitStringHash(const char* string) {
+    Uint32 hash = GetHash((char*)string);
+    if (!TokenMap->Exists(hash)) {
+        Token tk;
+        tk.Start = (char*)string;
+        tk.Length = strlen(string);
+        TokenMap->Put(hash, tk);
+    }
+    EmitUint32(hash);
 }
 PUBLIC void          Compiler::EmitStringHash(Token token) {
     if (!TokenMap->Exists(GetHash(token)))
@@ -2409,8 +2709,7 @@ PUBLIC int           Compiler::MakeConstant(VMValue value) {
 }
 
 PUBLIC bool          Compiler::HasThis() {
-    switch (Type)
-    {
+    switch (Type) {
     case TYPE_CONSTRUCTOR:
     case TYPE_METHOD:
         return true;
@@ -2422,6 +2721,10 @@ PUBLIC void          Compiler::SetReceiverName(const char *name) {
     Local* local = &Locals[0];
     local->Name.Start = (char*)name;
     local->Name.Length = strlen(name);
+}
+PUBLIC void          Compiler::SetReceiverName(Token name) {
+    Local* local = &Locals[0];
+    local->Name = name;
 }
 
 int  justin_print(char** buffer, int* buf_start, const char *format, ...) {
@@ -2826,6 +3129,11 @@ PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int ar
 PUBLIC STATIC void   Compiler::Init() {
     Compiler::MakeRules();
 
+    Compiler::ShowWarnings = false;
+    Compiler::WriteDebugInfo = true;
+    Compiler::WriteSourceFilename = true;
+}
+PUBLIC STATIC void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
         Compiler::TokenMap = new HashMap<Token>(NULL, 8);
     }
@@ -2836,6 +3144,7 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
     ScopeDepth = scope;
     Enclosing = enclosing;
     Function = NewFunction();
+    UnusedVariables = new vector<Local>();
     Compiler::Functions.push_back(Function);
 
     switch (type) {
@@ -2880,7 +3189,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     }
 
     ConsumeToken(TOKEN_EOF, "Expected end of file.");
-    FinishCompiler();
+    Finish();
 
     bool debugCompiler = false;
     Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
@@ -2895,13 +3204,8 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
     if (!stream) return false;
 
-    bool doLineNumbers = false;
-    bool hasSourceFilename = false;
-
-    // #ifdef DEBUG
-    doLineNumbers = true;
-    hasSourceFilename = true;
-    // #endif
+    bool doLineNumbers = Compiler::WriteDebugInfo;
+    bool hasSourceFilename = Compiler::WriteSourceFilename;
 
     stream->WriteBytes((char*)Compiler::Magic, 4);
     stream->WriteByte(0x00);
@@ -2972,20 +3276,26 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     return !parser.HadError;
 }
-PUBLIC void          Compiler::FinishCompiler() {
+PUBLIC void          Compiler::Finish() {
+    if (UnusedVariables) {
+        WarnVariablesUnused();
+        delete UnusedVariables;
+    }
+
     EmitReturn();
 }
 
 PUBLIC VIRTUAL       Compiler::~Compiler() {
 
 }
-PUBLIC STATIC void   Compiler::Dispose(bool freeTokens) {
+PUBLIC STATIC void   Compiler::FinishCompiling() {
     Compiler::Functions.clear();
 
-    Memory::Free(Rules);
-
-    if (TokenMap && freeTokens) {
+    if (TokenMap) {
         delete TokenMap;
         TokenMap = NULL;
     }
+}
+PUBLIC STATIC void   Compiler::Dispose() {
+    Memory::Free(Rules);
 }

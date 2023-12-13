@@ -2,6 +2,9 @@
 
 #include <Engine/Bytecode/BytecodeObjectManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
+#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -72,9 +75,11 @@ char*             HeapCopyString(const char* str, size_t len) {
 ObjFunction*      NewFunction() {
     ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     Memory::Track(function, "NewFunction");
+    function->Object.Class = FunctionImpl::Class;
     function->Arity = 0;
     function->UpvalueCount = 0;
     function->Name = NULL;
+    function->ClassName = NULL;
     ChunkInit(&function->Chunk);
     return function;
 }
@@ -111,7 +116,7 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->Methods = new Table(NULL, 4);
     klass->Fields = new Table(NULL, 16);
     klass->Initializer = NULL_VAL;
-    klass->Extended = false;
+    klass->Type = CLASS_TYPE_NORMAL;
     klass->ParentHash = 0;
     klass->Parent = NULL;
     return klass;
@@ -134,12 +139,14 @@ ObjBoundMethod*   NewBoundMethod(VMValue receiver, ObjFunction* method) {
 ObjArray*         NewArray() {
     ObjArray* array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
     Memory::Track(array, "NewArray");
+    array->Object.Class = ArrayImpl::Class;
     array->Values = new vector<VMValue>();
     return array;
 }
 ObjMap*           NewMap() {
     ObjMap* map = ALLOCATE_OBJ(ObjMap, OBJ_MAP);
     Memory::Track(map, "NewMap");
+    map->Object.Class = MapImpl::Class;
     map->Values = new HashMap<VMValue>(NULL, 4);
     map->Keys = new HashMap<char*>(NULL, 4);
     return map;
