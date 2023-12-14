@@ -140,7 +140,7 @@ public:
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
@@ -1739,7 +1739,7 @@ PRIVATE STATIC void Scene::AddStaticClass() {
         obj->List = StaticObjectList;
         obj->Persistence = Persistence_GAME;
 
-        ScriptManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
+        ScriptManager::Globals->Put("global", OBJECT_VAL(((ScriptEntity*)obj)->Instance));
     }
 
     StaticObject = obj;

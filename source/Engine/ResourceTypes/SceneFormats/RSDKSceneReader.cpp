@@ -12,7 +12,7 @@ public:
 
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -438,7 +438,7 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
                 }
 
                 if (PropertyHashes->Exists(argumentHashes[a])) {
-                    ((BytecodeObject*)obj)->Properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
+                    ((ScriptEntity*)obj)->Properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
                 }
             }
         }

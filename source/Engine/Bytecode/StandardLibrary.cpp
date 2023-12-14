@@ -15,7 +15,7 @@ public:
 #include <Engine/Graphics.h>
 #include <Engine/Scene.h>
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/Values.h>
@@ -5566,7 +5566,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+    ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
     if (!obj) {
         THROW_ERROR("Could not spawn object of class \"%s\"!", objectName);
         return NULL_VAL;
@@ -5609,7 +5609,7 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     ObjectList* objectList = Scene::ObjectLists->Get(objectName);
-    BytecodeObject* object = (BytecodeObject*)objectList->GetNth(n);
+    ScriptEntity* object = (ScriptEntity*)objectList->GetNth(n);
 
     if (object) {
         return OBJECT_VAL(object->Instance);
@@ -5718,7 +5718,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     if (object)
-        return OBJECT_VAL(((BytecodeObject*)object)->Instance);
+        return OBJECT_VAL(((ScriptEntity*)object)->Instance);
 
     return NULL_VAL;
 }
@@ -5739,7 +5739,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
     // Search backwards
     for (Entity* ent = Scene::ObjectLast; ent; ent = ent->PrevSceneEntity) {
         if (ent->SlotID == slotID)
-            return OBJECT_VAL(((BytecodeObject*)ent)->Instance);
+            return OBJECT_VAL(((ScriptEntity*)ent)->Instance);
     }
 
     return NULL_VAL;
@@ -5752,7 +5752,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    BytecodeObject::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+    ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 // TODO: Finish these
@@ -5771,8 +5771,8 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
     bool copyClass              = argCount >= 3 ? !!GET_ARG(2, GetInteger) : true;
     bool destroySrc             = argCount >= 4 ? !!GET_ARG(3, GetInteger) : false;
 
-    BytecodeObject* destEntity  = (BytecodeObject*)destInstance->EntityPtr;
-    BytecodeObject* srcEntity   = (BytecodeObject*)srcInstance->EntityPtr;
+    ScriptEntity* destEntity  = (ScriptEntity*)destInstance->EntityPtr;
+    ScriptEntity* srcEntity   = (ScriptEntity*)srcInstance->EntityPtr;
     if (destEntity && srcEntity)
         srcEntity->Copy(destEntity, copyClass, destroySrc);
 
@@ -5792,7 +5792,7 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     char* objectName        = GET_ARG(1, GetString);
 
-    BytecodeObject* self = (BytecodeObject*)instance->EntityPtr;
+    ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
     if (!self)
         return INTEGER_VAL(false);
 
@@ -9368,7 +9368,7 @@ VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 
-    BytecodeObject* object = (BytecodeObject*)Scene::ObjectFirst;
+    ScriptEntity* object = (ScriptEntity*)Scene::ObjectFirst;
     if (object) {
         return OBJECT_VAL(object->Instance);
     }
@@ -9384,7 +9384,7 @@ VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 
-    BytecodeObject* object = (BytecodeObject*)Scene::ObjectLast;
+    ScriptEntity* object = (ScriptEntity*)Scene::ObjectLast;
     if (object) {
         return OBJECT_VAL(object->Instance);
     }

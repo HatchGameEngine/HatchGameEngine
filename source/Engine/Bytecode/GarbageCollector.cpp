@@ -19,7 +19,7 @@ public:
 
 #include <Engine/Bytecode/GarbageCollector.h>
 
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
@@ -72,7 +72,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
 
-        BytecodeObject* bobj = (BytecodeObject*)ent;
+        ScriptEntity* bobj = (ScriptEntity*)ent;
         GrayObject(bobj->Instance);
         GrayHashMap(bobj->Properties);
     }
@@ -80,7 +80,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
 
-        BytecodeObject* bobj = (BytecodeObject*)ent;
+        ScriptEntity* bobj = (ScriptEntity*)ent;
         GrayObject(bobj->Instance);
         GrayHashMap(bobj->Properties);
     }

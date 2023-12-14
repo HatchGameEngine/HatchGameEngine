@@ -32,7 +32,7 @@ public:
 #endif
 
 #include <Engine/Bytecode/VMThread.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/Values.h>
@@ -1296,7 +1296,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             break;
                         }
 
-                        BytecodeObject* objectStart = NULL;
+                        ScriptEntity* objectStart = NULL;
                         int startIndex = 0;
 
                         // If in list,
@@ -1308,7 +1308,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
                             for (Entity* ent = objectList->EntityFirst; ent; ent = ent->NextEntityInList) {
                                 if (ent->Active && ent->Interactable) {
-                                    objectStart = (BytecodeObject*)ent;
+                                    objectStart = (ScriptEntity*)ent;
                                     break;
                                 }
                             }
@@ -1324,7 +1324,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             for (int o = 0; o < count; o++) {
                                 Entity* ent = registry->GetNth(o);
                                 if (ent && ent->Active && ent->Interactable) {
-                                    objectStart = (BytecodeObject*)ent;
+                                    objectStart = (ScriptEntity*)ent;
                                     startIndex = o;
                                     break;
                                 }
@@ -1380,7 +1380,7 @@ PUBLIC int     VMThread::RunInstruction() {
                         Entity* objectNext = NULL;
                         for (Entity* ent = (Entity*)it.entityNext; ent; ent = ent->NextEntityInList) {
                             if (ent->Active && ent->Interactable) {
-                                objectNext = (BytecodeObject*)ent;
+                                objectNext = (ScriptEntity*)ent;
                                 break;
                             }
                         }
@@ -1397,7 +1397,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             // Backup original receiver
                             frame->WithReceiverStackTop[-1] = originalReceiver;
                             // Replace receiver
-                            BytecodeObject* object = (BytecodeObject*)it.entity;
+                            ScriptEntity* object = (ScriptEntity*)it.entity;
                             frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
                         }
                     }
@@ -1413,7 +1413,7 @@ PUBLIC int     VMThread::RunInstruction() {
                             // Backup original receiver
                             frame->WithReceiverStackTop[-1] = originalReceiver;
                             // Replace receiver
-                            BytecodeObject* object = (BytecodeObject*)registry->GetNth(it.index);
+                            ScriptEntity* object = (ScriptEntity*)registry->GetNth(it.index);
                             frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
                         }
                     }

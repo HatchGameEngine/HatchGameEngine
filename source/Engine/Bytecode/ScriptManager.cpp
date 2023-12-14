@@ -1,5 +1,5 @@
 #if INTERFACE
-need_t BytecodeObject;
+need_t ScriptEntity;
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/VMThread.h>
@@ -35,7 +35,7 @@ public:
 #endif
 
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/SourceFileMap.h>
@@ -746,7 +746,7 @@ PUBLIC STATIC Entity* ScriptManager::SpawnObject(const char* objectName) {
         return nullptr;
     }
 
-    BytecodeObject* object = new BytecodeObject;
+    ScriptEntity* object = new ScriptEntity;
 
     ObjInstance* instance = NewInstance(AS_CLASS(val));
     object->Link(instance);
@@ -864,7 +864,7 @@ PUBLIC STATIC bool    ScriptManager::LoadObjectClass(const char* objectName, boo
     return true;
 }
 PUBLIC STATIC void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
-#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, BytecodeObject::VM_##name)
+#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, ScriptEntity::VM_##name)
     DEF_NATIVE(InView);
     DEF_NATIVE(Animate);
     DEF_NATIVE(ApplyPhysics);

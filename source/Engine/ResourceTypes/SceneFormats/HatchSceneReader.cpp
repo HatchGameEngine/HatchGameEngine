@@ -14,7 +14,7 @@ public:
 
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -420,7 +420,7 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         // Spawn the object, if the class exists
         ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
-            BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+            ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
             if (!obj) {
                 HatchSceneReader::SkipEntityProperties(r, numProps);
                 continue;
