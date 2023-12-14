@@ -9,9 +9,6 @@ public:
     static ParseRule*           Rules;
     static vector<ObjFunction*> Functions;
     static HashMap<Token>*      TokenMap;
-    static const char*          Magic;
-    static Uint32               BytecodeVersion;
-    static vector<const char*>  FunctionNames;
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
     static bool                 WriteSourceFilename;
@@ -36,6 +33,7 @@ public:
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Values.h>
@@ -48,9 +46,7 @@ Scanner              Compiler::scanner;
 ParseRule*           Compiler::Rules = NULL;
 vector<ObjFunction*> Compiler::Functions;
 HashMap<Token>*      Compiler::TokenMap = NULL;
-const char*          Compiler::Magic = "HTVM";
-Uint32               Compiler::BytecodeVersion = 0;
-vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
+
 bool                 Compiler::ShowWarnings = false;
 bool                 Compiler::WriteDebugInfo = false;
 bool                 Compiler::WriteSourceFilename = false;
@@ -1678,7 +1674,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
         EmitCopy(1);
 
         for (int i = 0; i < case_info.CodeLength; i++)
-            ChunkWrite(chunk, case_info.CodeBlock[i], case_info.LineBlock[i]);
+            chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
 
         EmitByte(OP_EQUAL);
         int jumpToPatch = EmitJump(OP_JUMP_IF_FALSE);
@@ -1702,7 +1698,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
     int new_block_pos = CodePointer();
     // We do this here so that if an allocation is needed, it happens.
     for (int i = 0; i < code_block_length; i++) {
-        ChunkWrite(chunk, code_block_copy[i], line_block_copy[i]);
+        chunk->Write(code_block_copy[i], line_block_copy[i]);
     }
     free(code_block_copy);
     free(line_block_copy);
@@ -2554,8 +2550,7 @@ PUBLIC int           Compiler::CodePointer() {
     return CurrentChunk()->Count;
 }
 PUBLIC void          Compiler::EmitByte(Uint8 byte) {
-    // ChunkWrite(CurrentChunk(), byte, parser.Previous.Line);
-    ChunkWrite(CurrentChunk(), byte, (int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
+    CurrentChunk()->Write(byte, (int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
 PUBLIC void          Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
     EmitByte(byte1);
@@ -2700,7 +2695,7 @@ PUBLIC int           Compiler::FindConstant(VMValue value) {
     return -1;
 }
 PUBLIC int           Compiler::MakeConstant(VMValue value) {
-    int constant = ChunkAddConstant(CurrentChunk(), value);
+    int constant = CurrentChunk()->AddConstant(value);
     // if (constant > UINT8_MAX) {
     //     Error("Too many constants in one chunk.");
     //     return 0;
@@ -3013,75 +3008,19 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
         SetReceiverName("");
     }
 }
-PRIVATE void         Compiler::WriteV0Bytecode(Stream* stream, const char* filename) {
-    bool doLineNumbers = Compiler::WriteDebugInfo;
-    bool hasSourceFilename = Compiler::WriteSourceFilename;
+PRIVATE void         Compiler::WriteBytecode(Stream* stream, const char* filename) {
+    Bytecode* bytecode = new Bytecode();
 
-    stream->WriteBytes((char*)Compiler::Magic, 4);
-    stream->WriteByte(Compiler::BytecodeVersion);
-    stream->WriteByte((hasSourceFilename << 1) | doLineNumbers);
-    stream->WriteByte(0x00);
-    stream->WriteByte(0x00);
+    for (size_t i = 0; i < Compiler::Functions.size(); i++)
+        bytecode->Functions.push_back(Compiler::Functions[i]);
 
-    int chunkCount = (int)Compiler::Functions.size();
+    bytecode->HasDebugInfo = Compiler::WriteDebugInfo;
+    bytecode->Write(stream, Compiler::WriteSourceFilename ? filename : nullptr, TokenMap);
 
-    stream->WriteUInt32(chunkCount);
-    for (int c = 0; c < chunkCount; c++) {
-        int    arity = Compiler::Functions[c]->Arity;
-        Chunk* chunk = &Compiler::Functions[c]->Chunk;
+    delete bytecode;
 
-        stream->WriteUInt32(chunk->Count);
-        stream->WriteUInt32(arity);
-        stream->WriteUInt32(Murmur::EncryptString(Compiler::Functions[c]->Name->Chars));
-
-        stream->WriteBytes(chunk->Code, chunk->Count);
-        if (doLineNumbers) {
-            stream->WriteBytes(chunk->Lines, chunk->Count * sizeof(int));
-        }
-
-        int constSize = (int)chunk->Constants->size();
-        stream->WriteUInt32(constSize);
-        for (int i = 0; i < constSize; i++) {
-            VMValue constt = (*chunk->Constants)[i];
-            Uint8 type = (Uint8)constt.Type;
-            stream->WriteByte(type);
-
-            switch (type) {
-                case VAL_INTEGER:
-                    stream->WriteBytes(&AS_INTEGER(constt), sizeof(int));
-                    break;
-                case VAL_DECIMAL:
-                    stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
-                    break;
-                case VAL_OBJECT:
-                    if (OBJECT_TYPE(constt) == OBJ_STRING) {
-                        ObjString* str = AS_STRING(constt);
-                        stream->WriteBytes(str->Chars, str->Length + 1);
-                    }
-                    else {
-                        printf("Unsupported object type...Chief. (%s)\n", GetObjectTypeString(OBJECT_TYPE(constt)));
-                        stream->WriteByte(0);
-                    }
-                    break;
-            }
-        }
-    }
-
-    // Add tokens
-    if (doLineNumbers && TokenMap) {
-        stream->WriteUInt32(TokenMap->Count + Compiler::FunctionNames.size());
-        std::for_each(Compiler::FunctionNames.begin(), Compiler::FunctionNames.end(), [stream](const char* name) {
-            stream->WriteBytes((void*)name, strlen(name) + 1);
-        });
-        TokenMap->WithAll([stream](Uint32, Token t) -> void {
-            stream->WriteBytes(t.Start, t.Length);
-            stream->WriteByte(0); // NULL terminate
-        });
+    if (TokenMap)
         TokenMap->Clear();
-    }
-
-    if (hasSourceFilename)
-        stream->WriteBytes((void*)filename, strlen(filename) + 1);
 }
 PUBLIC bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
     scanner.Line = 1;
@@ -3116,7 +3055,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
     if (!stream) return false;
 
-    WriteV0Bytecode(stream, filename);
+    WriteBytecode(stream, filename);
 
     stream->Close();
 

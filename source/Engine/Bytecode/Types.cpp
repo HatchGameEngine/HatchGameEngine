@@ -72,7 +72,8 @@ ObjFunction*      NewFunction() {
     function->UpvalueCount = 0;
     function->Name = NULL;
     function->ClassName = NULL;
-    ChunkInit(&function->Chunk);
+    function->SourceFilename = NULL;
+    function->Chunk.Init();
     return function;
 }
 ObjNative*        NewNative(NativeFn function) {
@@ -232,57 +233,57 @@ const char*       GetValueTypeString(VMValue value) {
         return GetTypeString(value.Type);
 }
 
-void              ChunkInit(Chunk* chunk) {
-    chunk->Count = 0;
-    chunk->Capacity = 0;
-    chunk->Code = NULL;
-    chunk->Lines = NULL;
-    chunk->Constants = new vector<VMValue>();
+void              Chunk::Init() {
+    Count = 0;
+    Capacity = 0;
+    Code = NULL;
+    Lines = NULL;
+    Constants = new vector<VMValue>();
 }
-void              ChunkAlloc(Chunk* chunk) {
-    if (!chunk->Code)
-        chunk->Code = (Uint8*)Memory::TrackedMalloc("Chunk::Code", sizeof(Uint8) * chunk->Capacity);
+void              Chunk::Alloc() {
+    if (!Code)
+        Code = (Uint8*)Memory::TrackedMalloc("Chunk::Code", sizeof(Uint8) * Capacity);
     else
-        chunk->Code = (Uint8*)Memory::Realloc(chunk->Code, sizeof(Uint8) * chunk->Capacity);
+        Code = (Uint8*)Memory::Realloc(Code, sizeof(Uint8) * Capacity);
 
-    if (!chunk->Lines)
-        chunk->Lines = (int*)Memory::TrackedMalloc("Chunk::Lines", sizeof(int) * chunk->Capacity);
+    if (!Lines)
+        Lines = (int*)Memory::TrackedMalloc("Chunk::Lines", sizeof(int) * Capacity);
     else
-        chunk->Lines = (int*)Memory::Realloc(chunk->Lines, sizeof(int) * chunk->Capacity);
+        Lines = (int*)Memory::Realloc(Lines, sizeof(int) * Capacity);
 
-    chunk->OwnsMemory = true;
+    OwnsMemory = true;
 }
-void              ChunkFree(Chunk* chunk) {
-    if (chunk->OwnsMemory) {
-        if (chunk->Code) {
-            Memory::Free(chunk->Code);
-            chunk->Code = NULL;
-            chunk->Count = 0;
-            chunk->Capacity = 0;
+void              Chunk::Free() {
+    if (OwnsMemory) {
+        if (Code) {
+            Memory::Free(Code);
+            Code = NULL;
+            Count = 0;
+            Capacity = 0;
         }
-        if (chunk->Lines) {
-            Memory::Free(chunk->Lines);
-            chunk->Lines = NULL;
+        if (Lines) {
+            Memory::Free(Lines);
+            Lines = NULL;
         }
     }
 
-    if (chunk->Constants) {
-        chunk->Constants->clear();
-        chunk->Constants->shrink_to_fit();
-        delete chunk->Constants;
+    if (Constants) {
+        Constants->clear();
+        Constants->shrink_to_fit();
+        delete Constants;
     }
 }
-void              ChunkWrite(Chunk* chunk, Uint8 byte, int line) {
-    if (chunk->Capacity < chunk->Count + 1) {
-        int oldCapacity = chunk->Capacity;
-        chunk->Capacity = GROW_CAPACITY(oldCapacity);
-        ChunkAlloc(chunk);
+void              Chunk::Write(Uint8 byte, int line) {
+    if (Capacity < Count + 1) {
+        int oldCapacity = Capacity;
+        Capacity = GROW_CAPACITY(oldCapacity);
+        Alloc();
     }
-    chunk->Code[chunk->Count] = byte;
-    chunk->Lines[chunk->Count] = line;
-    chunk->Count++;
+    Code[Count] = byte;
+    Lines[Count] = line;
+    Count++;
 }
-int               ChunkAddConstant(Chunk* chunk, VMValue value) {
-    chunk->Constants->push_back(value);
-    return (int)chunk->Constants->size() - 1;
+int               Chunk::AddConstant(VMValue value) {
+    Constants->push_back(value);
+    return (int)Constants->size() - 1;
 }

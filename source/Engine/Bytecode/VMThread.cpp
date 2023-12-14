@@ -150,7 +150,10 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
             line = function->Chunk.Lines[bpos] & 0xFFFF;
 
             std::string functionName = GetFunctionName(function);
-            buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename, line, errorString);
+            if (function->SourceFilename)
+                buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename->Chars, line, errorString);
+            else
+                buffer_printf(buffer, "In %s, line %d:\n\n    %s\n", functionName.c_str(), line, errorString);
         }
         else {
             buffer_printf(buffer, "On line %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
@@ -164,14 +167,17 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
     for (Uint32 i = 0; i < FrameCount; i++) {
         CallFrame* fr = &Frames[i];
         function = fr->Function;
-        source = function->SourceFilename;
+        source = function->SourceFilename ? function->SourceFilename->Chars : nullptr;
         line = -1;
         if (i > 0) {
             CallFrame* fr2 = &Frames[i - 1];
             line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
         }
         std::string functionName = GetFunctionName(function);
-        buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
+        if (source)
+            buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
+        else
+            buffer_printf(buffer, "    called %s", functionName.c_str());
 
         if (line > 0) {
             buffer_printf(buffer, " on Line %d", line);
@@ -205,7 +211,10 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
 
             if (function) {
                 std::string functionName = GetFunctionName(function);
-                buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->SourceFilename, errorString);
+                if (function->SourceFilename)
+                    buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->SourceFilename->Chars, errorString);
+                else
+                    buffer_printf(&buffer, "While calling %s:\n\n    %s\n", functionName.c_str(), errorString);
             }
             else {
                 buffer_printf(&buffer, "While calling value: %s\n", errorString);

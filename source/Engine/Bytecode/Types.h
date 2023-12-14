@@ -48,17 +48,18 @@ struct Chunk {
     int*             Lines;
     vector<VMValue>* Constants;
     bool             OwnsMemory;
+
+    void Init();
+    void Alloc();
+    void Free();
+    void Write(Uint8 byte, int line);
+    int  AddConstant(VMValue value);
 };
 
 struct BytecodeContainer {
     Uint8* Data;
     size_t Size;
 };
-
-void ChunkInit(Chunk* chunk);
-void ChunkFree(Chunk* chunk);
-void ChunkWrite(Chunk* chunk, Uint8 byte, int line);
-int  ChunkAddConstant(Chunk* chunk, VMValue value);
 
 const char* GetTypeString(Uint32 type);
 const char* GetObjectTypeString(Uint32 type);
@@ -189,7 +190,7 @@ struct ObjFunction {
     size_t       FunctionListOffset;
     ObjString*   Name;
     ObjString*   ClassName;
-    char         SourceFilename[256];
+    ObjString*   SourceFilename;
     Uint32       NameHash;
 };
 struct ObjNative {

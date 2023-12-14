@@ -110,6 +110,9 @@ PUBLIC         char*   Stream::ReadString() {
 
     return data;
 }
+PUBLIC         void    Stream::SkipString() {
+    while (ReadByte());
+}
 PUBLIC         Uint16* Stream::ReadUnicodeString() {
     size_t start = Position();
     while (ReadUInt16());

@@ -240,6 +240,8 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
         case OBJ_FUNCTION: {
             ObjFunction* function = (ObjFunction*)object;
             GrayObject(function->Name);
+            GrayObject(function->ClassName);
+            GrayObject(function->SourceFilename);
             for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
                 GrayValue((*function->Chunk.Constants)[i]);
             }

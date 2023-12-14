@@ -23,13 +23,11 @@ public:
     static VMThread                    Threads[8];
     static Uint32                      ThreadCount;
 
-    static vector<ObjFunction*>        FunctionList;
     static vector<ObjFunction*>        AllFunctionList;
 
     static HashMap<BytecodeContainer>* Sources;
     static HashMap<ObjClass*>*         Classes;
     static HashMap<char*>*             Tokens;
-    static vector<char*>               TokensList;
     static vector<ObjClass*>           ClassImplList;
 
     static SDL_mutex*                  GlobalLock;
@@ -42,6 +40,7 @@ public:
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -64,13 +63,11 @@ HashMap<VMValue>*           ScriptManager::Constants = NULL;
 
 std::set<Obj*>              ScriptManager::FreedGlobals;
 
-vector<ObjFunction*>        ScriptManager::FunctionList;
 vector<ObjFunction*>        ScriptManager::AllFunctionList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>*         ScriptManager::Classes = NULL;
 HashMap<char*>*             ScriptManager::Tokens = NULL;
-vector<char*>               ScriptManager::TokensList;
 vector<ObjClass*>           ScriptManager::ClassImplList;
 
 SDL_mutex*                  ScriptManager::GlobalLock = NULL;
@@ -193,10 +190,9 @@ PUBLIC STATIC void    ScriptManager::Dispose() {
         Classes = NULL;
     }
     if (Tokens) {
-        for (size_t i = 0, iSz = TokensList.size(); i < iSz; i++) {
-            Memory::Free(TokensList[i]);
-        }
-        TokensList.clear();
+        Tokens->WithAll([](Uint32 hash, char* token) -> void {
+            Memory::Free(token);
+        });
         Tokens->Clear();
         delete Tokens;
         Tokens = NULL;
@@ -247,8 +243,7 @@ PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
     for (size_t i = 0; i < function->Chunk.Constants->size(); i++)
         FreeValue((*function->Chunk.Constants)[i]);
     function->Chunk.Constants->clear();
-
-    ChunkFree(&function->Chunk);
+    function->Chunk.Free();
 
     FREE_OBJ(function, ObjFunction);
 }
@@ -700,111 +695,32 @@ PUBLIC STATIC void    ScriptManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecode, Uint32 filenameHash) {
-    MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
-    if (!stream)
-        return false;
-
-    FunctionList.clear();
-
-    Uint8 magic[4];
-    stream->ReadBytes(magic, 4);
-    if (memcmp(Compiler::Magic, magic, 4) != 0) {
-        Log::Print(Log::LOG_ERROR, "Incorrect magic!");
-        stream->Close();
+PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+    Bytecode* bytecode = new Bytecode();
+    if (!bytecode->Read(bytecodeContainer, Tokens)) {
+        delete bytecode;
         return false;
     }
-
-    // Uint8 version = stream->ReadByte();
-    stream->Skip(1);
-    Uint8 opts = stream->ReadByte();
-    stream->Skip(1);
-    stream->Skip(1);
-
-    bool doLineNumbers = opts & 1;
-    bool hasSourceFilename = opts & 2;
 
     size_t functionListOffset = AllFunctionList.size();
 
-    int chunkCount = stream->ReadInt32();
-    for (int i = 0; i < chunkCount; i++) {
-        int   count = stream->ReadInt32();
-        int   arity = stream->ReadInt32();
-        Uint32 hash = stream->ReadUInt32();
-
-        ObjFunction* function = NewFunction();
-        function->Arity = arity;
-        function->NameHash = hash;
+    for (size_t i = 0; i < bytecode->Functions.size(); i++) {
+        ObjFunction* function = bytecode->Functions[i];
         function->FunctionListOffset = functionListOffset;
-        function->Chunk.Count = count;
-        function->Chunk.OwnsMemory = false;
-
-        function->Chunk.Code = stream->pointer;
-        stream->Skip(count * sizeof(Uint8));
-
-        if (doLineNumbers) {
-            function->Chunk.Lines = (int*)stream->pointer;
-            stream->Skip(count * sizeof(int));
-        }
-
-        int constantCount = stream->ReadInt32();
-        for (int c = 0; c < constantCount; c++) {
-            Uint8 type = stream->ReadByte();
-            switch (type) {
-                case VAL_INTEGER:
-                    ChunkAddConstant(&function->Chunk, INTEGER_VAL(stream->ReadInt32()));
-                    break;
-                case VAL_DECIMAL:
-                    ChunkAddConstant(&function->Chunk, DECIMAL_VAL(stream->ReadFloat()));
-                    break;
-                case VAL_OBJECT:
-                    char* str = stream->ReadString();
-                    ChunkAddConstant(&function->Chunk, OBJECT_VAL(CopyString(str)));
-                    Memory::Free(str);
-                    break;
-            }
-        }
-
-        FunctionList.push_back(function);
         AllFunctionList.push_back(function);
     }
 
-    if (doLineNumbers && Tokens) {
-        int tokenCount = stream->ReadInt32();
-        for (int t = 0; t < tokenCount; t++) {
-            char* string = stream->ReadString();
-            Uint32 hash = Murmur::EncryptString(string);
-
-            if (!Tokens->Exists(hash)) {
-                Tokens->Put(hash, string);
-                TokensList.push_back(string);
-            }
-            else
-                Memory::Free(string);
-        }
-
-        for (ObjFunction* function : FunctionList) {
-            if (Tokens->Exists(function->NameHash))
-                function->Name = CopyString(Tokens->Get(function->NameHash));
-        }
+    if (!bytecode->SourceFilename) {
+        char fnHash[256];
+        snprintf(fnHash, sizeof(fnHash), "%08X", filenameHash);
+        ObjString* srcFilename = CopyString(fnHash);
+        for (ObjFunction* function : bytecode->Functions)
+            function->SourceFilename = srcFilename;
     }
 
-    if (hasSourceFilename) {
-        char* fn = stream->ReadString();
-        for (ObjFunction* function : FunctionList)
-            StringUtils::Copy(function->SourceFilename, fn, sizeof(function->SourceFilename));
-        Memory::Free(fn);
-    }
-    else {
-        char sourceFilename[256];
-        snprintf(sourceFilename, sizeof(sourceFilename), "%08X", filenameHash);
-        for (ObjFunction* function : FunctionList)
-            StringUtils::Copy(function->SourceFilename, sourceFilename, sizeof(function->SourceFilename));
-    }
+    Threads[0].RunFunction(bytecode->Functions[0], 0);
 
-    stream->Close();
-
-    Threads[0].RunFunction(FunctionList[0], 0);
+    delete bytecode;
 
     return true;
 }
