@@ -24,8 +24,7 @@ typedef enum {
 
 enum {
     CLASS_TYPE_NORMAL,
-    CLASS_TYPE_EXTENDED,
-    CLASS_TYPE_ENUM
+    CLASS_TYPE_EXTENDED
 };
 
 struct Obj;
@@ -134,6 +133,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define IS_MAP(value)           IsObjectType(value, OBJ_MAP)
 #define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
 #define IS_NAMESPACE(value)     IsObjectType(value, OBJ_NAMESPACE)
+#define IS_ENUM(value)          IsObjectType(value, OBJ_ENUM)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -147,6 +147,7 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define AS_MAP(value)           ((ObjMap*)AS_OBJECT(value))
 #define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
 #define AS_NAMESPACE(value)     ((ObjNamespace*)AS_OBJECT(value))
+#define AS_ENUM(value)          ((ObjEnum*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -160,7 +161,10 @@ enum ObjType {
     OBJ_ARRAY,
     OBJ_MAP,
     OBJ_STREAM,
-    OBJ_NAMESPACE
+    OBJ_NAMESPACE,
+    OBJ_ENUM,
+
+    MAX_OBJ_TYPE
 };
 
 typedef HashMap<VMValue> Table;
@@ -246,6 +250,12 @@ struct ObjNamespace {
     Uint32     Hash;
     Table*     Fields;
 };
+struct ObjEnum {
+    Obj        Object;
+    ObjString* Name;
+    Uint32     Hash;
+    Table*     Fields;
+};
 
 ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
@@ -263,6 +273,7 @@ ObjArray*          NewArray();
 ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
 ObjNamespace*      NewNamespace(Uint32 hash);
+ObjEnum*           NewEnumeration(Uint32 hash);
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \
@@ -385,6 +396,7 @@ enum   OpCode {
     OP_HAS_PROPERTY,
     OP_IMPORT_MODULE,
     OP_ADD_ENUM,
+    OP_NEW_ENUM,
 
     OP_SYNC = 0xFF,
 };

@@ -206,10 +206,11 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
 
     SDL_DestroyMutex(GlobalLock);
 }
-PUBLIC STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
+PRIVATE STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS:
+            case OBJ_ENUM:
             case OBJ_FUNCTION:
             case OBJ_NATIVE:
             case OBJ_NAMESPACE:
@@ -221,7 +222,7 @@ PUBLIC STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 has
         }
     }
 }
-PUBLIC STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValue value) {
+PRIVATE STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_NATIVE:
@@ -233,7 +234,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValu
         }
     }
 }
-PUBLIC STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function) {
+PRIVATE STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function) {
     /*
     printf("OBJ_FUNCTION: %p (%s)\n", function,
         function->Name ?
@@ -251,7 +252,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function)
 
     FREE_OBJ(function, ObjFunction);
 }
-PUBLIC STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
+PRIVATE STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
     // Subfunctions are already freed as a byproduct of the AllFunctionList,
     // so just do natives.
     klass->Methods->ForAll(FreeNativeValue);
@@ -265,6 +266,26 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
         FreeValue(OBJECT_VAL(klass->Name));
 
     FREE_OBJ(klass, ObjClass);
+}
+PRIVATE STATIC void    BytecodeObjectManager::FreeEnumeration(ObjEnum* enumeration) {
+    // An enumeration does not own its values, so it's not allowed
+    // to free them.
+    delete enumeration->Fields;
+
+    if (enumeration->Name)
+        FreeValue(OBJECT_VAL(enumeration->Name));
+
+    FREE_OBJ(enumeration, ObjEnum);
+}
+PRIVATE STATIC void    BytecodeObjectManager::FreeNamespace(ObjNamespace* ns) {
+    // A namespace does not own its values, so it's not allowed
+    // to free them.
+    delete ns->Fields;
+
+    if (ns->Name)
+        FreeValue(OBJECT_VAL(ns->Name));
+
+    FREE_OBJ(ns, ObjNamespace);
 }
 PUBLIC STATIC void    BytecodeObjectManager::FreeString(ObjString* string) {
     if (string->Chars != NULL)
@@ -293,13 +314,20 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
                 FreedGlobals.insert(object);
                 break;
             }
-            case OBJ_NATIVE: {
-                FREE_OBJ(AS_OBJECT(value), ObjNative);
+            case OBJ_ENUM: {
+                ObjEnum* enumeration = AS_ENUM(value);
+                FreeEnumeration(enumeration);
                 FreedGlobals.insert(object);
                 break;
             }
             case OBJ_NAMESPACE: {
-                FREE_OBJ(AS_OBJECT(value), ObjNamespace);
+                ObjNamespace* ns = AS_NAMESPACE(value);
+                FreeNamespace(ns);
+                FreedGlobals.insert(object);
+                break;
+            }
+            case OBJ_NATIVE: {
+                FREE_OBJ(AS_OBJECT(value), ObjNative);
                 FreedGlobals.insert(object);
                 break;
             }
@@ -321,6 +349,10 @@ PUBLIC STATIC void    BytecodeObjectManager::PrintHashTableValues(Uint32 hash, V
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS: {
                 printf("OBJ_CLASS: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
+                break;
+            }
+            case OBJ_ENUM: {
+                printf("OBJ_ENUM: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
                 break;
             }
             case OBJ_FUNCTION: {
@@ -726,14 +758,9 @@ PUBLIC STATIC bool    BytecodeObjectManager::RunBytecode(Bytecode bytecode, Uint
                     ChunkAddConstant(&function->Chunk, DECIMAL_VAL(stream->ReadFloat()));
                     break;
                 case VAL_OBJECT:
-                    // if (OBJECT_TYPE(constt) == OBJ_STRING) {
-                        char* str = stream->ReadString();
-                        ChunkAddConstant(&function->Chunk, OBJECT_VAL(CopyString(str)));
-                        Memory::Free(str);
-                    // }
-                    // else {
-                        // printf("Unsupported object type...Chief.\n");
-                    // }
+                    char* str = stream->ReadString();
+                    ChunkAddConstant(&function->Chunk, OBJECT_VAL(CopyString(str)));
+                    Memory::Free(str);
                     break;
             }
         }
@@ -797,20 +824,15 @@ PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     return true;
 }
 PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName) {
-    Uint32 hash = Globals->HashFunction(objectName, strlen(objectName));
-    ObjClass* klass = AS_CLASS(Globals->Get(hash));
-    if (!klass) {
+    VMValue val = Globals->Get(Globals->HashFunction(objectName, strlen(objectName)));
+    if (!IS_CLASS(val)) {
         Log::Print(Log::LOG_ERROR, "Can't find class of \"%s\"!", objectName);
-        return nullptr;
-    }
-    else if (klass->Type == CLASS_TYPE_ENUM) {
-        Log::Print(Log::LOG_ERROR, "Cannot spawn an object of enumerated class \"%s\"!", objectName);
         return nullptr;
     }
 
     BytecodeObject* object = new BytecodeObject;
 
-    ObjInstance* instance = NewInstance(klass);
+    ObjInstance* instance = NewInstance(AS_CLASS(val));
     object->Link(instance);
 
     return object;

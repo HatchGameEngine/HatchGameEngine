@@ -118,12 +118,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
 
     double freeElapsed = Clock::GetTicks();
 
-    int objectTypeFreed[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
-    int objectTypeCounts[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+    int objectTypeFreed[MAX_OBJ_TYPE] = { 0 };
+    int objectTypeCounts[MAX_OBJ_TYPE] = { 0 };
 
     // Collect the white objects
     Obj** object = &GarbageCollector::RootObject;
@@ -169,6 +165,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     LOG_ME(OBJ_UPVALUE);
     LOG_ME(OBJ_STREAM);
     LOG_ME(OBJ_NAMESPACE);
+    LOG_ME(OBJ_ENUM);
 
 #undef LOG_ME
 
@@ -226,6 +223,18 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
             GrayObject(klass->Name);
             GrayHashMap(klass->Methods);
             GrayHashMap(klass->Fields);
+            break;
+        }
+        case OBJ_ENUM: {
+            ObjEnum* enumeration = (ObjEnum*)object;
+            GrayObject(enumeration->Name);
+            GrayHashMap(enumeration->Fields);
+            break;
+        }
+        case OBJ_NAMESPACE: {
+            ObjNamespace* ns = (ObjNamespace*)object;
+            GrayObject(ns->Name);
+            GrayHashMap(ns->Fields);
             break;
         }
         case OBJ_FUNCTION: {

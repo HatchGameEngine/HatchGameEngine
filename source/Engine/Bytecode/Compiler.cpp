@@ -2337,9 +2337,8 @@ PUBLIC void Compiler::GetEnumDeclaration() {
         enumName = parser.Previous;
         DeclareVariable(&enumName);
 
-        EmitByte(OP_CLASS);
+        EmitByte(OP_NEW_ENUM);
         EmitStringHash(enumName);
-        EmitByte(CLASS_TYPE_ENUM);
 
         DefineVariableToken(enumName);
 
@@ -2940,6 +2939,8 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return WithInstruction("OP_WITH", chunk, offset);
         case OP_CLASS:
             return ClassInstruction("OP_CLASS", chunk, offset);
+        case OP_NEW_ENUM:
+            return ClassInstruction("OP_NEW_ENUM", chunk, offset);
         case OP_INHERIT:
             return SimpleInstruction("OP_INHERIT", offset);
         case OP_METHOD:
@@ -3088,7 +3089,8 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
                         stream->WriteBytes(str->Chars, str->Length + 1);
                     }
                     else {
-                        printf("Unsupported object type...Chief.\n");
+                        printf("Unsupported object type...Chief. (%s)\n", GetObjectTypeString(OBJECT_TYPE(constt)));
+                        stream->WriteByte(0);
                     }
                     break;
             }

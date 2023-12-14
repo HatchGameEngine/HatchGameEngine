@@ -42,6 +42,8 @@ public:
 #define USING_VM_DISPATCH_TABLE
 #endif
 
+// #define VM_DEBUG_INSTRUCTIONS
+
 // Locks are only in 3 places:
 // Heap, which contains object memory and globals
 // Bytecode area, which contains function bytecode
@@ -310,12 +312,11 @@ PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
 }
 
 PUBLIC int     VMThread::RunInstruction() {
-    // #define VM_DEBUG_INSTRUCTIONS
-
     // NOTE: MSVC cannot take advantage of the dispatch table.
     #ifdef USING_VM_DISPATCH_TABLE
         #define VM_ADD_DISPATCH(op) &&START_ ## op
         #define VM_ADD_DISPATCH_NULL(op) NULL
+        // This must follow the existing opcode order.
         static const void* dispatch_table[] = {
             VM_ADD_DISPATCH_NULL(OP_ERROR),
             VM_ADD_DISPATCH(OP_CONSTANT),
@@ -385,6 +386,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_HAS_PROPERTY),
             VM_ADD_DISPATCH(OP_IMPORT_MODULE),
             VM_ADD_DISPATCH(OP_ADD_ENUM),
+            VM_ADD_DISPATCH(OP_NEW_ENUM),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -472,9 +474,10 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_IMPORT)
                 PRINT_CASE(OP_SWITCH)
                 PRINT_CASE(OP_POPN)
-                PRINT_CASE(OP_HAS_PROPERTY),
-                PRINT_CASE(OP_IMPORT_MODULE),
-                PRINT_CASE(OP_ADD_ENUM),
+                PRINT_CASE(OP_HAS_PROPERTY)
+                PRINT_CASE(OP_IMPORT_MODULE)
+                PRINT_CASE(OP_ADD_ENUM)
+                PRINT_CASE(OP_NEW_ENUM)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -702,19 +705,17 @@ PUBLIC int     VMThread::RunInstruction() {
             object = Peek(1);
 
             if (IS_INSTANCE(object)) {
-                ObjInstance* instance = AS_INSTANCE(object);
-                fields = instance->Fields;
+                fields = AS_INSTANCE(object)->Fields;
             }
             else if (IS_CLASS(object)) {
-                ObjClass* klass = AS_CLASS(object);
-                if (klass->Type == CLASS_TYPE_ENUM) {
-                    if (ThrowRuntimeError(false, "Cannot modify the values of an enumeration.") == ERROR_RES_CONTINUE)
-                        goto FAIL_OP_SET_PROPERTY;
-                }
-                fields = klass->Fields;
+                fields = AS_CLASS(object)->Fields;
             }
             else if (IS_NAMESPACE(object)) {
                 if (ThrowRuntimeError(false, "Cannot modify a namespace.") == ERROR_RES_CONTINUE)
+                    goto FAIL_OP_SET_PROPERTY;
+            }
+            else if (IS_ENUM(object)) {
+                if (ThrowRuntimeError(false, "Cannot modify the values of an enumeration.") == ERROR_RES_CONTINUE)
                     goto FAIL_OP_SET_PROPERTY;
             }
             else {
@@ -1537,8 +1538,6 @@ PUBLIC int     VMThread::RunInstruction() {
                 return INTERPRET_RUNTIME_ERROR;
             }
             frame = &Frames[FrameCount - 1];
-            VM_BREAK;
-
             FAIL_OP_NEW:
             VM_BREAK;
         }
@@ -1556,23 +1555,35 @@ PUBLIC int     VMThread::RunInstruction() {
         }
 
         VM_CASE(OP_IMPORT): {
-            VMValue value = ReadConstant(frame);
-            if (!Import(value)) {
-                // ThrowRuntimeError(false, "Could not import class!");
-            }
-
+            Import(ReadConstant(frame));
             VM_BREAK;
         }
 
         VM_CASE(OP_IMPORT_MODULE): {
-            VMValue value = ReadConstant(frame);
-            if (!ImportModule(value)) {
+            if (!ImportModule(ReadConstant(frame))) {
                 ThrowRuntimeError(false, "Could not import module!");
             }
 
             VM_BREAK;
         }
 
+        VM_CASE(OP_NEW_ENUM): {
+            Uint32 hash = ReadUInt32(frame);
+            ObjEnum* enumeration = NewEnumeration(hash);
+
+            if (!__Tokens__ || !__Tokens__->Exists(hash)) {
+                char name[9];
+                snprintf(name, sizeof(name), "%8X", hash);
+                enumeration->Name = CopyString(name);
+            }
+            else {
+                char* t = __Tokens__->Get(hash);
+                enumeration->Name = CopyString(t);
+            }
+
+            Push(OBJECT_VAL(enumeration));
+            VM_BREAK;
+        }
         VM_CASE(OP_ENUM_NEXT): {
             VMValue b = Peek(0);
             VMValue a = Peek(1);
@@ -1587,27 +1598,19 @@ PUBLIC int     VMThread::RunInstruction() {
             Push(Values_Plus());
             VM_BREAK;
         }
-
         VM_CASE(OP_ADD_ENUM): {
-            ObjClass* klass = nullptr;
+            ObjEnum* enumeration = nullptr;
             VMValue object = Peek(1);
             Uint32 hash = ReadUInt32(frame);
 
-            if (IS_CLASS(object)) {
-                klass = AS_CLASS(object);
-                if (klass->Type != CLASS_TYPE_ENUM) {
-                    if (ThrowRuntimeError(false, "Cannot add entry to non-enumeration.") == ERROR_RES_CONTINUE)
-                        goto FAIL_OP_ADD_ENUM;
-                }
-            }
-            else {
-                if (ThrowRuntimeError(false, "Unexpected value type; value was of type %s.", GetValueTypeString(object)) == ERROR_RES_CONTINUE)
-                    goto FAIL_OP_ADD_ENUM;
-            }
+            if (IS_ENUM(object))
+                enumeration = AS_ENUM(object);
+            else if (ThrowRuntimeError(false, "Unexpected value type; value was of type %s.", GetValueTypeString(object)) == ERROR_RES_CONTINUE)
+                goto FAIL_OP_ADD_ENUM;
 
             if (BytecodeObjectManager::Lock()) {
                 VMValue value = Pop();
-                klass->Fields->Put(hash, value);
+                enumeration->Fields->Put(hash, value);
                 Pop();
                 Push(value);
                 BytecodeObjectManager::Unlock();
@@ -1876,24 +1879,19 @@ PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
         }
         else {
             ObjClass* klass = AS_CLASS(callee);
-            if (klass->Type == CLASS_TYPE_ENUM) {
-                ThrowRuntimeError(false, "Cannot instantiate enumeration.");
-            }
-            else {
-                // Create the instance.
-                StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
 
+            // Create the instance.
+            StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
+
+            // Call the initializer, if there is one.
+            if (HasInitializer(klass))
+                result = Call(AS_FUNCTION(klass->Initializer), argCount);
+            else if (argCount != 0) {
+                ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
+                result = false;
+            }
+            else
                 result = true;
-
-                // Call the initializer, if there is one.
-                if (HasInitializer(klass))
-                    result = Call(AS_FUNCTION(klass->Initializer), argCount);
-                else if (argCount != 0) {
-                    ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
-                    result = false;
-                }
-
-            }
         }
 
         BytecodeObjectManager::Unlock();
@@ -1977,15 +1975,6 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
 PUBLIC bool    VMThread::DoClassExtension(VMValue value, VMValue originalValue) {
     ObjClass* src = AS_CLASS(value);
     ObjClass* dst = AS_CLASS(originalValue);
-
-    if (dst->Type == CLASS_TYPE_ENUM && src->Type != CLASS_TYPE_ENUM) {
-        ThrowRuntimeError(false, "Cannot extend enumeration with class.");
-        return false;
-    }
-    else if (src->Type == CLASS_TYPE_ENUM && dst->Type != CLASS_TYPE_ENUM) {
-        ThrowRuntimeError(false, "Cannot extend class with enumeration.");
-        return false;
-    }
 
     src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
         dst->Methods->Put(hash, value);
@@ -2449,6 +2438,9 @@ PUBLIC VMValue VMThread::Value_TypeOf() {
                     break;
                 case OBJ_NAMESPACE:
                     valueType = "namespace";
+                    break;
+                case OBJ_ENUM:
+                    valueType = "enum";
                     break;
             }
         }

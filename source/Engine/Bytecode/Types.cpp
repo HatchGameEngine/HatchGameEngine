@@ -159,6 +159,14 @@ ObjNamespace*     NewNamespace(Uint32 hash) {
     ns->Fields = new Table(NULL, 16);
     return ns;
 }
+ObjEnum*          NewEnumeration(Uint32 hash) {
+    ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
+    Memory::Track(enumeration, "NewEnumeration");
+    enumeration->Name = NULL;
+    enumeration->Hash = hash;
+    enumeration->Fields = new Table(NULL, 16);
+    return enumeration;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -194,6 +202,8 @@ const char*       GetObjectTypeString(Uint32 type) {
             return "Function";
         case OBJ_CLASS:
             return "Class";
+        case OBJ_ENUM:
+            return "Enumeration";
         case OBJ_CLOSURE:
             return "Closure";
         case OBJ_INSTANCE:
