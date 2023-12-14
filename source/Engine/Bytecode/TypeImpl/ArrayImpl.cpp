@@ -9,7 +9,7 @@ public:
 #endif
 
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* ArrayImpl::Class = nullptr;
@@ -20,10 +20,10 @@ PUBLIC STATIC void ArrayImpl::Init() {
     Class = NewClass(Murmur::EncryptString(name));
     Class->Name = CopyString(name);
 
-    BytecodeObjectManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
-    BytecodeObjectManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
+    ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
+    ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
 
-    BytecodeObjectManager::ClassImplList.push_back(Class);
+    ScriptManager::ClassImplList.push_back(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
@@ -50,7 +50,7 @@ PUBLIC STATIC VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, U
     ObjArray* array = GET_ARG(0, GetArray);
     int index = GET_ARG(1, GetInteger);
     if (index < 0 || (Uint32)index >= array->Values->size()) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false,
             "Index %d is out of bounds of array of size %d.", index, (int)array->Values->size());
         return NULL_VAL;
     }

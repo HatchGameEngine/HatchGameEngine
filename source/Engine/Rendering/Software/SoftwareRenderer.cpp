@@ -39,7 +39,7 @@ public:
 #include <Engine/IO/ResourceStream.h>
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;

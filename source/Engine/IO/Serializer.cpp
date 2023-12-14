@@ -56,6 +56,8 @@ public:
 
 #include <Engine/IO/Serializer.h>
 
+#include <Engine/Utilities/StringUtils.h>
+
 Uint32 Serializer::Magic = 0x9D939FF0;
 Uint32 Serializer::Version = 0x00000001;
 
@@ -151,7 +153,7 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
             break;
         }
         default:
-            Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetTypeString(OBJECT_VAL(obj)));
+            Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetObjectTypeString(obj->Type));
             WriteObjectPreamble(Serializer::OBJ_TYPE_UNIMPLEMENTED);
     }
 
@@ -406,7 +408,7 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
             }
             else if (StringList[stringID].Chars != nullptr) {
                 Uint32 length = StringList[stringID].Length;
-                char* mapKey = HeapCopyString(StringList[stringID].Chars, length);
+                char* mapKey = StringUtils::Duplicate(StringList[stringID].Chars, length);
                 if (mapKey)
                     map->Keys->Put(mapKey, mapKey);
             }

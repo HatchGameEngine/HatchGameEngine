@@ -1,16 +1,15 @@
 #if INTERFACE
 #include <Engine/IO/Stream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 class TiledMapReader {
 public:
-    // static bool             Initialized;
 };
 #endif
 
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -506,7 +505,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
 
                 ObjectList* objectList = Scene::GetStaticObjectList(object_type_string);
                 if (objectList->SpawnFunction) {
-                    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+                    ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
                     if (!obj)
                         continue;
 

@@ -108,7 +108,7 @@ public:
 #endif
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 HashMap<Texture*>*   Graphics::TextureMap = NULL;
 HashMap<Texture*>*   Graphics::SpriteSheetTextureMap = NULL;
@@ -595,8 +595,8 @@ PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int sour
 
         Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, source_w, source_h);
 
-        Uint32 *d = (Uint32*)texture->Pixels;
-        Uint32 *s = (Uint32*)Graphics::FramebufferPixels;
+        Uint32* d = (Uint32*)texture->Pixels;
+        Uint32* s = (Uint32*)Graphics::FramebufferPixels;
 
         int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
         int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
@@ -1190,7 +1190,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
     }
 }
 PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
-    VMThread* thread = &BytecodeObjectManager::Threads[0];
+    VMThread* thread = &ScriptManager::Threads[0];
     if (func->Arity == 1) {
         thread->Push(INTEGER_VAL(layerIndex));
         thread->RunEntityFunction(func, 1);
@@ -1402,11 +1402,11 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
     //#ifdef DEBUG
     if (!sprite) return true;
     if (animation < 0 || animation >= (int)sprite->Animations.size()) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
+        ScriptManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
         return true;
     }
     if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
+        ScriptManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
         return true;
     }
     //#endif

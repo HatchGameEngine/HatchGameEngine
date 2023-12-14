@@ -24,8 +24,7 @@ typedef enum {
 
 enum {
     CLASS_TYPE_NORMAL,
-    CLASS_TYPE_EXTENDED,
-    CLASS_TYPE_ENUM
+    CLASS_TYPE_EXTENDED
 };
 
 struct Obj;
@@ -49,26 +48,22 @@ struct Chunk {
     int*             Lines;
     vector<VMValue>* Constants;
     bool             OwnsMemory;
+
+    void Init();
+    void Alloc();
+    void Free();
+    void Write(Uint8 byte, int line);
+    int  AddConstant(VMValue value);
 };
 
-struct Bytecode {
+struct BytecodeContainer {
     Uint8* Data;
     size_t Size;
 };
 
-struct PrintBuffer {
-    char** Buffer;
-    int WriteIndex;
-    int BufferSize;
-};
-int buffer_printf(PrintBuffer* printBuffer, const char *format, ...);
-
-void ChunkInit(Chunk* chunk);
-void ChunkFree(Chunk* chunk);
-void ChunkWrite(Chunk* chunk, Uint8 byte, int line);
-int  ChunkAddConstant(Chunk* chunk, VMValue value);
-
-const char* GetTypeString(VMValue value);
+const char* GetTypeString(Uint32 type);
+const char* GetObjectTypeString(Uint32 type);
+const char* GetValueTypeString(VMValue value);
 
 #define IS_NULL(value)  ((value).Type == VAL_NULL)
 #define IS_INTEGER(value)  ((value).Type == VAL_INTEGER)
@@ -138,6 +133,8 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define IS_ARRAY(value)         IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value)           IsObjectType(value, OBJ_MAP)
 #define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
+#define IS_NAMESPACE(value)     IsObjectType(value, OBJ_NAMESPACE)
+#define IS_ENUM(value)          IsObjectType(value, OBJ_ENUM)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -150,6 +147,8 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define AS_ARRAY(value)         ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value)           ((ObjMap*)AS_OBJECT(value))
 #define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
+#define AS_NAMESPACE(value)     ((ObjNamespace*)AS_OBJECT(value))
+#define AS_ENUM(value)          ((ObjEnum*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -162,7 +161,11 @@ enum ObjType {
     OBJ_UPVALUE,
     OBJ_ARRAY,
     OBJ_MAP,
-    OBJ_STREAM
+    OBJ_STREAM,
+    OBJ_NAMESPACE,
+    OBJ_ENUM,
+
+    MAX_OBJ_TYPE
 };
 
 typedef HashMap<VMValue> Table;
@@ -187,7 +190,7 @@ struct ObjFunction {
     size_t       FunctionListOffset;
     ObjString*   Name;
     ObjString*   ClassName;
-    char         SourceFilename[256];
+    ObjString*   SourceFilename;
     Uint32       NameHash;
 };
 struct ObjNative {
@@ -242,13 +245,24 @@ struct ObjStream {
     bool              Writable;
     bool              Closed;
 };
+struct ObjNamespace {
+    Obj        Object;
+    ObjString* Name;
+    Uint32     Hash;
+    Table*     Fields;
+};
+struct ObjEnum {
+    Obj        Object;
+    ObjString* Name;
+    Uint32     Hash;
+    Table*     Fields;
+};
 
 ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
 ObjString*         AllocString(size_t length);
-char*              HeapCopyString(const char* str, size_t len);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);
 ObjUpvalue*        NewUpvalue(VMValue* slot);
@@ -259,6 +273,8 @@ ObjBoundMethod*    NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray*          NewArray();
 ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
+ObjNamespace*      NewNamespace(Uint32 hash);
+ObjEnum*           NewEnumeration(Uint32 hash);
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \
@@ -381,6 +397,7 @@ enum   OpCode {
     OP_HAS_PROPERTY,
     OP_IMPORT_MODULE,
     OP_ADD_ENUM,
+    OP_NEW_ENUM,
 
     OP_SYNC = 0xFF,
 };

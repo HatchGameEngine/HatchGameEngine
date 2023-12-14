@@ -108,7 +108,7 @@ PUBLIC STATIC void Log::Print(int sev, const char* format, ...) {
     if (written_chars <= 0)
         return;
     else if (written_chars + 1 >= stringBufferSize) {
-        stringBufferSize = written_chars + 1 + 1023;
+        stringBufferSize = written_chars + 1024;
 
         char* newStringBuffer = (char*)realloc(stringBuffer, stringBufferSize * sizeof(char));
 

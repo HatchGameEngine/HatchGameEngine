@@ -19,8 +19,8 @@ public:
 
 #include <Engine/Bytecode/GarbageCollector.h>
 
-#include <Engine/Bytecode/BytecodeObject.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -50,8 +50,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     double grayElapsed = Clock::GetTicks();
 
     // Mark threads (should lock here for safety)
-    for (Uint32 t = 0; t < BytecodeObjectManager::ThreadCount; t++) {
-        VMThread* thread = BytecodeObjectManager::Threads + t;
+    for (Uint32 t = 0; t < ScriptManager::ThreadCount; t++) {
+        VMThread* thread = ScriptManager::Threads + t;
         // Mark stack roots
         for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
             GrayValue(*slot);
@@ -63,16 +63,16 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     }
 
     // Mark global roots
-    GrayHashMap(BytecodeObjectManager::Globals);
+    GrayHashMap(ScriptManager::Globals);
 
     // Mark constants
-    GrayHashMap(BytecodeObjectManager::Constants);
+    GrayHashMap(ScriptManager::Constants);
 
     // Mark static objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
 
-        BytecodeObject* bobj = (BytecodeObject*)ent;
+        ScriptEntity* bobj = (ScriptEntity*)ent;
         GrayObject(bobj->Instance);
         GrayHashMap(bobj->Properties);
     }
@@ -80,7 +80,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
 
-        BytecodeObject* bobj = (BytecodeObject*)ent;
+        ScriptEntity* bobj = (ScriptEntity*)ent;
         GrayObject(bobj->Instance);
         GrayHashMap(bobj->Properties);
     }
@@ -96,13 +96,13 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     }
 
     // Mark functions
-    for (size_t i = 0; i < BytecodeObjectManager::AllFunctionList.size(); i++) {
-        GrayObject(BytecodeObjectManager::AllFunctionList[i]);
+    for (size_t i = 0; i < ScriptManager::AllFunctionList.size(); i++) {
+        GrayObject(ScriptManager::AllFunctionList[i]);
     }
 
     // Mark classes
-    for (size_t i = 0; i < BytecodeObjectManager::ClassImplList.size(); i++) {
-        GrayObject(BytecodeObjectManager::ClassImplList[i]);
+    for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
+        GrayObject(ScriptManager::ClassImplList[i]);
     }
 
     grayElapsed = Clock::GetTicks() - grayElapsed;
@@ -118,12 +118,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
 
     double freeElapsed = Clock::GetTicks();
 
-    int objectTypeFreed[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
-    int objectTypeCounts[] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+    int objectTypeFreed[MAX_OBJ_TYPE] = { 0 };
+    int objectTypeCounts[MAX_OBJ_TYPE] = { 0 };
 
     // Collect the white objects
     Obj** object = &GarbageCollector::RootObject;
@@ -168,6 +164,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     LOG_ME(OBJ_STRING);
     LOG_ME(OBJ_UPVALUE);
     LOG_ME(OBJ_STREAM);
+    LOG_ME(OBJ_NAMESPACE);
+    LOG_ME(OBJ_ENUM);
 
 #undef LOG_ME
 
@@ -185,7 +183,7 @@ PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
             Scene::DeleteRemoved((Entity*)instance->EntityPtr);
     }
 
-    BytecodeObjectManager::FreeValue(value);
+    ScriptManager::FreeValue(value);
 }
 
 PRIVATE STATIC void GarbageCollector::GrayValue(VMValue value) {
@@ -227,9 +225,23 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
             GrayHashMap(klass->Fields);
             break;
         }
+        case OBJ_ENUM: {
+            ObjEnum* enumeration = (ObjEnum*)object;
+            GrayObject(enumeration->Name);
+            GrayHashMap(enumeration->Fields);
+            break;
+        }
+        case OBJ_NAMESPACE: {
+            ObjNamespace* ns = (ObjNamespace*)object;
+            GrayObject(ns->Name);
+            GrayHashMap(ns->Fields);
+            break;
+        }
         case OBJ_FUNCTION: {
             ObjFunction* function = (ObjFunction*)object;
             GrayObject(function->Name);
+            GrayObject(function->ClassName);
+            GrayObject(function->SourceFilename);
             for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
                 GrayValue((*function->Chunk.Constants)[i]);
             }

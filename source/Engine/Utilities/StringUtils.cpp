@@ -15,6 +15,15 @@ PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
     memcpy(string, src, length);
     return string;
 }
+PUBLIC STATIC char* StringUtils::Duplicate(const char* src, size_t length) {
+    size_t srcLength = strlen(src);
+    if (length > srcLength)
+        length = srcLength;
+    char* string = (char*)Memory::Malloc(length + 1);
+    memcpy(string, src, length);
+    string[length] = '\0';
+    return string;
+}
 PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
         return true;
