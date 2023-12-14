@@ -284,7 +284,7 @@ PRIVATE STATIC void Application::MakeEngineVersion() {
 
 #ifdef VERSION_PATCH
     versionText += ".";
-    versionText += std::to_string(VERSION_MINOR);
+    versionText += std::to_string(VERSION_PATCH);
 #endif
 
 #ifdef VERSION_PRERELEASE
