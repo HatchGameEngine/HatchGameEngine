@@ -245,6 +245,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\SoundFormat.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\WAV.cpp" />
     <ClCompile Include="..\source\engine\Scene.cpp" />
+    <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\ScrollingIndex.cpp" />
     <ClCompile Include="..\source\engine\scene\ScrollingInfo.cpp" />

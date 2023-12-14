@@ -15,7 +15,6 @@ public:
     static char        SettingsFile[4096];
 
     static XMLNode*    GameConfig;
-    static XMLNode*    SceneConfig;
 
     static float       FPS;
     static bool        Running;
@@ -62,6 +61,7 @@ public:
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
+#include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -103,7 +103,6 @@ INI*        Application::Settings = NULL;
 char        Application::SettingsFile[4096];
 
 XMLNode*    Application::GameConfig = NULL;
-XMLNode*    Application::SceneConfig = NULL;
 
 float       Application::FPS = 60.f;
 int         TargetFPS = 60;
@@ -458,18 +457,17 @@ PUBLIC STATIC void Application::SetWindowTitle(const char* title) {
 }
 
 PUBLIC STATIC void Application::UpdateWindowTitle() {
-    char full[512];
-    snprintf(full, sizeof(full), "%s", Application::WindowTitle);
+    std::string titleText = std::string(Application::WindowTitle);
 
     bool paren = false;
 
 #define ADD_TEXT(text) \
     if (!paren) { \
         paren = true; \
-        StringUtils::Concat(full, " (", sizeof(full)); \
+        titleText += " ("; \
     } \
-    else StringUtils::Concat(full, ", ", sizeof(full)); \
-    StringUtils::Concat(full, text, sizeof(full))
+    else titleText += ", "; \
+    titleText += text
 
     if (DevMenu) {
         if (ResourceManager::UsingDataFolder) {
@@ -499,9 +497,9 @@ PUBLIC STATIC void Application::UpdateWindowTitle() {
 #undef ADD_TEXT
 
     if (paren)
-        strcat(full, ")");
+        titleText += ")";
 
-    SDL_SetWindowTitle(Application::Window, full);
+    SDL_SetWindowTitle(Application::Window, titleText.c_str());
 }
 
 PRIVATE STATIC void Application::Restart() {
@@ -1381,113 +1379,45 @@ PRIVATE STATIC void Application::LoadGameInfo() {
 }
 
 PUBLIC STATIC void Application::LoadSceneInfo() {
-    if (Application::GameConfig && ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
+    if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
         XMLNode* node;
 
         // Read category and starting scene number to be used by the SceneConfig
-        node = Application::GameConfig->children[0];
-        if (node) {
-            ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory);
-            ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
-        }
-        else {
-            Scene::ActiveCategory       = 0;
-            Application::StartSceneNum  = 0;
-        }
-
-        // Open and read SceneConfig
-        Application::SceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
-        if (!Application::SceneConfig)
-            return;
-
-        node = Application::SceneConfig->children[0];
-
-        // TODO: Check existing scene folder and id here to reset them upon reload
-
-        Scene::CategoryCount = 0;
-        Scene::StageCount = 0;
-        Scene::ListPos = 0;
-
-        Scene::ListCategory.clear();
-        Scene::ListCategory.shrink_to_fit();
-
-        Scene::ListData.clear();
-        Scene::ListData.shrink_to_fit();
-
-        // Parse Scene List
-        for (size_t i = 0; i < node->children.size(); ++i) {
-            XMLNode* listElement = node->children[i];
-            if (XMLParser::MatchToken(listElement->name, "category")) {
-                SceneListInfo category;
-                if (listElement->attributes.Exists("name"))
-                    XMLParser::CopyTokenToString(listElement->attributes.Get("name"), category.name, sizeof(category.name));
-                else
-                    snprintf(category.name, sizeof(category.name), "unknown list");
-
-                category.sceneOffsetStart = Scene::ListData.size();
-                category.sceneCount = 0;
-
-                for (size_t s = 0; s < listElement->children.size(); ++s) {
-                    XMLNode* stgElement = listElement->children[s];
-                    if (XMLParser::MatchToken(stgElement->name, "stage")) {
-                        SceneListEntry scene;
-                        if (stgElement->attributes.Exists("name"))
-                            XMLParser::CopyTokenToString(stgElement->attributes.Get("name"), scene.name, sizeof(scene.name));
-                        else
-                            snprintf(scene.name, sizeof(scene.name), "unknownStage");
-
-                        if (stgElement->attributes.Exists("folder"))
-                            XMLParser::CopyTokenToString(stgElement->attributes.Get("folder"), scene.folder, sizeof(scene.folder));
-                        else
-                            // Accounts for scenes placed in the root of the Scenes folder if the file type is not "bin"
-                            scene.folder[0] = '\0';
-
-                        if (stgElement->attributes.Exists("id"))
-                            XMLParser::CopyTokenToString(stgElement->attributes.Get("id"), scene.id, sizeof(scene.id));
-                        else
-                            snprintf(scene.id, sizeof(scene.id), "unknownID");
-
-                        if (stgElement->attributes.Exists("spriteFolder"))
-                            XMLParser::CopyTokenToString(stgElement->attributes.Get("spriteFolder"), scene.spriteFolder, sizeof(scene.spriteFolder));
-                        else
-                            snprintf(scene.spriteFolder, sizeof(scene.spriteFolder), "unknownSprFldr");
-
-                        if (stgElement->attributes.Exists("type"))
-                            XMLParser::CopyTokenToString(stgElement->attributes.Get("type"), scene.fileType, sizeof(scene.fileType));
-                        else
-                            snprintf(scene.fileType, sizeof(scene.fileType), "bin");
-
-                        Scene::ListData.push_back(scene);
-                        category.sceneCount++;
-                        Scene::StageCount++;
-                    }
-
-                    category.sceneOffsetEnd = category.sceneOffsetStart + category.sceneCount;
-                }
-
-                Scene::ListCategory.push_back(category);
-                Scene::CategoryCount++;
+        if (Application::GameConfig) {
+            node = Application::GameConfig->children[0];
+            if (node) {
+                ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory);
+                ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
             }
         }
 
-        Scene::ListPos = Scene::ListCategory[Scene::ActiveCategory].sceneOffsetStart + Application::StartSceneNum;
-        SceneListEntry scene = Scene::ListData[Scene::ListPos];
-        strcpy(Scene::CurrentFolder, scene.folder);
-        strcpy(Scene::CurrentID, scene.id);
-        strcpy(Scene::CurrentSpriteFolder, scene.spriteFolder);
-        char filePath[4096];
-        if (!strcmp(scene.fileType, "bin")) {
-            snprintf(filePath, sizeof(filePath), "Stages/%s/Scene%s.%s", scene.folder, scene.id, scene.fileType);
+        // Open and read SceneConfig
+        XMLNode* sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
+        if (!sceneConfig)
+            return;
+
+        // TODO: Check existing scene folder and id here to reset them upon reload
+        SceneInfo::Init();
+
+        Scene::ActiveCategory = 0;
+        Application::StartSceneNum = 0;
+
+        // Parse Scene List
+        if (SceneInfo::Load(sceneConfig->children[0])) {
+            if (SceneInfo::IsCategoryValid(Scene::ActiveCategory)) {
+                SceneListCategory& category = SceneInfo::Categories[Scene::ActiveCategory];
+                size_t listPos = category.OffsetStart + Application::StartSceneNum;
+                if (listPos < category.OffsetEnd) {
+                    Scene::CurrentSceneInList = listPos;
+                    Scene::SetInfoFromCurrentID();
+                }
+            }
+
+            Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)",
+                SceneInfo::Categories.size(), SceneInfo::Entries.size());
         }
-        else {
-            if (scene.folder[0] == '\0')
-                snprintf(filePath, sizeof(filePath), "Scenes/%s.%s", scene.id, scene.fileType);
-            else
-                snprintf(filePath, sizeof(filePath), "Scenes/%s/%s.%s", scene.folder, scene.id, scene.fileType);
-        }
-        StringUtils::Copy(StartingScene, filePath, sizeof(StartingScene));
-        Log::Print(Log::LOG_VERBOSE, "Successfully read SceneConfig.xml file.");
-        XMLParser::Free(Application::SceneConfig);
+
+        XMLParser::Free(sceneConfig);
     }
 }
 

@@ -6,6 +6,7 @@
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/IModel.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/View.h>
 #include <Engine/Includes/HashMap.h>

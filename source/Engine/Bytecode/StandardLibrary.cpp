@@ -42,6 +42,8 @@ public:
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/ResourceType.h>
+#include <Engine/Scene/SceneEnums.h>
+#include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/JSON/jsmn.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -4842,8 +4844,8 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 
         View* currentView = Graphics::CurrentView;
         if (currentView) {
-            // If we are using a draw target, then we can't reliably use the
-            // viewport's dimensions, because it might not match the view's size
+            // If we are using a draw target, then we can't reliably use the viewport's dimensions,
+            // because it might not match the view's size
             if (currentView->UseDrawTarget && currentView->DrawTarget) {
                 width = Graphics::CurrentView->Width;
                 height = Graphics::CurrentView->Height;
@@ -8753,30 +8755,20 @@ VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.LoadPosition
- * \desc Loads the scene located in the scene list's position slot, if a scene sist is loaded.
+ * \desc Loads the scene located in the scene list's position slot, if a scene list is loaded.
  * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
  * \ns Scene
  */
 VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
-    if (Scene::ListData.size()) {
-        SceneListEntry scene = Scene::ListData[Scene::ListPos];
-        if (!strcmp(scene.fileType, "bin")) {
-            snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Stages/%s/Scene%s.%s", scene.folder, scene.id, scene.fileType);
-        }
-        else {
-            if (scene.folder[0] == '\0')
-                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s.%s", scene.id, scene.fileType);
-            else
-                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s/%s.%s", scene.folder, scene.id, scene.fileType);
-        }
-        if (argCount != 0) {
-            CHECK_ARGCOUNT(1);
-            Scene::NoPersistency = !!GET_ARG(1, GetInteger);
-        }
-        else {
-            Scene::NoPersistency = true;
-        }
-    }
+    if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return NULL_VAL;
+
+    std::string path = SceneInfo::GetFilename(Scene::CurrentSceneInList);
+
+    StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
+
+    Scene::NoPersistency = !!GET_ARG_OPT(1, GetInteger, false);
+
     return NULL_VAL;
 }
 /***
@@ -9277,7 +9269,7 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
  */
 VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::ListPos);
+    return INTEGER_VAL(Scene::CurrentSceneInList);
 }
 /***
  * Scene.GetCurrentFolder
@@ -9337,7 +9329,7 @@ VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::CategoryCount);
+    return INTEGER_VAL((int)SceneInfo::Categories.size());
 }
 /***
  * Scene.GetStageCount
@@ -9347,7 +9339,7 @@ VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::StageCount);
+    return INTEGER_VAL((int)SceneInfo::Entries.size());
 }
 /***
  * Scene.GetDebugMode
@@ -9559,16 +9551,9 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
  */
 VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    if (Scene::ListData.size()) {
-        if (Scene::ActiveCategory >= Scene::CategoryCount)
-            return INTEGER_VAL(0);
-
-        SceneListInfo list = Scene::ListCategory[Scene::ActiveCategory];
-        return INTEGER_VAL((int)(!!(Scene::ListPos >= list.sceneOffsetStart && Scene::ListPos <= list.sceneOffsetEnd)));
-    }
-    else {
-        return INTEGER_VAL(0);
-    } 
+    if (SceneInfo::IsEntryValidInCategory(Scene::ActiveCategory, Scene::CurrentSceneInList))
+        return INTEGER_VAL(true);
+    return INTEGER_VAL(false);
 }
 /***
  * Scene.CheckSceneFolder
@@ -9579,10 +9564,9 @@ VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (Scene::ListData.size())
-        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].folder, GET_ARG(0, GetString)) == 0));
-    else
-        return INTEGER_VAL(0);
+    if (SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return INTEGER_VAL(false);
+    return INTEGER_VAL((int)!!(strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].Folder, GET_ARG(0, GetString)) == 0));
 }
 /***
  * Scene.CheckSceneID
@@ -9593,10 +9577,9 @@ VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (Scene::ListData.size())
-        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].id, GET_ARG(0, GetString)) == 0));
-    else
-        return INTEGER_VAL(0);
+    if (SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return INTEGER_VAL(false);
+    return INTEGER_VAL((int)!!(strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].ID, GET_ARG(0, GetString)) == 0));
 }
 /***
  * Scene.IsPaused
@@ -9614,7 +9597,7 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Scene::ListPos = GET_ARG(0, GetInteger);
+    Scene::CurrentSceneInList = GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 /***
@@ -9641,12 +9624,12 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.SetScene
  * \desc Sets the scene if the category and scene names exist within the scene list.
  * \param category (String): Category name.
- * \param scene (String): Scene name. If the scene name is not found but the category name is, the 
+ * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
 VMValue Scene_SetScene(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    Scene::SetScene(GET_ARG(0, GetString), GET_ARG(1, GetString));
+    Scene::SetCurrent(GET_ARG(0, GetString), GET_ARG(1, GetString));
     return NULL_VAL;
 }
 /***
@@ -9694,8 +9677,6 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 
     *tile |= collA;
     *tile |= collB;
-
-    // Scene::UpdateTileBatch(layer, x / 8, y / 8);
 
     Scene::AnyLayerTileChange = true;
 
@@ -16462,7 +16443,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \type Integer
     * \desc The position of the current scene in the scene list.
     */
-    DEF_LINK_INT("Scene_ListPos", &Scene::ListPos);
+    DEF_LINK_INT("Scene_ListPos", &Scene::CurrentSceneInList);
     /***
     * \global Scene_ActiveCategory
     * \type Integer

@@ -39,10 +39,6 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_FLIPY_MASK 0x00002000U
 #define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
 
-#define TILE_FLIPX_MASK 0x80000000U
-#define TILE_FLIPY_MASK 0x40000000U
-#define TILE_IDENT_MASK 0x00FFFFFFU // Max. 16777216 tiles
-
 PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
     Stream* r = ResourceStream::New(filename);
     if (!r) {

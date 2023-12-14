@@ -24,6 +24,15 @@ PUBLIC STATIC char* StringUtils::Duplicate(const char* src, size_t length) {
     string[length] = '\0';
     return string;
 }
+PUBLIC STATIC char* StringUtils::Resize(char* src, size_t length) {
+    size_t originalSize = strlen(src);
+    char* string = (char *)Memory::Realloc(src, length + 1);
+    if (length > originalSize)
+        memset(&string[originalSize], 0x00, (length - originalSize) + 1);
+    else
+        string[length] = '\0';
+    return string;
+}
 PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
         return true;

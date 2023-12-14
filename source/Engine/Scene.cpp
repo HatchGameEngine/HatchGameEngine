@@ -15,6 +15,7 @@
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Scene/SceneConfig.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/TileConfig.h>
 #include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/TileAnimation.h>
@@ -104,17 +105,12 @@ public:
 
     static int                       Filter;
 
-    static vector<SceneListEntry>    ListData;
-    static vector<SceneListInfo>     ListCategory;
-    static int                       ListPos;
-    static char                      CurrentFolder[16];
-    static char                      CurrentID[16];
-    static char                      CurrentSpriteFolder[16];
-    static char                      CurrentCategory[16];
+    static int                       CurrentSceneInList;
+    static char                      CurrentFolder[256];
+    static char                      CurrentID[256];
+    static char                      CurrentSpriteFolder[256];
+    static char                      CurrentCategory[256];
     static int                       ActiveCategory;
-    static int                       CategoryCount;
-    static int                       ListCount;
-    static int                       StageCount;
 
     static int                       DebugMode;
 
@@ -166,7 +162,7 @@ public:
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
-#include <Engine/Scene/SceneConfig.h>
+#include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/EntityTypes.h>
@@ -247,17 +243,12 @@ int                       Scene::Minutes = 0;
 int                       Scene::Filter = 0xFF;
 
 // Scene list variables
-vector<SceneListEntry>    Scene::ListData;
-vector<SceneListInfo>     Scene::ListCategory;
-int                       Scene::ListPos;
-char                      Scene::CurrentFolder[16];
-char                      Scene::CurrentID[16];
-char                      Scene::CurrentSpriteFolder[16];
-char                      Scene::CurrentCategory[16];
+int                       Scene::CurrentSceneInList;
+char                      Scene::CurrentFolder[256];
+char                      Scene::CurrentID[256];
+char                      Scene::CurrentSpriteFolder[256];
+char                      Scene::CurrentCategory[256];
 int                       Scene::ActiveCategory;
-int                       Scene::CategoryCount;
-int                       Scene::ListCount;
-int                       Scene::StageCount;
 
 // Debug mode variables
 int                       Scene::DebugMode;
@@ -673,22 +664,40 @@ PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
 }
 
 // Scene List Functions
-PUBLIC STATIC void Scene::SetScene(const char* categoryName, const char* sceneName) {
-    for (int i = 0; i < Scene::CategoryCount; ++i) {
-        if (!strcmp(Scene::ListCategory[i].name, categoryName)) {
-            Scene::ActiveCategory = i;
-            Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart;
+PUBLIC STATIC void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
+    int categoryID = SceneInfo::GetCategoryID(categoryName);
+    if (categoryID < 0)
+        return;
 
-            for (int s = 0; s < Scene::ListCategory[i].sceneCount; ++s) {
-                if (!strcmp(Scene::ListData[Scene::ListCategory[i].sceneOffsetStart + s].name, sceneName)) {
-                    Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart + s;
-                    break;
-                }
-            }
+    SceneListCategory& category = SceneInfo::Categories[categoryID];
+    if (!SceneInfo::IsEntryValid(category.OffsetStart))
+        return;
 
-            break;
-        }
-    }
+    Scene::ActiveCategory = categoryID;
+
+    int entryID = SceneInfo::GetEntryIDWithinRange(category.OffsetStart, category.OffsetEnd, sceneName);
+    if (entryID != -1)
+        Scene::CurrentSceneInList = entryID;
+    else
+        Scene::CurrentSceneInList = category.OffsetStart;
+}
+PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
+    if (!SceneInfo::IsCategoryValid(Scene::ActiveCategory))
+        return;
+
+    SceneListCategory& category = SceneInfo::Categories[Scene::ActiveCategory];
+    size_t entryID = (size_t)Scene::CurrentSceneInList;
+    if (Scene::CurrentSceneInList >= category.OffsetEnd)
+        return;
+
+    SceneListEntry& scene = SceneInfo::Entries[entryID];
+
+    strcpy(Scene::CurrentFolder, scene.Folder);
+    strcpy(Scene::CurrentID, scene.ID);
+    strcpy(Scene::CurrentSpriteFolder, scene.SpriteFolder);
+    strcpy(Scene::CurrentCategory, category.Name);
+
+    Scene::CurrentSceneInList = entryID;
 }
 
 // Scene Lifecycle
@@ -1662,28 +1671,12 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
                 TiledMapReader::Read(filename, pathParent);
         }
 
-        // Prepare tile collisions
         InitTileCollisions();
+        SetInfoFromCurrentID();
 
-        // Load scene info and tile collisions
-        if (Scene::ListData.size()) {
-            SceneListEntry scene = Scene::ListData[Scene::ListPos];
-
-            strcpy(Scene::CurrentFolder, scene.folder);
-            strcpy(Scene::CurrentID, scene.id);
-            strcpy(Scene::CurrentSpriteFolder, scene.spriteFolder);
-
-            char filePath[4096];
-            if (!strcmp(scene.fileType, "bin")) {
-                snprintf(filePath, sizeof(filePath), "Stages/%s/TileConfig.bin", scene.folder);
-            }
-            else {
-                if (scene.folder[0] == '\0')
-                    snprintf(filePath, sizeof(filePath), "Scenes/TileConfig.bin");
-                else
-                    snprintf(filePath, sizeof(filePath), "Scenes/%s/TileConfig.bin", scene.folder);
-            }
-            Scene::LoadTileCollisions(filePath, 0);
+        if (SceneInfo::IsEntryValid(CurrentSceneInList)) {
+            std::string filename = SceneInfo::GetTileConfigFilename(CurrentSceneInList);
+            Scene::LoadTileCollisions(filename.c_str(), 0);
         }
     }
     else
