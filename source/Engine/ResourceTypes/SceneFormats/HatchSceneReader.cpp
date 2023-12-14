@@ -13,7 +13,7 @@ public:
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
 
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>

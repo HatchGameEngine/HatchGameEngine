@@ -52,7 +52,7 @@ public:
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
@@ -516,7 +516,7 @@ PRIVATE STATIC void Application::Restart() {
     });
     Graphics::SpriteSheetTextureMap->Clear();
 
-    BytecodeObjectManager::LoadAllClasses = false;
+    ScriptManager::LoadAllClasses = false;
     BytecodeObject::DisableAutoAnimate = false;
 
     Graphics::Reset();
@@ -1257,7 +1257,7 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     // Read engine settings
     node = XMLParser::SearchNode(root, "engine");
     if (node) {
-        ParseGameConfigBool(node, "loadAllClasses", BytecodeObjectManager::LoadAllClasses);
+        ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
         ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
         ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
     }

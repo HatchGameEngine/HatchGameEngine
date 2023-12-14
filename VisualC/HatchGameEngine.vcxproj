@@ -154,9 +154,9 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp" />
-    <ClCompile Include="..\source\engine\bytecode\BytecodeObjectManager.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />
     <ClCompile Include="..\source\engine\bytecode\GarbageCollector.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\ScriptManager.cpp" />
     <ClCompile Include="..\source\engine\bytecode\SourceFileMap.cpp" />
     <ClCompile Include="..\source\engine\bytecode\StandardLibrary.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Types.cpp" />

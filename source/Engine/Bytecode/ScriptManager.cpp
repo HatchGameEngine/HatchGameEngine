@@ -11,32 +11,32 @@ need_t BytecodeObject;
 
 #include <set>
 
-class BytecodeObjectManager {
+class ScriptManager {
 public:
-    static bool                 LoadAllClasses;
+    static bool                        LoadAllClasses;
 
-    static HashMap<VMValue>*    Globals;
-    static HashMap<VMValue>*    Constants;
+    static HashMap<VMValue>*           Globals;
+    static HashMap<VMValue>*           Constants;
 
-    static std::set<Obj*>       FreedGlobals;
+    static std::set<Obj*>              FreedGlobals;
 
-    static VMThread             Threads[8];
-    static Uint32               ThreadCount;
+    static VMThread                    Threads[8];
+    static Uint32                      ThreadCount;
 
-    static vector<ObjFunction*> FunctionList;
-    static vector<ObjFunction*> AllFunctionList;
+    static vector<ObjFunction*>        FunctionList;
+    static vector<ObjFunction*>        AllFunctionList;
 
-    static HashMap<Bytecode>*   Sources;
-    static HashMap<ObjClass*>*  Classes;
-    static HashMap<char*>*      Tokens;
-    static vector<char*>        TokensList;
-    static vector<ObjClass*>    ClassImplList;
+    static HashMap<BytecodeContainer>* Sources;
+    static HashMap<ObjClass*>*         Classes;
+    static HashMap<char*>*             Tokens;
+    static vector<char*>               TokensList;
+    static vector<ObjClass*>           ClassImplList;
 
-    static SDL_mutex*           GlobalLock;
+    static SDL_mutex*                  GlobalLock;
 };
 #endif
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/BytecodeObject.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/StandardLibrary.h>
@@ -54,30 +54,30 @@ public:
 
 #include <Engine/Bytecode/Compiler.h>
 
-bool                 BytecodeObjectManager::LoadAllClasses = false;
+bool                        ScriptManager::LoadAllClasses = false;
 
-VMThread             BytecodeObjectManager::Threads[8];
-Uint32               BytecodeObjectManager::ThreadCount = 1;
+VMThread                    ScriptManager::Threads[8];
+Uint32                      ScriptManager::ThreadCount = 1;
 
-HashMap<VMValue>*    BytecodeObjectManager::Globals = NULL;
-HashMap<VMValue>*    BytecodeObjectManager::Constants = NULL;
+HashMap<VMValue>*           ScriptManager::Globals = NULL;
+HashMap<VMValue>*           ScriptManager::Constants = NULL;
 
-std::set<Obj*>       BytecodeObjectManager::FreedGlobals;
+std::set<Obj*>              ScriptManager::FreedGlobals;
 
-vector<ObjFunction*> BytecodeObjectManager::FunctionList;
-vector<ObjFunction*> BytecodeObjectManager::AllFunctionList;
+vector<ObjFunction*>        ScriptManager::FunctionList;
+vector<ObjFunction*>        ScriptManager::AllFunctionList;
 
-HashMap<Bytecode>*   BytecodeObjectManager::Sources = NULL;
-HashMap<ObjClass*>*  BytecodeObjectManager::Classes = NULL;
-HashMap<char*>*      BytecodeObjectManager::Tokens = NULL;
-vector<char*>        BytecodeObjectManager::TokensList;
-vector<ObjClass*>    BytecodeObjectManager::ClassImplList;
+HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
+HashMap<ObjClass*>*         ScriptManager::Classes = NULL;
+HashMap<char*>*             ScriptManager::Tokens = NULL;
+vector<char*>               ScriptManager::TokensList;
+vector<ObjClass*>           ScriptManager::ClassImplList;
 
-SDL_mutex*           BytecodeObjectManager::GlobalLock = NULL;
+SDL_mutex*                  ScriptManager::GlobalLock = NULL;
 
 // #define DEBUG_STRESS_GC
 
-PUBLIC STATIC void    BytecodeObjectManager::RequestGarbageCollection() {
+PUBLIC STATIC void    ScriptManager::RequestGarbageCollection() {
 #ifndef DEBUG_STRESS_GC
     if (GarbageCollector::GarbageSize > GarbageCollector::NextGC)
 #endif
@@ -90,31 +90,31 @@ PUBLIC STATIC void    BytecodeObjectManager::RequestGarbageCollection() {
         Log::Print(Log::LOG_INFO, "%04X: Freed garbage from %u to %u (%d), next GC at %d", Scene::Frame, (Uint32)startSize, (Uint32)GarbageCollector::GarbageSize, GarbageCollector::GarbageSize - startSize, GarbageCollector::NextGC);
     }
 }
-PUBLIC STATIC void    BytecodeObjectManager::ForceGarbageCollection() {
-    if (BytecodeObjectManager::Lock()) {
-        if (BytecodeObjectManager::ThreadCount > 1) {
-            BytecodeObjectManager::Unlock();
+PUBLIC STATIC void    ScriptManager::ForceGarbageCollection() {
+    if (ScriptManager::Lock()) {
+        if (ScriptManager::ThreadCount > 1) {
+            ScriptManager::Unlock();
             return;
         }
 
         GarbageCollector::Collect();
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
 }
 
-PUBLIC STATIC void    BytecodeObjectManager::ResetStack() {
+PUBLIC STATIC void    ScriptManager::ResetStack() {
     Threads[0].ResetStack();
 }
 
 // #region Life Cycle
-PUBLIC STATIC void    BytecodeObjectManager::Init() {
+PUBLIC STATIC void    ScriptManager::Init() {
     if (Globals == NULL)
         Globals = new HashMap<VMValue>(NULL, 8);
     if (Constants == NULL)
         Constants = new HashMap<VMValue>(NULL, 8);
     if (Sources == NULL)
-        Sources = new HashMap<Bytecode>(NULL, 8);
+        Sources = new HashMap<BytecodeContainer>(NULL, 8);
     if (Classes == NULL)
         Classes = new HashMap<ObjClass*>(NULL, 8);
     if (Tokens == NULL)
@@ -143,12 +143,12 @@ PUBLIC STATIC void    BytecodeObjectManager::Init() {
     }
     ThreadCount = 1;
 }
-PUBLIC STATIC void    BytecodeObjectManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
+PUBLIC STATIC void    ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
     globals->ForAll(FreeGlobalValue);
     globals->Clear();
     delete globals;
 }
-PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
+PUBLIC STATIC void    ScriptManager::Dispose() {
     // NOTE: Remove GC-able values from these tables so they may be cleaned up.
     if (Globals)
         Globals->ForAll(RemoveNonGlobalableValue);
@@ -180,7 +180,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
     FreeFunctions();
 
     if (Sources) {
-        Sources->WithAll([](Uint32 hash, Bytecode bytecode) -> void {
+        Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
             Memory::Free(bytecode.Data);
         });
         Sources->Clear();
@@ -206,7 +206,7 @@ PUBLIC STATIC void    BytecodeObjectManager::Dispose() {
 
     SDL_DestroyMutex(GlobalLock);
 }
-PRIVATE STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
+PRIVATE STATIC void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS:
@@ -222,7 +222,7 @@ PRIVATE STATIC void    BytecodeObjectManager::RemoveNonGlobalableValue(Uint32 ha
         }
     }
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMValue value) {
+PRIVATE STATIC void    ScriptManager::FreeNativeValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_NATIVE:
@@ -234,7 +234,7 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeNativeValue(Uint32 hash, VMVal
         }
     }
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function) {
+PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
     /*
     printf("OBJ_FUNCTION: %p (%s)\n", function,
         function->Name ?
@@ -252,7 +252,7 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeFunction(ObjFunction* function
 
     FREE_OBJ(function, ObjFunction);
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
+PRIVATE STATIC void    ScriptManager::FreeClass(ObjClass* klass) {
     // Subfunctions are already freed as a byproduct of the AllFunctionList,
     // so just do natives.
     klass->Methods->ForAll(FreeNativeValue);
@@ -267,7 +267,7 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeClass(ObjClass* klass) {
 
     FREE_OBJ(klass, ObjClass);
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeEnumeration(ObjEnum* enumeration) {
+PRIVATE STATIC void    ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
     // An enumeration does not own its values, so it's not allowed
     // to free them.
     delete enumeration->Fields;
@@ -277,7 +277,7 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeEnumeration(ObjEnum* enumerati
 
     FREE_OBJ(enumeration, ObjEnum);
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeNamespace(ObjNamespace* ns) {
+PRIVATE STATIC void    ScriptManager::FreeNamespace(ObjNamespace* ns) {
     // A namespace does not own its values, so it's not allowed
     // to free them.
     delete ns->Fields;
@@ -287,14 +287,14 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeNamespace(ObjNamespace* ns) {
 
     FREE_OBJ(ns, ObjNamespace);
 }
-PUBLIC STATIC void    BytecodeObjectManager::FreeString(ObjString* string) {
+PUBLIC STATIC void    ScriptManager::FreeString(ObjString* string) {
     if (string->Chars != NULL)
         Memory::Free(string->Chars);
     string->Chars = NULL;
 
     FREE_OBJ(string, ObjString);
 }
-PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValue value) {
+PUBLIC STATIC void    ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         Obj* object = AS_OBJECT(value);
         if (FreedGlobals.find(object) != FreedGlobals.end())
@@ -336,7 +336,7 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeGlobalValue(Uint32 hash, VMValu
         }
     }
 }
-PRIVATE STATIC void    BytecodeObjectManager::FreeFunctions() {
+PRIVATE STATIC void    ScriptManager::FreeFunctions() {
     Log::Print(Log::LOG_VERBOSE, "Freeing %d functions...", AllFunctionList.size());
     for (size_t i = 0; i < AllFunctionList.size(); i++) {
         FreeFunction(AllFunctionList[i]);
@@ -344,7 +344,7 @@ PRIVATE STATIC void    BytecodeObjectManager::FreeFunctions() {
     AllFunctionList.clear();
     Log::Print(Log::LOG_VERBOSE, "Done!");
 }
-PUBLIC STATIC void    BytecodeObjectManager::PrintHashTableValues(Uint32 hash, VMValue value) {
+PUBLIC STATIC void    ScriptManager::PrintHashTableValues(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS: {
@@ -395,7 +395,7 @@ PUBLIC STATIC void    BytecodeObjectManager::PrintHashTableValues(Uint32 hash, V
 // #endregion
 
 // #region ValueFuncs
-PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v, bool prettyPrint) {
+PUBLIC STATIC VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPrint) {
     if (IS_STRING(v))
         return v;
 
@@ -409,10 +409,10 @@ PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v, bool p
     free(buffer);
     return v;
 }
-PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsString(VMValue v) {
+PUBLIC STATIC VMValue ScriptManager::CastValueAsString(VMValue v) {
     return CastValueAsString(v, false);
 }
-PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsInteger(VMValue v) {
+PUBLIC STATIC VMValue ScriptManager::CastValueAsInteger(VMValue v) {
     float a;
     switch (v.Type) {
         case VAL_DECIMAL:
@@ -429,7 +429,7 @@ PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsInteger(VMValue v) {
     }
     return NULL_VAL;
 }
-PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsDecimal(VMValue v) {
+PUBLIC STATIC VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
     int a;
     switch (v.Type) {
         case VAL_DECIMAL:
@@ -446,7 +446,7 @@ PUBLIC STATIC VMValue BytecodeObjectManager::CastValueAsDecimal(VMValue v) {
     }
     return NULL_VAL;
 }
-PUBLIC STATIC VMValue BytecodeObjectManager::Concatenate(VMValue va, VMValue vb) {
+PUBLIC STATIC VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
     ObjString* a = AS_STRING(va);
     ObjString* b = AS_STRING(vb);
 
@@ -459,7 +459,7 @@ PUBLIC STATIC VMValue BytecodeObjectManager::Concatenate(VMValue va, VMValue vb)
     return OBJECT_VAL(result);
 }
 
-PUBLIC STATIC bool    BytecodeObjectManager::ValuesSortaEqual(VMValue a, VMValue b) {
+PUBLIC STATIC bool    ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
     if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) ||
         (a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
         float a_d = AS_DECIMAL(CastValueAsDecimal(a));
@@ -479,9 +479,9 @@ PUBLIC STATIC bool    BytecodeObjectManager::ValuesSortaEqual(VMValue a, VMValue
         return ValuesEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
     }
 
-    return BytecodeObjectManager::ValuesEqual(a, b);
+    return ScriptManager::ValuesEqual(a, b);
 }
-PUBLIC STATIC bool    BytecodeObjectManager::ValuesEqual(VMValue a, VMValue b) {
+PUBLIC STATIC bool    ScriptManager::ValuesEqual(VMValue a, VMValue b) {
     if (a.Type == VAL_LINKED_INTEGER) goto SKIP_CHECK;
     if (a.Type == VAL_LINKED_DECIMAL) goto SKIP_CHECK;
     if (b.Type == VAL_LINKED_INTEGER) goto SKIP_CHECK;
@@ -504,7 +504,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::ValuesEqual(VMValue a, VMValue b) {
     }
     return false;
 }
-PUBLIC STATIC bool    BytecodeObjectManager::ValueFalsey(VMValue a) {
+PUBLIC STATIC bool    ScriptManager::ValueFalsey(VMValue a) {
     if (a.Type == VAL_NULL) return true;
 
     switch (a.Type) {
@@ -517,7 +517,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::ValueFalsey(VMValue a) {
     return false;
 }
 
-PUBLIC STATIC VMValue BytecodeObjectManager::DelinkValue(VMValue val) {
+PUBLIC STATIC VMValue ScriptManager::DelinkValue(VMValue val) {
     if (IS_LINKED_DECIMAL(val))
         return DECIMAL_VAL(AS_DECIMAL(val));
     if (IS_LINKED_INTEGER(val))
@@ -526,7 +526,7 @@ PUBLIC STATIC VMValue BytecodeObjectManager::DelinkValue(VMValue val) {
     return val;
 }
 
-PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
+PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
     if (IS_OBJECT(value)) {
         Obj* objectPointer = AS_OBJECT(value);
         switch (OBJECT_TYPE(value)) {
@@ -594,14 +594,14 @@ PUBLIC STATIC void    BytecodeObjectManager::FreeValue(VMValue value) {
 // #endregion
 
 // #region GlobalFuncs
-PUBLIC STATIC bool    BytecodeObjectManager::Lock() {
+PUBLIC STATIC bool    ScriptManager::Lock() {
     return (SDL_LockMutex(GlobalLock) == 0);
 }
-PUBLIC STATIC void    BytecodeObjectManager::Unlock() {
+PUBLIC STATIC void    ScriptManager::Unlock() {
     SDL_UnlockMutex(GlobalLock);
 }
 
-PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(VMThread* thread, int index, Uint32 hash) {
+PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, int index, Uint32 hash) {
     if ((unsigned)index >= AllFunctionList.size())
         return;
 
@@ -618,7 +618,7 @@ PUBLIC STATIC void    BytecodeObjectManager::DefineMethod(VMThread* thread, int 
 
     thread->Pop();
 }
-PUBLIC STATIC void    BytecodeObjectManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
+PUBLIC STATIC void    ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
     if (function == NULL) return;
     if (klass == NULL) return;
     if (name == NULL) return;
@@ -626,7 +626,7 @@ PUBLIC STATIC void    BytecodeObjectManager::DefineNative(ObjClass* klass, const
     if (!klass->Methods->Exists(name))
         klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
 }
-PUBLIC STATIC void    BytecodeObjectManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
+PUBLIC STATIC void    ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
     if (name == NULL) return;
 
     if (klass == NULL) {
@@ -636,7 +636,7 @@ PUBLIC STATIC void    BytecodeObjectManager::GlobalLinkInteger(ObjClass* klass, 
         klass->Methods->Put(name, INTEGER_LINK_VAL(value));
     }
 }
-PUBLIC STATIC void    BytecodeObjectManager::GlobalLinkDecimal(ObjClass* klass, const char* name, float* value) {
+PUBLIC STATIC void    ScriptManager::GlobalLinkDecimal(ObjClass* klass, const char* name, float* value) {
     if (name == NULL) return;
 
     if (klass == NULL) {
@@ -646,45 +646,45 @@ PUBLIC STATIC void    BytecodeObjectManager::GlobalLinkDecimal(ObjClass* klass, 
         klass->Methods->Put(name, DECIMAL_LINK_VAL(value));
     }
 }
-PUBLIC STATIC void    BytecodeObjectManager::GlobalConstInteger(ObjClass* klass, const char* name, int value) {
+PUBLIC STATIC void    ScriptManager::GlobalConstInteger(ObjClass* klass, const char* name, int value) {
     if (name == NULL) return;
     if (klass == NULL)
         Constants->Put(name, INTEGER_VAL(value));
     else
         klass->Methods->Put(name, INTEGER_VAL(value));
 }
-PUBLIC STATIC void    BytecodeObjectManager::GlobalConstDecimal(ObjClass* klass, const char* name, float value) {
+PUBLIC STATIC void    ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float value) {
     if (name == NULL) return;
     if (klass == NULL)
         Constants->Put(name, DECIMAL_VAL(value));
     else
         klass->Methods->Put(name, DECIMAL_VAL(value));
 }
-PUBLIC STATIC ObjClass* BytecodeObjectManager::GetClassParent(ObjClass* klass) {
+PUBLIC STATIC ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
     if (!klass->Parent && klass->ParentHash) {
         VMValue parent;
-        if (BytecodeObjectManager::Globals->GetIfExists(klass->ParentHash, &parent) && IS_CLASS(parent))
+        if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) && IS_CLASS(parent))
             klass->Parent = AS_CLASS(parent);
     }
     return klass->Parent;
 }
-PUBLIC STATIC VMValue BytecodeObjectManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
+PUBLIC STATIC VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
     VMValue method;
     if (klass->Methods->GetIfExists(hash, &method)) {
         return method;
     }
     else {
-        ObjClass* parentClass = BytecodeObjectManager::GetClassParent(klass);
+        ObjClass* parentClass = ScriptManager::GetClassParent(klass);
         if (parentClass)
             return GetClassMethod(parentClass, hash);
     }
     return NULL_VAL;
 }
 
-PUBLIC STATIC void    BytecodeObjectManager::LinkStandardLibrary() {
+PUBLIC STATIC void    ScriptManager::LinkStandardLibrary() {
     StandardLibrary::Link();
 }
-PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
+PUBLIC STATIC void    ScriptManager::LinkExtensions() {
 
 }
 // #endregion
@@ -700,7 +700,7 @@ PUBLIC STATIC void    BytecodeObjectManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC bool    BytecodeObjectManager::RunBytecode(Bytecode bytecode, Uint32 filenameHash) {
+PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecode, Uint32 filenameHash) {
     MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
     if (!stream)
         return false;
@@ -808,7 +808,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::RunBytecode(Bytecode bytecode, Uint
 
     return true;
 }
-PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
+PUBLIC STATIC bool    ScriptManager::CallFunction(char* functionName) {
     if (!Globals->Exists(functionName))
         return false;
 
@@ -823,7 +823,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::CallFunction(char* functionName) {
     Threads[0].RunEntityFunction(function, 0);
     return true;
 }
-PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName) {
+PUBLIC STATIC Entity* ScriptManager::SpawnObject(const char* objectName) {
     VMValue val = Globals->Get(Globals->HashFunction(objectName, strlen(objectName)));
     if (!IS_CLASS(val)) {
         Log::Print(Log::LOG_ERROR, "Can't find class of \"%s\"!", objectName);
@@ -837,18 +837,18 @@ PUBLIC STATIC Entity* BytecodeObjectManager::SpawnObject(const char* objectName)
 
     return object;
 }
-PUBLIC STATIC Uint32 BytecodeObjectManager::MakeFilenameHash(char *filename) {
+PUBLIC STATIC Uint32 ScriptManager::MakeFilenameHash(char *filename) {
     size_t length = strlen(filename);
     char* dot = strrchr(filename, '.');
     if (dot)
         length = dot - filename;
     return CombinedHash::EncryptData((const void*)filename, length);
 }
-PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
+PUBLIC STATIC BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
     if (Sources->Exists(filenameHash))
         return Sources->Get(filenameHash);
 
-    Bytecode bytecode;
+    BytecodeContainer bytecode;
     bytecode.Data = nullptr;
     bytecode.Size = 0;
 
@@ -874,22 +874,22 @@ PUBLIC STATIC Bytecode BytecodeObjectManager::GetBytecodeFromFilenameHash(Uint32
 
     return bytecode;
 }
-PUBLIC STATIC bool    BytecodeObjectManager::ClassExists(const char* objectName) {
+PUBLIC STATIC bool    ScriptManager::ClassExists(const char* objectName) {
     return SourceFileMap::ClassMap->Exists(objectName);
 }
-PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(char* filename) {
+PUBLIC STATIC bool    ScriptManager::LoadScript(char* filename) {
     if (!filename || !*filename)
         return false;
 
     Uint32 hash = MakeFilenameHash(filename);
     return LoadScript(hash);
 }
-PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(const char* filename) {
+PUBLIC STATIC bool    ScriptManager::LoadScript(const char* filename) {
     return LoadScript((char*)filename);
 }
-PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
+PUBLIC STATIC bool    ScriptManager::LoadScript(Uint32 hash) {
     if (!Sources->Exists(hash)) {
-        Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(hash);
+        BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(hash);
         if (!bytecode.Data)
             return false;
 
@@ -898,11 +898,11 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadScript(Uint32 hash) {
 
     return true;
 }
-PUBLIC STATIC bool    BytecodeObjectManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
+PUBLIC STATIC bool    ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
     if (!objectName || !*objectName)
         return false;
 
-    if (!BytecodeObjectManager::ClassExists(objectName)) {
+    if (!ScriptManager::ClassExists(objectName)) {
         Log::Print(Log::LOG_VERBOSE, "Could not find classmap for %s%s%s! (Hash: 0x%08X)", FG_YELLOW, objectName, FG_RESET, SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
         return false;
     }
@@ -914,7 +914,7 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadObjectClass(const char* objectN
         Uint32 filenameHash = (*filenameHashList)[fn];
 
         if (!Sources->Exists(filenameHash)) {
-            Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
+            BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
                 Log::Print(Log::LOG_WARN, "Code for the object class \"%s\" does not exist!", objectName);
                 return false;
@@ -940,15 +940,15 @@ PUBLIC STATIC bool    BytecodeObjectManager::LoadObjectClass(const char* objectN
         }
         // FIXME: Do this in a better way. Probably just remove CLASS_TYPE_EXTENDED to begin with.
         if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
-            BytecodeObjectManager::AddNativeObjectFunctions(klass);
+            ScriptManager::AddNativeObjectFunctions(klass);
         }
         Classes->Put(objectName, klass);
     }
 
     return true;
 }
-PUBLIC STATIC void   BytecodeObjectManager::AddNativeObjectFunctions(ObjClass* klass) {
-#define DEF_NATIVE(name) BytecodeObjectManager::DefineNative(klass, #name, BytecodeObject::VM_##name)
+PUBLIC STATIC void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
+#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, BytecodeObject::VM_##name)
     DEF_NATIVE(InView);
     DEF_NATIVE(Animate);
     DEF_NATIVE(ApplyPhysics);
@@ -975,15 +975,15 @@ PUBLIC STATIC void   BytecodeObjectManager::AddNativeObjectFunctions(ObjClass* k
     DEF_NATIVE(StopAllSounds);
 #undef DEF_NATIVE
 }
-PUBLIC STATIC Entity* BytecodeObjectManager::ObjectSpawnFunction(const char* objectName) {
-    return BytecodeObjectManager::SpawnObject(objectName);
+PUBLIC STATIC Entity* ScriptManager::ObjectSpawnFunction(const char* objectName) {
+    return ScriptManager::SpawnObject(objectName);
 }
-PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
+PUBLIC STATIC void    ScriptManager::LoadClasses() {
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
         for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
             Uint32 filenameHash = (*filenameHashList)[fn];
 
-            Bytecode bytecode = BytecodeObjectManager::GetBytecodeFromFilenameHash(filenameHash);
+            BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
             if (!bytecode.Data) {
                 Log::Print(Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
                 continue;
@@ -993,6 +993,6 @@ PUBLIC STATIC void    BytecodeObjectManager::LoadClasses() {
         }
     });
 
-    BytecodeObjectManager::ForceGarbageCollection();
+    ScriptManager::ForceGarbageCollection();
 }
 // #endregion

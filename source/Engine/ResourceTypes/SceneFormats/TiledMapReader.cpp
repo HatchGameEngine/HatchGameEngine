@@ -1,6 +1,6 @@
 #if INTERFACE
 #include <Engine/IO/Stream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 class TiledMapReader {
 public:
     // static bool             Initialized;

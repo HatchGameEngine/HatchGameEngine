@@ -10,6 +10,7 @@ public:
     static vector<ObjFunction*> Functions;
     static HashMap<Token>*      TokenMap;
     static const char*          Magic;
+    static Uint32               BytecodeVersion;
     static vector<const char*>  FunctionNames;
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
@@ -36,7 +37,7 @@ public:
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Values.h>
 #include <Engine/IO/FileStream.h>
 
@@ -48,6 +49,7 @@ ParseRule*           Compiler::Rules = NULL;
 vector<ObjFunction*> Compiler::Functions;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 const char*          Compiler::Magic = "HTVM";
+Uint32               Compiler::BytecodeVersion = 0;
 vector<const char*>  Compiler::FunctionNames{ "<anonymous-fn>", "main" };
 bool                 Compiler::ShowWarnings = false;
 bool                 Compiler::WriteDebugInfo = false;
@@ -3011,44 +3013,12 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
         SetReceiverName("");
     }
 }
-PUBLIC bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
-    scanner.Line = 1;
-    scanner.Start = (char*)source;
-    scanner.Current = (char*)source;
-    scanner.LinePos = (char*)source;
-    scanner.SourceFilename = (char*)filename;
-
-    parser.HadError = false;
-    parser.PanicMode = false;
-
-    Initialize(NULL, 0, TYPE_TOP_LEVEL);
-
-    AdvanceToken();
-    while (!MatchToken(TOKEN_EOF)) {
-        GetDeclaration();
-    }
-
-    ConsumeToken(TOKEN_EOF, "Expected end of file.");
-    Finish();
-
-    bool debugCompiler = false;
-    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
-    if (debugCompiler) {
-        for (size_t c = 0; c < Compiler::Functions.size(); c++) {
-            Chunk* chunk = &Compiler::Functions[c]->Chunk;
-            DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->Arity);
-            printf("\n");
-        }
-    }
-
-    Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
-    if (!stream) return false;
-
+PRIVATE void         Compiler::WriteV0Bytecode(Stream* stream, const char* filename) {
     bool doLineNumbers = Compiler::WriteDebugInfo;
     bool hasSourceFilename = Compiler::WriteSourceFilename;
 
     stream->WriteBytes((char*)Compiler::Magic, 4);
-    stream->WriteByte(0x00);
+    stream->WriteByte(Compiler::BytecodeVersion);
     stream->WriteByte((hasSourceFilename << 1) | doLineNumbers);
     stream->WriteByte(0x00);
     stream->WriteByte(0x00);
@@ -3112,6 +3082,41 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     if (hasSourceFilename)
         stream->WriteBytes((void*)filename, strlen(filename) + 1);
+}
+PUBLIC bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
+    scanner.Line = 1;
+    scanner.Start = (char*)source;
+    scanner.Current = (char*)source;
+    scanner.LinePos = (char*)source;
+    scanner.SourceFilename = (char*)filename;
+
+    parser.HadError = false;
+    parser.PanicMode = false;
+
+    Initialize(NULL, 0, TYPE_TOP_LEVEL);
+
+    AdvanceToken();
+    while (!MatchToken(TOKEN_EOF)) {
+        GetDeclaration();
+    }
+
+    ConsumeToken(TOKEN_EOF, "Expected end of file.");
+    Finish();
+
+    bool debugCompiler = false;
+    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
+    if (debugCompiler) {
+        for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+            Chunk* chunk = &Compiler::Functions[c]->Chunk;
+            DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->Arity);
+            printf("\n");
+        }
+    }
+
+    Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
+    if (!stream) return false;
+
+    WriteV0Bytecode(stream, filename);
 
     stream->Close();
 

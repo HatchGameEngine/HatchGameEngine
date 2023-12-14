@@ -1,6 +1,6 @@
 #if INTERFACE
 #include <Engine/Types/Entity.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 class BytecodeObject : public Entity {
 public:
@@ -673,7 +673,7 @@ PRIVATE bool BytecodeObject::GetCallableValue(Uint32 hash, VMValue& value) {
         return true;
     }
     else {
-        value = BytecodeObjectManager::GetClassMethod(klass, hash);
+        value = ScriptManager::GetClassMethod(klass, hash);
         if (!IS_NULL(value))
             return true;
     }
@@ -698,7 +698,7 @@ PUBLIC bool BytecodeObject::RunFunction(Uint32 hash) {
     if (!BytecodeObject::GetCallableValue(hash, value))
         return true;
 
-    VMThread* thread = BytecodeObjectManager::Threads + 0;
+    VMThread* thread = ScriptManager::Threads + 0;
 
     VMValue* stackTop = thread->StackTop;
 
@@ -717,7 +717,7 @@ PUBLIC bool BytecodeObject::RunCreateFunction(VMValue flag) {
     if (!func)
         return true;
 
-    VMThread* thread = BytecodeObjectManager::Threads + 0;
+    VMThread* thread = ScriptManager::Threads + 0;
 
     VMValue* stackTop = thread->StackTop;
 
@@ -739,7 +739,7 @@ PUBLIC bool BytecodeObject::RunInitializer() {
     if (!HasInitializer(Instance->Object.Class))
         return true;
 
-    VMThread* thread = BytecodeObjectManager::Threads + 0;
+    VMThread* thread = ScriptManager::Threads + 0;
 
     VMValue* stackTop = thread->StackTop;
 
@@ -1000,17 +1000,17 @@ PUBLIC STATIC VMValue BytecodeObject::VM_SetAnimation(int argCount, VMValue* arg
         return NULL_VAL;
 
     if (self->Sprite < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "this.Sprite is not set!", animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "this.Sprite is not set!", animation);
         return NULL_VAL;
     }
 
     ISprite* sprite = Scene::SpriteList[self->Sprite]->AsSprite;
     if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
     }
     if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
         return NULL_VAL;
     }
 
@@ -1035,17 +1035,17 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ResetAnimation(int argCount, VMValue* a
 
     int spriteIns = self->Sprite;
     if (!(spriteIns > -1 && (size_t)spriteIns < Scene::SpriteList.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", spriteIns);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", spriteIns);
         return NULL_VAL;
     }
 
     ISprite* sprite = Scene::SpriteList[self->Sprite]->AsSprite;
     if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
     }
     if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
         return NULL_VAL;
     }
 
@@ -1224,18 +1224,18 @@ PUBLIC STATIC VMValue BytecodeObject::VM_GetHitboxFromSprite(int argCount, VMVal
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
     }
     if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
         return NULL_VAL;
     }
 
     AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
     if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        // ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
         self->HitboxW = 0;
         self->HitboxH = 0;
         self->HitboxOffX = 0;
@@ -1273,18 +1273,18 @@ PUBLIC STATIC VMValue BytecodeObject::VM_ReturnHitboxFromSprite(int argCount, VM
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
     }
     if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
         return NULL_VAL;
     }
 
     AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
     if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        // ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
         return NULL_VAL;
     }
 
@@ -1442,7 +1442,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_AddToDrawGroup(int argCount, VMValue* a
             Scene::PriorityLists[drawGroup].Add(self);
     }
     else
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
 }
 /***
@@ -1459,7 +1459,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_IsInDrawGroup(int argCount, VMValue* ar
     if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
         return INTEGER_VAL(!!(Scene::PriorityLists[drawGroup].Contains(self)));
     else
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
 }
 /***
@@ -1475,7 +1475,7 @@ PUBLIC STATIC VMValue BytecodeObject::VM_RemoveFromDrawGroup(int argCount, VMVal
     if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
         Scene::PriorityLists[drawGroup].Remove(self);
     else
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Draw group %d out of range. (0 - %d)", drawGroup, Scene::PriorityPerLayer - 1);
     return NULL_VAL;
 }
 

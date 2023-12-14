@@ -7,6 +7,7 @@ public:
     static HashMap<Uint32>*          Checksums;
     static HashMap<vector<Uint32>*>* ClassMap;
     static Uint32                    DirectoryChecksum;
+    static Uint32                    Magic;
 
     static bool                      DoLogging;
 };
@@ -14,7 +15,7 @@ public:
 
 #include <Engine/Bytecode/SourceFileMap.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/FileStream.h>
@@ -28,6 +29,7 @@ bool                      SourceFileMap::Initialized = false;
 HashMap<Uint32>*          SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32                    SourceFileMap::DirectoryChecksum = 0;
+Uint32                    SourceFileMap::Magic = *(Uint32*)"HMAP";
 
 bool                      SourceFileMap::DoLogging = false;
 
@@ -47,8 +49,7 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
         ResourceStream* stream = ResourceStream::New("Objects/Objects.hcm");
         if (stream) {
             Uint32 magic_got;
-            Uint32 magic = *(Uint32*)"HMAP";
-            if ((magic_got = stream->ReadUInt32()) == magic) {
+            if ((magic_got = stream->ReadUInt32()) == SourceFileMap::Magic) {
                 stream->ReadByte(); // Version
                 stream->ReadByte(); // Version
                 stream->ReadByte(); // Version
@@ -68,7 +69,7 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
                 }
             }
             else {
-                Log::Print(Log::LOG_ERROR, "Invalid ClassMap!");
+                Log::Print(Log::LOG_ERROR, "Invalid ClassMap! (Expected %08X, was %08X)", SourceFileMap::Magic, magic_got);
             }
             stream->Close();
         }
@@ -155,7 +156,7 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         char* filename = strrchr(list[i], '/');
         Uint32 filenameHash = 0;
         if (filename)
-            filenameHash = BytecodeObjectManager::MakeFilenameHash(list[i] + scriptFolderNameLen + 1);
+            filenameHash = ScriptManager::MakeFilenameHash(list[i] + scriptFolderNameLen + 1);
         if (!filenameHash) {
             Memory::Free(list[i]);
             continue;
@@ -249,8 +250,7 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         // Objects.hcm
         stream = FileStream::New("Resources/Objects/Objects.hcm", FileStream::WRITE_ACCESS);
         if (stream) {
-            Uint32 magic = *(Uint32*)"HMAP";
-            stream->WriteUInt32(magic);
+            stream->WriteUInt32(SourceFileMap::Magic);
             stream->WriteByte(0x00); // Version
             stream->WriteByte(0x01); // Version
             stream->WriteByte(0x02); // Version

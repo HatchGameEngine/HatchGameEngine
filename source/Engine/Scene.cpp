@@ -141,7 +141,7 @@ public:
 
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Bytecode/BytecodeObject.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/Compiler.h>
@@ -305,11 +305,11 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
     if (!list->Count() && !Scene::StaticObjectLists->Exists(key))
         return;
 
-    BytecodeObjectManager::CallFunction(list->LoadFunctionName);
+    ScriptManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
     if (list->Activity == ACTIVE_ALWAYS || (list->Activity == ACTIVE_NORMAL && !Scene::Paused) || (list->Activity == ACTIVE_PAUSED && Scene::Paused))
-        BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
+        ScriptManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -704,10 +704,10 @@ PUBLIC STATIC void Scene::Init() {
 
     Application::GameStart = true;
 
-    BytecodeObjectManager::Init();
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::LinkStandardLibrary();
-    BytecodeObjectManager::LinkExtensions();
+    ScriptManager::Init();
+    ScriptManager::ResetStack();
+    ScriptManager::LinkStandardLibrary();
+    ScriptManager::LinkExtensions();
 
     Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
     Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
@@ -738,12 +738,12 @@ PUBLIC STATIC void Scene::Init() {
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
     Scene::TileViewRenderFlag = 0xFFFFFFFF;
 
-    Application::Settings->GetBool("dev", "loadAllClasses", &BytecodeObjectManager::LoadAllClasses);
+    Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
 
-    BytecodeObjectManager::LoadScript("init.hsl");
+    ScriptManager::LoadScript("init.hsl");
 
-    if (BytecodeObjectManager::LoadAllClasses)
-        BytecodeObjectManager::LoadClasses();
+    if (ScriptManager::LoadAllClasses)
+        ScriptManager::LoadClasses();
 }
 PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
     if (Scene::ObjectLists == NULL)
@@ -1313,13 +1313,13 @@ PUBLIC STATIC void Scene::Render() {
 }
 
 PUBLIC STATIC void Scene::AfterScene() {
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::RequestGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::RequestGarbageCollection();
 
     bool& doRestart = Scene::DoRestart;
 
     if (Scene::NextScene[0]) {
-        BytecodeObjectManager::ForceGarbageCollection();
+        ScriptManager::ForceGarbageCollection();
 
         Scene::LoadScene(Scene::NextScene);
         Scene::NextScene[0] = '\0';
@@ -1492,8 +1492,8 @@ PUBLIC STATIC void Scene::Restart() {
 
     Scene::Loaded = true;
 
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::RequestGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::RequestGarbageCollection();
 }
 PRIVATE STATIC void Scene::ClearPriorityLists() {
     if (!Scene::PriorityLists)
@@ -1598,8 +1598,8 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::Properties = NULL;
 
     // Force garbage collect
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::ForceGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::ForceGarbageCollection();
 
 #if 0
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);
@@ -1721,8 +1721,8 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
 
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (nothrow) ObjectList(objectName);
-    if (objectList && BytecodeObjectManager::LoadObjectClass(objectName, true))
-        objectList->SpawnFunction = BytecodeObjectManager::ObjectSpawnFunction;
+    if (objectList && ScriptManager::LoadObjectClass(objectName, true))
+        objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
     return objectList;
 }
 PRIVATE STATIC void Scene::AddStaticClass() {
@@ -1739,7 +1739,7 @@ PRIVATE STATIC void Scene::AddStaticClass() {
         obj->List = StaticObjectList;
         obj->Persistence = Persistence_GAME;
 
-        BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
+        ScriptManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
     }
 
     StaticObject = obj;
@@ -1759,7 +1759,7 @@ PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool call
         Scene::ObjectLists->Put(objectNameHash, objectList);
 
         if (callListLoadFunction)
-            BytecodeObjectManager::CallFunction(objectList->LoadFunctionName);
+            ScriptManager::CallFunction(objectList->LoadFunctionName);
     }
 
     return objectList;
@@ -2615,7 +2615,7 @@ PUBLIC STATIC void Scene::Dispose() {
         delete Scene::Properties;
     Scene::Properties = NULL;
 
-    BytecodeObjectManager::Dispose();
+    ScriptManager::Dispose();
     SourceFileMap::Dispose();
     Compiler::Dispose();
 }

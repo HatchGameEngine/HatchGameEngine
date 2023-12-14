@@ -20,7 +20,7 @@ public:
 #include <Engine/Bytecode/GarbageCollector.h>
 
 #include <Engine/Bytecode/BytecodeObject.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -50,8 +50,8 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     double grayElapsed = Clock::GetTicks();
 
     // Mark threads (should lock here for safety)
-    for (Uint32 t = 0; t < BytecodeObjectManager::ThreadCount; t++) {
-        VMThread* thread = BytecodeObjectManager::Threads + t;
+    for (Uint32 t = 0; t < ScriptManager::ThreadCount; t++) {
+        VMThread* thread = ScriptManager::Threads + t;
         // Mark stack roots
         for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
             GrayValue(*slot);
@@ -63,10 +63,10 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     }
 
     // Mark global roots
-    GrayHashMap(BytecodeObjectManager::Globals);
+    GrayHashMap(ScriptManager::Globals);
 
     // Mark constants
-    GrayHashMap(BytecodeObjectManager::Constants);
+    GrayHashMap(ScriptManager::Constants);
 
     // Mark static objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
@@ -96,13 +96,13 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     }
 
     // Mark functions
-    for (size_t i = 0; i < BytecodeObjectManager::AllFunctionList.size(); i++) {
-        GrayObject(BytecodeObjectManager::AllFunctionList[i]);
+    for (size_t i = 0; i < ScriptManager::AllFunctionList.size(); i++) {
+        GrayObject(ScriptManager::AllFunctionList[i]);
     }
 
     // Mark classes
-    for (size_t i = 0; i < BytecodeObjectManager::ClassImplList.size(); i++) {
-        GrayObject(BytecodeObjectManager::ClassImplList[i]);
+    for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
+        GrayObject(ScriptManager::ClassImplList[i]);
     }
 
     grayElapsed = Clock::GetTicks() - grayElapsed;
@@ -183,7 +183,7 @@ PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
             Scene::DeleteRemoved((Entity*)instance->EntityPtr);
     }
 
-    BytecodeObjectManager::FreeValue(value);
+    ScriptManager::FreeValue(value);
 }
 
 PRIVATE STATIC void GarbageCollector::GrayValue(VMValue value) {

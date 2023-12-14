@@ -1,6 +1,6 @@
 #include <Engine/Bytecode/Types.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
@@ -283,8 +283,6 @@ void              ChunkWrite(Chunk* chunk, Uint8 byte, int line) {
     chunk->Count++;
 }
 int               ChunkAddConstant(Chunk* chunk, VMValue value) {
-    // BytecodeObjectManager::Push(value);
     chunk->Constants->push_back(value);
-    // BytecodeObjectManager::Pop();
     return (int)chunk->Constants->size() - 1;
 }

@@ -50,7 +50,7 @@ struct Chunk {
     bool             OwnsMemory;
 };
 
-struct Bytecode {
+struct BytecodeContainer {
     Uint8* Data;
     size_t Size;
 };

@@ -9,7 +9,7 @@ public:
 #endif
 
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* FunctionImpl::Class = nullptr;
@@ -20,9 +20,9 @@ PUBLIC STATIC void FunctionImpl::Init() {
     Class = NewClass(Murmur::EncryptString(name));
     Class->Name = CopyString(name);
 
-    BytecodeObjectManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
+    ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 
-    BytecodeObjectManager::ClassImplList.push_back(Class);
+    ScriptManager::ClassImplList.push_back(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
