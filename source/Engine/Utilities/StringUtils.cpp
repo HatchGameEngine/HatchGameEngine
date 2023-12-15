@@ -1,5 +1,6 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
+#include <Engine/Includes/Token.h>
 
 class StringUtils {
 public:
@@ -9,6 +10,21 @@ public:
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Memory.h>
 
+PUBLIC STATIC char* StringUtils::Create(void* src, size_t length) {
+    char* string = (char*)Memory::Malloc(length + 1);
+    memcpy(string, src, length);
+    string[length] = '\0';
+    return string;
+}
+PUBLIC STATIC char* StringUtils::Create(string src) {
+    return StringUtils::Duplicate(src.c_str());
+}
+PUBLIC STATIC char* StringUtils::Create(Token token) {
+    char* string = (char*)Memory::Malloc(token.Length + 1);
+    memcpy(string, token.Start, token.Length);
+    string[token.Length] = '\0';
+    return string;
+}
 PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
     size_t length = strlen(src) + 1;
     char* string = (char*)Memory::Malloc(length);

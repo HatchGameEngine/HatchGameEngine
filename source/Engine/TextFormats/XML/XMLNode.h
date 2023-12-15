@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include <Engine/Includes/Token.h>
 #include <Engine/Diagnostics/Memory.h>
 
 class XMLAttributes {

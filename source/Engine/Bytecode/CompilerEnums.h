@@ -1,13 +1,7 @@
 #ifndef ENGINE_COMPILER_ENUMS
 #define ENGINE_COMPILER_ENUMS
 
-struct Token {
-    int    Type;
-    char*  Start;
-	size_t Length;
-    int    Line;
-    size_t Pos;
-};
+#include <Engine/Includes/Token.h>
 
 class Parser {
 public:

@@ -1312,35 +1312,35 @@ PRIVATE STATIC void Application::DisposeGameConfig() {
 
 PRIVATE STATIC string Application::ParseGameVersion(XMLNode* versionNode) {
     if (versionNode->children.size() == 1)
-        return XMLParser::TokenToStdString(versionNode->children[0]->name);
+        return versionNode->children[0]->name.ToString();
 
     std::string versionText = "";
 
     // major
     XMLNode* node = XMLParser::SearchNode(versionNode, "major");
     if (node)
-        versionText += XMLParser::TokenToStdString(node->children[0]->name);
+        versionText += node->children[0]->name.ToString();
     else
         return versionText;
 
     // minor
     node = XMLParser::SearchNode(versionNode, "minor");
     if (node)
-        versionText += "." + XMLParser::TokenToStdString(node->children[0]->name);
+        versionText += "." + node->children[0]->name.ToString();
     else
         return versionText;
 
     // patch
     node = XMLParser::SearchNode(versionNode, "patch");
     if (node)
-        versionText += "." + XMLParser::TokenToStdString(node->children[0]->name);
+        versionText += "." + node->children[0]->name.ToString();
     else
         return versionText;
 
     // pre-release
     node = XMLParser::SearchNode(versionNode, "prerelease");
     if (node)
-        versionText += "-" + XMLParser::TokenToStdString(node->children[0]->name);
+        versionText += "-" + node->children[0]->name.ToString();
 
     return versionText;
 }
