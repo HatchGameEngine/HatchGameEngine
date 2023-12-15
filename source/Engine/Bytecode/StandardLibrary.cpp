@@ -2436,239 +2436,6 @@ VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     } \
     Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
 /***
- * Draw.InitArrayBuffer
- * \desc Initializes an array buffer. There are 32 array buffers. (Deprecated; use <linkto ref="Scene3D.Create"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)
- * \param numVertices (Integer): The initial capacity of this array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 numVertices = GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-
-    Graphics::InitScene3D(scene3DIndex, numVertices);
-
-    return NULL_VAL;
-}
-/***
- * Draw.SetArrayBufferDrawMode
- * \desc Sets the draw mode of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetDrawMode"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetArrayBufferDrawMode(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-    scene3D->DrawMode = drawMode;
-    return NULL_VAL;
-}
-/***
- * Draw.SetProjectionMatrix
- * \desc Sets the projection matrix. (Deprecated; use <linkto ref="Scene3D.SetCustomProjectionMatrix"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param projMatrix (Matrix): The projection matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    ObjArray* projMatrix = GET_ARG(1, GetArray);
-
-    Matrix4x4 matrix4x4;
-    int arrSize = (int)projMatrix->Values->size();
-    if (arrSize != 16) {
-        THROW_ERROR("Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
-        return NULL_VAL;
-    }
-
-    // Yeah just copy it directly
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
-
-    GET_SCENE_3D();
-    scene3D->SetProjectionMatrix(&matrix4x4);
-    scene3D->SetClippingPlanes();
-    return NULL_VAL;
-}
-/***
- * Draw.SetViewMatrix
- * \desc Sets the view matrix. (Deprecated; use <linkto ref="Scene3D.SetViewMatrix"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param viewMatrix (Matrix): The view matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    ObjArray* viewMatrix = GET_ARG(1, GetArray);
-
-    Matrix4x4 matrix4x4;
-
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
-
-    GET_SCENE_3D();
-    scene3D->SetViewMatrix(&matrix4x4);
-    return NULL_VAL;
-}
-/***
- * Draw.SetAmbientLighting
- * \desc Sets the ambient lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetAmbientLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetAmbientLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetDiffuseLighting
- * \desc Sets the diffuse lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetDiffuseLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetDiffuseLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetSpecularLighting
- * \desc Sets the specular lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetSpecularLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetSpecularLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogDensity
- * \desc Sets the density of the array buffer's fog. (Deprecated; use <linkto ref="Scene3D.SetFogDensity"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param density (Number): The fog density.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-
-    GET_SCENE_3D();
-    scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogColor
- * \desc Sets the fog color of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetFogColor"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetFogColor(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetClipPolygons
- * \desc Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param clipPolygons (Boolean): Whether or not to clip polygons.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    bool clipPolygons = !!GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-    scene3D->SetClipPolygons(clipPolygons);
-    return NULL_VAL;
-}
-/***
- * Draw.SetPointSize
- * \desc Sets the point size of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetPointSize"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param pointSize (Decimal): The point size.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float pointSize = !!GET_ARG(1, GetDecimal);
-    GET_SCENE_3D();
-    scene3D->PointSize = pointSize;
-    return NULL_VAL;
-}
-/***
- * Draw.BindArrayBuffer
- * \desc Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <linkto ref="Draw.BindScene3D"></linkto> instead.)
- * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
- * \return
- * \ns Draw
- */
-VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
-        return NULL_VAL;
-    }
-
-    Graphics::ClearScene3D(scene3DIndex);
-    Graphics::BindScene3D(scene3DIndex);
-
-    return NULL_VAL;
-}
-/***
  * Draw.BindScene3D
  * \desc Binds a 3D scene for drawing polygons in 3D space.
  * \param scene3DIndex (Integer): Sets the 3D scene to bind.
@@ -3471,22 +3238,6 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 #undef PREPARE_MATRICES
-/***
- * Draw.RenderArrayBuffer
- * \desc Draws everything in the array buffer. (Deprecated; use <linkto ref="Draw.RenderScene3D"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
- * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_RenderArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
-    GET_SCENE_3D();
-    Graphics::DrawScene3D(scene3DIndex, drawMode);
-    return NULL_VAL;
-}
 /***
  * Draw.RenderScene3D
  * \desc Draws everything in the 3D scene.
@@ -5389,72 +5140,6 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     int key = GET_ARG(0, GetInteger);
     int down = InputManager::IsKeyReleased(key);
     return INTEGER_VAL(down);
-}
-/***
- * Input.GetControllerCount
- * \desc Gets the amount of connected controllers in the device. (Deprecated; use <linkto ref="Controller.GetCount"></linkto> instead.)
- * \return Returns the amount of connected controllers in the device.
- * \ns Input
- */
-VMValue Input_GetControllerCount(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetCount(argCount, args, threadID);
-}
-/***
- * Input.GetControllerAttached
- * \desc Gets whether the controller at the index is connected. (Deprecated; use <linkto ref="Controller.IsConnected"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is connected.
- * \ns Input
- */
-VMValue Input_GetControllerAttached(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_IsConnected(argCount, args, threadID);
-}
-/***
- * Input.GetControllerHat
- * \desc Gets the hat value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetButton"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param hatIndex (Integer): Index of the hat to check.
- * \return Returns the hat value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerHat(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    CHECK_CONTROLLER_INDEX(controller_index);
-    return INTEGER_VAL(InputManager::ControllerGetHat(controller_index, index));
-}
-/***
- * Input.GetControllerAxis
- * \desc Gets the axis value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetAxis"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param axisIndex (Integer): Index of the axis to check.
- * \return Returns the axis value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerAxis(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetAxis(argCount, args, threadID);
-}
-/***
- * Input.GetControllerButton
- * \desc Gets the button value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetButton"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Integer): Index of the button to check.
- * \return Returns the button value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerButton(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetButton(argCount, args, threadID);
-}
-/***
- * Input.GetControllerName
- * \desc Gets the name of the controller at the index. (Deprecated; use <linkto ref="Controller.GetName"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns the name of the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerName(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetName(argCount, args, threadID);
 }
 #undef CHECK_CONTROLLER_INDEX
 /***
@@ -9169,16 +8854,6 @@ VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     return INTEGER_VAL(Scene::TileHeight);
-}
-/***
- * Scene.GetTileSize
- * \desc Gets the size of tiles. (Deprecated; use <linkto ref="Scene.GetTileWidth"></linkto> and <linkto ref="Scene.GetTileHeight"></linkto> instead.)
- * \return Returns the size of tiles.
- * \ns Scene
- */
-VMValue Scene_GetTileSize(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::TileWidth);
 }
 /***
  * Scene.GetTileID
@@ -15260,18 +14935,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, BindVertexBuffer);
     DEF_NATIVE(Draw, UnbindVertexBuffer);
     DEF_NATIVE(Draw, BindScene3D);
-    DEF_NATIVE(Draw, InitArrayBuffer); // deprecated
-    DEF_NATIVE(Draw, BindArrayBuffer); // deprecated
-    DEF_NATIVE(Draw, SetArrayBufferDrawMode); // deprecated
-    DEF_NATIVE(Draw, SetProjectionMatrix); // deprecated
-    DEF_NATIVE(Draw, SetViewMatrix); // deprecated
-    DEF_NATIVE(Draw, SetAmbientLighting); // deprecated
-    DEF_NATIVE(Draw, SetDiffuseLighting); // deprecated
-    DEF_NATIVE(Draw, SetSpecularLighting); // deprecated
-    DEF_NATIVE(Draw, SetFogDensity); // deprecated
-    DEF_NATIVE(Draw, SetFogColor); // deprecated
-    DEF_NATIVE(Draw, SetClipPolygons); // deprecated
-    DEF_NATIVE(Draw, SetPointSize); // deprecated
     DEF_NATIVE(Draw, Model);
     DEF_NATIVE(Draw, ModelSkinned);
     DEF_NATIVE(Draw, ModelSimple);
@@ -15289,7 +14952,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SceneLayer3D);
     DEF_NATIVE(Draw, SceneLayerPart3D);
     DEF_NATIVE(Draw, VertexBuffer);
-    DEF_NATIVE(Draw, RenderArrayBuffer); // deprecated
     DEF_NATIVE(Draw, RenderScene3D);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);
@@ -15929,12 +15591,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsKeyDown);
     DEF_NATIVE(Input, IsKeyPressed);
     DEF_NATIVE(Input, IsKeyReleased);
-    DEF_NATIVE(Input, GetControllerCount); // deprecated
-    DEF_NATIVE(Input, GetControllerAttached); // deprecated
-    DEF_NATIVE(Input, GetControllerHat); // deprecated
-    DEF_NATIVE(Input, GetControllerAxis); // deprecated
-    DEF_NATIVE(Input, GetControllerButton); // deprecated
-    DEF_NATIVE(Input, GetControllerName); // deprecated
     DEF_NATIVE(Input, GetKeyName);
     DEF_NATIVE(Input, GetButtonName);
     DEF_NATIVE(Input, GetAxisName);
@@ -16180,7 +15836,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerDrawGroup);
     DEF_NATIVE(Scene, GetTileWidth);
     DEF_NATIVE(Scene, GetTileHeight);
-    DEF_NATIVE(Scene, GetTileSize); // deprecated
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);

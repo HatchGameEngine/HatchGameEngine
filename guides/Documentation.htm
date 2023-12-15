@@ -326,18 +326,6 @@
                     <li><a href="#Reference_functions_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
                     <li><a href="#Reference_functions_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
                     <li><a href="#Reference_functions_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_SetArrayBufferDrawMode">Draw.SetArrayBufferDrawMode</a></li>
-                    <li><a href="#Reference_functions_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
-                    <li><a href="#Reference_functions_Draw_SetViewMatrix">Draw.SetViewMatrix</a></li>
-                    <li><a href="#Reference_functions_Draw_SetAmbientLighting">Draw.SetAmbientLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetDiffuseLighting">Draw.SetDiffuseLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetSpecularLighting">Draw.SetSpecularLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetFogDensity">Draw.SetFogDensity</a></li>
-                    <li><a href="#Reference_functions_Draw_SetFogColor">Draw.SetFogColor</a></li>
-                    <li><a href="#Reference_functions_Draw_SetClipPolygons">Draw.SetClipPolygons</a></li>
-                    <li><a href="#Reference_functions_Draw_SetPointSize">Draw.SetPointSize</a></li>
-                    <li><a href="#Reference_functions_Draw_BindArrayBuffer">Draw.BindArrayBuffer</a></li>
                     <li><a href="#Reference_functions_Draw_BindScene3D">Draw.BindScene3D</a></li>
                     <li><a href="#Reference_functions_Draw_Model">Draw.Model</a></li>
                     <li><a href="#Reference_functions_Draw_ModelSkinned">Draw.ModelSkinned</a></li>
@@ -356,7 +344,6 @@
                     <li><a href="#Reference_functions_Draw_SceneLayer3D">Draw.SceneLayer3D</a></li>
                     <li><a href="#Reference_functions_Draw_SceneLayerPart3D">Draw.SceneLayerPart3D</a></li>
                     <li><a href="#Reference_functions_Draw_VertexBuffer">Draw.VertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_RenderArrayBuffer">Draw.RenderArrayBuffer</a></li>
                     <li><a href="#Reference_functions_Draw_RenderScene3D">Draw.RenderScene3D</a></li>
                     <li><a href="#Reference_functions_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_functions_Draw_VideoPart">Draw.VideoPart</a></li>
@@ -494,12 +481,6 @@
                     <li><a href="#Reference_functions_Input_IsKeyDown">Input.IsKeyDown</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyPressed">Input.IsKeyPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyReleased">Input.IsKeyReleased</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerCount">Input.GetControllerCount</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerAttached">Input.GetControllerAttached</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerHat">Input.GetControllerHat</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerAxis">Input.GetControllerAxis</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerButton">Input.GetControllerButton</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerName">Input.GetControllerName</a></li>
                     <li><a href="#Reference_functions_Input_GetKeyName">Input.GetKeyName</a></li>
                     <li><a href="#Reference_functions_Input_GetButtonName">Input.GetButtonName</a></li>
                     <li><a href="#Reference_functions_Input_GetAxisName">Input.GetAxisName</a></li>
@@ -849,7 +830,6 @@
                     <li><a href="#Reference_functions_Scene_GetTilesetFirstTileID">Scene.GetTilesetFirstTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></li>
-                    <li><a href="#Reference_functions_Scene_GetTileSize">Scene.GetTileSize</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipX">Scene.GetTileFlipX</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipY">Scene.GetTileFlipY</a></li>
@@ -2809,133 +2789,6 @@
         <code>Draw.UnbindVertexBuffer()</code>
         <div style="margin-top: 8px; font-size: 14px;">Unbinds the currently bound vertex buffer.</div>
         </p>
-        <p id="Reference_functions_Draw_InitArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.InitArrayBuffer</h2>
-        <code>Draw.InitArrayBuffer(arrayBufferIndex, numVertices)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Initializes an array buffer. There are 32 array buffers. (Deprecated; use <code><a href="#Reference_functions_Scene3D_Create">Scene3D.Create</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)</li>
-        <li>numVertices (Integer): The initial capacity of this array buffer.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetArrayBufferDrawMode">
-        <h2 style="margin-bottom: 8px;">Draw.SetArrayBufferDrawMode</h2>
-        <code>Draw.SetArrayBufferDrawMode(arrayBufferIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetDrawMode">Scene3D.SetDrawMode</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetProjectionMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
-        <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the projection matrix. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetCustomProjectionMatrix">Scene3D.SetCustomProjectionMatrix</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>projMatrix (Matrix): The projection matrix.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetViewMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetViewMatrix</h2>
-        <code>Draw.SetViewMatrix(arrayBufferIndex, viewMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetViewMatrix">Scene3D.SetViewMatrix</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>viewMatrix (Matrix): The view matrix.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetAmbientLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetAmbientLighting</h2>
-        <code>Draw.SetAmbientLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the ambient lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetAmbientLighting">Scene3D.SetAmbientLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetDiffuseLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetDiffuseLighting</h2>
-        <code>Draw.SetDiffuseLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the diffuse lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetDiffuseLighting">Scene3D.SetDiffuseLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetSpecularLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetSpecularLighting</h2>
-        <code>Draw.SetSpecularLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the specular lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetSpecularLighting">Scene3D.SetSpecularLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetFogDensity">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogDensity</h2>
-        <code>Draw.SetFogDensity(arrayBufferIndex, density)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the array buffer's fog. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetFogDensity">Scene3D.SetFogDensity</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>density (Number): The fog density.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetFogColor">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogColor</h2>
-        <code>Draw.SetFogColor(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetFogColor">Scene3D.SetFogColor</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetClipPolygons">
-        <h2 style="margin-bottom: 8px;">Draw.SetClipPolygons</h2>
-        <code>Draw.SetClipPolygons(arrayBufferIndex, clipPolygons)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>clipPolygons (Boolean): Whether or not to clip polygons.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetPointSize">
-        <h2 style="margin-bottom: 8px;">Draw.SetPointSize</h2>
-        <code>Draw.SetPointSize(arrayBufferIndex, pointSize)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetPointSize">Scene3D.SetPointSize</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>pointSize (Decimal): The point size.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_BindArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.BindArrayBuffer</h2>
-        <code>Draw.BindArrayBuffer(arrayBufferIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <code><a href="#Reference_functions_Draw_BindScene3D">Draw.BindScene3D</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): Sets the array buffer to bind.</li>
-        </ul>
-        </p>
         <p id="Reference_functions_Draw_BindScene3D">
         <h2 style="margin-bottom: 8px;">Draw.BindScene3D</h2>
         <code>Draw.BindScene3D(scene3DIndex)</code>
@@ -3286,16 +3139,6 @@
         <li>vertexBufferIndex (Integer): The vertex buffer to draw.</li>
         <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_RenderArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.RenderArrayBuffer</h2>
-        <code>Draw.RenderArrayBuffer(arrayBufferIndex[, drawMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer. (Deprecated; use <code><a href="#Reference_functions_Draw_RenderScene3D">Draw.RenderScene3D</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The array buffer at the index to draw.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_RenderScene3D">
@@ -4394,71 +4237,6 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key released during the current frame.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerCount">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerCount</h2>
-        <code>Input.GetControllerCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of connected controllers in the device. (Deprecated; use <code><a href="#Reference_functions_Controller_GetCount">Controller.GetCount</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the amount of connected controllers in the device.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerAttached">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerAttached</h2>
-        <code>Input.GetControllerAttached(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is connected. (Deprecated; use <code><a href="#Reference_functions_Controller_IsConnected">Controller.IsConnected</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether the controller at the index is connected.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerHat">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerHat</h2>
-        <code>Input.GetControllerHat(controllerIndex, hatIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hat value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>hatIndex (Integer): Index of the hat to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the hat value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerAxis">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerAxis</h2>
-        <code>Input.GetControllerAxis(controllerIndex, axisIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the axis value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetAxis">Controller.GetAxis</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>axisIndex (Integer): Index of the axis to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerButton">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerButton</h2>
-        <code>Input.GetControllerButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the button value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Integer): Index of the button to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerName">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerName</h2>
-        <code>Input.GetControllerName(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetName">Controller.GetName</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the controller at the index.</div>
         </p>
         <p id="Reference_functions_Input_GetKeyName">
         <h2 style="margin-bottom: 8px;">Input.GetKeyName</h2>
@@ -6263,13 +6041,6 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of tiles.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the height of tiles.</div>
-        </p>
-        <p id="Reference_functions_Scene_GetTileSize">
-        <h2 style="margin-bottom: 8px;">Scene.GetTileSize</h2>
-        <code>Scene.GetTileSize()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the size of tiles. (Deprecated; use <code><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></code> and <code><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the size of tiles.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileID">
         <h2 style="margin-bottom: 8px;">Scene.GetTileID</h2>
@@ -9189,7 +8960,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>680 out of 739 functions have descriptions. </p>
+        <p>660 out of 719 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
