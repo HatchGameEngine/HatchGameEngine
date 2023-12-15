@@ -3,6 +3,8 @@
 
 #include <map>
 
+#include <Engine/Diagnostics/Memory.h>
+
 class XMLAttributes {
 public:
     vector<char*> KeyVector;
@@ -21,8 +23,7 @@ public:
     }
     void  Dispose() {
         for (size_t i = 0; i < KeyVector.size(); i++)
-            free(KeyVector[i]);
-
+            Memory::Free(KeyVector[i]);
         KeyVector.clear();
     }
     ~XMLAttributes() {

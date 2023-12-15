@@ -10525,6 +10525,138 @@ VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) 
     return OBJECT_VAL(CopyString(SceneInfo::Categories[categoryID].Name));
 }
 /***
+ * SceneList.GetEntryProperty
+ * \desc Gets a property for an entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \param property (String): The property.
+ * \return Returns a String value, or <code>null</code> if the entry has no such property.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return NULL_VAL;
+    }
+
+    char* propertyName = GET_ARG(2, GetString);
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return NULL_VAL;
+
+    char* property = SceneInfo::GetEntryProperty(actualEntryID, propertyName);
+    if (property == nullptr)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(property));
+}
+/***
+ * SceneList.GetCategoryProperty
+ * \desc Gets a property for a category.
+ * \param category (String): The category.
+ * \param property (String): The property.
+ * \return Returns a String value, or <code>null</code> if the category has no such property.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    char* propertyName = GET_ARG(1, GetString);
+
+    char* property = SceneInfo::GetCategoryProperty(categoryID, propertyName);
+    if (property == nullptr)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(property));
+}
+/***
+ * SceneList.HasEntryProperty
+ * \desc Checks if a given property exists in the entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \param property (String): The property.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \ns SceneList
+ */
+VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return INTEGER_VAL(false);
+
+    return INTEGER_VAL(!!SceneInfo::HasEntryProperty(actualEntryID, GET_ARG(2, GetString)));
+}
+/***
+ * SceneList.HasCategoryProperty
+ * \desc Checks if a given property exists in the category.
+ * \param category (String): The category.
+ * \param property (String): The property.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \ns SceneList
+ */
+VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    return INTEGER_VAL(!!SceneInfo::HasCategoryProperty(categoryID, GET_ARG(1, GetString)));
+}
+/***
  * SceneList.GetCategoryCount
  * \desc Gets the amount of categories in the scene list.
  * \return Returns an Integer value.
@@ -14507,8 +14639,8 @@ static VMValue XML_FillMap(XMLNode* parent) {
     size_t attrNameSize = 0;
 
     for (size_t i = 0; i < numAttr; i++) {
-        char *key = attributes->KeyVector[i];
-        char *value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
+        char* key = attributes->KeyVector[i];
+        char* value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
 
         size_t length = strlen(key) + 2;
         if (length > attrNameSize) {
@@ -14525,6 +14657,8 @@ static VMValue XML_FillMap(XMLNode* parent) {
         keyHash = map->Keys->HashFunction(attrName, attrNameSize - 1);
         map->Keys->Put(keyHash, StringUtils::Duplicate(attrName));
         map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
+
+        Memory::Free(value);
     }
 
     free(attrName);
@@ -16146,6 +16280,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(SceneList, GetCategoryID);
     DEF_NATIVE(SceneList, GetEntryName);
     DEF_NATIVE(SceneList, GetCategoryName);
+    DEF_NATIVE(SceneList, GetEntryProperty);
+    DEF_NATIVE(SceneList, GetCategoryProperty);
+    DEF_NATIVE(SceneList, HasEntryProperty);
+    DEF_NATIVE(SceneList, HasCategoryProperty);
     DEF_NATIVE(SceneList, GetCategoryCount);
     DEF_NATIVE(SceneList, GetSceneCount);
     // #endregion

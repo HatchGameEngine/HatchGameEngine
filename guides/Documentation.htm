@@ -956,6 +956,10 @@
                     <li><a href="#Reference_functions_SceneList_GetCategoryID">SceneList.GetCategoryID</a></li>
                     <li><a href="#Reference_functions_SceneList_GetEntryName">SceneList.GetEntryName</a></li>
                     <li><a href="#Reference_functions_SceneList_GetCategoryName">SceneList.GetCategoryName</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryProperty">SceneList.GetEntryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryProperty">SceneList.GetCategoryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_HasEntryProperty">SceneList.HasEntryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_HasCategoryProperty">SceneList.HasCategoryProperty</a></li>
                     <li><a href="#Reference_functions_SceneList_GetCategoryCount">SceneList.GetCategoryCount</a></li>
                     <li><a href="#Reference_functions_SceneList_GetSceneCount">SceneList.GetSceneCount</a></li>
                 </ul>
@@ -7182,6 +7186,56 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the category name, or <code>-1</code> if not valid.</div>
         </p>
+        <p id="Reference_functions_SceneList_GetEntryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryProperty</h2>
+        <code>SceneList.GetEntryProperty(category, entry, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property for an entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code> if the entry has no such property.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryProperty</h2>
+        <code>SceneList.GetCategoryProperty(category, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property for a category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code> if the category has no such property.</div>
+        </p>
+        <p id="Reference_functions_SceneList_HasEntryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.HasEntryProperty</h2>
+        <code>SceneList.HasEntryProperty(category, entry, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a given property exists in the entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if not.</div>
+        </p>
+        <p id="Reference_functions_SceneList_HasCategoryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.HasCategoryProperty</h2>
+        <code>SceneList.HasCategoryProperty(category, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a given property exists in the category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if not.</div>
+        </p>
         <p id="Reference_functions_SceneList_GetCategoryCount">
         <h2 style="margin-bottom: 8px;">SceneList.GetCategoryCount</h2>
         <code>SceneList.GetCategoryCount()</code>
@@ -9135,7 +9189,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>676 out of 735 functions have descriptions. </p>
+        <p>680 out of 739 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

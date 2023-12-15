@@ -521,7 +521,7 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
 }
 
 PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
-    char* string = (char*)malloc(tok.Length + 1);
+    char* string = (char*)Memory::Malloc(tok.Length + 1);
     if (!string) {
         Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
         exit(-1);

@@ -509,6 +509,7 @@ PRIVATE STATIC void Application::Restart() {
     InputManager::ControllerStopRumble();
 
     Scene::Dispose();
+    SceneInfo::Dispose();
     Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
         Graphics::DisposeTexture(tex);
     });
@@ -1397,8 +1398,6 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
             return;
 
         // TODO: Check existing scene folder and id here to reset them upon reload
-        SceneInfo::Init();
-
         Scene::ActiveCategory = 0;
         Application::StartSceneNum = 0;
 
