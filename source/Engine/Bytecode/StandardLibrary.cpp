@@ -9263,7 +9263,7 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 }
 /***
  * Scene.GetListPos
- * \desc Gets the current list position of the scene.
+ * \desc Gets the current list position of the scene. (Deprecated)
  * \return Returns an Integer value.
  * \ns Scene
  */
@@ -9323,7 +9323,7 @@ VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetCategoryCount
- * \desc Gets the amount of categories in the scene list.
+ * \desc Gets the amount of categories in the scene list. (Deprecated; use <linkto ref="SceneList.GetCategoryCount"></linkto> instead.)
  * \return Returns an Integer value.
  * \ns Scene
  */
@@ -9333,7 +9333,7 @@ VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetStageCount
- * \desc Gets the amount of stages in the scene list.
+ * \desc Gets the amount of stages in the scene list. (Deprecated; use <linkto ref="SceneList.GetSceneCount"></linkto> instead.)
  * \return Returns an Integer value.
  * \ns Scene
  */
@@ -9545,7 +9545,7 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.CheckValidScene
- * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded.
+ * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)
  * \return Returns a Boolean value.
  * \ns Scene
  */
@@ -9557,7 +9557,7 @@ VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.CheckSceneFolder
- * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded.
+ * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)
  * \param folder (String): Folder name to compare.
  * \return Returns a Boolean value.
  * \ns Scene
@@ -9570,7 +9570,7 @@ VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.CheckSceneID
- * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded.
+ * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)
  * \param id (String): ID to compare.
  * \return Returns a Boolean value.
  * \ns Scene
@@ -9592,7 +9592,7 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetListPos
- * \desc Sets the current list position of the scene.
+ * \desc Sets the current list position of the scene. (Deprecated)
  * \ns Scene
  */
 VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
@@ -9602,7 +9602,7 @@ VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetActiveCategory
- * \desc Sets the current category number of the scene.
+ * \desc Sets the current category number of the scene. (Deprecated)
  * \ns Scene
  */
 VMValue Scene_SetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
@@ -9622,7 +9622,7 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetScene
- * \desc Sets the scene if the category and scene names exist within the scene list.
+ * \desc Sets the scene if the category and scene names exist within the scene list. (Deprecated)
  * \param category (String): Category name.
  * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
@@ -10418,6 +10418,143 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
         Scene::TileViewRenderFlag &= ~viewRenderFlag;
 
     return NULL_VAL;
+}
+// #endregion
+
+// #region SceneList
+/***
+ * SceneList.Get
+ * \desc Gets the scene path for the specified category and entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \return Returns a String value.
+ * \ns SceneList
+ */
+VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return NULL_VAL;
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return NULL_VAL;
+    return OBJECT_VAL(CopyString(SceneInfo::GetFilename(entryID).c_str()));
+}
+/***
+ * SceneList.GetEntryID
+ * \desc Gets the entry ID for the specified category and entry name.
+ * \param categoryName (String): The category name.
+ * \param entryName (String): The entry name.
+ * \return Returns the entry ID, or <code>-1</code> if not found.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    char* categoryName = GET_ARG(0, GetString);
+    char* entryName = GET_ARG(1, GetString);
+    int entryID = SceneInfo::GetEntryID(categoryName, entryName);
+    if (entryID < 0)
+        return INTEGER_VAL(-1);
+    return INTEGER_VAL((int)SceneInfo::Entries[entryID].CategoryPos);
+}
+/***
+ * SceneList.GetCategoryID
+ * \desc Gets the category ID for the specified category name.
+ * \param categoryName (String): The category name.
+ * \return Returns the category ID, or <code>-1</code> if not found.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* categoryName = GET_ARG(0, GetString);
+    int categoryID = SceneInfo::GetCategoryID(categoryName);
+    return INTEGER_VAL(categoryID);
+}
+/***
+ * SceneList.GetEntryName
+ * \desc Gets the entry name for the specified category and entry.
+ * \param category (String): The category.
+ * \param entryID (Integer): The entry ID.
+ * \return Returns the entry name.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetInteger));
+    return OBJECT_VAL(CopyString(SceneInfo::Entries[actualEntryID].Name));
+}
+/***
+ * SceneList.GetCategoryName
+ * \desc Gets the category name for the specified category ID.
+ * \param categoryID (Integer): The category ID.
+ * \return Returns the category name, or <code>-1</code> if not valid.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int categoryID = GET_ARG(0, GetInteger);
+    if (!SceneInfo::IsCategoryValid(categoryID))
+        return NULL_VAL;
+    return OBJECT_VAL(CopyString(SceneInfo::Categories[categoryID].Name));
+}
+/***
+ * SceneList.GetCategoryCount
+ * \desc Gets the amount of categories in the scene list.
+ * \return Returns an Integer value.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((int)SceneInfo::Categories.size());
+}
+/***
+ * SceneList.GetSceneCount
+ * \desc Gets the amount of scenes in a category.
+ * \paramOpt categoryName (String): The category name.
+ * \return Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.
+ * \ns SceneList
+ */
+VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+    if (argCount >= 1) {
+        int categoryID = -1;
+        if (IS_INTEGER(args[0]))
+            categoryID = GET_ARG(0, GetInteger);
+        else
+            categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (!SceneInfo::IsCategoryValid(categoryID))
+            return INTEGER_VAL(0);
+        return INTEGER_VAL((int)SceneInfo::Categories[categoryID].Count);
+    }
+    else
+        return INTEGER_VAL((int)SceneInfo::Entries.size());
 }
 // #endregion
 
@@ -15920,14 +16057,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTilesetFirstTileID);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
-    DEF_NATIVE(Scene, GetListPos);
+    DEF_NATIVE(Scene, GetListPos); // deprecated
     DEF_NATIVE(Scene, GetCurrentFolder);
     DEF_NATIVE(Scene, GetCurrentID);
     DEF_NATIVE(Scene, GetCurrentSpriteFolder);
     DEF_NATIVE(Scene, GetCurrentCategory);
     DEF_NATIVE(Scene, GetActiveCategory);
-    DEF_NATIVE(Scene, GetCategoryCount);
-    DEF_NATIVE(Scene, GetStageCount);
+    DEF_NATIVE(Scene, GetCategoryCount); // deprecated
+    DEF_NATIVE(Scene, GetStageCount); // deprecated
     DEF_NATIVE(Scene, GetDebugMode);
     DEF_NATIVE(Scene, GetFirstInstance);
     DEF_NATIVE(Scene, GetLastInstance);
@@ -15940,14 +16077,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileAnimSequencePaused);
     DEF_NATIVE(Scene, GetTileAnimSequenceSpeed);
     DEF_NATIVE(Scene, GetTileAnimSequenceFrame);
-    DEF_NATIVE(Scene, CheckValidScene);
-    DEF_NATIVE(Scene, CheckSceneFolder);
-    DEF_NATIVE(Scene, CheckSceneID);
+    DEF_NATIVE(Scene, CheckValidScene); // deprecated
+    DEF_NATIVE(Scene, CheckSceneFolder); // deprecated
+    DEF_NATIVE(Scene, CheckSceneID); // deprecated
     DEF_NATIVE(Scene, IsPaused);
-    DEF_NATIVE(Scene, SetListPos);
-    DEF_NATIVE(Scene, SetActiveCategory);
+    DEF_NATIVE(Scene, SetListPos); // deprecated
+    DEF_NATIVE(Scene, SetActiveCategory); // deprecated
     DEF_NATIVE(Scene, SetDebugMode);
-    DEF_NATIVE(Scene, SetScene);
+    DEF_NATIVE(Scene, SetScene); // deprecated
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
@@ -16003,6 +16140,17 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #endregion
 
     // #region Scene
+    INIT_CLASS(SceneList);
+    DEF_NATIVE(SceneList, Get);
+    DEF_NATIVE(SceneList, GetEntryID);
+    DEF_NATIVE(SceneList, GetCategoryID);
+    DEF_NATIVE(SceneList, GetEntryName);
+    DEF_NATIVE(SceneList, GetCategoryName);
+    DEF_NATIVE(SceneList, GetCategoryCount);
+    DEF_NATIVE(SceneList, GetSceneCount);
+    // #endregion
+
+    // #region Scene3D
     INIT_CLASS(Scene3D);
     DEF_NATIVE(Scene3D, Create);
     DEF_NATIVE(Scene3D, Delete);

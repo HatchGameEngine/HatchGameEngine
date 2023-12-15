@@ -74,6 +74,7 @@
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
+            <li><a href="#Reference_SceneList">SceneList</a></li>
             <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
@@ -944,6 +945,19 @@
                     <li><a href="#Reference_functions_Scene3D_SetFogSmoothness">Scene3D.SetFogSmoothness</a></li>
                     <li><a href="#Reference_functions_Scene3D_SetPointSize">Scene3D.SetPointSize</a></li>
                     <li><a href="#Reference_functions_Scene3D_Clear">Scene3D.Clear</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SceneList">
+                <h2>SceneList</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_SceneList_Get">SceneList.Get</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryID">SceneList.GetEntryID</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryID">SceneList.GetCategoryID</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryName">SceneList.GetEntryName</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryName">SceneList.GetCategoryName</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryCount">SceneList.GetCategoryCount</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetSceneCount">SceneList.GetSceneCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Serializer">
@@ -6313,7 +6327,7 @@
         <p id="Reference_functions_Scene_GetListPos">
         <h2 style="margin-bottom: 8px;">Scene.GetListPos</h2>
         <code>Scene.GetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6355,14 +6369,14 @@
         <p id="Reference_functions_Scene_GetCategoryCount">
         <h2 style="margin-bottom: 8px;">Scene.GetCategoryCount</h2>
         <code>Scene.GetCategoryCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list. (Deprecated; use <code><a href="#Reference_functions_SceneList_GetCategoryCount">SceneList.GetCategoryCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetStageCount">
         <h2 style="margin-bottom: 8px;">Scene.GetStageCount</h2>
         <code>Scene.GetStageCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of stages in the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of stages in the scene list. (Deprecated; use <code><a href="#Reference_functions_SceneList_GetSceneCount">SceneList.GetSceneCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6473,14 +6487,14 @@
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_CheckSceneFolder">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneFolder</h2>
         <code>Scene.CheckSceneFolder(folder)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>folder (String): Folder name to compare.</li>
@@ -6491,7 +6505,7 @@
         <p id="Reference_functions_Scene_CheckSceneID">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneID</h2>
         <code>Scene.CheckSceneID(id)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>id (String): ID to compare.</li>
@@ -6509,12 +6523,12 @@
         <p id="Reference_functions_Scene_SetListPos">
         <h2 style="margin-bottom: 8px;">Scene.SetListPos</h2>
         <code>Scene.SetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated)</div>
         </p>
         <p id="Reference_functions_Scene_SetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.SetActiveCategory</h2>
         <code>Scene.SetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated)</div>
         </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
@@ -6524,7 +6538,7 @@
         <p id="Reference_functions_Scene_SetScene">
         <h2 style="margin-bottom: 8px;">Scene.SetScene</h2>
         <code>Scene.SetScene(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>category (String): Category name.</li>
@@ -7109,6 +7123,82 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_SceneList_Get">
+        <h2 style="margin-bottom: 8px;">SceneList.Get</h2>
+        <code>SceneList.Get(category, entry)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the scene path for the specified category and entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetEntryID">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryID</h2>
+        <code>SceneList.GetEntryID(categoryName, entryName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the entry ID for the specified category and entry name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        <li>entryName (String): The entry name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the entry ID, or <code>-1</code> if not found.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryID">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryID</h2>
+        <code>SceneList.GetCategoryID(categoryName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the category ID for the specified category name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the category ID, or <code>-1</code> if not found.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetEntryName">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryName</h2>
+        <code>SceneList.GetEntryName(category, entryID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the entry name for the specified category and entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entryID (Integer): The entry ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the entry name.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryName">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryName</h2>
+        <code>SceneList.GetCategoryName(categoryID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the category name for the specified category ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryID (Integer): The category ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the category name, or <code>-1</code> if not valid.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryCount">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryCount</h2>
+        <code>SceneList.GetCategoryCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetSceneCount">
+        <h2 style="margin-bottom: 8px;">SceneList.GetSceneCount</h2>
+        <code>SceneList.GetSceneCount([categoryName])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of scenes in a category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.</div>
         </p>
         <p id="Reference_functions_Serializer_WriteToStream">
         <h2 style="margin-bottom: 8px;">Serializer.WriteToStream</h2>
@@ -9045,7 +9135,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>669 out of 728 functions have descriptions. </p>
+        <p>676 out of 735 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
