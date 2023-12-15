@@ -69,6 +69,7 @@ ObjFunction*      NewFunction() {
     Memory::Track(function, "NewFunction");
     function->Object.Class = FunctionImpl::Class;
     function->Arity = 0;
+    function->MinArity = 0;
     function->UpvalueCount = 0;
     function->Name = NULL;
     function->ClassName = NULL;

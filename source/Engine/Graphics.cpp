@@ -1192,12 +1192,12 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
 }
 PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
     VMThread* thread = &ScriptManager::Threads[0];
-    if (func->Arity == 1) {
-        thread->Push(INTEGER_VAL(layerIndex));
-        thread->RunEntityFunction(func, 1);
+    if (func->Arity == 0) {
+        thread->RunEntityFunction(func, 0);
     }
     else {
-        thread->RunEntityFunction(func, 0);
+        thread->Push(INTEGER_VAL(layerIndex));
+        thread->RunEntityFunction(func, 1);
     }
 }
 

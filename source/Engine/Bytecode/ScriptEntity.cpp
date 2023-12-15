@@ -721,14 +721,14 @@ PUBLIC bool ScriptEntity::RunCreateFunction(VMValue flag) {
 
     VMValue* stackTop = thread->StackTop;
 
-    if (func->Arity == 1) {
-        thread->Push(OBJECT_VAL(Instance));
-        thread->Push(flag);
-        thread->RunEntityFunction(func, 1);
+    thread->Push(OBJECT_VAL(Instance));
+
+    if (func->Arity == 0) {
+        thread->RunEntityFunction(func, 0);
     }
     else {
-        thread->Push(OBJECT_VAL(Instance));
-        thread->RunEntityFunction(func, 0);
+        thread->Push(flag);
+        thread->RunEntityFunction(func, 1);
     }
 
     thread->StackTop = stackTop;

@@ -2188,8 +2188,13 @@ PUBLIC int  Compiler::GetFunction(int type, string className) {
     // Compile the parameter list.
     compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
+    bool isOptional = false;
+
     if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
         do {
+            if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE))
+                isOptional = true;
+
             compiler->ParseVariable("Expect parameter name.");
             compiler->DefineVariableToken(parser.Previous);
 
@@ -2197,6 +2202,11 @@ PUBLIC int  Compiler::GetFunction(int type, string className) {
             if (compiler->Function->Arity > 255) {
                 compiler->Error("Cannot have more than 255 parameters.");
             }
+
+            if (!isOptional)
+                compiler->Function->MinArity++;
+            else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE))
+                break;
         }
         while (compiler->MatchToken(TOKEN_COMMA));
     }
@@ -2225,7 +2235,7 @@ PUBLIC void Compiler::GetMethod(Token className) {
     if (IdentifiersEqual(&className, &parser.Previous))
         type = TYPE_CONSTRUCTOR;
 
-    int index = GetFunction(type, std::string(className.Start, className.Length));
+    int index = GetFunction(type, className.ToString());
 
     EmitByte(OP_METHOD);
     EmitByte(index);
@@ -2745,9 +2755,8 @@ PUBLIC STATIC int    Compiler::SimpleInstruction(const char* name, int offset) {
     return offset + 1;
 }
 PUBLIC STATIC int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
-    uint8_t slot = chunk->Code[offset + 1];
-    printf("%-16s %9d\n", name, slot);
-    return offset + 2; // [debug]
+    printf("%-16s %9d\n", name, chunk->Code[offset + 1]);
+    return offset + 2;
 }
 PUBLIC STATIC int    Compiler::LocalInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
@@ -2755,7 +2764,7 @@ PUBLIC STATIC int    Compiler::LocalInstruction(const char* name, Chunk* chunk, 
         printf("%-16s %9d\n", name, slot);
     else
         printf("%-16s %9d 'this'\n", name, slot);
-    return offset + 2; // [debug]
+    return offset + 2;
 }
 PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
@@ -2768,7 +2777,7 @@ PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk,
         printf(" (%.*s)", (int)t.Length, t.Start);
     }
     printf("\n");
-    return offset + 6; // [debug]
+    return offset + 6;
 }
 PUBLIC STATIC int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
     return Compiler::MethodInstruction(name, chunk, offset) + 1;
@@ -2782,16 +2791,19 @@ PUBLIC STATIC int    Compiler::JumpInstruction(const char* name, int sign, Chunk
 PUBLIC STATIC int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
     return Compiler::HashInstruction(name, chunk, offset) + 1;
 }
+PUBLIC STATIC int    Compiler::EnumInstruction(const char* name, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(name, chunk, offset);
+}
 PUBLIC STATIC int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     if (slot == 0) {
         printf("%-16s %9d\n", name, slot);
-        return offset + 2; // [debug]
+        return offset + 2;
     }
     uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
     jump |= chunk->Code[offset + 3] << 8;
     printf("%-16s %9d -> %d\n", name, slot, jump);
-    return offset + 4; // [debug]
+    return offset + 4;
 }
 PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
     printf("%04d ", offset);
@@ -2815,7 +2827,7 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
         case OP_POP:
             return SimpleInstruction("OP_POP", offset);
         case OP_COPY:
-            return SimpleInstruction("OP_COPY", offset);
+            return ByteInstruction("OP_COPY", chunk, offset);
         case OP_GET_LOCAL:
             return LocalInstruction("OP_GET_LOCAL", chunk, offset);
         case OP_SET_LOCAL:
@@ -2912,6 +2924,8 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return InvokeInstruction("OP_INVOKE", chunk, offset);
         case OP_IMPORT:
             return ConstantInstruction("OP_IMPORT", chunk, offset);
+        case OP_IMPORT_MODULE:
+            return ConstantInstruction("OP_IMPORT_MODULE", chunk, offset);
 
         case OP_PRINT_STACK: {
             offset++;
@@ -2937,18 +2951,22 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
         case OP_CLASS:
             return ClassInstruction("OP_CLASS", chunk, offset);
         case OP_NEW_ENUM:
-            return ClassInstruction("OP_NEW_ENUM", chunk, offset);
+            return EnumInstruction("OP_NEW_ENUM", chunk, offset);
         case OP_INHERIT:
             return SimpleInstruction("OP_INHERIT", offset);
         case OP_METHOD:
             return MethodInstruction("OP_METHOD", chunk, offset);
         default:
             printf("\x1b[1;93mUnknown opcode %d\x1b[m\n", instruction);
-            return offset + 1;
+            return chunk->Count + 1;
     }
 }
-PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int arity) {
-    printf("== %s (argCount: %d) ==\n", name, arity);
+PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
+    int optArgCount = maxArity - minArity;
+    if (optArgCount)
+        printf("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
+    else
+        printf("== %s (argCount: %d) ==\n", name, maxArity);
     printf("byte   ln\n");
     for (int offset = 0; offset < chunk->Count;) {
         offset = DebugInstruction(chunk, offset);
@@ -3047,7 +3065,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
             Chunk* chunk = &Compiler::Functions[c]->Chunk;
-            DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->Arity);
+            DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->MinArity, Compiler::Functions[c]->Arity);
             printf("\n");
         }
     }

@@ -1728,7 +1728,7 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = value;
 
     ObjFunction* initializer = AS_FUNCTION(value);
-    if (initializer->Arity != 0) {
+    if (initializer->MinArity) {
         ThrowRuntimeError(false, "Initializer must have no parameters.");
     }
     else {
@@ -1801,82 +1801,63 @@ PUBLIC bool    VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
     return Call(bound->Method, argCount);
 }
 PUBLIC bool    VMThread::CallValue(VMValue callee, int argCount) {
-    if (ScriptManager::Lock()) {
-        bool result;
-        if (IS_OBJECT(callee)) {
-            switch (OBJECT_TYPE(callee)) {
-                case OBJ_BOUND_METHOD: {
-                    result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
-                    ScriptManager::Unlock();
-                    return result;
-                }
-                case OBJ_FUNCTION:
-                    result = Call(AS_FUNCTION(callee), argCount);
-                    ScriptManager::Unlock();
-                    return result;
-                case OBJ_NATIVE: {
-                    NativeFn native = AS_NATIVE(callee);
-
-                    VMValue result = NULL_VAL;
-                    try {
-                        result = native(argCount, StackTop - argCount, ID);
-                    }
-                    catch (const char* err) { }
-
-                    // Pop arguments
-                    StackTop -= argCount;
-                    // Pop receiver / class
-                    StackTop -= 1;
-                    // Push result
-                    Push(result);
-                    ScriptManager::Unlock();
-                    return true;
-                }
-                default:
-                    // Do nothing.
-                    break;
-            }
-        }
-        ScriptManager::Unlock();
-    }
-
-    return false;
-}
-PUBLIC bool    VMThread::CallForObject(VMValue callee, int argCount) {
-    if (ScriptManager::Lock()) {
-        bool result = false;
+    bool result = false;
+    if (ScriptManager::Lock() && IS_OBJECT(callee)) {
         switch (OBJECT_TYPE(callee)) {
             case OBJ_BOUND_METHOD:
                 result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
                 break;
+            case OBJ_FUNCTION:
+                result = Call(AS_FUNCTION(callee), argCount);
+                break;
             case OBJ_NATIVE: {
-                NativeFn native = AS_NATIVE(callee);
+                NativeFn nativeFn = AS_NATIVE(callee);
 
                 VMValue returnValue = NULL_VAL;
                 try {
-                    // Calling a native function for some object needs to correctly pass the
-                    // receiver, which is why the +1 and -1 are there.
-                    returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
+                    returnValue = nativeFn(argCount, StackTop - argCount, ID);
                 }
                 catch (const char* err) { }
 
-                // Pop arguments
-                StackTop -= argCount;
-                // Pop receiver / class
-                StackTop -= 1;
-                // Push returned value
-                Push(returnValue);
-                ScriptManager::Unlock();
+                StackTop -= argCount; // Pop arguments
+                StackTop -= 1; // Pop receiver / class
+                Push(returnValue); // Push result
+
                 result = true;
                 break;
             }
             default:
-                result = Call(AS_FUNCTION(callee), argCount);
+                ThrowRuntimeError(false, "Cannot call value of type %s.", GetObjectTypeString(OBJECT_TYPE(callee)));
                 break;
+        }
+    }
+    ScriptManager::Unlock();
+    return result;
+}
+PUBLIC bool    VMThread::CallForObject(VMValue callee, int argCount) {
+    if (ScriptManager::Lock()) {
+        // Special case for native functions
+        if (OBJECT_TYPE(callee) == OBJ_NATIVE) {
+            NativeFn native = AS_NATIVE(callee);
+
+            VMValue returnValue = NULL_VAL;
+            try {
+                // Calling a native function for an object needs to correctly pass the
+                // receiver, which is the reason these +1 and -1 are here.
+                returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
+            }
+            catch (const char* err) { }
+
+            StackTop -= argCount; // Pop arguments
+            StackTop -= 1; // Pop receiver / class
+            Push(returnValue); // Push returned value
+
+            ScriptManager::Unlock();
+            return true;
         }
 
         ScriptManager::Unlock();
-        return result;
+        return CallValue(callee, argCount);
     }
     return false;
 }
@@ -1910,9 +1891,24 @@ PUBLIC bool    VMThread::InstantiateClass(VMValue callee, int argCount) {
     return false;
 }
 PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
-    if (argCount != function->Arity) {
-        if (ThrowRuntimeError(false, "Expected %d arguments to function call, got %d.", function->Arity, argCount) == ERROR_RES_CONTINUE)
+    if (function->MinArity < function->Arity) {
+        if (argCount < function->MinArity) {
+            ThrowRuntimeError(false, "Expected at least %d arguments to function call, got %d.", function->MinArity, argCount);
             return false;
+        }
+        else if (argCount > function->Arity) {
+            ThrowRuntimeError(false, "Expected at most %d arguments to function call, got %d.", function->Arity, argCount);
+            return false;
+        }
+
+        if (argCount < function->Arity) {
+            for (int i = argCount; i < function->Arity; i++)
+                Push(NULL_VAL);
+        }
+    }
+    else if (argCount != function->Arity) {
+        ThrowRuntimeError(false, "Expected %d arguments to function call, got %d.", function->Arity, argCount);
+        return false;
     }
 
     if (FrameCount == FRAMES_MAX) {
@@ -1934,24 +1930,21 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
 PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
     if (ScriptManager::Lock()) {
         VMValue method;
-
         if (klass->Methods->GetIfExists(hash, &method)) {
-            // Done
+            // Found the method, so just call it
+            return CallForObject(method, argCount);
         }
         else {
+            // If there is a parent class, walk up the inheritance chain until we find the method.
             ObjClass* parentClass = ScriptManager::GetClassParent(klass);
             if (parentClass) {
                 ScriptManager::Unlock();
                 return InvokeFromClass(parentClass, hash, argCount);
             }
-            else {
-                ScriptManager::Unlock();
-                return false;
-            }
         }
 
         ScriptManager::Unlock();
-        return CallForObject(method, argCount);
+        return false;
     }
     return false;
 }

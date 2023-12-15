@@ -185,6 +185,7 @@ struct ObjString {
 struct ObjFunction {
     Obj          Object;
     int          Arity;
+    int          MinArity;
     int          UpvalueCount;
     struct Chunk Chunk;
     size_t       FunctionListOffset;
