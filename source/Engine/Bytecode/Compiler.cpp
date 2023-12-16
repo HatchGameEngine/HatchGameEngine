@@ -1102,25 +1102,25 @@ PUBLIC Uint8 Compiler::GetArgumentList() {
 Token InstanceToken = Token { 0, NULL, 0, 0, 0 };
 PUBLIC void  Compiler::GetThis(bool canAssign) {
     InstanceToken = parser.Previous;
-    // if (currentClass == NULL) {
-    //     Error("Cannot use 'this' outside of a class.");
-    // }
-    // else {
-        GetVariable(false);
-    // }
+    GetVariable(false);
 }
 PUBLIC void  Compiler::GetSuper(bool canAssign) {
     InstanceToken = parser.Previous;
+    if (!CheckToken(TOKEN_DOT))
+        Error("Expect '.' after 'super'.");
     EmitBytes(OP_GET_LOCAL, 0);
 }
 PUBLIC void  Compiler::GetDot(bool canAssign) {
-    Token instanceToken = InstanceToken;
+    bool isSuper = InstanceToken.Type == TOKEN_SUPER;
     InstanceToken.Type = -1;
 
     ConsumeToken(TOKEN_IDENTIFIER, "Expect property name after '.'.");
     Token nameToken = parser.Previous;
 
     if (canAssign && MatchAssignmentToken()) {
+        if (isSuper)
+            EmitByte(OP_GET_SUPERCLASS);
+
         Token assignmentToken = parser.Previous;
         if (assignmentToken.Type == TOKEN_INCREMENT ||
             assignmentToken.Type == TOKEN_DECREMENT) {
@@ -1153,9 +1153,12 @@ PUBLIC void  Compiler::GetDot(bool canAssign) {
     else if (MatchToken(TOKEN_LEFT_PAREN)) {
         uint8_t argCount = GetArgumentList();
 
-        EmitCall(nameToken, argCount, instanceToken.Type == TOKEN_SUPER);
+        EmitCall(nameToken, argCount, isSuper);
     }
     else {
+        if (isSuper)
+            EmitByte(OP_GET_SUPERCLASS);
+
         EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
     }
 }

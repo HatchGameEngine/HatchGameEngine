@@ -399,6 +399,7 @@ enum   OpCode {
     OP_IMPORT_MODULE,
     OP_ADD_ENUM,
     OP_NEW_ENUM,
+    OP_GET_SUPERCLASS,
 
     OP_SYNC = 0xFF,
 };
