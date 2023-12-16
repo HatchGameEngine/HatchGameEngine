@@ -441,7 +441,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
 
             scenelayer.RelativeY = 0x100;
             scenelayer.ConstantY = 0x00;
-            scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE | SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+            scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
             scenelayer.DrawGroup = 0;
             scenelayer.Properties = layer_properties;
 

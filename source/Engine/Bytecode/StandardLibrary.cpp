@@ -8740,15 +8740,45 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerDrawGroup
- * \desc Sets the draw group of the specified layer.
+ * \desc Gets the draw group of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
+ * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
     return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DrawGroup);
+}
+/***
+ * Scene.GetLayerHorizontalRepeat
+ * \desc Gets whether or not the layer repeats horizontally.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    if (Scene::Layers[GET_ARG(0, GetInteger)].Flags & SceneLayer::FLAGS_REPEAT_X)
+        INTEGER_VAL(true);
+
+    return INTEGER_VAL(false);
+}
+/***
+ * Scene.GetLayerVerticalRepeat
+ * \desc Gets whether or not the layer repeats vertically.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    if (Scene::Layers[GET_ARG(0, GetInteger)].Flags & SceneLayer::FLAGS_REPEAT_Y)
+        INTEGER_VAL(true);
+
+    return INTEGER_VAL(false);
 }
 /***
  * Scene.GetTilesetCount
@@ -9673,7 +9703,45 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int index = GET_ARG(0, GetInteger);
-    Scene::Layers[index].Repeat = !!GET_ARG(1, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+    else
+        Scene::Layers[index].Flags &= ~(SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalRepeat
+ * \desc Sets whether or not the specified layer repeats horizontally.
+ * \param layerIndex (Integer): Index of layer.
+ * \param doesRepeat (Boolean): Whether or not the layer repeats horizontally.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_X;
+    else
+        Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_X;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalRepeat
+ * \desc Sets whether or not the specified layer repeats vertically.
+ * \param layerIndex (Integer): Index of layer.
+ * \param doesRepeat (Boolean): Whether or not the layer repeats vertically.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_Y;
+    else
+        Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_Y;
     return NULL_VAL;
 }
 /***
@@ -15820,6 +15888,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerOffsetX);
     DEF_NATIVE(Scene, GetLayerOffsetY);
     DEF_NATIVE(Scene, GetLayerDrawGroup);
+    DEF_NATIVE(Scene, GetLayerHorizontalRepeat);
+    DEF_NATIVE(Scene, GetLayerVerticalRepeat);
     DEF_NATIVE(Scene, GetTileWidth);
     DEF_NATIVE(Scene, GetTileHeight);
     DEF_NATIVE(Scene, GetTileID);
@@ -15878,6 +15948,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
     DEF_NATIVE(Scene, SetLayerRepeat);
+    DEF_NATIVE(Scene, SetLayerHorizontalRepeat);
+    DEF_NATIVE(Scene, SetLayerVerticalRepeat);
     DEF_NATIVE(Scene, SetDrawGroupCount);
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);

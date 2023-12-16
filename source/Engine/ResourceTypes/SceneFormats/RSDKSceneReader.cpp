@@ -252,12 +252,9 @@ PRIVATE STATIC SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
     if (layer.Name[0] == 'F' && layer.Name[1] == 'G')
         layer.Flags |= SceneLayer::FLAGS_COLLIDEABLE;
 
-    if (strcmp(layer.Name, "Move") == 0) {
-        layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
-        // layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+    if (strcmp(layer.Name, "Move") != 0) {
+        layer.Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
     }
-
-    // layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
 
     layer.DrawGroup = DrawGroup & 0xF;
     if (DrawGroup & 0x10)

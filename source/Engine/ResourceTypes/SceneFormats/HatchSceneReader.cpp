@@ -119,7 +119,7 @@ PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     size_t nameBufLen = sizeof(layer.Name);
     memset(layer.Name, 0x00, nameBufLen);
 
-    layer.Flags = SceneLayer::FLAGS_COLLIDEABLE | SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+    layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
     layer.Visible = true;
 
     // Copy its name

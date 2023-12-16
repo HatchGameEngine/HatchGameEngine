@@ -824,6 +824,8 @@
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetX">Scene.GetLayerOffsetX</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetY">Scene.GetLayerOffsetY</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerDrawGroup">Scene.GetLayerDrawGroup</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerHorizontalRepeat">Scene.GetLayerHorizontalRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerVerticalRepeat">Scene.GetLayerVerticalRepeat</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetCount">Scene.GetTilesetCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetIndex">Scene.GetTilesetIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
@@ -882,6 +884,8 @@
                     <li><a href="#Reference_functions_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerRepeat">Scene.SetLayerRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerHorizontalRepeat">Scene.SetLayerHorizontalRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerVerticalRepeat">Scene.SetLayerVerticalRepeat</a></li>
                     <li><a href="#Reference_functions_Scene_SetDrawGroupCount">Scene.SetDrawGroupCount</a></li>
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
@@ -5971,13 +5975,36 @@
         </p>
         <p id="Reference_functions_Scene_GetLayerDrawGroup">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDrawGroup</h2>
-        <code>Scene.GetLayerDrawGroup(layerIndex, drawGroup)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw group of the specified layer.</div>
+        <code>Scene.GetLayerDrawGroup(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the draw group of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLayerHorizontalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerHorizontalRepeat</h2>
+        <code>Scene.GetLayerHorizontalRepeat(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats horizontally.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLayerVerticalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerVerticalRepeat</h2>
+        <code>Scene.GetLayerVerticalRepeat(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats vertically.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTilesetCount">
         <h2 style="margin-bottom: 8px;">Scene.GetTilesetCount</h2>
@@ -6505,6 +6532,26 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>doesRepeat (Boolean): Whether or not the layer repeats.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerHorizontalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerHorizontalRepeat</h2>
+        <code>Scene.SetLayerHorizontalRepeat(layerIndex, doesRepeat)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats horizontally.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doesRepeat (Boolean): Whether or not the layer repeats horizontally.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerVerticalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerVerticalRepeat</h2>
+        <code>Scene.SetLayerVerticalRepeat(layerIndex, doesRepeat)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats vertically.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doesRepeat (Boolean): Whether or not the layer repeats vertically.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetDrawGroupCount">
@@ -8962,7 +9009,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>660 out of 719 functions have descriptions. </p>
+        <p>664 out of 723 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

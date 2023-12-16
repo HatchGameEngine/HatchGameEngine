@@ -943,7 +943,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 TileBaseY = baseYOff;
 
                 // Loop or cut off sourceTileCellX
-                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
                     if (sourceTileCellX < 0) goto SKIP_TILE_ROW_DRAW_ROT90;
                     if (sourceTileCellX >= layer->Width) goto SKIP_TILE_ROW_DRAW_ROT90;
                 }
@@ -962,7 +962,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 for (int t = 0; t < tileCellMaxHeight; t++) {
                     // Loop or cut off sourceTileCellX
                     sourceTileCellY = iy;
-                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                    if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
                         if (sourceTileCellY < 0) goto SKIP_TILE_DRAW_ROT90;
                         if (sourceTileCellY >= layer->Height) goto SKIP_TILE_DRAW_ROT90;
                     }
@@ -1064,7 +1064,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 TileBaseX = baseXOff;
 
                 // Loop or cut off sourceTileCellY
-                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
                     if (sourceTileCellY < 0) goto SKIP_TILE_ROW_DRAW;
                     if (sourceTileCellY >= layer->Height) goto SKIP_TILE_ROW_DRAW;
                 }
@@ -1084,7 +1084,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 for (int t = 0; t < tileCellMaxWidth; t++) {
                     // Loop or cut off sourceTileCellX
                     sourceTileCellX = ix;
-                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                    if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
                         if (sourceTileCellX < 0) goto SKIP_TILE_DRAW;
                         if (sourceTileCellX >= layer->Width) goto SKIP_TILE_DRAW;
                     }
