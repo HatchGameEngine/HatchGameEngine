@@ -95,30 +95,7 @@ const char* GetValueTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
-#define IS_NOT_NUMBER(value) (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
-
-// NOTE: Engine can either use integer or decimal for the number value.
-//   Set this to integer for Sonic, and decimal for non-optimized, floating-point projects.
-// #define IE_FIXED_POINT_MATH
-#ifdef  IE_FIXED_POINT_MATH
-    #define IS_NUMBER(value)        (IS_INTEGER(value))
-    #define IS_LINKED_NUMBER(value) (IS_LINKED_INTEGER(value))
-    #define AS_NUMBER(value)        (AS_INTEGER(value))
-    #define AS_LINKED_NUMBER(value) (AS_LINKED_INTEGER(value))
-    #define NUMBER_VAL(value)       (INTEGER_VAL(value))
-    #define VAL_NUMBER              VAL_INTEGER
-    #define VAL_LINKED_NUMBER       VAL_LINKED_INTEGER
-    #define NUMBER_CTYPE            int
-#else
-    #define IS_NUMBER(value)        (IS_DECIMAL(value))
-    #define IS_LINKED_NUMBER(value) (IS_LINKED_DECIMAL(value))
-    #define AS_NUMBER(value)        (AS_DECIMAL(value))
-    #define AS_LINKED_NUMBER(value) (AS_LINKED_DECIMAL(value))
-    #define NUMBER_VAL(value)       (DECIMAL_VAL(value))
-    #define VAL_NUMBER              VAL_DECIMAL
-    #define VAL_LINKED_NUMBER       VAL_LINKED_DECIMAL
-    #define NUMBER_CTYPE            float
-#endif
+#define IS_NOT_NUMBER(value)    (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 

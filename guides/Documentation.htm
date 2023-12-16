@@ -115,6 +115,7 @@
             <li><a href="#Reference_FileStream_*">FileStream_*</a></li>
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
+            <li><a href="#Reference_HitboxSide_*">HitboxSide_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
@@ -123,7 +124,9 @@
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
             <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
             <li><a href="#Reference_TILECOLLISION_*">TILECOLLISION_*</a></li>
+            <li><a href="#Reference_TimeOfDay_*">TimeOfDay_*</a></li>
             <li><a href="#Reference_TintMode_*">TintMode_*</a></li>
+            <li><a href="#Reference_Weekday_*">Weekday_*</a></li>
         </ul>
         <h3>Constants</h3>
         <ul>
@@ -1575,6 +1578,15 @@
                     <li><a href="#Reference_enums_FogEquation_Exp">FogEquation_Exp</a></li>
                 </ul>
             </p>
+            <p id="Reference_HitboxSide_*">
+                <h2><code>HitboxSide_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_HitboxSide_LEFT">HitboxSide_LEFT</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_TOP">HitboxSide_TOP</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_RIGHT">HitboxSide_RIGHT</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_BOTTOM">HitboxSide_BOTTOM</a></li>
+                </ul>
+            </p>
             <p id="Reference_KeyBind_*">
                 <h2><code>KeyBind_*</code></h2>
                 <ul>
@@ -1664,6 +1676,15 @@
                     <li><a href="#Reference_enums_TILECOLLISION_UP">TILECOLLISION_UP</a></li>
                 </ul>
             </p>
+            <p id="Reference_TimeOfDay_*">
+                <h2><code>TimeOfDay_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_TimeOfDay_MORNING">TimeOfDay_MORNING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_MIDDAY">TimeOfDay_MIDDAY</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_EVENING">TimeOfDay_EVENING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_NIGHT">TimeOfDay_NIGHT</a></li>
+                </ul>
+            </p>
             <p id="Reference_TintMode_*">
                 <h2><code>TintMode_*</code></h2>
                 <ul>
@@ -1671,6 +1692,18 @@
                     <li><a href="#Reference_enums_TintMode_DST_NORMAL">TintMode_DST_NORMAL</a></li>
                     <li><a href="#Reference_enums_TintMode_SRC_BLEND">TintMode_SRC_BLEND</a></li>
                     <li><a href="#Reference_enums_TintMode_DST_BLEND">TintMode_DST_BLEND</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Weekday_*">
+                <h2><code>Weekday_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_Weekday_SUNDAY">Weekday_SUNDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_MONDAY">Weekday_MONDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_TUESDAY">Weekday_TUESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_WEDNESDAY">Weekday_WEDNESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_THURSDAY">Weekday_THURSDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_FRIDAY">Weekday_FRIDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_SATURDAY">Weekday_SATURDAY</a></li>
                 </ul>
             </p>
         <h3>Constants</h3>
@@ -10155,6 +10188,22 @@
         <h3 style="margin-bottom: 8px;"><code>FogEquation_Exp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Exponential fog equation.</div>
         </p>
+        <p id="Reference_enums_HitboxSide_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_TOP">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_TOP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_BOTTOM">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_BOTTOM</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox array.</div>
+        </p>
         <p id="Reference_enums_KeyBind_Fullscreen">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Fullscreen keybind.</div>
@@ -10351,6 +10400,22 @@
         <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_UP</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects upward gravity for tile collision.</div>
         </p>
+        <p id="Reference_enums_TimeOfDay_MORNING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MORNING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The early hours of the day (5AM to 11AM, or 05:00 to 11:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_MIDDAY">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MIDDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_EVENING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_EVENING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The later hours of the day (5PM to 8PM, or 17:00 to 20:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_NIGHT">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_NIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).</div>
+        </p>
         <p id="Reference_enums_TintMode_SRC_NORMAL">
         <h3 style="margin-bottom: 8px;"><code>TintMode_SRC_NORMAL</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Tints the source pixel with the tint color.</div>
@@ -10367,7 +10432,35 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>166 out of 181 enums have descriptions. </p>
+        <p id="Reference_enums_Weekday_SUNDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_SUNDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The first day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_MONDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_MONDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The second day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_TUESDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_TUESDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The third day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_WEDNESDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_WEDNESDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The fourth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_THURSDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_THURSDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The fifth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_FRIDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_FRIDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The sixth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_SATURDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_SATURDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
+        </p>
+        <p>181 out of 181 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

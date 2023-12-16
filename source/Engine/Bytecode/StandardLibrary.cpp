@@ -4624,7 +4624,7 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutSine
  * \desc Eases the value using the "OutSine" formula.
@@ -4632,7 +4632,7 @@ VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutSine
  * \desc Eases the value using the "InOutSine" formula.
@@ -4640,7 +4640,7 @@ VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuad
  * \desc Eases the value using the "InQuad" formula.
@@ -4648,7 +4648,7 @@ VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuad
  * \desc Eases the value using the "OutQuad" formula.
@@ -4656,7 +4656,7 @@ VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuad
  * \desc Eases the value using the "InOutQuad" formula.
@@ -4664,7 +4664,7 @@ VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InCubic
  * \desc Eases the value using the "InCubic" formula.
@@ -4672,7 +4672,7 @@ VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutCubic
  * \desc Eases the value using the "OutCubic" formula.
@@ -4680,7 +4680,7 @@ VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutCubic
  * \desc Eases the value using the "InOutCubic" formula.
@@ -4688,7 +4688,7 @@ VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuart
  * \desc Eases the value using the "InQuart" formula.
@@ -4696,7 +4696,7 @@ VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuart
  * \desc Eases the value using the "OutQuart" formula.
@@ -4704,7 +4704,7 @@ VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuart
  * \desc Eases the value using the "InOutQuart" formula.
@@ -4712,7 +4712,7 @@ VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuint
  * \desc Eases the value using the "InQuint" formula.
@@ -4720,7 +4720,7 @@ VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuint
  * \desc Eases the value using the "OutQuint" formula.
@@ -4728,7 +4728,7 @@ VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuint
  * \desc Eases the value using the "InOutQuint" formula.
@@ -4736,7 +4736,7 @@ VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InExpo
  * \desc Eases the value using the "InExpo" formula.
@@ -4744,7 +4744,7 @@ VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutExpo
  * \desc Eases the value using the "OutExpo" formula.
@@ -4752,7 +4752,7 @@ VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutExpo
  * \desc Eases the value using the "InOutExpo" formula.
@@ -4760,7 +4760,7 @@ VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InCirc
  * \desc Eases the value using the "InCirc" formula.
@@ -4768,7 +4768,7 @@ VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutCirc
  * \desc Eases the value using the "OutCirc" formula.
@@ -4776,7 +4776,7 @@ VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutCirc
  * \desc Eases the value using the "InOutCirc" formula.
@@ -4784,7 +4784,7 @@ VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InBack
  * \desc Eases the value using the "InBack" formula.
@@ -4792,7 +4792,7 @@ VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutBack
  * \desc Eases the value using the "OutBack" formula.
@@ -4800,7 +4800,7 @@ VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutBack
  * \desc Eases the value using the "InOutBack" formula.
@@ -4808,7 +4808,7 @@ VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InElastic
  * \desc Eases the value using the "InElastic" formula.
@@ -4816,7 +4816,7 @@ VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutElastic
  * \desc Eases the value using the "OutElastic" formula.
@@ -4824,7 +4824,7 @@ VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutElastic
  * \desc Eases the value using the "InOutElastic" formula.
@@ -4832,7 +4832,7 @@ VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InBounce
  * \desc Eases the value using the "InBounce" formula.
@@ -4840,7 +4840,7 @@ VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutBounce
  * \desc Eases the value using the "OutBounce" formula.
@@ -4848,7 +4848,7 @@ VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutBounce
  * \desc Eases the value using the "InOutBounce" formula.
@@ -4856,7 +4856,7 @@ VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.Triangle
  * \desc Eases the value using the "Triangle" formula.
@@ -4864,7 +4864,7 @@ VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_A
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::Triangle(GET_ARG(0, GetDecimal))); }
+VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::Triangle(GET_ARG(0, GetDecimal))); }
 // #endregion
 
 // #region File
@@ -5040,7 +5040,7 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     int value; SDL_GetMouseState(&value, NULL);
-    return NUMBER_VAL((float)value);
+    return DECIMAL_VAL((float)value);
 }
 /***
  * Input.GetMouseY
@@ -5051,7 +5051,7 @@ VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     int value; SDL_GetMouseState(NULL, &value);
-    return NUMBER_VAL((float)value);
+    return DECIMAL_VAL((float)value);
 }
 /***
  * Input.IsMouseButtonDown
@@ -15505,86 +15505,86 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Hitbox Sides
     /***
-    * \enum LEFT
+    * \enum HitboxSide_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-    DEF_ENUM(LEFT);
+    DEF_ENUM(HitboxSide_LEFT);
     /***
-    * \enum TOP
+    * \enum HitboxSide_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-    DEF_ENUM(TOP);
+    DEF_ENUM(HitboxSide_TOP);
     /***
-    * \enum RIGHT
+    * \enum HitboxSide_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-    DEF_ENUM(RIGHT);
+    DEF_ENUM(HitboxSide_RIGHT);
     /***
-    * \enum BOTTOM
+    * \enum HitboxSide_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-    DEF_ENUM(BOTTOM);
+    DEF_ENUM(HitboxSide_BOTTOM);
     // #endregion
 
     // #region Weekdays
     /***
-    * \enum SUNDAY
+    * \enum Weekday_SUNDAY
     * \desc The first day of the week.
     */
-    DEF_CONST_INT("SUNDAY", (int)Weekday::SUNDAY);
+    DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
     /***
-    * \enum MONDAY
+    * \enum Weekday_MONDAY
     * \desc The second day of the week.
     */
-    DEF_CONST_INT("MONDAY", (int)Weekday::MONDAY);
+    DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
     /***
-    * \enum TUESDAY
+    * \enum Weekday_TUESDAY
     * \desc The third day of the week.
     */
-    DEF_CONST_INT("TUESDAY", (int)Weekday::TUESDAY);
+    DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
     /***
-    * \enum WEDNESDAY
+    * \enum Weekday_WEDNESDAY
     * \desc The fourth day of the week.
     */
-    DEF_CONST_INT("WEDNESDAY", (int)Weekday::WEDNESDAY);
+    DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
     /***
-    * \enum THURSDAY
+    * \enum Weekday_THURSDAY
     * \desc The fifth day of the week.
     */
-    DEF_CONST_INT("THURSDAY", (int)Weekday::THURSDAY);
+    DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
     /***
-    * \enum FRIDAY
+    * \enum Weekday_FRIDAY
     * \desc The sixth day of the week.
     */
-    DEF_CONST_INT("FRIDAY", (int)Weekday::FRIDAY);
+    DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
     /***
-    * \enum SATURDAY
+    * \enum Weekday_SATURDAY
     * \desc The seventh day of the week.
     */
-    DEF_CONST_INT("SATURDAY", (int)Weekday::SATURDAY);
+    DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
     // #endregion
 
     // #region TimesOfDay
     /***
-    * \enum MORNING
-    * \desc The early hours of the day (5AM to 11AM, 0500 to 1100).
+    * \enum TimeOfDay_MORNING
+    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
     */
-    DEF_CONST_INT("MORNING", (int)TimeOfDay::MORNING);
+    DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
     /***
-    * \enum MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, 1200 to 1600).
+    * \enum TimeOfDay_MIDDAY
+    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
     */
-    DEF_CONST_INT("MIDDAY", (int)TimeOfDay::MIDDAY);
+    DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
     /***
-    * \enum EVENING
-    * \desc The later hours of the day (5PM to 8PM, 1700 to 2000).
+    * \enum TimeOfDay_EVENING
+    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
     */
-    DEF_CONST_INT("EVENING", (int)TimeOfDay::EVENING);
+    DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
     /***
-    * \enum NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, 2100 to 400).
+    * \enum TimeOfDay_NIGHT
+    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
     */
-    DEF_CONST_INT("NIGHT", (int)TimeOfDay::NIGHT);
+    DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
     // #endregion
 
     // #region Ease
