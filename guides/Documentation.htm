@@ -509,13 +509,14 @@
                     <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
+                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
                     <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
                     <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
                     <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -1281,13 +1282,14 @@
                     <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
+                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
                     <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
                     <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
                     <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -4385,7 +4387,7 @@
         <li>slotID (Integer): The slot ID to search a corresponding instance for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.</div>
+        <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, or <code>null</code> if no instance was found.</div>
         </p>
         <p id="Reference_functions_Instance_DisableAutoAnimate">
         <h2 style="margin-bottom: 8px;">Instance.DisableAutoAnimate</h2>
@@ -8988,6 +8990,13 @@
         <code>instance.Animate()</code>
         <div style="margin-top: 8px; font-size: 14px;">Animates the entity.</div>
         </p>
+        <p id="Reference_methods_instance_GetIDWithinClass">
+        <h2 style="margin-bottom: 8px;">instance.GetIDWithinClass</h2>
+        <code>instance.GetIDWithinClass()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the ordered ID of the entity amongst other entities of the same type.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
         <p id="Reference_methods_instance_AddToRegistry">
         <h2 style="margin-bottom: 8px;">instance.AddToRegistry</h2>
         <code>instance.AddToRegistry(registry)</code>
@@ -9049,9 +9058,9 @@
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_GetHitboxFromSprite">
-        <h2 style="margin-bottom: 8px;">instance.GetHitboxFromSprite</h2>
-        <code>instance.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
+        <p id="Reference_methods_instance_ReturnHitboxFromSprite">
+        <h2 style="margin-bottom: 8px;">instance.ReturnHitboxFromSprite</h2>
+        <code>instance.ReturnHitboxFromSprite(sprite, animation, frame, hitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -9210,7 +9219,7 @@
         <code>instance.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p>24 out of 24 methods have descriptions. </p>
+        <p>25 out of 25 methods have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">

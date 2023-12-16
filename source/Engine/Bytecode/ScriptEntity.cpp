@@ -752,11 +752,39 @@ PUBLIC bool ScriptEntity::RunInitializer() {
     return true;
 }
 
-PUBLIC void ScriptEntity::Copy(ScriptEntity* other, bool copyClass, bool destroySrc) {
+PUBLIC bool ScriptEntity::ChangeClass(const char* className) {
+    if (!ScriptManager::ClassExists(className))
+        return false;
+
+    if (!ScriptManager::Classes->Exists(className) && !ScriptManager::LoadObjectClass(className, true))
+        return false;
+
+    ObjClass* newClass = ScriptManager::GetObjectClass(className);
+    if (!newClass)
+        return false;
+
+    ObjectList* objectList = Scene::GetObjectList(className);
+    if (!objectList)
+        return false;
+
+    // Remove from the old list
+    List->Remove(this);
+
+    // Add to the new list
+    List = objectList;
+    List->Add(this);
+
+    // Change the script-side class proper
+    Instance->Object.Class = newClass;
+
+    return true;
+}
+
+PUBLIC void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
     CopyFields(other);
 
     if (copyClass)
-        other->Instance->Object.Class = Instance->Object.Class;
+        other->ChangeClass(List->ObjectName);
 
     // Copy properties
     HashMap<VMValue>* srcProperties = Properties;
@@ -767,11 +795,7 @@ PUBLIC void ScriptEntity::Copy(ScriptEntity* other, bool copyClass, bool destroy
     srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
         destProperties->Put(key, value);
     });
-
-    if (destroySrc)
-        other->Active = false;
 }
-
 
 PUBLIC void ScriptEntity::CopyFields(ScriptEntity* other) {
     Entity::CopyFields(other);
@@ -1064,6 +1088,33 @@ PUBLIC STATIC VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint
         self->Animate();
     return NULL_VAL;
 }
+
+/***
+ * \method GetIDWithinClass
+ * \desc Gets the ordered ID of the entity amongst other entities of the same type.
+ * \return Returns an Integer value.
+ * \ns Instance
+ */
+PUBLIC STATIC VMValue ScriptEntity::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 1);
+    Entity* self = GET_ENTITY(0);
+    if (!self || !self->List)
+        return NULL_VAL;
+
+    Entity* other = self->List->EntityFirst;
+    int num = 0;
+
+    while (other) {
+        if (self == other)
+            break;
+
+        num++;
+        other = other->NextEntityInList;
+    }
+
+    return INTEGER_VAL(num);
+}
+
 /***
  * \method AddToRegistry
  * \desc Adds the entity to a registry.
@@ -1118,7 +1169,6 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue*
 /***
  * \method ApplyMotion
  * \desc Applies gravity and velocities to the entity.
- * \return
  * \ns Instance
  */
 PUBLIC STATIC VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
@@ -1252,7 +1302,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
     return NULL_VAL;
 }
 /***
- * \method GetHitboxFromSprite
+ * \method ReturnHitboxFromSprite
  * \desc Gets the hitbox in the specified sprite's animation, frame and hitbox ID.
  * \param sprite (Sprite): The sprite.
  * \param animation (Integer): The animation index.

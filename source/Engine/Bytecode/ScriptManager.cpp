@@ -849,7 +849,7 @@ PUBLIC STATIC bool    ScriptManager::LoadObjectClass(const char* objectName, boo
     // Set native functions for that new object class
     if (!Classes->Exists(objectName)) {
         // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
-        ObjClass* klass = AS_CLASS(Globals->Get(objectName));
+        ObjClass* klass = GetObjectClass(objectName);
         if (!klass) {
             Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
             return false;
@@ -885,11 +885,20 @@ PUBLIC STATIC void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
     DEF_NATIVE(AddToDrawGroup);
     DEF_NATIVE(IsInDrawGroup);
     DEF_NATIVE(RemoveFromDrawGroup);
+    DEF_NATIVE(GetIDWithinClass);
     DEF_NATIVE(PlaySound);
     DEF_NATIVE(LoopSound);
     DEF_NATIVE(StopSound);
     DEF_NATIVE(StopAllSounds);
 #undef DEF_NATIVE
+}
+PUBLIC STATIC ObjClass* ScriptManager::GetObjectClass(const char* className) {
+    VMValue value = Globals->Get(className);
+
+    if (IS_CLASS(value))
+        return AS_CLASS(value);
+
+    return nullptr;
 }
 PUBLIC STATIC Entity* ScriptManager::ObjectSpawnFunction(const char* objectName) {
     return ScriptManager::SpawnObject(objectName);

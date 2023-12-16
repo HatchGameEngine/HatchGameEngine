@@ -5413,7 +5413,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
  * Instance.GetBySlotID
  * \desc Gets an instance by its slot ID.
  * \param slotID (Integer): The slot ID to search a corresponding instance for.
- * \return Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.
+ * \return Returns the instance corresponding to the specified slot ID, or <code>null</code> if no instance was found.
  * \ns Instance
  */
 VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
@@ -5455,13 +5455,12 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     ObjInstance* destInstance   = GET_ARG(0, GetInstance);
     ObjInstance* srcInstance    = GET_ARG(1, GetInstance);
-    bool copyClass              = argCount >= 3 ? !!GET_ARG(2, GetInteger) : true;
-    bool destroySrc             = argCount >= 4 ? !!GET_ARG(3, GetInteger) : false;
+    bool copyClass              = !!GET_ARG_OPT(2, GetInteger, true);
 
     ScriptEntity* destEntity  = (ScriptEntity*)destInstance->EntityPtr;
     ScriptEntity* srcEntity   = (ScriptEntity*)srcInstance->EntityPtr;
     if (destEntity && srcEntity)
-        srcEntity->Copy(destEntity, copyClass, destroySrc);
+        srcEntity->Copy(destEntity, copyClass);
 
     return NULL_VAL;
 }
@@ -5476,31 +5475,17 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    ObjInstance* instance   = GET_ARG(0, GetInstance);
-    char* objectName        = GET_ARG(1, GetString);
+    ObjInstance* instance  = GET_ARG(0, GetInstance);
+    char* className        = GET_ARG(1, GetString);
 
     ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
     if (!self)
         return INTEGER_VAL(false);
 
-    if (ScriptManager::ClassExists(objectName)) {
-        if (!ScriptManager::Classes->Exists(objectName))
-            ScriptManager::LoadObjectClass(objectName, true);
+    if (self->ChangeClass(className))
+        return INTEGER_VAL(true);
 
-        ObjClass* klass = AS_CLASS(ScriptManager::Globals->Get(objectName));
-        if (!klass) {
-            return INTEGER_VAL(false);
-        }
-
-        instance->Object.Class = klass;
-    }
-    else {
-        return INTEGER_VAL(false);
-    }
-
-    ObjectList* objectList  = Scene::ObjectLists->Get(objectName);
-    self->List              = objectList;
-    return INTEGER_VAL(true);
+    return INTEGER_VAL(false);
 }
 // #endregion
 
