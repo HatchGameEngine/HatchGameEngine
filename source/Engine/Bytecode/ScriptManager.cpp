@@ -740,15 +740,15 @@ PUBLIC STATIC bool    ScriptManager::CallFunction(char* functionName) {
     return true;
 }
 PUBLIC STATIC Entity* ScriptManager::SpawnObject(const char* objectName) {
-    VMValue val = Globals->Get(Globals->HashFunction(objectName, strlen(objectName)));
-    if (!IS_CLASS(val)) {
-        Log::Print(Log::LOG_ERROR, "Can't find class of \"%s\"!", objectName);
+    ObjClass* klass = GetObjectClass(objectName);
+    if (!klass) {
+        Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
         return nullptr;
     }
 
     ScriptEntity* object = new ScriptEntity;
 
-    ObjInstance* instance = NewInstance(AS_CLASS(val));
+    ObjInstance* instance = NewInstance(klass);
     object->Link(instance);
 
     return object;
@@ -900,8 +900,8 @@ PUBLIC STATIC ObjClass* ScriptManager::GetObjectClass(const char* className) {
 
     return nullptr;
 }
-PUBLIC STATIC Entity* ScriptManager::ObjectSpawnFunction(const char* objectName) {
-    return ScriptManager::SpawnObject(objectName);
+PUBLIC STATIC Entity* ScriptManager::ObjectSpawnFunction(ObjectList* list) {
+    return ScriptManager::SpawnObject(list->ObjectName);
 }
 PUBLIC STATIC void    ScriptManager::LoadClasses() {
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {

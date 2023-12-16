@@ -334,7 +334,6 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
             MetricUpdateTime,
             MetricClearTime,
             MetricRenderTime,
-            // MetricFPSCounterTime,
             MetricPresentTime,
             0.0,
             MetricFrameTime,
@@ -347,7 +346,6 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
             "Entity Update:         %8.3f ms",
             "Clear Time:            %8.3f ms",
             "World Render Commands: %8.3f ms",
-            // "FPS Counter Time:      %8.3f ms",
             "Frame Present Time:    %8.3f ms",
             "==================================",
             "Frame Total Time:      %8.3f ms",
@@ -356,14 +354,18 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
 
         ListList.clear();
         Scene::ObjectLists->WithAll([](Uint32, ObjectList* list) -> void {
-            if ((list->AverageUpdateTime > 0.0 && list->AverageUpdateItemCount > 0) ||
-                (list->AverageRenderTime > 0.0 && list->AverageRenderItemCount > 0))
+            if ((list->Performance.Update.AverageTime > 0.0 && list->Performance.Update.AverageItemCount > 0) ||
+                (list->Performance.Render.AverageTime > 0.0 && list->Performance.Render.AverageItemCount > 0))
                 ListList.push_back(list);
         });
         std::sort(ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
+            ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
+            ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
+            ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
+            ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
             return
-                a->AverageUpdateTime * a->AverageUpdateItemCount + a->AverageRenderTime * a->AverageRenderItemCount >
-                b->AverageUpdateTime * b->AverageUpdateItemCount + b->AverageRenderTime * b->AverageRenderItemCount;
+                updatePerfA.AverageTime * updatePerfA.AverageItemCount + renderPerfA.AverageTime * renderPerfA.AverageItemCount >
+                updatePerfB.AverageTime * updatePerfB.AverageItemCount + renderPerfB.AverageTime * renderPerfB.AverageItemCount;
         });
 
         Log::Print(Log::LOG_IMPORTANT, "General Performance Snapshot:");
@@ -406,15 +408,6 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
                     Scene::PERF_ViewRender[i].RenderFinishTime,
                     Scene::PERF_ViewRender[i].RenderTime);
             }
-            // double RenderSetupTime;
-            // bool   RecreatedDrawTarget;
-            // double ProjectionSetupTime;
-            // double ObjectRenderEarlyTime;
-            // double ObjectRenderTime;
-            // double ObjectRenderLateTime;
-            // double LayerTileRenderTime[32]; // MAX_LAYERS
-            // double RenderFinishTime;
-            // double RenderTime;
         }
 
         // Object Performance Snapshot
@@ -425,20 +418,21 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
         Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
         for (size_t i = 0; i < ListList.size(); i++) {
             ObjectList* list = ListList[i];
+            ObjectListPerformance& perf = list->Performance;
             Log::Print(Log::LOG_INFO, "Object \"%s\":\n"
                 "           - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
                 "           - Avg Update       %6.1f mcs (Total %6.1f mcs, Count %d)\n"
                 "           - Avg Update Late  %6.1f mcs (Total %6.1f mcs, Count %d)\n"
                 "           - Avg Render       %6.1f mcs (Total %6.1f mcs, Count %d)", list->ObjectName,
-                list->AverageUpdateEarlyTime * 1000.0, list->AverageUpdateEarlyTime * list->AverageUpdateEarlyItemCount * 1000.0, (int)list->AverageUpdateEarlyItemCount,
-                list->AverageUpdateTime * 1000.0, list->AverageUpdateTime * list->AverageUpdateItemCount * 1000.0, (int)list->AverageUpdateItemCount,
-                list->AverageUpdateLateTime * 1000.0, list->AverageUpdateLateTime * list->AverageUpdateLateItemCount * 1000.0, (int)list->AverageUpdateLateItemCount,
-                list->AverageRenderTime * 1000.0, list->AverageRenderTime * list->AverageRenderItemCount * 1000.0, (int)list->AverageRenderItemCount);
+                perf.EarlyUpdate.GetAverageTime(), perf.EarlyUpdate.GetTotalAverageTime(), (int)perf.EarlyUpdate.AverageItemCount,
+                perf.Update.GetAverageTime(), perf.Update.GetTotalAverageTime(), (int)perf.Update.AverageItemCount,
+                perf.LateUpdate.GetAverageTime(), perf.LateUpdate.GetTotalAverageTime(), (int)perf.LateUpdate.AverageItemCount,
+                perf.Render.GetAverageTime(), perf.Render.GetTotalAverageTime(), (int)perf.Render.AverageItemCount);
 
-            totalUpdateEarly += list->AverageUpdateEarlyTime * list->AverageUpdateEarlyItemCount * 1000.0;
-            totalUpdate += list->AverageUpdateTime * list->AverageUpdateItemCount * 1000.0;
-            totalUpdateLate += list->AverageUpdateLateTime * list->AverageUpdateLateItemCount * 1000.0;
-            totalRender += list->AverageRenderTime * list->AverageRenderItemCount * 1000.0;
+            totalUpdateEarly += perf.EarlyUpdate.GetTotalAverageTime();
+            totalUpdate += perf.Update.GetTotalAverageTime();
+            totalUpdateLate += perf.LateUpdate.GetTotalAverageTime();
+            totalRender += perf.Render.GetTotalAverageTime();
         }
         Log::Print(Log::LOG_WARN, "Total Update Early: %8.3f mcs / %1.3f ms", totalUpdateEarly, totalUpdateEarly / 1000.0);
         Log::Print(Log::LOG_WARN, "Total Update: %8.3f mcs / %1.3f ms", totalUpdate, totalUpdate / 1000.0);
@@ -1068,12 +1062,11 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
                 if (Scene::ObjectLists && Application::Platform != Platforms::Android) {
                     Scene::ObjectLists->WithAll([infoPadding, listYPtr](Uint32, ObjectList* list) -> void {
                         char textBufferXXX[1024];
-                        if (list->AverageUpdateItemCount > 0.0) {
+                        if (list->Performance.Update.AverageItemCount > 0.0) {
                             Graphics::Save();
                             Graphics::Translate(infoPadding / 2.0, *listYPtr, 0.0);
                             Graphics::Scale(0.6, 0.6, 1.0);
-                                // snprintf(textBufferXXX, 1024, "Object \"%s\": Avg Update %.1f mcs (Total %.1f mcs, Count %d)", list->ObjectName, list->AverageUpdateTime * 1000.0, list->AverageUpdateTime * list->AverageUpdateItemCount * 1000.0, (int)list->AverageUpdateItemCount);
-                                snprintf(textBufferXXX, 1024, "Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)", list->ObjectName, list->AverageRenderTime * 1000.0, list->AverageRenderTime * list->AverageRenderItemCount * 1000.0, (int)list->AverageRenderItemCount);
+                                snprintf(textBufferXXX, 1024, "Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)", list->ObjectName, list->Performance.Render.GetAverageTime(), list->Performance.Render.GetTotalAverageTime(), (int)list->Performance.Render.AverageItemCount);
                                 DEBUG_DrawText(textBufferXXX, 0.0, 0.0);
                             Graphics::Restore();
 

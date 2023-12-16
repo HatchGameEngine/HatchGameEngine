@@ -25,6 +25,7 @@ public:
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
 #include <Engine/IO/FileStream.h>
@@ -1733,13 +1734,13 @@ VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
     int hour = ((int)time(NULL) / 3600) % 24;
 
     if (hour >= 5 && hour <= 11)
-        return INTEGER_VAL(MORNING);
+        return INTEGER_VAL((int)TimeOfDay::MORNING);
     else if (hour >= 12 && hour <= 16)
-        return INTEGER_VAL(MIDDAY);
+        return INTEGER_VAL((int)TimeOfDay::MIDDAY);
     else if (hour >= 17 && hour <= 20)
-        return INTEGER_VAL(EVENING);
+        return INTEGER_VAL((int)TimeOfDay::EVENING);
     else
-        return INTEGER_VAL(NIGHT);
+        return INTEGER_VAL((int)TimeOfDay::NIGHT);
 }
 /***
  * Date.GetTicks
@@ -15460,39 +15461,39 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Weekdays
     /***
     * \enum SUNDAY
-    * \desc The first day of the week (value 0).
+    * \desc The first day of the week.
     */
-    DEF_ENUM(SUNDAY);
+    DEF_CONST_INT("SUNDAY", (int)Weekday::SUNDAY);
     /***
     * \enum MONDAY
-    * \desc The second day of the week (value 1).
+    * \desc The second day of the week.
     */
-    DEF_ENUM(MONDAY);
+    DEF_CONST_INT("MONDAY", (int)Weekday::MONDAY);
     /***
     * \enum TUESDAY
-    * \desc The third day of the week (value 2).
+    * \desc The third day of the week.
     */
-    DEF_ENUM(TUESDAY);
+    DEF_CONST_INT("TUESDAY", (int)Weekday::TUESDAY);
     /***
     * \enum WEDNESDAY
-    * \desc The fourth day of the week (value 3).
+    * \desc The fourth day of the week.
     */
-    DEF_ENUM(WEDNESDAY);
+    DEF_CONST_INT("WEDNESDAY", (int)Weekday::WEDNESDAY);
     /***
     * \enum THURSDAY
-    * \desc The fifth day of the week (value 4).
+    * \desc The fifth day of the week.
     */
-    DEF_ENUM(THURSDAY);
+    DEF_CONST_INT("THURSDAY", (int)Weekday::THURSDAY);
     /***
     * \enum FRIDAY
-    * \desc The sixth day of the week (value 5).
+    * \desc The sixth day of the week.
     */
-    DEF_ENUM(FRIDAY);
+    DEF_CONST_INT("FRIDAY", (int)Weekday::FRIDAY);
     /***
     * \enum SATURDAY
-    * \desc The seventh day of the week (value 6).
+    * \desc The seventh day of the week.
     */
-    DEF_ENUM(SATURDAY);
+    DEF_CONST_INT("SATURDAY", (int)Weekday::SATURDAY);
     // #endregion
 
     // #region TimesOfDay
@@ -15500,22 +15501,22 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \enum MORNING
     * \desc The early hours of the day (5AM to 11AM, 0500 to 1100).
     */
-    DEF_ENUM(MORNING);
+    DEF_CONST_INT("MORNING", (int)TimeOfDay::MORNING);
     /***
     * \enum MIDDAY
     * \desc The middle hours of the day (12PM to 4PM, 1200 to 1600).
     */
-    DEF_ENUM(MIDDAY);
+    DEF_CONST_INT("MIDDAY", (int)TimeOfDay::MIDDAY);
     /***
     * \enum EVENING
     * \desc The later hours of the day (5PM to 8PM, 1700 to 2000).
     */
-    DEF_ENUM(EVENING);
+    DEF_CONST_INT("EVENING", (int)TimeOfDay::EVENING);
     /***
     * \enum NIGHT
     * \desc The very late and very early hours of the day (9PM to 4AM, 2100 to 400).
     */
-    DEF_ENUM(NIGHT);
+    DEF_CONST_INT("NIGHT", (int)TimeOfDay::NIGHT);
     // #endregion
 
     // #region Ease

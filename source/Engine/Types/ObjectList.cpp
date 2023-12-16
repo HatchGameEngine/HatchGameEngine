@@ -6,22 +6,16 @@ class ObjectList {
 public:
     int     EntityCount = 0;
     int     Activity = ACTIVE_NORMAL;
-    Entity* EntityFirst = NULL;
-    Entity* EntityLast = NULL;
+    Entity* EntityFirst = nullptr;
+    Entity* EntityLast = nullptr;
 
-    char ObjectName[256];
-    char LoadFunctionName[256 + 5];
-    char GlobalUpdateFunctionName[256 + 13];
-    double AverageUpdateEarlyTime = 0.0;
-    double AverageUpdateTime = 0.0;
-    double AverageUpdateLateTime = 0.0;
-    double AverageUpdateEarlyItemCount = 0;
-    double AverageUpdateItemCount = 0;
-    double AverageUpdateLateItemCount = 0;
-    double AverageRenderTime = 0.0;
-    double AverageRenderItemCount = 0;
+    char* ObjectName;
+    char* LoadFunctionName;
+    char* GlobalUpdateFunctionName;
 
-    Entity* (*SpawnFunction)(const char*) = NULL;
+    ObjectListPerformance Performance;
+
+    Entity* (*SpawnFunction)(ObjectList*) = nullptr;
 };
 #endif
 
@@ -30,9 +24,18 @@ public:
 #include <Engine/Application.h>
 
 PUBLIC         ObjectList::ObjectList(const char* name) {
-    StringUtils::Copy(ObjectName, name, sizeof(ObjectName));
-    snprintf(LoadFunctionName, sizeof LoadFunctionName, "%s_Load", ObjectName);
-    snprintf(GlobalUpdateFunctionName, sizeof GlobalUpdateFunctionName, "%s_GlobalUpdate", ObjectName);
+    ObjectName = StringUtils::Duplicate(name);
+
+    std::string loadFunctionName = std::string(name) + "_Load";
+    std::string globalUpdateFunctionName = std::string(name) + "_GlobalUpdate";
+
+    LoadFunctionName = StringUtils::Create(loadFunctionName);
+    GlobalUpdateFunctionName = StringUtils::Create(globalUpdateFunctionName);
+}
+PUBLIC         ObjectList::~ObjectList() {
+    Memory::Free(ObjectName);
+    Memory::Free(LoadFunctionName);
+    Memory::Free(GlobalUpdateFunctionName);
 }
 
 // Double linked-list functions
@@ -88,15 +91,12 @@ PUBLIC void    ObjectList::Clear() {
     EntityFirst = NULL;
     EntityLast = NULL;
 
-    AverageUpdateTime = 0.0;
-    AverageUpdateItemCount = 0;
-    AverageRenderTime = 0.0;
-    AverageRenderItemCount = 0;
+    ResetPerf();
 }
 
 // ObjectList functions
 PUBLIC Entity* ObjectList::Spawn() {
-    return SpawnFunction(ObjectName);
+    return SpawnFunction(this);
 }
 PUBLIC void ObjectList::Iterate(std::function<void(Entity* e)> func) {
     for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList)
@@ -116,11 +116,7 @@ PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
     RemoveNonPersistentFromLinkedList(first, Persistence_NONE);
 }
 PUBLIC void ObjectList::ResetPerf() {
-    // AverageUpdateTime = 0.0;
-    AverageUpdateItemCount = 0.0;
-    AverageUpdateEarlyItemCount = 0.0;
-    AverageUpdateLateItemCount = 0.0;
-    AverageRenderItemCount = 0.0;
+    Performance.Clear();
 }
 PUBLIC Entity* ObjectList::GetNth(int n) {
     Entity* ent = EntityFirst;

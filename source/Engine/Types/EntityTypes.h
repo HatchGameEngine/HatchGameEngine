@@ -25,23 +25,6 @@ enum {
     ACTIVE_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
 };
 
-enum {
-    SUNDAY      = 0,
-    MONDAY      = 1,
-    TUESDAY     = 2,
-    WEDNESDAY   = 3,
-    THURSDAY    = 4,
-    FRIDAY      = 5,
-    SATURDAY    = 6
-};
-
-enum {
-    MORNING = 0, // Hours 5AM to 11AM. 0500 to 1100.
-    MIDDAY  = 1, // Hours 12PM to 4PM. 1200 to 1600.
-    EVENING = 2, // Hours 5PM to 8PM.  1700 to 2000.
-    NIGHT   = 3  // Hours 9PM to 4AM.  2100 to 400.
-};
-
 namespace CollideSide {
     enum {
         NONE = 0,
@@ -68,6 +51,50 @@ struct CollisionSensor {
     float   Y;
     int     Collided;
     int     Angle;
+};
+
+struct ObjectListPerformanceStats {
+    double AverageTime = 0.0;
+    double AverageItemCount = 0;
+
+    void DoAverage(double elapsed) {
+        double count = AverageItemCount;
+        if (count < 60.0 * 60.0) {
+            count += 1.0;
+            if (count == 1.0)
+                AverageTime = elapsed;
+            else
+                AverageTime = AverageTime + (elapsed - AverageTime) / count;
+            AverageItemCount = count;
+        }
+    }
+
+    double GetAverageTime() {
+        return AverageTime * 1000.0;
+    }
+
+    double GetTotalAverageTime() {
+        return GetAverageTime() * AverageItemCount;
+    }
+
+    void Clear() {
+        AverageTime = 0.0;
+        AverageItemCount = 0;
+    }
+};
+
+struct ObjectListPerformance {
+    ObjectListPerformanceStats EarlyUpdate;
+    ObjectListPerformanceStats Update;
+    ObjectListPerformanceStats LateUpdate;
+    ObjectListPerformanceStats Render;
+
+    void Clear() {
+        EarlyUpdate.Clear();
+        Update.Clear();
+        LateUpdate.Clear();
+        Render.Clear();
+    }
 };
 
 #define DEBUG_HITBOX_COUNT (0x400)

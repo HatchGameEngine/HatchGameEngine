@@ -316,19 +316,8 @@ void UpdateObjectEarly(Entity* ent) {
 
     elapsed = Clock::GetTicks() - elapsed;
 
-    if (ent->List) {
-        ObjectList* list = ent->List;
-        double count = list->AverageUpdateEarlyItemCount;
-        if (count < 60.0 * 60.0) {
-            count += 1.0;
-            if (count == 1.0)
-                list->AverageUpdateEarlyTime = elapsed;
-            else
-                list->AverageUpdateEarlyTime =
-                list->AverageUpdateEarlyTime + (elapsed - list->AverageUpdateEarlyTime) / count;
-            list->AverageUpdateEarlyItemCount = count;
-        }
-    }
+    if (ent->List)
+        ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
 }
 void UpdateObjectLate(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -344,19 +333,8 @@ void UpdateObjectLate(Entity* ent) {
 
     elapsed = Clock::GetTicks() - elapsed;
 
-    if (ent->List) {
-        ObjectList* list = ent->List;
-        double count = list->AverageUpdateLateItemCount;
-        if (count < 60.0 * 60.0) {
-            count += 1.0;
-            if (count == 1.0)
-                list->AverageUpdateLateTime = elapsed;
-            else
-                list->AverageUpdateLateTime =
-                list->AverageUpdateLateTime + (elapsed - list->AverageUpdateLateTime) / count;
-            list->AverageUpdateLateItemCount = count;
-        }
-    }
+    if (ent->List)
+        ent->List->Performance.LateUpdate.DoAverage(elapsed);
 }
 void UpdateObject(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -477,19 +455,8 @@ void UpdateObject(Entity* ent) {
 
         elapsed = Clock::GetTicks() - elapsed;
 
-        if (ent->List) {
-            ObjectList* list = ent->List;
-            double count = list->AverageUpdateItemCount;
-            if (count < 60.0 * 60.0) {
-                count += 1.0;
-                if (count == 1.0)
-                    list->AverageUpdateTime = elapsed;
-                else
-                    list->AverageUpdateTime =
-                        list->AverageUpdateTime + (elapsed - list->AverageUpdateTime) / count;
-                list->AverageUpdateItemCount = count;
-            }
-        }
+        if (ent->List)
+            ent->List->Performance.Update.DoAverage(elapsed);
 
         ent->WasOffScreen = false;
     }
@@ -1133,19 +1100,8 @@ DoCheckRender:
 
                 elapsed = Clock::GetTicks() - elapsed;
 
-                if (ent->List) {
-                    ObjectList* list = ent->List;
-                    double count = list->AverageRenderItemCount;
-                    if (count < 60.0 * 60.0) {
-                        count += 1.0;
-                        if (count == 1.0)
-                            list->AverageRenderTime = elapsed;
-                        else
-                            list->AverageRenderTime =
-                                list->AverageRenderTime + (elapsed - list->AverageRenderTime) / count;
-                        list->AverageRenderItemCount = count;
-                    }
-                }
+                if (ent->List)
+                    ent->List->Performance.Render.DoAverage(elapsed);
             }
         }
         objectTime = Clock::GetTicks() - objectTime;
