@@ -38,7 +38,10 @@ PUBLIC STATIC bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* r
     }
 
     int index = AS_INTEGER(at);
-    if (index < 0 || index >= string->Length) {
+    if (index < 0)
+        index = string->Length + index;
+
+    if (index >= string->Length) {
         THROW_ERROR("Index %d is out of bounds of string of length %d.", index, (int)string->Length);
         if (result)
             *result = NULL_VAL;
@@ -59,7 +62,10 @@ PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue va
     }
 
     int index = AS_INTEGER(at);
-    if (index < 0 || index >= string->Length) {
+    if (index < 0)
+        index = string->Length + index;
+
+    if (index >= string->Length) {
         THROW_ERROR("Index %d is out of bounds of string of length %d.", index, (int)string->Length);
         return true;
     }
