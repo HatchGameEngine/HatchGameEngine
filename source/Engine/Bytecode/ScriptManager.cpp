@@ -44,6 +44,7 @@ public:
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -120,6 +121,7 @@ PUBLIC STATIC void    ScriptManager::Init() {
     ArrayImpl::Init();
     MapImpl::Init();
     FunctionImpl::Init();
+    StringImpl::Init();
 
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 

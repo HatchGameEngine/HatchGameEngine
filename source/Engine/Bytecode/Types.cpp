@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -32,6 +33,7 @@ static Obj*       AllocateObject(size_t size, ObjType type) {
 static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     Memory::Track(string, "NewString");
+    string->Object.Class = StringImpl::Class;
     string->Length = length;
     string->Chars = chars;
     string->Hash = hash;
@@ -109,6 +111,10 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->Hash = hash;
     klass->Methods = new Table(NULL, 4);
     klass->Fields = new Table(NULL, 16);
+    klass->PropertyGet = NULL;
+    klass->PropertySet = NULL;
+    klass->ElementGet = NULL;
+    klass->ElementSet = NULL;
     klass->Initializer = NULL_VAL;
     klass->Type = CLASS_TYPE_NORMAL;
     klass->ParentHash = 0;

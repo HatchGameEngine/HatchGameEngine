@@ -628,7 +628,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (GetProperty(klass, hash, false)) {
+                    if (GetProperty((Obj*)instance, klass, hash, false)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -642,7 +642,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_CLASS(object);
 
                 if (ScriptManager::Lock()) {
-                    if (GetProperty(klass, hash, true)) {
+                    if (GetProperty((Obj*)klass, klass, hash, true)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -672,7 +672,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (ScriptManager::Lock()) {
-                    if (GetProperty(klass, hash, true)) {
+                    if (GetProperty((Obj*)klass, klass, hash, true)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -700,14 +700,21 @@ PUBLIC int     VMThread::RunInstruction() {
             VMValue value;
             VMValue object;
             Table* fields;
+            ObjClass* klass;
+            Obj* objPtr;
 
             object = Peek(1);
 
             if (IS_INSTANCE(object)) {
-                fields = AS_INSTANCE(object)->Fields;
+                ObjInstance* instance = AS_INSTANCE(object);
+                klass = instance->Object.Class;
+                fields = instance->Fields;
+                objPtr = (Obj*)instance;
             }
             else if (IS_CLASS(object)) {
-                fields = AS_CLASS(object)->Fields;
+                klass = AS_CLASS(object);
+                fields = klass->Fields;
+                objPtr = (Obj*)klass;
             }
             else if (IS_NAMESPACE(object)) {
                 if (ThrowRuntimeError(false, "Cannot modify a namespace.") == ERROR_RES_CONTINUE)
@@ -724,6 +731,13 @@ PUBLIC int     VMThread::RunInstruction() {
 
             if (ScriptManager::Lock()) {
                 value = Pop();
+
+                if (klass->PropertySet) {
+                    if (!klass->PropertySet(objPtr, hash, value, this->ID)) {
+                        goto FAIL_OP_SET_PROPERTY;
+                    }
+                }
+
                 if (fields->GetIfExists(hash, &field)) {
                     if (!SetProperty(fields, hash, field, value))
                         goto FAIL_OP_SET_PROPERTY;
@@ -764,7 +778,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (HasProperty(klass, hash, false)) {
+                    if (HasProperty((Obj*)instance, klass, hash, false)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -777,7 +791,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_CLASS(object);
 
                 if (ScriptManager::Lock()) {
-                    if (HasProperty(klass, hash, true)) {
+                    if (HasProperty((Obj*)klass, klass, hash, true)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -801,7 +815,7 @@ PUBLIC int     VMThread::RunInstruction() {
             else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
                 ObjClass* klass = AS_OBJECT(object)->Class;
                 if (ScriptManager::Lock()) {
-                    if (HasProperty(klass, hash, true)) {
+                    if (HasProperty((Obj*)klass, klass, hash, true)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -822,6 +836,7 @@ PUBLIC int     VMThread::RunInstruction() {
         VM_CASE(OP_GET_ELEMENT): {
             VMValue at = Pop();
             VMValue obj = Pop();
+            VMValue result;
             if (!IS_OBJECT(obj)) {
                 if (ThrowRuntimeError(false, "Cannot get value from non-Array or non-Map.") == ERROR_RES_CONTINUE)
                     goto FAIL_OP_GET_ELEMENT;
@@ -839,7 +854,8 @@ PUBLIC int     VMThread::RunInstruction() {
                         if (ThrowRuntimeError(false, "Index %d is out of bounds of array of size %d.", index, (int)array->Values->size()) == ERROR_RES_CONTINUE)
                             goto FAIL_OP_GET_ELEMENT;
                     }
-                    Push((*array->Values)[index]);
+                    result = (*array->Values)[index];
+                    Push(result);
                     ScriptManager::Unlock();
                 }
             }
@@ -857,7 +873,6 @@ PUBLIC int     VMThread::RunInstruction() {
                             goto FAIL_OP_GET_ELEMENT;
                     }
 
-                    VMValue result;
                     if (!map->Values->GetIfExists(index, &result)) {
                         goto FAIL_OP_GET_ELEMENT;
                     }
@@ -867,8 +882,17 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                if (ThrowRuntimeError(false, "Cannot get value from object that's non-Array or non-Map.") == ERROR_RES_CONTINUE)
-                    goto FAIL_OP_GET_ELEMENT;
+                if (IS_OBJECT(obj) && AS_OBJECT(obj)->Class) {
+                    ObjClass* klass = AS_OBJECT(obj)->Class;
+                    if (klass->ElementGet && klass->ElementGet(AS_OBJECT(obj), at, &result, this->ID)) {
+                        Push(result);
+                        ScriptManager::Unlock();
+                        VM_BREAK;
+                    }
+                }
+
+                ThrowRuntimeError(false, "Cannot get value from object that's non-Array or non-Map.");
+                goto FAIL_OP_GET_ELEMENT;
             }
             VM_BREAK;
 
@@ -888,7 +912,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
             if (IS_ARRAY(obj)) {
                 if (!IS_INTEGER(at)) {
-                    if (ThrowRuntimeError(false, "Cannot get value from array using non-Integer value as an index.") == ERROR_RES_CONTINUE)
+                    if (ThrowRuntimeError(false, "Cannot set value from array using non-Integer value as an index.") == ERROR_RES_CONTINUE)
                         goto FAIL_OP_SET_ELEMENT;
                 }
 
@@ -923,10 +947,18 @@ PUBLIC int     VMThread::RunInstruction() {
                 }
             }
             else {
-                if (ThrowRuntimeError(false, "Cannot set value in object that's non-Array or non-Map.") == ERROR_RES_CONTINUE)
-                    goto FAIL_OP_SET_ELEMENT;
+                if (IS_OBJECT(obj) && AS_OBJECT(obj)->Class) {
+                    ObjClass* klass = AS_OBJECT(obj)->Class;
+                    if (klass->ElementSet && klass->ElementSet(AS_OBJECT(obj), at, value, this->ID)) {
+                        goto SUCCESS_OP_SET_ELEMENT;
+                    }
+                }
+
+                ThrowRuntimeError(false, "Cannot set value in object that's non-Array or non-Map.");
+                goto FAIL_OP_SET_ELEMENT;
             }
 
+            SUCCESS_OP_SET_ELEMENT:
             Pop(); // value
             Pop(); // at
             Pop(); // Array
@@ -1753,9 +1785,18 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = NULL_VAL;
 }
 
-PRIVATE bool   VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
+PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
     if (ScriptManager::Lock()) {
         VMValue value;
+
+        if (klass->PropertyGet) {
+            if (klass->PropertyGet(object, hash, &value, this->ID)) {
+                Pop();
+                Push(value);
+                ScriptManager::Unlock();
+                return true;
+            }
+        }
 
         if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
             // Fields have priority over methods
@@ -1770,23 +1811,33 @@ PRIVATE bool   VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFie
             ObjClass* parentClass = ScriptManager::GetClassParent(klass);
             if (parentClass) {
                 ScriptManager::Unlock();
-                return GetProperty(parentClass, hash, checkFields);
+                return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
             }
             else {
                 ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
                 Pop(); // Instance.
                 Push(NULL_VAL);
+                ScriptManager::Unlock();
                 return false;
             }
         }
         ScriptManager::Unlock();
         return true;
     }
+    ScriptManager::Unlock();
     return false;
 }
-PRIVATE bool   VMThread::HasProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
+PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
     if (ScriptManager::Lock()) {
         bool hasMethod = false;
+
+        if (klass->PropertyGet) {
+            if (klass->PropertyGet(object, hash, nullptr, this->ID)) {
+                ScriptManager::Unlock();
+                return true;
+            }
+        }
+
         if (checkFields && klass->Fields->Exists(hash)) {
             // Fields have priority over methods
             hasMethod = true;
@@ -1798,7 +1849,7 @@ PRIVATE bool   VMThread::HasProperty(ObjClass* klass, Uint32 hash, bool checkFie
             ObjClass* parentClass = ScriptManager::GetClassParent(klass);
             if (parentClass) {
                 ScriptManager::Unlock();
-                return HasProperty(parentClass, hash, checkFields);
+                return HasProperty((Obj*)parentClass, parentClass, hash, checkFields);
             }
         }
         ScriptManager::Unlock();

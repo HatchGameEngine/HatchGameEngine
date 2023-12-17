@@ -99,6 +99,12 @@ const char* GetValueTypeString(VMValue value);
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
+typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
+typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+
+typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
+typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
+
 #define OBJECT_TYPE(value)      (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value)  IsObjectType(value, OBJ_BOUND_METHOD)
 #define IS_CLASS(value)         IsObjectType(value, OBJ_CLASS)
@@ -188,15 +194,19 @@ struct ObjClosure {
     int          UpvalueCount;
 };
 struct ObjClass {
-    Obj        Object;
-    ObjString* Name;
-    Uint32     Hash;
-    Table*     Methods;
-    Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
-    VMValue    Initializer;
-    Uint8      Type;
-    Uint32     ParentHash;
-    ObjClass*  Parent;
+    Obj         Object;
+    ObjString*  Name;
+    Uint32      Hash;
+    Table*      Methods;
+    Table*      Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
+    ValueGetFn  PropertyGet;
+    ValueSetFn  PropertySet;
+    StructGetFn ElementGet;
+    StructSetFn ElementSet;
+    VMValue     Initializer;
+    Uint8       Type;
+    Uint32      ParentHash;
+    ObjClass*   Parent;
 };
 struct ObjInstance {
     Obj       Object;

@@ -97,7 +97,7 @@ struct ObjectListPerformance {
     }
 };
 
-#define DEBUG_HITBOX_COUNT (0x400)
+#define DEBUG_HITBOX_COUNT 0x400
 
 struct DebugHitboxInfo {
     int             type;

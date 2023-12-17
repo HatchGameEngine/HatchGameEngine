@@ -1,12 +1,8 @@
 #ifndef ENGINE_SPRITES_ANIMATION_H
 #define ENGINE_SPRITES_ANIMATION_H
 
-struct CollisionBox {
-    int Left;
-    int Top;
-    int Right;
-    int Bottom;
-};
+#include <Engine/Types/Collision.h>
+
 struct AnimFrame {
     int           X;
     int           Y;
