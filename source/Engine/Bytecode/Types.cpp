@@ -167,9 +167,9 @@ ObjNamespace*     NewNamespace(Uint32 hash) {
     ns->Fields = new Table(NULL, 16);
     return ns;
 }
-ObjEnum*          NewEnumeration(Uint32 hash) {
+ObjEnum*          NewEnum(Uint32 hash) {
     ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
-    Memory::Track(enumeration, "NewEnumeration");
+    Memory::Track(enumeration, "NewEnum");
     enumeration->Name = NULL;
     enumeration->Hash = hash;
     enumeration->Fields = new Table(NULL, 16);

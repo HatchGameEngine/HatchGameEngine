@@ -441,7 +441,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The width of the hitbox.
     */
-    LINK_DEC(HitboxW);
+    // LINK_DEC(HitboxW);
     /***
     * \field HitboxH
     * \type Decimal
@@ -449,7 +449,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The height of the hitbox.
     */
-    LINK_DEC(HitboxH);
+    // LINK_DEC(HitboxH);
     /***
     * \field HitboxOffX
     * \type Decimal
@@ -457,7 +457,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The horizontal offset of the hitbox.
     */
-    LINK_DEC(HitboxOffX);
+    // LINK_DEC(HitboxOffX);
     /***
     * \field HitboxOffY
     * \type Decimal
@@ -465,7 +465,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The vertical offset of the hitbox.
     */
-    LINK_DEC(HitboxOffY);
+    // LINK_DEC(HitboxOffY);
     /***
     * \field FlipFlag
     * \type Integer
@@ -873,10 +873,7 @@ PUBLIC void ScriptEntity::Initialize() {
     AnimationFrameDuration = 0;
     AnimationLoopIndex = 0;
 
-    HitboxW = 0.0f;
-    HitboxH = 0.0f;
-    HitboxOffX = 0.0f;
-    HitboxOffY = 0.0f;
+    Hitbox.Clear();
     FlipFlag = 0;
 
     VelocityX = 0.0f;
@@ -994,18 +991,10 @@ ScriptEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
     return (ScriptEntity*)entity->EntityPtr;
 }
 bool TestEntityCollision(ScriptEntity* other, ScriptEntity* self) {
-    if (!other->Active || other->Removed) return false;
-    // if (!other->Instance) return false;
-    if (other->HitboxW == 0.0f ||
-        other->HitboxH == 0.0f) return false;
+    if (!other->Active || other->Removed)
+        return false;
 
-    if (other->X + other->HitboxW / 2.0f >= self->X - self->HitboxW / 2.0f &&
-        other->Y + other->HitboxH / 2.0f >= self->Y - self->HitboxH / 2.0f &&
-        other->X - other->HitboxW / 2.0f  < self->X + self->HitboxW / 2.0f &&
-        other->Y - other->HitboxH / 2.0f  < self->Y + self->HitboxH / 2.0f) {
-        return true;
-    }
-    return false;
+    return self->CollideWithObject(other);
 }
 /***
  * \method SetAnimation
@@ -1238,8 +1227,8 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue*
             return NULL_VAL;
     }
 
-    if (self->HitboxW == 0.0f ||
-        self->HitboxH == 0.0f) return NULL_VAL;
+    if (self->Hitbox.GetWidth() == 0.0f || self->Hitbox.GetHeight() == 0.0f)
+        return NULL_VAL;
 
     ScriptEntity* other = NULL;
     ObjectList* objectList = Scene::ObjectLists->Get(object);
@@ -1286,18 +1275,11 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
 
     if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
         // ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
-        self->HitboxW = 0;
-        self->HitboxH = 0;
-        self->HitboxOffX = 0;
-        self->HitboxOffY = 0;
-        return NULL_VAL;
+        self->Hitbox.Clear();
     }
-
-    CollisionBox box = frameO.Boxes[hitbox];
-    self->HitboxW = box.Right - box.Left;
-    self->HitboxH = box.Bottom - box.Top;
-    self->HitboxOffX = box.Left + self->HitboxW * 0.5f;
-    self->HitboxOffY = box.Top + self->HitboxH * 0.5f;
+    else {
+        self->Hitbox.Set(frameO.Boxes[hitbox]);
+    }
 
     return NULL_VAL;
 }

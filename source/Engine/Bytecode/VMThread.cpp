@@ -1576,7 +1576,7 @@ PUBLIC int     VMThread::RunInstruction() {
 
         VM_CASE(OP_NEW_ENUM): {
             Uint32 hash = ReadUInt32(frame);
-            ObjEnum* enumeration = NewEnumeration(hash);
+            ObjEnum* enumeration = NewEnum(hash);
 
             if (!__Tokens__ || !__Tokens__->Exists(hash)) {
                 char name[9];

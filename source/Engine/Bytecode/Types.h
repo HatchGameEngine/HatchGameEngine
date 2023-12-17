@@ -209,9 +209,9 @@ struct ObjClass {
     ObjClass*   Parent;
 };
 struct ObjInstance {
-    Obj       Object;
-    Table*    Fields;
-    void*     EntityPtr;
+    Obj    Object;
+    Table* Fields;
+    void*  EntityPtr;
 };
 struct ObjBoundMethod {
     Obj          Object;
@@ -228,10 +228,10 @@ struct ObjMap {
     HashMap<char*>*   Keys;
 };
 struct ObjStream {
-    Obj               Object;
-    Stream*           StreamPtr;
-    bool              Writable;
-    bool              Closed;
+    Obj     Object;
+    Stream* StreamPtr;
+    bool    Writable;
+    bool    Closed;
 };
 struct ObjNamespace {
     Obj        Object;
@@ -262,7 +262,7 @@ ObjArray*          NewArray();
 ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
 ObjNamespace*      NewNamespace(Uint32 hash);
-ObjEnum*           NewEnumeration(Uint32 hash);
+ObjEnum*           NewEnum(Uint32 hash);
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \
