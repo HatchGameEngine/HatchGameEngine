@@ -1,13 +1,6 @@
 #ifndef COLLISION_H
 #define COLLISION_H
 
-struct CollisionBox {
-    int Left;
-    int Top;
-    int Right;
-    int Bottom;
-};
-
 struct EntityHitbox {
     float Width   = 0.0f;
     float Height  = 0.0f;
@@ -15,33 +8,33 @@ struct EntityHitbox {
     float OffsetY = 0.0f;
 
     float GetLeft() {
-        return -Width / 2;
+        return (-Width / 2) + OffsetX;
     }
     float GetRight() {
-        return Width / 2;
+        return (Width / 2) + OffsetX;
     }
     float GetTop() {
-        return -Height / 2;
+        return (-Height / 2) + OffsetY;
     }
     float GetBottom() {
-        return Height / 2;
+        return (Height / 2) + OffsetY;
     }
 
     void SetLeft(float left) {
         Width = GetRight() - left;
-        OffsetX = GetLeft() + Width * 0.5f;
+        OffsetX = left + Width * 0.5f;
     }
     void SetRight(float right) {
         Width = right - GetLeft();
-        OffsetX = GetLeft() + Width * 0.5f;
+        OffsetX = right - Width * 0.5f;
     }
     void SetTop(float top) {
         Height = GetBottom() - top;
-        OffsetY = GetTop() + Height * 0.5f;
+        OffsetY = top + Height * 0.5f;
     }
     void SetBottom(float bottom) {
         Height = bottom - GetTop();
-        OffsetY = GetTop() + Height * 0.5f;
+        OffsetY = bottom - Height * 0.5f;
     }
 
     void Clear() {

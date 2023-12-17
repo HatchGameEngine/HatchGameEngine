@@ -36,6 +36,10 @@ Uint32 Hash_OnSceneLoad = 0;
 Uint32 Hash_OnSceneRestart = 0;
 Uint32 Hash_GameStart = 0;
 Uint32 Hash_Dispose = 0;
+Uint32 Hash_HitboxLeft = 0;
+Uint32 Hash_HitboxTop = 0;
+Uint32 Hash_HitboxRight = 0;
+Uint32 Hash_HitboxBottom = 0;
 
 PUBLIC void ScriptEntity::Link(ObjInstance* instance) {
     Instance = instance;
@@ -56,9 +60,16 @@ PUBLIC void ScriptEntity::Link(ObjInstance* instance) {
         Hash_OnSceneRestart = Murmur::EncryptString("OnSceneRestart");
         Hash_GameStart = Murmur::EncryptString("GameStart");
         Hash_Dispose = Murmur::EncryptString("Dispose");
+        Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
+        Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
+        Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
+        Hash_HitboxBottom = Murmur::EncryptString("HitboxBottom");
 
         SavedHashes = true;
     }
+
+    instance->PropertyGet = VM_Getter;
+    instance->PropertySet = VM_Setter;
 
     LinkFields();
 }
@@ -466,6 +477,40 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \desc The vertical offset of the hitbox.
     */
     Instance->Fields->Put("HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
+
+    /***
+    * \field HitboxLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left extent of the hitbox.
+    */
+    // See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
+    /***
+    * \field HitboxTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top extent of the hitbox.
+    */
+    // See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
+    /***
+    * \field HitboxRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The right extent of the hitbox.
+    */
+    // See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
+    /***
+    * \field HitboxBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom extent of the hitbox.
+    */
+    // See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
+
     /***
     * \field FlipFlag
     * \type Integer
@@ -1001,6 +1046,58 @@ bool TestEntityCollision(ScriptEntity* other, ScriptEntity* self) {
         return false;
 
     return self->CollideWithObject(other);
+}
+PUBLIC STATIC bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+    Entity* self = GetScriptEntity(object);
+
+    if (hash == Hash_HitboxLeft) {
+        if (result)
+            *result = DECIMAL_VAL(self->Hitbox.GetLeft());
+        return true;
+    }
+    else if (hash == Hash_HitboxTop) {
+        if (result)
+            *result = DECIMAL_VAL(self->Hitbox.GetTop());
+        return true;
+    }
+    else if (hash == Hash_HitboxRight) {
+        if (result)
+            *result = DECIMAL_VAL(self->Hitbox.GetRight());
+        return true;
+    }
+    else if (hash == Hash_HitboxBottom) {
+        if (result)
+            *result = DECIMAL_VAL(self->Hitbox.GetBottom());
+        return true;
+    }
+
+    return false;
+}
+PUBLIC STATIC bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+    Entity* self = GetScriptEntity(object);
+
+    if (hash == Hash_HitboxLeft) {
+        if (ScriptManager::DoDecimalConversion(value, threadID))
+            self->Hitbox.SetLeft(AS_DECIMAL(value));
+        return true;
+    }
+    else if (hash == Hash_HitboxTop) {
+        if (ScriptManager::DoDecimalConversion(value, threadID))
+            self->Hitbox.SetTop(AS_DECIMAL(value));
+        return true;
+    }
+    else if (hash == Hash_HitboxRight) {
+        if (ScriptManager::DoDecimalConversion(value, threadID))
+            self->Hitbox.SetRight(AS_DECIMAL(value));
+        return true;
+    }
+    else if (hash == Hash_HitboxBottom) {
+        if (ScriptManager::DoDecimalConversion(value, threadID))
+            self->Hitbox.SetBottom(AS_DECIMAL(value));
+        return true;
+    }
+
+    return false;
 }
 /***
  * \method SetAnimation

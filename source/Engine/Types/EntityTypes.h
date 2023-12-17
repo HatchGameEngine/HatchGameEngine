@@ -1,6 +1,8 @@
 #ifndef ENTITYTYPES_H
 #define ENTITYTYPES_H
 
+#include <Engine/Types/Collision.h>
+
 enum {
     Persistence_NONE,
     Persistence_SCENE,
