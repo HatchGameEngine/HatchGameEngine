@@ -523,6 +523,27 @@ PUBLIC STATIC VMValue ScriptManager::DelinkValue(VMValue val) {
     return val;
 }
 
+PUBLIC STATIC bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
+    VMValue result = ScriptManager::CastValueAsInteger(value);
+    if (IS_NULL(result)) {
+        // Conversion failed
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+        return false;
+    }
+    value = result;
+    return true;
+}
+PUBLIC STATIC bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
+    VMValue result = ScriptManager::CastValueAsDecimal(value);
+    if (IS_NULL(result)) {
+        // Conversion failed
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+        return false;
+    }
+    value = result;
+    return true;
+}
+
 PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
     if (IS_OBJECT(value)) {
         Obj* objectPointer = AS_OBJECT(value);

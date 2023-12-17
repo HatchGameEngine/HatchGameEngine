@@ -9,32 +9,53 @@ struct CollisionBox {
 };
 
 struct EntityHitbox {
-    float Left   = 0.0f;
-    float Top    = 0.0f;
-    float Right  = 0.0f;
-    float Bottom = 0.0f;
+    float Width   = 0.0f;
+    float Height  = 0.0f;
+    float OffsetX = 0.0f;
+    float OffsetY = 0.0f;
 
-    float GetWidth() {
-        return Right - Left;
+    float GetLeft() {
+        return -Width / 2;
     }
-    float GetHeight() {
-        return Bottom - Top;
+    float GetRight() {
+        return Width / 2;
     }
-    float GetOffsetX() {
-        return Left + GetWidth() * 0.5f;
+    float GetTop() {
+        return -Height / 2;
     }
-    float GetOffsetY() {
-        return Top + GetHeight() * 0.5f;
+    float GetBottom() {
+        return Height / 2;
+    }
+
+    void SetLeft(float left) {
+        Width = GetRight() - left;
+        OffsetX = GetLeft() + Width * 0.5f;
+    }
+    void SetRight(float right) {
+        Width = right - GetLeft();
+        OffsetX = GetLeft() + Width * 0.5f;
+    }
+    void SetTop(float top) {
+        Height = GetBottom() - top;
+        OffsetY = GetTop() + Height * 0.5f;
+    }
+    void SetBottom(float bottom) {
+        Height = bottom - GetTop();
+        OffsetY = GetTop() + Height * 0.5f;
     }
 
     void Clear() {
-        Left = Top = Right = Bottom = 0.0f;
+        Width = 0.0f;
+        Height = 0.0f;
+        OffsetX = 0.0f;
+        OffsetY = 0.0f;
     }
+
     void Set(CollisionBox box) {
-        Left = box.Left;
-        Top = box.Top;
-        Right = box.Right;
-        Bottom = box.Bottom;
+        Width = box.Right - box.Left;
+        Height = box.Bottom - box.Top;
+        OffsetX = box.Left + Width * 0.5f;
+        OffsetY = box.Top + Height * 0.5f;
     }
 };
 

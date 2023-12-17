@@ -735,20 +735,18 @@ PUBLIC int     VMThread::RunInstruction() {
             if (ScriptManager::Lock()) {
                 value = Pop();
 
-                if (setter) {
-                    if (!setter(objPtr, hash, value, this->ID)) {
-                        goto FAIL_OP_SET_PROPERTY;
-                    }
-                }
-
                 if (fields->GetIfExists(hash, &field)) {
                     if (!SetProperty(fields, hash, field, value))
                         goto FAIL_OP_SET_PROPERTY;
                 }
                 else {
+                    if (setter && setter(objPtr, hash, value, this->ID))
+                        goto SUCCESS_OP_SET_PROPERTY;
+
                     fields->Put(hash, value);
                 }
 
+SUCCESS_OP_SET_PROPERTY:
                 Pop(); // Instance / Class
                 Push(value);
                 ScriptManager::Unlock();
@@ -1792,40 +1790,37 @@ PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, 
     if (ScriptManager::Lock()) {
         VMValue value;
 
-        if (getter) {
-            if (getter(object, hash, &value, this->ID)) {
-                Pop();
-                Push(value);
-                ScriptManager::Unlock();
-                return true;
-            }
-        }
-
         if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
             // Fields have priority over methods
             Pop();
             Push(ScriptManager::DelinkValue(value));
+            ScriptManager::Unlock();
+            return true;
         }
         else if (klass->Methods->GetIfExists(hash, &value)) {
             Pop();
             Push(value);
+            ScriptManager::Unlock();
+            return true;
+        }
+
+        if (getter && getter(object, hash, &value, this->ID)) {
+            Pop();
+            Push(value);
+            ScriptManager::Unlock();
+            return true;
+        }
+
+        ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+        if (parentClass) {
+            ScriptManager::Unlock();
+            return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
         }
         else {
-            ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-            if (parentClass) {
-                ScriptManager::Unlock();
-                return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
-            }
-            else {
-                ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
-                Pop(); // Instance.
-                Push(NULL_VAL);
-                ScriptManager::Unlock();
-                return false;
-            }
+            ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
+            Pop(); // Instance.
+            Push(NULL_VAL);
         }
-        ScriptManager::Unlock();
-        return true;
     }
     ScriptManager::Unlock();
     return false;
@@ -1838,13 +1833,6 @@ PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash) 
 }
 PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
     if (ScriptManager::Lock()) {
-        if (getter) {
-            if (getter(object, hash, nullptr, this->ID)) {
-                ScriptManager::Unlock();
-                return true;
-            }
-        }
-
         if (checkFields && klass->Fields->Exists(hash)) {
             // Fields have priority over methods
             ScriptManager::Unlock();
@@ -1854,12 +1842,16 @@ PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, 
             ScriptManager::Unlock();
             return true;
         }
-        else {
-            ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-            if (parentClass) {
-                ScriptManager::Unlock();
-                return HasProperty((Obj*)parentClass, parentClass, hash, checkFields, parentClass->PropertyGet);
-            }
+
+        if (getter && getter(object, hash, nullptr, this->ID)) {
+            ScriptManager::Unlock();
+            return true;
+        }
+
+        ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+        if (parentClass) {
+            ScriptManager::Unlock();
+            return HasProperty((Obj*)parentClass, parentClass, hash, checkFields, parentClass->PropertyGet);
         }
     }
     ScriptManager::Unlock();
@@ -1872,25 +1864,16 @@ PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash) 
     return HasProperty(object, klass, true);
 }
 PRIVATE bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
-    VMValue result;
     switch (field.Type) {
         case VAL_LINKED_INTEGER:
-            result = ScriptManager::CastValueAsInteger(value);
-            if (IS_NULL(result)) {
-                // Conversion failed
-                if (ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
-                    return false;
-            }
-            AS_LINKED_INTEGER(field) = AS_INTEGER(result);
+            if (!ScriptManager::DoIntegerConversion(value, this->ID))
+                return false;
+            AS_LINKED_INTEGER(field) = AS_INTEGER(value);
             break;
         case VAL_LINKED_DECIMAL:
-            result = ScriptManager::CastValueAsDecimal(value);
-            if (IS_NULL(result)) {
-                // Conversion failed
-                if (ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value)) == ERROR_RES_CONTINUE)
-                    return false;
-            }
-            AS_LINKED_DECIMAL(field) = AS_DECIMAL(result);
+            if (!ScriptManager::DoDecimalConversion(value, this->ID))
+                return false;
+            AS_LINKED_DECIMAL(field) = AS_DECIMAL(value);
             break;
         default:
             fields->Put(hash, value);

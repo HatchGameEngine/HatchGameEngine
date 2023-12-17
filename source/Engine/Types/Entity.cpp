@@ -201,17 +201,17 @@ PUBLIC void Entity::ResetAnimation(int animation, int frame) {
     AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
 }
 PUBLIC bool Entity::BasicCollideWithObject(Entity* other) {
-    float otherHitboxW = other->Hitbox.GetWidth();
-    float otherHitboxH = other->Hitbox.GetHeight();
+    float otherHitboxW = other->Hitbox.Width;
+    float otherHitboxH = other->Hitbox.Height;
 
     if (otherHitboxW == 0.0f || otherHitboxH == 0.0f)
         return false;
 
     return
-        other->X + other->Hitbox.Left  >= X + Hitbox.Left &&
-        other->Y + other->Hitbox.Top   >= Y + Hitbox.Top &&
-        other->X + other->Hitbox.Right  < X + Hitbox.Right &&
-        other->Y + other->Hitbox.Bottom < Y + Hitbox.Bottom;
+        other->X + other->Hitbox.GetLeft()  >= X + Hitbox.GetLeft() &&
+        other->Y + other->Hitbox.GetTop()   >= Y + Hitbox.GetTop() &&
+        other->X + other->Hitbox.GetRight()  < X + Hitbox.GetRight() &&
+        other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
 }
 PUBLIC bool Entity::CollideWithObject(Entity* other) {
     float sourceFlipX = (this->FlipFlag & 1) ? -1.0 : 1.0;
@@ -219,17 +219,17 @@ PUBLIC bool Entity::CollideWithObject(Entity* other) {
     float otherFlipX = (other->FlipFlag & 1) ? -1.0 : 1.0;
     float otherFlipY = (other->FlipFlag & 2) ? -1.0 : 1.0;
 
-    float sourceX = std::floor(this->X + this->Hitbox.GetOffsetX() * sourceFlipX);
-    float sourceY = std::floor(this->Y + this->Hitbox.GetOffsetX() * sourceFlipY);
-    float otherX = std::floor(other->X + other->Hitbox.GetOffsetX() * otherFlipX);
-    float otherY = std::floor(other->Y + other->Hitbox.GetOffsetY() * otherFlipY);
+    float sourceX = std::floor(this->X + this->Hitbox.OffsetX * sourceFlipX);
+    float sourceY = std::floor(this->Y + this->Hitbox.OffsetY * sourceFlipY);
+    float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
+    float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
 
-    float otherHitboxW = (other->Hitbox.GetWidth()) * 0.5;
-    float otherHitboxH = (other->Hitbox.GetHeight()) * 0.5;
-    float sourceHitboxW = (this->Hitbox.GetWidth()) * 0.5;
-    float sourceHitboxH = (this->Hitbox.GetHeight()) * 0.5;
+    float otherHitboxW = other->Hitbox.Width * 0.5;
+    float otherHitboxH = other->Hitbox.Height * 0.5;
+    float sourceHitboxW = this->Hitbox.Width * 0.5;
+    float sourceHitboxH = this->Hitbox.Height * 0.5;
 
-    return (otherY + otherHitboxH < sourceY - sourceHitboxH ||
+    return !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
         otherY - otherHitboxH > sourceY + sourceHitboxH ||
         sourceX - sourceHitboxW > otherX + otherHitboxW ||
         sourceX + sourceHitboxW < otherX - otherHitboxW);
@@ -246,17 +246,17 @@ PUBLIC int  Entity::SolidCollideWithObject(Entity* other, int flag) {
     int collideSideHori = 0;
     int collideSideVert = 0;
 
-    float otherHitboxW = (other->Hitbox.GetWidth()) * 0.5;
-    float otherHitboxH = (other->Hitbox.GetHeight()) * 0.5;
-    float otherHitboxWSq = (other->Hitbox.GetWidth() - 2.0) * 0.5;
-    float otherHitboxHSq = (other->Hitbox.GetHeight() - 2.0) * 0.5;
-    float sourceHitboxW = (this->Hitbox.GetWidth()) * 0.5;
-    float sourceHitboxH = (this->Hitbox.GetHeight()) * 0.5;
+    float otherHitboxW = other->Hitbox.Width * 0.5;
+    float otherHitboxH = other->Hitbox.Height * 0.5;
+    float otherHitboxWSq = (other->Hitbox.Width - 2.0) * 0.5;
+    float otherHitboxHSq = (other->Hitbox.Height - 2.0) * 0.5;
+    float sourceHitboxW = this->Hitbox.Width * 0.5;
+    float sourceHitboxH = this->Hitbox.Height * 0.5;
 
-    float sourceHitboxOffX = (this->FlipFlag & 1) ? -this->Hitbox.GetOffsetX() : this->Hitbox.GetOffsetX();
-    float sourceHitboxOffY = (this->FlipFlag & 2) ? -this->Hitbox.GetOffsetY() : this->Hitbox.GetOffsetY();
-    float otherHitboxOffX = (other->FlipFlag & 1) ? -other->Hitbox.GetOffsetX() : other->Hitbox.GetOffsetX();
-    float otherHitboxOffY = (other->FlipFlag & 2) ? -other->Hitbox.GetOffsetY() : other->Hitbox.GetOffsetY();
+    float sourceHitboxOffX = (this->FlipFlag & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
+    float sourceHitboxOffY = (this->FlipFlag & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
+    float otherHitboxOffX = (other->FlipFlag & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
+    float otherHitboxOffY = (other->FlipFlag & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
 
     // Check squeezed vertically
     if (sourceY + (-sourceHitboxH + sourceHitboxOffY) < initialOtherY + otherHitboxHSq &&
@@ -394,15 +394,15 @@ PUBLIC bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
     float otherY = std::floor(initialOtherY);
     float otherYMinusYSpeed = std::floor(initialOtherY - other->YSpeed);
 
-    float otherHitboxW = (other->Hitbox.GetWidth()) * 0.5;
-    float otherHitboxH = (other->Hitbox.GetHeight()) * 0.5;
-    float sourceHitboxW = (this->Hitbox.GetWidth()) * 0.5;
-    float sourceHitboxH = (this->Hitbox.GetHeight()) * 0.5;
+    float otherHitboxW = other->Hitbox.Width * 0.5;
+    float otherHitboxH = other->Hitbox.Height * 0.5;
+    float sourceHitboxW = this->Hitbox.Width * 0.5;
+    float sourceHitboxH = this->Hitbox.Height * 0.5;
 
-    float sourceHitboxOffX = (this->FlipFlag & 1) ? -this->Hitbox.GetOffsetX() : this->Hitbox.GetOffsetX();
-    float sourceHitboxOffY = (this->FlipFlag & 2) ? -this->Hitbox.GetOffsetY() : this->Hitbox.GetOffsetY();
-    float otherHitboxOffX = (other->FlipFlag & 1) ? -other->Hitbox.GetOffsetX() : other->Hitbox.GetOffsetX();
-    float otherHitboxOffY = (other->FlipFlag & 2) ? -other->Hitbox.GetOffsetY() : other->Hitbox.GetOffsetY();
+    float sourceHitboxOffX = (this->FlipFlag & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
+    float sourceHitboxOffY = (this->FlipFlag & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
+    float otherHitboxOffX = (other->FlipFlag & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
+    float otherHitboxOffY = (other->FlipFlag & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
 
     if ((otherHitboxH + otherHitboxOffY) + otherY            < sourceY + (-sourceHitboxH + sourceHitboxOffY) ||
         (otherHitboxH + otherHitboxOffY) + otherYMinusYSpeed > sourceY + (sourceHitboxH + sourceHitboxOffY) ||

@@ -52,7 +52,6 @@ PUBLIC STATIC bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* r
         *result = OBJECT_VAL(CopyString(&string->Chars[index], 1));
     return true;
 }
-
 PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue value, Uint32 threadID) {
     ObjString* string = (ObjString*)object;
 

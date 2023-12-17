@@ -441,7 +441,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The width of the hitbox.
     */
-    // LINK_DEC(HitboxW);
+    Instance->Fields->Put("HitboxW", DECIMAL_LINK_VAL(&Hitbox.Width));
     /***
     * \field HitboxH
     * \type Decimal
@@ -449,7 +449,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The height of the hitbox.
     */
-    // LINK_DEC(HitboxH);
+    Instance->Fields->Put("HitboxH", DECIMAL_LINK_VAL(&Hitbox.Height));
     /***
     * \field HitboxOffX
     * \type Decimal
@@ -457,7 +457,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The horizontal offset of the hitbox.
     */
-    // LINK_DEC(HitboxOffX);
+    Instance->Fields->Put("HitboxOffX", DECIMAL_LINK_VAL(&Hitbox.OffsetX));
     /***
     * \field HitboxOffY
     * \type Decimal
@@ -465,7 +465,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The vertical offset of the hitbox.
     */
-    // LINK_DEC(HitboxOffY);
+    Instance->Fields->Put("HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
     /***
     * \field FlipFlag
     * \type Integer
@@ -983,8 +983,14 @@ PUBLIC void ScriptEntity::Dispose() {
 // Events/methods called from VM
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) (argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
-#define GET_ENTITY(argIndex) (GetEntity(args, argIndex, threadID))
-ScriptEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
+#define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, threadID))
+ScriptEntity* GetScriptEntity(Obj* object) {
+    ObjInstance* entity = (ObjInstance*)object;
+    if (!entity->EntityPtr)
+        return nullptr;
+    return (ScriptEntity*)entity->EntityPtr;
+}
+ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
     ObjInstance* entity = GET_ARG(index, GetInstance);
     if (!entity->EntityPtr)
         return nullptr;
@@ -1227,7 +1233,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue*
             return NULL_VAL;
     }
 
-    if (self->Hitbox.GetWidth() == 0.0f || self->Hitbox.GetHeight() == 0.0f)
+    if (self->Hitbox.Width == 0.0f || self->Hitbox.Height == 0.0f)
         return NULL_VAL;
 
     ScriptEntity* other = NULL;
