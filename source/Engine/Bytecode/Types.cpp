@@ -127,6 +127,8 @@ ObjInstance*      NewInstance(ObjClass* klass) {
     instance->Object.Class = klass;
     instance->Fields = new Table(NULL, 16);
     instance->EntityPtr = NULL;
+    instance->PropertyGet = NULL;
+    instance->PropertySet = NULL;
     return instance;
 }
 ObjBoundMethod*   NewBoundMethod(VMValue receiver, ObjFunction* method) {

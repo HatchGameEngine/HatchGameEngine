@@ -628,7 +628,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (GetProperty((Obj*)instance, klass, hash, false)) {
+                    if (GetProperty((Obj*)instance, klass, hash, false, instance->PropertyGet)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -642,7 +642,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_CLASS(object);
 
                 if (ScriptManager::Lock()) {
-                    if (GetProperty((Obj*)klass, klass, hash, true)) {
+                    if (GetProperty((Obj*)klass, klass, hash)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -672,7 +672,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (ScriptManager::Lock()) {
-                    if (GetProperty((Obj*)klass, klass, hash, true)) {
+                    if (GetProperty((Obj*)klass, klass, hash)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -702,6 +702,7 @@ PUBLIC int     VMThread::RunInstruction() {
             Table* fields;
             ObjClass* klass;
             Obj* objPtr;
+            ValueSetFn setter = nullptr;
 
             object = Peek(1);
 
@@ -709,11 +710,13 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjInstance* instance = AS_INSTANCE(object);
                 klass = instance->Object.Class;
                 fields = instance->Fields;
+                setter = instance->PropertySet;
                 objPtr = (Obj*)instance;
             }
             else if (IS_CLASS(object)) {
                 klass = AS_CLASS(object);
                 fields = klass->Fields;
+                setter = klass->PropertySet;
                 objPtr = (Obj*)klass;
             }
             else if (IS_NAMESPACE(object)) {
@@ -732,8 +735,8 @@ PUBLIC int     VMThread::RunInstruction() {
             if (ScriptManager::Lock()) {
                 value = Pop();
 
-                if (klass->PropertySet) {
-                    if (!klass->PropertySet(objPtr, hash, value, this->ID)) {
+                if (setter) {
+                    if (!setter(objPtr, hash, value, this->ID)) {
                         goto FAIL_OP_SET_PROPERTY;
                     }
                 }
@@ -778,7 +781,7 @@ PUBLIC int     VMThread::RunInstruction() {
                     }
 
                     ObjClass* klass = instance->Object.Class;
-                    if (HasProperty((Obj*)instance, klass, hash, false)) {
+                    if (HasProperty((Obj*)instance, klass, hash, false, instance->PropertyGet)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -791,7 +794,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_CLASS(object);
 
                 if (ScriptManager::Lock()) {
-                    if (HasProperty((Obj*)klass, klass, hash, true)) {
+                    if (HasProperty((Obj*)klass, klass, hash)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -815,7 +818,7 @@ PUBLIC int     VMThread::RunInstruction() {
             else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
                 ObjClass* klass = AS_OBJECT(object)->Class;
                 if (ScriptManager::Lock()) {
-                    if (HasProperty((Obj*)klass, klass, hash, true)) {
+                    if (HasProperty((Obj*)klass, klass, hash)) {
                         Pop();
                         Push(INTEGER_VAL(true));
                         ScriptManager::Unlock();
@@ -1785,12 +1788,12 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = NULL_VAL;
 }
 
-PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
     if (ScriptManager::Lock()) {
         VMValue value;
 
-        if (klass->PropertyGet) {
-            if (klass->PropertyGet(object, hash, &value, this->ID)) {
+        if (getter) {
+            if (getter(object, hash, &value, this->ID)) {
                 Pop();
                 Push(value);
                 ScriptManager::Unlock();
@@ -1827,12 +1830,16 @@ PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, 
     ScriptManager::Unlock();
     return false;
 }
-PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+    return GetProperty(object, klass, hash, true, klass->PropertyGet);
+}
+PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash) {
+    return GetProperty(object, klass, hash, true);
+}
+PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
     if (ScriptManager::Lock()) {
-        bool hasMethod = false;
-
-        if (klass->PropertyGet) {
-            if (klass->PropertyGet(object, hash, nullptr, this->ID)) {
+        if (getter) {
+            if (getter(object, hash, nullptr, this->ID)) {
                 ScriptManager::Unlock();
                 return true;
             }
@@ -1840,22 +1847,29 @@ PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, 
 
         if (checkFields && klass->Fields->Exists(hash)) {
             // Fields have priority over methods
-            hasMethod = true;
+            ScriptManager::Unlock();
+            return true;
         }
         else if (klass->Methods->Exists(hash)) {
-            hasMethod = true;
+            ScriptManager::Unlock();
+            return true;
         }
         else {
             ObjClass* parentClass = ScriptManager::GetClassParent(klass);
             if (parentClass) {
                 ScriptManager::Unlock();
-                return HasProperty((Obj*)parentClass, parentClass, hash, checkFields);
+                return HasProperty((Obj*)parentClass, parentClass, hash, checkFields, parentClass->PropertyGet);
             }
         }
-        ScriptManager::Unlock();
-        return hasMethod;
     }
+    ScriptManager::Unlock();
     return false;
+}
+PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+    return HasProperty(object, klass, checkFields, klass->PropertyGet);
+}
+PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash) {
+    return HasProperty(object, klass, true);
 }
 PRIVATE bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
     VMValue result;

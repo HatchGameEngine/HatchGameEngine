@@ -209,9 +209,11 @@ struct ObjClass {
     ObjClass*   Parent;
 };
 struct ObjInstance {
-    Obj    Object;
-    Table* Fields;
-    void*  EntityPtr;
+    Obj        Object;
+    Table*     Fields;
+    void*      EntityPtr;
+    ValueGetFn PropertyGet;
+    ValueSetFn PropertySet;
 };
 struct ObjBoundMethod {
     Obj          Object;
