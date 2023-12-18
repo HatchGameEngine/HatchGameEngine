@@ -23,11 +23,12 @@ public:
     static VMThread                    Threads[8];
     static Uint32                      ThreadCount;
 
-    static vector<ObjFunction*>        AllFunctionList;
+    static vector<ObjModule*>          ModuleList;
 
     static HashMap<BytecodeContainer>* Sources;
     static HashMap<ObjClass*>*         Classes;
     static HashMap<char*>*             Tokens;
+    static vector<ObjNamespace*>       AllNamespaces;
     static vector<ObjClass*>           ClassImplList;
 
     static SDL_mutex*                  GlobalLock;
@@ -64,11 +65,12 @@ HashMap<VMValue>*           ScriptManager::Constants = NULL;
 
 std::set<Obj*>              ScriptManager::FreedGlobals;
 
-vector<ObjFunction*>        ScriptManager::AllFunctionList;
+vector<ObjModule*>          ScriptManager::ModuleList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>*         ScriptManager::Classes = NULL;
 HashMap<char*>*             ScriptManager::Tokens = NULL;
+vector<ObjNamespace*>       ScriptManager::AllNamespaces;
 vector<ObjClass*>           ScriptManager::ClassImplList;
 
 SDL_mutex*                  ScriptManager::GlobalLock = NULL;
@@ -155,6 +157,7 @@ PUBLIC STATIC void    ScriptManager::Dispose() {
         Constants->ForAll(RemoveNonGlobalableValue);
 
     ClassImplList.clear();
+    AllNamespaces.clear();
 
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
@@ -176,7 +179,7 @@ PUBLIC STATIC void    ScriptManager::Dispose() {
         Constants = NULL;
     }
 
-    FreeFunctions();
+    FreeModules();
 
     if (Sources) {
         Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
@@ -200,8 +203,6 @@ PUBLIC STATIC void    ScriptManager::Dispose() {
         Tokens = NULL;
     }
 
-    ClassImplList.clear();
-
     SDL_DestroyMutex(GlobalLock);
 }
 PRIVATE STATIC void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
@@ -212,6 +213,7 @@ PRIVATE STATIC void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMVa
             case OBJ_FUNCTION:
             case OBJ_NATIVE:
             case OBJ_NAMESPACE:
+            case OBJ_MODULE:
                 break;
             default:
                 if (hash)
@@ -249,8 +251,16 @@ PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
 
     FREE_OBJ(function, ObjFunction);
 }
+PRIVATE STATIC void    ScriptManager::FreeModule(ObjModule* module) {
+    for (size_t i = 0; i < module->Functions->size(); i++)
+        FreeFunction((*module->Functions)[i]);
+
+    delete module->Functions;
+
+    FREE_OBJ(module, ObjModule);
+}
 PRIVATE STATIC void    ScriptManager::FreeClass(ObjClass* klass) {
-    // Subfunctions are already freed as a byproduct of the AllFunctionList,
+    // Subfunctions are already freed as a byproduct of the ModuleList,
     // so just do natives.
     klass->Methods->ForAll(FreeNativeValue);
     delete klass->Methods;
@@ -333,61 +343,13 @@ PUBLIC STATIC void    ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value)
         }
     }
 }
-PRIVATE STATIC void    ScriptManager::FreeFunctions() {
-    Log::Print(Log::LOG_VERBOSE, "Freeing %d functions...", AllFunctionList.size());
-    for (size_t i = 0; i < AllFunctionList.size(); i++) {
-        FreeFunction(AllFunctionList[i]);
+PRIVATE STATIC void   ScriptManager::FreeModules() {
+    Log::Print(Log::LOG_VERBOSE, "Freeing %d modules...", ModuleList.size());
+    for (size_t i = 0; i < ModuleList.size(); i++) {
+        FreeModule(ModuleList[i]);
     }
-    AllFunctionList.clear();
+    ModuleList.clear();
     Log::Print(Log::LOG_VERBOSE, "Done!");
-}
-PUBLIC STATIC void    ScriptManager::PrintHashTableValues(Uint32 hash, VMValue value) {
-    if (IS_OBJECT(value)) {
-        switch (OBJECT_TYPE(value)) {
-            case OBJ_CLASS: {
-                printf("OBJ_CLASS: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
-                break;
-            }
-            case OBJ_ENUM: {
-                printf("OBJ_ENUM: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
-                break;
-            }
-            case OBJ_FUNCTION: {
-                printf("OBJ_FUNCTION: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
-                break;
-            }
-            case OBJ_NATIVE: {
-                printf("OBJ_NATIVE: %p (%s)\n", AS_OBJECT(value), Memory::GetName(AS_OBJECT(value)));
-                break;
-            }
-            case OBJ_BOUND_METHOD: {
-                printf("OBJ_BOUND_METHOD: %p\n", AS_OBJECT(value));
-                break;
-            }
-            case OBJ_CLOSURE: {
-                printf("OBJ_CLOSURE: %p\n", AS_OBJECT(value));
-                break;
-            }
-            case OBJ_INSTANCE: {
-                printf("OBJ_INSTANCE: %p\n", AS_OBJECT(value));
-                break;
-            }
-            case OBJ_STRING: {
-                printf("OBJ_STRING: %p\n", AS_OBJECT(value));
-                break;
-            }
-            case OBJ_ARRAY: {
-                printf("OBJ_ARRAY: %p\n", AS_OBJECT(value));
-                break;
-            }
-            case OBJ_UPVALUE: {
-                printf("OBJ_UPVALUE: %p\n", AS_OBJECT(value));
-                break;
-            }
-            default:
-                break;
-        }
-    }
 }
 // #endregion
 
@@ -619,11 +581,7 @@ PUBLIC STATIC void    ScriptManager::Unlock() {
     SDL_UnlockMutex(GlobalLock);
 }
 
-PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, int index, Uint32 hash) {
-    if ((unsigned)index >= AllFunctionList.size())
-        return;
-
-    ObjFunction* function = AllFunctionList[index];
+PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash) {
     VMValue methodValue = OBJECT_VAL(function);
 
     ObjClass* klass = AS_CLASS(thread->Peek(0));
@@ -725,13 +683,17 @@ PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeConta
         return false;
     }
 
-    size_t functionListOffset = AllFunctionList.size();
+    ObjModule* module = NewModule();
 
     for (size_t i = 0; i < bytecode->Functions.size(); i++) {
         ObjFunction* function = bytecode->Functions[i];
-        function->FunctionListOffset = functionListOffset;
-        AllFunctionList.push_back(function);
+
+        module->Functions->push_back(function);
+
+        function->Module = module;
     }
+
+    ModuleList.push_back(module);
 
     if (!bytecode->SourceFilename) {
         char fnHash[256];
@@ -741,9 +703,9 @@ PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeConta
             function->SourceFilename = srcFilename;
     }
 
-    Threads[0].RunFunction(bytecode->Functions[0], 0);
-
     delete bytecode;
+
+    Threads[0].RunFunction((*module->Functions)[0], 0);
 
     return true;
 }

@@ -73,6 +73,7 @@ ObjFunction*      NewFunction() {
     function->Arity = 0;
     function->MinArity = 0;
     function->UpvalueCount = 0;
+    function->Module = NULL;
     function->Name = NULL;
     function->ClassName = NULL;
     function->SourceFilename = NULL;
@@ -177,6 +178,13 @@ ObjEnum*          NewEnum(Uint32 hash) {
     enumeration->Fields = new Table(NULL, 16);
     return enumeration;
 }
+ObjModule*        NewModule() {
+    ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
+    Memory::Track(module, "NewModule");
+    module->Functions = new vector<ObjFunction*>();
+    module->Locals = new Table(NULL, 16);
+    return module;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -232,6 +240,8 @@ const char*       GetObjectTypeString(Uint32 type) {
             return "Stream";
         case OBJ_NAMESPACE:
             return "Namespace";
+        case OBJ_MODULE:
+            return "Module";
     }
     return "Unknown Object Type";
 }

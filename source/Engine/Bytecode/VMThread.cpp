@@ -1551,14 +1551,17 @@ SUCCESS_OP_SET_PROPERTY:
         }
         VM_CASE(OP_EVENT): {
             int index = ReadByte(frame);
-            VMValue method = OBJECT_VAL(ScriptManager::AllFunctionList[frame->FunctionListOffset + index]);
-            Push(method);
+            if ((unsigned)index < frame->Module->Functions->size()) {
+                VMValue method = OBJECT_VAL((*frame->Module->Functions)[index]);
+                Push(method);
+            }
             VM_BREAK;
         }
         VM_CASE(OP_METHOD): {
             int index = ReadByte(frame);
             Uint32 hash = ReadUInt32(frame);
-            ScriptManager::DefineMethod(this, frame->FunctionListOffset + index, hash);
+            if ((unsigned)index < frame->Module->Functions->size())
+                ScriptManager::DefineMethod(this, (*frame->Module->Functions)[index], hash);
             VM_BREAK;
         }
 
@@ -2014,7 +2017,7 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
     frame->Slots = StackTop - (function->Arity + 1);
     frame->WithReceiverStackTop = frame->WithReceiverStack;
     frame->WithIteratorStackTop = frame->WithIteratorStack;
-    frame->FunctionListOffset = function->FunctionListOffset;
+    frame->Module = function->Module;
 
     return true;
 }
@@ -2532,6 +2535,9 @@ PUBLIC VMValue VMThread::Value_TypeOf() {
                     break;
                 case OBJ_ENUM:
                     valueType = "enum";
+                    break;
+                case OBJ_MODULE:
+                    valueType = "module";
                     break;
             }
         }

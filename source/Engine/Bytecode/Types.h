@@ -118,6 +118,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
 #define IS_NAMESPACE(value)     IsObjectType(value, OBJ_NAMESPACE)
 #define IS_ENUM(value)          IsObjectType(value, OBJ_ENUM)
+#define IS_MODULE(value)        IsObjectType(value, OBJ_MODULE)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -132,6 +133,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
 #define AS_NAMESPACE(value)     ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value)          ((ObjEnum*)AS_OBJECT(value))
+#define AS_MODULE(value)        ((ObjModule*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -147,6 +149,7 @@ enum ObjType {
     OBJ_STREAM,
     OBJ_NAMESPACE,
     OBJ_ENUM,
+    OBJ_MODULE,
 
     MAX_OBJ_TYPE
 };
@@ -165,13 +168,18 @@ struct ObjString {
     char*  Chars;
     Uint32 Hash;
 };
+struct ObjModule {
+    Obj                          Object;
+    vector<struct ObjFunction*>* Functions;
+    Table*                       Locals;
+};
 struct ObjFunction {
     Obj          Object;
     int          Arity;
     int          MinArity;
     int          UpvalueCount;
     struct Chunk Chunk;
-    size_t       FunctionListOffset;
+    ObjModule*   Module;
     ObjString*   Name;
     ObjString*   ClassName;
     ObjString*   SourceFilename;
@@ -265,6 +273,7 @@ ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
 ObjNamespace*      NewNamespace(Uint32 hash);
 ObjEnum*           NewEnum(Uint32 hash);
+ObjModule*         NewModule();
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \
@@ -295,7 +304,7 @@ struct CallFrame {
     Uint8*       IPLast;
     Uint8*       IPStart;
     VMValue*     Slots;
-    int          FunctionListOffset;
+    ObjModule*   Module;
 
     VMValue   WithReceiverStack[16];
     VMValue*  WithReceiverStackTop = WithReceiverStack;

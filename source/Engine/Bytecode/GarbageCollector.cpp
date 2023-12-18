@@ -96,8 +96,10 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     }
 
     // Mark functions
-    for (size_t i = 0; i < ScriptManager::AllFunctionList.size(); i++) {
-        GrayObject(ScriptManager::AllFunctionList[i]);
+    for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
+        ObjModule* module = ScriptManager::ModuleList[i];
+        for (size_t fn = 0; fn < module->Functions->size(); fn++)
+            GrayObject((*module->Functions)[fn]);
     }
 
     // Mark classes
@@ -150,24 +152,10 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     Log::Print(Log::LOG_VERBOSE, "Sweep: Blackening took %.1f ms", blackenElapsed);
     Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
-#define LOG_ME(type) \
-    if (objectTypeCounts[type]) \
-        Log::Print(Log::LOG_VERBOSE, "Freed %d " #type " objects out of %d.", objectTypeFreed[type], objectTypeCounts[type])
-
-    LOG_ME(OBJ_BOUND_METHOD);
-    LOG_ME(OBJ_CLASS);
-    LOG_ME(OBJ_FUNCTION);
-    LOG_ME(OBJ_INSTANCE);
-    LOG_ME(OBJ_ARRAY);
-    LOG_ME(OBJ_MAP);
-    LOG_ME(OBJ_NATIVE);
-    LOG_ME(OBJ_STRING);
-    LOG_ME(OBJ_UPVALUE);
-    LOG_ME(OBJ_STREAM);
-    LOG_ME(OBJ_NAMESPACE);
-    LOG_ME(OBJ_ENUM);
-
-#undef LOG_ME
+    for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
+        if (objectTypeCounts[i])
+            Log::Print(Log::LOG_VERBOSE, "Freed %d %s objects out of %d.", objectTypeFreed[i], GetObjectTypeString(i), objectTypeCounts[i]);
+    }
 
     GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
@@ -239,12 +227,18 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
         }
         case OBJ_FUNCTION: {
             ObjFunction* function = (ObjFunction*)object;
+            GrayObject(function->Module);
             GrayObject(function->Name);
             GrayObject(function->ClassName);
             GrayObject(function->SourceFilename);
             for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
                 GrayValue((*function->Chunk.Constants)[i]);
             }
+            break;
+        }
+        case OBJ_MODULE: {
+            ObjModule* module = (ObjModule*)module;
+            GrayHashMap(module->Locals);
             break;
         }
         case OBJ_INSTANCE: {

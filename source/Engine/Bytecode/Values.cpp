@@ -58,6 +58,9 @@ PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int i
         case OBJ_FUNCTION:
             buffer_printf(buffer, "<fn %s>", AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
             break;
+        case OBJ_MODULE:
+            buffer_printf(buffer, "<module>");
+            break;
         case OBJ_INSTANCE:
             buffer_printf(buffer, "<class %s> instance", AS_INSTANCE(value)->Object.Class->Name ? AS_INSTANCE(value)->Object.Class->Name->Chars : "(null)");
             break;

@@ -408,7 +408,7 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
             }
             else if (StringList[stringID].Chars != nullptr) {
                 Uint32 length = StringList[stringID].Length;
-                char* mapKey = StringUtils::Duplicate(StringList[stringID].Chars, length);
+                char* mapKey = StringUtils::Create((void*)StringList[stringID].Chars, length);
                 if (mapKey)
                     map->Keys->Put(mapKey, mapKey);
             }

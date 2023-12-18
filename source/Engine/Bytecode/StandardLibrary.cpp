@@ -14480,7 +14480,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     #define INIT_NAMESPACE(nsName) \
         ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
-        ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName))
+        ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
+        ScriptManager::AllNamespaces.push_back(ns_##nsName)
     #define INIT_NAMESPACED_CLASS(nsName, className) \
         klass = InitClass(#className); \
         ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
