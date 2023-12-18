@@ -234,8 +234,10 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
         }
         case OBJ_MODULE: {
             ObjModule* module = (ObjModule*)object;
-            GrayHashMap(module->Locals);
             GrayObject(module->SourceFilename);
+            for (size_t i = 0; i < module->Locals->size(); i++) {
+                GrayValue((*module->Locals)[i]);
+            }
             for (size_t fn = 0; fn < module->Functions->size(); fn++)
                 GrayObject((*module->Functions)[fn]);
             break;

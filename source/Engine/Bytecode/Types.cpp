@@ -181,7 +181,7 @@ ObjModule*        NewModule() {
     ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
     Memory::Track(module, "NewModule");
     module->Functions = new vector<ObjFunction*>();
-    module->Locals = new Table(NULL, 16);
+    module->Locals = new vector<VMValue>();
     module->SourceFilename = NULL;
     return module;
 }

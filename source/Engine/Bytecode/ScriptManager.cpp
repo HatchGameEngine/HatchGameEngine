@@ -260,7 +260,11 @@ PRIVATE STATIC void    ScriptManager::FreeModule(ObjModule* module) {
     for (size_t i = 0; i < module->Functions->size(); i++)
         FreeFunction((*module->Functions)[i]);
 
+    for (size_t i = 0; i < module->Locals->size(); i++)
+        FreeValue((*module->Locals)[i]);
+
     delete module->Functions;
+    delete module->Locals;
 
     FREE_OBJ(module, ObjModule);
 }

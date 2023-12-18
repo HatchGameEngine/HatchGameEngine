@@ -8,6 +8,7 @@ public:
     static Scanner              scanner;
     static ParseRule*           Rules;
     static vector<ObjFunction*> Functions;
+    static vector<Local>        ModuleLocals;
     static HashMap<Token>*      TokenMap;
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
@@ -45,6 +46,7 @@ Parser               Compiler::parser;
 Scanner              Compiler::scanner;
 ParseRule*           Compiler::Rules = NULL;
 vector<ObjFunction*> Compiler::Functions;
+vector<Local>        Compiler::ModuleLocals;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 
 bool                 Compiler::ShowWarnings = false;
@@ -129,6 +131,7 @@ enum TokenTYPE {
     TOKEN_EVENT,
     TOKEN_VAR,
     TOKEN_STATIC,
+    TOKEN_LOCAL,
 
     // Keywords.
     TOKEN_DO,
@@ -374,6 +377,8 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                 }
             }
             break;
+        case 'l':
+            return CheckKeyword(1, 4, "ocal", TOKEN_LOCAL);
         case 'n':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
@@ -795,9 +800,7 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
 
 PUBLIC void  Compiler::ParseVariable(const char* errorMessage) {
     ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
-
     DeclareVariable(&parser.Previous);
-    if (ScopeDepth > 0) return;
 }
 PUBLIC bool  Compiler::IdentifiersEqual(Token* a, Token* b) {
     if (a->Length != b->Length) return false;
@@ -829,6 +832,24 @@ PUBLIC void  Compiler::DeclareVariable(Token* name) {
     }
 
     AddLocal(*name);
+}
+PUBLIC int   Compiler::ParseModuleVariable(const char* errorMessage) {
+    ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
+    return DeclareModuleVariable(&parser.Previous);
+}
+PUBLIC void  Compiler::DefineModuleVariable(int local) {
+    EmitByte(OP_DEFINE_MODULE_LOCAL);
+    Compiler::ModuleLocals[local].Depth = 0;
+}
+PUBLIC int   Compiler::DeclareModuleVariable(Token* name) {
+    for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
+        Local& local = Compiler::ModuleLocals[i];
+
+        if (IdentifiersEqual(name, &local.Name))
+            Error("Local with this name already declared in this module.");
+    }
+
+    return AddModuleLocal(*name);
 }
 PRIVATE void Compiler::WarnVariablesUnused() {
     if (!Compiler::ShowWarnings)
@@ -865,6 +886,10 @@ PUBLIC void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
         case OP_SET_ELEMENT:
             EmitByte(setOp);
             break;
+        case OP_SET_MODULE_LOCAL:
+            EmitByte(setOp);
+            EmitUint16((Uint16)arg);
+            break;
         default:
             break;
     }
@@ -882,6 +907,9 @@ PUBLIC void  Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
         case OP_GET_ELEMENT:
             EmitByte(getOp);
             break;
+        case OP_GET_MODULE_LOCAL:
+            EmitByte(getOp);
+            EmitUint16((Uint16)arg);
         default:
             break;
     }
@@ -955,8 +983,15 @@ PUBLIC void  Compiler::NamedVariable(Token name, bool canAssign) {
         setOp = OP_SET_LOCAL;
     }
     else {
-        getOp = OP_GET_GLOBAL;
-        setOp = OP_SET_GLOBAL;
+        arg = ResolveModuleLocal(&name);
+        if (arg != -1) {
+            getOp = OP_GET_MODULE_LOCAL;
+            setOp = OP_SET_MODULE_LOCAL;
+        }
+        else {
+            getOp = OP_GET_GLOBAL;
+            setOp = OP_SET_GLOBAL;
+        }
     }
 
     if (canAssign && MatchAssignmentToken()) {
@@ -1082,6 +1117,31 @@ PUBLIC int   Compiler::ResolveLocal(Token* name) {
     }
     return -1;
 }
+PUBLIC int   Compiler::AddModuleLocal(Token name) {
+    if (Compiler::ModuleLocals.size() == 0xFFFF) {
+        Error("Too many locals in module.");
+        return -1;
+    }
+    Local local;
+    local.Name = name;
+    local.Depth = -1;
+    local.Resolved = false;
+    Compiler::ModuleLocals.push_back(local);
+    return Compiler::ModuleLocals.size() - 1;
+}
+PUBLIC int   Compiler::ResolveModuleLocal(Token* name) {
+    for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
+        Local& local = Compiler::ModuleLocals[i];
+        if (IdentifiersEqual(name, &local.Name)) {
+            if (local.Depth == -1) {
+                Error("Cannot read local variable in its own initializer.");
+            }
+            local.Resolved = true;
+            return i;
+        }
+    }
+    return -1;
+}
 PUBLIC Uint8 Compiler::GetArgumentList() {
     Uint8 argumentCount = 0;
     if (!CheckToken(TOKEN_RIGHT_PAREN)) {
@@ -1198,9 +1258,6 @@ PUBLIC void  Compiler::GetElement(bool canAssign) {
             EmitAssignmentToken(assignmentToken);
             EmitSetOperation(OP_SET_ELEMENT, -1, blank);
         }
-    }
-    else if (MatchToken(TOKEN_LEFT_PAREN)) {
-        EmitGetOperation(OP_GET_ELEMENT, -1, blank);
     }
     else {
         EmitGetOperation(OP_GET_ELEMENT, -1, blank);
@@ -1833,7 +1890,6 @@ PUBLIC void Compiler::GetBreakStatement() {
     ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after break.");
 }
 PUBLIC void Compiler::GetBlockStatement() {
-    // printf("GetBlockStatement()\n");
     while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
         GetDeclaration();
     }
@@ -2268,6 +2324,29 @@ PUBLIC void Compiler::GetVariableDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
+PUBLIC void Compiler::GetModuleVariableDeclaration() {
+    ConsumeToken(TOKEN_VAR, "Expected \"var\" after \"local\" declaration.");
+
+    if (ScopeDepth > 0) {
+        Error("Cannot use local declaration outside of top-level code.");
+    }
+
+    do {
+        int local = ParseModuleVariable("Expected variable name.");
+
+        if (MatchToken(TOKEN_ASSIGNMENT)) {
+            GetExpression();
+        }
+        else {
+            EmitByte(OP_NULL);
+        }
+
+        DefineModuleVariable(local);
+    }
+    while (MatchToken(TOKEN_COMMA));
+
+    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+}
 PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
     do {
         ParseVariable("Expected property name.");
@@ -2450,6 +2529,8 @@ PUBLIC void Compiler::GetDeclaration() {
         GetImportDeclaration();
     else if (MatchToken(TOKEN_VAR))
         GetVariableDeclaration();
+    else if (MatchToken(TOKEN_LOCAL))
+        GetModuleVariableDeclaration();
     else if (MatchToken(TOKEN_EVENT))
         GetEventDeclaration();
     else
@@ -3061,6 +3142,14 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
     }
 
     ConsumeToken(TOKEN_EOF, "Expected end of file.");
+
+    if (UnusedVariables) {
+        for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
+            if (!Compiler::ModuleLocals[i].Resolved)
+                UnusedVariables->insert(UnusedVariables->begin(), Compiler::ModuleLocals[i]);
+        }
+    }
+
     Finish();
 
     bool debugCompiler = false;
@@ -3096,6 +3185,7 @@ PUBLIC VIRTUAL       Compiler::~Compiler() {
 }
 PUBLIC STATIC void   Compiler::FinishCompiling() {
     Compiler::Functions.clear();
+    Compiler::ModuleLocals.clear();
 
     if (TokenMap) {
         delete TokenMap;

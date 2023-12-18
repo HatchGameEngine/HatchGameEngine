@@ -20,7 +20,7 @@ public:
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0001
+#define BYTECODE_VERSION 0x0002
 
 const char*         Bytecode::Magic = "HTVM";
 Uint32              Bytecode::LatestVersion = BYTECODE_VERSION;
@@ -48,6 +48,12 @@ PUBLIC bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* to
     }
 
     Version = stream->ReadByte();
+
+    if (Version > BYTECODE_VERSION) {
+        Log::Print(Log::LOG_ERROR, "Unsupported bytecode version 0x%02X!", Version);
+        return false;
+    }
+
     Uint8 opts = stream->ReadByte();
     stream->Skip(1);
     stream->Skip(1);

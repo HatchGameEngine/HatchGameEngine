@@ -171,7 +171,7 @@ struct ObjString {
 struct ObjModule {
     Obj                          Object;
     vector<struct ObjFunction*>* Functions;
-    Table*                       Locals;
+    vector<VMValue>*             Locals;
     ObjString*                   SourceFilename;
 };
 struct ObjFunction {
@@ -398,6 +398,9 @@ enum   OpCode {
     OP_ADD_ENUM,
     OP_NEW_ENUM,
     OP_GET_SUPERCLASS,
+    OP_GET_MODULE_LOCAL,
+    OP_SET_MODULE_LOCAL,
+    OP_DEFINE_MODULE_LOCAL,
 
     OP_SYNC = 0xFF,
 };

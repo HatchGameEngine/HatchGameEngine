@@ -397,6 +397,9 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_ADD_ENUM),
             VM_ADD_DISPATCH(OP_NEW_ENUM),
             VM_ADD_DISPATCH(OP_GET_SUPERCLASS),
+            VM_ADD_DISPATCH(OP_GET_MODULE_LOCAL),
+            VM_ADD_DISPATCH(OP_SET_MODULE_LOCAL),
+            VM_ADD_DISPATCH(OP_DEFINE_MODULE_LOCAL),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -489,6 +492,9 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_ADD_ENUM)
                 PRINT_CASE(OP_NEW_ENUM)
                 PRINT_CASE(OP_GET_SUPERCLASS)
+                PRINT_CASE(OP_GET_MODULE_LOCAL)
+                PRINT_CASE(OP_SET_MODULE_LOCAL)
+                PRINT_CASE(OP_DEFINE_MODULE_LOCAL)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -1674,6 +1680,25 @@ SUCCESS_OP_SET_PROPERTY:
             Pop();
             Push(NULL_VAL);
             ScriptManager::Unlock();
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_GET_MODULE_LOCAL): {
+            Uint16 slot = ReadUInt16(frame);
+            if (slot < frame->Module->Locals->size())
+                Push((*frame->Module->Locals)[slot]);
+            else
+                Push(NULL_VAL);
+            VM_BREAK;
+        }
+        VM_CASE(OP_SET_MODULE_LOCAL): {
+            Uint16 slot = ReadUInt16(frame);
+            if (slot < frame->Module->Locals->size())
+                (*frame->Module->Locals)[slot] = Peek(0);
+            VM_BREAK;
+        }
+        VM_CASE(OP_DEFINE_MODULE_LOCAL): {
+            frame->Module->Locals->push_back(Pop());
             VM_BREAK;
         }
 
