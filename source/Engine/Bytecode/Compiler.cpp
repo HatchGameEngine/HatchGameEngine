@@ -2506,6 +2506,10 @@ PUBLIC void Compiler::GetImportDeclaration() {
 PUBLIC void Compiler::GetUsingDeclaration() {
     ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
 
+    if (ScopeDepth > 0) {
+        Error("Cannot use namespaces outside of top-level code.");
+    }
+
     do {
         ConsumeToken(TOKEN_IDENTIFIER, "Expected namespace name.");
         Token nsName = parser.Previous;
