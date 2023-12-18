@@ -400,6 +400,7 @@ PUBLIC int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_GET_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_SET_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_DEFINE_MODULE_LOCAL),
+            VM_ADD_DISPATCH(OP_USE_NAMESPACE),
             VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
@@ -495,6 +496,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_GET_MODULE_LOCAL)
                 PRINT_CASE(OP_SET_MODULE_LOCAL)
                 PRINT_CASE(OP_DEFINE_MODULE_LOCAL)
+                PRINT_CASE(OP_USE_NAMESPACE)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -585,7 +587,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 if (ScriptManager::Globals->GetIfExists(hash, &originalValue)) {
                     // If the value is a class and original is a class,
                     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
-                        DoClassExtension(value, originalValue);
+                        DoClassExtension(value, originalValue, true);
                     }
                     // Otherwise,
                     else {
@@ -596,7 +598,7 @@ PUBLIC int     VMThread::RunInstruction() {
                 else if (ScriptManager::Constants->GetIfExists(hash, &originalValue)) {
                     // If the value is a class and original is a class,
                     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
-                        DoClassExtension(value, originalValue);
+                        DoClassExtension(value, originalValue, true);
                     }
                     // Can't do that
                     else {
@@ -1702,6 +1704,56 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
+        VM_CASE(OP_USE_NAMESPACE): {
+            Uint32 hash = ReadUInt32(frame);
+            if (ScriptManager::Lock()) {
+                VMValue result;
+                if (!ScriptManager::Globals->GetIfExists(hash, &result)
+                && !ScriptManager::Constants->GetIfExists(hash, &result)) {
+                    ThrowRuntimeError(false, "Namespace %s does not exist.", GetVariableOrMethodName(hash));
+                    ScriptManager::Unlock();
+                    VM_BREAK;
+                }
+
+                if (!IS_NAMESPACE(result)) {
+                    ThrowRuntimeError(false, "Value was not a namespace.");
+                    ScriptManager::Unlock();
+                    VM_BREAK;
+                }
+
+                ObjNamespace* ns = AS_NAMESPACE(result);
+
+                // Namespace already in use, so do nothing
+                if (ns->InUse) {
+                    ScriptManager::Unlock();
+                    VM_BREAK;
+                }
+
+                ns->Fields->WithAll([this](Uint32 hash, VMValue value) -> void {
+                    VMValue originalValue;
+
+                    bool replace = true;
+
+                    if (ScriptManager::Globals->GetIfExists(hash, &originalValue)
+                    || ScriptManager::Constants->GetIfExists(hash, &originalValue)) {
+                        if (IS_CLASS(value) && IS_CLASS(originalValue)) {
+                            DoClassExtension(value, originalValue, false);
+                            replace = false;
+                        }
+                    }
+
+                    if (replace)
+                        ScriptManager::Globals->Put(hash, value);
+                });
+
+                ns->InUse = true;
+
+                ScriptManager::Unlock();
+            }
+
+            VM_BREAK;
+        }
+
         VM_CASE(OP_FAILSAFE): {
             int offset = ReadUInt16(frame);
             frame->Function->Chunk.Failsafe = frame->IPStart + offset;
@@ -2091,19 +2143,21 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
     }
     return InvokeFromClass(klass, hash, argCount);
 }
-PRIVATE bool   VMThread::DoClassExtension(VMValue value, VMValue originalValue) {
+PRIVATE bool   VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
     ObjClass* src = AS_CLASS(value);
     ObjClass* dst = AS_CLASS(originalValue);
 
     src->Methods->WithAll([dst](Uint32 hash, VMValue value) -> void {
         dst->Methods->Put(hash, value);
     });
-    src->Methods->Clear();
+    if (clearSrc)
+        src->Methods->Clear();
 
     src->Fields->WithAll([dst](Uint32 hash, VMValue value) -> void {
         dst->Fields->Put(hash, value);
     });
-    src->Fields->Clear();
+    if (clearSrc)
+        src->Fields->Clear();
 
     return true;
 }

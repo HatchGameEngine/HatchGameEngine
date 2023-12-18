@@ -158,6 +158,8 @@ enum TokenTYPE {
     TOKEN_AS,
     TOKEN_IN,
     TOKEN_FROM,
+    TOKEN_USING,
+    TOKEN_NAMESPACE,
 
     TOKEN_PRINT,
 
@@ -382,6 +384,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
         case 'n':
             if (scanner.Current - scanner.Start > 1) {
                 switch (*(scanner.Start + 1)) {
+                    case 'a': return CheckKeyword(2, 7, "mespace", TOKEN_NAMESPACE);
                     case 'u': return CheckKeyword(2, 2, "ll", TOKEN_NULL);
                     case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
                 }
@@ -439,6 +442,8 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
                 }
             }
             break;
+        case 'u':
+            return CheckKeyword(1, 4, "sing", TOKEN_USING);
         case 'v':
             return CheckKeyword(1, 2, "ar", TOKEN_VAR);
         case 'w':
@@ -2496,7 +2501,20 @@ PUBLIC void Compiler::GetImportDeclaration() {
     }
     while (MatchToken(TOKEN_COMMA));
 
-    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after import declaration.");
+    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
+}
+PUBLIC void Compiler::GetUsingDeclaration() {
+    ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
+
+    do {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expected namespace name.");
+        Token nsName = parser.Previous;
+        EmitByte(OP_USE_NAMESPACE);
+        EmitStringHash(nsName);
+    }
+    while (MatchToken(TOKEN_COMMA));
+
+    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
 }
 PUBLIC void Compiler::GetEventDeclaration() {
     ConsumeToken(TOKEN_IDENTIFIER, "Expected event name.");
@@ -2531,6 +2549,8 @@ PUBLIC void Compiler::GetDeclaration() {
         GetVariableDeclaration();
     else if (MatchToken(TOKEN_LOCAL))
         GetModuleVariableDeclaration();
+    else if (MatchToken(TOKEN_USING))
+        GetUsingDeclaration();
     else if (MatchToken(TOKEN_EVENT))
         GetEventDeclaration();
     else

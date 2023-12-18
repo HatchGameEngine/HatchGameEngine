@@ -167,6 +167,7 @@ ObjNamespace*     NewNamespace(Uint32 hash) {
     ns->Name = NULL;
     ns->Hash = hash;
     ns->Fields = new Table(NULL, 16);
+    ns->InUse = false;
     return ns;
 }
 ObjEnum*          NewEnum(Uint32 hash) {

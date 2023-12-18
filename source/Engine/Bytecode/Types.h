@@ -248,6 +248,7 @@ struct ObjNamespace {
     ObjString* Name;
     Uint32     Hash;
     Table*     Fields;
+    bool       InUse;
 };
 struct ObjEnum {
     Obj        Object;
@@ -401,6 +402,7 @@ enum   OpCode {
     OP_GET_MODULE_LOCAL,
     OP_SET_MODULE_LOCAL,
     OP_DEFINE_MODULE_LOCAL,
+    OP_USE_NAMESPACE,
 
     OP_SYNC = 0xFF,
 };
