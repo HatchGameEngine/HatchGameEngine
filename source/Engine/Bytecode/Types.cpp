@@ -76,7 +76,6 @@ ObjFunction*      NewFunction() {
     function->Module = NULL;
     function->Name = NULL;
     function->ClassName = NULL;
-    function->SourceFilename = NULL;
     function->Chunk.Init();
     return function;
 }
@@ -183,6 +182,7 @@ ObjModule*        NewModule() {
     Memory::Track(module, "NewModule");
     module->Functions = new vector<ObjFunction*>();
     module->Locals = new Table(NULL, 16);
+    module->SourceFilename = NULL;
     return module;
 }
 

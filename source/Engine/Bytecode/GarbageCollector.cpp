@@ -56,9 +56,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
         for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
             GrayValue(*slot);
         }
-        // Mark frame functions
+        // Mark frame modules
         for (Uint32 i = 0; i < thread->FrameCount; i++) {
-            GrayObject(thread->Frames[i].Function);
+            GrayObject(thread->Frames[i].Module);
         }
     }
 
@@ -95,11 +95,9 @@ PUBLIC STATIC void GarbageCollector::Collect() {
             GrayHashMap(Scene::Layers[i].Properties);
     }
 
-    // Mark functions
+    // Mark modules
     for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
-        ObjModule* module = ScriptManager::ModuleList[i];
-        for (size_t fn = 0; fn < module->Functions->size(); fn++)
-            GrayObject((*module->Functions)[fn]);
+        GrayObject(ScriptManager::ModuleList[i]);
     }
 
     // Mark classes
@@ -227,18 +225,19 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
         }
         case OBJ_FUNCTION: {
             ObjFunction* function = (ObjFunction*)object;
-            GrayObject(function->Module);
             GrayObject(function->Name);
             GrayObject(function->ClassName);
-            GrayObject(function->SourceFilename);
             for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
                 GrayValue((*function->Chunk.Constants)[i]);
             }
             break;
         }
         case OBJ_MODULE: {
-            ObjModule* module = (ObjModule*)module;
+            ObjModule* module = (ObjModule*)object;
             GrayHashMap(module->Locals);
+            GrayObject(module->SourceFilename);
+            for (size_t fn = 0; fn < module->Functions->size(); fn++)
+                GrayObject((*module->Functions)[fn]);
             break;
         }
         case OBJ_INSTANCE: {
@@ -260,19 +259,8 @@ PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
             });
             break;
         }
-        // case OBJ_NATIVE:
-        // case OBJ_STRING:
         default:
             // No references
             break;
     }
-}
-
-PRIVATE STATIC void GarbageCollector::RemoveWhiteHashMapItem(Uint32, VMValue value) {
-    // seems in the craftinginterpreters book this removes the ObjString used
-    // for hashing, but we don't use that, so...
-}
-PRIVATE STATIC void GarbageCollector::RemoveWhiteHashMap(void* pointer) {
-    if (!pointer) return;
-    ((HashMap<VMValue>*)pointer)->ForAll(RemoveWhiteHashMapItem);
 }

@@ -243,6 +243,8 @@ PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
     //*/
     if (function->Name != NULL)
         FreeValue(OBJECT_VAL(function->Name));
+    if (function->ClassName != NULL)
+        FreeValue(OBJECT_VAL(function->ClassName));
 
     for (size_t i = 0; i < function->Chunk.Constants->size(); i++)
         FreeValue((*function->Chunk.Constants)[i]);
@@ -252,6 +254,9 @@ PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
     FREE_OBJ(function, ObjFunction);
 }
 PRIVATE STATIC void    ScriptManager::FreeModule(ObjModule* module) {
+    if (module->SourceFilename != NULL)
+        FreeValue(OBJECT_VAL(module->SourceFilename));
+
     for (size_t i = 0; i < module->Functions->size(); i++)
         FreeFunction((*module->Functions)[i]);
 
@@ -693,15 +698,15 @@ PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeConta
         function->Module = module;
     }
 
-    ModuleList.push_back(module);
-
-    if (!bytecode->SourceFilename) {
+    if (bytecode->SourceFilename)
+        module->SourceFilename = CopyString(bytecode->SourceFilename);
+    else {
         char fnHash[256];
         snprintf(fnHash, sizeof(fnHash), "%08X", filenameHash);
-        ObjString* srcFilename = CopyString(fnHash);
-        for (ObjFunction* function : bytecode->Functions)
-            function->SourceFilename = srcFilename;
+        module->SourceFilename = CopyString(fnHash);
     }
+
+    ModuleList.push_back(module);
 
     delete bytecode;
 

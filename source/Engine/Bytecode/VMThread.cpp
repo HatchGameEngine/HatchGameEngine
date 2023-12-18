@@ -150,8 +150,8 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
             line = function->Chunk.Lines[bpos] & 0xFFFF;
 
             std::string functionName = GetFunctionName(function);
-            if (function->SourceFilename)
-                buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->SourceFilename->Chars, line, errorString);
+            if (function->Module->SourceFilename)
+                buffer_printf(buffer, "In %s of %s, line %d:\n\n    %s\n", functionName.c_str(), function->Module->SourceFilename->Chars, line, errorString);
             else
                 buffer_printf(buffer, "In %s, line %d:\n\n    %s\n", functionName.c_str(), line, errorString);
         }
@@ -167,7 +167,7 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
     for (Uint32 i = 0; i < FrameCount; i++) {
         CallFrame* fr = &Frames[i];
         function = fr->Function;
-        source = function->SourceFilename ? function->SourceFilename->Chars : nullptr;
+        source = function->Module->SourceFilename ? function->Module->SourceFilename->Chars : nullptr;
         line = -1;
         if (i > 0) {
             CallFrame* fr2 = &Frames[i - 1];
@@ -211,8 +211,8 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
 
             if (function) {
                 std::string functionName = GetFunctionName(function);
-                if (function->SourceFilename)
-                    buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->SourceFilename->Chars, errorString);
+                if (function->Module->SourceFilename)
+                    buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->Module->SourceFilename->Chars, errorString);
                 else
                     buffer_printf(&buffer, "While calling %s:\n\n    %s\n", functionName.c_str(), errorString);
             }

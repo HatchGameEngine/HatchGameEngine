@@ -131,13 +131,8 @@ PUBLIC bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* to
     }
 
     bool hasSourceFilename = opts & 2;
-    if (hasSourceFilename) {
+    if (hasSourceFilename)
         SourceFilename = stream->ReadString();
-
-        ObjString* srcFilename = CopyString(SourceFilename);
-        for (ObjFunction* function : Functions)
-            function->SourceFilename = srcFilename;
-    }
 
     return true;
 }

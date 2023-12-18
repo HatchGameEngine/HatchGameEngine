@@ -172,6 +172,7 @@ struct ObjModule {
     Obj                          Object;
     vector<struct ObjFunction*>* Functions;
     Table*                       Locals;
+    ObjString*                   SourceFilename;
 };
 struct ObjFunction {
     Obj          Object;
@@ -182,7 +183,6 @@ struct ObjFunction {
     ObjModule*   Module;
     ObjString*   Name;
     ObjString*   ClassName;
-    ObjString*   SourceFilename;
     Uint32       NameHash;
 };
 struct ObjNative {
