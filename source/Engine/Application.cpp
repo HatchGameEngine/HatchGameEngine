@@ -170,7 +170,12 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::MakeEngineVersion();
 
     Log::Init();
+
+#ifdef GIT_COMMIT_HASH
+    Log::Print(Log::LOG_INFO, "Hatch Game Engine %s (" GIT_COMMIT_HASH ")", Application::EngineVersion);
+#else
     Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+#endif
 
     MemoryPools::Init();
 
