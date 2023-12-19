@@ -1455,14 +1455,14 @@ CONTROLLER_GET_BOOL(HasMicrophoneButton)
  */
 CONTROLLER_GET_BOOL(HasPaddles)
 /***
- * Controller.GetButton
- * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index.
+ * Controller.IsButtonHeld
+ * \desc Checks if a <linkto ref="Button_*">button</linkto> is held.
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
- * \return Returns the button value from the controller at the index.
+ * \return Returns a Boolean value.
  * \ns Controller
  */
-VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int index = GET_ARG(0, GetInteger);
     int button = GET_ARG(1, GetInteger);
@@ -1471,7 +1471,37 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
         THROW_ERROR("Controller button %d out of range.", button);
         return NULL_VAL;
     }
-    return INTEGER_VAL(InputManager::ControllerGetButton(index, button));
+    return INTEGER_VAL(InputManager::ControllerIsButtonHeld(index, button));
+}
+/***
+ * Controller.IsButtonPressed
+ * \desc Checks if a <linkto ref="Button_*">button</linkto> is pressed.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Controller
+ */
+VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int button = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    if (button < 0 || button >= (int)ControllerButton::Max) {
+        THROW_ERROR("Controller button %d out of range.", button);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(InputManager::ControllerIsButtonPressed(index, button));
+}
+/***
+ * Controller.GetButton
+ * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index. (Deprecated; use <linkto ref="Controller.IsButtonHeld"></linkto> instead.)
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns the button value from the controller at the index.
+ * \ns Controller
+ */
+VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
+    return Controller_IsButtonHeld(argCount, args, threadID);
 }
 /***
  * Controller.GetAxis
@@ -1632,7 +1662,7 @@ VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Controller.SetLargeMotorFrequency
- * \desc Sets the frequency of a controller's large motor.
+ * \desc Sets the frequency of a controller's large motor. (Deprecated)
  * \param controllerIndex (Integer): Index of the controller.
  * \param frequency (Number): Frequency of the large motor.
  * \ns Controller
@@ -1651,7 +1681,7 @@ VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 th
 }
 /***
  * Controller.SetSmallMotorFrequency
- * \desc Sets the frequency of a controller's small motor.
+ * \desc Sets the frequency of a controller's small motor. (Deprecated)
  * \param controllerIndex (Integer): Index of the controller.
  * \param frequency (Number): Frequency of the small motor.
  * \ns Controller
@@ -14635,7 +14665,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, HasShareButton);
     DEF_NATIVE(Controller, HasMicrophoneButton);
     DEF_NATIVE(Controller, HasPaddles);
-    DEF_NATIVE(Controller, GetButton);
+    DEF_NATIVE(Controller, IsButtonHeld);
+    DEF_NATIVE(Controller, IsButtonPressed);
+    DEF_NATIVE(Controller, GetButton); // deprecated
     DEF_NATIVE(Controller, GetAxis);
     DEF_NATIVE(Controller, GetType);
     DEF_NATIVE(Controller, GetName);
@@ -14646,8 +14678,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, Rumble);
     DEF_NATIVE(Controller, StopRumble);
     DEF_NATIVE(Controller, SetRumblePaused);
-    DEF_NATIVE(Controller, SetLargeMotorFrequency);
-    DEF_NATIVE(Controller, SetSmallMotorFrequency);
+    DEF_NATIVE(Controller, SetLargeMotorFrequency); // deprecated
+    DEF_NATIVE(Controller, SetSmallMotorFrequency); // deprecated
     /***
     * \constant NUM_CONTROLLER_BUTTONS
     * \type Integer
