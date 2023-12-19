@@ -10,6 +10,10 @@ public:
 #include <Engine/Diagnostics/Clock.h>
 
 #ifdef WIN32
+#define USE_WIN32_CLOCK
+#endif
+
+#ifdef USE_WIN32_CLOCK
     #include <windows.h>
 
     bool          Win32_PerformanceFrequencyEnabled = false;
@@ -27,7 +31,7 @@ chrono::steady_clock::time_point        GameStartTime;
 stack<chrono::steady_clock::time_point> ClockStack;
 
 PUBLIC STATIC void   Clock::Init() {
-#ifdef WIN32
+#ifdef USE_WIN32_CLOCK
     LARGE_INTEGER Win32_Frequency;
 
     if (QueryPerformanceFrequency(&Win32_Frequency)) {
@@ -49,7 +53,7 @@ PUBLIC STATIC void   Clock::Init() {
     GameStartTime = chrono::steady_clock::now();
 }
 PUBLIC STATIC void   Clock::Start() {
-#ifdef WIN32
+#ifdef USE_WIN32_CLOCK
     if (Win32_PerformanceFrequencyEnabled) {
         Win32_ClockStack.push(Clock::GetTicks());
         return;
@@ -59,19 +63,21 @@ PUBLIC STATIC void   Clock::Start() {
     ClockStack.push(chrono::steady_clock::now());
 }
 PUBLIC STATIC double Clock::GetTicks() {
-#ifdef WIN32
+#ifdef USE_WIN32_CLOCK
     if (Win32_PerformanceFrequencyEnabled) {
         LARGE_INTEGER ticks;
         if (QueryPerformanceCounter(&ticks)) {
             return (double)(ticks.QuadPart - Win32_GameStartTime) / Win32_CPUFreq;
         }
+
+        return 0.0;
     }
 #endif
 
     return (chrono::steady_clock::now() - GameStartTime).count() / 1000000.0;
 }
 PUBLIC STATIC double Clock::End() {
-#ifdef WIN32
+#ifdef USE_WIN32_CLOCK
     if (Win32_PerformanceFrequencyEnabled) {
         auto t1 = Win32_ClockStack.top();
         auto t2 = Clock::GetTicks();
@@ -86,9 +92,12 @@ PUBLIC STATIC double Clock::End() {
     return (t2 - t1).count() / 1000000.0;
 }
 PUBLIC STATIC void   Clock::Delay(double milliseconds) {
-#ifdef WIN32
-    if (Win32_PerformanceFrequencyEnabled)
+#ifdef USE_WIN32_CLOCK
+    if (Win32_PerformanceFrequencyEnabled) {
         Sleep((DWORD)milliseconds);
+        return;
+    }
 #endif
+
     this_thread::sleep_for(chrono::nanoseconds((int)(milliseconds * 1000000.0)));
 }
