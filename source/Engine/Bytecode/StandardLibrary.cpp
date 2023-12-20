@@ -1580,8 +1580,7 @@ CONTROLLER_GET_BOOL(IsRumbleActive)
  * Controller.Rumble
  * \desc Rumbles a controller.
  * \param controllerIndex (Integer): Index of the controller to rumble.
- * \param largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)
- * \param smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)
+ * \param strength (Number): Rumble strength. (0.0 - 1.0)
  * \param duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.
  * \ns Controller
  */

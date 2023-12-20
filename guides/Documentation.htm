@@ -254,6 +254,8 @@
                     <li><a href="#Reference_functions_Controller_HasShareButton">Controller.HasShareButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasMicrophoneButton">Controller.HasMicrophoneButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasPaddles">Controller.HasPaddles</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonPressed">Controller.IsButtonPressed</a></li>
                     <li><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></li>
                     <li><a href="#Reference_functions_Controller_GetAxis">Controller.GetAxis</a></li>
                     <li><a href="#Reference_functions_Controller_GetType">Controller.GetType</a></li>
@@ -2343,10 +2345,34 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the controller at the index has paddles.</div>
         </p>
+        <p id="Reference_functions_Controller_IsButtonHeld">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonHeld</h2>
+        <code>Controller.IsButtonHeld(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is held.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Controller_IsButtonPressed">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonPressed</h2>
+        <code>Controller.IsButtonPressed(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is pressed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Controller_GetButton">
         <h2 style="margin-bottom: 8px;">Controller.GetButton</h2>
         <code>Controller.GetButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2423,13 +2449,12 @@
         </p>
         <p id="Reference_functions_Controller_Rumble">
         <h2 style="margin-bottom: 8px;">Controller.Rumble</h2>
-        <code>Controller.Rumble(controllerIndex, largeMotorFrequency, smallMotorFrequency, duration)</code>
+        <code>Controller.Rumble(controllerIndex, strength, duration)</code>
         <div style="margin-top: 8px; font-size: 14px;">Rumbles a controller.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to rumble.</li>
-        <li>largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)</li>
-        <li>smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)</li>
+        <li>strength (Number): Rumble strength. (0.0 - 1.0)</li>
         <li>duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.</li>
         </ul>
         </p>
@@ -2465,7 +2490,7 @@
         <p id="Reference_functions_Controller_SetLargeMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
         <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2475,7 +2500,7 @@
         <p id="Reference_functions_Controller_SetSmallMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
         <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -9050,7 +9075,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>664 out of 723 functions have descriptions. </p>
+        <p>666 out of 725 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
