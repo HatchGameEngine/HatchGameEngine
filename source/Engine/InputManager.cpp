@@ -4,7 +4,12 @@
 #include <Engine/Includes/BijectiveMap.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/Controller.h>
+#include <Engine/Input/ControllerRumble.h>
+#include <Engine/Input/InputPlayer.h>
+#include <Engine/Input/GameInput.h>
 #include <Engine/Application.h>
+#include <Engine/TextFormats/XML/XMLParser.h>
+#include <Engine/TextFormats/XML/XMLNode.h>
 
 class InputManager {
 public:
@@ -23,6 +28,9 @@ public:
 
     static SDL_TouchID         TouchDevice;
     static void*               TouchStates;
+
+    static vector<InputPlayer> Players;
+    static vector<GameInput>   Inputs;
 };
 #endif
 
@@ -44,6 +52,9 @@ vector<Controller*> InputManager::Controllers;
 SDL_TouchID         InputManager::TouchDevice;
 void*               InputManager::TouchStates;
 
+vector<InputPlayer> InputManager::Players;
+vector<GameInput>   InputManager::Inputs;
+
 struct TouchState {
     float X;
     float Y;
@@ -59,8 +70,8 @@ PUBLIC STATIC void  InputManager::Init() {
     InputManager::InitStringLookup();
     InputManager::InitControllers();
 
-    InputManager::TouchStates = Memory::TrackedCalloc("InputManager::TouchStates", 8, sizeof(TouchState));
-    for (int t = 0; t < 8; t++) {
+    InputManager::TouchStates = Memory::TrackedCalloc("InputManager::TouchStates", NUM_TOUCH_STATES, sizeof(TouchState));
+    for (int t = 0; t < NUM_TOUCH_STATES; t++) {
         TouchState* current = &((TouchState*)TouchStates)[t];
         current->X = 0.0f;
         current->Y = 0.0f;
@@ -265,13 +276,13 @@ PUBLIC STATIC char* InputManager::GetAxisName(int axis) {
     return found; \
 }
 
-PUBLIC STATIC int InputManager::ParseKeyName(char* key) {
+PUBLIC STATIC int InputManager::ParseKeyName(const char* key) {
     FIND_IN_BIJECTIVE(NameMap::Keys, key);
 }
-PUBLIC STATIC int InputManager::ParseButtonName(char* button) {
+PUBLIC STATIC int InputManager::ParseButtonName(const char* button) {
     FIND_IN_BIJECTIVE(NameMap::Buttons, button);
 }
-PUBLIC STATIC int InputManager::ParseAxisName(char* axis) {
+PUBLIC STATIC int InputManager::ParseAxisName(const char* axis) {
     FIND_IN_BIJECTIVE(NameMap::Axes, axis);
 }
 
@@ -435,6 +446,9 @@ PUBLIC STATIC void  InputManager::Poll() {
         if (controller->Connected)
             controller->Update();
     }
+
+    for (size_t i = 0; i < InputManager::Players.size(); i++)
+        InputManager::Players[i].Update();
 }
 
 PUBLIC STATIC bool  InputManager::IsKeyDown(int key) {
@@ -450,85 +464,114 @@ PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
     return !KeyboardState[scancode] && KeyboardStateLast[scancode];
 }
 
-#define GET_CONTROLLER(ret) \
-    if (index < 0 || index >= InputManager::NumControllers) \
-        return ret; \
-    Controller* controller = InputManager::Controllers[index]; \
-    if (!controller) return ret
+PUBLIC STATIC Controller* InputManager::GetController(int index) {
+    if (index < 0 || index >= InputManager::NumControllers)
+        return nullptr;
+    return InputManager::Controllers[index];
+}
 
 PUBLIC STATIC bool  InputManager::ControllerIsConnected(int index) {
-    GET_CONTROLLER(false);
-    return controller->Connected;
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->Connected;
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsXbox(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsXbox();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsXbox();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsPlayStation(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsPlayStation();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsPlayStation();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsJoyCon(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsJoyCon();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsJoyCon();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasShareButton(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasShareButton();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasShareButton();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasMicrophoneButton(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasMicrophoneButton();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasMicrophoneButton();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasPaddles(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasPaddles();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasPaddles();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsButtonHeld(int index, int button) {
-    GET_CONTROLLER(false);
-    return controller->IsButtonHeld(button);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsButtonHeld(button);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsButtonPressed(int index, int button) {
-    GET_CONTROLLER(false);
-    return controller->IsButtonPressed(button);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsButtonPressed(button);
+    return false;
 }
 PUBLIC STATIC float InputManager::ControllerGetAxis(int index, int axis) {
-    GET_CONTROLLER(0.0f);
-    return controller->GetAxis(axis);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->GetAxis(axis);
+    return 0.0f;
 }
 PUBLIC STATIC int   InputManager::ControllerGetType(int index) {
-    GET_CONTROLLER((int)ControllerType::Unknown);
-    return (int)controller->Type;
+    Controller* controller = GetController(index);
+    if (controller)
+        return (int)controller->Type;
+    return (int)ControllerType::Unknown;
 }
 PUBLIC STATIC char* InputManager::ControllerGetName(int index) {
-    GET_CONTROLLER(nullptr);
-    return controller->GetName();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->GetName();
+    return nullptr;
 }
 PUBLIC STATIC void  InputManager::ControllerSetPlayerIndex(int index, int player_index) {
-    GET_CONTROLLER();
-    controller->SetPlayerIndex(player_index);
+    Controller* controller = GetController(index);
+    if (controller)
+        controller->SetPlayerIndex(player_index);
 }
 PUBLIC STATIC bool  InputManager::ControllerHasRumble(int index) {
-    GET_CONTROLLER(false);
-    return controller->Rumble != nullptr;
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->Rumble != nullptr;
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsRumbleActive(int index) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Active;
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Active;
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float large_frequency, float small_frequency, int duration) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Enable(large_frequency, small_frequency, (Uint32)duration);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Enable(large_frequency, small_frequency, (Uint32)duration);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float strength, int duration) {
-    return InputManager::ControllerRumble(index, strength, strength, duration);
+    return ControllerRumble(index, strength, strength, duration);
 }
 PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
-    GET_CONTROLLER();
-    if (!controller->Rumble) return;
-    controller->Rumble->Stop();
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        controller->Rumble->Stop();
 }
 PUBLIC STATIC void  InputManager::ControllerStopRumble() {
     for (int i = 0; i < InputManager::NumControllers; i++) {
@@ -541,47 +584,347 @@ PUBLIC STATIC void  InputManager::ControllerStopRumble() {
     }
 }
 PUBLIC STATIC bool  InputManager::ControllerIsRumblePaused(int index) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Paused;
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Paused;
+    return false;
 }
 PUBLIC STATIC void  InputManager::ControllerSetRumblePaused(int index, bool paused) {
-    GET_CONTROLLER();
-    if (!controller->Rumble) return;
-    controller->Rumble->SetPaused(paused);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        controller->Rumble->SetPaused(paused);
 }
 PUBLIC STATIC bool  InputManager::ControllerSetLargeMotorFrequency(int index, float frequency) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->SetLargeMotorFrequency(frequency);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->SetLargeMotorFrequency(frequency);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerSetSmallMotorFrequency(int index, float frequency) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->SetSmallMotorFrequency(frequency);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->SetSmallMotorFrequency(frequency);
+    return false;
 }
 
-#undef GET_CONTROLLER
-
 PUBLIC STATIC float InputManager::TouchGetX(int touch_index) {
+    if (touch_index < 0 || touch_index >= NUM_TOUCH_STATES)
+        return 0.0f;
     TouchState* states = (TouchState*)TouchStates;
     return states[touch_index].X;
 }
 PUBLIC STATIC float InputManager::TouchGetY(int touch_index) {
+    if (touch_index < 0 || touch_index >= NUM_TOUCH_STATES)
+        return 0.0f;
     TouchState* states = (TouchState*)TouchStates;
     return states[touch_index].Y;
 }
 PUBLIC STATIC bool  InputManager::TouchIsDown(int touch_index) {
+    if (touch_index < 0 || touch_index >= NUM_TOUCH_STATES)
+        return false;
     TouchState* states = (TouchState*)TouchStates;
     return states[touch_index].Down;
 }
 PUBLIC STATIC bool  InputManager::TouchIsPressed(int touch_index) {
+    if (touch_index < 0 || touch_index >= NUM_TOUCH_STATES)
+        return false;
     TouchState* states = (TouchState*)TouchStates;
     return states[touch_index].Pressed;
 }
 PUBLIC STATIC bool  InputManager::TouchIsReleased(int touch_index) {
+    if (touch_index < 0 || touch_index >= NUM_TOUCH_STATES)
+        return false;
     TouchState* states = (TouchState*)TouchStates;
     return states[touch_index].Released;
+}
+
+PUBLIC STATIC int   InputManager::AddPlayer() {
+    int id = (int)InputManager::Inputs.size();
+
+    InputPlayer player(id);
+
+    player.SetNumInputs(InputManager::Inputs.size());
+
+    InputManager::Players.push_back(player);
+
+    return id;
+}
+PUBLIC STATIC void  InputManager::PlayerSetControllerIndex(unsigned playerID, int index) {
+    if (playerID >= InputManager::Players.size())
+        return;
+
+    if (index < 0)
+        index = -1;
+
+    InputManager::Players[playerID].ControllerIndex = index;
+}
+PUBLIC STATIC int   InputManager::PlayerGetControllerIndex(unsigned playerID) {
+    if (playerID >= InputManager::Players.size())
+        return -1;
+
+    return InputManager::Players[playerID].ControllerIndex;
+}
+PUBLIC STATIC bool  InputManager::PlayerIsInputHeld(unsigned playerID, unsigned inputID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputHeld(inputID);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsInputPressed(unsigned playerID, unsigned inputID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputPressed(inputID);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsAnyInputHeld(unsigned playerID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputHeld();
+}
+PUBLIC STATIC bool  InputManager::PlayerIsAnyInputPressed(unsigned playerID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputPressed();
+}
+PUBLIC STATIC bool  InputManager::PlayerIsInputHeld(unsigned playerID, unsigned inputID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputHeld(inputID, device);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsInputPressed(unsigned playerID, unsigned inputID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputPressed(inputID, device);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsAnyInputHeld(unsigned playerID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputHeld(device);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsAnyInputPressed(unsigned playerID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputPressed(device);
+}
+PUBLIC STATIC bool  InputManager::PlayerIsUsingDevice(unsigned playerID, unsigned device) {
+    if (device >= InputDevice_Controller)
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsUsingDevice[device];
+}
+PUBLIC STATIC float InputManager::PlayerGetAnalogInput(unsigned playerID, unsigned inputID) {
+    if (playerID >= InputManager::Players.size())
+        return 0.0f;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.GetAnalogInput(inputID);
+}
+PUBLIC STATIC void  InputManager::ClearPlayers() {
+    InputManager::Players.clear();
+}
+PUBLIC STATIC int   InputManager::RegisterInput(const char* name) {
+    int id = InputManager::GetInput(name);
+    if (id != -1)
+        return id;
+
+    id = (int)InputManager::Inputs.size();
+
+    GameInput input(name, id);
+
+    InputManager::Inputs.push_back(input);
+
+    for (size_t i = 0; i < InputManager::Players.size(); i++)
+        InputManager::Players[i].SetNumInputs(InputManager::Inputs.size());
+
+    return id;
+}
+PUBLIC STATIC int   InputManager::GetInput(const char* name) {
+    for (size_t i = 0; i < InputManager::Inputs.size(); i++) {
+        if (strcmp(InputManager::Inputs[i].Name.c_str(), name) == 0)
+            return (int)i;
+    }
+
+    return -1;
+}
+PUBLIC STATIC void  InputManager::ClearInputs() {
+    InputManager::Inputs.clear();
+
+    for (size_t i = 0; i < InputManager::Players.size(); i++)
+        InputManager::Players[i].SetNumInputs(0);
+}
+
+PUBLIC STATIC void  InputManager::InitPlayerControls() {
+    if (!Application::GameConfig)
+        return;
+
+    XMLNode* controlsNode = XMLParser::SearchNode(Application::GameConfig->children[0], "controls");
+    if (!controlsNode)
+        return;
+
+    // Count players
+    int numPlayers = 1;
+    for (size_t i = 0; i < controlsNode->children.size(); i++) {
+        XMLNode* child = controlsNode->children[i];
+
+        int id = 0;
+
+        if (XMLParser::MatchToken(child->name, "player")
+        && child->attributes.Exists("id")
+        && StringUtils::ToNumber(&id, child->attributes.Get("id").ToString())
+        && id > numPlayers && id < NUM_INPUT_PLAYERS)
+            numPlayers = id;
+    }
+
+    // Add players
+    for (int i = 0; i < numPlayers; i++)
+        InputManager::AddPlayer();
+
+    // Parse inputs
+    for (size_t i = 0; i < controlsNode->children.size(); i++) {
+        XMLNode* child = controlsNode->children[i];
+        if (XMLParser::MatchToken(child->name, "input")) {
+            if (child->children[0]->name.Length > 0) {
+                Token& name = child->children[0]->name;
+                InputManager::RegisterInput(name.ToString().c_str());
+            }
+        }
+    }
+
+    // Parse players
+    for (size_t i = 0; i < controlsNode->children.size(); i++) {
+        XMLNode* child = controlsNode->children[i];
+        if (XMLParser::MatchToken(child->name, "player")) {
+            if (!child->attributes.Exists("id"))
+                continue;
+
+            int id = 0;
+            if (!StringUtils::ToNumber(&id, child->attributes.Get("id").ToString()))
+                continue;
+
+            if (id < 1 || id > numPlayers)
+                continue;
+
+            InputPlayer& player = InputManager::Players[id - 1];
+
+            player.ControllerIndex = id - 1;
+
+            ParsePlayerControls(player, child);
+
+            player.ResetBinds();
+        }
+    }
+}
+
+PRIVATE STATIC void InputManager::ParsePlayerControls(InputPlayer& player, XMLNode* node) {
+    // Parse keyboard controls
+    XMLNode* controlsNode = XMLParser::SearchNode(node, "keyboard");
+    if (controlsNode) {
+        for (size_t i = 0; i < controlsNode->children.size(); i++) {
+            XMLNode* child = controlsNode->children[i];
+            int inputID = InputManager::GetInput(child->name.ToString().c_str());
+            if (inputID == -1)
+                continue;
+
+            if (!child->children[0]->name.Length)
+                continue;
+
+            int keyID = InputManager::ParseKeyName(child->children[0]->name.ToString().c_str());
+            if (keyID != -1)
+                player.SetDefaultKeyboardBind(inputID, keyID);
+        }
+    }
+
+    // Parse controller controls
+    controlsNode = XMLParser::SearchNode(node, "controller");
+    if (controlsNode) {
+        for (size_t i = 0; i < controlsNode->children.size(); i++) {
+            XMLNode* child = controlsNode->children[i];
+            int inputID = InputManager::GetInput(child->name.ToString().c_str());
+            if (inputID == -1)
+                continue;
+
+            ControllerBind bind;
+
+            if (child->children.size() == 1 && !child->children[0]->children.size()) {
+                bind.Button = InputManager::ParseButtonName(child->children[0]->name.ToString().c_str());
+            }
+            else {
+                bind = ParseControllerBind(child);
+            }
+
+            player.SetDefaultControllerBind(inputID, bind);
+        }
+    }
+}
+
+PRIVATE STATIC ControllerBind InputManager::ParseControllerBind(XMLNode* node) {
+    ControllerBind bind;
+
+    for (size_t i = 0; i < node->children.size(); i++) {
+        XMLNode* child = node->children[i];
+        if (XMLParser::MatchToken(child->name, "button")) {
+            bind.Button = InputManager::ParseButtonName(child->children[0]->name.ToString().c_str());
+        }
+        else if (XMLParser::MatchToken(child->name, "axis")) {
+            const char* axisName = child->children[0]->name.ToString().c_str();
+
+            int axisID;
+            bool isNegative = false;
+
+            if (axisName[0] == '-' || axisName[0] == '+') {
+                isNegative = axisName[0] == '-';
+                axisID = InputManager::ParseAxisName(&axisName[1]);
+            }
+            else
+                axisID = InputManager::ParseAxisName(axisName);
+
+            if (axisID != -1) {
+                bind.Axis = axisID;
+                bind.IsAxisNegative = isNegative;
+            }
+
+            if (child->attributes.Exists("deadzone")) {
+                double deadzone;
+                if (StringUtils::ToDecimal(&deadzone, child->attributes.Get("deadzone").ToString())) {
+                    bind.AxisDeadzone = deadzone;
+                }
+            }
+
+            if (child->attributes.Exists("digital_threshold")) {
+                double threshold;
+                if (StringUtils::ToDecimal(&threshold, child->attributes.Get("digital_threshold").ToString())) {
+                    bind.AxisDigitalThreshold = threshold;
+                }
+            }
+        }
+    }
+
+    return bind;
 }
 
 PUBLIC STATIC void  InputManager::Dispose() {
@@ -595,4 +938,7 @@ PUBLIC STATIC void  InputManager::Dispose() {
 
     // Dispose of touch states
     Memory::Free(InputManager::TouchStates);
+
+    InputManager::ClearPlayers();
+    InputManager::ClearInputs();
 }

@@ -5254,9 +5254,144 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     return INTEGER_VAL(parsed);
 }
-// #endregion
-
-// #region IO
+/***
+ * Input.GetID
+ * \desc Gets the ID of a given input.
+ * \param inputName (String): Input name.
+ * \return Returns the ID of the given input, or <code>-1</code> if no such input exists.
+ * \ns Input
+ */
+VMValue Input_GetID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* inputName = GET_ARG(0, GetString);
+    return INTEGER_VAL(InputManager::GetInput(inputName));
+}
+/***
+ * Input.GetCount
+ * \desc Gets the amount of registered inputs.
+ * \return Returns an Integer value.
+ * \ns Input
+ */
+VMValue Input_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((int)InputManager::Inputs.size());
+}
+/***
+ * Input.PlayerIsInputHeld
+ * \desc Gets whether the input is currently held for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param inputID (Integer): Index of the input to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_PlayerIsInputHeld(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int inputID = GET_ARG(1, GetInteger);
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        return INTEGER_VAL(!!InputManager::PlayerIsInputHeld(playerID, inputID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::PlayerIsInputHeld(playerID, inputID));
+}
+/***
+ * Input.PlayerIsInputPressed
+ * \desc Gets whether the input is currently pressed for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param inputID (Integer): Index of the input to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_PlayerIsInputPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int inputID = GET_ARG(1, GetInteger);
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        return INTEGER_VAL(!!InputManager::PlayerIsInputPressed(playerID, inputID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::PlayerIsInputPressed(playerID, inputID));
+}
+/***
+ * Input.PlayerIsAnyInputHeld
+ * \desc Gets whether any input is currently held for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_PlayerIsAnyInputHeld(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputHeld(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputHeld(playerID));
+}
+/***
+ * Input.PlayerIsAnyInputPressed
+ * \desc Gets whether any input is currently pressed for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_PlayerIsAnyInputPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputPressed(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputPressed(playerID));
+}
+/***
+ * Input.PlayerIsUsingDevice
+ * \desc Checks if a given input device is being used by the player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_PlayerIsUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int inputDevice = GET_ARG(1, GetInteger);
+    return INTEGER_VAL(!!InputManager::PlayerIsUsingDevice(playerID, inputDevice));
+}
+/***
+ * Input.PlayerGetControllerIndex
+ * \desc Gets the controller index assigned to a specific player.
+ * \param playerID (Integer): Index of the player to check.
+ * \return Returns the controller index, or <code>-1</code> if there is no controller assigned.
+ * \ns Input
+ */
+VMValue Input_PlayerGetControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(InputManager::PlayerGetControllerIndex(playerID));
+}
+/***
+ * Input.PlayerSetControllerIndex
+ * \desc Assigns a controller index to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param playerID (Integer): Index of the controller.
+ * \ns Input
+ */
+VMValue Input_PlayerSetControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int controllerID = GET_ARG(0, GetInteger);
+    InputManager::PlayerSetControllerIndex(playerID, controllerID);
+    return NULL_VAL;
+}
 // #endregion
 
 // #region Instance
@@ -14935,6 +15070,67 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Date, GetHour);
     DEF_NATIVE(Date, GetTimeOfDay);
     DEF_NATIVE(Date, GetTicks);
+
+    // #region Weekdays
+    /***
+    * \enum Weekday_SUNDAY
+    * \desc The first day of the week.
+    */
+    DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
+    /***
+    * \enum Weekday_MONDAY
+    * \desc The second day of the week.
+    */
+    DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
+    /***
+    * \enum Weekday_TUESDAY
+    * \desc The third day of the week.
+    */
+    DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
+    /***
+    * \enum Weekday_WEDNESDAY
+    * \desc The fourth day of the week.
+    */
+    DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
+    /***
+    * \enum Weekday_THURSDAY
+    * \desc The fifth day of the week.
+    */
+    DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
+    /***
+    * \enum Weekday_FRIDAY
+    * \desc The sixth day of the week.
+    */
+    DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
+    /***
+    * \enum Weekday_SATURDAY
+    * \desc The seventh day of the week.
+    */
+    DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
+    // #endregion
+
+    // #region TimesOfDay
+    /***
+    * \enum TimeOfDay_MORNING
+    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
+    */
+    DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
+    /***
+    * \enum TimeOfDay_MIDDAY
+    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
+    */
+    DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
+    /***
+    * \enum TimeOfDay_EVENING
+    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
+    */
+    DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
+    /***
+    * \enum TimeOfDay_NIGHT
+    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
+    */
+    DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
+    // #endregion
     // #endregion
 
     // #region Device
@@ -15402,224 +15598,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
-    // #region Tile Collision States
-    /***
-    * \enum TILECOLLISION_NONE
-    * \desc Entity expects no tile collision.
-    */
-    DEF_ENUM(TILECOLLISION_NONE);
-    /***
-    * \enum TILECOLLISION_DOWN
-    * \desc Entity expects downward gravity for tile collision.
-    */
-    DEF_ENUM(TILECOLLISION_DOWN);
-    /***
-    * \enum TILECOLLISION_UP
-    * \desc Entity expects upward gravity for tile collision.
-    */
-    DEF_ENUM(TILECOLLISION_UP);
-    // #endregion
-
-    // #region Collision Sides
-    /***
-    * \enum C_NONE
-    * \desc No collided side.
-    */
-    DEF_ENUM(C_NONE);
-    /***
-    * \enum C_TOP
-    * \desc Top collided side.
-    */
-    DEF_ENUM(C_TOP);
-    /***
-    * \enum C_LEFT
-    * \desc Left collided side.
-    */
-    DEF_ENUM(C_LEFT);
-    /***
-    * \enum C_RIGHT
-    * \desc Right collided side.
-    */
-    DEF_ENUM(C_RIGHT);
-    /***
-    * \enum C_BOTTOM
-    * \desc Bottom collided side.
-    */
-    DEF_ENUM(C_BOTTOM);
-    // #endregion
-
-    // #region Flip Flags
-    /***
-    * \enum FLIP_NONE
-    * \desc No flip.
-    */
-    DEF_ENUM(FLIP_NONE);
-    /***
-    * \enum FLIP_X
-    * \desc Horizontal flip.
-    */
-    DEF_ENUM(FLIP_X);
-    /***
-    * \enum FLIP_Y
-    * \desc Vertical flip.
-    */
-    DEF_ENUM(FLIP_Y);
-    /***
-    * \enum FLIP_XY
-    * \desc Horizontal and vertical flip.
-    */
-    DEF_ENUM(FLIP_XY);
-    // #endregion
-
-    // #region Collision Modes
-    /***
-    * \enum CMODE_FLOOR
-    * \desc Entity expects to collide with a floor.
-    */
-    DEF_ENUM(CMODE_FLOOR);
-    /***
-    * \enum CMODE_LWALL
-    * \desc Entity expects to collide with the left side of a wall.
-    */
-    DEF_ENUM(CMODE_LWALL);
-    /***
-    * \enum CMODE_ROOF
-    * \desc Entity expects to collide with a roof.
-    */
-    DEF_ENUM(CMODE_ROOF);
-    /***
-    * \enum CMODE_RWALL
-    * \desc Entity expects to collide with the right side of a wall.
-    */
-    DEF_ENUM(CMODE_RWALL);
-    // #endregion
-
-    // #region Active States
-    /***
-    * \enum ACTIVE_NEVER
-    * \desc Entity never updates. Object never runs GlobalUpdate.
-    */
-    DEF_ENUM(ACTIVE_NEVER);
-    /***
-    * \enum ACTIVE_ALWAYS
-    * \desc Entity always updates. Object always runs GlobalUpdate.
-    */
-    DEF_ENUM(ACTIVE_ALWAYS);
-    /***
-    * \enum ACTIVE_NORMAL
-    * \desc Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.
-    */
-    DEF_ENUM(ACTIVE_NORMAL);
-    /***
-    * \enum ACTIVE_PAUSED
-    * \desc Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.
-    */
-    DEF_ENUM(ACTIVE_PAUSED);
-    /***
-    * \enum ACTIVE_BOUNDS
-    * \desc Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
-    */
-    DEF_ENUM(ACTIVE_BOUNDS);
-    /***
-    * \enum ACTIVE_XBOUNDS
-    * \desc Entity only updates within an X bound. (only uses UpdateRegionW)
-    */
-    DEF_ENUM(ACTIVE_XBOUNDS);
-    /***
-    * \enum ACTIVE_YBOUNDS
-    * \desc Entity only updates within a Y bound. (only uses UpdateRegionH)
-    */
-    DEF_ENUM(ACTIVE_YBOUNDS);
-    /***
-    * \enum ACTIVE_RBOUNDS
-    * \desc Entity updates within a radius. (uses UpdateRegionW)
-    */
-    DEF_ENUM(ACTIVE_RBOUNDS);
-
-    // #region Hitbox Sides
-    /***
-    * \enum HitboxSide_LEFT
-    * \desc Left side, slot 0 of a hitbox array.
-    */
-    DEF_ENUM(HitboxSide_LEFT);
-    /***
-    * \enum HitboxSide_TOP
-    * \desc Top side, slot 1 of a hitbox array.
-    */
-    DEF_ENUM(HitboxSide_TOP);
-    /***
-    * \enum HitboxSide_RIGHT
-    * \desc Right side, slot 2 of a hitbox array.
-    */
-    DEF_ENUM(HitboxSide_RIGHT);
-    /***
-    * \enum HitboxSide_BOTTOM
-    * \desc Bottom side, slot 3 of a hitbox array.
-    */
-    DEF_ENUM(HitboxSide_BOTTOM);
-    // #endregion
-
-    // #region Weekdays
-    /***
-    * \enum Weekday_SUNDAY
-    * \desc The first day of the week.
-    */
-    DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
-    /***
-    * \enum Weekday_MONDAY
-    * \desc The second day of the week.
-    */
-    DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
-    /***
-    * \enum Weekday_TUESDAY
-    * \desc The third day of the week.
-    */
-    DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
-    /***
-    * \enum Weekday_WEDNESDAY
-    * \desc The fourth day of the week.
-    */
-    DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
-    /***
-    * \enum Weekday_THURSDAY
-    * \desc The fifth day of the week.
-    */
-    DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
-    /***
-    * \enum Weekday_FRIDAY
-    * \desc The sixth day of the week.
-    */
-    DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
-    /***
-    * \enum Weekday_SATURDAY
-    * \desc The seventh day of the week.
-    */
-    DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
-    // #endregion
-
-    // #region TimesOfDay
-    /***
-    * \enum TimeOfDay_MORNING
-    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
-    */
-    DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
-    /***
-    * \enum TimeOfDay_MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
-    */
-    DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
-    /***
-    * \enum TimeOfDay_EVENING
-    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
-    */
-    DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
-    /***
-    * \enum TimeOfDay_NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
-    */
-    DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
-    // #endregion
-
     // #region Ease
     INIT_CLASS(Ease);
     DEF_NATIVE(Ease, InSine);
@@ -15684,6 +15662,26 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, ParseKeyName);
     DEF_NATIVE(Input, ParseButtonName);
     DEF_NATIVE(Input, ParseAxisName);
+    DEF_NATIVE(Input, GetID);
+    DEF_NATIVE(Input, GetCount);
+    DEF_NATIVE(Input, PlayerIsInputHeld);
+    DEF_NATIVE(Input, PlayerIsInputPressed);
+    DEF_NATIVE(Input, PlayerIsAnyInputHeld);
+    DEF_NATIVE(Input, PlayerIsAnyInputPressed);
+    DEF_NATIVE(Input, PlayerIsUsingDevice);
+    DEF_NATIVE(Input, PlayerGetControllerIndex);
+    DEF_NATIVE(Input, PlayerSetControllerIndex);
+
+    /***
+    * \enum InputDevice_Keyboard
+    * \desc Keyboard input device.
+    */
+    DEF_ENUM(InputDevice_Keyboard);
+    /***
+    * \enum InputDevice_Controller
+    * \desc Controller input device.
+    */
+    DEF_ENUM(InputDevice_Controller);
     // #endregion
 
     // #region Instance
@@ -15698,7 +15696,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, DisableAutoAnimate);
     DEF_NATIVE(Instance, Copy);
     DEF_NATIVE(Instance, ChangeClass);
-    // #endregion
 
     /***
     * \enum Persistence_NONE
@@ -16402,6 +16399,164 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     #undef DEF_NATIVE
     #undef INIT_CLASS
+
+    // #region Tile Collision States
+    /***
+    * \enum TILECOLLISION_NONE
+    * \desc Entity expects no tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_NONE);
+    /***
+    * \enum TILECOLLISION_DOWN
+    * \desc Entity expects downward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_DOWN);
+    /***
+    * \enum TILECOLLISION_UP
+    * \desc Entity expects upward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_UP);
+    // #endregion
+
+    // #region Collision Sides
+    /***
+    * \enum C_NONE
+    * \desc No collided side.
+    */
+    DEF_ENUM(C_NONE);
+    /***
+    * \enum C_TOP
+    * \desc Top collided side.
+    */
+    DEF_ENUM(C_TOP);
+    /***
+    * \enum C_LEFT
+    * \desc Left collided side.
+    */
+    DEF_ENUM(C_LEFT);
+    /***
+    * \enum C_RIGHT
+    * \desc Right collided side.
+    */
+    DEF_ENUM(C_RIGHT);
+    /***
+    * \enum C_BOTTOM
+    * \desc Bottom collided side.
+    */
+    DEF_ENUM(C_BOTTOM);
+    // #endregion
+
+    // #region Flip Flags
+    /***
+    * \enum FLIP_NONE
+    * \desc No flip.
+    */
+    DEF_ENUM(FLIP_NONE);
+    /***
+    * \enum FLIP_X
+    * \desc Horizontal flip.
+    */
+    DEF_ENUM(FLIP_X);
+    /***
+    * \enum FLIP_Y
+    * \desc Vertical flip.
+    */
+    DEF_ENUM(FLIP_Y);
+    /***
+    * \enum FLIP_XY
+    * \desc Horizontal and vertical flip.
+    */
+    DEF_ENUM(FLIP_XY);
+    // #endregion
+
+    // #region Collision Modes
+    /***
+    * \enum CMODE_FLOOR
+    * \desc Entity expects to collide with a floor.
+    */
+    DEF_ENUM(CMODE_FLOOR);
+    /***
+    * \enum CMODE_LWALL
+    * \desc Entity expects to collide with the left side of a wall.
+    */
+    DEF_ENUM(CMODE_LWALL);
+    /***
+    * \enum CMODE_ROOF
+    * \desc Entity expects to collide with a roof.
+    */
+    DEF_ENUM(CMODE_ROOF);
+    /***
+    * \enum CMODE_RWALL
+    * \desc Entity expects to collide with the right side of a wall.
+    */
+    DEF_ENUM(CMODE_RWALL);
+    // #endregion
+
+    // #region Active States
+    /***
+    * \enum ACTIVE_NEVER
+    * \desc Entity never updates. Object never runs GlobalUpdate.
+    */
+    DEF_ENUM(ACTIVE_NEVER);
+    /***
+    * \enum ACTIVE_ALWAYS
+    * \desc Entity always updates. Object always runs GlobalUpdate.
+    */
+    DEF_ENUM(ACTIVE_ALWAYS);
+    /***
+    * \enum ACTIVE_NORMAL
+    * \desc Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.
+    */
+    DEF_ENUM(ACTIVE_NORMAL);
+    /***
+    * \enum ACTIVE_PAUSED
+    * \desc Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.
+    */
+    DEF_ENUM(ACTIVE_PAUSED);
+    /***
+    * \enum ACTIVE_BOUNDS
+    * \desc Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
+    */
+    DEF_ENUM(ACTIVE_BOUNDS);
+    /***
+    * \enum ACTIVE_XBOUNDS
+    * \desc Entity only updates within an X bound. (only uses UpdateRegionW)
+    */
+    DEF_ENUM(ACTIVE_XBOUNDS);
+    /***
+    * \enum ACTIVE_YBOUNDS
+    * \desc Entity only updates within a Y bound. (only uses UpdateRegionH)
+    */
+    DEF_ENUM(ACTIVE_YBOUNDS);
+    /***
+    * \enum ACTIVE_RBOUNDS
+    * \desc Entity updates within a radius. (uses UpdateRegionW)
+    */
+    DEF_ENUM(ACTIVE_RBOUNDS);
+    // #endregion
+
+    // #region Hitbox Sides
+    /***
+    * \enum HitboxSide_LEFT
+    * \desc Left side, slot 0 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_LEFT);
+    /***
+    * \enum HitboxSide_TOP
+    * \desc Top side, slot 1 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_TOP);
+    /***
+    * \enum HitboxSide_RIGHT
+    * \desc Right side, slot 2 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_RIGHT);
+    /***
+    * \enum HitboxSide_BOTTOM
+    * \desc Bottom side, slot 3 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_BOTTOM);
+    // #endregion
 
     /***
     * \global CameraX

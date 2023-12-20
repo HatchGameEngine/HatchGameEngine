@@ -207,7 +207,7 @@ PRIVATE STATIC void SceneInfo::FillAttributesHashMap(XMLAttributes* attr, HashMa
 }
 
 PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
-    for (size_t i = 0; i < node->children.size(); ++i) {
+    for (size_t i = 0; i < node->children.size(); i++) {
         XMLNode* listElement = node->children[i];
         if (XMLParser::MatchToken(listElement->name, "category")) {
             SceneListCategory category;

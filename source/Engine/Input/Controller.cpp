@@ -2,6 +2,7 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Input/ControllerRumble.h>
 
 class Controller {
 public:

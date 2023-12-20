@@ -163,6 +163,12 @@ PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
     (*dst) = num;
     return true;
 }
+PUBLIC STATIC bool StringUtils::ToNumber(int* dst, string src) {
+    return ToNumber(dst, src.c_str());
+}
+PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, string src) {
+    return ToDecimal(dst, src.c_str());
+}
 PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
     if (!filename)
         return nullptr;

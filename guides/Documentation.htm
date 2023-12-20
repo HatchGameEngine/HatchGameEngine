@@ -116,6 +116,7 @@
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
             <li><a href="#Reference_HitboxSide_*">HitboxSide_*</a></li>
+            <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
@@ -254,6 +255,8 @@
                     <li><a href="#Reference_functions_Controller_HasShareButton">Controller.HasShareButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasMicrophoneButton">Controller.HasMicrophoneButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasPaddles">Controller.HasPaddles</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonPressed">Controller.IsButtonPressed</a></li>
                     <li><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></li>
                     <li><a href="#Reference_functions_Controller_GetAxis">Controller.GetAxis</a></li>
                     <li><a href="#Reference_functions_Controller_GetType">Controller.GetType</a></li>
@@ -490,6 +493,15 @@
                     <li><a href="#Reference_functions_Input_ParseKeyName">Input.ParseKeyName</a></li>
                     <li><a href="#Reference_functions_Input_ParseButtonName">Input.ParseButtonName</a></li>
                     <li><a href="#Reference_functions_Input_ParseAxisName">Input.ParseAxisName</a></li>
+                    <li><a href="#Reference_functions_Input_GetID">Input.GetID</a></li>
+                    <li><a href="#Reference_functions_Input_GetCount">Input.GetCount</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerIsInputHeld">Input.PlayerIsInputHeld</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerIsInputPressed">Input.PlayerIsInputPressed</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerIsAnyInputHeld">Input.PlayerIsAnyInputHeld</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerIsAnyInputPressed">Input.PlayerIsAnyInputPressed</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerIsUsingDevice">Input.PlayerIsUsingDevice</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerGetControllerIndex">Input.PlayerGetControllerIndex</a></li>
+                    <li><a href="#Reference_functions_Input_PlayerSetControllerIndex">Input.PlayerSetControllerIndex</a></li>
                 </ul>
             </p>
             <p id="Reference_Instance">
@@ -1595,6 +1607,13 @@
                     <li><a href="#Reference_enums_HitboxSide_BOTTOM">HitboxSide_BOTTOM</a></li>
                 </ul>
             </p>
+            <p id="Reference_InputDevice_*">
+                <h2><code>InputDevice_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_InputDevice_Keyboard">InputDevice_Keyboard</a></li>
+                    <li><a href="#Reference_enums_InputDevice_Controller">InputDevice_Controller</a></li>
+                </ul>
+            </p>
             <p id="Reference_KeyBind_*">
                 <h2><code>KeyBind_*</code></h2>
                 <ul>
@@ -2343,10 +2362,34 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the controller at the index has paddles.</div>
         </p>
+        <p id="Reference_functions_Controller_IsButtonHeld">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonHeld</h2>
+        <code>Controller.IsButtonHeld(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is held.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Controller_IsButtonPressed">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonPressed</h2>
+        <code>Controller.IsButtonPressed(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is pressed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Controller_GetButton">
         <h2 style="margin-bottom: 8px;">Controller.GetButton</h2>
         <code>Controller.GetButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2465,7 +2508,7 @@
         <p id="Reference_functions_Controller_SetLargeMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
         <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2475,7 +2518,7 @@
         <p id="Reference_functions_Controller_SetSmallMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
         <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -4350,6 +4393,107 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the parsed axis index, or <code>null</code> if it could not be parsed.</div>
+        </p>
+        <p id="Reference_functions_Input_GetID">
+        <h2 style="margin-bottom: 8px;">Input.GetID</h2>
+        <code>Input.GetID(inputName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the ID of a given input.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>inputName (String): Input name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the ID of the given input, or <code>-1</code> if no such input exists.</div>
+        </p>
+        <p id="Reference_functions_Input_GetCount">
+        <h2 style="margin-bottom: 8px;">Input.GetCount</h2>
+        <code>Input.GetCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of registered inputs.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerIsInputHeld">
+        <h2 style="margin-bottom: 8px;">Input.PlayerIsInputHeld</h2>
+        <code>Input.PlayerIsInputHeld(playerID, inputID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input is currently held for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputID (Integer): Index of the input to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerIsInputPressed">
+        <h2 style="margin-bottom: 8px;">Input.PlayerIsInputPressed</h2>
+        <code>Input.PlayerIsInputPressed(playerID, inputID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input is currently pressed for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputID (Integer): Index of the input to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerIsAnyInputHeld">
+        <h2 style="margin-bottom: 8px;">Input.PlayerIsAnyInputHeld</h2>
+        <code>Input.PlayerIsAnyInputHeld(playerID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input is currently held for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerIsAnyInputPressed">
+        <h2 style="margin-bottom: 8px;">Input.PlayerIsAnyInputPressed</h2>
+        <code>Input.PlayerIsAnyInputPressed(playerID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input is currently pressed for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerIsUsingDevice">
+        <h2 style="margin-bottom: 8px;">Input.PlayerIsUsingDevice</h2>
+        <code>Input.PlayerIsUsingDevice(playerID, inputDevice)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a given input device is being used by the player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerGetControllerIndex">
+        <h2 style="margin-bottom: 8px;">Input.PlayerGetControllerIndex</h2>
+        <code>Input.PlayerGetControllerIndex(playerID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the controller index assigned to a specific player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the controller index, or <code>-1</code> if there is no controller assigned.</div>
+        </p>
+        <p id="Reference_functions_Input_PlayerSetControllerIndex">
+        <h2 style="margin-bottom: 8px;">Input.PlayerSetControllerIndex</h2>
+        <code>Input.PlayerSetControllerIndex(playerID, playerID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Assigns a controller index to a specific player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player.</li>
+        <li>playerID (Integer): Index of the controller.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Instance_Create">
         <h2 style="margin-bottom: 8px;">Instance.Create</h2>
@@ -9050,7 +9194,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>664 out of 723 functions have descriptions. </p>
+        <p>675 out of 734 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10236,6 +10380,14 @@
         <h3 style="margin-bottom: 8px;"><code>HitboxSide_BOTTOM</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox array.</div>
         </p>
+        <p id="Reference_enums_InputDevice_Keyboard">
+        <h3 style="margin-bottom: 8px;"><code>InputDevice_Keyboard</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Keyboard input device.</div>
+        </p>
+        <p id="Reference_enums_InputDevice_Controller">
+        <h3 style="margin-bottom: 8px;"><code>InputDevice_Controller</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Controller input device.</div>
+        </p>
         <p id="Reference_enums_KeyBind_Fullscreen">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Fullscreen keybind.</div>
@@ -10492,7 +10644,7 @@
         <h3 style="margin-bottom: 8px;"><code>Weekday_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>181 out of 181 enums have descriptions. </p>
+        <p>183 out of 183 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
