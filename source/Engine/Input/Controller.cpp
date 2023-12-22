@@ -8,6 +8,10 @@ public:
     ControllerType      Type;
     bool                Connected;
 
+    bool*               ButtonsPressed;
+    bool*               ButtonsHeld;
+    float*              AxisValues;
+
     ControllerRumble*   Rumble;
 
     SDL_GameController* Device;
@@ -116,6 +120,10 @@ PUBLIC bool          Controller::Open(int index) {
     if (SDL_GameControllerHasRumble(Device))
         Rumble = new ControllerRumble(Device);
 
+    ButtonsPressed = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
+    ButtonsHeld = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
+    AxisValues = (float*)Memory::Calloc((int)ControllerAxis::Max, sizeof(float));
+
     return true;
 }
 
@@ -123,6 +131,22 @@ PUBLIC void          Controller::Close() {
     if (Rumble) {
         Rumble->Stop();
         delete Rumble;
+        Rumble = nullptr;
+    }
+
+    if (ButtonsPressed) {
+        Memory::Free(ButtonsPressed);
+        ButtonsPressed = nullptr;
+    }
+
+    if (ButtonsHeld) {
+        Memory::Free(ButtonsHeld);
+        ButtonsHeld = nullptr;
+    }
+
+    if (AxisValues) {
+        Memory::Free(AxisValues);
+        AxisValues = nullptr;
     }
 
     SDL_GameControllerClose(Device);
@@ -152,16 +176,37 @@ PUBLIC bool          Controller::GetButton(int button) {
     return SDL_GameControllerGetButton(Device, ButtonEnums[button]);
 }
 
+PUBLIC bool          Controller::IsButtonHeld(int button) {
+    if (button < 0 || button >= (int)ControllerButton::Max)
+        return false;
+    return ButtonsHeld[button];
+}
+PUBLIC bool          Controller::IsButtonPressed(int button) {
+    if (button < 0 || button >= (int)ControllerButton::Max)
+        return false;
+    return ButtonsPressed[button];
+}
+
 PUBLIC float          Controller::GetAxis(int axis) {
-    if (axis >= (int)ControllerAxis::Max)
+    if (axis < 0 || axis >= (int)ControllerAxis::Max)
         return 0.0f;
-    Sint16 value = SDL_GameControllerGetAxis(Device, AxisEnums[axis]);
-    return (float)value / 32767;
+    return AxisValues[axis];
 }
 
 PUBLIC void           Controller::Update() {
     if (Rumble)
         Rumble->Update();
+
+    for (unsigned i = 0; i < (unsigned)ControllerButton::Max; i++) {
+        bool isDown = GetButton(i);
+        ButtonsPressed[i] = !ButtonsHeld[i] && isDown;
+        ButtonsHeld[i] = isDown;
+    }
+
+    for (unsigned i = 0; i < (unsigned)ControllerAxis::Max; i++) {
+        Sint16 value = SDL_GameControllerGetAxis(Device, AxisEnums[i]);
+        AxisValues[i] = (float)value / 32767;
+    }
 }
 
 PUBLIC bool          Controller::IsXbox() {

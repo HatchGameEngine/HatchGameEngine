@@ -177,6 +177,8 @@ PUBLIC STATIC JPEG*   JPEG::Load(const char* filename) {
 
     jpeg->Width = cinfo.output_width;
     jpeg->Height = cinfo.output_height;
+    jpeg->Paletted = false;
+    jpeg->NumPaletteColors = 0;
 
     pixelData = (Uint32*)malloc(jpeg->Width * jpeg->Height * cinfo.num_components);
     pitch = jpeg->Width * cinfo.num_components;

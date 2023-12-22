@@ -15,6 +15,7 @@
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Scene/SceneConfig.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/TileConfig.h>
 #include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/TileAnimation.h>
@@ -104,17 +105,12 @@ public:
 
     static int                       Filter;
 
-    static vector<SceneListEntry>    ListData;
-    static vector<SceneListInfo>     ListCategory;
-    static int                       ListPos;
-    static char                      CurrentFolder[16];
-    static char                      CurrentID[16];
-    static char                      CurrentSpriteFolder[16];
-    static char                      CurrentCategory[16];
+    static int                       CurrentSceneInList;
+    static char                      CurrentFolder[256];
+    static char                      CurrentID[256];
+    static char                      CurrentSpriteFolder[256];
+    static char                      CurrentCategory[256];
     static int                       ActiveCategory;
-    static int                       CategoryCount;
-    static int                       ListCount;
-    static int                       StageCount;
 
     static int                       DebugMode;
 
@@ -140,8 +136,8 @@ public:
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/Compiler.h>
@@ -166,7 +162,7 @@ public:
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
-#include <Engine/Scene/SceneConfig.h>
+#include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/EntityTypes.h>
@@ -247,17 +243,12 @@ int                       Scene::Minutes = 0;
 int                       Scene::Filter = 0xFF;
 
 // Scene list variables
-vector<SceneListEntry>    Scene::ListData;
-vector<SceneListInfo>     Scene::ListCategory;
-int                       Scene::ListPos;
-char                      Scene::CurrentFolder[16];
-char                      Scene::CurrentID[16];
-char                      Scene::CurrentSpriteFolder[16];
-char                      Scene::CurrentCategory[16];
+int                       Scene::CurrentSceneInList;
+char                      Scene::CurrentFolder[256];
+char                      Scene::CurrentID[256];
+char                      Scene::CurrentSpriteFolder[256];
+char                      Scene::CurrentCategory[256];
 int                       Scene::ActiveCategory;
-int                       Scene::CategoryCount;
-int                       Scene::ListCount;
-int                       Scene::StageCount;
 
 // Debug mode variables
 int                       Scene::DebugMode;
@@ -305,11 +296,11 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
     if (!list->Count() && !Scene::StaticObjectLists->Exists(key))
         return;
 
-    BytecodeObjectManager::CallFunction(list->LoadFunctionName);
+    ScriptManager::CallFunction(list->LoadFunctionName);
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
     if (list->Activity == ACTIVE_ALWAYS || (list->Activity == ACTIVE_NORMAL && !Scene::Paused) || (list->Activity == ACTIVE_PAUSED && Scene::Paused))
-        BytecodeObjectManager::CallFunction(list->GlobalUpdateFunctionName);
+        ScriptManager::CallFunction(list->GlobalUpdateFunctionName);
 }
 void UpdateObjectEarly(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -325,19 +316,8 @@ void UpdateObjectEarly(Entity* ent) {
 
     elapsed = Clock::GetTicks() - elapsed;
 
-    if (ent->List) {
-        ObjectList* list = ent->List;
-        double count = list->AverageUpdateEarlyItemCount;
-        if (count < 60.0 * 60.0) {
-            count += 1.0;
-            if (count == 1.0)
-                list->AverageUpdateEarlyTime = elapsed;
-            else
-                list->AverageUpdateEarlyTime =
-                list->AverageUpdateEarlyTime + (elapsed - list->AverageUpdateEarlyTime) / count;
-            list->AverageUpdateEarlyItemCount = count;
-        }
-    }
+    if (ent->List)
+        ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
 }
 void UpdateObjectLate(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -353,19 +333,8 @@ void UpdateObjectLate(Entity* ent) {
 
     elapsed = Clock::GetTicks() - elapsed;
 
-    if (ent->List) {
-        ObjectList* list = ent->List;
-        double count = list->AverageUpdateLateItemCount;
-        if (count < 60.0 * 60.0) {
-            count += 1.0;
-            if (count == 1.0)
-                list->AverageUpdateLateTime = elapsed;
-            else
-                list->AverageUpdateLateTime =
-                list->AverageUpdateLateTime + (elapsed - list->AverageUpdateLateTime) / count;
-            list->AverageUpdateLateItemCount = count;
-        }
-    }
+    if (ent->List)
+        ent->List->Performance.LateUpdate.DoAverage(elapsed);
 }
 void UpdateObject(Entity* ent) {
     if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED && ent->Activity != ACTIVE_ALWAYS)
@@ -486,19 +455,8 @@ void UpdateObject(Entity* ent) {
 
         elapsed = Clock::GetTicks() - elapsed;
 
-        if (ent->List) {
-            ObjectList* list = ent->List;
-            double count = list->AverageUpdateItemCount;
-            if (count < 60.0 * 60.0) {
-                count += 1.0;
-                if (count == 1.0)
-                    list->AverageUpdateTime = elapsed;
-                else
-                    list->AverageUpdateTime =
-                        list->AverageUpdateTime + (elapsed - list->AverageUpdateTime) / count;
-                list->AverageUpdateItemCount = count;
-            }
-        }
+        if (ent->List)
+            ent->List->Performance.Update.DoAverage(elapsed);
 
         ent->WasOffScreen = false;
     }
@@ -673,22 +631,40 @@ PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
 }
 
 // Scene List Functions
-PUBLIC STATIC void Scene::SetScene(const char* categoryName, const char* sceneName) {
-    for (int i = 0; i < Scene::CategoryCount; ++i) {
-        if (!strcmp(Scene::ListCategory[i].name, categoryName)) {
-            Scene::ActiveCategory = i;
-            Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart;
+PUBLIC STATIC void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
+    int categoryID = SceneInfo::GetCategoryID(categoryName);
+    if (categoryID < 0)
+        return;
 
-            for (int s = 0; s < Scene::ListCategory[i].sceneCount; ++s) {
-                if (!strcmp(Scene::ListData[Scene::ListCategory[i].sceneOffsetStart + s].name, sceneName)) {
-                    Scene::ListPos = Scene::ListCategory[i].sceneOffsetStart + s;
-                    break;
-                }
-            }
+    SceneListCategory& category = SceneInfo::Categories[categoryID];
+    if (!SceneInfo::IsEntryValid(category.OffsetStart))
+        return;
 
-            break;
-        }
-    }
+    Scene::ActiveCategory = categoryID;
+
+    int entryID = SceneInfo::GetEntryIDWithinRange(category.OffsetStart, category.OffsetEnd, sceneName);
+    if (entryID != -1)
+        Scene::CurrentSceneInList = entryID;
+    else
+        Scene::CurrentSceneInList = category.OffsetStart;
+}
+PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
+    if (!SceneInfo::IsCategoryValid(Scene::ActiveCategory))
+        return;
+
+    SceneListCategory& category = SceneInfo::Categories[Scene::ActiveCategory];
+    size_t entryID = (size_t)Scene::CurrentSceneInList;
+    if (Scene::CurrentSceneInList >= category.OffsetEnd)
+        return;
+
+    SceneListEntry& scene = SceneInfo::Entries[entryID];
+
+    strcpy(Scene::CurrentFolder, scene.Folder);
+    strcpy(Scene::CurrentID, scene.ID);
+    strcpy(Scene::CurrentSpriteFolder, scene.SpriteFolder);
+    strcpy(Scene::CurrentCategory, category.Name);
+
+    Scene::CurrentSceneInList = entryID;
 }
 
 // Scene Lifecycle
@@ -704,10 +680,10 @@ PUBLIC STATIC void Scene::Init() {
 
     Application::GameStart = true;
 
-    BytecodeObjectManager::Init();
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::LinkStandardLibrary();
-    BytecodeObjectManager::LinkExtensions();
+    ScriptManager::Init();
+    ScriptManager::ResetStack();
+    ScriptManager::LinkStandardLibrary();
+    ScriptManager::LinkExtensions();
 
     Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
     Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
@@ -738,12 +714,12 @@ PUBLIC STATIC void Scene::Init() {
     Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
     Scene::TileViewRenderFlag = 0xFFFFFFFF;
 
-    Application::Settings->GetBool("dev", "loadAllClasses", &BytecodeObjectManager::LoadAllClasses);
+    Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
 
-    BytecodeObjectManager::LoadScript("init.hsl");
+    ScriptManager::LoadScript("init.hsl");
 
-    if (BytecodeObjectManager::LoadAllClasses)
-        BytecodeObjectManager::LoadClasses();
+    if (ScriptManager::LoadAllClasses)
+        ScriptManager::LoadClasses();
 }
 PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
     if (Scene::ObjectLists == NULL)
@@ -1124,19 +1100,8 @@ DoCheckRender:
 
                 elapsed = Clock::GetTicks() - elapsed;
 
-                if (ent->List) {
-                    ObjectList* list = ent->List;
-                    double count = list->AverageRenderItemCount;
-                    if (count < 60.0 * 60.0) {
-                        count += 1.0;
-                        if (count == 1.0)
-                            list->AverageRenderTime = elapsed;
-                        else
-                            list->AverageRenderTime =
-                                list->AverageRenderTime + (elapsed - list->AverageRenderTime) / count;
-                        list->AverageRenderItemCount = count;
-                    }
-                }
+                if (ent->List)
+                    ent->List->Performance.Render.DoAverage(elapsed);
             }
         }
         objectTime = Clock::GetTicks() - objectTime;
@@ -1313,13 +1278,13 @@ PUBLIC STATIC void Scene::Render() {
 }
 
 PUBLIC STATIC void Scene::AfterScene() {
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::RequestGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::RequestGarbageCollection();
 
     bool& doRestart = Scene::DoRestart;
 
     if (Scene::NextScene[0]) {
-        BytecodeObjectManager::ForceGarbageCollection();
+        ScriptManager::ForceGarbageCollection();
 
         Scene::LoadScene(Scene::NextScene);
         Scene::NextScene[0] = '\0';
@@ -1492,8 +1457,8 @@ PUBLIC STATIC void Scene::Restart() {
 
     Scene::Loaded = true;
 
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::RequestGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::RequestGarbageCollection();
 }
 PRIVATE STATIC void Scene::ClearPriorityLists() {
     if (!Scene::PriorityLists)
@@ -1598,12 +1563,14 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::Properties = NULL;
 
     // Force garbage collect
-    BytecodeObjectManager::ResetStack();
-    BytecodeObjectManager::ForceGarbageCollection();
+    ScriptManager::ResetStack();
+    ScriptManager::ForceGarbageCollection();
 
+#if 0
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_STRING);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
+#endif
 
     char pathParent[4096];
     StringUtils::Copy(pathParent, filename, sizeof(pathParent));
@@ -1660,28 +1627,12 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
                 TiledMapReader::Read(filename, pathParent);
         }
 
-        // Prepare tile collisions
         InitTileCollisions();
+        SetInfoFromCurrentID();
 
-        // Load scene info and tile collisions
-        if (Scene::ListData.size()) {
-            SceneListEntry scene = Scene::ListData[Scene::ListPos];
-
-            strcpy(Scene::CurrentFolder, scene.folder);
-            strcpy(Scene::CurrentID, scene.id);
-            strcpy(Scene::CurrentSpriteFolder, scene.spriteFolder);
-
-            char filePath[4096];
-            if (!strcmp(scene.fileType, "bin")) {
-                snprintf(filePath, sizeof(filePath), "Stages/%s/TileConfig.bin", scene.folder);
-            }
-            else {
-                if (scene.folder[0] == '\0')
-                    snprintf(filePath, sizeof(filePath), "Scenes/TileConfig.bin");
-                else
-                    snprintf(filePath, sizeof(filePath), "Scenes/%s/TileConfig.bin", scene.folder);
-            }
-            Scene::LoadTileCollisions(filePath, 0);
+        if (SceneInfo::IsEntryValid(CurrentSceneInList)) {
+            std::string filename = SceneInfo::GetTileConfigFilename(CurrentSceneInList);
+            Scene::LoadTileCollisions(filename.c_str(), 0);
         }
     }
     else
@@ -1719,8 +1670,8 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
 
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (nothrow) ObjectList(objectName);
-    if (objectList && BytecodeObjectManager::LoadObjectClass(objectName, true))
-        objectList->SpawnFunction = BytecodeObjectManager::ObjectSpawnFunction;
+    if (objectList && ScriptManager::LoadObjectClass(objectName, true))
+        objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
     return objectList;
 }
 PRIVATE STATIC void Scene::AddStaticClass() {
@@ -1737,7 +1688,7 @@ PRIVATE STATIC void Scene::AddStaticClass() {
         obj->List = StaticObjectList;
         obj->Persistence = Persistence_GAME;
 
-        BytecodeObjectManager::Globals->Put("global", OBJECT_VAL(((BytecodeObject*)obj)->Instance));
+        ScriptManager::Globals->Put("global", OBJECT_VAL(((ScriptEntity*)obj)->Instance));
     }
 
     StaticObject = obj;
@@ -1757,7 +1708,7 @@ PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool call
         Scene::ObjectLists->Put(objectNameHash, objectList);
 
         if (callListLoadFunction)
-            BytecodeObjectManager::CallFunction(objectList->LoadFunctionName);
+            ScriptManager::CallFunction(objectList->LoadFunctionName);
     }
 
     return objectList;
@@ -2613,7 +2564,7 @@ PUBLIC STATIC void Scene::Dispose() {
         delete Scene::Properties;
     Scene::Properties = NULL;
 
-    BytecodeObjectManager::Dispose();
+    ScriptManager::Dispose();
     SourceFileMap::Dispose();
     Compiler::Dispose();
 }

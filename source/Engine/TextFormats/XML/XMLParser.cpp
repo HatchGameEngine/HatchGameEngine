@@ -14,10 +14,12 @@ public:
 
 #include <Engine/TextFormats/XML/XMLParser.h>
 
+#include <Engine/Includes/Token.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/MemoryStream.h>
+#include <Engine/Utilities/StringUtils.h>
 
 Parser   parser;
 Scanner  scanner;
@@ -390,17 +392,7 @@ PUBLIC STATIC bool     XMLParser::MatchToken(Token tok, const char* string) {
     return memcmp(string, tok.Start, tok.Length) == 0;
 }
 PUBLIC STATIC float    XMLParser::TokenToNumber(Token tok) {
-    float value;
-    char* sourPls = (char*)malloc(tok.Length + 1);
-    if (sourPls) {
-        memcpy(sourPls, tok.Start, tok.Length);
-        sourPls[tok.Length] = 0;
-        value = atof(sourPls);
-        free(sourPls);
-    }
-    else
-        value = NAN;
-    return value;
+    return atof(tok.ToString().c_str());
 }
 
 PUBLIC STATIC XMLNode* XMLParser::Parse() {
@@ -521,20 +513,12 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
 }
 
 PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
-    char* string = (char*)malloc(tok.Length + 1);
+    char* string = StringUtils::Create(tok);
     if (!string) {
         Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
-        exit(-1);
+        abort();
     }
-
-    memcpy(string, tok.Start, tok.Length);
-    string[tok.Length] = '\0';
-
     return string;
-}
-
-PUBLIC STATIC string   XMLParser::TokenToStdString(Token tok) {
-    return std::string(tok.Start, tok.Length);
 }
 
 PUBLIC STATIC void     XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {

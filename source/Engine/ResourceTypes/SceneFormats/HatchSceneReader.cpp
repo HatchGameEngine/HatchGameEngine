@@ -13,8 +13,8 @@ public:
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
 
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -38,10 +38,6 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_FLIPX_MASK 0x00001000U
 #define HSCN_FLIPY_MASK 0x00002000U
 #define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
-
-#define TILE_FLIPX_MASK 0x80000000U
-#define TILE_FLIPY_MASK 0x40000000U
-#define TILE_IDENT_MASK 0x00FFFFFFU // Max. 16777216 tiles
 
 PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
     Stream* r = ResourceStream::New(filename);
@@ -123,7 +119,7 @@ PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     size_t nameBufLen = sizeof(layer.Name);
     memset(layer.Name, 0x00, nameBufLen);
 
-    layer.Flags = SceneLayer::FLAGS_COLLIDEABLE | SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+    layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
     layer.Visible = true;
 
     // Copy its name
@@ -420,7 +416,7 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
         // Spawn the object, if the class exists
         ObjectList* objectList = Scene::GetStaticObjectList(objectName);
         if (objectList->SpawnFunction) {
-            BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+            ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
             if (!obj) {
                 HatchSceneReader::SkipEntityProperties(r, numProps);
                 continue;

@@ -1,10 +1,11 @@
 #include <Engine/Bytecode/Types.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -32,6 +33,7 @@ static Obj*       AllocateObject(size_t size, ObjType type) {
 static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     Memory::Track(string, "NewString");
+    string->Object.Class = StringImpl::Class;
     string->Length = length;
     string->Chars = chars;
     string->Hash = hash;
@@ -64,23 +66,17 @@ ObjString*        AllocString(size_t length) {
     return AllocateString(heapChars, length, 0x00000000);
 }
 
-char*             HeapCopyString(const char* str, size_t len) {
-    char* out = (char*)malloc(len + 1);
-    if (!out) return NULL;
-    memcpy(out, str, len);
-    out[len] = 0;
-    return out;
-}
-
 ObjFunction*      NewFunction() {
     ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     Memory::Track(function, "NewFunction");
     function->Object.Class = FunctionImpl::Class;
     function->Arity = 0;
+    function->MinArity = 0;
     function->UpvalueCount = 0;
+    function->Module = NULL;
     function->Name = NULL;
     function->ClassName = NULL;
-    ChunkInit(&function->Chunk);
+    function->Chunk.Init();
     return function;
 }
 ObjNative*        NewNative(NativeFn function) {
@@ -115,6 +111,10 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->Hash = hash;
     klass->Methods = new Table(NULL, 4);
     klass->Fields = new Table(NULL, 16);
+    klass->PropertyGet = NULL;
+    klass->PropertySet = NULL;
+    klass->ElementGet = NULL;
+    klass->ElementSet = NULL;
     klass->Initializer = NULL_VAL;
     klass->Type = CLASS_TYPE_NORMAL;
     klass->ParentHash = 0;
@@ -127,6 +127,8 @@ ObjInstance*      NewInstance(ObjClass* klass) {
     instance->Object.Class = klass;
     instance->Fields = new Table(NULL, 16);
     instance->EntityPtr = NULL;
+    instance->PropertyGet = NULL;
+    instance->PropertySet = NULL;
     return instance;
 }
 ObjBoundMethod*   NewBoundMethod(VMValue receiver, ObjFunction* method) {
@@ -159,6 +161,31 @@ ObjStream*        NewStream(Stream* streamPtr, bool writable) {
     stream->Closed = false;
     return stream;
 }
+ObjNamespace*     NewNamespace(Uint32 hash) {
+    ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
+    Memory::Track(ns, "NewNamespace");
+    ns->Name = NULL;
+    ns->Hash = hash;
+    ns->Fields = new Table(NULL, 16);
+    ns->InUse = false;
+    return ns;
+}
+ObjEnum*          NewEnum(Uint32 hash) {
+    ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
+    Memory::Track(enumeration, "NewEnum");
+    enumeration->Name = NULL;
+    enumeration->Hash = hash;
+    enumeration->Fields = new Table(NULL, 16);
+    return enumeration;
+}
+ObjModule*        NewModule() {
+    ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
+    Memory::Track(module, "NewModule");
+    module->Functions = new vector<ObjFunction*>();
+    module->Locals = new vector<VMValue>();
+    module->SourceFilename = NULL;
+    return module;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -171,8 +198,8 @@ bool              ValuesEqual(VMValue a, VMValue b) {
     return false;
 }
 
-const char*       GetTypeString(VMValue value) {
-    switch (value.Type) {
+const char*       GetTypeString(Uint32 type) {
+    switch (type) {
         case VAL_NULL:
             return "Null";
         case VAL_INTEGER:
@@ -182,89 +209,101 @@ const char*       GetTypeString(VMValue value) {
         case VAL_LINKED_DECIMAL:
             return "Decimal";
         case VAL_OBJECT:
-            switch (OBJECT_TYPE(value)) {
-                case OBJ_BOUND_METHOD:
-                case OBJ_FUNCTION:
-                    return "Event";
-                case OBJ_CLASS:
-                    return "Class";
-                case OBJ_CLOSURE:
-                    return "Closure";
-                case OBJ_INSTANCE:
-                    return "Instance";
-                case OBJ_NATIVE:
-                    return "Native";
-                case OBJ_STRING:
-                    return "String";
-                case OBJ_UPVALUE:
-                    return "Upvalue";
-                case OBJ_ARRAY:
-                    return "Array";
-                case OBJ_MAP:
-                    return "Map";
-                case OBJ_STREAM:
-                    return "Stream";
-                default:
-                    return "Unknown Object Type";
-            }
-            break;
+            return "Object";
     }
     return "Unknown Type";
 }
-
-void              ChunkInit(Chunk* chunk) {
-    chunk->Count = 0;
-    chunk->Capacity = 0;
-    chunk->Code = NULL;
-    chunk->Lines = NULL;
-    chunk->Constants = new vector<VMValue>();
+const char*       GetObjectTypeString(Uint32 type) {
+    switch (type) {
+        case OBJ_BOUND_METHOD:
+            return "Bound Method";
+        case OBJ_FUNCTION:
+            return "Function";
+        case OBJ_CLASS:
+            return "Class";
+        case OBJ_ENUM:
+            return "Enumeration";
+        case OBJ_CLOSURE:
+            return "Closure";
+        case OBJ_INSTANCE:
+            return "Instance";
+        case OBJ_NATIVE:
+            return "Native";
+        case OBJ_STRING:
+            return "String";
+        case OBJ_UPVALUE:
+            return "Upvalue";
+        case OBJ_ARRAY:
+            return "Array";
+        case OBJ_MAP:
+            return "Map";
+        case OBJ_STREAM:
+            return "Stream";
+        case OBJ_NAMESPACE:
+            return "Namespace";
+        case OBJ_MODULE:
+            return "Module";
+    }
+    return "Unknown Object Type";
 }
-void              ChunkAlloc(Chunk* chunk) {
-    if (!chunk->Code)
-        chunk->Code = (Uint8*)Memory::TrackedMalloc("Chunk::Code", sizeof(Uint8) * chunk->Capacity);
+const char*       GetValueTypeString(VMValue value) {
+    if (value.Type == VAL_OBJECT)
+        return GetObjectTypeString(OBJECT_TYPE(value));
     else
-        chunk->Code = (Uint8*)Memory::Realloc(chunk->Code, sizeof(Uint8) * chunk->Capacity);
+        return GetTypeString(value.Type);
+}
 
-    if (!chunk->Lines)
-        chunk->Lines = (int*)Memory::TrackedMalloc("Chunk::Lines", sizeof(int) * chunk->Capacity);
+void              Chunk::Init() {
+    Count = 0;
+    Capacity = 0;
+    Code = NULL;
+    Lines = NULL;
+    Constants = new vector<VMValue>();
+}
+void              Chunk::Alloc() {
+    if (!Code)
+        Code = (Uint8*)Memory::TrackedMalloc("Chunk::Code", sizeof(Uint8) * Capacity);
     else
-        chunk->Lines = (int*)Memory::Realloc(chunk->Lines, sizeof(int) * chunk->Capacity);
+        Code = (Uint8*)Memory::Realloc(Code, sizeof(Uint8) * Capacity);
 
-    chunk->OwnsMemory = true;
+    if (!Lines)
+        Lines = (int*)Memory::TrackedMalloc("Chunk::Lines", sizeof(int) * Capacity);
+    else
+        Lines = (int*)Memory::Realloc(Lines, sizeof(int) * Capacity);
+
+    OwnsMemory = true;
 }
-void              ChunkFree(Chunk* chunk) {
-    if (chunk->OwnsMemory) {
-        if (chunk->Code) {
-            Memory::Free(chunk->Code);
-            chunk->Code = NULL;
-            chunk->Count = 0;
-            chunk->Capacity = 0;
+void              Chunk::Free() {
+    if (OwnsMemory) {
+        if (Code) {
+            Memory::Free(Code);
+            Code = NULL;
+            Count = 0;
+            Capacity = 0;
         }
-        if (chunk->Lines) {
-            Memory::Free(chunk->Lines);
-            chunk->Lines = NULL;
+        if (Lines) {
+            Memory::Free(Lines);
+            Lines = NULL;
         }
     }
 
-    if (chunk->Constants) {
-        chunk->Constants->clear();
-        chunk->Constants->shrink_to_fit();
-        delete chunk->Constants;
+    if (Constants) {
+        Constants->clear();
+        Constants->shrink_to_fit();
+        delete Constants;
     }
 }
-void              ChunkWrite(Chunk* chunk, Uint8 byte, int line) {
-    if (chunk->Capacity < chunk->Count + 1) {
-        int oldCapacity = chunk->Capacity;
-        chunk->Capacity = GROW_CAPACITY(oldCapacity);
-        ChunkAlloc(chunk);
+void              Chunk::Write(Uint8 byte, int line) {
+    if (Capacity < Count + 1) {
+        int oldCapacity = Capacity;
+        Capacity = GROW_CAPACITY(oldCapacity);
+        Alloc();
     }
-    chunk->Code[chunk->Count] = byte;
-    chunk->Lines[chunk->Count] = line;
-    chunk->Count++;
+    Code[Count] = byte;
+    Lines[Count] = line;
+    Count++;
 }
-int               ChunkAddConstant(Chunk* chunk, VMValue value) {
-    // BytecodeObjectManager::Push(value);
-    chunk->Constants->push_back(value);
-    // BytecodeObjectManager::Pop();
-    return (int)chunk->Constants->size() - 1;
+int               Chunk::AddConstant(VMValue value) {
+    Constants->push_back(value);
+    return (int)Constants->size() - 1;
 }

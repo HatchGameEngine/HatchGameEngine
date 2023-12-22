@@ -6,6 +6,7 @@
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/IModel.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/View.h>
 #include <Engine/Includes/HashMap.h>
@@ -108,7 +109,7 @@ public:
 #endif
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 HashMap<Texture*>*   Graphics::TextureMap = NULL;
 HashMap<Texture*>*   Graphics::SpriteSheetTextureMap = NULL;
@@ -411,6 +412,36 @@ PUBLIC STATIC int      Graphics::SetTexturePalette(Texture* texture, void* palet
         return 1;
     return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
 }
+PUBLIC STATIC int      Graphics::ConvertTextureToRGBA(Texture* texture) {
+    texture->ConvertToRGBA();
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+    return Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+}
+PUBLIC STATIC int      Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
+    Uint32* colors = (Uint32*)Memory::TrackedMalloc("Texture::Colors", 256 * sizeof(Uint32));
+    if (!colors)
+        return 0;
+
+    memcpy(colors, Graphics::PaletteColors[paletteNumber], 256 * sizeof(Uint32));
+
+    texture->ConvertToPalette(colors, 256);
+    texture->SetPalette(colors, 256);
+
+    if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+        Graphics::NoInternalTextures)
+        return 1;
+
+    int ok = Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+    if (!ok)
+        return 0;
+
+    if (Graphics::GfxFunctions->SetTexturePalette)
+        ok |= Graphics::GfxFunctions->SetTexturePalette(texture, texture->PaletteColors, texture->NumPaletteColors);
+
+    return ok;
+}
 PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
     Graphics::GfxFunctions->UnlockTexture(texture);
 }
@@ -565,8 +596,8 @@ PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int sour
 
         Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferPixels, source_w, source_h);
 
-        Uint32 *d = (Uint32*)texture->Pixels;
-        Uint32 *s = (Uint32*)Graphics::FramebufferPixels;
+        Uint32* d = (Uint32*)texture->Pixels;
+        Uint32* s = (Uint32*)Graphics::FramebufferPixels;
 
         int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
         int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
@@ -912,7 +943,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 TileBaseY = baseYOff;
 
                 // Loop or cut off sourceTileCellX
-                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
                     if (sourceTileCellX < 0) goto SKIP_TILE_ROW_DRAW_ROT90;
                     if (sourceTileCellX >= layer->Width) goto SKIP_TILE_ROW_DRAW_ROT90;
                 }
@@ -931,7 +962,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 for (int t = 0; t < tileCellMaxHeight; t++) {
                     // Loop or cut off sourceTileCellX
                     sourceTileCellY = iy;
-                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                    if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
                         if (sourceTileCellY < 0) goto SKIP_TILE_DRAW_ROT90;
                         if (sourceTileCellY >= layer->Height) goto SKIP_TILE_DRAW_ROT90;
                     }
@@ -1033,7 +1064,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 TileBaseX = baseXOff;
 
                 // Loop or cut off sourceTileCellY
-                if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_Y) {
+                if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
                     if (sourceTileCellY < 0) goto SKIP_TILE_ROW_DRAW;
                     if (sourceTileCellY >= layer->Height) goto SKIP_TILE_ROW_DRAW;
                 }
@@ -1053,7 +1084,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                 for (int t = 0; t < tileCellMaxWidth; t++) {
                     // Loop or cut off sourceTileCellX
                     sourceTileCellX = ix;
-                    if (layer->Flags & SceneLayer::FLAGS_NO_REPEAT_X) {
+                    if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
                         if (sourceTileCellX < 0) goto SKIP_TILE_DRAW;
                         if (sourceTileCellX >= layer->Width) goto SKIP_TILE_DRAW;
                     }
@@ -1160,13 +1191,13 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
     }
 }
 PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
-    VMThread* thread = &BytecodeObjectManager::Threads[0];
-    if (func->Arity == 1) {
-        thread->Push(INTEGER_VAL(layerIndex));
-        thread->RunEntityFunction(func, 1);
+    VMThread* thread = &ScriptManager::Threads[0];
+    if (func->Arity == 0) {
+        thread->RunEntityFunction(func, 0);
     }
     else {
-        thread->RunEntityFunction(func, 0);
+        thread->Push(INTEGER_VAL(layerIndex));
+        thread->RunEntityFunction(func, 1);
     }
 }
 
@@ -1372,11 +1403,11 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
     //#ifdef DEBUG
     if (!sprite) return true;
     if (animation < 0 || animation >= (int)sprite->Animations.size()) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
+        ScriptManager::Threads[0].ThrowRuntimeError(false, "Animation %d does not exist in sprite %s!", animation, sprite->Filename);
         return true;
     }
     if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
-        BytecodeObjectManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
+        ScriptManager::Threads[0].ThrowRuntimeError(false, "Frame %d in animation \"%s\" does not exist in sprite %s!", frame, sprite->Animations[animation].Name, sprite->Filename);
         return true;
     }
     //#endif
@@ -1386,6 +1417,10 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
 PUBLIC STATIC void     Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
         ColorUtils::ConvertFromARGBtoABGR(argb, count);
+}
+PUBLIC STATIC void     Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
+    if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
+        ColorUtils::ConvertFromABGRtoARGB(argb, count);
 }
 
 PUBLIC STATIC void     Graphics::SetStencilEnabled(bool enabled) {

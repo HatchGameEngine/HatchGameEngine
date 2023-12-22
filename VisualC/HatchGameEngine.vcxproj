@@ -153,10 +153,12 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
-    <ClCompile Include="..\source\engine\bytecode\BytecodeObject.cpp" />
-    <ClCompile Include="..\source\engine\bytecode\BytecodeObjectManager.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\Bytecode.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />
     <ClCompile Include="..\source\engine\bytecode\GarbageCollector.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\ScriptEntity.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\ScriptManager.cpp" />
     <ClCompile Include="..\source\engine\bytecode\SourceFileMap.cpp" />
     <ClCompile Include="..\source\engine\bytecode\StandardLibrary.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Types.cpp" />
@@ -244,6 +246,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\SoundFormat.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\WAV.cpp" />
     <ClCompile Include="..\source\engine\Scene.cpp" />
+    <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\ScrollingIndex.cpp" />
     <ClCompile Include="..\source\engine\scene\ScrollingInfo.cpp" />

@@ -1,19 +1,29 @@
 #ifndef ENGINE_SCENE_SCENECONFIG_H
 #define ENGINE_SCENE_SCENECONFIG_H
 
-struct SceneListInfo {
-    char    name[32];
-    int     sceneOffsetStart;
-    int     sceneOffsetEnd;
-    int     sceneCount;
+#include <Engine/Includes/HashMap.h>
+
+struct SceneListCategory {
+    char*           Name = nullptr;
+
+    size_t          OffsetStart;
+    size_t          OffsetEnd;
+    size_t          Count;
+
+    HashMap<char*>* Properties = nullptr;
 };
 
 struct SceneListEntry {
-    char    name[32];
-    char    folder[16];
-    char    id[8];
-    char    spriteFolder[16];
-    char    fileType[8];
+    char*           Name = nullptr;
+    char*           Folder = nullptr;
+    char*           ID = nullptr;
+    char*           SpriteFolder = nullptr;
+    char*           Filetype = nullptr;
+
+    size_t          ParentCategoryID;
+    size_t          CategoryPos;
+
+    HashMap<char*>* Properties = nullptr;
 };
 
 #endif /* ENGINE_SCENE_SCENECONFIG_H */

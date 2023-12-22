@@ -15,15 +15,17 @@ public:
 #include <Engine/Graphics.h>
 #include <Engine/Scene.h>
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Values.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
 #include <Engine/IO/FileStream.h>
@@ -41,6 +43,8 @@ public:
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/ResourceType.h>
+#include <Engine/Scene/SceneEnums.h>
+#include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/JSON/jsmn.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -51,15 +55,17 @@ public:
 #include FT_FREETYPE_H
 #endif
 
+#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
+
 #define CHECK_ARGCOUNT(expects) \
     if (argCount != expects) { \
-        if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE) \
+        if (THROW_ERROR("Expected %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE) \
             return NULL_VAL; \
         return NULL_VAL; \
     }
 #define CHECK_AT_LEAST_ARGCOUNT(expects) \
     if (argCount < expects) { \
-        if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected at least %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE) \
+        if (THROW_ERROR("Expected at least %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE) \
             return NULL_VAL; \
         return NULL_VAL; \
     }
@@ -78,9 +84,9 @@ namespace LOCAL {
                 value = AS_INTEGER(args[index]);
                 break;
             default:
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Integer", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetTypeString(VAL_INTEGER), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
@@ -93,142 +99,142 @@ namespace LOCAL {
                 break;
             case VAL_INTEGER:
             case VAL_LINKED_INTEGER:
-                value = AS_DECIMAL(BytecodeObjectManager::CastValueAsDecimal(args[index]));
+                value = AS_DECIMAL(ScriptManager::CastValueAsDecimal(args[index]));
                 break;
             default:
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Decimal", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetTypeString(VAL_DECIMAL), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline char*           GetString(VMValue* args, int index, Uint32 threadID) {
         char* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_STRING(args[index])) {
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "String", GetTypeString(args[index])) == ERROR_RES_CONTINUE) {
-                    BytecodeObjectManager::Unlock();
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STRING), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+                    ScriptManager::Unlock();
+                    ScriptManager::Threads[threadID].ReturnFromNative();
                 }
             }
 
             value = AS_CSTRING(args[index]);
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "String"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjArray*       GetArray(VMValue* args, int index, Uint32 threadID) {
         ObjArray* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_ARRAY(args[index])) {
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Array", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
             }
 
             value = (ObjArray*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Array"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjMap*         GetMap(VMValue* args, int index, Uint32 threadID) {
         ObjMap* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_MAP(args[index]))
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Map", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_MAP), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjMap*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Map"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
         ObjBoundMethod* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_BOUND_METHOD(args[index]))
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Event", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_BOUND_METHOD), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Event"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjFunction*    GetFunction(VMValue* args, int index, Uint32 threadID) {
         ObjFunction* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_FUNCTION(args[index]))
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Event", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_FUNCTION), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjFunction*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Event"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjInstance*    GetInstance(VMValue* args, int index, Uint32 threadID) {
         ObjInstance* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_INSTANCE(args[index]))
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Instance", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_INSTANCE), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjInstance*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Instance"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjStream*    GetStream(VMValue* args, int index, Uint32 threadID) {
         ObjStream* value = NULL;
-        if (BytecodeObjectManager::Lock()) {
+        if (ScriptManager::Lock()) {
             if (!IS_STREAM(args[index]))
-                if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                    "Expected argument %d to be of type %s instead of %s.", index + 1, "Stream", GetTypeString(args[index])) == ERROR_RES_CONTINUE)
-                    BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STREAM), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
+                    ScriptManager::Threads[threadID].ReturnFromNative();
 
             value = (ObjStream*)(AS_OBJECT(args[index]));
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
         }
         if (!value) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Argument %d could not be read as type %s.", index + 1,
+            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
                 "Stream"))
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
@@ -236,9 +242,9 @@ namespace LOCAL {
     inline ISprite*        GetSprite(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::SpriteList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Sprite index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::SpriteList[where]) return NULL;
@@ -256,9 +262,9 @@ namespace LOCAL {
     inline Image*         GetImage(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::ImageList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Image index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::ImageList[where]) return NULL;
@@ -268,9 +274,9 @@ namespace LOCAL {
     inline GameTexture*   GetTexture(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::TextureList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Texture index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::TextureList[where]) return NULL;
@@ -280,9 +286,9 @@ namespace LOCAL {
     inline ISound*         GetSound(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::SoundList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Sound index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::SoundList[where]) return NULL;
@@ -292,9 +298,9 @@ namespace LOCAL {
     inline ISound*         GetMusic(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where >(int)Scene::MusicList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Music index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::MusicList[where]) return NULL;
@@ -304,9 +310,9 @@ namespace LOCAL {
     inline IModel*         GetModel(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::ModelList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Model index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::ModelList[where]) return NULL;
@@ -316,9 +322,9 @@ namespace LOCAL {
     inline MediaBag*       GetVideo(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
         if (where < 0 || where > (int)Scene::MediaList.size()) {
-            if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
+            if (THROW_ERROR(
                 "Video index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
-                BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+                ScriptManager::Threads[threadID].ReturnFromNative();
         }
 
         if (!Scene::MediaList[where]) return NULL;
@@ -370,15 +376,15 @@ PUBLIC STATIC ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index
 PUBLIC STATIC void      StandardLibrary::CheckArgCount(int argCount, int expects) {
     Uint32 threadID = 0;
     if (argCount != expects) {
-        if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
-            BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        if (THROW_ERROR("Expected %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
+            ScriptManager::Threads[threadID].ReturnFromNative();
     }
 }
 PUBLIC STATIC void      StandardLibrary::CheckAtLeastArgCount(int argCount, int expects) {
     Uint32 threadID = 0;
     if (argCount < expects) {
-        if (BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected at least %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
-            BytecodeObjectManager::Threads[threadID].ReturnFromNative();
+        if (THROW_ERROR("Expected at least %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
+            ScriptManager::Threads[threadID].ReturnFromNative();
     }
 }
 
@@ -403,9 +409,9 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
 }
 
 VMValue ReturnString(char* str) {
-    if (str && BytecodeObjectManager::Lock()) {
+    if (str && ScriptManager::Lock()) {
         ObjString* string = CopyString(str);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(string);
     }
     return NULL_VAL;
@@ -413,20 +419,20 @@ VMValue ReturnString(char* str) {
 
 #define CHECK_READ_STREAM \
     if (stream->Closed) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot read closed stream!"); \
+        THROW_ERROR("Cannot read closed stream!"); \
         return NULL_VAL; \
     }
 #define CHECK_WRITE_STREAM \
     if (stream->Closed) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to closed stream!"); \
+        THROW_ERROR("Cannot write to closed stream!"); \
         return NULL_VAL; \
     } \
     if (!stream->Writable) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot write to read-only stream!"); \
+        THROW_ERROR("Cannot write to read-only stream!"); \
         return NULL_VAL; \
     }
 
-#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
+#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
 
 // #region Animator
 // return true if we found it in the list
@@ -848,6 +854,74 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Application
 /***
+ * Application.GetEngineVersionString
+ * \desc Gets the engine version string.
+ * \return Returns a String value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Application::EngineVersion));
+}
+/***
+ * Application.GetEngineVersionMajor
+ * \desc Gets the major engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_MAJOR);
+}
+/***
+ * Application.GetEngineVersionMinor
+ * \desc Gets the minor engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_MINOR);
+}
+/***
+ * Application.GetEngineVersionPatch
+ * \desc Gets the minor engine version.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(VERSION_PATCH);
+}
+/***
+ * Application.GetEngineVersionPrerelease
+ * \desc Gets the prerelease engine version.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+#ifdef VERSION_PRERELEASE
+    return OBJECT_VAL(CopyString(VERSION_PRERELEASE));
+#else
+    return NULL_VAL;
+#endif
+}
+/***
+ * Application.GetEngineVersionCodename
+ * \desc Gets the engine version codename.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns Application
+ */
+VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+#ifdef VERSION_CODENAME
+    return OBJECT_VAL(CopyString(VERSION_CODENAME));
+#else
+    return NULL_VAL;
+#endif
+}
+/***
  * Application.GetFPS
  * \desc Gets the current FPS.
  * \return Returns a Decimal value.
@@ -912,73 +986,69 @@ VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 thread
     return OBJECT_VAL(CopyString(Application::GameTitleShort));
 }
 /***
- * Application.GetVersion
+ * Application.GetGameVersion
  * \desc Gets the version of the application.
  * \ns Application
  */
-VMValue Application_GetVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::Version));
+    return OBJECT_VAL(CopyString(Application::GameVersion));
 }
 /***
- * Application.GetDescription
- * \desc Gets the description of the application.
+ * Application.GetGameDescription
+ * \desc Gets the description of the game.
  * \ns Application
  */
-VMValue Application_GetDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::Description));
+    return OBJECT_VAL(CopyString(Application::GameDescription));
 }
 /***
  * Application.SetGameTitle
- * \desc Sets the game title of the application.
+ * \desc Sets the title of the game.
  * \param title (String): Game title.
  * \ns Application
  */
 VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::GameTitle, 0, sizeof(Application::GameTitle));
-    snprintf(Application::GameTitle, sizeof(Application::GameTitle), "%s", string);
+    StringUtils::Copy(Application::GameTitle, string, sizeof(Application::GameTitle));
     return NULL_VAL;
 }
 /***
  * Application.SetGameTitleShort
- * \desc Sets the short game title of the application.
+ * \desc Sets the short title of the game.
  * \param title (String): Short game title.
  * \ns Application
  */
 VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::GameTitleShort, 0, sizeof(Application::GameTitleShort));
-    snprintf(Application::GameTitleShort, sizeof(Application::GameTitleShort), "%s", string);
+    StringUtils::Copy(Application::GameTitleShort, string, sizeof(Application::GameTitleShort));
     return NULL_VAL;
 }
 /***
- * Application.SetVersion
- * \desc Sets the version of the application.
+ * Application.SetGameVersion
+ * \desc Sets the version of the game.
  * \param title (String): Game version.
  * \ns Application
  */
-VMValue Application_SetVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::Version, 0, sizeof(Application::Version));
-    snprintf(Application::Version, sizeof(Application::Version), "%s", string);
+    StringUtils::Copy(Application::GameVersion, string, sizeof(Application::GameVersion));
     return NULL_VAL;
 }
 /***
- * Application.SetDescription
- * \desc Sets the description of the application.
+ * Application.SetGameDescription
+ * \desc Sets the description of the game.
  * \param title (String): Game description.
  * \ns Application
  */
-VMValue Application_SetDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
-    memset(Application::Description, 0, sizeof(Application::Description));
-    snprintf(Application::Description, sizeof(Application::Description), "%s", string);
+    StringUtils::Copy(Application::GameDescription, string, sizeof(Application::GameDescription));
     return NULL_VAL;
 }
 /***
@@ -1048,9 +1118,9 @@ VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int volume = GET_ARG(0, GetInteger);
     if (volume < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+        THROW_ERROR("Volume cannot be lower than 0.");
     } else if (volume > 100) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+        THROW_ERROR("Volume cannot be higher than 100.");
     } else
         Application::SetMasterVolume(volume);
 
@@ -1066,9 +1136,9 @@ VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int volume = GET_ARG(0, GetInteger);
     if (volume < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+        THROW_ERROR("Volume cannot be lower than 0.");
     } else if (volume > 100) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+        THROW_ERROR("Volume cannot be higher than 100.");
     } else
         Application::SetMusicVolume(volume);
 
@@ -1084,9 +1154,9 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int volume = GET_ARG(0, GetInteger);
     if (volume < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be lower than zero.");
+        THROW_ERROR("Volume cannot be lower than 0.");
     } else if (volume > 100) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Volume cannot be higher than 100.");
+        THROW_ERROR("Volume cannot be higher than 100.");
     } else
         Application::SetSoundVolume(volume);
 
@@ -1106,7 +1176,7 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         int       length = GET_ARG(0, GetInteger);
         VMValue   initialValue = NULL_VAL;
@@ -1118,7 +1188,7 @@ VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
             array->Values->push_back(initialValue);
         }
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
     return NULL_VAL;
@@ -1133,10 +1203,10 @@ VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         int size = (int)array->Values->size();
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return INTEGER_VAL(size);
     }
     return INTEGER_VAL(0);
@@ -1151,10 +1221,10 @@ VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         array->Values->push_back(args[1]);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1168,11 +1238,11 @@ VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         VMValue   value = array->Values->back();
         array->Values->pop_back();
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return value;
     }
     return NULL_VAL;
@@ -1188,11 +1258,11 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         int       index = GET_ARG(1, GetInteger);
         array->Values->insert(array->Values->begin() + index, args[2]);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1206,11 +1276,11 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         int       index = GET_ARG(1, GetInteger);
         array->Values->erase(array->Values->begin() + index);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1223,10 +1293,10 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         array->Values->clear();
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1239,7 +1309,7 @@ VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
         int       toright = GET_ARG(1, GetInteger);
 
@@ -1257,7 +1327,7 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
 			}
 		}
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1272,7 +1342,7 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
 		size_t    startIndex = GET_ARG(1, GetInteger);
 		size_t    endIndex = GET_ARG(2, GetInteger);
@@ -1295,7 +1365,7 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
             }
         }
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return NULL_VAL;
 }
@@ -1304,7 +1374,7 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
 // #region Controller
 #define CHECK_CONTROLLER_INDEX(idx) \
 if (InputManager::NumControllers == 0) { \
-    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No controllers are connected."); \
+    THROW_ERROR("No controllers are connected."); \
     return NULL_VAL; \
 } \
 else if (idx < 0 || idx >= InputManager::NumControllers) { \
@@ -1332,7 +1402,7 @@ VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
     if (index < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller index %d out of range.", index);
+        THROW_ERROR("Controller index %d out of range.", index);
         return NULL_VAL;
     }
     return INTEGER_VAL(InputManager::ControllerIsConnected(index));
@@ -1400,23 +1470,53 @@ CONTROLLER_GET_BOOL(HasMicrophoneButton)
  */
 CONTROLLER_GET_BOOL(HasPaddles)
 /***
+ * Controller.IsButtonHeld
+ * \desc Checks if a <linkto ref="Button_*">button</linkto> is held.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Controller
+ */
+VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int button = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    if (button < 0 || button >= (int)ControllerButton::Max) {
+        THROW_ERROR("Controller button %d out of range.", button);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(InputManager::ControllerIsButtonHeld(index, button));
+}
+/***
+ * Controller.IsButtonPressed
+ * \desc Checks if a <linkto ref="Button_*">button</linkto> is pressed.
+ * \param controllerIndex (Integer): Index of the controller to check.
+ * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Controller
+ */
+VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int button = GET_ARG(1, GetInteger);
+    CHECK_CONTROLLER_INDEX(index);
+    if (button < 0 || button >= (int)ControllerButton::Max) {
+        THROW_ERROR("Controller button %d out of range.", button);
+        return NULL_VAL;
+    }
+    return INTEGER_VAL(InputManager::ControllerIsButtonPressed(index, button));
+}
+/***
  * Controller.GetButton
- * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index.
+ * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index. (Deprecated; use <linkto ref="Controller.IsButtonHeld"></linkto> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
  * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
  * \return Returns the button value from the controller at the index.
  * \ns Controller
  */
 VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int index = GET_ARG(0, GetInteger);
-    int button = GET_ARG(1, GetInteger);
-    CHECK_CONTROLLER_INDEX(index);
-    if (button < 0 || button >= (int)ControllerButton::Max) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller button %d out of range.", button);
-        return NULL_VAL;
-    }
-    return INTEGER_VAL(InputManager::ControllerGetButton(index, button));
+    return Controller_IsButtonHeld(argCount, args, threadID);
 }
 /***
  * Controller.GetAxis
@@ -1432,7 +1532,7 @@ VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
     int axis = GET_ARG(1, GetInteger);
     CHECK_CONTROLLER_INDEX(index);
     if (axis < 0 || axis >= (int)ControllerAxis::Max) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Controller axis %d out of range.", axis);
+        THROW_ERROR("Controller axis %d out of range.", axis);
         return NULL_VAL;
     }
     return DECIMAL_VAL(InputManager::ControllerGetAxis(index, axis));
@@ -1495,8 +1595,7 @@ CONTROLLER_GET_BOOL(IsRumbleActive)
  * Controller.Rumble
  * \desc Rumbles a controller.
  * \param controllerIndex (Integer): Index of the controller to rumble.
- * \param largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)
- * \param smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)
+ * \param strength (Number): Rumble strength. (0.0 - 1.0)
  * \param duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.
  * \ns Controller
  */
@@ -1508,11 +1607,11 @@ VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
         int duration = GET_ARG(2, GetInteger);
         CHECK_CONTROLLER_INDEX(index);
         if (strength < 0.0 || strength > 1.0) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble strength %f out of range. (0.0 - 1.0)", strength);
+            THROW_ERROR("Rumble strength %f out of range. (0.0 - 1.0)", strength);
             return NULL_VAL;
         }
         if (duration < 0) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble duration %d out of range.", duration);
+            THROW_ERROR("Rumble duration %d out of range.", duration);
             return NULL_VAL;
         }
         InputManager::ControllerRumble(index, strength, duration);
@@ -1525,15 +1624,15 @@ VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
         int duration = GET_ARG(3, GetInteger);
         CHECK_CONTROLLER_INDEX(index);
         if (large_frequency < 0.0 || large_frequency > 1.0) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Large motor frequency %f out of range. (0.0 - 1.0)", large_frequency);
+            THROW_ERROR("Large motor frequency %f out of range. (0.0 - 1.0)", large_frequency);
             return NULL_VAL;
         }
         if (small_frequency < 0.0 || small_frequency > 1.0) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Small motor frequency %f out of range. (0.0 - 1.0)", small_frequency);
+            THROW_ERROR("Small motor frequency %f out of range. (0.0 - 1.0)", small_frequency);
             return NULL_VAL;
         }
         if (duration < 0) {
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Rumble duration %d out of range.", duration);
+            THROW_ERROR("Rumble duration %d out of range.", duration);
             return NULL_VAL;
         }
         InputManager::ControllerRumble(index, large_frequency, small_frequency, duration);
@@ -1577,7 +1676,7 @@ VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Controller.SetLargeMotorFrequency
- * \desc Sets the frequency of a controller's large motor.
+ * \desc Sets the frequency of a controller's large motor. (Deprecated)
  * \param controllerIndex (Integer): Index of the controller.
  * \param frequency (Number): Frequency of the large motor.
  * \ns Controller
@@ -1588,7 +1687,7 @@ VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 th
     float frequency = GET_ARG(1, GetDecimal);
     CHECK_CONTROLLER_INDEX(index);
     if (frequency < 0.0 || frequency > 1.0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Large motor frequency %f out of range. (0.0 - 1.0)", frequency);
+        THROW_ERROR("Large motor frequency %f out of range. (0.0 - 1.0)", frequency);
         return NULL_VAL;
     }
     InputManager::ControllerSetLargeMotorFrequency(index, frequency);
@@ -1596,7 +1695,7 @@ VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 th
 }
 /***
  * Controller.SetSmallMotorFrequency
- * \desc Sets the frequency of a controller's small motor.
+ * \desc Sets the frequency of a controller's small motor. (Deprecated)
  * \param controllerIndex (Integer): Index of the controller.
  * \param frequency (Number): Frequency of the small motor.
  * \ns Controller
@@ -1607,7 +1706,7 @@ VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 th
     float frequency = GET_ARG(1, GetDecimal);
     CHECK_CONTROLLER_INDEX(index);
     if (frequency < 0.0 || frequency > 1.0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Small motor frequency %f out of range. (0.0 - 1.0)", frequency);
+        THROW_ERROR("Small motor frequency %f out of range. (0.0 - 1.0)", frequency);
         return NULL_VAL;
     }
     InputManager::ControllerSetSmallMotorFrequency(index, frequency);
@@ -1679,13 +1778,13 @@ VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
     int hour = ((int)time(NULL) / 3600) % 24;
 
     if (hour >= 5 && hour <= 11)
-        return INTEGER_VAL(MORNING);
+        return INTEGER_VAL((int)TimeOfDay::MORNING);
     else if (hour >= 12 && hour <= 16)
-        return INTEGER_VAL(MIDDAY);
+        return INTEGER_VAL((int)TimeOfDay::MIDDAY);
     else if (hour >= 17 && hour <= 20)
-        return INTEGER_VAL(EVENING);
+        return INTEGER_VAL((int)TimeOfDay::EVENING);
     else
-        return INTEGER_VAL(NIGHT);
+        return INTEGER_VAL((int)TimeOfDay::NIGHT);
 }
 /***
  * Date.GetTicks
@@ -1778,14 +1877,14 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
     vector<char*> fileList;
     Directory::GetFiles(&fileList, directory, pattern, allDirs);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         array = NewArray();
         for (size_t i = 0; i < fileList.size(); i++) {
             ObjString* part = CopyString(fileList[i]);
             array->Values->push_back(OBJECT_VAL(part));
             free(fileList[i]);
         }
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
 
     return OBJECT_VAL(array);
@@ -1809,14 +1908,14 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
     vector<char*> fileList;
     Directory::GetDirectories(&fileList, directory, pattern, allDirs);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         array = NewArray();
         for (size_t i = 0; i < fileList.size(); i++) {
             ObjString* part = CopyString(fileList[i]);
             array->Values->push_back(OBJECT_VAL(part));
             free(fileList[i]);
         }
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
 
     return OBJECT_VAL(array);
@@ -2227,11 +2326,11 @@ VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
     }
 #define CHECK_RENDER_VIEW() \
     if (view_index == Scene::ViewCurrent) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw current view!"); \
+        THROW_ERROR("Cannot draw current view!"); \
         return NULL_VAL; \
     } \
     if (!Scene::Views[view_index].UseDrawTarget) { \
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot draw view %d if it lacks a draw target!", view_index); \
+        THROW_ERROR("Cannot draw view %d if it lacks a draw target!", view_index); \
         return NULL_VAL; \
     }
 #define DO_RENDER_VIEW() \
@@ -2381,239 +2480,6 @@ VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL; \
     } \
     Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
-/***
- * Draw.InitArrayBuffer
- * \desc Initializes an array buffer. There are 32 array buffers. (Deprecated; use <linkto ref="Scene3D.Create"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)
- * \param numVertices (Integer): The initial capacity of this array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_InitArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 numVertices = GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-
-    Graphics::InitScene3D(scene3DIndex, numVertices);
-
-    return NULL_VAL;
-}
-/***
- * Draw.SetArrayBufferDrawMode
- * \desc Sets the draw mode of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetDrawMode"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetArrayBufferDrawMode(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-    scene3D->DrawMode = drawMode;
-    return NULL_VAL;
-}
-/***
- * Draw.SetProjectionMatrix
- * \desc Sets the projection matrix. (Deprecated; use <linkto ref="Scene3D.SetCustomProjectionMatrix"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param projMatrix (Matrix): The projection matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    ObjArray* projMatrix = GET_ARG(1, GetArray);
-
-    Matrix4x4 matrix4x4;
-    int arrSize = (int)projMatrix->Values->size();
-    if (arrSize != 16) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
-        return NULL_VAL;
-    }
-
-    // Yeah just copy it directly
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*projMatrix->Values)[i]);
-
-    GET_SCENE_3D();
-    scene3D->SetProjectionMatrix(&matrix4x4);
-    scene3D->SetClippingPlanes();
-    return NULL_VAL;
-}
-/***
- * Draw.SetViewMatrix
- * \desc Sets the view matrix. (Deprecated; use <linkto ref="Scene3D.SetViewMatrix"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param viewMatrix (Matrix): The view matrix.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    ObjArray* viewMatrix = GET_ARG(1, GetArray);
-
-    Matrix4x4 matrix4x4;
-
-    for (int i = 0; i < 16; i++)
-        matrix4x4.Values[i] = AS_DECIMAL((*viewMatrix->Values)[i]);
-
-    GET_SCENE_3D();
-    scene3D->SetViewMatrix(&matrix4x4);
-    return NULL_VAL;
-}
-/***
- * Draw.SetAmbientLighting
- * \desc Sets the ambient lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetAmbientLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetAmbientLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetDiffuseLighting
- * \desc Sets the diffuse lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetDiffuseLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetDiffuseLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetSpecularLighting
- * \desc Sets the specular lighting of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetSpecularLighting"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetSpecularLighting(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogDensity
- * \desc Sets the density of the array buffer's fog. (Deprecated; use <linkto ref="Scene3D.SetFogDensity"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param density (Number): The fog density.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-
-    GET_SCENE_3D();
-    scene3D->SetFogDensity(GET_ARG(1, GetDecimal));
-    return NULL_VAL;
-}
-/***
- * Draw.SetFogColor
- * \desc Sets the fog color of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetFogColor"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-    float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-    float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
-    GET_SCENE_3D();
-    scene3D->SetFogColor(r, g, b);
-    return NULL_VAL;
-}
-/***
- * Draw.SetClipPolygons
- * \desc Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param clipPolygons (Boolean): Whether or not to clip polygons.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetClipPolygons(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    bool clipPolygons = !!GET_ARG(1, GetInteger);
-    GET_SCENE_3D();
-    scene3D->SetClipPolygons(clipPolygons);
-    return NULL_VAL;
-}
-/***
- * Draw.SetPointSize
- * \desc Sets the point size of the array buffer. (Deprecated; use <linkto ref="Scene3D.SetPointSize"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The index of the array buffer.
- * \param pointSize (Decimal): The point size.
- * \return
- * \ns Draw
- */
-VMValue Draw_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    float pointSize = !!GET_ARG(1, GetDecimal);
-    GET_SCENE_3D();
-    scene3D->PointSize = pointSize;
-    return NULL_VAL;
-}
-/***
- * Draw.BindArrayBuffer
- * \desc Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <linkto ref="Draw.BindScene3D"></linkto> instead.)
- * \param arrayBufferIndex (Integer): Sets the array buffer to bind.
- * \return
- * \ns Draw
- */
-VMValue Draw_BindArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
-        return NULL_VAL;
-    }
-
-    Graphics::ClearScene3D(scene3DIndex);
-    Graphics::BindScene3D(scene3DIndex);
-
-    return NULL_VAL;
-}
 /***
  * Draw.BindScene3D
  * \desc Binds a 3D scene for drawing polygons in 3D space.
@@ -3418,22 +3284,6 @@ VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 }
 #undef PREPARE_MATRICES
 /***
- * Draw.RenderArrayBuffer
- * \desc Draws everything in the array buffer. (Deprecated; use <linkto ref="Draw.RenderScene3D"></linkto> instead.)
- * \param arrayBufferIndex (Integer): The array buffer at the index to draw.
- * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the array buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_RenderArrayBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
-    GET_SCENE_3D();
-    Graphics::DrawScene3D(scene3DIndex, drawMode);
-    return NULL_VAL;
-}
-/***
  * Draw.RenderScene3D
  * \desc Draws everything in the 3D scene.
  * \param scene3DIndex (Integer): The 3D scene at the index to draw.
@@ -3732,11 +3582,11 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
             maxH = y + (sprite->Animations[0].Frames[*i].Height - sprite->Animations[0].Frames[*i].OffsetY);
     }
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         array->Values->clear();
         array->Values->push_back(DECIMAL_VAL(maxW));
         array->Values->push_back(DECIMAL_VAL(maxH));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
     return NULL_VAL;
@@ -3815,11 +3665,11 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     FINISH:
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         array->Values->clear();
         array->Values->push_back(DECIMAL_VAL(maxW));
         array->Values->push_back(DECIMAL_VAL(maxH));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
     return NULL_VAL;
@@ -4831,8 +4681,8 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 
         View* currentView = Graphics::CurrentView;
         if (currentView) {
-            // If we are using a draw target, then we can't reliably use the
-            // viewport's dimensions, because it might not match the view's size
+            // If we are using a draw target, then we can't reliably use the viewport's dimensions,
+            // because it might not match the view's size
             if (currentView->UseDrawTarget && currentView->DrawTarget) {
                 width = Graphics::CurrentView->Width;
                 height = Graphics::CurrentView->Height;
@@ -4859,7 +4709,7 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutSine
  * \desc Eases the value using the "OutSine" formula.
@@ -4867,7 +4717,7 @@ VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutSine
  * \desc Eases the value using the "InOutSine" formula.
@@ -4875,7 +4725,7 @@ VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutSine(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutSine(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuad
  * \desc Eases the value using the "InQuad" formula.
@@ -4883,7 +4733,7 @@ VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuad
  * \desc Eases the value using the "OutQuad" formula.
@@ -4891,7 +4741,7 @@ VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuad
  * \desc Eases the value using the "InOutQuad" formula.
@@ -4899,7 +4749,7 @@ VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuad(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuad(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InCubic
  * \desc Eases the value using the "InCubic" formula.
@@ -4907,7 +4757,7 @@ VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutCubic
  * \desc Eases the value using the "OutCubic" formula.
@@ -4915,7 +4765,7 @@ VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutCubic
  * \desc Eases the value using the "InOutCubic" formula.
@@ -4923,7 +4773,7 @@ VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutCubic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutCubic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuart
  * \desc Eases the value using the "InQuart" formula.
@@ -4931,7 +4781,7 @@ VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuart
  * \desc Eases the value using the "OutQuart" formula.
@@ -4939,7 +4789,7 @@ VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuart
  * \desc Eases the value using the "InOutQuart" formula.
@@ -4947,7 +4797,7 @@ VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuart(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuart(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InQuint
  * \desc Eases the value using the "InQuint" formula.
@@ -4955,7 +4805,7 @@ VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutQuint
  * \desc Eases the value using the "OutQuint" formula.
@@ -4963,7 +4813,7 @@ VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutQuint
  * \desc Eases the value using the "InOutQuint" formula.
@@ -4971,7 +4821,7 @@ VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutQuint(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutQuint(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InExpo
  * \desc Eases the value using the "InExpo" formula.
@@ -4979,7 +4829,7 @@ VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutExpo
  * \desc Eases the value using the "OutExpo" formula.
@@ -4987,7 +4837,7 @@ VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutExpo
  * \desc Eases the value using the "InOutExpo" formula.
@@ -4995,7 +4845,7 @@ VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutExpo(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutExpo(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InCirc
  * \desc Eases the value using the "InCirc" formula.
@@ -5003,7 +4853,7 @@ VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutCirc
  * \desc Eases the value using the "OutCirc" formula.
@@ -5011,7 +4861,7 @@ VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutCirc
  * \desc Eases the value using the "InOutCirc" formula.
@@ -5019,7 +4869,7 @@ VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutCirc(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutCirc(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InBack
  * \desc Eases the value using the "InBack" formula.
@@ -5027,7 +4877,7 @@ VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutBack
  * \desc Eases the value using the "OutBack" formula.
@@ -5035,7 +4885,7 @@ VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOU
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutBack
  * \desc Eases the value using the "InOutBack" formula.
@@ -5043,7 +4893,7 @@ VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCO
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutBack(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutBack(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InElastic
  * \desc Eases the value using the "InElastic" formula.
@@ -5051,7 +4901,7 @@ VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutElastic
  * \desc Eases the value using the "OutElastic" formula.
@@ -5059,7 +4909,7 @@ VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutElastic
  * \desc Eases the value using the "InOutElastic" formula.
@@ -5067,7 +4917,7 @@ VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_AR
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutElastic(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutElastic(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InBounce
  * \desc Eases the value using the "InBounce" formula.
@@ -5075,7 +4925,7 @@ VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) { CHECK_
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.OutBounce
  * \desc Eases the value using the "OutBounce" formula.
@@ -5083,7 +4933,7 @@ VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGC
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::OutBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::OutBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.InOutBounce
  * \desc Eases the value using the "InOutBounce" formula.
@@ -5091,7 +4941,7 @@ VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARG
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::InOutBounce(GET_ARG(0, GetDecimal))); }
+VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::InOutBounce(GET_ARG(0, GetDecimal))); }
 /***
  * Ease.Triangle
  * \desc Eases the value using the "Triangle" formula.
@@ -5099,7 +4949,7 @@ VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) { CHECK_A
  * \return Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return NUMBER_VAL(Ease::Triangle(GET_ARG(0, GetDecimal))); }
+VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) { CHECK_ARGCOUNT(1); return DECIMAL_VAL(Ease::Triangle(GET_ARG(0, GetDecimal))); }
 // #endregion
 
 // #region File
@@ -5133,12 +4983,12 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
     if (!stream)
         return NULL_VAL;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         size_t size = stream->Length();
         ObjString* text = AllocString(size);
         stream->ReadBytes(text->Chars, size);
         stream->Close();
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(text);
     }
     return NULL_VAL;
@@ -5156,7 +5006,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
     char* filePath = GET_ARG(0, GetString);
     // To verify 2nd argument is string
     GET_ARG(1, GetString);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjString* text = AS_STRING(args[1]);
 
         Stream* stream = NULL;
@@ -5165,14 +5015,14 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
         else
             stream = FileStream::New(filePath, FileStream::WRITE_ACCESS);
         if (!stream) {
-            BytecodeObjectManager::Unlock();
+            ScriptManager::Unlock();
             return INTEGER_VAL(false);
         }
 
         stream->WriteBytes(text->Chars, text->Length);
         stream->Close();
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return INTEGER_VAL(true);
     }
     return INTEGER_VAL(false);
@@ -5229,9 +5079,9 @@ VMValue HTTP_GetString(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         obj = OBJECT_VAL(TakeString((char*)data, length));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -5275,7 +5125,7 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     int value; SDL_GetMouseState(&value, NULL);
-    return NUMBER_VAL((float)value);
+    return DECIMAL_VAL((float)value);
 }
 /***
  * Input.GetMouseY
@@ -5286,7 +5136,7 @@ VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     int value; SDL_GetMouseState(NULL, &value);
-    return NUMBER_VAL((float)value);
+    return DECIMAL_VAL((float)value);
 }
 /***
  * Input.IsMouseButtonDown
@@ -5376,72 +5226,6 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     int key = GET_ARG(0, GetInteger);
     int down = InputManager::IsKeyReleased(key);
     return INTEGER_VAL(down);
-}
-/***
- * Input.GetControllerCount
- * \desc Gets the amount of connected controllers in the device. (Deprecated; use <linkto ref="Controller.GetCount"></linkto> instead.)
- * \return Returns the amount of connected controllers in the device.
- * \ns Input
- */
-VMValue Input_GetControllerCount(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetCount(argCount, args, threadID);
-}
-/***
- * Input.GetControllerAttached
- * \desc Gets whether the controller at the index is connected. (Deprecated; use <linkto ref="Controller.IsConnected"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is connected.
- * \ns Input
- */
-VMValue Input_GetControllerAttached(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_IsConnected(argCount, args, threadID);
-}
-/***
- * Input.GetControllerHat
- * \desc Gets the hat value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetButton"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param hatIndex (Integer): Index of the hat to check.
- * \return Returns the hat value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerHat(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    int controller_index = GET_ARG(0, GetInteger);
-    int index = GET_ARG(1, GetInteger);
-    CHECK_CONTROLLER_INDEX(controller_index);
-    return INTEGER_VAL(InputManager::ControllerGetHat(controller_index, index));
-}
-/***
- * Input.GetControllerAxis
- * \desc Gets the axis value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetAxis"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param axisIndex (Integer): Index of the axis to check.
- * \return Returns the axis value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerAxis(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetAxis(argCount, args, threadID);
-}
-/***
- * Input.GetControllerButton
- * \desc Gets the button value from the controller at the index. (Deprecated; use <linkto ref="Controller.GetButton"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Integer): Index of the button to check.
- * \return Returns the button value from the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerButton(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetButton(argCount, args, threadID);
-}
-/***
- * Input.GetControllerName
- * \desc Gets the name of the controller at the index. (Deprecated; use <linkto ref="Controller.GetName"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns the name of the controller at the index.
- * \ns Input
- */
-VMValue Input_GetControllerName(int argCount, VMValue* args, Uint32 threadID) {
-    return Controller_GetName(argCount, args, threadID);
 }
 #undef CHECK_CONTROLLER_INDEX
 /***
@@ -5551,13 +5335,13 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjectList* objectList = Scene::GetObjectList(objectName);
     if (!objectList || !objectList->SpawnFunction) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Object class \"%s\" does not exist.", objectName);
+        THROW_ERROR("Object class \"%s\" does not exist.", objectName);
         return NULL_VAL;
     }
 
-    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+    ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
     if (!obj) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not spawn object of class \"%s\"!", objectName);
+        THROW_ERROR("Could not spawn object of class \"%s\"!", objectName);
         return NULL_VAL;
     }
 
@@ -5598,7 +5382,7 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     ObjectList* objectList = Scene::ObjectLists->Get(objectName);
-    BytecodeObject* object = (BytecodeObject*)objectList->GetNth(n);
+    ScriptEntity* object = (ScriptEntity*)objectList->GetNth(n);
 
     if (object) {
         return OBJECT_VAL(object->Instance);
@@ -5707,7 +5491,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     if (object)
-        return OBJECT_VAL(((BytecodeObject*)object)->Instance);
+        return OBJECT_VAL(((ScriptEntity*)object)->Instance);
 
     return NULL_VAL;
 }
@@ -5715,7 +5499,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
  * Instance.GetBySlotID
  * \desc Gets an instance by its slot ID.
  * \param slotID (Integer): The slot ID to search a corresponding instance for.
- * \return Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.
+ * \return Returns the instance corresponding to the specified slot ID, or <code>null</code> if no instance was found.
  * \ns Instance
  */
 VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
@@ -5728,7 +5512,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
     // Search backwards
     for (Entity* ent = Scene::ObjectLast; ent; ent = ent->PrevSceneEntity) {
         if (ent->SlotID == slotID)
-            return OBJECT_VAL(((BytecodeObject*)ent)->Instance);
+            return OBJECT_VAL(((ScriptEntity*)ent)->Instance);
     }
 
     return NULL_VAL;
@@ -5741,7 +5525,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    BytecodeObject::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+    ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 // TODO: Finish these
@@ -5757,13 +5541,12 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     ObjInstance* destInstance   = GET_ARG(0, GetInstance);
     ObjInstance* srcInstance    = GET_ARG(1, GetInstance);
-    bool copyClass              = argCount >= 3 ? !!GET_ARG(2, GetInteger) : true;
-    bool destroySrc             = argCount >= 4 ? !!GET_ARG(3, GetInteger) : false;
+    bool copyClass              = !!GET_ARG_OPT(2, GetInteger, true);
 
-    BytecodeObject* destEntity  = (BytecodeObject*)destInstance->EntityPtr;
-    BytecodeObject* srcEntity   = (BytecodeObject*)srcInstance->EntityPtr;
+    ScriptEntity* destEntity  = (ScriptEntity*)destInstance->EntityPtr;
+    ScriptEntity* srcEntity   = (ScriptEntity*)srcInstance->EntityPtr;
     if (destEntity && srcEntity)
-        srcEntity->Copy(destEntity, copyClass, destroySrc);
+        srcEntity->Copy(destEntity, copyClass);
 
     return NULL_VAL;
 }
@@ -5778,31 +5561,17 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
-    ObjInstance* instance   = GET_ARG(0, GetInstance);
-    char* objectName        = GET_ARG(1, GetString);
+    ObjInstance* instance  = GET_ARG(0, GetInstance);
+    char* className        = GET_ARG(1, GetString);
 
-    BytecodeObject* self = (BytecodeObject*)instance->EntityPtr;
+    ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
     if (!self)
         return INTEGER_VAL(false);
 
-    if (BytecodeObjectManager::ClassExists(objectName)) {
-        if (!BytecodeObjectManager::Classes->Exists(objectName))
-            BytecodeObjectManager::LoadObjectClass(objectName, true);
+    if (self->ChangeClass(className))
+        return INTEGER_VAL(true);
 
-        ObjClass* klass = AS_CLASS(BytecodeObjectManager::Globals->Get(objectName));
-        if (!klass) {
-            return INTEGER_VAL(false);
-        }
-
-        instance->Object.Class = klass;
-    }
-    else {
-        return INTEGER_VAL(false);
-    }
-
-    ObjectList* objectList  = Scene::ObjectLists->Get(objectName);
-    self->List              = objectList;
-    return INTEGER_VAL(true);
+    return INTEGER_VAL(false);
 }
 // #endregion
 
@@ -5822,7 +5591,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
     for (int i = 0; i < t->size; i++) {
         key = t + 1 + tokcount;
         keyHash = map->Keys->HashFunction(text + key->start, key->end - key->start);
-        map->Keys->Put(keyHash, HeapCopyString(text + key->start, key->end - key->start));
+        map->Keys->Put(keyHash, StringUtils::Duplicate(text + key->start, key->end - key->start));
         tokcount += 1;
         if (key->size > 0) {
             VMValue val = NULL_VAL;
@@ -6023,7 +5792,7 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
  */
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjString* string = AS_STRING(args[0]);
         ObjMap*    map = NewMap();
 
@@ -6043,7 +5812,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
                     tokcount = tokcount * 2;
                     tok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
                     if (tok == NULL) {
-                        BytecodeObjectManager::Unlock();
+                        ScriptManager::Unlock();
                         return NULL_VAL;
                     }
                     continue;
@@ -6056,7 +5825,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
         }
         free(tok);
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(map);
     }
     return NULL_VAL;
@@ -6065,16 +5834,13 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
  * JSON.ToString
  * \desc Converts a Map value into a String value.
  * \param json (Map): Map value.
- * \param prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
+ * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
  * \return Returns a JSON string based on the Map value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    Compiler::PrettyPrint = !!GET_ARG(1, GetInteger);
-    VMValue value = BytecodeObjectManager::CastValueAsString(args[0]);
-    Compiler::PrettyPrint = true;
-    return value;
+    return ScriptManager::CastValueAsString(args[0], !!GET_ARG_OPT(1, GetInteger, false));
 }
 // #endregion
 
@@ -6382,10 +6148,13 @@ VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return DECIMAL_VAL(std::exp(GET_ARG(0, GetDecimal)));
 }
+// #endregion
+
+// #region RSDK.Math
 /***
- * Math.ClearTrigLookupTables
+ * RSDK.Math.ClearTrigLookupTables
  * \desc Clears the engine's angle lookup tables.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6393,9 +6162,9 @@ VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID)
     return NULL_VAL;
 }
 /***
- * Math.CalculateTrigAngles
+ * RSDK.Math.CalculateTrigAngles
  * \desc Sets the engine's angle lookup tables.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6403,187 +6172,187 @@ VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Math.Sin1024
+ * RSDK.Math.Sin1024
  * \desc Returns the sine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos1024
+ * RSDK.Math.Cos1024
  * \desc Returns the cosine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan1024
+ * RSDK.Math.Tan1024
  * \desc Returns the tangent of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin1024
+ * RSDK.Math.ASin1024
  * \desc Returns the arc sine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin1024(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos1024
+ * RSDK.Math.ACos1024
  * \desc Returns the arc cosine of an angle of x based on a max of 1024.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 1024 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos1024(GET_ARG(0, GetInteger)));
 }
 /**
- * Math.Sin512
+ * RSDK.Math.Sin512
  * \desc Returns the sine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos512
+ * RSDK.Math.Cos512
  * \desc Returns the cosine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan512
+ * RSDK.Math.Tan512
  * \desc Returns the tangent of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin512
+ * RSDK.Math.ASin512
  * \desc Returns the arc sine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin512(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos512
+ * RSDK.Math.ACos512
  * \desc Returns the arc cosine of an angle of x based on a max of 512.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 512 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos512(GET_ARG(0, GetInteger)));
 }
 /**
- * Math.Sin256
+ * RSDK.Math.Sin256
  * \desc Returns the sine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the sine of.
  * \return The sine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Sin256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Cos256
+ * RSDK.Math.Cos256
  * \desc Returns the cosine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the cosine of.
  * \return The cosine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Cos256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.Tan256
+ * RSDK.Math.Tan256
  * \desc Returns the tangent of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the tangent of.
  * \return The tangent 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::Tan256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ASin256
+ * RSDK.Math.ASin256
  * \desc Returns the arc sine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the arc sine of.
  * \return The arc sine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ASin256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.ACos256
+ * RSDK.Math.ACos256
  * \desc Returns the arc cosine of an angle of x based on a max of 256.
  * \param angle (Integer): Angle to get the arc cosine of.
  * \return The arc cosine 256 of the angle.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
 /***
- * Math.RadianToInteger
+ * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
  * \param radian (Decimal): Radian value to convert.
  * \return An integer value of the converted radian.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL((int)((float)GET_ARG(0, GetDecimal) * 256.0 / M_PI));
 }
 /***
- * Math.IntegerToRadian
+ * RSDK.Math.IntegerToRadian
  * \desc Gets the radian decimal conversion of an integer, based on 256.
  * \param integer (Integer): Integer value to convert.
  * \return A radian decimal value of the converted integer.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -6847,11 +6616,14 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
     MatrixHelper_CopyTo(&helper, out);
     return NULL_VAL;
 }
+// #endregion
+
+// #region RSDK.Matrix
 /***
- * Matrix.Create256
+ * RSDK.Matrix.Create256
  * \desc Creates a 4x4 matrix based on the decimal 256.0.
  * \return Returns the Matrix as an Array.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6862,10 +6634,10 @@ VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
     return OBJECT_VAL(array);
 }
 /***
- * Matrix.Identity256
+ * RSDK.Matrix.Identity256
  * \desc Sets the matrix to the identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -6892,15 +6664,14 @@ VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Multiply256
+ * RSDK.Matrix.Multiply256
  * \desc Multiplies two matrices based on the deciaml 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param a (Matrix): The first matrix to use for multiplying.
  * \param b (Matrix): The second matrix to use for multiplying.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
-
     ObjArray* dest = GET_ARG(0, GetArray);
     ObjArray* matrixA = GET_ARG(1, GetArray);
     ObjArray* matrixB = GET_ARG(2, GetArray);
@@ -6918,14 +6689,14 @@ VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Translate256
+ * RSDK.Matrix.Translate256
  * \desc Translates the matrix based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param x (Number): X position value.
  * \param y (Number): Y position value.
  * \param z (Number): Z position value.
  * \param setIdentity (Boolean): Whether or not to set the matrix as the identity.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(5);
@@ -6958,13 +6729,13 @@ VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Scale256
+ * RSDK.Matrix.Scale256
  * \desc Sets the matrix to a scale identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param scaleX (Number): X scale value.
  * \param scaleY (Number): Y scale value.
  * \param scaleZ (Number): Z scale value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
@@ -6994,11 +6765,11 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateX256
+ * RSDK.Matrix.RotateX256
  * \desc Sets the matrix to a rotation X identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationY (Number): X rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7028,11 +6799,11 @@ VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateY256
+ * RSDK.Matrix.RotateY256
  * \desc Sets the matrix to a rotation Y identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationY (Number): Y rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7062,11 +6833,11 @@ VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.RotateZ256
+ * RSDK.Matrix.RotateZ256
  * \desc Sets the matrix to a rotation Z identity based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationZ (Number): Z rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -7096,13 +6867,13 @@ VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
- * Matrix.Rotate256
+ * RSDK.Matrix.Rotate256
  * \desc Sets the matrix to a rotation identity based on 256.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param rotationX (Number): X rotation value.
  * \param rotationY (Number): Y rotation value.
  * \param rotationZ (Number): Z rotation value.
- * \ns Matrix
+ * \ns RSDK.Matrix
  */
 VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
@@ -7140,7 +6911,7 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#define CHECK_ANIMATION_INDEX(animation) \
+#define CHECK_MODEL_ANIMATION_INDEX(animation) \
     if (animation < 0 || animation >= (signed)model->AnimationCount) { \
         OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->AnimationCount - 1); \
         return NULL_VAL; \
@@ -7194,7 +6965,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     if (model->AnimationCount == 0)
         return NULL_VAL;
 
-    CHECK_ANIMATION_INDEX(animation);
+    CHECK_MODEL_ANIMATION_INDEX(animation);
 
     const char* animationName = model->Animations[animation]->Name;
     if (!animationName)
@@ -7240,7 +7011,7 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int animation = GET_ARG(1, GetInteger);
-    CHECK_ANIMATION_INDEX(animation);
+    CHECK_MODEL_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)model->Animations[animation]->Length);
 }
 /***
@@ -7302,7 +7073,7 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
         if (frame < 0)
             frame = 0;
 
-        CHECK_ANIMATION_INDEX(animation);
+        CHECK_MODEL_ANIMATION_INDEX(animation);
 
         model->Animate(model->ArmatureList[armature], model->Animations[animation], frame);
     } else {
@@ -7346,7 +7117,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#undef CHECK_ANIMATION_INDEX
+#undef CHECK_MODEL_ANIMATION_INDEX
 #undef CHECK_ARMATURE_INDEX
 
 // #region Music
@@ -7585,9 +7356,9 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
             snprintf(temp, sizeof temp, "%f", n);
 
             VMValue strng = NULL_VAL;
-            if (BytecodeObjectManager::Lock()) {
+            if (ScriptManager::Lock()) {
                 strng = OBJECT_VAL(CopyString(temp));
-                BytecodeObjectManager::Unlock();
+                ScriptManager::Unlock();
             }
             return strng;
         }
@@ -7601,15 +7372,14 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
                 snprintf(temp, sizeof temp, "%d", n);
 
             VMValue strng = NULL_VAL;
-            if (BytecodeObjectManager::Lock()) {
+            if (ScriptManager::Lock()) {
                 strng = OBJECT_VAL(CopyString(temp));
-                BytecodeObjectManager::Unlock();
+                ScriptManager::Unlock();
             }
             return strng;
         }
         default:
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false,
-                "Expected argument %d to be of type %s instead of %s.", 0 + 1, "Number", GetTypeString(args[0]));
+            THROW_ERROR("Expected argument %d to be of type %s instead of %s.", 0 + 1, "Number", GetValueTypeString(args[0]));
     }
 
     return NULL_VAL;
@@ -7832,7 +7602,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                                 }
                             }
                             Graphics::PaletteUpdated = true;
-                            Memory::Free(gif->Colors);
                         }
                         Memory::Free(gif->Data);
                         delete gif;
@@ -7853,7 +7622,6 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
                             for (int p = 0; p < png->NumPaletteColors; p++)
                                 Graphics::PaletteColors[palIndex][p] = png->Colors[p];
                             Graphics::PaletteUpdated = true;
-                            Memory::Free(png->Colors);
                         }
                         Memory::Free(png->Data);
                         delete png;
@@ -8099,7 +7867,6 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
-#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Resources
@@ -8432,12 +8199,12 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
     if (!stream)
         return NULL_VAL;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         size_t size = stream->Length();
         ObjString* text = AllocString(size);
         stream->ReadBytes(text->Chars, size);
         stream->Close();
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(text);
     }
     return NULL_VAL;
@@ -8744,30 +8511,20 @@ VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.LoadPosition
- * \desc Loads the scene located in the scene list's position slot, if a scene sist is loaded.
+ * \desc Loads the scene located in the scene list's position slot, if a scene list is loaded.
  * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
  * \ns Scene
  */
 VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
-    if (Scene::ListData.size()) {
-        SceneListEntry scene = Scene::ListData[Scene::ListPos];
-        if (!strcmp(scene.fileType, "bin")) {
-            snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Stages/%s/Scene%s.%s", scene.folder, scene.id, scene.fileType);
-        }
-        else {
-            if (scene.folder[0] == '\0')
-                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s.%s", scene.id, scene.fileType);
-            else
-                snprintf(Scene::NextScene, sizeof(Scene::NextScene), "Scenes/%s/%s.%s", scene.folder, scene.id, scene.fileType);
-        }
-        if (argCount != 0) {
-            CHECK_ARGCOUNT(1);
-            Scene::NoPersistency = !!GET_ARG(1, GetInteger);
-        }
-        else {
-            Scene::NoPersistency = true;
-        }
-    }
+    if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return NULL_VAL;
+
+    std::string path = SceneInfo::GetFilename(Scene::CurrentSceneInList);
+
+    StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
+
+    Scene::NoPersistency = !!GET_ARG_OPT(1, GetInteger, false);
+
     return NULL_VAL;
 }
 /***
@@ -9068,15 +8825,45 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerDrawGroup
- * \desc Sets the draw group of the specified layer.
+ * \desc Gets the draw group of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \param drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)
+ * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
 
     return INTEGER_VAL(Scene::Layers[GET_ARG(0, GetInteger)].DrawGroup);
+}
+/***
+ * Scene.GetLayerHorizontalRepeat
+ * \desc Gets whether or not the layer repeats horizontally.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    if (Scene::Layers[GET_ARG(0, GetInteger)].Flags & SceneLayer::FLAGS_REPEAT_X)
+        INTEGER_VAL(true);
+
+    return INTEGER_VAL(false);
+}
+/***
+ * Scene.GetLayerVerticalRepeat
+ * \desc Gets whether or not the layer repeats vertically.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+
+    if (Scene::Layers[GET_ARG(0, GetInteger)].Flags & SceneLayer::FLAGS_REPEAT_Y)
+        INTEGER_VAL(true);
+
+    return INTEGER_VAL(false);
 }
 /***
  * Scene.GetTilesetCount
@@ -9170,16 +8957,6 @@ VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(Scene::TileHeight);
 }
 /***
- * Scene.GetTileSize
- * \desc Gets the size of tiles. (Deprecated; use <linkto ref="Scene.GetTileWidth"></linkto> and <linkto ref="Scene.GetTileHeight"></linkto> instead.)
- * \return Returns the size of tiles.
- * \ns Scene
- */
-VMValue Scene_GetTileSize(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::TileWidth);
-}
-/***
  * Scene.GetTileID
  * \desc Gets the tile's index number at the tile coordinates.
  * \param layer (Integer): Index of the layer
@@ -9262,13 +9039,13 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 }
 /***
  * Scene.GetListPos
- * \desc Gets the current list position of the scene.
+ * \desc Gets the current list position of the scene. (Deprecated)
  * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::ListPos);
+    return INTEGER_VAL(Scene::CurrentSceneInList);
 }
 /***
  * Scene.GetCurrentFolder
@@ -9322,23 +9099,23 @@ VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetCategoryCount
- * \desc Gets the amount of categories in the scene list.
+ * \desc Gets the amount of categories in the scene list. (Deprecated; use <linkto ref="SceneList.GetCategoryCount"></linkto> instead.)
  * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::CategoryCount);
+    return INTEGER_VAL((int)SceneInfo::Categories.size());
 }
 /***
  * Scene.GetStageCount
- * \desc Gets the amount of stages in the scene list.
+ * \desc Gets the amount of stages in the scene list. (Deprecated; use <linkto ref="SceneList.GetSceneCount"></linkto> instead.)
  * \return Returns an Integer value.
  * \ns Scene
  */
 VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Scene::StageCount);
+    return INTEGER_VAL((int)SceneInfo::Entries.size());
 }
 /***
  * Scene.GetDebugMode
@@ -9359,7 +9136,7 @@ VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 
-    BytecodeObject* object = (BytecodeObject*)Scene::ObjectFirst;
+    ScriptEntity* object = (ScriptEntity*)Scene::ObjectFirst;
     if (object) {
         return OBJECT_VAL(object->Instance);
     }
@@ -9375,7 +9152,7 @@ VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 
-    BytecodeObject* object = (BytecodeObject*)Scene::ObjectLast;
+    ScriptEntity* object = (ScriptEntity*)Scene::ObjectLast;
     if (object) {
         return OBJECT_VAL(object->Instance);
     }
@@ -9439,7 +9216,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
     if (!tileset || !animator)
         return NULL_VAL;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
         Animation* animation = animator->CurrentAnimation;
@@ -9449,7 +9226,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
             int tileID = ((y * tileset->NumCols) + x) + tileset->StartTile;
             array->Values->push_back(INTEGER_VAL(tileID));
         }
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
 
@@ -9473,13 +9250,13 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
     if (!tileset || !animator)
         return NULL_VAL;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
         Animation* animation = animator->CurrentAnimation;
         for (int i = 0; i < animation->Frames.size(); i++)
             array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
 
@@ -9544,50 +9321,41 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.CheckValidScene
- * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded.
+ * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)
  * \return Returns a Boolean value.
  * \ns Scene
  */
 VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    if (Scene::ListData.size()) {
-        if (Scene::ActiveCategory >= Scene::CategoryCount)
-            return INTEGER_VAL(0);
-
-        SceneListInfo list = Scene::ListCategory[Scene::ActiveCategory];
-        return INTEGER_VAL((int)(!!(Scene::ListPos >= list.sceneOffsetStart && Scene::ListPos <= list.sceneOffsetEnd)));
-    }
-    else {
-        return INTEGER_VAL(0);
-    } 
+    if (SceneInfo::IsEntryValidInCategory(Scene::ActiveCategory, Scene::CurrentSceneInList))
+        return INTEGER_VAL(true);
+    return INTEGER_VAL(false);
 }
 /***
  * Scene.CheckSceneFolder
- * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded.
+ * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)
  * \param folder (String): Folder name to compare.
  * \return Returns a Boolean value.
  * \ns Scene
  */
 VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (Scene::ListData.size())
-        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].folder, GET_ARG(0, GetString)) == 0));
-    else
-        return INTEGER_VAL(0);
+    if (SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return INTEGER_VAL(false);
+    return INTEGER_VAL((int)!!(strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].Folder, GET_ARG(0, GetString)) == 0));
 }
 /***
  * Scene.CheckSceneID
- * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded.
+ * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)
  * \param id (String): ID to compare.
  * \return Returns a Boolean value.
  * \ns Scene
  */
 VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (Scene::ListData.size())
-        return INTEGER_VAL((int)!!(strcmp(Scene::ListData[Scene::ListPos].id, GET_ARG(0, GetString)) == 0));
-    else
-        return INTEGER_VAL(0);
+    if (SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        return INTEGER_VAL(false);
+    return INTEGER_VAL((int)!!(strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].ID, GET_ARG(0, GetString)) == 0));
 }
 /***
  * Scene.IsPaused
@@ -9600,17 +9368,17 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetListPos
- * \desc Sets the current list position of the scene.
+ * \desc Sets the current list position of the scene. (Deprecated)
  * \ns Scene
  */
 VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Scene::ListPos = GET_ARG(0, GetInteger);
+    Scene::CurrentSceneInList = GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 /***
  * Scene.SetActiveCategory
- * \desc Sets the current category number of the scene.
+ * \desc Sets the current category number of the scene. (Deprecated)
  * \ns Scene
  */
 VMValue Scene_SetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
@@ -9630,14 +9398,14 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetScene
- * \desc Sets the scene if the category and scene names exist within the scene list.
+ * \desc Sets the scene if the category and scene names exist within the scene list. (Deprecated)
  * \param category (String): Category name.
- * \param scene (String): Scene name. If the scene name is not found but the category name is, the 
+ * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
 VMValue Scene_SetScene(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    Scene::SetScene(GET_ARG(0, GetString), GET_ARG(1, GetString));
+    Scene::SetCurrent(GET_ARG(0, GetString), GET_ARG(1, GetString));
     return NULL_VAL;
 }
 /***
@@ -9685,8 +9453,6 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 
     *tile |= collA;
     *tile |= collB;
-
-    // Scene::UpdateTileBatch(layer, x / 8, y / 8);
 
     Scene::AnyLayerTileChange = true;
 
@@ -9773,7 +9539,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
             if (IS_INTEGER(val))
                 otherTileID = AS_INTEGER(val);
             else
-                BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 2) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+                THROW_ERROR("Expected array index %d (argument 2) to be of type %s instead of %s.", i, GetTypeString(VAL_INTEGER), GetValueTypeString(val));
 
             tileIDs.push_back(otherTileID);
             frameDurations.push_back(30);
@@ -9785,7 +9551,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
             for (size_t i = 0; i < array->Values->size() && i < tileIDs.size(); i++) {
                 VMValue val = (*array->Values)[i];
                 if (!IS_INTEGER(val)) {
-                    BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Expected array index %d (argument 3) to be of type %s instead of %s.", i, "Integer", GetTypeString(val));
+                    THROW_ERROR("Expected array index %d (argument 3) to be of type %s instead of %s.", i, GetTypeString(VAL_INTEGER), GetValueTypeString(val));
                     continue;
                 }
 
@@ -10022,7 +9788,45 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int index = GET_ARG(0, GetInteger);
-    Scene::Layers[index].Repeat = !!GET_ARG(1, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+    else
+        Scene::Layers[index].Flags &= ~(SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalRepeat
+ * \desc Sets whether or not the specified layer repeats horizontally.
+ * \param layerIndex (Integer): Index of layer.
+ * \param doesRepeat (Boolean): Whether or not the layer repeats horizontally.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_X;
+    else
+        Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_X;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalRepeat
+ * \desc Sets whether or not the specified layer repeats vertically.
+ * \param layerIndex (Integer): Index of layer.
+ * \param doesRepeat (Boolean): Whether or not the layer repeats vertically.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    bool doesRepeat = !!GET_ARG(1, GetInteger);
+    if (doesRepeat)
+        Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_Y;
+    else
+        Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_Y;
     return NULL_VAL;
 }
 /***
@@ -10035,7 +9839,7 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int count = GET_ARG(0, GetInteger);
     if (count < 1) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Draw group count cannot be lower than 1.");
+        THROW_ERROR("Draw group count cannot be lower than 1.");
         return NULL_VAL;
     }
     Scene::SetPriorityPerLayer(count);
@@ -10087,9 +9891,9 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     int index = GET_ARG(0, GetInteger);
     float opacity = GET_ARG(1, GetDecimal);
     if (opacity < 0.0)
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Opacity cannot be lower than 0.0.");
+        THROW_ERROR("Opacity cannot be lower than 0.0.");
     else if (opacity > 1.0)
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Opacity cannot be higher than 1.0.");
+        THROW_ERROR("Opacity cannot be higher than 1.0.");
     Scene::Layers[index].Opacity = opacity;
     return NULL_VAL;
 }
@@ -10129,7 +9933,7 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
     if (BufferedScrollLines) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Did not end scroll line setup before beginning new one");
+        THROW_ERROR("Did not end scroll line setup before beginning new one");
         Memory::Free(BufferedScrollLines);
     }
     BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileWidth;
@@ -10198,7 +10002,7 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
     if (!BufferedScrollLines) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Did not start scroll line setup before ending.");
+        THROW_ERROR("Did not start scroll line setup before ending.");
         return NULL_VAL;
     }
 
@@ -10431,6 +10235,275 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region SceneList
+/***
+ * SceneList.Get
+ * \desc Gets the scene path for the specified category and entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \return Returns a String value.
+ * \ns SceneList
+ */
+VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return NULL_VAL;
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return NULL_VAL;
+    return OBJECT_VAL(CopyString(SceneInfo::GetFilename(entryID).c_str()));
+}
+/***
+ * SceneList.GetEntryID
+ * \desc Gets the entry ID for the specified category and entry name.
+ * \param categoryName (String): The category name.
+ * \param entryName (String): The entry name.
+ * \return Returns the entry ID, or <code>-1</code> if not found.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    char* categoryName = GET_ARG(0, GetString);
+    char* entryName = GET_ARG(1, GetString);
+    int entryID = SceneInfo::GetEntryID(categoryName, entryName);
+    if (entryID < 0)
+        return INTEGER_VAL(-1);
+    return INTEGER_VAL((int)SceneInfo::Entries[entryID].CategoryPos);
+}
+/***
+ * SceneList.GetCategoryID
+ * \desc Gets the category ID for the specified category name.
+ * \param categoryName (String): The category name.
+ * \return Returns the category ID, or <code>-1</code> if not found.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* categoryName = GET_ARG(0, GetString);
+    int categoryID = SceneInfo::GetCategoryID(categoryName);
+    return INTEGER_VAL(categoryID);
+}
+/***
+ * SceneList.GetEntryName
+ * \desc Gets the entry name for the specified category and entry.
+ * \param category (String): The category.
+ * \param entryID (Integer): The entry ID.
+ * \return Returns the entry name.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetInteger));
+    return OBJECT_VAL(CopyString(SceneInfo::Entries[actualEntryID].Name));
+}
+/***
+ * SceneList.GetCategoryName
+ * \desc Gets the category name for the specified category ID.
+ * \param categoryID (Integer): The category ID.
+ * \return Returns the category name, or <code>-1</code> if not valid.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int categoryID = GET_ARG(0, GetInteger);
+    if (!SceneInfo::IsCategoryValid(categoryID))
+        return NULL_VAL;
+    return OBJECT_VAL(CopyString(SceneInfo::Categories[categoryID].Name));
+}
+/***
+ * SceneList.GetEntryProperty
+ * \desc Gets a property for an entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \param property (String): The property.
+ * \return Returns a String value, or <code>null</code> if the entry has no such property.
+ * \ns SceneList
+ */
+VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return NULL_VAL;
+    }
+
+    char* propertyName = GET_ARG(2, GetString);
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return NULL_VAL;
+
+    char* property = SceneInfo::GetEntryProperty(actualEntryID, propertyName);
+    if (property == nullptr)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(property));
+}
+/***
+ * SceneList.GetCategoryProperty
+ * \desc Gets a property for a category.
+ * \param category (String): The category.
+ * \param property (String): The property.
+ * \return Returns a String value, or <code>null</code> if the category has no such property.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return NULL_VAL;
+    }
+
+    char* propertyName = GET_ARG(1, GetString);
+
+    char* property = SceneInfo::GetCategoryProperty(categoryID, propertyName);
+    if (property == nullptr)
+        return NULL_VAL;
+
+    return OBJECT_VAL(CopyString(property));
+}
+/***
+ * SceneList.HasEntryProperty
+ * \desc Checks if a given property exists in the entry.
+ * \param category (String): The category.
+ * \param entry (String): The entry.
+ * \param property (String): The property.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \ns SceneList
+ */
+VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    int categoryID = -1;
+    int entryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    if (IS_INTEGER(args[1]))
+        entryID = GET_ARG(1, GetInteger);
+    else {
+        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        if (entryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
+    if (actualEntryID < 0)
+        return INTEGER_VAL(false);
+
+    return INTEGER_VAL(!!SceneInfo::HasEntryProperty(actualEntryID, GET_ARG(2, GetString)));
+}
+/***
+ * SceneList.HasCategoryProperty
+ * \desc Checks if a given property exists in the category.
+ * \param category (String): The category.
+ * \param property (String): The property.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \ns SceneList
+ */
+VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    int categoryID = -1;
+
+    if (IS_INTEGER(args[0]))
+        categoryID = GET_ARG(0, GetInteger);
+    else {
+        categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (categoryID < 0)
+            return INTEGER_VAL(false);
+    }
+
+    return INTEGER_VAL(!!SceneInfo::HasCategoryProperty(categoryID, GET_ARG(1, GetString)));
+}
+/***
+ * SceneList.GetCategoryCount
+ * \desc Gets the amount of categories in the scene list.
+ * \return Returns an Integer value.
+ * \ns SceneList
+ */
+VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL((int)SceneInfo::Categories.size());
+}
+/***
+ * SceneList.GetSceneCount
+ * \desc Gets the amount of scenes in a category.
+ * \paramOpt categoryName (String): The category name.
+ * \return Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.
+ * \ns SceneList
+ */
+VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+    if (argCount >= 1) {
+        int categoryID = -1;
+        if (IS_INTEGER(args[0]))
+            categoryID = GET_ARG(0, GetInteger);
+        else
+            categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
+        if (!SceneInfo::IsCategoryValid(categoryID))
+            return INTEGER_VAL(0);
+        return INTEGER_VAL((int)SceneInfo::Categories[categoryID].Count);
+    }
+    else
+        return INTEGER_VAL((int)SceneInfo::Entries.size());
+}
+// #endregion
+
 // #region Scene3D
 /***
  * Scene3D.Create
@@ -10444,7 +10517,7 @@ VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 unloadPolicy = GET_ARG(0, GetInteger);
     Uint32 scene3DIndex = Graphics::CreateScene3D(unloadPolicy);
     if (scene3DIndex == 0xFFFFFFFF) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more 3D scenes available.");
+        THROW_ERROR("No more 3D scenes available.");
         return NULL_VAL;
     }
     return INTEGER_VAL((int)scene3DIndex);
@@ -10496,7 +10569,7 @@ VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
     int cullMode = GET_ARG(1, GetInteger);
     GET_SCENE_3D();
     if (cullMode < (int)FaceCull_None || cullMode > (int)FaceCull_Front) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid face cull mode %d.", cullMode);
+        THROW_ERROR("Invalid face cull mode %d.", cullMode);
         return NULL_VAL;
     }
     scene3D->FaceCullMode = cullMode;
@@ -10595,7 +10668,7 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
     Matrix4x4 matrix4x4;
     int arrSize = (int)projMatrix->Values->size();
     if (arrSize != 16) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
+        THROW_ERROR("Matrix has unexpected size (expected 16 elements, but has %d)", arrSize);
         return NULL_VAL;
     }
 
@@ -10681,7 +10754,7 @@ VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
     int fogEquation = GET_ARG(1, GetInteger);
     GET_SCENE_3D();
     if (fogEquation < (int)FogEquation_Linear || fogEquation > (int)FogEquation_Exp) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid fog equation %d.", fogEquation);
+        THROW_ERROR("Invalid fog equation %d.", fogEquation);
         return NULL_VAL;
     }
     scene3D->SetFogEquation((FogEquation)fogEquation);
@@ -10902,7 +10975,7 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        // THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -10927,7 +11000,7 @@ VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        // THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -10952,7 +11025,7 @@ VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        // THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -10977,7 +11050,7 @@ VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        // BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        // THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -11083,7 +11156,7 @@ VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -11126,7 +11199,7 @@ VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -11146,7 +11219,7 @@ VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -11167,7 +11240,7 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
     if (!Application::Settings->SectionExists(section)) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Section \"%s\" does not exist.", section);
+        THROW_ERROR("Section \"%s\" does not exist.", section);
         return NULL_VAL;
     }
 
@@ -11314,11 +11387,11 @@ VMValue SocketClient_ReadString(int argCount, VMValue* args, Uint32 threadID) {
     if (!client)
         return NULL_VAL;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         char* str = client->ReadString();
         ObjString* objStr = TakeString(str, strlen(str));
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(objStr);
     }
     return NULL_VAL;
@@ -11554,7 +11627,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, false, 0, panning, speed, volume, nullptr);
@@ -11581,7 +11654,7 @@ VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
     float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, true, loopPoint, panning, speed, volume, nullptr);
@@ -11598,7 +11671,7 @@ VMValue Sound_StopChannel(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int channel = GET_ARG(0, GetInteger);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::AudioStop(channel % AudioManager::SoundArrayLength);
@@ -11615,7 +11688,7 @@ VMValue Sound_PauseChannel(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int channel = GET_ARG(0, GetInteger);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::AudioPause(channel % AudioManager::SoundArrayLength);
@@ -11632,7 +11705,7 @@ VMValue Sound_ResumeChannel(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int channel = GET_ARG(0, GetInteger);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::AudioUnpause(channel % AudioManager::SoundArrayLength);
@@ -11655,7 +11728,7 @@ VMValue Sound_AlterChannel(int argCount, VMValue* args, Uint32 threadID) {
     float speed = GET_ARG(2, GetDecimal);
     float volume = GET_ARG(3, GetDecimal);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     AudioManager::AlterChannel(channel % AudioManager::SoundArrayLength, panning, speed, volume);
@@ -11681,7 +11754,7 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int channel = GET_ARG(0, GetInteger);
     if (channel < 0) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid channel index %d.", channel);
+        THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
     return INTEGER_VAL(AudioManager::AudioIsPlaying(channel % AudioManager::SoundArrayLength));
@@ -11931,8 +12004,36 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
         return OBJECT_VAL(array);
     }
 }
+/***
+ * Sprite.MakePalettized
+ * \desc Converts a sprite's colors to the ones in the specified palette index.
+ * \param sprite (Integer): The sprite index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Sprite
+ */
+VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int palIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    sprite->ConvertToPalette(palIndex);
+    return NULL_VAL;
+}
+/***
+ * Sprite.MakeNonPalettized
+ * \desc Removes a sprite's palette.
+ * \param sprite (Integer): The sprite index.
+ * \ns Sprite
+ */
+VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    sprite->ConvertToRGBA();
+    return NULL_VAL;
+}
 #undef CHECK_ANIMATION_INDEX
 #undef CHECK_ANIMFRAME_INDEX
+#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Stream
@@ -11945,16 +12046,16 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         char* filename = GET_ARG(0, GetString);
         ResourceStream* streamPtr = ResourceStream::New(filename);
         if (!streamPtr) {
-            BytecodeObjectManager::Unlock();
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not open resource stream \"%s\"!", filename);
+            ScriptManager::Unlock();
+            THROW_ERROR("Could not open resource stream \"%s\"!", filename);
             return NULL_VAL;
         }
         ObjStream* stream = NewStream(streamPtr, false);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(stream);
     }
     return NULL_VAL;
@@ -11969,17 +12070,17 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         char* filename = GET_ARG(0, GetString);
         int access = GET_ARG(1, GetInteger);
         FileStream* streamPtr = FileStream::New(filename, access);
         if (!streamPtr) {
-            BytecodeObjectManager::Unlock();
-            BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Could not open file stream \"%s\"!", filename);
+            ScriptManager::Unlock();
+            THROW_ERROR("Could not open file stream \"%s\"!", filename);
             return NULL_VAL;
         }
         ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(stream);
     }
     return NULL_VAL;
@@ -11994,7 +12095,7 @@ VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjStream* stream = GET_ARG(0, GetStream);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot close a stream that was already closed!");
+        THROW_ERROR("Cannot close a stream that was already closed!");
         return NULL_VAL;
     }
     stream->StreamPtr->Close();
@@ -12013,7 +12114,7 @@ VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
     ObjStream* stream = GET_ARG(0, GetStream);
     Sint64 offset = GET_ARG(1, GetInteger);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot seek closed stream!");
+        THROW_ERROR("Cannot seek closed stream!");
         return NULL_VAL;
     }
     stream->StreamPtr->Seek(offset);
@@ -12031,7 +12132,7 @@ VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
     ObjStream* stream = GET_ARG(0, GetStream);
     Sint64 offset = GET_ARG(1, GetInteger);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot seek closed stream!");
+        THROW_ERROR("Cannot seek closed stream!");
         return NULL_VAL;
     }
     stream->StreamPtr->SeekEnd(offset);
@@ -12049,7 +12150,7 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
     ObjStream* stream = GET_ARG(0, GetStream);
     Sint64 offset = GET_ARG(1, GetInteger);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot skip closed stream!");
+        THROW_ERROR("Cannot skip closed stream!");
         return NULL_VAL;
     }
     stream->StreamPtr->Skip(offset);
@@ -12066,7 +12167,7 @@ VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjStream* stream = GET_ARG(0, GetStream);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot get position of closed stream!");
+        THROW_ERROR("Cannot get position of closed stream!");
         return NULL_VAL;
     }
     return INTEGER_VAL((int)stream->StreamPtr->Position());
@@ -12082,7 +12183,7 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjStream* stream = GET_ARG(0, GetStream);
     if (stream->Closed) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Cannot get length of closed stream!");
+        THROW_ERROR("Cannot get length of closed stream!");
         return NULL_VAL;
     }
     return INTEGER_VAL((int)stream->StreamPtr->Length());
@@ -12255,10 +12356,10 @@ VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
     ObjStream* stream = GET_ARG(0, GetStream);
     CHECK_READ_STREAM;
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         char* line = stream->StreamPtr->ReadString();
         obj = OBJECT_VAL(TakeString(line));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -12274,10 +12375,10 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
     ObjStream* stream = GET_ARG(0, GetStream);
     CHECK_READ_STREAM;
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         char* line = stream->StreamPtr->ReadLine();
         obj = OBJECT_VAL(TakeString(line));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -12494,7 +12595,7 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
     char* string = GET_ARG(0, GetString);
     char* delimt = GET_ARG(1, GetString);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
 
         char* input = StringUtils::Duplicate(string);
@@ -12505,7 +12606,7 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
         }
         Memory::Free(input);
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
         return OBJECT_VAL(array);
     }
     return NULL_VAL;
@@ -12601,9 +12702,9 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
         length = strln - index;
 
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         obj = OBJECT_VAL(CopyString(string + index, length));
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -12619,7 +12720,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
     char* string = GET_ARG(0, GetString);
 
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjString* objStr = CopyString(string);
         for (char* a = objStr->Chars; *a; a++) {
             if (*a >= 'a' && *a <= 'z')
@@ -12628,7 +12729,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
                 *a += 'A' - 'a';
         }
         obj = OBJECT_VAL(objStr);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -12644,14 +12745,14 @@ VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
     char* string = GET_ARG(0, GetString);
 
     VMValue obj = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjString* objStr = CopyString(string);
         for (char* a = objStr->Chars; *a; a++) {
             if (*a >= 'A' && *a <= 'Z')
                 *a += 'a' - 'A';
         }
         obj = OBJECT_VAL(objStr);
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return obj;
 }
@@ -12700,7 +12801,7 @@ VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
     char* string = GET_ARG(0, GetString);
     int radix = GET_ARG_OPT(1, GetInteger, 10);
     if (radix < 0 || radix > 36) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Invalid radix of %d. (0 - 36)", radix);
+        THROW_ERROR("Invalid radix of %d. (0 - 36)", radix);
         return NULL_VAL;
     }
     return INTEGER_VAL((int)strtol(string, NULL, radix));
@@ -12930,7 +13031,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 
     Scene::CollisionInLine(x, y, angleMode, length, collisionField, compareAngle > -1, &sensor);
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         /*ObjMap*    mapSensor = NewMap();
 
         mapSensor->Values->Put("X", DECIMAL_VAL((float)sensor.X));
@@ -12938,7 +13039,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
         mapSensor->Values->Put("Collided", INTEGER_VAL(sensor.Collided));
         mapSensor->Values->Put("Angle", INTEGER_VAL(sensor.Angle));
 
-        BytecodeObjectManager::Unlock();*/
+        ScriptManager::Unlock();*/
         if (entity->EntityPtr) {
             auto ent = (Entity*)entity->EntityPtr;
             ent->SensorX = (float)sensor.X;
@@ -13032,7 +13133,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
     int flipY = GET_ARG_OPT(5, GetInteger, 0);
 
     if (!Scene::TileCfgLoaded) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
+        THROW_ERROR("Tile collision data is not loaded.");
         return NULL_VAL;
     }
 
@@ -13084,7 +13185,7 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
     int flipY = GET_ARG_OPT(4, GetInteger, 0);
 
     if (!Scene::TileCfgLoaded) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
+        THROW_ERROR("Tile collision data is not loaded.");
         return NULL_VAL;
     }
 
@@ -13126,7 +13227,7 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
     int collisionPlane = GET_ARG(1, GetInteger);
 
     if (!Scene::TileCfgLoaded) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile Collision is not loaded.");
+        THROW_ERROR("Tile Collision is not loaded.");
         return NULL_VAL;
     }
 
@@ -13151,7 +13252,7 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
     int collisionPlane = GET_ARG(1, GetInteger);
 
     if (!Scene::TileCfgLoaded) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "Tile collision data is not loaded.");
+        THROW_ERROR("Tile collision data is not loaded.");
         return NULL_VAL;
     }
 
@@ -13176,12 +13277,12 @@ int     _Thread_RunEvent(void* op) {
     bundle = (_Thread_Bundle*)op;
 
     VMValue*  args = (VMValue*)(bundle + 1);
-    VMThread* thread = BytecodeObjectManager::Threads + bundle->ThreadIndex;
+    VMThread* thread = ScriptManager::Threads + bundle->ThreadIndex;
     VMValue   callbackVal = OBJECT_VAL(&bundle->Callback);
 
     // if (bundle->Callback.Method == NULL) {
     //     Log::Print(Log::LOG_ERROR, "No callback.");
-    //     BytecodeObjectManager::ThreadCount--;
+    //     ScriptManager::ThreadCount--;
     //     free(bundle);
     //     return 0;
     // }
@@ -13194,8 +13295,8 @@ int     _Thread_RunEvent(void* op) {
 
     free(bundle);
 
-    BytecodeObjectManager::ThreadCount--;
-    Log::Print(Log::LOG_IMPORTANT, "Thread %d closed.", BytecodeObjectManager::ThreadCount);
+    ScriptManager::ThreadCount--;
+    Log::Print(Log::LOG_IMPORTANT, "Thread %d closed.", ScriptManager::ThreadCount);
     return 0;
 }
 /***
@@ -13216,7 +13317,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     if (callback == NULL) {
-        Compiler::PrintValue(args[0]);
+        Values::PrintValue(args[0]);
         printf("\n");
         Log::Print(Log::LOG_ERROR, "No callback.");
         return NULL_VAL;
@@ -13228,7 +13329,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
     bundle->Callback = *callback;
     bundle->Callback.Object.Next = NULL;
     bundle->ArgCount = subArgCount;
-    bundle->ThreadIndex = BytecodeObjectManager::ThreadCount++;
+    bundle->ThreadIndex = ScriptManager::ThreadCount++;
     if (subArgCount > 0)
         memcpy(bundle + 1, args + 1, subArgCount * sizeof(VMValue));
 
@@ -13265,7 +13366,7 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
     Uint32 unloadPolicy = GET_ARG(1, GetInteger);
     Uint32 vertexBufferIndex = Graphics::CreateVertexBuffer(numVertices, unloadPolicy);
     if (vertexBufferIndex == 0xFFFFFFFF) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "No more vertex buffers available.");
+        THROW_ERROR("No more vertex buffers available.");
         return NULL_VAL;
     }
     return INTEGER_VAL((int)vertexBufferIndex);
@@ -13971,7 +14072,7 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
     int view_index = GET_ARG(0, GetInteger);
     CHECK_VIEW_INDEX();
     if (!Scene::Views[view_index].UseDrawTarget) {
-        BytecodeObjectManager::Threads[threadID].ThrowRuntimeError(false, "View %d lacks a draw target!", view_index);
+        THROW_ERROR("View %d lacks a draw target!", view_index);
         return NULL_VAL;
     }
 
@@ -14348,10 +14449,9 @@ static VMValue XML_FillMap(XMLNode* parent) {
         Token text = parent->children[0]->name;
 
         if (numAttr) {
-            const char* textKey = "#text";
-            keyHash = map->Keys->HashFunction(textKey, strlen(textKey));
-
-            map->Keys->Put(keyHash, HeapCopyString(textKey, strlen(textKey)));
+            char* textKey = StringUtils::Duplicate("#text");
+            keyHash = map->Keys->HashFunction(textKey, 5);
+            map->Keys->Put(keyHash, textKey);
             map->Values->Put(keyHash, OBJECT_VAL(CopyString(text.Start, text.Length)));
         }
         else
@@ -14381,7 +14481,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
                 thisArray->Values->push_back(XML_FillMap(node));
             }
             else {
-                map->Keys->Put(keyHash, HeapCopyString(nodeName->Start, nodeName->Length));
+                map->Keys->Put(keyHash, StringUtils::Duplicate(nodeName->Start, nodeName->Length));
                 map->Values->Put(keyHash, XML_FillMap(node));
             }
         }
@@ -14392,22 +14492,29 @@ static VMValue XML_FillMap(XMLNode* parent) {
         return OBJECT_VAL(map);
 
     char* attrName = NULL;
+    size_t attrNameSize = 0;
 
     for (size_t i = 0; i < numAttr; i++) {
-        char *key = attributes->KeyVector[i];
-        char *value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
+        char* key = attributes->KeyVector[i];
+        char* value = XMLParser::TokenToString(attributes->ValueMap.Get(key));
 
-        attrName = (char*)realloc(attrName, strlen(key) + 2);
-        if (!attrName) {
-            Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
-            abort();
+        size_t length = strlen(key) + 2;
+        if (length > attrNameSize) {
+            attrNameSize = length;
+            attrName = (char*)realloc(attrName, attrNameSize);
+            if (!attrName) {
+                Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
+                abort();
+            }
         }
 
-        sprintf(attrName, "#%s", key);
+        snprintf(attrName, attrNameSize, "#%s", key);
 
-        keyHash = map->Keys->HashFunction(attrName, strlen(attrName));
-        map->Keys->Put(keyHash, HeapCopyString(attrName, strlen(attrName)));
+        keyHash = map->Keys->HashFunction(attrName, attrNameSize - 1);
+        map->Keys->Put(keyHash, StringUtils::Duplicate(attrName));
         map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
+
+        Memory::Free(value);
     }
 
     free(attrName);
@@ -14424,7 +14531,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     VMValue mapValue = NULL_VAL;
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         ObjString* string = AS_STRING(args[0]);
         char* text = StringUtils::Duplicate(string->Chars);
 
@@ -14441,7 +14548,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
         else
             Memory::Free(text);
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
     return mapValue;
 }
@@ -14451,16 +14558,26 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
     String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
     String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
 
-#define DEF_CONST_INT(a, b)     BytecodeObjectManager::GlobalConstInteger(NULL, a, b)
-#define DEF_LINK_INT(a, b)      BytecodeObjectManager::GlobalLinkInteger(NULL, a, b)
-#define DEF_CONST_DECIMAL(a, b) BytecodeObjectManager::GlobalConstDecimal(NULL, a, b)
-#define DEF_LINK_DECIMAL(a, b)  BytecodeObjectManager::GlobalLinkDecimal(NULL, a, b)
+#define DEF_CONST_INT(a, b)     ScriptManager::GlobalConstInteger(NULL, a, b)
+#define DEF_LINK_INT(a, b)      ScriptManager::GlobalLinkInteger(NULL, a, b)
+#define DEF_CONST_DECIMAL(a, b) ScriptManager::GlobalConstDecimal(NULL, a, b)
+#define DEF_LINK_DECIMAL(a, b)  ScriptManager::GlobalLinkDecimal(NULL, a, b)
 #define DEF_ENUM(a)             DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b)    DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
+ObjClass* InitClass(const char* className) {
+    ObjClass* klass = NewClass(Murmur::EncryptString(className));
+    klass->Name = CopyString(className);
+    return klass;
+}
+ObjNamespace* InitNamespace(const char* nsName) {
+    ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
+    ns->Name = CopyString(nsName);
+    return ns;
+}
+
 PUBLIC STATIC void StandardLibrary::Link() {
-    VMValue val;
     ObjClass* klass;
 
     for (int i = 0; i < 0x100; i++) {
@@ -14483,12 +14600,22 @@ PUBLIC STATIC void StandardLibrary::Link() {
     String_CaseMapBind(L'ç', L'Ç');
 
     #define INIT_CLASS(className) \
-        klass = NewClass(Murmur::EncryptString(#className)); \
-        klass->Name = CopyString(#className, strlen(#className)); \
-        val = OBJECT_VAL(klass); \
-        BytecodeObjectManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+        klass = InitClass(#className); \
+        ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
     #define DEF_NATIVE(className, funcName) \
-        BytecodeObjectManager::DefineNative(klass, #funcName, className##_##funcName)
+        ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    #define INIT_NAMESPACE(nsName) \
+        ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+        ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
+        ScriptManager::AllNamespaces.push_back(ns_##nsName)
+    #define INIT_NAMESPACED_CLASS(nsName, className) \
+        klass = InitClass(#className); \
+        ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
+    #define DEF_NAMESPACED_NATIVE(className, funcName) \
+        ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
+
+    INIT_NAMESPACE(RSDK);
 
     // #region Animator
     INIT_CLASS(Animator);
@@ -14521,18 +14648,24 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Application
     INIT_CLASS(Application);
+    DEF_NATIVE(Application, GetEngineVersionString);
+    DEF_NATIVE(Application, GetEngineVersionMajor);
+    DEF_NATIVE(Application, GetEngineVersionMinor);
+    DEF_NATIVE(Application, GetEngineVersionPatch);
+    DEF_NATIVE(Application, GetEngineVersionPrerelease);
+    DEF_NATIVE(Application, GetEngineVersionCodename);
     DEF_NATIVE(Application, GetFPS);
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
     DEF_NATIVE(Application, Quit);
     DEF_NATIVE(Application, GetGameTitle);
     DEF_NATIVE(Application, GetGameTitleShort);
-    DEF_NATIVE(Application, GetVersion);
-    DEF_NATIVE(Application, GetDescription);
+    DEF_NATIVE(Application, GetGameVersion);
+    DEF_NATIVE(Application, GetGameDescription);
     DEF_NATIVE(Application, SetGameTitle);
     DEF_NATIVE(Application, SetGameTitleShort);
-    DEF_NATIVE(Application, SetVersion);
-    DEF_NATIVE(Application, SetDescription);
+    DEF_NATIVE(Application, SetGameVersion);
+    DEF_NATIVE(Application, SetGameDescription);
     DEF_NATIVE(Application, SetCursorVisible);
     DEF_NATIVE(Application, GetCursorVisible);
     /***
@@ -14630,7 +14763,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, HasShareButton);
     DEF_NATIVE(Controller, HasMicrophoneButton);
     DEF_NATIVE(Controller, HasPaddles);
-    DEF_NATIVE(Controller, GetButton);
+    DEF_NATIVE(Controller, IsButtonHeld);
+    DEF_NATIVE(Controller, IsButtonPressed);
+    DEF_NATIVE(Controller, GetButton); // deprecated
     DEF_NATIVE(Controller, GetAxis);
     DEF_NATIVE(Controller, GetType);
     DEF_NATIVE(Controller, GetName);
@@ -14641,8 +14776,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Controller, Rumble);
     DEF_NATIVE(Controller, StopRumble);
     DEF_NATIVE(Controller, SetRumblePaused);
-    DEF_NATIVE(Controller, SetLargeMotorFrequency);
-    DEF_NATIVE(Controller, SetSmallMotorFrequency);
+    DEF_NATIVE(Controller, SetLargeMotorFrequency); // deprecated
+    DEF_NATIVE(Controller, SetSmallMotorFrequency); // deprecated
     /***
     * \constant NUM_CONTROLLER_BUTTONS
     * \type Integer
@@ -14985,18 +15120,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, BindVertexBuffer);
     DEF_NATIVE(Draw, UnbindVertexBuffer);
     DEF_NATIVE(Draw, BindScene3D);
-    DEF_NATIVE(Draw, InitArrayBuffer); // deprecated
-    DEF_NATIVE(Draw, BindArrayBuffer); // deprecated
-    DEF_NATIVE(Draw, SetArrayBufferDrawMode); // deprecated
-    DEF_NATIVE(Draw, SetProjectionMatrix); // deprecated
-    DEF_NATIVE(Draw, SetViewMatrix); // deprecated
-    DEF_NATIVE(Draw, SetAmbientLighting); // deprecated
-    DEF_NATIVE(Draw, SetDiffuseLighting); // deprecated
-    DEF_NATIVE(Draw, SetSpecularLighting); // deprecated
-    DEF_NATIVE(Draw, SetFogDensity); // deprecated
-    DEF_NATIVE(Draw, SetFogColor); // deprecated
-    DEF_NATIVE(Draw, SetClipPolygons); // deprecated
-    DEF_NATIVE(Draw, SetPointSize); // deprecated
     DEF_NATIVE(Draw, Model);
     DEF_NATIVE(Draw, ModelSkinned);
     DEF_NATIVE(Draw, ModelSimple);
@@ -15014,7 +15137,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, SceneLayer3D);
     DEF_NATIVE(Draw, SceneLayerPart3D);
     DEF_NATIVE(Draw, VertexBuffer);
-    DEF_NATIVE(Draw, RenderArrayBuffer); // deprecated
     DEF_NATIVE(Draw, RenderScene3D);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);
@@ -15514,86 +15636,86 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Hitbox Sides
     /***
-    * \enum LEFT
+    * \enum HitboxSide_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-    DEF_ENUM(LEFT);
+    DEF_ENUM(HitboxSide_LEFT);
     /***
-    * \enum TOP
+    * \enum HitboxSide_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-    DEF_ENUM(TOP);
+    DEF_ENUM(HitboxSide_TOP);
     /***
-    * \enum RIGHT
+    * \enum HitboxSide_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-    DEF_ENUM(RIGHT);
+    DEF_ENUM(HitboxSide_RIGHT);
     /***
-    * \enum BOTTOM
+    * \enum HitboxSide_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-    DEF_ENUM(BOTTOM);
+    DEF_ENUM(HitboxSide_BOTTOM);
     // #endregion
 
     // #region Weekdays
     /***
-    * \enum SUNDAY
-    * \desc The first day of the week (value 0).
+    * \enum Weekday_SUNDAY
+    * \desc The first day of the week.
     */
-    DEF_ENUM(SUNDAY);
+    DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
     /***
-    * \enum MONDAY
-    * \desc The second day of the week (value 1).
+    * \enum Weekday_MONDAY
+    * \desc The second day of the week.
     */
-    DEF_ENUM(MONDAY);
+    DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
     /***
-    * \enum TUESDAY
-    * \desc The third day of the week (value 2).
+    * \enum Weekday_TUESDAY
+    * \desc The third day of the week.
     */
-    DEF_ENUM(TUESDAY);
+    DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
     /***
-    * \enum WEDNESDAY
-    * \desc The fourth day of the week (value 3).
+    * \enum Weekday_WEDNESDAY
+    * \desc The fourth day of the week.
     */
-    DEF_ENUM(WEDNESDAY);
+    DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
     /***
-    * \enum THURSDAY
-    * \desc The fifth day of the week (value 4).
+    * \enum Weekday_THURSDAY
+    * \desc The fifth day of the week.
     */
-    DEF_ENUM(THURSDAY);
+    DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
     /***
-    * \enum FRIDAY
-    * \desc The sixth day of the week (value 5).
+    * \enum Weekday_FRIDAY
+    * \desc The sixth day of the week.
     */
-    DEF_ENUM(FRIDAY);
+    DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
     /***
-    * \enum SATURDAY
-    * \desc The seventh day of the week (value 6).
+    * \enum Weekday_SATURDAY
+    * \desc The seventh day of the week.
     */
-    DEF_ENUM(SATURDAY);
+    DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
     // #endregion
 
     // #region TimesOfDay
     /***
-    * \enum MORNING
-    * \desc The early hours of the day (5AM to 11AM, 0500 to 1100).
+    * \enum TimeOfDay_MORNING
+    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
     */
-    DEF_ENUM(MORNING);
+    DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
     /***
-    * \enum MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, 1200 to 1600).
+    * \enum TimeOfDay_MIDDAY
+    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
     */
-    DEF_ENUM(MIDDAY);
+    DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
     /***
-    * \enum EVENING
-    * \desc The later hours of the day (5PM to 8PM, 1700 to 2000).
+    * \enum TimeOfDay_EVENING
+    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
     */
-    DEF_ENUM(EVENING);
+    DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
     /***
-    * \enum NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, 2100 to 400).
+    * \enum TimeOfDay_NIGHT
+    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
     */
-    DEF_ENUM(NIGHT);
+    DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
     // #endregion
 
     // #region Ease
@@ -15654,12 +15776,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsKeyDown);
     DEF_NATIVE(Input, IsKeyPressed);
     DEF_NATIVE(Input, IsKeyReleased);
-    DEF_NATIVE(Input, GetControllerCount); // deprecated
-    DEF_NATIVE(Input, GetControllerAttached); // deprecated
-    DEF_NATIVE(Input, GetControllerHat); // deprecated
-    DEF_NATIVE(Input, GetControllerAxis); // deprecated
-    DEF_NATIVE(Input, GetControllerButton); // deprecated
-    DEF_NATIVE(Input, GetControllerName); // deprecated
     DEF_NATIVE(Input, GetKeyName);
     DEF_NATIVE(Input, GetButtonName);
     DEF_NATIVE(Input, GetAxisName);
@@ -15733,25 +15849,29 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Sqrt);
     DEF_NATIVE(Math, Pow);
     DEF_NATIVE(Math, Exp);
-    DEF_NATIVE(Math, ClearTrigLookupTables);
-    DEF_NATIVE(Math, CalculateTrigAngles);
-    DEF_NATIVE(Math, Sin1024);
-    DEF_NATIVE(Math, Cos1024);
-    DEF_NATIVE(Math, Tan1024);
-    DEF_NATIVE(Math, ASin1024);
-    DEF_NATIVE(Math, ACos1024);
-    DEF_NATIVE(Math, Sin512);
-    DEF_NATIVE(Math, Cos512);
-    DEF_NATIVE(Math, Tan512);
-    DEF_NATIVE(Math, ASin512);
-    DEF_NATIVE(Math, ACos512);
-    DEF_NATIVE(Math, Sin256);
-    DEF_NATIVE(Math, Cos256);
-    DEF_NATIVE(Math, Tan256);
-    DEF_NATIVE(Math, ASin256);
-    DEF_NATIVE(Math, ACos256);
-    DEF_NATIVE(Math, RadianToInteger);
-    DEF_NATIVE(Math, IntegerToRadian);
+    // #endregion
+
+    // #region RSDK.Math
+    INIT_NAMESPACED_CLASS(RSDK, Math);
+    DEF_NAMESPACED_NATIVE(Math, ClearTrigLookupTables);
+    DEF_NAMESPACED_NATIVE(Math, CalculateTrigAngles);
+    DEF_NAMESPACED_NATIVE(Math, Sin1024);
+    DEF_NAMESPACED_NATIVE(Math, Cos1024);
+    DEF_NAMESPACED_NATIVE(Math, Tan1024);
+    DEF_NAMESPACED_NATIVE(Math, ASin1024);
+    DEF_NAMESPACED_NATIVE(Math, ACos1024);
+    DEF_NAMESPACED_NATIVE(Math, Sin512);
+    DEF_NAMESPACED_NATIVE(Math, Cos512);
+    DEF_NAMESPACED_NATIVE(Math, Tan512);
+    DEF_NAMESPACED_NATIVE(Math, ASin512);
+    DEF_NAMESPACED_NATIVE(Math, ACos512);
+    DEF_NAMESPACED_NATIVE(Math, Sin256);
+    DEF_NAMESPACED_NATIVE(Math, Cos256);
+    DEF_NAMESPACED_NATIVE(Math, Tan256);
+    DEF_NAMESPACED_NATIVE(Math, ASin256);
+    DEF_NAMESPACED_NATIVE(Math, ACos256);
+    DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
+    DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
     // #endregion
 
     // #region Matrix
@@ -15764,6 +15884,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Matrix, Translate);
     DEF_NATIVE(Matrix, Scale);
     DEF_NATIVE(Matrix, Rotate);
+    // #endregion
+
+    // #region RSDK.Matrix
+    INIT_NAMESPACED_CLASS(RSDK, Matrix);
     DEF_NATIVE(Matrix, Create256);
     DEF_NATIVE(Matrix, Identity256);
     DEF_NATIVE(Matrix, Multiply256);
@@ -15895,9 +16019,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerOffsetX);
     DEF_NATIVE(Scene, GetLayerOffsetY);
     DEF_NATIVE(Scene, GetLayerDrawGroup);
+    DEF_NATIVE(Scene, GetLayerHorizontalRepeat);
+    DEF_NATIVE(Scene, GetLayerVerticalRepeat);
     DEF_NATIVE(Scene, GetTileWidth);
     DEF_NATIVE(Scene, GetTileHeight);
-    DEF_NATIVE(Scene, GetTileSize); // deprecated
     DEF_NATIVE(Scene, GetTileID);
     DEF_NATIVE(Scene, GetTileFlipX);
     DEF_NATIVE(Scene, GetTileFlipY);
@@ -15908,14 +16033,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTilesetFirstTileID);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
-    DEF_NATIVE(Scene, GetListPos);
+    DEF_NATIVE(Scene, GetListPos); // deprecated
     DEF_NATIVE(Scene, GetCurrentFolder);
     DEF_NATIVE(Scene, GetCurrentID);
     DEF_NATIVE(Scene, GetCurrentSpriteFolder);
     DEF_NATIVE(Scene, GetCurrentCategory);
     DEF_NATIVE(Scene, GetActiveCategory);
-    DEF_NATIVE(Scene, GetCategoryCount);
-    DEF_NATIVE(Scene, GetStageCount);
+    DEF_NATIVE(Scene, GetCategoryCount); // deprecated
+    DEF_NATIVE(Scene, GetStageCount); // deprecated
     DEF_NATIVE(Scene, GetDebugMode);
     DEF_NATIVE(Scene, GetFirstInstance);
     DEF_NATIVE(Scene, GetLastInstance);
@@ -15928,14 +16053,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTileAnimSequencePaused);
     DEF_NATIVE(Scene, GetTileAnimSequenceSpeed);
     DEF_NATIVE(Scene, GetTileAnimSequenceFrame);
-    DEF_NATIVE(Scene, CheckValidScene);
-    DEF_NATIVE(Scene, CheckSceneFolder);
-    DEF_NATIVE(Scene, CheckSceneID);
+    DEF_NATIVE(Scene, CheckValidScene); // deprecated
+    DEF_NATIVE(Scene, CheckSceneFolder); // deprecated
+    DEF_NATIVE(Scene, CheckSceneID); // deprecated
     DEF_NATIVE(Scene, IsPaused);
-    DEF_NATIVE(Scene, SetListPos);
-    DEF_NATIVE(Scene, SetActiveCategory);
+    DEF_NATIVE(Scene, SetListPos); // deprecated
+    DEF_NATIVE(Scene, SetActiveCategory); // deprecated
     DEF_NATIVE(Scene, SetDebugMode);
-    DEF_NATIVE(Scene, SetScene);
+    DEF_NATIVE(Scene, SetScene); // deprecated
     DEF_NATIVE(Scene, SetTile);
     DEF_NATIVE(Scene, SetTileCollisionSides);
     DEF_NATIVE(Scene, SetPaused);
@@ -15954,6 +16079,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetLayerDrawGroup);
     DEF_NATIVE(Scene, SetLayerDrawBehavior);
     DEF_NATIVE(Scene, SetLayerRepeat);
+    DEF_NATIVE(Scene, SetLayerHorizontalRepeat);
+    DEF_NATIVE(Scene, SetLayerVerticalRepeat);
     DEF_NATIVE(Scene, SetDrawGroupCount);
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
@@ -15991,6 +16118,21 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #endregion
 
     // #region Scene
+    INIT_CLASS(SceneList);
+    DEF_NATIVE(SceneList, Get);
+    DEF_NATIVE(SceneList, GetEntryID);
+    DEF_NATIVE(SceneList, GetCategoryID);
+    DEF_NATIVE(SceneList, GetEntryName);
+    DEF_NATIVE(SceneList, GetCategoryName);
+    DEF_NATIVE(SceneList, GetEntryProperty);
+    DEF_NATIVE(SceneList, GetCategoryProperty);
+    DEF_NATIVE(SceneList, HasEntryProperty);
+    DEF_NATIVE(SceneList, HasCategoryProperty);
+    DEF_NATIVE(SceneList, GetCategoryCount);
+    DEF_NATIVE(SceneList, GetSceneCount);
+    // #endregion
+
+    // #region Scene3D
     INIT_CLASS(Scene3D);
     DEF_NATIVE(Scene3D, Create);
     DEF_NATIVE(Scene3D, Delete);
@@ -16128,6 +16270,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameOffsetX);
     DEF_NATIVE(Sprite, GetFrameOffsetY);
     DEF_NATIVE(Sprite, GetFrameHitbox);
+    DEF_NATIVE(Sprite, MakePalettized);
+    DEF_NATIVE(Sprite, MakeNonPalettized);
     // #endregion
 
     // #region Stream
@@ -16432,7 +16576,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \type Integer
     * \desc The position of the current scene in the scene list.
     */
-    DEF_LINK_INT("Scene_ListPos", &Scene::ListPos);
+    DEF_LINK_INT("Scene_ListPos", &Scene::CurrentSceneInList);
     /***
     * \global Scene_ActiveCategory
     * \type Integer

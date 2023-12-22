@@ -1,16 +1,15 @@
 #if INTERFACE
 #include <Engine/IO/Stream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 class TiledMapReader {
 public:
-    // static bool             Initialized;
 };
 #endif
 
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -186,13 +185,7 @@ PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMV
 
     Token    property_name = node->attributes.Get("name");
 
-    char*  scene_attribute_name = (char*)malloc(property_name.Length + 1);
-    memcpy(scene_attribute_name, property_name.Start, property_name.Length);
-    scene_attribute_name[property_name.Length] = 0;
-
-    properties->Put(scene_attribute_name, TiledMapReader::ParseProperty(node));
-
-    free(scene_attribute_name);
+    properties->Put(property_name.ToString().c_str(), TiledMapReader::ParseProperty(node));
 }
 
 PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
@@ -200,9 +193,7 @@ PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
         return nullptr;
 
     Token  points_token = node->attributes.Get("points");
-    char*  points_text = (char*)malloc(points_token.Length + 1);
-    memcpy(points_text, points_token.Start, points_token.Length);
-    points_text[points_token.Length] = 0;
+    char*  points_text = StringUtils::Create(points_token);
 
     ObjArray* array = NewArray();
 
@@ -220,7 +211,7 @@ PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
         token = strtok(NULL, " ");
     }
 
-    free(points_text);
+    Memory::Free(points_text);
 
     return array;
 }
@@ -450,7 +441,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
 
             scenelayer.RelativeY = 0x100;
             scenelayer.ConstantY = 0x00;
-            scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE | SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+            scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
             scenelayer.DrawGroup = 0;
             scenelayer.Properties = layer_properties;
 
@@ -499,14 +490,10 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                 Token    object_type = object->attributes.Get("name");
                 float    object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
                 float    object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
-                char     object_type_string[256];
 
-                strncpy(object_type_string, object_type.Start, object_type.Length);
-                object_type_string[object_type.Length] = 0;
-
-                ObjectList* objectList = Scene::GetStaticObjectList(object_type_string);
+                ObjectList* objectList = Scene::GetStaticObjectList(object_type.ToString().c_str());
                 if (objectList->SpawnFunction) {
-                    BytecodeObject* obj = (BytecodeObject*)objectList->Spawn();
+                    ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
                     if (!obj)
                         continue;
 

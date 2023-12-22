@@ -11,7 +11,7 @@ public:
 
 #include <Engine/Network/HTTP.h>
 
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
@@ -88,18 +88,18 @@ int       _GET_FromThread(void* op) {
     Uint8* ptr = data->Ptr;
     size_t length = data->Length;
 
-    if (BytecodeObjectManager::Lock()) {
+    if (ScriptManager::Lock()) {
         // ObjString* string = TakeString((char*)ptr, length);
         // VMValue    callbackVal = OBJECT_VAL(&bundle->Callback);
         // // if (bundle->Callback.Function->Arity != 1)
-        // // BytecodeObjectManager::ThrowError
+        // // ScriptManager::ThrowError
 
         // Push(callbackVal);
         // Push(OBJECT_VAL(string));
         // CallValue(callbackVal, 1);
         // while (Run_Instruction() >= 0);
 
-        BytecodeObjectManager::Unlock();
+        ScriptManager::Unlock();
     }
 
     free(data);
@@ -119,9 +119,9 @@ PUBLIC STATIC bool HTTP::GET(const char* url, Uint8** outBuf, size_t* outLen, Ob
     }
 
     if (callback && false) {
-        // NOTE: Mutex lock/unlock while using BytecodeObjectManager from other thread.
+        // NOTE: Mutex lock/unlock while using ScriptManager from other thread.
         // if (callback->Function->Arity != 1)
-        // BytecodeObjectManager::ThrowError
+        // ScriptManager::ThrowError
         _GET_Bundle* bundle = (_GET_Bundle*)malloc(sizeof(_GET_Bundle) + strlen(url) + 1);
         bundle->URL = (char*)(bundle + 1);
         bundle->Callback = *callback;

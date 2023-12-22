@@ -9,7 +9,7 @@ public:
 #endif
 
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* MapImpl::Class = nullptr;
@@ -20,11 +20,11 @@ PUBLIC STATIC void MapImpl::Init() {
     Class = NewClass(Murmur::EncryptString(name));
     Class->Name = CopyString(name);
 
-    BytecodeObjectManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
-    BytecodeObjectManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
-    BytecodeObjectManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
+    ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
+    ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
+    ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
-    BytecodeObjectManager::ClassImplList.push_back(Class);
+    ScriptManager::ClassImplList.push_back(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

@@ -24,8 +24,7 @@ typedef enum {
 
 enum {
     CLASS_TYPE_NORMAL,
-    CLASS_TYPE_EXTENDED,
-    CLASS_TYPE_ENUM
+    CLASS_TYPE_EXTENDED
 };
 
 struct Obj;
@@ -49,26 +48,22 @@ struct Chunk {
     int*             Lines;
     vector<VMValue>* Constants;
     bool             OwnsMemory;
+
+    void Init();
+    void Alloc();
+    void Free();
+    void Write(Uint8 byte, int line);
+    int  AddConstant(VMValue value);
 };
 
-struct Bytecode {
+struct BytecodeContainer {
     Uint8* Data;
     size_t Size;
 };
 
-struct PrintBuffer {
-    char** Buffer;
-    int WriteIndex;
-    int BufferSize;
-};
-int buffer_printf(PrintBuffer* printBuffer, const char *format, ...);
-
-void ChunkInit(Chunk* chunk);
-void ChunkFree(Chunk* chunk);
-void ChunkWrite(Chunk* chunk, Uint8 byte, int line);
-int  ChunkAddConstant(Chunk* chunk, VMValue value);
-
-const char* GetTypeString(VMValue value);
+const char* GetTypeString(Uint32 type);
+const char* GetObjectTypeString(Uint32 type);
+const char* GetValueTypeString(VMValue value);
 
 #define IS_NULL(value)  ((value).Type == VAL_NULL)
 #define IS_INTEGER(value)  ((value).Type == VAL_INTEGER)
@@ -100,32 +95,15 @@ const char* GetTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
-#define IS_NOT_NUMBER(value) (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
-
-// NOTE: Engine can either use integer or decimal for the number value.
-//   Set this to integer for Sonic, and decimal for non-optimized, floating-point projects.
-// #define IE_FIXED_POINT_MATH
-#ifdef  IE_FIXED_POINT_MATH
-    #define IS_NUMBER(value)        (IS_INTEGER(value))
-    #define IS_LINKED_NUMBER(value) (IS_LINKED_INTEGER(value))
-    #define AS_NUMBER(value)        (AS_INTEGER(value))
-    #define AS_LINKED_NUMBER(value) (AS_LINKED_INTEGER(value))
-    #define NUMBER_VAL(value)       (INTEGER_VAL(value))
-    #define VAL_NUMBER              VAL_INTEGER
-    #define VAL_LINKED_NUMBER       VAL_LINKED_INTEGER
-    #define NUMBER_CTYPE            int
-#else
-    #define IS_NUMBER(value)        (IS_DECIMAL(value))
-    #define IS_LINKED_NUMBER(value) (IS_LINKED_DECIMAL(value))
-    #define AS_NUMBER(value)        (AS_DECIMAL(value))
-    #define AS_LINKED_NUMBER(value) (AS_LINKED_DECIMAL(value))
-    #define NUMBER_VAL(value)       (DECIMAL_VAL(value))
-    #define VAL_NUMBER              VAL_DECIMAL
-    #define VAL_LINKED_NUMBER       VAL_LINKED_DECIMAL
-    #define NUMBER_CTYPE            float
-#endif
+#define IS_NOT_NUMBER(value)    (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
+
+typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
+typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+
+typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
+typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
 
 #define OBJECT_TYPE(value)      (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value)  IsObjectType(value, OBJ_BOUND_METHOD)
@@ -138,6 +116,9 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define IS_ARRAY(value)         IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value)           IsObjectType(value, OBJ_MAP)
 #define IS_STREAM(value)        IsObjectType(value, OBJ_STREAM)
+#define IS_NAMESPACE(value)     IsObjectType(value, OBJ_NAMESPACE)
+#define IS_ENUM(value)          IsObjectType(value, OBJ_ENUM)
+#define IS_MODULE(value)        IsObjectType(value, OBJ_MODULE)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -150,6 +131,9 @@ typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 #define AS_ARRAY(value)         ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value)           ((ObjMap*)AS_OBJECT(value))
 #define AS_STREAM(value)        ((ObjStream*)AS_OBJECT(value))
+#define AS_NAMESPACE(value)     ((ObjNamespace*)AS_OBJECT(value))
+#define AS_ENUM(value)          ((ObjEnum*)AS_OBJECT(value))
+#define AS_MODULE(value)        ((ObjModule*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -162,7 +146,12 @@ enum ObjType {
     OBJ_UPVALUE,
     OBJ_ARRAY,
     OBJ_MAP,
-    OBJ_STREAM
+    OBJ_STREAM,
+    OBJ_NAMESPACE,
+    OBJ_ENUM,
+    OBJ_MODULE,
+
+    MAX_OBJ_TYPE
 };
 
 typedef HashMap<VMValue> Table;
@@ -179,15 +168,21 @@ struct ObjString {
     char*  Chars;
     Uint32 Hash;
 };
+struct ObjModule {
+    Obj                          Object;
+    vector<struct ObjFunction*>* Functions;
+    vector<VMValue>*             Locals;
+    ObjString*                   SourceFilename;
+};
 struct ObjFunction {
     Obj          Object;
     int          Arity;
+    int          MinArity;
     int          UpvalueCount;
     struct Chunk Chunk;
-    size_t       FunctionListOffset;
+    ObjModule*   Module;
     ObjString*   Name;
     ObjString*   ClassName;
-    char         SourceFilename[256];
     Uint32       NameHash;
 };
 struct ObjNative {
@@ -207,20 +202,26 @@ struct ObjClosure {
     int          UpvalueCount;
 };
 struct ObjClass {
-    Obj        Object;
-    ObjString* Name;
-    Uint32     Hash;
-    Table*     Methods;
-    Table*     Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
-    VMValue    Initializer;
-    Uint8      Type;
-    Uint32     ParentHash;
-    ObjClass*  Parent;
+    Obj         Object;
+    ObjString*  Name;
+    Uint32      Hash;
+    Table*      Methods;
+    Table*      Fields; // Keep this as a pointer, so that a new table isn't created when passing an ObjClass value around
+    ValueGetFn  PropertyGet;
+    ValueSetFn  PropertySet;
+    StructGetFn ElementGet;
+    StructSetFn ElementSet;
+    VMValue     Initializer;
+    Uint8       Type;
+    Uint32      ParentHash;
+    ObjClass*   Parent;
 };
 struct ObjInstance {
-    Obj       Object;
-    Table*    Fields;
-    void*     EntityPtr;
+    Obj        Object;
+    Table*     Fields;
+    void*      EntityPtr;
+    ValueGetFn PropertyGet;
+    ValueSetFn PropertySet;
 };
 struct ObjBoundMethod {
     Obj          Object;
@@ -237,10 +238,23 @@ struct ObjMap {
     HashMap<char*>*   Keys;
 };
 struct ObjStream {
-    Obj               Object;
-    Stream*           StreamPtr;
-    bool              Writable;
-    bool              Closed;
+    Obj     Object;
+    Stream* StreamPtr;
+    bool    Writable;
+    bool    Closed;
+};
+struct ObjNamespace {
+    Obj        Object;
+    ObjString* Name;
+    Uint32     Hash;
+    Table*     Fields;
+    bool       InUse;
+};
+struct ObjEnum {
+    Obj        Object;
+    ObjString* Name;
+    Uint32     Hash;
+    Table*     Fields;
 };
 
 ObjString*         TakeString(char* chars, size_t length);
@@ -248,7 +262,6 @@ ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
 ObjString*         AllocString(size_t length);
-char*              HeapCopyString(const char* str, size_t len);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);
 ObjUpvalue*        NewUpvalue(VMValue* slot);
@@ -259,6 +272,9 @@ ObjBoundMethod*    NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray*          NewArray();
 ObjMap*            NewMap();
 ObjStream*         NewStream(Stream* streamPtr, bool writable);
+ObjNamespace*      NewNamespace(Uint32 hash);
+ObjEnum*           NewEnum(Uint32 hash);
+ObjModule*         NewModule();
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \
@@ -289,7 +305,7 @@ struct CallFrame {
     Uint8*       IPLast;
     Uint8*       IPStart;
     VMValue*     Slots;
-    int          FunctionListOffset;
+    ObjModule*   Module;
 
     VMValue   WithReceiverStack[16];
     VMValue*  WithReceiverStackTop = WithReceiverStack;
@@ -381,6 +397,12 @@ enum   OpCode {
     OP_HAS_PROPERTY,
     OP_IMPORT_MODULE,
     OP_ADD_ENUM,
+    OP_NEW_ENUM,
+    OP_GET_SUPERCLASS,
+    OP_GET_MODULE_LOCAL,
+    OP_SET_MODULE_LOCAL,
+    OP_DEFINE_MODULE_LOCAL,
+    OP_USE_NAMESPACE,
 
     OP_SYNC = 0xFF,
 };

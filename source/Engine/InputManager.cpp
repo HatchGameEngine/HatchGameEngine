@@ -484,26 +484,13 @@ PUBLIC STATIC bool  InputManager::ControllerHasPaddles(int index) {
     GET_CONTROLLER(false);
     return controller->HasPaddles();
 }
-PUBLIC STATIC bool  InputManager::ControllerGetButton(int index, int button) {
+PUBLIC STATIC bool  InputManager::ControllerIsButtonHeld(int index, int button) {
     GET_CONTROLLER(false);
-    return controller->GetButton(button);
+    return controller->IsButtonHeld(button);
 }
-// For backwards compatibility. Use ControllerGetButton instead.
-PUBLIC STATIC int   InputManager::ControllerGetHat(int index, int hat) {
-    if (hat != 0) return 0;
-    GET_CONTROLLER(0);
-
-    int flags = 0;
-    if (controller->GetButton((int)ControllerButton::DPadUp))
-        flags |= SDL_HAT_UP;
-    if (controller->GetButton((int)ControllerButton::DPadDown))
-        flags |= SDL_HAT_DOWN;
-    if (controller->GetButton((int)ControllerButton::DPadLeft))
-        flags |= SDL_HAT_LEFT;
-    if (controller->GetButton((int)ControllerButton::DPadRight))
-        flags |= SDL_HAT_RIGHT;
-
-    return flags;
+PUBLIC STATIC bool  InputManager::ControllerIsButtonPressed(int index, int button) {
+    GET_CONTROLLER(false);
+    return controller->IsButtonPressed(button);
 }
 PUBLIC STATIC float InputManager::ControllerGetAxis(int index, int axis) {
     GET_CONTROLLER(0.0f);

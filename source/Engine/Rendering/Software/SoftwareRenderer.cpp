@@ -39,7 +39,7 @@ public:
 #include <Engine/IO/ResourceStream.h>
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32            SoftwareRenderer::CompareColor = 0xFF000000U;
@@ -2672,7 +2672,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneL
             for (int i = 0; i < layer->ScrollInfoCount; i++) {
                 info->Offset = Scene::Frame * info->ConstantParallax;
                 info->Position = (info->Offset + ((viewX + layerOffsetX) * info->RelativeParallax)) >> 8;
-                if (layer->Repeat) {
+                if (layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
                     info->Position %= layerWidth;
                     if (info->Position < 0)
                         info->Position += layerWidth;
@@ -2877,7 +2877,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         dstPxLine = dstPx + dst_strideY;
 
         bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
-        if (!isInLayer && layer->Repeat) {
+        if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
             if (tScanLine->SrcX < 0)
                 tScanLine->SrcX += layerWidthInPixels;
             else if (tScanLine->SrcX >= layerWidthInPixels)
@@ -2994,7 +2994,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 continue;
             }
             else if (sourceTileCellX >= layerWidth) {
-                if (layer->Repeat) {
+                if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
                     sourceTileCellX -= layerWidth;
                     tile -= layerWidth;
                 }

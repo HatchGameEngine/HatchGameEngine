@@ -11,8 +11,8 @@ public:
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/Bytecode/BytecodeObjectManager.h>
-#include <Engine/Bytecode/BytecodeObject.h>
+#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -252,12 +252,9 @@ PRIVATE STATIC SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
     if (layer.Name[0] == 'F' && layer.Name[1] == 'G')
         layer.Flags |= SceneLayer::FLAGS_COLLIDEABLE;
 
-    if (strcmp(layer.Name, "Move") == 0) {
-        layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
-        // layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
+    if (strcmp(layer.Name, "Move") != 0) {
+        layer.Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
     }
-
-    // layer.Flags |= SceneLayer::FLAGS_NO_REPEAT_X | SceneLayer::FLAGS_NO_REPEAT_Y;
 
     layer.DrawGroup = DrawGroup & 0xF;
     if (DrawGroup & 0x10)
@@ -438,7 +435,7 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
                 }
 
                 if (PropertyHashes->Exists(argumentHashes[a])) {
-                    ((BytecodeObject*)obj)->Properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
+                    ((ScriptEntity*)obj)->Properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
                 }
             }
         }
@@ -593,7 +590,6 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
                 for (int p = 0; p < 256; p++)
                     Graphics::PaletteColors[0][p] = gif->Colors[p];
                 Graphics::PaletteUpdated = true;
-                Memory::Free(gif->Colors);
             }
             delete gif;
         }

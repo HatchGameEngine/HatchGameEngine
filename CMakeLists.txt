@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name and version
-project(HatchGameEngine VERSION 1.0)
+project(HatchGameEngine VERSION 1.1.0)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
@@ -81,6 +81,18 @@ add_custom_target(makeheaders ALL
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   BYPRODUCTS "${CMAKE_SOURCE_DIR}/include/makeheaders.bin" "${CMAKE_SOURCE_DIR}/include/Engine"
   COMMENT "Generating header files")
+
+find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
+
+if (REPO_DIR)
+  execute_process(
+    COMMAND git log -1 --format=%H
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+endif()
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 add_dependencies(${PROJECT_NAME} makeheaders)
