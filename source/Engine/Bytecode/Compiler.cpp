@@ -1441,7 +1441,7 @@ PUBLIC void Compiler::GetUnary(bool canAssign) {
         case TOKEN_LOGICAL_NOT: EmitByte(OP_LG_NOT); break;
         case TOKEN_TYPEOF:      EmitByte(OP_TYPEOF); break;
 
-        // HACK: replace these with prefix version of OP
+        // TODO: replace these with prefix version of OP
         // case TOKEN_INCREMENT:   EmitByte(OP_INCREMENT); break;
         // case TOKEN_DECREMENT:   EmitByte(OP_DECREMENT); break;
         default:

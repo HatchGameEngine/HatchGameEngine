@@ -1408,7 +1408,7 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
                         if (stgElement->attributes.Exists("folder"))
                             XMLParser::CopyTokenToString(stgElement->attributes.Get("folder"), scene.folder, sizeof(scene.folder));
                         else
-                            // Accounts for scenes placed in the root of the Scenes folder if the file type is not "bin"
+                            // Accounts for scenes placed in the root of the Scenes folder
                             scene.folder[0] = '\0';
 
                         if (stgElement->attributes.Exists("id"))
@@ -1425,6 +1425,14 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
                             XMLParser::CopyTokenToString(stgElement->attributes.Get("type"), scene.fileType, sizeof(scene.fileType));
                         else
                             snprintf(scene.fileType, sizeof(scene.fileType), "bin");
+
+                        if (stgElement->attributes.Exists("filter"))
+                            Scene::Filter = XMLParser::TokenToNumber(stgElement->attributes.Get("filter"));
+                        else
+                            Scene::Filter = 0xFF;
+                        if (Scene::Filter == 0x00)
+                            Scene::Filter = 0xFF;
+
 
                         Scene::ListData.push_back(scene);
                         category.sceneCount++;

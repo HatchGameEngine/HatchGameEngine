@@ -158,6 +158,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Animator_Create">Animator.Create</a></li>
+                    <li><a href="#Reference_functions_Animator_Remove">Animator.Remove</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimation">Animator.SetAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_Animate">Animator.Animate</a></li>
                     <li><a href="#Reference_functions_Animator_GetSprite">Animator.GetSprite</a></li>
@@ -404,6 +405,10 @@
                     <li><a href="#Reference_functions_Draw_UseStrokeSmoothing">Draw.UseStrokeSmoothing</a></li>
                     <li><a href="#Reference_functions_Draw_SetClip">Draw.SetClip</a></li>
                     <li><a href="#Reference_functions_Draw_ClearClip">Draw.ClearClip</a></li>
+                    <li><a href="#Reference_functions_Draw_GetClipX">Draw.GetClipX</a></li>
+                    <li><a href="#Reference_functions_Draw_GetClipY">Draw.GetClipY</a></li>
+                    <li><a href="#Reference_functions_Draw_GetClipWidth">Draw.GetClipWidth</a></li>
+                    <li><a href="#Reference_functions_Draw_GetClipHeight">Draw.GetClipHeight</a></li>
                     <li><a href="#Reference_functions_Draw_Save">Draw.Save</a></li>
                     <li><a href="#Reference_functions_Draw_Scale">Draw.Scale</a></li>
                     <li><a href="#Reference_functions_Draw_Rotate">Draw.Rotate</a></li>
@@ -1183,6 +1188,9 @@
                     <li><a href="#Reference_functions_View_SetY">View.SetY</a></li>
                     <li><a href="#Reference_functions_View_SetZ">View.SetZ</a></li>
                     <li><a href="#Reference_functions_View_SetPosition">View.SetPosition</a></li>
+                    <li><a href="#Reference_functions_View_AdjustX">View.AdjustX</a></li>
+                    <li><a href="#Reference_functions_View_AdjustY">View.AdjustY</a></li>
+                    <li><a href="#Reference_functions_View_AdjustX">View.AdjustX</a></li>
                     <li><a href="#Reference_functions_View_SetAngle">View.SetAngle</a></li>
                     <li><a href="#Reference_functions_View_SetSize">View.SetSize</a></li>
                     <li><a href="#Reference_functions_View_SetOutputX">View.SetOutputX</a></li>
@@ -1657,6 +1665,15 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Animator.</div>
+        </p>
+        <p id="Reference_functions_Animator_Remove">
+        <h2 style="margin-bottom: 8px;">Animator.Remove</h2>
+        <code>Animator.Remove(animator)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The index of the animator.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Animator_SetAnimation">
         <h2 style="margin-bottom: 8px;">Animator.SetAnimation</h2>
@@ -3773,6 +3790,34 @@
         <h2 style="margin-bottom: 8px;">Draw.ClearClip</h2>
         <code>Draw.ClearClip()</code>
         <div style="margin-top: 8px; font-size: 14px;">Resets the drawing region.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipX">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipX</h2>
+        <code>Draw.GetClipX()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the X position in which drawing starts to occur.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The X position if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipY">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipY</h2>
+        <code>Draw.GetClipY()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Y position in which drawing starts to occur.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The Y position if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipWidth">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipWidth</h2>
+        <code>Draw.GetClipWidth()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width in which drawing occurs.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The width if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipHeight">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipHeight</h2>
+        <code>Draw.GetClipHeight()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the height in which drawing occurs.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The height if clipping is enabled, else 0.</div>
         </p>
         <p id="Reference_functions_Draw_Save">
         <h2 style="margin-bottom: 8px; color: red;">Draw.Save</h2>
@@ -8548,6 +8593,36 @@
         <li>z (Number): Desired Z position</li>
         </ul>
         </p>
+        <p id="Reference_functions_View_AdjustX">
+        <h2 style="margin-bottom: 8px;">View.AdjustX</h2>
+        <code>View.AdjustX(viewInde, )</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the x - axis position of the camera for the specified view by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex(Integer) : Index of the view.</li>
+        <li>x(Number) : Desired X adjust amount.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_AdjustY">
+        <h2 style="margin-bottom: 8px;">View.AdjustY</h2>
+        <code>View.AdjustY(viewIndex, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the y-axis position of the camera for the specified view by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>y (Number): Desired Y adjust amount.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_AdjustX">
+        <h2 style="margin-bottom: 8px;">View.AdjustX</h2>
+        <code>View.AdjustX(viewIndex, z)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the z-axis position of the camera for the specified view by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>z (Number): Desired Z adjust amount.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_View_SetAngle">
         <h2 style="margin-bottom: 8px;">View.SetAngle</h2>
         <code>View.SetAngle(viewIndex, x, y, z)</code>
@@ -8962,7 +9037,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>661 out of 720 functions have descriptions. </p>
+        <p>669 out of 728 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
