@@ -15193,6 +15193,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, UseStrokeSmoothing);
     DEF_NATIVE(Draw, SetClip);
     DEF_NATIVE(Draw, ClearClip);
+    DEF_NATIVE(Draw, GetClipX);
+    DEF_NATIVE(Draw, GetClipY);
+    DEF_NATIVE(Draw, GetClipWidth);
+    DEF_NATIVE(Draw, GetClipHeight);
     DEF_NATIVE(Draw, Save);
     DEF_NATIVE(Draw, Scale);
     DEF_NATIVE(Draw, Rotate);
