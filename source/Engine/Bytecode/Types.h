@@ -261,6 +261,7 @@ ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
+ObjString*         CopyString(ObjString* string);
 ObjString*         AllocString(size_t length);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);
