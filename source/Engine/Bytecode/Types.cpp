@@ -59,6 +59,13 @@ ObjString*        CopyString(const char* chars, size_t length) {
 ObjString*        CopyString(const char* chars) {
     return CopyString(chars, strlen(chars));
 }
+ObjString*        CopyString(ObjString* string) {
+    char* heapChars = ALLOCATE(char, string->Length + 1);
+    memcpy(heapChars, string->Chars, string->Length);
+    heapChars[string->Length] = '\0';
+
+    return AllocateString(heapChars, string->Length, string->Hash);
+}
 ObjString*        AllocString(size_t length) {
     char* heapChars = ALLOCATE(char, length + 1);
     heapChars[length] = '\0';

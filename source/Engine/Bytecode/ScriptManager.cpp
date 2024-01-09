@@ -599,7 +599,7 @@ PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction*
     if (hash == klass->Hash)
         klass->Initializer = methodValue;
 
-    function->ClassName = klass->Name;
+    function->ClassName = CopyString(klass->Name);
 
     thread->Pop();
 }
