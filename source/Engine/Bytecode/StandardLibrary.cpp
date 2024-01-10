@@ -7620,6 +7620,7 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets a color from the specified palette.
  * \param paletteIndex (Integer): Index of palette.
  * \param colorIndex (Integer): Index of color.
+ * \return Returns an Integer value.
  * \ns Palette
  */
 VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -7644,12 +7645,53 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
+    Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     CHECK_PALETTE_INDEX(palIndex);
     CHECK_COLOR_INDEX(colorIndex);
-    Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
     *color = (hex & 0xFFFFFFU) | 0xFF000000U;
     Graphics::ConvertFromARGBtoNative(color, 1);
+    Graphics::PaletteUpdated = true;
+    return NULL_VAL;
+}
+/***
+ * Palette.GetColorTransparent
+ * \desc Gets if the color on the specified palette is transparent.
+ * \param paletteIndex (Integer): Index of palette.
+ * \param colorIndex (Integer): Index of color.
+ * \return Returns a Boolean value.
+ * \ns Palette
+ */
+VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int palIndex = GET_ARG(0, GetInteger);
+    int colorIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
+    if (Graphics::PaletteColors[palIndex][colorIndex] & 0xFF000000U)
+        return INTEGER_VAL(false);
+    return INTEGER_VAL(true);
+}
+/***
+ * Palette.SetColorTransparent
+ * \desc Sets a color on the specified palette transparent.
+ * \param paletteIndex (Integer): Index of palette.
+ * \param colorIndex (Integer): Index of color.
+ * \param isTransparent (Boolean): Whether to make the color transparent or not.
+ * \ns Palette
+ */
+VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    int palIndex = GET_ARG(0, GetInteger);
+    int colorIndex = GET_ARG(1, GetInteger);
+    bool isTransparent = !!GET_ARG(2, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
+    Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
+    if (isTransparent)
+        *color &= ~0xFF000000U;
+    else
+        *color |= 0xFF000000U;
     Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
@@ -15853,6 +15895,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Palette, LoadFromImage);
     DEF_NATIVE(Palette, GetColor);
     DEF_NATIVE(Palette, SetColor);
+    DEF_NATIVE(Palette, GetColorTransparent);
+    DEF_NATIVE(Palette, SetColorTransparent);
     DEF_NATIVE(Palette, MixPalettes);
     DEF_NATIVE(Palette, RotateColorsLeft);
     DEF_NATIVE(Palette, RotateColorsRight);

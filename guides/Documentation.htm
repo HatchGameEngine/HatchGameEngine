@@ -735,6 +735,8 @@
                     <li><a href="#Reference_functions_Palette_LoadFromImage">Palette.LoadFromImage</a></li>
                     <li><a href="#Reference_functions_Palette_GetColor">Palette.GetColor</a></li>
                     <li><a href="#Reference_functions_Palette_SetColor">Palette.SetColor</a></li>
+                    <li><a href="#Reference_functions_Palette_GetColorTransparent">Palette.GetColorTransparent</a></li>
+                    <li><a href="#Reference_functions_Palette_SetColorTransparent">Palette.SetColorTransparent</a></li>
                     <li><a href="#Reference_functions_Palette_MixPalettes">Palette.MixPalettes</a></li>
                     <li><a href="#Reference_functions_Palette_RotateColorsLeft">Palette.RotateColorsLeft</a></li>
                     <li><a href="#Reference_functions_Palette_RotateColorsRight">Palette.RotateColorsRight</a></li>
@@ -5253,6 +5255,8 @@
         <li>paletteIndex (Integer): Index of palette.</li>
         <li>colorIndex (Integer): Index of color.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Palette_SetColor">
         <h2 style="margin-bottom: 8px;">Palette.SetColor</h2>
@@ -5263,6 +5267,29 @@
         <li>paletteIndex (Integer): Index of palette.</li>
         <li>colorIndex (Integer): Index of color.</li>
         <li>hex (Integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Palette_GetColorTransparent">
+        <h2 style="margin-bottom: 8px;">Palette.GetColorTransparent</h2>
+        <code>Palette.GetColorTransparent(paletteIndex, colorIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets if the color on the specified palette is transparent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>paletteIndex (Integer): Index of palette.</li>
+        <li>colorIndex (Integer): Index of color.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Palette_SetColorTransparent">
+        <h2 style="margin-bottom: 8px;">Palette.SetColorTransparent</h2>
+        <code>Palette.SetColorTransparent(paletteIndex, colorIndex, isTransparent)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a color on the specified palette transparent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>paletteIndex (Integer): Index of palette.</li>
+        <li>colorIndex (Integer): Index of color.</li>
+        <li>isTransparent (Boolean): Whether to make the color transparent or not.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_MixPalettes">
@@ -9075,7 +9102,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>666 out of 725 functions have descriptions. </p>
+        <p>668 out of 727 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

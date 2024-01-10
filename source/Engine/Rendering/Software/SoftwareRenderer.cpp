@@ -2043,7 +2043,7 @@ void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int s
         if ((color = srcPxLine[src_x]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
     #define DRAW_PLACEPIXEL_PAL() \
-        if ((color = srcPxLine[src_x])) \
+        if ((color = srcPxLine[src_x]) && (index[color] & 0xFF000000U)) \
             pixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
 
     #define DRAW_NOFLIP(placePixelMacro) \
@@ -2306,7 +2306,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
         if ((color = srcPx[src_x + src_strideY]) & 0xFF000000U) \
             pixelFunction(&color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
     #define DRAW_PLACEPIXEL_PAL() \
-        if ((color = srcPx[src_x + src_strideY])) \
+        if ((color = srcPx[src_x + src_strideY]) && (index[color] & 0xFF000000U)) \
             pixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
 
     #define DRAW_NOFLIP(placePixelMacro) for (int dst_y = dst_y1, i_y = dst_y1 - y; dst_y < dst_y2; dst_y++, i_y++) { \
@@ -2924,7 +2924,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 color = &tileSources[tileID][srcTX + srcTY * srcStrides[tileID]];
                 if (isPalettedSources[tileID]) {
                     while (pixelsOfTileRemaining) {
-                        if (*color)
+                        if (*color && (index[*color] & 0xFF000000U))
                             pixelFunction(&index[*color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
                         pixelsOfTileRemaining--;
                         dst_x++;
@@ -2946,7 +2946,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 color = &tileSources[tileID][srcTX + srcTY * srcStrides[tileID]];
                 if (isPalettedSources[tileID]) {
                     while (pixelsOfTileRemaining) {
-                        if (*color)
+                        if (*color && (index[*color] & 0xFF000000U))
                             pixelFunction(&index[*color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
                         pixelsOfTileRemaining--;
                         dst_x++;
@@ -3026,7 +3026,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 if ((*tile & TILE_FLIPX_MASK)) {
                     color = &tileSources[tileID][srcTYb * srcStrides[tileID]];
                     if (isPalettedSources[tileID]) {
-                        #define UNLOOPED(n, k) if (color[n]) { pixelFunction(&index[color[n]], &dstPxLine[dst_x + k], blendState, multTableAt, multSubTableAt); }
+                        #define UNLOOPED(n, k) if (color[n] && (index[color[n]] & 0xFF000000U)) { pixelFunction(&index[color[n]], &dstPxLine[dst_x + k], blendState, multTableAt, multSubTableAt); }
                         UNLOOPED(0, 15);
                         UNLOOPED(1, 14);
                         UNLOOPED(2, 13);
@@ -3070,7 +3070,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 else {
                     color = &tileSources[tileID][srcTYb * srcStrides[tileID]];
                     if (isPalettedSources[tileID]) {
-                        #define UNLOOPED(n, k) if (color[n]) { pixelFunction(&index[color[n]], &dstPxLine[dst_x + k], blendState, multTableAt, multSubTableAt); }
+                        #define UNLOOPED(n, k) if (color[n] && (index[color[n]] & 0xFF000000U)) { pixelFunction(&index[color[n]], &dstPxLine[dst_x + k], blendState, multTableAt, multSubTableAt); }
                         UNLOOPED(0, 0);
                         UNLOOPED(1, 1);
                         UNLOOPED(2, 2);
@@ -3268,7 +3268,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(Scen
 
                 color = tileSources[tileID][(srcTX & 15) + (srcTY & 15) * srcStrides[tileID]];
                 if (isPalettedSources[tileID]) {
-                    if (color)
+                    if (color && (index[color] & 0xFF000000U))
                         linePixelFunction(&index[color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
                 }
                 else {

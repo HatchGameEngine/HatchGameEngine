@@ -581,7 +581,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
             dpW(iz); \
@@ -596,7 +596,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -714,7 +714,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -731,7 +731,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
@@ -913,7 +913,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
             dpW(iz); \
@@ -928,7 +928,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -1032,7 +1032,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -1049,7 +1049,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
