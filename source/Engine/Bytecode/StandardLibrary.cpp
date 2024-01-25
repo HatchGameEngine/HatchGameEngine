@@ -4339,11 +4339,12 @@ VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): Center X position of where to draw the circle.
  * \param y (Number): Center Y position of where to draw the circle.
  * \param radius (Number): Radius of the circle.
+ * \paramOpt thickness (Number): Thickness of the circle.
  * \ns Draw
  */
 VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
-    Graphics::StrokeCircle(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal));
+    CHECK_AT_LEAST_ARGCOUNT(3);
+    Graphics::StrokeCircle(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG_OPT(3, GetDecimal, 1.0));
     return NULL_VAL;
 }
 /***

@@ -47,7 +47,7 @@ struct GraphicsFunctions {
     void     (*SetLineWidth)(float n);
 
     void     (*StrokeLine)(float x1, float y1, float x2, float y2);
-    void     (*StrokeCircle)(float x, float y, float rad);
+    void     (*StrokeCircle)(float x, float y, float rad, float thickness);
     void     (*StrokeEllipse)(float x, float y, float w, float h);
     void     (*StrokeRectangle)(float x, float y, float w, float h);
     void     (*FillCircle)(float x, float y, float rad);

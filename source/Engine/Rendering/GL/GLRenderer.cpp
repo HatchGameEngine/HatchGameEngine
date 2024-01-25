@@ -1570,7 +1570,7 @@ PUBLIC STATIC void     GLRenderer::StrokeLine(float x1, float y1, float x2, floa
         glDrawArrays(GL_LINES, 0, 2); CHECK_GL();
     // Graphics::Restore();
 }
-PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     Graphics::Save();
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);

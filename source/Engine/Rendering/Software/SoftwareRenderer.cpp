@@ -1539,13 +1539,18 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
 
     DoLineStrokeBounded(dst_x1, dst_y1, dst_x2, dst_y2, minX, maxX, minY, maxY, pixelFunction, ColRGB, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 }
-PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
+
+    if (thickness > 1.0) {
+        StrokeThickCircle(x, y, rad, thickness);
+        return;
+    }
 
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
@@ -1625,7 +1630,199 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float ra
         bx++;
     }
 
-    #undef DRAW_POINT
+#undef DRAW_POINT
+}
+PRIVATE STATIC void     SoftwareRenderer::InitContour(Contour *contourBuffer, int dst_y1, int scanLineCount) {
+    Contour* contourPtr = &contourBuffer[dst_y1];
+    while (scanLineCount--) {
+        contourPtr->MinX = 0x7FFFFFFF;
+        contourPtr->MaxX = -1;
+        contourPtr++;
+    }
+}
+PRIVATE STATIC void     SoftwareRenderer::RasterizeCircle(int ccx, int ccy, int dst_x1, int dst_y1, int dst_x2, int dst_y2, float rad, Contour *contourBuffer) {
+    #define SEEK_MIN(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &contourBuffer[our_y])->MinX) \
+        cont->MinX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
+    #define SEEK_MAX(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &contourBuffer[our_y])->MaxX) \
+        cont->MaxX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
+
+    Contour* cont;
+    int bx = 0, by = rad;
+    int bd = 3 - 2 * rad;
+    while (bx <= by) {
+        SEEK_MAX(ccx + bx, ccy - by);
+        SEEK_MIN(ccx - bx, ccy - by);
+        SEEK_MAX(ccx + by, ccy - bx);
+        SEEK_MIN(ccx - by, ccy - bx);
+        ccy--;
+        SEEK_MAX(ccx + bx, ccy + by);
+        SEEK_MIN(ccx - bx, ccy + by);
+        SEEK_MAX(ccx + by, ccy + bx);
+        SEEK_MIN(ccx - by, ccy + bx);
+        ccy++;
+        if (bd <= 0) {
+            bd += 4 * bx + 6;
+        }
+        else {
+            bd += 4 * (bx - by) + 10;
+            by--;
+        }
+        bx++;
+    }
+
+#undef SEEK_MIN
+#undef SEEK_MAX
+}
+PRIVATE STATIC void     SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thickness) {
+    Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+    Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
+
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
+    float radA = rad + (thickness * 0.5);
+    float radB = radA - thickness;
+    if (radB <= 0.0) {
+        SoftwareRenderer::FillCircle(x, y, rad);
+        return;
+    }
+
+    rad = radA;
+
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int dst_x1 = x - rad - 1;
+    int dst_y1 = y - rad - 1;
+    int dst_x2 = x + rad + 1;
+    int dst_y2 = y + rad + 1;
+
+    int clip_x1, clip_y1, clip_x2, clip_y2;
+    GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+    if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2))
+        return;
+
+    if (dst_x1 < clip_x1)
+        dst_x1 = clip_x1;
+    if (dst_y1 < clip_y1)
+        dst_y1 = clip_y1;
+    if (dst_x2 > clip_x2)
+        dst_x2 = clip_x2;
+    if (dst_y2 > clip_y2)
+        dst_y2 = clip_y2;
+
+    if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2)
+        return;
+
+    int in_dst_x1 = x - radB - 1;
+    int in_dst_y1 = y - radB - 1;
+    int in_dst_x2 = x + radB + 1;
+    int in_dst_y2 = y + radB + 1;
+
+    if (in_dst_x1 < clip_x1)
+        in_dst_x1 = clip_x1;
+    if (in_dst_y1 < clip_y1)
+        in_dst_y1 = clip_y1;
+    if (in_dst_x2 > clip_x2)
+        in_dst_x2 = clip_x2;
+    if (in_dst_y2 > clip_y2)
+        in_dst_y2 = clip_y2;
+
+    if (in_dst_x2 < 0 || in_dst_y2 < 0 || in_dst_x1 >= dst_x2 || in_dst_y1 >= dst_y2)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
+    int blendFlag = blendState.Mode;
+    int opacity = blendState.Opacity;
+
+    Contour* contourBufferA = ContourBuffer;
+    Contour contourBufferB[MAX_FRAMEBUFFER_HEIGHT];
+
+    InitContour(contourBufferA, dst_y1, dst_y2 - dst_y1 + 1);
+    InitContour(contourBufferB, in_dst_y1, in_dst_y2 - in_dst_y1 + 1);
+
+    if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT))
+        SetTintFunction(blendFlag);
+
+    int* multTableAt = &MultTable[opacity << 8];
+    int* multSubTableAt = &MultSubTable[opacity << 8];
+
+    Uint32 col = ColRGB;
+
+    RasterizeCircle(x, y, dst_x1, dst_y1, dst_x2, dst_y2, rad, contourBufferA);
+    RasterizeCircle(x, y, in_dst_x1, in_dst_y1, in_dst_x2, in_dst_y2, radB, contourBufferB);
+
+    int dst_strideY = dst_y1 * dstStride;
+
+    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, dst_strideY += dstStride) {
+            Contour contourA = contourBufferA[dst_y];
+            if (contourA.MaxX < contourA.MinX)
+                continue;
+
+            if (dst_y <= in_dst_y1 || dst_y >= in_dst_y2-1) {
+                Memory::Memset4(&dstPx[contourA.MinX + dst_strideY], col, contourA.MaxX - contourA.MinX);
+                continue;
+            }
+
+            Contour contourB = contourBufferB[dst_y];
+            if (contourB.MinX == 0x7FFFFFFF)
+                contourB.MinX = 0;
+            else if (contourB.MinX < contourA.MinX)
+                continue;
+            if (contourB.MaxX == -1)
+                contourB.MaxX = dst_x2;
+            else if (contourB.MaxX >= contourA.MaxX)
+                continue;
+            if (contourB.MaxX < contourB.MinX)
+                continue;
+
+            Memory::Memset4(&dstPx[contourA.MinX + dst_strideY], col, contourB.MinX - contourA.MinX);
+            Memory::Memset4(&dstPx[contourB.MaxX + dst_strideY], col, contourA.MaxX - contourB.MaxX);
+        }
+    }
+    else {
+        PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+        for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, dst_strideY += dstStride) {
+            Contour contourA = contourBufferA[dst_y];
+            if (contourA.MaxX < contourA.MinX)
+                continue;
+
+            if (dst_y <= in_dst_y1 || dst_y >= in_dst_y2-1) {
+                for (int dst_x = contourA.MinX; dst_x < contourA.MaxX; dst_x++)
+                    pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt);
+                continue;
+            }
+
+            Contour contourB = contourBufferB[dst_y];
+            if (contourB.MinX == 0x7FFFFFFF)
+                contourB.MinX = 0;
+            else if (contourB.MinX < contourA.MinX)
+                continue;
+            if (contourB.MaxX == -1)
+                contourB.MaxX = dst_x2;
+            else if (contourB.MaxX >= contourA.MaxX)
+                continue;
+            if (contourB.MaxX < contourB.MinX)
+                continue;
+
+            for (int dst_x = contourA.MinX; dst_x < contourB.MinX; dst_x++)
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt);
+            for (int dst_x = contourB.MaxX; dst_x < contourA.MaxX; dst_x++)
+                pixelFunction((Uint32*)&col, &dstPx[dst_x + dst_strideY], blendState, multTableAt, multSubTableAt);
+        }
+    }
 }
 PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
 
@@ -1746,43 +1943,14 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int blendFlag = blendState.Mode;
     int opacity = blendState.Opacity;
 
-    int scanLineCount = dst_y2 - dst_y1 + 1;
-    Contour* contourPtr = &ContourBuffer[dst_y1];
-    while (scanLineCount--) {
-        contourPtr->MinX = 0x7FFFFFFF;
-        contourPtr->MaxX = -1;
-        contourPtr++;
-    }
+    InitContour(ContourBuffer, dst_y1, dst_y2 - dst_y1 + 1);
 
     #define SEEK_MIN(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &ContourBuffer[our_y])->MinX) \
         cont->MinX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
     #define SEEK_MAX(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &ContourBuffer[our_y])->MaxX) \
         cont->MaxX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
 
-    Contour* cont;
-    int ccx = x, ccy = y;
-    int bx = 0, by = rad;
-    int bd = 3 - 2 * rad;
-    while (bx <= by) {
-        SEEK_MAX(ccx + bx, ccy - by);
-        SEEK_MIN(ccx - bx, ccy - by);
-        SEEK_MAX(ccx + by, ccy - bx);
-        SEEK_MIN(ccx - by, ccy - bx);
-        ccy--;
-        SEEK_MAX(ccx + bx, ccy + by);
-        SEEK_MIN(ccx - bx, ccy + by);
-        SEEK_MAX(ccx + by, ccy + bx);
-        SEEK_MIN(ccx - by, ccy + bx);
-        ccy++;
-        if (bd <= 0) {
-            bd += 4 * bx + 6;
-        }
-        else {
-            bd += 4 * (bx - by) + 10;
-            by--;
-        }
-        bx++;
-    }
+    RasterizeCircle(x, y, dst_x1, dst_y1, dst_x2, dst_y2, rad, ContourBuffer);
 
     Uint32 col = ColRGB;
 
@@ -1826,6 +1994,9 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
             dst_strideY += dstStride;
         }
     }
+
+#undef SEEK_MIN
+#undef SEEK_MAX
 }
 PUBLIC STATIC void     SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
 

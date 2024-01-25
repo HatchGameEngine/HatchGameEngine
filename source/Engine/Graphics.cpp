@@ -848,8 +848,8 @@ PUBLIC STATIC void     Graphics::SetLineWidth(float n) {
 PUBLIC STATIC void     Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
     Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
 }
-PUBLIC STATIC void     Graphics::StrokeCircle(float x, float y, float rad) {
-    Graphics::GfxFunctions->StrokeCircle(x, y, rad);
+PUBLIC STATIC void     Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
+    Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
 }
 PUBLIC STATIC void     Graphics::StrokeEllipse(float x, float y, float w, float h) {
     Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);

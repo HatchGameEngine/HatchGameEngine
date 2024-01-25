@@ -346,7 +346,7 @@ PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
 PUBLIC STATIC void     SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     SDL2Renderer::StrokeCircle(float x, float y, float rad, float thickness) {
 
 }
 PUBLIC STATIC void     SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {

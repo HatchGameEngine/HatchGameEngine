@@ -1268,7 +1268,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeLine(float x1, float y1, float x2, flo
         // glDrawArrays(GL_LINES, 0, 2);
     Graphics::Restore();
 }
-PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     D3D_BeginDrawShape(D3D_BufferCircleStroke, 361);
 
     Graphics::Save();
