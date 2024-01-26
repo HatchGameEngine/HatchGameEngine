@@ -2984,7 +2984,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     bool canCollide = (layer->Flags & SceneLayer::FLAGS_COLLIDEABLE);
 
     int layerWidthInBits = layer->WidthInBits;
-    int layerWidthInPixels = layer->Width * 16;
+    int layerWidthInPixels = layer->Width * Scene::TileWidth;
     int layerWidth = layer->Width;
     int sourceTileCellX, sourceTileCellY;
     int tileID;
@@ -3012,7 +3012,8 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
     Uint32* index;
     int dst_strideY = dst_y1 * dstStride;
 
-    int maxTileDraw = ((int)currentView->Stride >> 4) - 1;
+    int viewWidth = (int)currentView->Width;
+    int maxTileDraw = ((int)currentView->Stride / Scene::TileWidth) - 1;
 
     vector<Uint32> srcStrides;
     vector<Uint32*> tileSources;
@@ -3042,7 +3043,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
 
     int j;
     TileScanLine* tScanLine = &TileScanLineBuffer[dst_y1];
-    for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+    for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, tScanLine++, dst_strideY += dstStride) {
         tScanLine->SrcX >>= 16;
         tScanLine->SrcY >>= 16;
         dstPxLine = dstPx + dst_strideY;
@@ -3300,10 +3301,110 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
                 }
             }
         }
-        srcX += maxTileDraw * 16;
 
-        tScanLine++;
-        dst_strideY += dstStride;
+        if (dst_x >= viewWidth)
+            continue;
+
+        // Draw rightmost tile in scanline
+        srcX += (maxTileDraw + 1) * Scene::TileWidth;
+        if (srcX < 0 || srcX >= layerWidthInPixels) {
+            if ((layer->Flags & SceneLayer::FLAGS_REPEAT_X) == 0)
+                continue;
+
+            if (srcX < 0)
+                srcX += layerWidthInPixels;
+            else if (srcX >= layerWidthInPixels)
+                srcX -= layerWidthInPixels;
+        }
+
+        srcTX = 0;
+        sourceTileCellX = (srcX >> 4);
+        pixelsOfTileRemaining = min(viewWidth - dst_x, 16);
+        c_pixelsOfTileRemaining = pixelsOfTileRemaining;
+        tile = &layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+
+        if ((*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+            tileID = *tile & TILE_IDENT_MASK;
+            if (Scene::ShowTileCollisionFlag && baseTileCfg) {
+                c_dst_x = dst_x;
+                if (Scene::ShowTileCollisionFlag == 1)
+                    DRAW_COLLISION = (*tile & TILE_COLLA_MASK) >> 28;
+                else if (Scene::ShowTileCollisionFlag == 2)
+                    DRAW_COLLISION = (*tile & TILE_COLLB_MASK) >> 26;
+
+                switch (DRAW_COLLISION) {
+                    case 1: DRAW_COLLISION = 0xFFFFFF00U; break;
+                    case 2: DRAW_COLLISION = 0xFFFF0000U; break;
+                    case 3: DRAW_COLLISION = 0xFFFFFFFFU; break;
+                }
+            }
+
+            // If y-flipped
+            if ((*tile & TILE_FLIPY_MASK))
+                srcTY ^= 15;
+            // If x-flipped
+            if ((*tile & TILE_FLIPX_MASK)) {
+                srcTX ^= 15;
+                color = &tileSources[tileID][srcTX + srcTY * srcStrides[tileID]];
+                if (isPalettedSources[tileID]) {
+                    while (pixelsOfTileRemaining) {
+                        if (*color && (index[*color] & 0xFF000000U))
+                            pixelFunction(&index[*color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
+                        pixelsOfTileRemaining--;
+                        dst_x++;
+                        color--;
+                    }
+                }
+                else {
+                    while (pixelsOfTileRemaining) {
+                        if (*color & 0xFF000000U)
+                            pixelFunction(color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
+                        pixelsOfTileRemaining--;
+                        dst_x++;
+                        color--;
+                    }
+                }
+            }
+            // Otherwise
+            else {
+                color = &tileSources[tileID][srcTX + srcTY * srcStrides[tileID]];
+                if (isPalettedSources[tileID]) {
+                    while (pixelsOfTileRemaining) {
+                        if (*color && (index[*color] & 0xFF000000U))
+                            pixelFunction(&index[*color], &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
+                        pixelsOfTileRemaining--;
+                        dst_x++;
+                        color++;
+                    }
+                }
+                else {
+                    while (pixelsOfTileRemaining) {
+                        if (*color & 0xFF000000U)
+                            pixelFunction(color, &dstPxLine[dst_x], blendState, multTableAt, multSubTableAt);
+                        pixelsOfTileRemaining--;
+                        dst_x++;
+                        color++;
+                    }
+                }
+            }
+
+            if (canCollide && DRAW_COLLISION) {
+                tileFlipOffset = (
+                    ( (!!(*tile & TILE_FLIPY_MASK)) << 1 ) | (!!(*tile & TILE_FLIPX_MASK))
+                ) * Scene::TileCount;
+
+                bool flipY = !!(*tile & TILE_FLIPY_MASK);
+                bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
+                TileConfig* tile = (&baseTileCfg[tileID] + tileFlipOffset);
+                for (int gg = c_pixelsOfTileRemaining; gg < 16; gg++) {
+                    if ((flipY == isCeiling && (srcY & 15) >= tile->CollisionTop[gg] && tile->CollisionTop[gg] < 0xF0) ||
+                        (flipY != isCeiling && (srcY & 15) <= tile->CollisionBottom[gg] && tile->CollisionBottom[gg] < 0xF0)) {
+                        PixelNoFiltSetOpaque(&DRAW_COLLISION, &dstPxLine[c_dst_x], CurrentBlendState, NULL, NULL);
+                    }
+                    c_dst_x++;
+                }
+            }
+        }
     }
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
