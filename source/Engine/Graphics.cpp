@@ -36,7 +36,7 @@ public:
     static Uint32               MaxTextureHeight;
     static Texture*             TextureHead;
 
-    static VertexBuffer*        VertexBuffers[MAX_VERTEX_BUFFERS];
+    static vector<VertexBuffer*> VertexBuffers;
     static Scene3D              Scene3Ds[MAX_3D_SCENES];
 
     static stack<GraphicsState> StateStack;
@@ -124,7 +124,7 @@ Uint32               Graphics::MaxTextureWidth = 1;
 Uint32               Graphics::MaxTextureHeight = 1;
 Texture*             Graphics::TextureHead = NULL;
 
-VertexBuffer*        Graphics::VertexBuffers[MAX_VERTEX_BUFFERS];
+vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D              Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
@@ -305,8 +305,9 @@ PUBLIC STATIC void     Graphics::Reset() {
     Graphics::StencilOpFail = StencilOp_Keep;
 }
 PUBLIC STATIC void     Graphics::Dispose() {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++)
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++)
         Graphics::DeleteVertexBuffer(i);
+    Graphics::VertexBuffers.clear();
 
     for (Uint32 i = 0; i < MAX_3D_SCENES; i++)
         Graphics::DeleteScene3D(i);
@@ -462,24 +463,37 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
 }
 
 PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        if (Graphics::VertexBuffers[i] == NULL) {
-            VertexBuffer* vtxbuf;
-            if (Graphics::Internal.CreateVertexBuffer)
-                vtxbuf = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(maxVertices);
-            else
-                vtxbuf = new VertexBuffer(maxVertices);
+    Uint32 idx = 0xFFFFFFFF;
 
-            vtxbuf->UnloadPolicy = unloadPolicy;
-            Graphics::VertexBuffers[i] = vtxbuf;
-            return i;
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+        if (Graphics::VertexBuffers[i] == NULL) {
+            idx = i;
+            break;
         }
     }
 
-    return 0xFFFFFFFF;
+    VertexBuffer* vtxbuf;
+    if (Graphics::Internal.CreateVertexBuffer)
+        vtxbuf = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(maxVertices);
+    else
+        vtxbuf = new VertexBuffer(maxVertices);
+
+    vtxbuf->UnloadPolicy = unloadPolicy;
+
+    if (idx == 0xFFFFFFFF) {
+        size_t sz = Graphics::VertexBuffers.size();
+        if (sz < MAX_VERTEX_BUFFERS) {
+            Graphics::VertexBuffers.push_back(vtxbuf);
+            idx = sz;
+        }
+    }
+    else
+        Graphics::VertexBuffers[idx] = vtxbuf;
+
+    return idx;
 }
 PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_3D_SCENES)
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= Graphics::VertexBuffers.size())
         return;
     if (!Graphics::VertexBuffers[vertexBufferIndex])
         return;
@@ -535,7 +549,7 @@ PUBLIC STATIC void     Graphics::UpdateGlobalPalette() {
 }
 
 PUBLIC STATIC void     Graphics::UnloadSceneData() {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
         VertexBuffer* buffer = Graphics::VertexBuffers[i];
         if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
             continue;

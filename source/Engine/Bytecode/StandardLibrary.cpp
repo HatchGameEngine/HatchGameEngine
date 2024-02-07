@@ -7281,8 +7281,8 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
  * Number.ToString
  * \desc Converts a Number to a String.
  * \param n (Number): Number value.
- * \paramOpt base (Integer): radix
- * \return
+ * \paramOpt base (Integer): The numerical base, or radix.
+ * \return Returns a String value.
  * \ns Number
  */
 VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
