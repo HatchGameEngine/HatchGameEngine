@@ -211,6 +211,9 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
 
 // Draws a polygon
 PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -275,6 +278,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
 }
 // Draws a blended polygon
 PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -340,6 +346,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* co
 }
 // Draws a polygon with lighting
 PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -435,6 +444,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 colo
 }
 // Draws a blended polygon with lighting
 PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -525,6 +537,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* c
 }
 // Draws an affine texture mapped polygon
 PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -655,6 +670,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
 }
 // Draws an affine texture mapped polygon with blending
 PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -867,6 +885,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
     }
 #endif
 PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -983,6 +1004,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
 }
 // Draws a perspective-correct texture mapped polygon with blending
 PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1108,6 +1132,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
 }
 // Draws a polygon with depth testing
 PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1199,6 +1226,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color
 }
 // Draws a blended polygon with depth testing
 PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 

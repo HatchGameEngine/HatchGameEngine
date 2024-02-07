@@ -2117,6 +2117,29 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, GetBlendState());
 }
+PUBLIC STATIC void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    Vector2 vectors[4];
+    vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16;
+    vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16;
+    vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16;
+    vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16;
+    PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, GetBlendState());
+}
 PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
@@ -2140,6 +2163,100 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
     vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16; colors[3] = ColorUtils::Multiply(c4, GetBlendColor());
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, GetBlendState());
+}
+PRIVATE STATIC void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, unsigned numPoints, float* px, float* py, int* pc, float* pu, float* pv) {
+    View* currentView = Graphics::CurrentView;
+    if (!currentView)
+        return;
+
+    int cx = (int)std::floor(currentView->X);
+    int cy = (int)std::floor(currentView->Y);
+
+    int x = 0, y = 0;
+
+    Matrix4x4* out = Graphics::ModelViewMatrix;
+    x += out->Values[12];
+    y += out->Values[13];
+    x -= cx;
+    y -= cy;
+
+    int colors[MAX_POLYGON_VERTICES];
+    Vector3 vectors[MAX_POLYGON_VERTICES];
+    Vector2 uv[MAX_POLYGON_VERTICES];
+
+    if (numPoints > MAX_POLYGON_VERTICES)
+        numPoints = MAX_POLYGON_VERTICES;
+
+    for (unsigned i = 0; i < numPoints; i++) {
+        vectors[i].X = ((int)px[i] + x) << 16;
+        vectors[i].Y = ((int)py[i] + y) << 16;
+        vectors[i].Z = FP16_TO(1.0f);
+        colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
+        uv[i].X = ((int)pu[i]) << 16;
+        uv[i].Y = ((int)pv[i]) << 16;
+    }
+
+    PolygonRasterizer::DrawBlendPerspective(texturePtr, vectors, uv, colors, numPoints, GetBlendState());
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3, float u1, float v1, float u2, float v2, float u3, float v3) {
+    float px[3];
+    float py[3];
+    float pu[3];
+    float pv[3];
+    int pc[3];
+
+    px[0] = x1;
+    py[0] = y1;
+    pu[0] = u1;
+    pv[0] = v1;
+    pc[0] = c1;
+
+    px[1] = x2;
+    py[1] = y2;
+    pu[1] = u2;
+    pv[1] = v2;
+    pc[1] = c2;
+
+    px[2] = x3;
+    py[2] = y3;
+    pu[2] = u3;
+    pv[2] = v3;
+    pc[2] = c3;
+
+    DrawShapeTextured(texturePtr, 3, px, py, pc, pu, pv);
+}
+PUBLIC STATIC void     SoftwareRenderer::DrawQuadTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4) {
+    float px[4];
+    float py[4];
+    float pu[4];
+    float pv[4];
+    int pc[4];
+
+    px[0] = x1;
+    py[0] = y1;
+    pu[0] = u1;
+    pv[0] = v1;
+    pc[0] = c1;
+
+    px[1] = x2;
+    py[1] = y2;
+    pu[1] = u2;
+    pv[1] = v2;
+    pc[1] = c2;
+
+    px[2] = x3;
+    py[2] = y3;
+    pu[2] = u3;
+    pv[2] = v3;
+    pc[2] = c3;
+
+    px[3] = x4;
+    py[3] = y4;
+    pu[3] = u4;
+    pv[3] = v4;
+    pc[3] = c4;
+
+    DrawShapeTextured(texturePtr, 4, px, py, pc, pu, pv);
 }
 
 void DrawSpriteImage(Texture* texture, int x, int y, int w, int h, int sx, int sy, int flipFlag, BlendState blendState) {
