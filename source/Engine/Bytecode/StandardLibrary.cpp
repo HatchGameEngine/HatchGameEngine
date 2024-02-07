@@ -5060,6 +5060,35 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Image
+/***
+ * Image.GetWidth
+ * \desc Gets the width of the specified image.
+ * \param image (Integer): The image index to check.
+ * \return Returns an Integer value.
+ * \ns Image
+ */
+VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+    return INTEGER_VAL((int)texture->Width);
+}
+/***
+ * Image.GetHeight
+ * \desc Gets the height of the specified image.
+ * \param image (Integer): The image index to check.
+ * \return Returns an Integer value.
+ * \ns Image
+ */
+VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+    return INTEGER_VAL((int)texture->Height);
+}
+// #endregion
+
 // #region Input
 /***
  * Input.GetMouseX
@@ -15708,6 +15737,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(HTTP);
     DEF_NATIVE(HTTP, GetString);
     DEF_NATIVE(HTTP, GetToFile);
+    // #endregion
+
+    // #region Image
+    INIT_CLASS(Image);
+    DEF_NATIVE(Image, GetWidth);
+    DEF_NATIVE(Image, GetHeight);
     // #endregion
 
     // #region Input
