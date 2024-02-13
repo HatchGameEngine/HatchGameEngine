@@ -34,6 +34,7 @@ public:
 #include <Engine/IO/Serializer.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Math/Geometry.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
 #include <Engine/Rendering/ViewTexture.h>
@@ -5064,6 +5065,77 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(true);
     }
     return INTEGER_VAL(false);
+}
+// #endregion
+
+// #region Geometry
+/***
+ * Geometry.Triangulate
+ * \desc Triangulates a 2D polygon.
+ * \param polygon (Array): Array of vertices that compromise the polygon.
+ * \return Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.
+ * \ns Geometry
+ */
+VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    ObjArray* array = GET_ARG(0, GetArray);
+
+    vector<FVector2> input;
+
+    for (unsigned i = 0; i < array->Values->size(); i++) {
+        VMValue vtxVal = (*array->Values)[i];
+
+        if (!IS_ARRAY(vtxVal)) {
+            THROW_ERROR("Expected value at array index %d to be of type %s instead of %s.", i, GetTypeString(VAL_DECIMAL), GetValueTypeString(vtxVal));
+            return NULL_VAL;
+        }
+
+        ObjArray* vtx = AS_ARRAY(vtxVal);
+        VMValue x = (*vtx->Values)[0];
+        VMValue y = (*vtx->Values)[1];
+
+        if (!IS_DECIMAL(x)) {
+            THROW_ERROR("Expected X value (index %d) at vertex index %d to be of type %s instead of %s.", 0, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(x));
+            return NULL_VAL;
+        }
+        if (!IS_DECIMAL(y)) {
+            THROW_ERROR("Expected Y value (index %d) at vertex index %d to be of type %s instead of %s.", 1, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(y));
+            return NULL_VAL;
+        }
+
+        FVector2 vec(AS_DECIMAL(x), AS_DECIMAL(y));
+
+        input.push_back(vec);
+    }
+
+    vector<Triangle>* output = Geometry::Triangulate(input);
+    if (!output)
+        return NULL_VAL;
+
+    ObjArray* result = NewArray();
+
+    for (unsigned i = 0; i < output->size(); i++) {
+        Triangle tri = (*output)[i];
+        ObjArray* triArr = NewArray();
+
+        ObjArray* vtx;
+
+#define PUSH_VTX(which) \
+        vtx = NewArray(); \
+        vtx->Values->push_back(DECIMAL_VAL(tri.which.X)); \
+        vtx->Values->push_back(DECIMAL_VAL(tri.which.Y)); \
+        triArr->Values->push_back(OBJECT_VAL(vtx))
+
+        PUSH_VTX(A);
+        PUSH_VTX(B);
+        PUSH_VTX(C);
+
+#undef PUSH_VTX
+
+        result->Values->push_back(OBJECT_VAL(triArr));
+    }
+
+    return OBJECT_VAL(result);
 }
 // #endregion
 
@@ -15831,6 +15903,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(File, Exists);
     DEF_NATIVE(File, ReadAllText);
     DEF_NATIVE(File, WriteAllText);
+    // #endregion
+
+    // #region Geometry
+    INIT_CLASS(Geometry);
+    DEF_NATIVE(Geometry, Triangulate);
     // #endregion
 
     // #region HTTP
