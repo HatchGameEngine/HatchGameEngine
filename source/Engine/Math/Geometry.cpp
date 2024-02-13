@@ -10,6 +10,8 @@ public:
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
 
+#include <Libraries/Clipper2/clipper.h>
+
 PUBLIC STATIC vector<Triangle>* Geometry::Triangulate(vector<FVector2> input) {
     unsigned count = input.size();
     if (!count || count < 3)
