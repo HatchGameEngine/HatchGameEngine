@@ -233,6 +233,7 @@
                     <li><a href="#Reference_functions_Array_Clear">Array.Clear</a></li>
                     <li><a href="#Reference_functions_Array_Shift">Array.Shift</a></li>
                     <li><a href="#Reference_functions_Array_SetAll">Array.SetAll</a></li>
+                    <li><a href="#Reference_functions_Array_Reverse">Array.Reverse</a></li>
                 </ul>
             </p>
             <p id="Reference_Audio">
@@ -2261,6 +2262,17 @@
         <li>startIndex (Integer): Index of value to start setting. (<code>-1</code> for first index)</li>
         <li>endIndex (Integer): Index of value to end setting. (<code>-1</code> for last index)</li>
         <li>value (Value): Value to set to.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Array_Reverse">
+        <h2 style="margin-bottom: 8px;">Array.Reverse</h2>
+        <code>Array.Reverse(array[, startIndex, endIndex])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reverses the elements of an array through the specified range, exclusive. The array is reversed from <code>startIndex</code> to, but not including, <code>endIndex</code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>array (Array): Array to reverse.</li>
+        <li>startIndex (Integer): Start range. Default is zero.</li>
+        <li>endIndex (Integer): End range. Default is size of array.</li>
         </ul>
         </p>
         <p id="Reference_functions_Audio_GetMasterVolume">
@@ -9269,7 +9281,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>675 out of 734 functions have descriptions. </p>
+        <p>676 out of 735 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

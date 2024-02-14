@@ -1299,19 +1299,19 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
         ObjArray* array = GET_ARG(0, GetArray);
         int       toright = GET_ARG(1, GetInteger);
 
-		if (array->Values->size() > 1) {
-			if (toright) {
-				size_t lastIndex = array->Values->size() - 1;
-				VMValue temp = (*array->Values)[lastIndex];
-				array->Values->erase(array->Values->begin() + lastIndex);
-				array->Values->insert(array->Values->begin(), temp);
-			}
-			else {
-				VMValue temp = (*array->Values)[0];
-				array->Values->erase(array->Values->begin() + 0);
-				array->Values->push_back(temp);
-			}
-		}
+        if (array->Values->size() > 1) {
+            if (toright) {
+                size_t lastIndex = array->Values->size() - 1;
+                VMValue temp = (*array->Values)[lastIndex];
+                array->Values->erase(array->Values->begin() + lastIndex);
+                array->Values->insert(array->Values->begin(), temp);
+            }
+            else {
+                VMValue temp = (*array->Values)[0];
+                array->Values->erase(array->Values->begin() + 0);
+                array->Values->push_back(temp);
+            }
+        }
 
         ScriptManager::Unlock();
     }
@@ -1330,11 +1330,11 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
-		size_t    startIndex = GET_ARG(1, GetInteger);
-		size_t    endIndex = GET_ARG(2, GetInteger);
+        size_t    startIndex = GET_ARG(1, GetInteger);
+        size_t    endIndex = GET_ARG(2, GetInteger);
         VMValue   value = args[3];
 
-		size_t arraySize = array->Values->size();
+        size_t arraySize = array->Values->size();
         if (arraySize > 0) {
             if (startIndex < 0)
                 startIndex = 0;
@@ -1350,6 +1350,36 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
                 (*array->Values)[i] = value;
             }
         }
+
+        ScriptManager::Unlock();
+    }
+    return NULL_VAL;
+}
+/***
+ * Array.Reverse
+ * \desc Reverses the elements of an array through the specified range, exclusive. The array is reversed from <code>startIndex</code> to, but not including, <code>endIndex</code>.
+ * \param array (Array): Array to reverse.
+ * \paramOpt startIndex (Integer): Start range. Default is zero.
+ * \paramOpt endIndex (Integer): End range. Default is size of array.
+ * \ns Array
+ */
+VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    if (ScriptManager::Lock()) {
+        ObjArray* array = GET_ARG(0, GetArray);
+        int       startIndex = GET_ARG_OPT(1, GetInteger, 0);
+        int       endIndex = GET_ARG_OPT(2, GetInteger, array->Values->size());
+
+        if (startIndex < 0 || startIndex >= (int)array->Values->size() || startIndex >= endIndex) {
+            THROW_ERROR("Start index out of range.");
+            return NULL_VAL;
+        }
+        if (endIndex <= 0 || endIndex > (int)array->Values->size() || endIndex <= startIndex) {
+            THROW_ERROR("End index out of range.");
+            return NULL_VAL;
+        }
+
+        std::reverse(array->Values->begin() + startIndex, array->Values->begin() + endIndex);
 
         ScriptManager::Unlock();
     }
@@ -14980,6 +15010,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Array, Clear);
     DEF_NATIVE(Array, Shift);
     DEF_NATIVE(Array, SetAll);
+    DEF_NATIVE(Array, Reverse);
     // #endregion
 
     // #region Controller
