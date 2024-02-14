@@ -14,6 +14,7 @@ public:
     Uint32    ReturnFrame;
 
     VMValue   FunctionToInvoke;
+    VMValue   InterpretResult;
 
     enum ThreadState {
         CREATED = 0,
@@ -1197,7 +1198,7 @@ SUCCESS_OP_SET_PROPERTY:
 
         // Frame stuffs & Returning
         VM_CASE(OP_RETURN): {
-            VMValue result = Pop();
+            InterpretResult = Pop();
 
             FrameCount--;
             if (FrameCount == ReturnFrame) {
@@ -1205,7 +1206,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
 
             StackTop = frame->Slots;
-            Push(result);
+            Push(InterpretResult);
 
             frame = &Frames[FrameCount - 1];
             VM_BREAK;
@@ -1830,7 +1831,7 @@ PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
+PUBLIC VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
 
@@ -1843,6 +1844,8 @@ PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) 
     FunctionToInvoke = NULL_VAL;
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
+
+    return InterpretResult;
 }
 PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = value;

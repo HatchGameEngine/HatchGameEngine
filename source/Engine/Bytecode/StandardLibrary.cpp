@@ -1385,6 +1385,51 @@ VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
     }
     return NULL_VAL;
 }
+/***
+ * Array.Sort
+ * \desc Sorts the entries of the given array.
+ * \param array (Array): Array to sort.
+ * \paramOpt compFunction (Function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.
+ * \ns Array
+ */
+VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    if (ScriptManager::Lock()) {
+        ObjArray* array = GET_ARG(0, GetArray);
+        ObjFunction* function = GET_ARG_OPT(1, GetFunction, nullptr);
+
+        if (function) {
+            VMThread* thread = &ScriptManager::Threads[threadID];
+
+            std::stable_sort(array->Values->begin(), array->Values->end(), [array, thread, function](const VMValue& a, const VMValue& b) {
+                thread->Push(a);
+                thread->Push(b);
+
+                VMValue result = thread->RunEntityFunction(function, 2);
+
+                if (IS_INTEGER(result))
+                    return AS_INTEGER(result) == 1;
+
+                return false;
+            });
+        } else {
+            std::stable_sort(array->Values->begin(), array->Values->end(), [array](const VMValue& a, const VMValue& b) {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
+                    return false;
+                }
+                else if (IS_DECIMAL(a) || IS_DECIMAL(b)) {
+                    return AS_DECIMAL(ScriptManager::CastValueAsDecimal(a)) < AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                }
+                else {
+                    return AS_INTEGER(a) < AS_INTEGER(b);
+                }
+            });
+        }
+
+        ScriptManager::Unlock();
+    }
+    return NULL_VAL;
+}
 // #endregion
 
 // #region Controller
@@ -15011,6 +15056,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Array, Shift);
     DEF_NATIVE(Array, SetAll);
     DEF_NATIVE(Array, Reverse);
+    DEF_NATIVE(Array, Sort);
     // #endregion
 
     // #region Controller

@@ -234,6 +234,7 @@
                     <li><a href="#Reference_functions_Array_Shift">Array.Shift</a></li>
                     <li><a href="#Reference_functions_Array_SetAll">Array.SetAll</a></li>
                     <li><a href="#Reference_functions_Array_Reverse">Array.Reverse</a></li>
+                    <li><a href="#Reference_functions_Array_Sort">Array.Sort</a></li>
                 </ul>
             </p>
             <p id="Reference_Audio">
@@ -2273,6 +2274,16 @@
         <li>array (Array): Array to reverse.</li>
         <li>startIndex (Integer): Start range. Default is zero.</li>
         <li>endIndex (Integer): End range. Default is size of array.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Array_Sort">
+        <h2 style="margin-bottom: 8px;">Array.Sort</h2>
+        <code>Array.Sort(array[, compFunction])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sorts the entries of the given array.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>array (Array): Array to sort.</li>
+        <li>compFunction (Function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.</li>
         </ul>
         </p>
         <p id="Reference_functions_Audio_GetMasterVolume">
@@ -9281,7 +9292,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>676 out of 735 functions have descriptions. </p>
+        <p>677 out of 736 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

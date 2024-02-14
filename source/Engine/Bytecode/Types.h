@@ -95,6 +95,7 @@ const char* GetValueTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
+#define IS_NUMBER(value)        (IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || IS_LINKED_INTEGER(value))
 #define IS_NOT_NUMBER(value)    (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
