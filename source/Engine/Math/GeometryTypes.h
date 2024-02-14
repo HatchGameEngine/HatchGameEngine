@@ -29,6 +29,19 @@ struct Polygon2D {
         Points = input;
     }
 
+    vector<double> ToList() {
+        unsigned count = Points.size();
+
+        vector<double> vertices;
+
+        for (unsigned i = 0; i < count; i++) {
+            vertices.push_back(Points[i].X);
+            vertices.push_back(Points[i].Y);
+        }
+
+        return vertices;
+    }
+
     int CalculateWinding() {
         if (Points.size() == 0)
             return 0;
@@ -89,17 +102,6 @@ struct Triangle {
             C.X * (A.Y - B.Y);
 
         return area / 2;
-    }
-
-    bool IsConvex() {
-        FVector2 a = A - B;
-        FVector2 b = C - B;
-        float dot = FVector2::DotProduct(a, b);
-        float det = FVector2::Determinant(a, b);
-        float angle = atan2(det, dot);
-        if (angle < 0.0)
-            return (M_PI * 2.0) + angle;
-        return angle;
     }
 
     bool IsPointInside(FVector2 point) {

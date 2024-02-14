@@ -52,7 +52,6 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
 
     vector<Polygon2D>* output = new vector<Polygon2D>();
 
-#if 1
     int winding = input.CalculateWinding();
 
     while (count > 3) {
@@ -81,58 +80,8 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
         Triangle tri(points);
         output->push_back(tri.ToPolygon());
     }
-#else
-    // The old algorithm.
-    // Only works properly for monotone polygons.
-    unsigned i = 0;
-
-    while (count > 2) {
-        unsigned prev = (i == 0) ? (count - 1) : (i - 1) % count;
-        unsigned curr = i % count;
-        unsigned next = (i + 1) % count;
-
-        FVector2 a = points[prev];
-        FVector2 b = points[curr];
-        FVector2 c = points[next];
-
-        Triangle tri(a, b, c);
-
-        bool isEar = true;
-
-        if (tri.IsConvex()) {
-            int nextNext = (next + 1) % count;
-            while (isEar && nextNext != prev) {
-                isEar = !tri.IsPointInside(points[nextNext]);
-                nextNext = (nextNext + 1) % count;
-            }
-        }
-        else
-            isEar = false;
-
-        if (isEar) {
-            output->push_back(tri.ToPolygon());
-            points.erase(points.begin() + curr);
-            count--;
-        }
-
-        i++;
-    }
-#endif
 
     return output;
-}
-
-PRIVATE STATIC vector<double> Geometry::GetVertexList(Polygon2D input) {
-    unsigned count = input.Points.size();
-
-    vector<double> vertices;
-
-    for (unsigned i = 0; i < count; i++) {
-        vertices.push_back(input.Points[i].X);
-        vertices.push_back(input.Points[i].Y);
-    }
-
-    return vertices;
 }
 
 static Clipper2Lib::ClipType GetClipType(unsigned clipType) {
@@ -170,9 +119,9 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Intersect(unsigned clipType, unsigned
     Clipper2Lib::PathsD clips;
 
     for (Polygon2D& sub : inputSubjects)
-        subjects.push_back(Clipper2Lib::MakePathD(Geometry::GetVertexList(sub)));
+        subjects.push_back(Clipper2Lib::MakePathD(sub.ToList()));
     for (Polygon2D& clip : inputClips)
-        clips.push_back(Clipper2Lib::MakePathD(Geometry::GetVertexList(clip)));
+        clips.push_back(Clipper2Lib::MakePathD(clip.ToList()));
 
     Clipper2Lib::ClipperD clipper;
     clipper.AddSubject(subjects);
