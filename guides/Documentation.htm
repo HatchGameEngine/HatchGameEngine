@@ -118,7 +118,7 @@
             <li><a href="#Reference_FileStream_*">FileStream_*</a></li>
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
-            <li><a href="#Reference_GeoClipType_*">GeoClipType_*</a></li>
+            <li><a href="#Reference_GeoBooleanOp_*">GeoBooleanOp_*</a></li>
             <li><a href="#Reference_GeoFillRule_*">GeoFillRule_*</a></li>
             <li><a href="#Reference_HitboxSide_*">HitboxSide_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
@@ -1621,13 +1621,13 @@
                     <li><a href="#Reference_enums_FogEquation_Exp">FogEquation_Exp</a></li>
                 </ul>
             </p>
-            <p id="Reference_GeoClipType_*">
-                <h2><code>GeoClipType_*</code></h2>
+            <p id="Reference_GeoBooleanOp_*">
+                <h2><code>GeoBooleanOp_*</code></h2>
                 <ul>
-                    <li><a href="#Reference_enums_GeoClipType_Intersection">GeoClipType_Intersection</a></li>
-                    <li><a href="#Reference_enums_GeoClipType_Union">GeoClipType_Union</a></li>
-                    <li><a href="#Reference_enums_GeoClipType_Difference">GeoClipType_Difference</a></li>
-                    <li><a href="#Reference_enums_GeoClipType_ExclusiveOr">GeoClipType_ExclusiveOr</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Intersection">GeoBooleanOp_Intersection</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Union">GeoBooleanOp_Union</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Difference">GeoBooleanOp_Difference</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_ExclusiveOr">GeoBooleanOp_ExclusiveOr</a></li>
                 </ul>
             </p>
             <p id="Reference_GeoFillRule_*">
@@ -4367,13 +4367,13 @@
         </p>
         <p id="Reference_functions_Geometry_Intersect">
         <h2 style="margin-bottom: 8px;">Geometry.Intersect</h2>
-        <code>Geometry.Intersect(subjects, clips[, clipType, fillRule])</code>
+        <code>Geometry.Intersect(subjects, clips[, booleanOp, fillRule])</code>
         <div style="margin-top: 8px; font-size: 14px;">Intersects a 2D polygon.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>subjects (Array): Array of subject polygons.</li>
         <li>clips (Array): Array of clip polygons.</li>
-        <li>clipType (Enum): The <a href="#Reference_GeoClipType_*">clip type</a>. Default is <code><a href="#Reference_enums_GeoClipType_Intersection">GeoClipType_Intersection</a></code>.</li>
+        <li>booleanOp (Enum): The <a href="#Reference_GeoBooleanOp_*">boolean operation</a>. Default is <code><a href="#Reference_enums_GeoBooleanOp_Intersection">GeoBooleanOp_Intersection</a></code>.</li>
         <li>fillRule (Enum): The <a href="#Reference_GeoFillRule_*">fill rule</a>. Default is <code><a href="#Reference_enums_GeoFillRule_EvenOdd">GeoFillRule_EvenOdd</a></code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -10451,20 +10451,20 @@
         <h3 style="margin-bottom: 8px;"><code>FogEquation_Exp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Exponential fog equation.</div>
         </p>
-        <p id="Reference_enums_GeoClipType_Intersection">
-        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Intersection</code></h2>
+        <p id="Reference_enums_GeoBooleanOp_Intersection">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Intersection</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">AND operation.</div>
         </p>
-        <p id="Reference_enums_GeoClipType_Union">
-        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Union</code></h2>
+        <p id="Reference_enums_GeoBooleanOp_Union">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Union</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">OR operation.</div>
         </p>
-        <p id="Reference_enums_GeoClipType_Difference">
-        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Difference</code></h2>
+        <p id="Reference_enums_GeoBooleanOp_Difference">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Difference</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">NOT operation.</div>
         </p>
-        <p id="Reference_enums_GeoClipType_ExclusiveOr">
-        <h3 style="margin-bottom: 8px;"><code>GeoClipType_ExclusiveOr</code></h2>
+        <p id="Reference_enums_GeoBooleanOp_ExclusiveOr">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_ExclusiveOr</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">XOR operation.</div>
         </p>
         <p id="Reference_enums_GeoFillRule_EvenOdd">

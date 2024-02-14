@@ -5186,7 +5186,7 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Intersects a 2D polygon.
  * \param subjects (Array): Array of subject polygons.
  * \param clips (Array): Array of clip polygons.
- * \paramOpt clipType (Enum): The <linkto ref="GeoClipType_*">clip type</linkto>. Default is <linkto ref="GeoClipType_Intersection"></linkto>.
+ * \paramOpt booleanOp (Enum): The <linkto ref="GeoBooleanOp_*">boolean operation</linkto>. Default is <linkto ref="GeoBooleanOp_Intersection"></linkto>.
  * \paramOpt fillRule (Enum): The <linkto ref="GeoFillRule_*">fill rule</linkto>. Default is <linkto ref="GeoFillRule_EvenOdd"></linkto>.
  * \return Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.
  * \ns Geometry
@@ -5196,11 +5196,11 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjArray* subjects = GET_ARG(0, GetArray);
     ObjArray* clips = GET_ARG(1, GetArray);
-    int clipType = GET_ARG_OPT(2, GetInteger, GeoClipType_Intersection);
+    int booleanOp = GET_ARG_OPT(2, GetInteger, GeoBooleanOp_Intersection);
     int fillRule = GET_ARG_OPT(3, GetInteger, GeoFillRule_EvenOdd);
 
-    if (clipType < GeoClipType_Intersection || clipType > GeoClipType_ExclusiveOr) {
-        OUT_OF_RANGE_ERROR("Clip type", clipType, GeoClipType_Intersection, GeoClipType_ExclusiveOr);
+    if (booleanOp < GeoBooleanOp_Intersection || booleanOp > GeoBooleanOp_ExclusiveOr) {
+        OUT_OF_RANGE_ERROR("Boolean operation", booleanOp, GeoBooleanOp_Intersection, GeoBooleanOp_ExclusiveOr);
         return NULL_VAL;
     }
 
@@ -5236,7 +5236,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
         inputClips.push_back(clip);
     }
 
-    vector<Polygon2D>* output = Geometry::Intersect(clipType, fillRule, inputSubjects, inputClips);
+    vector<Polygon2D>* output = Geometry::Intersect(booleanOp, fillRule, inputSubjects, inputClips);
     if (!output)
         return NULL_VAL;
 
@@ -16033,25 +16033,25 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Geometry, Intersect);
 
     /***
-    * \enum GeoClipType_Intersection
+    * \enum GeoBooleanOp_Intersection
     * \desc AND operation.
     */
-    DEF_ENUM(GeoClipType_Intersection);
+    DEF_ENUM(GeoBooleanOp_Intersection);
     /***
-    * \enum GeoClipType_Union
+    * \enum GeoBooleanOp_Union
     * \desc OR operation.
     */
-    DEF_ENUM(GeoClipType_Union);
+    DEF_ENUM(GeoBooleanOp_Union);
     /***
-    * \enum GeoClipType_Difference
+    * \enum GeoBooleanOp_Difference
     * \desc NOT operation.
     */
-    DEF_ENUM(GeoClipType_Difference);
+    DEF_ENUM(GeoBooleanOp_Difference);
     /***
-    * \enum GeoClipType_ExclusiveOr
+    * \enum GeoBooleanOp_ExclusiveOr
     * \desc XOR operation.
     */
-    DEF_ENUM(GeoClipType_ExclusiveOr);
+    DEF_ENUM(GeoBooleanOp_ExclusiveOr);
 
     /***
     * \enum GeoFillRule_EvenOdd

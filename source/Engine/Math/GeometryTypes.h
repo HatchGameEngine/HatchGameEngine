@@ -5,10 +5,10 @@
 #include <Engine/Math/Math.h>
 
 enum {
-    GeoClipType_Intersection,
-    GeoClipType_Union,
-    GeoClipType_Difference,
-    GeoClipType_ExclusiveOr
+    GeoBooleanOp_Intersection,
+    GeoBooleanOp_Union,
+    GeoBooleanOp_Difference,
+    GeoBooleanOp_ExclusiveOr
 };
 
 enum {

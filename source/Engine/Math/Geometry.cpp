@@ -95,13 +95,13 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
 
 static Clipper2Lib::ClipType GetClipType(unsigned clipType) {
     switch (clipType) {
-    case GeoClipType_Intersection:
+    case GeoBooleanOp_Intersection:
         return Clipper2Lib::ClipType::Intersection;
-    case GeoClipType_Union:
+    case GeoBooleanOp_Union:
         return Clipper2Lib::ClipType::Union;
-    case GeoClipType_Difference:
+    case GeoBooleanOp_Difference:
         return Clipper2Lib::ClipType::Difference;
-    case GeoClipType_ExclusiveOr:
+    case GeoBooleanOp_ExclusiveOr:
         return Clipper2Lib::ClipType::Xor;
     default:
         return Clipper2Lib::ClipType::None;
