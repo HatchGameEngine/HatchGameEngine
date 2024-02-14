@@ -43,6 +43,15 @@ PRIVATE STATIC bool Geometry::CheckEar(vector<FVector2>& input, unsigned count, 
     return true;
 }
 
+PRIVATE STATIC int Geometry::GetPointForTriangulation(int point, unsigned count) {
+    if (point < 0)
+        return point + count;
+    else if (point >= count)
+        return point % count;
+    else
+        return point;
+}
+
 PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
     vector<FVector2> points = input.Points;
 
@@ -59,14 +68,14 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
         unsigned prev, next;
 
         while (curr < count) {
-            prev = (curr + count + winding) % count;
-            next = (curr + count - winding) % count;
+            prev = GetPointForTriangulation(curr + count + winding, count);
+            next = GetPointForTriangulation(curr + count - winding, count);
             if (CheckEar(points, count, prev, curr, next))
                 break;
             curr++;
         }
 
-        Triangle tri(points[prev], points[next], points[curr]);
+        Triangle tri(points[prev], points[next], points[GetPointForTriangulation(curr, count)]);
         output->push_back(tri.ToPolygon());
         points.erase(points.begin() + curr);
         count--;
