@@ -68,14 +68,14 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
         unsigned prev, next;
 
         while (curr < count) {
-            prev = GetPointForTriangulation(curr + winding, count);
-            next = GetPointForTriangulation(curr - winding, count);
-            if (CheckEar(points, count, prev, curr, next))
+            prev = GetPointForTriangulation(curr - winding, count);
+            next = GetPointForTriangulation(curr + winding, count);
+            if (CheckEar(points, count, next, curr, prev))
                 break;
             curr++;
         }
 
-        Triangle tri(points[prev], points[next], points[GetPointForTriangulation(curr, count)]);
+        Triangle tri(points[next], points[prev], points[GetPointForTriangulation(curr, count)]);
         output->push_back(tri.ToPolygon());
         points.erase(points.begin() + curr);
         count--;
