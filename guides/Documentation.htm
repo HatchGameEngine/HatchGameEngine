@@ -118,6 +118,8 @@
             <li><a href="#Reference_FileStream_*">FileStream_*</a></li>
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
+            <li><a href="#Reference_GeoClipType_*">GeoClipType_*</a></li>
+            <li><a href="#Reference_GeoFillRule_*">GeoFillRule_*</a></li>
             <li><a href="#Reference_HitboxSide_*">HitboxSide_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
@@ -483,6 +485,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Geometry_Triangulate">Geometry.Triangulate</a></li>
+                    <li><a href="#Reference_functions_Geometry_Intersect">Geometry.Intersect</a></li>
                 </ul>
             </p>
             <p id="Reference_HTTP">
@@ -1615,6 +1618,24 @@
                 <ul>
                     <li><a href="#Reference_enums_FogEquation_Linear">FogEquation_Linear</a></li>
                     <li><a href="#Reference_enums_FogEquation_Exp">FogEquation_Exp</a></li>
+                </ul>
+            </p>
+            <p id="Reference_GeoClipType_*">
+                <h2><code>GeoClipType_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_GeoClipType_Intersection">GeoClipType_Intersection</a></li>
+                    <li><a href="#Reference_enums_GeoClipType_Union">GeoClipType_Union</a></li>
+                    <li><a href="#Reference_enums_GeoClipType_Difference">GeoClipType_Difference</a></li>
+                    <li><a href="#Reference_enums_GeoClipType_ExclusiveOr">GeoClipType_ExclusiveOr</a></li>
+                </ul>
+            </p>
+            <p id="Reference_GeoFillRule_*">
+                <h2><code>GeoFillRule_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_GeoFillRule_EvenOdd">GeoFillRule_EvenOdd</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_NonZero">GeoFillRule_NonZero</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_Positive">GeoFillRule_Positive</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_Negative">GeoFillRule_Negative</a></li>
                 </ul>
             </p>
             <p id="Reference_HitboxSide_*">
@@ -4331,6 +4352,20 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.</div>
+        </p>
+        <p id="Reference_functions_Geometry_Intersect">
+        <h2 style="margin-bottom: 8px;">Geometry.Intersect</h2>
+        <code>Geometry.Intersect(subjects, clips[, clipType, fillRule])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Intersects a 2D polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>subjects (Array): Array of subject polygons.</li>
+        <li>clips (Array): Array of clip polygons.</li>
+        <li>clipType (Enum): The <a href="#Reference_GeoClipType_*">clip type</a>. Default is <code><a href="#Reference_enums_GeoClipType_Intersection">GeoClipType_Intersection</a></code>.</li>
+        <li>fillRule (Enum): The <a href="#Reference_GeoFillRule_*">fill rule</a>. Default is <code><a href="#Reference_enums_GeoFillRule_EvenOdd">GeoFillRule_EvenOdd</a></code>.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.</div>
         </p>
         <p id="Reference_functions_HTTP_GetString">
         <h2 style="margin-bottom: 8px; color: red;">HTTP.GetString</h2>
@@ -9234,7 +9269,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>674 out of 733 functions have descriptions. </p>
+        <p>675 out of 734 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10404,6 +10439,38 @@
         <h3 style="margin-bottom: 8px;"><code>FogEquation_Exp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Exponential fog equation.</div>
         </p>
+        <p id="Reference_enums_GeoClipType_Intersection">
+        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Intersection</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">AND operation.</div>
+        </p>
+        <p id="Reference_enums_GeoClipType_Union">
+        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Union</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">OR operation.</div>
+        </p>
+        <p id="Reference_enums_GeoClipType_Difference">
+        <h3 style="margin-bottom: 8px;"><code>GeoClipType_Difference</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">NOT operation.</div>
+        </p>
+        <p id="Reference_enums_GeoClipType_ExclusiveOr">
+        <h3 style="margin-bottom: 8px;"><code>GeoClipType_ExclusiveOr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">XOR operation.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_EvenOdd">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_EvenOdd</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only odd numbered subregions are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_NonZero">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_NonZero</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only non-zero subregions are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_Positive">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_Positive</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only subregions that have winding counts greater than zero (> 0) are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_Negative">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_Negative</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only subregions that have winding counts lesser than zero (< 0) are filled.</div>
+        </p>
         <p id="Reference_enums_HitboxSide_LEFT">
         <h3 style="margin-bottom: 8px;"><code>HitboxSide_LEFT</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox array.</div>
@@ -10676,7 +10743,7 @@
         <h3 style="margin-bottom: 8px;"><code>Weekday_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>181 out of 181 enums have descriptions. </p>
+        <p>189 out of 189 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

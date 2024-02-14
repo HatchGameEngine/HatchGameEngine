@@ -3451,7 +3451,7 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw
  */
 VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(12);
+    CHECK_ARGCOUNT(8);
     // TODO: Implement for GL renderer
     SoftwareRenderer::FillQuad(
         GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal),
@@ -5069,6 +5069,50 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Geometry
+static vector<FVector2> GetPolygonPoints(ObjArray *array, int threadID) {
+    vector<FVector2> input;
+
+    for (unsigned i = 0; i < array->Values->size(); i++) {
+        VMValue vtxVal = (*array->Values)[i];
+
+        if (!IS_ARRAY(vtxVal)) {
+            THROW_ERROR("Expected value at index %d of array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
+            return {};
+        }
+
+        ObjArray* vtx = AS_ARRAY(vtxVal);
+        VMValue xVal = (*vtx->Values)[0];
+        VMValue yVal = (*vtx->Values)[1];
+
+        float x, y;
+
+        // Get X
+        if (IS_DECIMAL(xVal))
+            x = AS_DECIMAL(xVal);
+        else if (IS_INTEGER(xVal))
+            x = (float)(AS_INTEGER(xVal));
+        else {
+            THROW_ERROR("Expected X value (index %d) at vertex index %d to be of type %s instead of %s.", 0, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
+            return {};
+        }
+
+        // Get Y
+        if (IS_DECIMAL(yVal))
+            y = AS_DECIMAL(yVal);
+        else if (IS_INTEGER(yVal))
+            y = (float)(AS_INTEGER(yVal));
+        else {
+            THROW_ERROR("Expected Y value (index %d) at vertex index %d to be of type %s instead of %s.", 1, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
+            return {};
+        }
+
+        FVector2 vec(x, y);
+
+        input.push_back(vec);
+    }
+
+    return input;
+}
 /***
  * Geometry.Triangulate
  * \desc Triangulates a 2D polygon.
@@ -5080,59 +5124,106 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ObjArray* array = GET_ARG(0, GetArray);
 
-    vector<FVector2> input;
+    vector<FVector2> input = GetPolygonPoints(array, threadID);
+    if (!input.size())
+        return NULL_VAL;
 
-    for (unsigned i = 0; i < array->Values->size(); i++) {
-        VMValue vtxVal = (*array->Values)[i];
-
-        if (!IS_ARRAY(vtxVal)) {
-            THROW_ERROR("Expected value at array index %d to be of type %s instead of %s.", i, GetTypeString(VAL_DECIMAL), GetValueTypeString(vtxVal));
-            return NULL_VAL;
-        }
-
-        ObjArray* vtx = AS_ARRAY(vtxVal);
-        VMValue x = (*vtx->Values)[0];
-        VMValue y = (*vtx->Values)[1];
-
-        if (!IS_DECIMAL(x)) {
-            THROW_ERROR("Expected X value (index %d) at vertex index %d to be of type %s instead of %s.", 0, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(x));
-            return NULL_VAL;
-        }
-        if (!IS_DECIMAL(y)) {
-            THROW_ERROR("Expected Y value (index %d) at vertex index %d to be of type %s instead of %s.", 1, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(y));
-            return NULL_VAL;
-        }
-
-        FVector2 vec(AS_DECIMAL(x), AS_DECIMAL(y));
-
-        input.push_back(vec);
-    }
-
-    vector<Triangle>* output = Geometry::Triangulate(input);
+    Polygon2D inputPoly(input);
+    vector<Polygon2D>* output = Geometry::Triangulate(inputPoly);
     if (!output)
         return NULL_VAL;
 
     ObjArray* result = NewArray();
 
     for (unsigned i = 0; i < output->size(); i++) {
-        Triangle tri = (*output)[i];
+        Polygon2D poly = (*output)[i];
         ObjArray* triArr = NewArray();
 
-        ObjArray* vtx;
-
-#define PUSH_VTX(which) \
-        vtx = NewArray(); \
-        vtx->Values->push_back(DECIMAL_VAL(tri.which.X)); \
-        vtx->Values->push_back(DECIMAL_VAL(tri.which.Y)); \
-        triArr->Values->push_back(OBJECT_VAL(vtx))
-
-        PUSH_VTX(A);
-        PUSH_VTX(B);
-        PUSH_VTX(C);
-
-#undef PUSH_VTX
+        for (unsigned j = 0; j < 3; j++) {
+            ObjArray* vtx = NewArray();
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
+            triArr->Values->push_back(OBJECT_VAL(vtx));
+        }
 
         result->Values->push_back(OBJECT_VAL(triArr));
+    }
+
+    return OBJECT_VAL(result);
+}
+/***
+ * Geometry.Intersect
+ * \desc Intersects a 2D polygon.
+ * \param subjects (Array): Array of subject polygons.
+ * \param clips (Array): Array of clip polygons.
+ * \paramOpt clipType (Enum): The <linkto ref="GeoClipType_*">clip type</linkto>. Default is <linkto ref="GeoClipType_Intersection"></linkto>.
+ * \paramOpt fillRule (Enum): The <linkto ref="GeoFillRule_*">fill rule</linkto>. Default is <linkto ref="GeoFillRule_EvenOdd"></linkto>.
+ * \return Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.
+ * \ns Geometry
+ */
+VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+
+    ObjArray* subjects = GET_ARG(0, GetArray);
+    ObjArray* clips = GET_ARG(1, GetArray);
+    int clipType = GET_ARG_OPT(2, GetInteger, GeoClipType_Intersection);
+    int fillRule = GET_ARG_OPT(3, GetInteger, GeoFillRule_EvenOdd);
+
+    if (clipType < GeoClipType_Intersection || clipType > GeoClipType_ExclusiveOr) {
+        OUT_OF_RANGE_ERROR("Clip type", clipType, GeoClipType_Intersection, GeoClipType_ExclusiveOr);
+        return NULL_VAL;
+    }
+
+    if (fillRule < GeoFillRule_EvenOdd || fillRule > GeoFillRule_Negative) {
+        OUT_OF_RANGE_ERROR("Fill rule", fillRule, GeoFillRule_EvenOdd, GeoFillRule_Negative);
+        return NULL_VAL;
+    }
+
+    vector<Polygon2D> inputSubjects;
+    vector<Polygon2D> inputClips;
+
+    // Get subjects
+    for (unsigned i = 0; i < subjects->Values->size(); i++) {
+        VMValue value = (*subjects->Values)[i];
+        if (!IS_ARRAY(value)) {
+            THROW_ERROR("Expected value at index %d of subjects array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+            return NULL_VAL;
+        }
+
+        Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), threadID));
+        inputSubjects.push_back(subject);
+    }
+
+    // Get clips
+    for (unsigned i = 0; i < clips->Values->size(); i++) {
+        VMValue value = (*clips->Values)[i];
+        if (!IS_ARRAY(value)) {
+            THROW_ERROR("Expected value at index %d of clips array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+            return NULL_VAL;
+        }
+
+        Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), threadID));
+        inputClips.push_back(clip);
+    }
+
+    vector<Polygon2D>* output = Geometry::Intersect(clipType, fillRule, inputSubjects, inputClips);
+    if (!output)
+        return NULL_VAL;
+
+    ObjArray* result = NewArray();
+
+    for (unsigned i = 0; i < output->size(); i++) {
+        Polygon2D& poly = (*output)[i];
+        ObjArray* polyArr = NewArray();
+
+        for (unsigned j = 0; j < poly.Points.size(); j++) {
+            ObjArray* vtx = NewArray();
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
+            polyArr->Values->push_back(OBJECT_VAL(vtx));
+        }
+
+        result->Values->push_back(OBJECT_VAL(polyArr));
     }
 
     return OBJECT_VAL(result);
@@ -15908,6 +15999,49 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Geometry
     INIT_CLASS(Geometry);
     DEF_NATIVE(Geometry, Triangulate);
+    DEF_NATIVE(Geometry, Intersect);
+
+    /***
+    * \enum GeoClipType_Intersection
+    * \desc AND operation.
+    */
+    DEF_ENUM(GeoClipType_Intersection);
+    /***
+    * \enum GeoClipType_Union
+    * \desc OR operation.
+    */
+    DEF_ENUM(GeoClipType_Union);
+    /***
+    * \enum GeoClipType_Difference
+    * \desc NOT operation.
+    */
+    DEF_ENUM(GeoClipType_Difference);
+    /***
+    * \enum GeoClipType_ExclusiveOr
+    * \desc XOR operation.
+    */
+    DEF_ENUM(GeoClipType_ExclusiveOr);
+
+    /***
+    * \enum GeoFillRule_EvenOdd
+    * \desc Only odd numbered subregions are filled.
+    */
+    DEF_ENUM(GeoFillRule_EvenOdd);
+    /***
+    * \enum GeoFillRule_NonZero
+    * \desc Only non-zero subregions are filled.
+    */
+    DEF_ENUM(GeoFillRule_NonZero);
+    /***
+    * \enum GeoFillRule_Positive
+    * \desc Only subregions that have winding counts greater than zero (> 0) are filled.
+    */
+    DEF_ENUM(GeoFillRule_Positive);
+    /***
+    * \enum GeoFillRule_Negative
+    * \desc Only subregions that have winding counts lesser than zero (< 0) are filled.
+    */
+    DEF_ENUM(GeoFillRule_Negative);
     // #endregion
 
     // #region HTTP
