@@ -11,6 +11,7 @@ public:
 #include <Engine/Math/Math.h>
 
 #include <Libraries/Clipper2/clipper.h>
+#include <Libraries/poly2tri/poly2tri.h>
 
 PRIVATE STATIC bool Geometry::CheckEar(vector<FVector2>& input, unsigned count, unsigned prev, unsigned curr, unsigned next) {
     FVector2& a = input[prev];
@@ -61,34 +62,35 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
 
     vector<Polygon2D>* output = new vector<Polygon2D>();
 
-    int winding = input.CalculateWinding();
+    std::vector<p2t::Point*> inputPoly;
 
-    while (count > 3) {
-        unsigned curr = 0;
-        unsigned prev, next;
+    for (unsigned i = 0; i < input.Points.size(); i++)
+        inputPoly.push_back(new p2t::Point(input.Points[i].X, input.Points[i].Y));
 
-        while (curr < count) {
-            prev = GetPointForTriangulation(curr - winding, count);
-            next = GetPointForTriangulation(curr + winding, count);
-            if (CheckEar(points, count, next, curr, prev))
-                break;
-            curr++;
-        }
+    p2t::CDT* cdt = new p2t::CDT(inputPoly);
 
-        Triangle tri(points[next], points[prev], points[GetPointForTriangulation(curr, count)]);
-        output->push_back(tri.ToPolygon());
-        points.erase(points.begin() + curr);
-        count--;
+    cdt->Triangulate();
+
+    vector<p2t::Triangle*> triangles = cdt->GetTriangles();
+
+    for (unsigned int i = 0; i < triangles.size(); i++) {
+        p2t::Triangle& t = *triangles[i];
+        p2t::Point& a = *t.GetPoint(0);
+        p2t::Point& b = *t.GetPoint(1);
+        p2t::Point& c = *t.GetPoint(2);
+
+        Polygon2D polygon;
+        polygon.AddPoint(a.x, a.y);
+        polygon.AddPoint(b.x, b.y);
+        polygon.AddPoint(c.x, c.y);
+
+        output->push_back(polygon);
     }
 
-    if (winding < 0) {
-        Triangle tri(points[2], points[1], points[0]);
-        output->push_back(tri.ToPolygon());
-    }
-    else {
-        Triangle tri(points);
-        output->push_back(tri.ToPolygon());
-    }
+    for (unsigned i = 0; i < inputPoly.size(); i++)
+        delete inputPoly[i];
+
+    delete cdt;
 
     return output;
 }
