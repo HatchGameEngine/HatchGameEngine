@@ -35,7 +35,7 @@ PUBLIC STATIC VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 
 
     if (array->Values->size() && IS_NULL(args[1]))
         return INTEGER_VAL(0);
-    else {
+    else if (!IS_NULL(args[1])) {
         int iteration = GET_ARG(1, GetInteger) + 1;
         if (iteration >= 0 && iteration < array->Values->size())
             return INTEGER_VAL(iteration);
