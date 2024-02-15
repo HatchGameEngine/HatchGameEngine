@@ -488,6 +488,7 @@
                 <ul>
                     <li><a href="#Reference_functions_Geometry_Triangulate">Geometry.Triangulate</a></li>
                     <li><a href="#Reference_functions_Geometry_Intersect">Geometry.Intersect</a></li>
+                    <li><a href="#Reference_functions_Geometry_IsPointInsidePolygon">Geometry.IsPointInsidePolygon</a></li>
                 </ul>
             </p>
             <p id="Reference_HTTP">
@@ -4389,6 +4390,19 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.</div>
+        </p>
+        <p id="Reference_functions_Geometry_IsPointInsidePolygon">
+        <h2 style="margin-bottom: 8px;">Geometry.IsPointInsidePolygon</h2>
+        <code>Geometry.IsPointInsidePolygon(polygon, X, Y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a point is inside a polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>polygon (Array): The polygon.</li>
+        <li>X (Decimal): The X of the point.</li>
+        <li>Y (Decimal): The Y of the point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the point is inside, <code>false</code> if the point is outside.</div>
         </p>
         <p id="Reference_functions_HTTP_GetString">
         <h2 style="margin-bottom: 8px; color: red;">HTTP.GetString</h2>
@@ -9292,7 +9306,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>677 out of 736 functions have descriptions. </p>
+        <p>678 out of 737 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

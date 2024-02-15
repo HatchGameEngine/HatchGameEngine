@@ -144,10 +144,8 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Intersect(unsigned clipType, unsigned
     for (Clipper2Lib::PathD& path : result) {
         Polygon2D polygon;
 
-        for (Clipper2Lib::PointD& point : path) {
-            FVector2 vec(point.x, point.y);
-            polygon.Points.push_back(vec);
-        }
+        for (Clipper2Lib::PointD& point : path)
+            polygon.AddPoint(point.x, point.y);
 
         output->push_back(polygon);
     }

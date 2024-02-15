@@ -4,6 +4,8 @@
 #include <Engine/Math/VectorTypes.h>
 #include <Engine/Math/Math.h>
 
+#include <cfloat>
+
 enum {
     GeoBooleanOp_Intersection,
     GeoBooleanOp_Union,
@@ -21,12 +23,29 @@ enum {
 struct Polygon2D {
     vector<FVector2> Points;
 
+    float MinX, MinY, MaxX, MaxY;
+
     Polygon2D() {
         Points.resize(0);
+        MinX = 0.0;
+        MinY = 0.0;
+        MaxX = 0.0;
+        MaxY = 0.0;
     }
 
     Polygon2D(vector<FVector2> input) {
         Points = input;
+        CalcBounds();
+    }
+
+    void AddPoint(FVector2 point) {
+        Points.push_back(point);
+        CalcBounds();
+    }
+
+    void AddPoint(float x, float y) {
+        FVector2 vec(x, y);
+        AddPoint(vec);
     }
 
     vector<double> ToList() {
@@ -40,6 +59,36 @@ struct Polygon2D {
         }
 
         return vertices;
+    }
+
+    bool IsPointInside(FVector2 point) {
+        // Cannot possibly be inside
+        if (point.X < MinX || point.X > MaxX || point.Y < MinY || point.Y > MaxY)
+            return false;
+
+        bool isInside = false;
+        unsigned currPt = 0;
+        unsigned prevPt = Points.size() - 1;
+
+        while (currPt < Points.size()) {
+            FVector2& a = Points[currPt];
+            FVector2& b = Points[prevPt];
+
+            if (a.Y > point.Y != b.Y > point.Y) {
+                if (point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X)
+                    isInside = !isInside;
+            }
+
+            prevPt = currPt;
+            currPt++;
+        }
+
+        return isInside;
+    }
+
+    bool IsPointInside(float x, float y) {
+        FVector2 vec(x, y);
+        return IsPointInside(vec);
     }
 
     int CalculateWinding() {
@@ -61,6 +110,34 @@ struct Polygon2D {
             return 1;
 
         return -1;
+    }
+
+private:
+    void CalcBounds() {
+        float xMin = FLT_MAX;
+        float yMin = FLT_MAX;
+        float xMax = FLT_MIN;
+        float yMax = FLT_MIN;
+
+        for (unsigned i = 0; i < Points.size(); i++) {
+            float ptX = Points[i].X;
+            float ptY = Points[i].Y;
+
+            if (ptX > xMax)
+                xMax = ptX;
+            if (ptX < xMin)
+                xMin = ptX;
+
+            if (ptY > yMax)
+                yMax = ptY;
+            if (ptY < yMin)
+                yMin = ptY;
+        }
+
+        MinX = xMin;
+        MinY = yMin;
+        MaxX = xMax;
+        MaxY = yMax;
     }
 };
 

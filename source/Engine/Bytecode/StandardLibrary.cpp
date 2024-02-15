@@ -5303,6 +5303,26 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 
     return OBJECT_VAL(result);
 }
+/***
+ * Geometry.IsPointInsidePolygon
+ * \desc Checks if a point is inside a polygon.
+ * \param polygon (Array): The polygon.
+ * \param X (Decimal): The X of the point.
+ * \param Y (Decimal): The Y of the point.
+ * \return Returns <code>true</code> if the point is inside, <code>false</code> if the point is outside.
+ * \ns Geometry
+ */
+VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    ObjArray* arr = GET_ARG(0, GetArray);
+    float pointX = GET_ARG(1, GetDecimal);
+    float pointY = GET_ARG(2, GetDecimal);
+
+    Polygon2D polygon(GetPolygonPoints(arr, threadID));
+
+    return INTEGER_VAL(polygon.IsPointInside(pointX, pointY));
+}
 // #endregion
 
 // #region HTTP
@@ -16077,6 +16097,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     INIT_CLASS(Geometry);
     DEF_NATIVE(Geometry, Triangulate);
     DEF_NATIVE(Geometry, Intersect);
+    DEF_NATIVE(Geometry, IsPointInsidePolygon);
 
     /***
     * \enum GeoBooleanOp_Intersection
