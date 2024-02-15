@@ -53,7 +53,21 @@ PRIVATE STATIC int Geometry::GetPointForTriangulation(int point, unsigned count)
         return point;
 }
 
-PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
+static std::vector<p2t::Point*> GetP2TPoints(Polygon2D& input) {
+    std::vector<p2t::Point*> points;
+
+    for (unsigned i = 0; i < input.Points.size(); i++)
+        points.push_back(new p2t::Point(input.Points[i].X, input.Points[i].Y));
+
+    return points;
+}
+
+static void FreeP2TPoints(std::vector<p2t::Point*>& points) {
+    for (unsigned i = 0; i < points.size(); i++)
+        delete points[i];
+}
+
+PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input, vector<Polygon2D> holes) {
     vector<FVector2> points = input.Points;
 
     unsigned count = points.size();
@@ -62,12 +76,16 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
 
     vector<Polygon2D>* output = new vector<Polygon2D>();
 
-    std::vector<p2t::Point*> inputPoly;
-
-    for (unsigned i = 0; i < input.Points.size(); i++)
-        inputPoly.push_back(new p2t::Point(input.Points[i].X, input.Points[i].Y));
+    std::vector<p2t::Point*> inputPoly = GetP2TPoints(input);
+    std::vector<std::vector<p2t::Point*>> inputHoles;
 
     p2t::CDT* cdt = new p2t::CDT(inputPoly);
+
+    for (Polygon2D hole : holes) {
+        std::vector<p2t::Point*> inputHole = GetP2TPoints(hole);
+        inputHoles.push_back(inputHole);
+        cdt->AddHole(inputHole);
+    }
 
     cdt->Triangulate();
 
@@ -87,8 +105,10 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input) {
         output->push_back(polygon);
     }
 
-    for (unsigned i = 0; i < inputPoly.size(); i++)
-        delete inputPoly[i];
+    FreeP2TPoints(inputPoly);
+
+    for (std::vector<p2t::Point*> hole : inputHoles)
+        FreeP2TPoints(hole);
 
     delete cdt;
 

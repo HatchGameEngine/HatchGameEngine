@@ -4368,11 +4368,12 @@
         </p>
         <p id="Reference_functions_Geometry_Triangulate">
         <h2 style="margin-bottom: 8px;">Geometry.Triangulate</h2>
-        <code>Geometry.Triangulate(polygon)</code>
+        <code>Geometry.Triangulate(polygon[, holes])</code>
         <div style="margin-top: 8px; font-size: 14px;">Triangulates a 2D polygon.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>polygon (Array): Array of vertices that compromise the polygon.</li>
+        <li>polygon (Array): Array of vertices that compromise the polygon to triangulate.</li>
+        <li>holes (Array): Array of polygons that compromise the holes to be made in the resulting shape.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.</div>

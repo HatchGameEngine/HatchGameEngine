@@ -5191,20 +5191,51 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, int threadID) {
 /***
  * Geometry.Triangulate
  * \desc Triangulates a 2D polygon.
- * \param polygon (Array): Array of vertices that compromise the polygon.
+ * \param polygon (Array): Array of vertices that compromise the polygon to triangulate.
+ * \paramOpt holes (Array): Array of polygons that compromise the holes to be made in the resulting shape.
  * \return Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.
  * \ns Geometry
  */
 VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    ObjArray* array = GET_ARG(0, GetArray);
+    CHECK_AT_LEAST_ARGCOUNT(1);
 
-    vector<FVector2> input = GetPolygonPoints(array, threadID);
-    if (!input.size())
+    ObjArray* arrPoly = GET_ARG(0, GetArray);
+    ObjArray* arrHoles = GET_ARG_OPT(1, GetArray, nullptr);
+
+    vector<FVector2> points = GetPolygonPoints(arrPoly, threadID);
+    if (!points.size())
         return NULL_VAL;
 
-    Polygon2D inputPoly(input);
-    vector<Polygon2D>* output = Geometry::Triangulate(inputPoly);
+    Polygon2D inputPoly(points);
+    vector<Polygon2D> inputHoles;
+
+    if (arrHoles) {
+        for (unsigned i = 0; i < arrHoles->Values->size(); i++) {
+            VMValue value = (*arrHoles->Values)[i];
+            if (!IS_ARRAY(value)) {
+                THROW_ERROR("Expected value at index %d of holes array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+                return NULL_VAL;
+            }
+
+            Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), threadID));
+            inputHoles.push_back(hole);
+        }
+
+        // Holes must not be touching each other or the bounds of the shape, so these two operations are needed
+        vector<Polygon2D>* unionResult = Geometry::Intersect(GeoBooleanOp_Union, GeoFillRule_EvenOdd, inputHoles, {});
+        inputHoles.clear();
+        for (unsigned i = 0; i < unionResult->size(); i++)
+            inputHoles.push_back((*unionResult)[i]);
+        delete unionResult;
+
+        vector<Polygon2D>* intersectResult = Geometry::Intersect(GeoBooleanOp_Intersection, GeoFillRule_EvenOdd, inputHoles, {inputPoly});
+        inputHoles.clear();
+        for (unsigned i = 0; i < intersectResult->size(); i++)
+            inputHoles.push_back((*intersectResult)[i]);
+        delete intersectResult;
+    }
+
+    vector<Polygon2D>* output = Geometry::Triangulate(inputPoly, inputHoles);
     if (!output)
         return NULL_VAL;
 
@@ -5223,6 +5254,8 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
 
         result->Values->push_back(OBJECT_VAL(triArr));
     }
+
+    delete output;
 
     return OBJECT_VAL(result);
 }
@@ -5300,6 +5333,8 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 
         result->Values->push_back(OBJECT_VAL(polyArr));
     }
+
+    delete output;
 
     return OBJECT_VAL(result);
 }
