@@ -5144,14 +5144,14 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Geometry
-static vector<FVector2> GetPolygonPoints(ObjArray *array, int threadID) {
+static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, int threadID) {
     vector<FVector2> input;
 
     for (unsigned i = 0; i < array->Values->size(); i++) {
         VMValue vtxVal = (*array->Values)[i];
 
         if (!IS_ARRAY(vtxVal)) {
-            THROW_ERROR("Expected value at index %d of array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
+            THROW_ERROR("Expected value at index %d of %s to be of type %s instead of %s.", i, arrName, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
             return {};
         }
 
@@ -5167,7 +5167,7 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, int threadID) {
         else if (IS_INTEGER(xVal))
             x = (float)(AS_INTEGER(xVal));
         else {
-            THROW_ERROR("Expected X value (index %d) at vertex index %d to be of type %s instead of %s.", 0, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
+            THROW_ERROR("Expected X value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 0, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
             return {};
         }
 
@@ -5177,7 +5177,7 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, int threadID) {
         else if (IS_INTEGER(yVal))
             y = (float)(AS_INTEGER(yVal));
         else {
-            THROW_ERROR("Expected Y value (index %d) at vertex index %d to be of type %s instead of %s.", 1, i, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
+            THROW_ERROR("Expected Y value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 1, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
             return {};
         }
 
@@ -5202,7 +5202,7 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
     ObjArray* arrPoly = GET_ARG(0, GetArray);
     ObjArray* arrHoles = GET_ARG_OPT(1, GetArray, nullptr);
 
-    vector<FVector2> points = GetPolygonPoints(arrPoly, threadID);
+    vector<FVector2> points = GetPolygonPoints(arrPoly, "polygon array", threadID);
     if (!points.size())
         return NULL_VAL;
 
@@ -5217,7 +5217,7 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
                 return NULL_VAL;
             }
 
-            Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), threadID));
+            Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), "holes array", threadID));
             inputHoles.push_back(hole);
         }
 
@@ -5298,7 +5298,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
             return NULL_VAL;
         }
 
-        Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), threadID));
+        Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), "subject array", threadID));
         inputSubjects.push_back(subject);
     }
 
@@ -5310,7 +5310,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
             return NULL_VAL;
         }
 
-        Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), threadID));
+        Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), "clip array", threadID));
         inputClips.push_back(clip);
     }
 
@@ -5354,7 +5354,7 @@ VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 thread
     float pointX = GET_ARG(1, GetDecimal);
     float pointY = GET_ARG(2, GetDecimal);
 
-    Polygon2D polygon(GetPolygonPoints(arr, threadID));
+    Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
 
     return INTEGER_VAL(polygon.IsPointInside(pointX, pointY));
 }
