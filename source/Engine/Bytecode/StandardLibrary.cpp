@@ -1407,6 +1407,8 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 
                 VMValue result = thread->RunEntityFunction(function, 2);
 
+                thread->Pop(2);
+
                 if (IS_INTEGER(result))
                     return AS_INTEGER(result) == 1;
 
