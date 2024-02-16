@@ -61,9 +61,13 @@ struct Polygon2D {
         return vertices;
     }
 
+    bool IsValid() {
+        return Points.size() >= 3;
+    }
+
     bool IsPointInside(FVector2 point) {
         // Cannot possibly be inside
-        if (point.X < MinX || point.X > MaxX || point.Y < MinY || point.Y > MaxY)
+        if (!IsValid() || point.X < MinX || point.X > MaxX || point.Y < MinY || point.Y > MaxY)
             return false;
 
         bool isInside = false;
@@ -91,8 +95,36 @@ struct Polygon2D {
         return IsPointInside(vec);
     }
 
+    bool IsLineSegmentIntersecting(FVector2 lineA, FVector2 lineB) {
+        if (!IsValid())
+            return false;
+
+        unsigned currPt = 0;
+        while (currPt < Points.size() - 1) {
+            FVector2& a = Points[currPt];
+            FVector2& b = Points[currPt + 1];
+
+            FVector2 result;
+            if (FLineSegment::DoIntersection(a, b, lineA, lineB, result))
+                return true;
+
+            currPt++;
+        }
+
+        return false;
+    }
+
+    bool IsLineSegmentIntersecting(FLineSegment line) {
+        return IsLineSegmentIntersecting(line.A, line.B);
+    }
+
+    bool IsLineSegmentIntersecting(float x1, float y1, float x2, float y2) {
+        FLineSegment line(x1, y1, x2, y2);
+        return IsLineSegmentIntersecting(line);
+    }
+
     int CalculateWinding() {
-        if (Points.size() == 0)
+        if (!IsValid())
             return 0;
 
         float calc = 0.0;
@@ -114,6 +146,9 @@ struct Polygon2D {
 
 private:
     void CalcBounds() {
+        if (!IsValid())
+            return;
+
         float xMin = FLT_MAX;
         float yMin = FLT_MAX;
         float xMax = FLT_MIN;

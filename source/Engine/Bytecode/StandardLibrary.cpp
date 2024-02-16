@@ -5342,9 +5342,9 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
  * Geometry.IsPointInsidePolygon
  * \desc Checks if a point is inside a polygon.
  * \param polygon (Array): The polygon.
- * \param X (Decimal): The X of the point.
- * \param Y (Decimal): The Y of the point.
- * \return Returns <code>true</code> if the point is inside, <code>false</code> if the point is outside.
+ * \param pointX (Decimal): The X of the point.
+ * \param pointY (Decimal): The Y of the point.
+ * \return Returns <code>true</code> if the point is inside, or <code>false</code> if the point is outside.
  * \ns Geometry
  */
 VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
@@ -5357,6 +5357,30 @@ VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 thread
     Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
 
     return INTEGER_VAL(polygon.IsPointInside(pointX, pointY));
+}
+/***
+ * Geometry.IsLineIntersectingPolygon
+ * \desc Checks if a line segment is intersecting a polygon.
+ * \param polygon (Array): The polygon to check.
+ * \param x1 (Decimal): The starting X of the segment.
+ * \param y1 (Decimal): The starting Y of the segment.
+ * \param x2 (Decimal): The ending X of the segment.
+ * \param y2 (Decimal): The ending Y of the segment.
+ * \return Returns <code>true</code> if the line segment is intersecting the polygon, or <code>false</code> if it is not.
+ * \ns Geometry
+ */
+VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+
+    ObjArray* arr = GET_ARG(0, GetArray);
+    float x1 = GET_ARG(1, GetDecimal);
+    float y1 = GET_ARG(2, GetDecimal);
+    float x2 = GET_ARG(3, GetDecimal);
+    float y2 = GET_ARG(4, GetDecimal);
+
+    Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
+
+    return INTEGER_VAL(polygon.IsLineSegmentIntersecting(x1, y1, x2, y2));
 }
 // #endregion
 
@@ -16133,6 +16157,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Geometry, Triangulate);
     DEF_NATIVE(Geometry, Intersect);
     DEF_NATIVE(Geometry, IsPointInsidePolygon);
+    DEF_NATIVE(Geometry, IsLineIntersectingPolygon);
 
     /***
     * \enum GeoBooleanOp_Intersection
