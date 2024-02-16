@@ -10,6 +10,8 @@ public:
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
 
+#include <Engine/Diagnostics/Log.h>
+
 #include <Libraries/Clipper2/clipper.h>
 #include <Libraries/poly2tri/poly2tri.h>
 
@@ -87,22 +89,26 @@ PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input, vector<
         cdt->AddHole(inputHole);
     }
 
-    cdt->Triangulate();
+    try {
+        cdt->Triangulate();
 
-    vector<p2t::Triangle*> triangles = cdt->GetTriangles();
+        vector<p2t::Triangle*> triangles = cdt->GetTriangles();
 
-    for (unsigned int i = 0; i < triangles.size(); i++) {
-        p2t::Triangle& t = *triangles[i];
-        p2t::Point& a = *t.GetPoint(0);
-        p2t::Point& b = *t.GetPoint(1);
-        p2t::Point& c = *t.GetPoint(2);
+        for (unsigned int i = 0; i < triangles.size(); i++) {
+            p2t::Triangle& t = *triangles[i];
+            p2t::Point& a = *t.GetPoint(0);
+            p2t::Point& b = *t.GetPoint(1);
+            p2t::Point& c = *t.GetPoint(2);
 
-        Polygon2D polygon;
-        polygon.AddPoint(a.x, a.y);
-        polygon.AddPoint(b.x, b.y);
-        polygon.AddPoint(c.x, c.y);
+            Polygon2D polygon;
+            polygon.AddPoint(a.x, a.y);
+            polygon.AddPoint(b.x, b.y);
+            polygon.AddPoint(c.x, c.y);
 
-        output->push_back(polygon);
+            output->push_back(polygon);
+        }
+    } catch (std::runtime_error& err) {
+        Log::Print(Log::LOG_ERROR, "Geometry::Triangulate error: %s", err.what());
     }
 
     FreeP2TPoints(inputPoly);
