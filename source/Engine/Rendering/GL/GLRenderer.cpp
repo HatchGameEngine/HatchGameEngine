@@ -927,10 +927,11 @@ PUBLIC STATIC void     GLRenderer::Init() {
     }
     #endif
 
-	if (Application::Platform == Platforms::iOS) {
-		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-	}
+    if (Application::Platform == Platforms::iOS)
+        SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
+
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     Context = SDL_GL_CreateContext(Application::Window); CHECK_GL();
     if (!Context) {
