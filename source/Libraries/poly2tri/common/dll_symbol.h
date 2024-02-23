@@ -31,7 +31,7 @@
 
 #pragma once
 
-#if defined(_WIN32)
+#if 0
 #  define P2T_COMPILER_DLLEXPORT __declspec(dllexport)
 #  define P2T_COMPILER_DLLIMPORT __declspec(dllimport)
 #elif defined(__GNUC__)

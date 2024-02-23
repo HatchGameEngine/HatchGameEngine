@@ -3,8 +3,6 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/TileAnimation.h>
 
-#include <map>
-
 class Tileset {
 public:
     ISprite*                    Sprite = nullptr;

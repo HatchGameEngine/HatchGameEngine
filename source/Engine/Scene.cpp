@@ -1669,7 +1669,7 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
 }
 
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
-    ObjectList* objectList = new (nothrow) ObjectList(objectName);
+    ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
     if (objectList && ScriptManager::LoadObjectClass(objectName, true))
         objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
     return objectList;

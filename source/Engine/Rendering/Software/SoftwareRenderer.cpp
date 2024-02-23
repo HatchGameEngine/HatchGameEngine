@@ -3462,7 +3462,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
 
         srcTX = 0;
         sourceTileCellX = (srcX >> 4);
-        pixelsOfTileRemaining = min(viewWidth - dst_x, 16);
+        pixelsOfTileRemaining = std::min(viewWidth - dst_x, 16);
         c_pixelsOfTileRemaining = pixelsOfTileRemaining;
         tile = &layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 

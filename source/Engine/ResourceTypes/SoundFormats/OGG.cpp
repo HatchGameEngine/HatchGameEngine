@@ -89,7 +89,7 @@ PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
     }
 
 #ifdef USING_LIBOGG
-    ogg = new (nothrow) OGG;
+    ogg = new (std::nothrow) OGG;
     if (!ogg) {
         goto OGG_Load_FAIL;
     }
@@ -155,7 +155,7 @@ PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
     size_t fileLength;
     void* fileData;
 
-    ogg = new (nothrow) OGG;
+    ogg = new (std::nothrow) OGG;
     if (!ogg) {
         goto OGG_Load_FAIL;
     }

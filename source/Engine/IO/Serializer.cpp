@@ -2,8 +2,6 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
 
-#include <map>
-
 class Serializer {
 public:
     std::map<Obj*, Uint32> ObjToID;

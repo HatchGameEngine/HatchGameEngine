@@ -56,7 +56,7 @@ PUBLIC STATIC SoundFormat* WAV::Load(const char* filename) {
         goto WAV_Load_FAIL;
     }
 
-    wav = new (nothrow) WAV;
+    wav = new (std::nothrow) WAV;
     if (!wav) {
         goto WAV_Load_FAIL;
     }
