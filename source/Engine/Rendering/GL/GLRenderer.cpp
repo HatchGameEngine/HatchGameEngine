@@ -1740,7 +1740,7 @@ PUBLIC STATIC void     GLRenderer::DrawTexture(Texture* texture, float sx, float
     h *= RetinaScale;
     GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
-PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     // /*
@@ -1763,7 +1763,7 @@ PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, in
     //     x + fX * animframe.OffsetX,
     //     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
-PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];

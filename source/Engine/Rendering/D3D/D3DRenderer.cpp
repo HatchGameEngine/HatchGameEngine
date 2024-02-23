@@ -1365,7 +1365,7 @@ PUBLIC STATIC void     D3DRenderer::DrawTexture(Texture* texture, float sx, floa
         sx = 0.0, sy = 0.0, sw = texture->Width, sh = texture->Height;
     D3D_DrawTextureRaw(texture, sx, sy, sw, sh, x, y, w, h, false, texture->Access != SDL_TEXTUREACCESS_TARGET);
 }
-PUBLIC STATIC void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -1381,7 +1381,7 @@ PUBLIC STATIC void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, i
         D3D_DrawTextureRaw(sprite->Spritesheets[animframe.SheetNumber], animframe.X, animframe.Y, animframe.Width, animframe.Height, animframe.OffsetX, animframe.OffsetY, animframe.Width, animframe.Height, flipX, flipY);
     Graphics::Restore();
 }
-PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];

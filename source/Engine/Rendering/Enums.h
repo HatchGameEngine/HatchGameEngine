@@ -129,6 +129,7 @@ struct GraphicsState {
     bool               UseTinting;
     bool               UseDepthTesting;
     bool               UsePalettes;
+    bool               UsePaletteIndexLines;
 };
 struct TintState {
     bool   Enabled;

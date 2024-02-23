@@ -2293,6 +2293,7 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        info.TilesetID = Scene::Tilesets.size() - 1;
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,

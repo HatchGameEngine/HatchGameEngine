@@ -16,6 +16,7 @@ public:
     size_t                      StartTile = 0;
     size_t                      FirstGlobalTileID = 0;
     size_t                      TileCount = 0;
+    unsigned                    PaletteID = 0;
     std::map<int, TileAnimator> AnimatorMap;
 };
 #endif

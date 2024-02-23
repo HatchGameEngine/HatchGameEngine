@@ -349,6 +349,7 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        info.TilesetID = Scene::Tilesets.size();
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
@@ -363,6 +364,7 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     info.Sprite = tileSprite;
     info.AnimationIndex = 0;
     info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+    info.TilesetID = Scene::Tilesets.size();
     Scene::TileSpriteInfos.push_back(info);
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);

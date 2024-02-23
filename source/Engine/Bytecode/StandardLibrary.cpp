@@ -2027,8 +2027,9 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -2041,18 +2042,11 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     int y = (int)GET_ARG(4, GetDecimal);
     int flipX = GET_ARG(5, GetInteger);
     int flipY = GET_ARG(6, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    float rotation = 0.0f;
-    bool useInteger = false;
-    if (argCount > 7)
-        scaleX = GET_ARG(7, GetDecimal);
-    if (argCount > 8)
-        scaleY = GET_ARG(8, GetDecimal);
-    if (argCount > 9)
-        rotation = GET_ARG(9, GetDecimal);
-    if (argCount > 10)
-        useInteger = GET_ARG(10, GetInteger);
+    float scaleX = GET_ARG_OPT(7, GetDecimal, 1.0f);
+    float scaleY = GET_ARG_OPT(8, GetDecimal, 1.0f);
+    float rotation = GET_ARG_OPT(9, GetDecimal, 0.0f);
+    bool useInteger = GET_ARG_OPT(10, GetInteger, false);
+    unsigned paletteID = GET_ARG_OPT(11, GetInteger, 0);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2069,7 +2063,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
     }
     return NULL_VAL;
 }
@@ -2211,8 +2205,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -2229,18 +2224,11 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     int sh = (int)GET_ARG(8, GetDecimal);
     int flipX = GET_ARG(9, GetInteger);
     int flipY = GET_ARG(10, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    float rotation = 0.0f;
-    bool useInteger = false;
-    if (argCount > 11)
-        scaleX = GET_ARG(11, GetDecimal);
-    if (argCount > 12)
-        scaleY = GET_ARG(12, GetDecimal);
-    if (argCount > 13)
-        rotation = GET_ARG(13, GetDecimal);
-    if (argCount > 14)
-        useInteger = GET_ARG(14, GetInteger);
+    float scaleX = GET_ARG_OPT(11, GetDecimal, 1.0f);
+    float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
+    float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
+    bool useInteger = GET_ARG_OPT(14, GetInteger, false);
+    unsigned paletteID = GET_ARG_OPT(15, GetInteger, 0);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2257,7 +2245,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
     }
     return NULL_VAL;
 }
@@ -8268,6 +8256,18 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Palette.UsePaletteIndexLines
+ * \desc Enables or disables the global palette index table.
+ * \param usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.
+ * \ns Palette
+ */
+VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int usePaletteIndexLines = GET_ARG(0, GetInteger);
+    Graphics::UsePaletteIndexLines = usePaletteIndexLines;
+    return NULL_VAL;
+}
+/***
  * Palette.SetPaletteIndexLines
  * \desc Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).
  * \param paletteIndex (Integer): Index of palette.
@@ -9080,6 +9080,18 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
+ * Scene.GetLayerUsePaletteIndexLines
+ * \desc Gets whether the layer is using the global palette index table.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(Scene::Layers[index].UsePaletteIndexLines);
+}
+/***
  * Scene.GetLayerProperty
  * \desc Gets a property of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -9363,7 +9375,19 @@ VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID
     CHECK_TILESET_INDEX
     return INTEGER_VAL((int)Scene::Tilesets[index].StartTile);
 }
-#undef CHECK_TILESET_INDEX
+/***
+ * Scene.GetTilesetPaletteIndex
+ * \desc Gets the palette index for the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    CHECK_TILESET_INDEX
+    return INTEGER_VAL((int)Scene::Tilesets[index].PaletteID);
+}
 /***
  * Scene.GetTileWidth
  * \desc Gets the width of tiles.
@@ -10085,6 +10109,23 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
     return NULL_VAL;
 }
 /***
+ * Scene.SetTilesetPaletteIndex
+ * \desc Sets the palette index of the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Scene
+ */
+VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int palIndex = GET_ARG(1, GetInteger);
+    CHECK_TILESET_INDEX
+    CHECK_PALETTE_INDEX(palIndex);
+    Scene::Tilesets[index].PaletteID = (unsigned)palIndex;
+    return NULL_VAL;
+}
+#undef CHECK_TILESET_INDEX
+/***
  * Scene.SetLayerVisible
  * \desc Sets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -10323,6 +10364,20 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     else if (opacity > 1.0)
         THROW_ERROR("Opacity cannot be higher than 1.0.");
     Scene::Layers[index].Opacity = opacity;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerUsePaletteIndexLines
+ * \desc Enables or disables the use of the global palette index table for the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param usePaletteIndexLines (Boolean): Whether the layer is using the global palette index table.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int usePaletteIndexLines = !!GET_ARG(1, GetInteger);
+    Scene::Layers[index].UsePaletteIndexLines = usePaletteIndexLines;
     return NULL_VAL;
 }
 /***
@@ -16408,6 +16463,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Palette, RotateColorsLeft);
     DEF_NATIVE(Palette, RotateColorsRight);
     DEF_NATIVE(Palette, CopyColors);
+    DEF_NATIVE(Palette, UsePaletteIndexLines);
     DEF_NATIVE(Palette, SetPaletteIndexLines);
     // #endregion
 
@@ -16457,6 +16513,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerIndex);
     DEF_NATIVE(Scene, GetLayerVisible);
     DEF_NATIVE(Scene, GetLayerOpacity);
+    DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
     DEF_NATIVE(Scene, GetLayerProperty);
     DEF_NATIVE(Scene, GetLayerExists);
     DEF_NATIVE(Scene, GetLayerDeformSplitLine);
@@ -16483,6 +16540,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTilesetName);
     DEF_NATIVE(Scene, GetTilesetTileCount);
     DEF_NATIVE(Scene, GetTilesetFirstTileID);
+    DEF_NATIVE(Scene, GetTilesetPaletteIndex);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, GetListPos); // deprecated
@@ -16522,6 +16580,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileAnimSequencePaused);
     DEF_NATIVE(Scene, SetTileAnimSequenceSpeed);
     DEF_NATIVE(Scene, SetTileAnimSequenceFrame);
+    DEF_NATIVE(Scene, SetTilesetPaletteIndex);
     DEF_NATIVE(Scene, SetLayerVisible);
     DEF_NATIVE(Scene, SetLayerCollidable);
     DEF_NATIVE(Scene, SetLayerInternalSize);
@@ -16537,6 +16596,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);
+    DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
     DEF_NATIVE(Scene, SetLayerScroll);
     DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
     DEF_NATIVE(Scene, SetLayerSetParallaxLines);

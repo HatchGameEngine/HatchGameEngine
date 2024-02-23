@@ -81,6 +81,7 @@ public:
     static float                PixelOffset;
     static bool                 NoInternalTextures;
     static bool                 UsePalettes;
+    static bool                 UsePaletteIndexLines;
     static bool                 UseTinting;
     static bool                 UseDepthTesting;
     static bool                 UseSoftwareRenderer;
@@ -169,6 +170,7 @@ bool                 Graphics::SmoothStroke = false;
 float                Graphics::PixelOffset = 0.0f;
 bool                 Graphics::NoInternalTextures = false;
 bool                 Graphics::UsePalettes = false;
+bool                 Graphics::UsePaletteIndexLines = false;
 bool                 Graphics::UseTinting = false;
 bool                 Graphics::UseDepthTesting = false;
 bool                 Graphics::UseSoftwareRenderer = false;
@@ -278,6 +280,7 @@ PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
 PUBLIC STATIC void     Graphics::Reset() {
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
+    Graphics::UsePaletteIndexLines = false;
 
     Graphics::BlendColors[0] =
     Graphics::BlendColors[1] =
@@ -757,14 +760,15 @@ PUBLIC STATIC void     Graphics::PushState() {
 
     GraphicsState state;
 
-    state.CurrentViewport = Graphics::CurrentViewport;
-    state.CurrentClip     = Graphics::CurrentClip;
-    state.BlendMode       = Graphics::BlendMode;
-    state.TintMode        = Graphics::TintMode;
-    state.TextureBlend    = Graphics::TextureBlend;
-    state.UsePalettes     = Graphics::UsePalettes;
-    state.UseTinting      = Graphics::UseTinting;
-    state.UseDepthTesting = Graphics::UseDepthTesting;
+    state.CurrentViewport      = Graphics::CurrentViewport;
+    state.CurrentClip          = Graphics::CurrentClip;
+    state.BlendMode            = Graphics::BlendMode;
+    state.TintMode             = Graphics::TintMode;
+    state.TextureBlend         = Graphics::TextureBlend;
+    state.UsePalettes          = Graphics::UsePalettes;
+    state.UsePaletteIndexLines = Graphics::UsePaletteIndexLines;
+    state.UseTinting           = Graphics::UseTinting;
+    state.UseDepthTesting      = Graphics::UseDepthTesting;
 
     memcpy(state.BlendColors, Graphics::BlendColors, sizeof(Graphics::BlendColors));
     memcpy(state.TintColors, Graphics::TintColors, sizeof(Graphics::TintColors));
@@ -785,11 +789,12 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::SetTintMode(state.TintMode);
     Graphics::SetTintColor(state.TintColors[0], state.TintColors[1], state.TintColors[2], state.TintColors[3]);
 
-    Graphics::CurrentViewport = state.CurrentViewport;
-    Graphics::CurrentClip     = state.CurrentClip;
-    Graphics::TextureBlend    = state.TextureBlend;
-    Graphics::UsePalettes     = state.UsePalettes;
-    Graphics::UseDepthTesting = state.UseDepthTesting;
+    Graphics::CurrentViewport      = state.CurrentViewport;
+    Graphics::CurrentClip          = state.CurrentClip;
+    Graphics::TextureBlend         = state.TextureBlend;
+    Graphics::UsePalettes          = state.UsePalettes;
+    Graphics::UsePaletteIndexLines = state.UsePaletteIndexLines;
+    Graphics::UseDepthTesting      = state.UseDepthTesting;
 
     Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 
@@ -892,11 +897,17 @@ PUBLIC STATIC void     Graphics::FillRectangle(float x, float y, float w, float 
 PUBLIC STATIC void     Graphics::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
+PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+    Graphics::GfxFunctions->DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+}
+PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+    Graphics::GfxFunctions->DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+}
 PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
-    Graphics::GfxFunctions->DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation);
+    DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
 PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
-    Graphics::GfxFunctions->DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation);
+    DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
 
 PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
@@ -907,7 +918,7 @@ PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bo
     }
 
     TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-    Graphics::GfxFunctions->DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
+    DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
     int tileWidth = Scene::TileWidth;
@@ -998,7 +1009,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                         if (flipX) partY = tileWidth - height - partY;
 
                         TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f, 0);
 
                         if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
                             col = 0;
@@ -1120,7 +1131,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                         if (flipY) partY = tileHeight - height - partY;
 
                         TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f, 0);
 
                         if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
                             col = 0;

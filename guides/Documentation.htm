@@ -775,6 +775,7 @@
                     <li><a href="#Reference_functions_Palette_RotateColorsLeft">Palette.RotateColorsLeft</a></li>
                     <li><a href="#Reference_functions_Palette_RotateColorsRight">Palette.RotateColorsRight</a></li>
                     <li><a href="#Reference_functions_Palette_CopyColors">Palette.CopyColors</a></li>
+                    <li><a href="#Reference_functions_Palette_UsePaletteIndexLines">Palette.UsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Palette_SetPaletteIndexLines">Palette.SetPaletteIndexLines</a></li>
                 </ul>
             </p>
@@ -855,6 +856,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerUsePaletteIndexLines">Scene.GetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerDeformSplitLine">Scene.GetLayerDeformSplitLine</a></li>
@@ -876,6 +878,7 @@
                     <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetTileCount">Scene.GetTilesetTileCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetFirstTileID">Scene.GetTilesetFirstTileID</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetPaletteIndex">Scene.GetTilesetPaletteIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
@@ -920,6 +923,7 @@
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequencePaused">Scene.SetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceSpeed">Scene.SetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFrame">Scene.SetTileAnimSequenceFrame</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTilesetPaletteIndex">Scene.SetTilesetPaletteIndex</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerVisible">Scene.SetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerCollidable">Scene.SetLayerCollidable</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerInternalSize">Scene.SetLayerInternalSize</a></li>
@@ -935,6 +939,7 @@
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerUsePaletteIndexLines">Scene.SetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLines">Scene.SetLayerSetParallaxLines</a></li>
@@ -2724,7 +2729,7 @@
         </p>
         <p id="Reference_functions_Draw_Sprite">
         <h2 style="margin-bottom: 8px;">Draw.Sprite</h2>
-        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation, useInteger])</code>
+        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation, useInteger, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2737,8 +2742,9 @@
         <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians</li>
+        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
+        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SpriteBasic">
@@ -2780,7 +2786,7 @@
         </p>
         <p id="Reference_functions_Draw_SpritePart">
         <h2 style="margin-bottom: 8px;">Draw.SpritePart</h2>
-        <code>Draw.SpritePart(sprite, animation, frame, x, y, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, rotation, useInteger])</code>
+        <code>Draw.SpritePart(sprite, animation, frame, x, y, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, rotation, useInteger, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2797,8 +2803,9 @@
         <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians</li>
+        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
+        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Image">
@@ -5562,6 +5569,15 @@
         <li>colorCount (Integer): Amount of colors to be copied.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Palette_UsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Palette.UsePaletteIndexLines</h2>
+        <code>Palette.UsePaletteIndexLines(usePaletteIndexLines)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the global palette index table.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Palette_SetPaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Palette.SetPaletteIndexLines</h2>
         <code>Palette.SetPaletteIndexLines(paletteIndex, lineStart, lineEnd)</code>
@@ -6170,6 +6186,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerUsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerUsePaletteIndexLines</h2>
+        <code>Scene.GetLayerUsePaletteIndexLines(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the layer is using the global palette index table.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerProperty">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerProperty</h2>
         <code>Scene.GetLayerProperty(layerIndex, property)</code>
@@ -6364,6 +6391,17 @@
         <h2 style="margin-bottom: 8px;">Scene.GetTilesetFirstTileID</h2>
         <code>Scene.GetTilesetFirstTileID(tilesetID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the first tile index number for the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetTilesetPaletteIndex">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetPaletteIndex</h2>
+        <code>Scene.GetTilesetPaletteIndex(tilesetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the palette index for the specified tileset.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tilesetID (Integer): The tileset index.</li>
@@ -6762,6 +6800,16 @@
         <li>index (Integer): The frame index.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetTilesetPaletteIndex">
+        <h2 style="margin-bottom: 8px;">Scene.SetTilesetPaletteIndex</h2>
+        <code>Scene.SetTilesetPaletteIndex(tilesetID, paletteIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the palette index of the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        <li>paletteIndex (Integer): The palette index.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetLayerVisible">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerVisible</h2>
         <code>Scene.SetLayerVisible(layerIndex, isVisible)</code>
@@ -6906,6 +6954,16 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerUsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerUsePaletteIndexLines</h2>
+        <code>Scene.SetLayerUsePaletteIndexLines(layerIndex, usePaletteIndexLines)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the use of the global palette index table for the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>usePaletteIndexLines (Boolean): Whether the layer is using the global palette index table.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerScroll">
@@ -9323,7 +9381,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>679 out of 738 functions have descriptions. </p>
+        <p>684 out of 743 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

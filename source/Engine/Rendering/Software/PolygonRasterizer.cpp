@@ -635,7 +635,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         } \
         if (contour.MaxX > max_x) \
             contour.MaxX = max_x; \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_INVZ(); \
@@ -776,7 +779,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         } \
         if (contour.MaxX > max_x) \
             contour.MaxX = max_x; \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_INVZ(); \
@@ -977,7 +983,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
             SCANLINE_STEP_Z_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
         } \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
         dst_strideY += dstStride; \
     }
@@ -1105,7 +1114,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
             SCANLINE_STEP_RGB_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
         } \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
         dst_strideY += dstStride; \
     }

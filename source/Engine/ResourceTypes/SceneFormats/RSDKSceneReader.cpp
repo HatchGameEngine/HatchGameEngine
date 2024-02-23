@@ -616,6 +616,7 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = i;
+        info.TilesetID = Scene::Tilesets.size();
         Scene::TileSpriteInfos.push_back(info);
     }
 
