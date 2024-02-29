@@ -83,6 +83,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -104,6 +105,7 @@ CD ..</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -126,7 +128,9 @@ CD ..</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile />
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <PreBuildEvent>
       <Command>CD "..\tools"
 "makeheaders.exe" ../source
@@ -137,6 +141,9 @@ CD ..</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <PreBuildEvent>
       <Command>CD "..\tools"
 "makeheaders.exe" ../source
@@ -266,6 +273,14 @@ CD ..</Command>
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />
     <ClCompile Include="..\source\Libraries\spng.c" />
+    <ClCompile Include="..\source\Libraries\poly2tri\common\shapes.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\advancing_front.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\cdt.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep_context.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.engine.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.offset.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.rectclip.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\engine\audio\AudioChannel.h" />
