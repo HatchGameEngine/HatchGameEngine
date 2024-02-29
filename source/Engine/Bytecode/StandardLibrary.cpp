@@ -16188,86 +16188,86 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Hitbox Sides
     /***
-    * \enum HitboxSide_LEFT
+    * \enum HITBOX_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-    DEF_ENUM(HitboxSide_LEFT);
+    DEF_ENUM(HITBOX_LEFT);
     /***
-    * \enum HitboxSide_TOP
+    * \enum HITBOX_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-    DEF_ENUM(HitboxSide_TOP);
+    DEF_ENUM(HITBOX_TOP);
     /***
-    * \enum HitboxSide_RIGHT
+    * \enum HITBOX_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-    DEF_ENUM(HitboxSide_RIGHT);
+    DEF_ENUM(HITBOX_RIGHT);
     /***
-    * \enum HitboxSide_BOTTOM
+    * \enum HITBOX_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-    DEF_ENUM(HitboxSide_BOTTOM);
+    DEF_ENUM(HITBOX_BOTTOM);
     // #endregion
 
     // #region Weekdays
     /***
-    * \enum Weekday_SUNDAY
+    * \enum WEEKDAY_SUNDAY
     * \desc The first day of the week.
     */
-    DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
+    DEF_CONST_INT("WEEKDAY_SUNDAY", (int)Weekday::SUNDAY);
     /***
-    * \enum Weekday_MONDAY
+    * \enum WEEKDAY_MONDAY
     * \desc The second day of the week.
     */
-    DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
+    DEF_CONST_INT("WEEKDAY_MONDAY", (int)Weekday::MONDAY);
     /***
-    * \enum Weekday_TUESDAY
+    * \enum WEEKDAY_TUESDAY
     * \desc The third day of the week.
     */
-    DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
+    DEF_CONST_INT("WEEKDAY_TUESDAY", (int)Weekday::TUESDAY);
     /***
-    * \enum Weekday_WEDNESDAY
+    * \enum WEEKDAY_WEDNESDAY
     * \desc The fourth day of the week.
     */
-    DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
+    DEF_CONST_INT("WEEKDAY_WEDNESDAY", (int)Weekday::WEDNESDAY);
     /***
-    * \enum Weekday_THURSDAY
+    * \enum WEEKDAY_THURSDAY
     * \desc The fifth day of the week.
     */
-    DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
+    DEF_CONST_INT("WEEKDAY_THURSDAY", (int)Weekday::THURSDAY);
     /***
-    * \enum Weekday_FRIDAY
+    * \enum WEEKDAY_FRIDAY
     * \desc The sixth day of the week.
     */
-    DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
+    DEF_CONST_INT("WEEKDAY_FRIDAY", (int)Weekday::FRIDAY);
     /***
-    * \enum Weekday_SATURDAY
+    * \enum WEEKDAY_SATURDAY
     * \desc The seventh day of the week.
     */
-    DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
+    DEF_CONST_INT("WEEKDAY_SATURDAY", (int)Weekday::SATURDAY);
     // #endregion
 
     // #region TimesOfDay
     /***
-    * \enum TimeOfDay_MORNING
+    * \enum TIMEOFDAY_MORNING
     * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
     */
-    DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
+    DEF_CONST_INT("TIMEOFDAY_MORNING", (int)TimeOfDay::MORNING);
     /***
-    * \enum TimeOfDay_MIDDAY
+    * \enum TIMEOFDAY_MIDDAY
     * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
     */
-    DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
+    DEF_CONST_INT("TIMEOFDAY_MIDDAY", (int)TimeOfDay::MIDDAY);
     /***
-    * \enum TimeOfDay_EVENING
+    * \enum TIMEOFDAY_EVENING
     * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
     */
-    DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
+    DEF_CONST_INT("TIMEOFDAY_EVENING", (int)TimeOfDay::EVENING);
     /***
-    * \enum TimeOfDay_NIGHT
+    * \enum TIMEOFDAY_NIGHT
     * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
     */
-    DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
+    DEF_CONST_INT("TIMEOFDAY_NIGHT", (int)TimeOfDay::NIGHT);
     // #endregion
 
     // #region Ease

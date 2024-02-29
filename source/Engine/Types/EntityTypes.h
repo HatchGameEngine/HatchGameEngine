@@ -10,10 +10,10 @@ enum {
 };
 
 enum {
-    HitboxSide_LEFT    = 0,
-    HitboxSide_TOP     = 1,
-    HitboxSide_RIGHT   = 2,
-    HitboxSide_BOTTOM  = 3
+    HITBOX_LEFT    = 0,
+    HITBOX_TOP     = 1,
+    HITBOX_RIGHT   = 2,
+    HITBOX_BOTTOM  = 3
 };
 
 enum {
