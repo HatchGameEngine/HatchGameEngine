@@ -14,6 +14,7 @@ public:
     Uint32    ReturnFrame;
 
     VMValue   FunctionToInvoke;
+    VMValue   InterpretResult;
 
     enum ThreadState {
         CREATED = 0,
@@ -252,14 +253,6 @@ PUBLIC void    VMThread::Push(VMValue value) {
             return;
     }
 
-    // bool debugInstruction = ID == 1;
-    // if (debugInstruction) printf("push\n");
-
-    // if (IS_OBJECT(value)) {
-    //     if (AS_OBJECT(value) == NULL) {
-    //         ThrowRuntimeError(true, "hol up");
-    //     }
-    // }
     *(StackTop++) = value;
 }
 PUBLIC VMValue VMThread::Pop() {
@@ -268,11 +261,12 @@ PUBLIC VMValue VMThread::Pop() {
             return *StackTop;
     }
 
-    // bool debugInstruction = ID == 1;
-    // if (debugInstruction) printf("pop\n");
-
     StackTop--;
     return *StackTop;
+}
+PUBLIC void VMThread::Pop(unsigned amount) {
+    while (amount-- > 0)
+        Pop();
 }
 PUBLIC VMValue VMThread::Peek(int offset) {
     return *(StackTop - offset - 1);
@@ -1197,7 +1191,7 @@ SUCCESS_OP_SET_PROPERTY:
 
         // Frame stuffs & Returning
         VM_CASE(OP_RETURN): {
-            VMValue result = Pop();
+            InterpretResult = Pop();
 
             FrameCount--;
             if (FrameCount == ReturnFrame) {
@@ -1205,7 +1199,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
 
             StackTop = frame->Slots;
-            Push(result);
+            Push(InterpretResult);
 
             frame = &Frames[FrameCount - 1];
             VM_BREAK;
@@ -1830,7 +1824,7 @@ PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
+PUBLIC VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
 
@@ -1843,6 +1837,8 @@ PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) 
     FunctionToInvoke = NULL_VAL;
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
+
+    return InterpretResult;
 }
 PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = value;

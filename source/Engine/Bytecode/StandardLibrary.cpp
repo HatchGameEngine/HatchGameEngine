@@ -34,6 +34,7 @@ public:
 #include <Engine/IO/Serializer.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Math/Geometry.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
 #include <Engine/Rendering/ViewTexture.h>
@@ -1313,19 +1314,19 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
         ObjArray* array = GET_ARG(0, GetArray);
         int       toright = GET_ARG(1, GetInteger);
 
-		if (array->Values->size() > 1) {
-			if (toright) {
-				size_t lastIndex = array->Values->size() - 1;
-				VMValue temp = (*array->Values)[lastIndex];
-				array->Values->erase(array->Values->begin() + lastIndex);
-				array->Values->insert(array->Values->begin(), temp);
-			}
-			else {
-				VMValue temp = (*array->Values)[0];
-				array->Values->erase(array->Values->begin() + 0);
-				array->Values->push_back(temp);
-			}
-		}
+        if (array->Values->size() > 1) {
+            if (toright) {
+                size_t lastIndex = array->Values->size() - 1;
+                VMValue temp = (*array->Values)[lastIndex];
+                array->Values->erase(array->Values->begin() + lastIndex);
+                array->Values->insert(array->Values->begin(), temp);
+            }
+            else {
+                VMValue temp = (*array->Values)[0];
+                array->Values->erase(array->Values->begin() + 0);
+                array->Values->push_back(temp);
+            }
+        }
 
         ScriptManager::Unlock();
     }
@@ -1344,11 +1345,11 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     if (ScriptManager::Lock()) {
         ObjArray* array = GET_ARG(0, GetArray);
-		size_t    startIndex = GET_ARG(1, GetInteger);
-		size_t    endIndex = GET_ARG(2, GetInteger);
+        size_t    startIndex = GET_ARG(1, GetInteger);
+        size_t    endIndex = GET_ARG(2, GetInteger);
         VMValue   value = args[3];
 
-		size_t arraySize = array->Values->size();
+        size_t arraySize = array->Values->size();
         if (arraySize > 0) {
             if (startIndex < 0)
                 startIndex = 0;
@@ -1363,6 +1364,83 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
             for (size_t i = startIndex; i <= endIndex; i++) {
                 (*array->Values)[i] = value;
             }
+        }
+
+        ScriptManager::Unlock();
+    }
+    return NULL_VAL;
+}
+/***
+ * Array.Reverse
+ * \desc Reverses the elements of an array through the specified range, exclusive. The array is reversed from <code>startIndex</code> to, but not including, <code>endIndex</code>.
+ * \param array (Array): Array to reverse.
+ * \paramOpt startIndex (Integer): Start range. Default is zero.
+ * \paramOpt endIndex (Integer): End range. Default is size of array.
+ * \ns Array
+ */
+VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    if (ScriptManager::Lock()) {
+        ObjArray* array = GET_ARG(0, GetArray);
+        int       startIndex = GET_ARG_OPT(1, GetInteger, 0);
+        int       endIndex = GET_ARG_OPT(2, GetInteger, array->Values->size());
+
+        if (startIndex < 0 || startIndex >= (int)array->Values->size() || startIndex >= endIndex) {
+            THROW_ERROR("Start index out of range.");
+            return NULL_VAL;
+        }
+        if (endIndex <= 0 || endIndex > (int)array->Values->size() || endIndex <= startIndex) {
+            THROW_ERROR("End index out of range.");
+            return NULL_VAL;
+        }
+
+        std::reverse(array->Values->begin() + startIndex, array->Values->begin() + endIndex);
+
+        ScriptManager::Unlock();
+    }
+    return NULL_VAL;
+}
+/***
+ * Array.Sort
+ * \desc Sorts the entries of the given array.
+ * \param array (Array): Array to sort.
+ * \paramOpt compFunction (Function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.
+ * \ns Array
+ */
+VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    if (ScriptManager::Lock()) {
+        ObjArray* array = GET_ARG(0, GetArray);
+        ObjFunction* function = GET_ARG_OPT(1, GetFunction, nullptr);
+
+        if (function) {
+            VMThread* thread = &ScriptManager::Threads[threadID];
+
+            std::stable_sort(array->Values->begin(), array->Values->end(), [array, thread, function](const VMValue& a, const VMValue& b) {
+                thread->Push(a);
+                thread->Push(b);
+
+                VMValue result = thread->RunEntityFunction(function, 2);
+
+                thread->Pop(2);
+
+                if (IS_INTEGER(result))
+                    return AS_INTEGER(result) == 1;
+
+                return false;
+            });
+        } else {
+            std::stable_sort(array->Values->begin(), array->Values->end(), [array](const VMValue& a, const VMValue& b) {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
+                    return false;
+                }
+                else if (IS_DECIMAL(a) || IS_DECIMAL(b)) {
+                    return AS_DECIMAL(ScriptManager::CastValueAsDecimal(a)) < AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                }
+                else {
+                    return AS_INTEGER(a) < AS_INTEGER(b);
+                }
+            });
         }
 
         ScriptManager::Unlock();
@@ -1964,8 +2042,9 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1978,18 +2057,11 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     int y = (int)GET_ARG(4, GetDecimal);
     int flipX = GET_ARG(5, GetInteger);
     int flipY = GET_ARG(6, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    float rotation = 0.0f;
-    bool useInteger = false;
-    if (argCount > 7)
-        scaleX = GET_ARG(7, GetDecimal);
-    if (argCount > 8)
-        scaleY = GET_ARG(8, GetDecimal);
-    if (argCount > 9)
-        rotation = GET_ARG(9, GetDecimal);
-    if (argCount > 10)
-        useInteger = GET_ARG(10, GetInteger);
+    float scaleX = GET_ARG_OPT(7, GetDecimal, 1.0f);
+    float scaleY = GET_ARG_OPT(8, GetDecimal, 1.0f);
+    float rotation = GET_ARG_OPT(9, GetDecimal, 0.0f);
+    bool useInteger = GET_ARG_OPT(10, GetInteger, false);
+    unsigned paletteID = GET_ARG_OPT(11, GetInteger, 0);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2006,7 +2078,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
     }
     return NULL_VAL;
 }
@@ -2148,8 +2220,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (Integer): Whether or not to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians
+ * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
+ * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -2166,18 +2239,11 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     int sh = (int)GET_ARG(8, GetDecimal);
     int flipX = GET_ARG(9, GetInteger);
     int flipY = GET_ARG(10, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    float rotation = 0.0f;
-    bool useInteger = false;
-    if (argCount > 11)
-        scaleX = GET_ARG(11, GetDecimal);
-    if (argCount > 12)
-        scaleY = GET_ARG(12, GetDecimal);
-    if (argCount > 13)
-        rotation = GET_ARG(13, GetDecimal);
-    if (argCount > 14)
-        useInteger = GET_ARG(14, GetInteger);
+    float scaleX = GET_ARG_OPT(11, GetDecimal, 1.0f);
+    float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
+    float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
+    bool useInteger = GET_ARG_OPT(14, GetInteger, false);
+    unsigned paletteID = GET_ARG_OPT(15, GetInteger, 0);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2194,7 +2260,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation);
+        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
     }
     return NULL_VAL;
 }
@@ -2443,860 +2509,6 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
     DO_RENDER_VIEW();
 
     Graphics::DrawTexture(Scene::Views[view_index].DrawTarget, sx, sy, sw, sh, x, y, w, h);
-    return NULL_VAL;
-}
-/***
- * Draw.BindVertexBuffer
- * \desc Binds a vertex buffer.
- * \param vertexBufferIndex (Integer): Sets the vertex buffer to bind.
- * \return
- * \ns Draw
- */
-VMValue Draw_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
-        OUT_OF_RANGE_ERROR("Vertex index", vertexBufferIndex, 0, MAX_VERTEX_BUFFERS);
-        return NULL_VAL;
-    }
-
-    Graphics::BindVertexBuffer(vertexBufferIndex);
-    return NULL_VAL;
-}
-/***
- * Draw.UnbindVertexBuffer
- * \desc Unbinds the currently bound vertex buffer.
- * \return
- * \ns Draw
- */
-VMValue Draw_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    Graphics::UnbindVertexBuffer();
-    return NULL_VAL;
-}
-#define GET_SCENE_3D() \
-    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
-        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1); \
-        return NULL_VAL; \
-    } \
-    Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
-/***
- * Draw.BindScene3D
- * \desc Binds a 3D scene for drawing polygons in 3D space.
- * \param scene3DIndex (Integer): Sets the 3D scene to bind.
- * \return
- * \ns Draw
- */
-VMValue Draw_BindScene3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
-        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
-        return NULL_VAL;
-    }
-
-    Graphics::BindScene3D(scene3DIndex);
-    return NULL_VAL;
-}
-static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
-    MatrixHelper helper;
-    MatrixHelper_CopyFrom(&helper, input);
-
-    for (int i = 0; i < 16; i++) {
-        int x = i >> 2;
-        int y = i  & 3;
-        output->Values[i] = helper[x][y];
-    }
-}
-/***
- * Draw.Model
- * \desc Draws a model.
- * \param modelIndex (Integer): Index of loaded model.
- * \param animation (Integer): Animation of model to draw.
- * \param frame (Decimal): Frame of model to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Model(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(5);
-
-    IModel* model = GET_ARG(0, GetModel);
-    int animation = GET_ARG(1, GetInteger);
-    int frame = GET_ARG(2, GetDecimal) * 0x100;
-
-    ObjArray* matrixModelArr = NULL;
-    Matrix4x4 matrixModel;
-    if (!IS_NULL(args[3])) {
-        matrixModelArr = GET_ARG(3, GetArray);
-        PrepareMatrix(&matrixModel, matrixModelArr);
-    }
-
-    ObjArray* matrixNormalArr = NULL;
-    Matrix4x4 matrixNormal;
-    if (!IS_NULL(args[4])) {
-        matrixNormalArr = GET_ARG(4, GetArray);
-        PrepareMatrix(&matrixNormal, matrixNormalArr);
-    }
-
-    Graphics::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
-
-    return NULL_VAL;
-}
-/***
- * Draw.ModelSkinned
- * \desc Draws a skinned model.
- * \param modelIndex (Integer): Index of loaded model.
- * \param skeleton (Integer): Skeleton of model to skin the model.
- * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-
-    IModel* model = GET_ARG(0, GetModel);
-    int armature = GET_ARG(1, GetInteger);
-
-    ObjArray* matrixModelArr = NULL;
-    Matrix4x4 matrixModel;
-    if (!IS_NULL(args[2])) {
-        matrixModelArr = GET_ARG(2, GetArray);
-        PrepareMatrix(&matrixModel, matrixModelArr);
-    }
-
-    ObjArray* matrixNormalArr = NULL;
-    Matrix4x4 matrixNormal;
-    if (!IS_NULL(args[3])) {
-        matrixNormalArr = GET_ARG(3, GetArray);
-        PrepareMatrix(&matrixNormal, matrixNormalArr);
-    }
-
-    Graphics::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
-
-    return NULL_VAL;
-}
-/***
- * Draw.ModelSimple
- * \desc Draws a model without using matrices.
- * \param modelIndex (Integer): Index of loaded model.
- * \param animation (Integer): Animation of model to draw.
- * \param frame (Integer): Frame of model to draw.
- * \param x (Number): X position
- * \param y (Number): Y position
- * \param scale (Number): Model scale
- * \param rx (Number): X rotation in radians
- * \param ry (Number): Y rotation in radians
- * \param rz (Number): Z rotation in radians
- * \return
- * \ns Draw
- */
-VMValue Draw_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(9);
-
-    IModel* model = GET_ARG(0, GetModel);
-    int animation = GET_ARG(1, GetInteger);
-    int frame = GET_ARG(2, GetDecimal) * 0x100;
-    float x = GET_ARG(3, GetDecimal);
-    float y = GET_ARG(4, GetDecimal);
-    float scale = GET_ARG(5, GetDecimal);
-    float rx = GET_ARG(6, GetDecimal);
-    float ry = GET_ARG(7, GetDecimal);
-    float rz = GET_ARG(8, GetDecimal);
-
-    Matrix4x4 matrixScaleTranslate;
-    Matrix4x4::IdentityScale(&matrixScaleTranslate, scale, scale, scale);
-    Matrix4x4::Translate(&matrixScaleTranslate, &matrixScaleTranslate, x, y, 0);
-
-    Matrix4x4 matrixModel;
-    Matrix4x4::IdentityRotationXYZ(&matrixModel, 0, ry, rz);
-    Matrix4x4::Multiply(&matrixModel, &matrixModel, &matrixScaleTranslate);
-
-    Matrix4x4 matrixRotationX;
-    Matrix4x4::IdentityRotationX(&matrixRotationX, rx);
-    Matrix4x4 matrixNormal;
-    Matrix4x4::IdentityRotationXYZ(&matrixNormal, 0, ry, rz);
-    Matrix4x4::Multiply(&matrixNormal, &matrixNormal, &matrixRotationX);
-
-    Graphics::DrawModel(model, animation, frame, &matrixModel, &matrixNormal);
-    return NULL_VAL;
-}
-
-#define PREPARE_MATRICES(matrixModelArr, matrixNormalArr) \
-    Matrix4x4* matrixModel = NULL; \
-    Matrix4x4* matrixNormal = NULL; \
-    Matrix4x4 sMatrixModel, sMatrixNormal; \
-    if (matrixModelArr) { \
-        matrixModel = &sMatrixModel; \
-        PrepareMatrix(matrixModel, matrixModelArr); \
-    } \
-    if (matrixNormalArr) { \
-        matrixNormal = &sMatrixNormal; \
-        PrepareMatrix(matrixNormal, matrixNormalArr); \
-    }
-
-static void DrawPolygon3D(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
-    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
-    Graphics::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
-}
-
-#define VERTEX_ARGS(num, offset) \
-    int argOffset = offset; \
-    for (int i = 0; i < num; i++) { \
-        data[i].Position.X = FP16_TO(GET_ARG(i * 3 + argOffset,     GetDecimal)); \
-        data[i].Position.Y = FP16_TO(GET_ARG(i * 3 + argOffset + 1, GetDecimal)); \
-        data[i].Position.Z = FP16_TO(GET_ARG(i * 3 + argOffset + 2, GetDecimal)); \
-        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0; \
-        data[i].UV.X       = data[i].UV.Y = 0; \
-    } \
-    argOffset += 3 * num
-
-#define VERTEX_COLOR_ARGS(num) \
-    for (int i = 0; i < num; i++) { \
-        if (argCount <= i + argOffset) \
-            break; \
-        if (!IS_NULL(args[i + argOffset])) \
-            data[i].Color = GET_ARG(i + argOffset, GetInteger); \
-        else \
-            data[i].Color = 0xFFFFFF; \
-    } \
-    argOffset += num
-
-#define VERTEX_UV_ARGS(num) \
-    for (int i = 0; i < num; i++) { \
-        if (argCount <= (i * 2) + argOffset) \
-            break; \
-        if (!IS_NULL(args[(i * 2) + argOffset])) \
-            data[i].UV.X = FP16_TO(GET_ARG((i * 2) + argOffset, GetDecimal)); \
-        if (!IS_NULL(args[(i * 2) + 1 + argOffset])) \
-            data[i].UV.Y = FP16_TO(GET_ARG((i * 2) + 1 + argOffset, GetDecimal)); \
-    } \
-    argOffset += num * 2
-
-#define GET_MATRICES(offset) \
-    ObjArray* matrixModelArr = NULL; \
-    if (argCount > offset && !IS_NULL(args[offset])) \
-        matrixModelArr = GET_ARG(offset, GetArray); \
-    ObjArray* matrixNormalArr = NULL; \
-    if (argCount > offset + 1 && !IS_NULL(args[offset + 1])) \
-        matrixNormalArr = GET_ARG(offset + 1, GetArray)
-
-/***
- * Draw.Triangle3D
- * \desc Draws a triangle in 3D space.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Triangle3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(9);
-
-    VertexAttribute data[3];
-
-    VERTEX_ARGS(3, 0);
-    VERTEX_COLOR_ARGS(3);
-    GET_MATRICES(argOffset);
-
-    DrawPolygon3D(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.Quad3D
- * \desc Draws a quadrilateral in 3D space.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Quad3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(12);
-
-    VertexAttribute data[4];
-
-    VERTEX_ARGS(4, 0);
-    VERTEX_COLOR_ARGS(4);
-    GET_MATRICES(argOffset);
-
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-
-/***
- * Draw.Sprite3D
- * \desc Draws a sprite in 3D space.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param z (Number): Z position of where to draw the sprite.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Sprite3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(7);
-
-    ISprite* sprite = GET_ARG(0, GetSprite);
-    int animation = GET_ARG(1, GetInteger);
-    int frame = GET_ARG(2, GetInteger);
-    float x = GET_ARG(3, GetDecimal);
-    float y = GET_ARG(4, GetDecimal);
-    float z = GET_ARG(5, GetDecimal);
-    int flipX = GET_ARG(6, GetInteger);
-    int flipY = GET_ARG(7, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    if (argCount > 8)
-        scaleX = GET_ARG(8, GetDecimal);
-    if (argCount > 9)
-        scaleY = GET_ARG(9, GetDecimal);
-
-    GET_MATRICES(10);
-
-    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
-        return NULL_VAL;
-
-    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
-    VertexAttribute data[4];
-
-    x += frameStr.OffsetX * scaleX;
-    y -= frameStr.OffsetY * scaleY;
-
-    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.SpritePart3D
- * \desc Draws part of a sprite in 3D space.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param z (Number): Z position of where to draw the sprite.
- * \param partX (Integer): X coordinate of part of frame to draw.
- * \param partY (Integer): Y coordinate of part of frame to draw.
- * \param partW (Integer): Width of part of frame to draw.
- * \param partH (Integer): Height of part of frame to draw.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_SpritePart3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(11);
-
-    ISprite* sprite = GET_ARG(0, GetSprite);
-    int animation = GET_ARG(1, GetInteger);
-    int frame = GET_ARG(2, GetInteger);
-    float x = GET_ARG(3, GetDecimal);
-    float y = GET_ARG(4, GetDecimal);
-    float z = GET_ARG(5, GetDecimal);
-    int sx = (int)GET_ARG(6, GetDecimal);
-    int sy = (int)GET_ARG(7, GetDecimal);
-    int sw = (int)GET_ARG(8, GetDecimal);
-    int sh = (int)GET_ARG(9, GetDecimal);
-    int flipX = GET_ARG(10, GetInteger);
-    int flipY = GET_ARG(11, GetInteger);
-    float scaleX = 1.0f;
-    float scaleY = 1.0f;
-    if (argCount > 12)
-        scaleX = GET_ARG(12, GetDecimal);
-    if (argCount > 13)
-        scaleY = GET_ARG(13, GetDecimal);
-
-    GET_MATRICES(14);
-
-    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
-        return NULL_VAL;
-
-    if (sw < 1 || sh < 1)
-        return NULL_VAL;
-
-    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
-    VertexAttribute data[4];
-
-    x += frameStr.OffsetX * scaleX;
-    y -= frameStr.OffsetY * scaleY;
-
-    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.Image3D
- * \desc Draws an image in 3D space.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param z (Number): Z position of where to draw the image.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Image3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(4);
-
-    Image* image = GET_ARG(0, GetImage);
-    float x = GET_ARG(1, GetDecimal);
-    float y = GET_ARG(2, GetDecimal);
-    float z = GET_ARG(3, GetDecimal);
-
-    GET_MATRICES(4);
-
-    Texture* texture = image->TexturePtr;
-    VertexAttribute data[4];
-
-    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.ImagePart3D
- * \desc Draws part of an image in 3D space.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param z (Number): Z position of where to draw the image.
- * \param partX (Integer): X coordinate of part of image to draw.
- * \param partY (Integer): Y coordinate of part of image to draw.
- * \param partW (Integer): Width of part of image to draw.
- * \param partH (Integer): Height of part of image to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_ImagePart3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(8);
-
-    Image* image = GET_ARG(0, GetImage);
-    float x = GET_ARG(1, GetDecimal);
-    float y = GET_ARG(2, GetDecimal);
-    float z = GET_ARG(3, GetDecimal);
-    int sx = (int)GET_ARG(4, GetDecimal);
-    int sy = (int)GET_ARG(5, GetDecimal);
-    int sw = (int)GET_ARG(6, GetDecimal);
-    int sh = (int)GET_ARG(7, GetDecimal);
-
-    GET_MATRICES(8);
-
-    Texture* texture = image->TexturePtr;
-    VertexAttribute data[4];
-
-    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.Tile3D
- * \desc Draws a tile in 3D space.
- * \param ID (Integer): ID of the tile to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
- * \param z (Number): Z position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_Tile3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(6);
-
-    Uint32 id = GET_ARG(0, GetInteger);
-    float x = GET_ARG(1, GetDecimal);
-    float y = GET_ARG(2, GetDecimal);
-    float z = GET_ARG(3, GetDecimal);
-    int flipX = GET_ARG(4, GetInteger);
-    int flipY = GET_ARG(5, GetInteger);
-
-    GET_MATRICES(6);
-
-    TileSpriteInfo info;
-    ISprite* sprite;
-    if (id < Scene::TileSpriteInfos.size() && (info = Scene::TileSpriteInfos[id]).Sprite != NULL)
-        sprite = info.Sprite;
-    else
-        return NULL_VAL;
-
-    AnimFrame frameStr = sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
-    VertexAttribute data[4];
-
-    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.TriangleTextured
- * \desc Draws a textured triangle in 3D space. The texture source should be an image.
- * \param image (Integer): Index of the loaded image.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(7);
-
-    VertexAttribute data[3];
-
-    Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
-
-    VERTEX_ARGS(3, 1);
-    VERTEX_COLOR_ARGS(3);
-
-    // 0
-    // | \
-    // 1--2
-
-    data[1].UV.X = FP16_TO(1.0f);
-
-    data[2].UV.X = FP16_TO(1.0f);
-    data[2].UV.Y = FP16_TO(1.0f);
-
-    VERTEX_UV_ARGS(3);
-
-    GET_MATRICES(argOffset);
-
-    DrawPolygon3D(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.QuadTextured
- * \desc Draws a textured quad in 3D space. The texture source should be an image.
- * \param image (Integer): Index of the loaded image.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
- * \paramOpt u4 (Number): Texture U of the fourth vertex.
- * \paramOpt v4 (Number): Texture V of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(13);
-
-    VertexAttribute data[4];
-
-    Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
-
-    VERTEX_ARGS(4, 1);
-    VERTEX_COLOR_ARGS(4);
-
-    // 0--1
-    // |  |
-    // 3--2
-
-    data[1].UV.X = FP16_TO(1.0f);
-
-    data[2].UV.X = FP16_TO(1.0f);
-    data[2].UV.Y = FP16_TO(1.0f);
-
-    data[3].UV.Y = FP16_TO(1.0f);
-
-    VERTEX_UV_ARGS(4);
-
-    GET_MATRICES(argOffset);
-
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.SpritePoints
- * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(16);
-
-    VertexAttribute data[4];
-
-    ISprite* sprite = GET_ARG(0, GetSprite);
-    int animation = GET_ARG(1, GetInteger);
-    int frame = GET_ARG(2, GetInteger);
-    int flipX = GET_ARG(3, GetInteger);
-    int flipY = GET_ARG(4, GetInteger);
-
-    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
-        return NULL_VAL;
-
-    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
-    VERTEX_ARGS(4, 5);
-    VERTEX_COLOR_ARGS(4);
-    GET_MATRICES(argOffset);
-
-    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.TilePoints
- * \desc Draws a textured rectangle in 3D space. The texture source should be a tile.
- * \param ID (Integer): ID of the tile to draw.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(15);
-
-    VertexAttribute data[4];
-    TileSpriteInfo info;
-    ISprite* sprite;
-
-    Uint32 id = GET_ARG(0, GetInteger);
-    int flipX = GET_ARG(1, GetInteger);
-    int flipY = GET_ARG(2, GetInteger);
-    if (id < Scene::TileSpriteInfos.size() && (info = Scene::TileSpriteInfos[id]).Sprite != NULL)
-        sprite = info.Sprite;
-    else
-        return NULL_VAL;
-
-    AnimFrame frameStr = sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
-
-    VERTEX_ARGS(4, 3);
-    VERTEX_COLOR_ARGS(4);
-    GET_MATRICES(argOffset);
-
-    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
-    return NULL_VAL;
-}
-/***
- * Draw.SceneLayer3D
- * \desc Draws a scene layer in 3D space.
- * \param layer (Integer): Index of the layer.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_SceneLayer3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    int layerID = GET_ARG(0, GetInteger);
-
-    GET_MATRICES(1);
-    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
-
-    SceneLayer* layer = &Scene::Layers[layerID];
-    Graphics::DrawSceneLayer3D(layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
-    return NULL_VAL;
-}
-/***
- * Draw.SceneLayerPart3D
- * \desc Draws part of a scene layer in 3D space.
- * \param layer (Integer): Index of the layer.
- * \param partX (Integer): X coordinate (in tiles) of part of layer to draw.
- * \param partY (Integer): Y coordinate (in tiles) of part of layer to draw.
- * \param partW (Integer): Width (in tiles) of part of layer to draw.
- * \param partH (Integer): Height (in tiles) of part of layer to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_SceneLayerPart3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(5);
-    int layerID = GET_ARG(0, GetInteger);
-    int sx = (int)GET_ARG(1, GetDecimal);
-    int sy = (int)GET_ARG(2, GetDecimal);
-    int sw = (int)GET_ARG(3, GetDecimal);
-    int sh = (int)GET_ARG(4, GetDecimal);
-
-    GET_MATRICES(5);
-    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
-
-    SceneLayer* layer = &Scene::Layers[layerID];
-    if (sx < 0)
-        sx = 0;
-    if (sy < 0)
-        sy = 0;
-    if (sw <= 0 || sh <= 0)
-        return NULL_VAL;
-    if (sw > layer->Width)
-        sw = layer->Width;
-    if (sh > layer->Height)
-        sh = layer->Height;
-    if (sx >= sw || sy >= sh)
-        return NULL_VAL;
-
-    Graphics::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
-    return NULL_VAL;
-}
-/***
- * Draw.VertexBuffer
- * \desc Draws a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
- * \return
- * \ns Draw
- */
-VMValue Draw_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
-        return NULL_VAL;
-
-    GET_MATRICES(1);
-    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
-
-    Graphics::DrawVertexBuffer(vertexBufferIndex, matrixModel, matrixNormal);
-    return NULL_VAL;
-}
-#undef PREPARE_MATRICES
-/***
- * Draw.RenderScene3D
- * \desc Draws everything in the 3D scene.
- * \param scene3DIndex (Integer): The 3D scene at the index to draw.
- * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.
- * \return
- * \ns Draw
- */
-VMValue Draw_RenderScene3D(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_AT_LEAST_ARGCOUNT(1);
-    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
-    GET_SCENE_3D();
-    Graphics::DrawScene3D(scene3DIndex, drawMode);
     return NULL_VAL;
 }
 /***
@@ -4295,6 +3507,7 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(9);
+    // TODO: Implement for GL renderer
     SoftwareRenderer::FillTriangleBlend(
         GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal),
         GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal),
@@ -4305,8 +3518,31 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Draw.Quad
+ * \desc Draws a quad.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \ns Draw
+ */
+VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(8);
+    // TODO: Implement for GL renderer
+    SoftwareRenderer::FillQuad(
+        GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal),
+        GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal),
+        GET_ARG(4, GetDecimal), GET_ARG(5, GetDecimal),
+        GET_ARG(6, GetDecimal), GET_ARG(7, GetDecimal));
+    return NULL_VAL;
+}
+/***
  * Draw.QuadBlend
- * \desc Draws a triangle, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
+ * \desc Draws a quad, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param x2 (Number): X position of the second vertex.
@@ -4323,6 +3559,7 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(12);
+    // TODO: Implement for GL renderer
     SoftwareRenderer::FillQuadBlend(
         GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal),
         GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal),
@@ -4332,6 +3569,92 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
         GET_ARG(9, GetInteger),
         GET_ARG(10, GetInteger),
         GET_ARG(11, GetInteger));
+    return NULL_VAL;
+}
+/***
+ * Draw.TriangleTextured
+ * \desc Draws a textured triangle.
+ * \param image (Integer): Image to draw triangle with.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \ns Draw
+ */
+VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(7);
+
+    Image* image = GET_ARG(0, GetImage);
+
+    // TODO: Implement for GL renderer
+    SoftwareRenderer::DrawTriangleTextured(image->TexturePtr,
+        GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
+        GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
+        GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
+        GET_ARG_OPT(7, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(8, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(10, GetDecimal, 0.0), GET_ARG_OPT(11, GetDecimal, 0.0),
+        GET_ARG_OPT(12, GetDecimal, 1.0), GET_ARG_OPT(13, GetDecimal, 0.0),
+        GET_ARG_OPT(14, GetDecimal, 1.0), GET_ARG_OPT(15, GetDecimal, 1.0));
+    return NULL_VAL;
+}
+/***
+ * Draw.QuadTextured
+ * \desc Draws a textured quad.
+ * \param image (Integer): Image to draw quad with.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \paramOpt u4 (Number): Texture U of the fourth vertex.
+ * \paramOpt v4 (Number): Texture V of the fourth vertex.
+ * \ns Draw
+ */
+VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(9);
+
+    Image* image = GET_ARG(0, GetImage);
+
+    // TODO: Implement for GL renderer
+    SoftwareRenderer::DrawQuadTextured(image->TexturePtr,
+        GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
+        GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
+        GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
+        GET_ARG(7, GetDecimal), GET_ARG(8, GetDecimal),
+        GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(10, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(11, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(12, GetInteger, 0xFFFFFF),
+        GET_ARG_OPT(13, GetDecimal, 0.0), GET_ARG_OPT(14, GetDecimal, 0.0),
+        GET_ARG_OPT(15, GetDecimal, 1.0), GET_ARG_OPT(16, GetDecimal, 0.0),
+        GET_ARG_OPT(17, GetDecimal, 1.0), GET_ARG_OPT(18, GetDecimal, 1.0),
+        GET_ARG_OPT(19, GetDecimal, 0.0), GET_ARG_OPT(20, GetDecimal, 1.0));
     return NULL_VAL;
 }
 /***
@@ -4354,11 +3677,12 @@ VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): Center X position of where to draw the circle.
  * \param y (Number): Center Y position of where to draw the circle.
  * \param radius (Number): Radius of the circle.
+ * \paramOpt thickness (Number): Thickness of the circle.
  * \ns Draw
  */
 VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
-    Graphics::StrokeCircle(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal));
+    CHECK_AT_LEAST_ARGCOUNT(3);
+    Graphics::StrokeCircle(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG_OPT(3, GetDecimal, 1.0));
     return NULL_VAL;
 }
 /***
@@ -4568,7 +3892,6 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
     Graphics::Translate(x, y, z);
     return NULL_VAL;
 }
-
 /***
  * Draw.SetTextureTarget
  * \desc
@@ -4697,6 +4020,843 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
             texture
         );
     }
+    return NULL_VAL;
+}
+// #endregion
+
+// #region Draw3D
+/***
+ * Draw3D.BindVertexBuffer
+ * \desc Binds a vertex buffer.
+ * \param vertexBufferIndex (Integer): Sets the vertex buffer to bind.
+ * \ns Draw3D
+ */
+VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
+        OUT_OF_RANGE_ERROR("Vertex index", vertexBufferIndex, 0, MAX_VERTEX_BUFFERS);
+        return NULL_VAL;
+    }
+
+    Graphics::BindVertexBuffer(vertexBufferIndex);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.UnbindVertexBuffer
+ * \desc Unbinds the currently bound vertex buffer.
+ * \ns Draw3D
+ */
+VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    Graphics::UnbindVertexBuffer();
+    return NULL_VAL;
+}
+#define GET_SCENE_3D() \
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) { \
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1); \
+        return NULL_VAL; \
+    } \
+    Scene3D* scene3D = &Graphics::Scene3Ds[scene3DIndex]
+/***
+ * Draw3D.BindScene
+ * \desc Binds a 3D scene for drawing polygons in 3D space.
+ * \param scene3DIndex (Integer): Sets the 3D scene to bind.
+ * \ns Draw3D
+ */
+VMValue Draw3D_BindScene(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
+        OUT_OF_RANGE_ERROR("Scene3D", scene3DIndex, 0, MAX_3D_SCENES - 1);
+        return NULL_VAL;
+    }
+
+    Graphics::BindScene3D(scene3DIndex);
+    return NULL_VAL;
+}
+static void PrepareMatrix(Matrix4x4 *output, ObjArray* input) {
+    MatrixHelper helper;
+    MatrixHelper_CopyFrom(&helper, input);
+
+    for (int i = 0; i < 16; i++) {
+        int x = i >> 2;
+        int y = i  & 3;
+        output->Values[i] = helper[x][y];
+    }
+}
+/***
+ * Draw3D.Model
+ * \desc Draws a model.
+ * \param modelIndex (Integer): Index of loaded model.
+ * \param animation (Integer): Animation of model to draw.
+ * \param frame (Decimal): Frame of model to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+
+    IModel* model = GET_ARG(0, GetModel);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetDecimal) * 0x100;
+
+    ObjArray* matrixModelArr = NULL;
+    Matrix4x4 matrixModel;
+    if (!IS_NULL(args[3])) {
+        matrixModelArr = GET_ARG(3, GetArray);
+        PrepareMatrix(&matrixModel, matrixModelArr);
+    }
+
+    ObjArray* matrixNormalArr = NULL;
+    Matrix4x4 matrixNormal;
+    if (!IS_NULL(args[4])) {
+        matrixNormalArr = GET_ARG(4, GetArray);
+        PrepareMatrix(&matrixNormal, matrixNormalArr);
+    }
+
+    Graphics::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+
+    return NULL_VAL;
+}
+/***
+ * Draw3D.ModelSkinned
+ * \desc Draws a skinned model.
+ * \param modelIndex (Integer): Index of loaded model.
+ * \param skeleton (Integer): Skeleton of model to skin the model.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+
+    IModel* model = GET_ARG(0, GetModel);
+    int armature = GET_ARG(1, GetInteger);
+
+    ObjArray* matrixModelArr = NULL;
+    Matrix4x4 matrixModel;
+    if (!IS_NULL(args[2])) {
+        matrixModelArr = GET_ARG(2, GetArray);
+        PrepareMatrix(&matrixModel, matrixModelArr);
+    }
+
+    ObjArray* matrixNormalArr = NULL;
+    Matrix4x4 matrixNormal;
+    if (!IS_NULL(args[3])) {
+        matrixNormalArr = GET_ARG(3, GetArray);
+        PrepareMatrix(&matrixNormal, matrixNormalArr);
+    }
+
+    Graphics::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+
+    return NULL_VAL;
+}
+/***
+ * Draw3D.ModelSimple
+ * \desc Draws a model without using matrices.
+ * \param modelIndex (Integer): Index of loaded model.
+ * \param animation (Integer): Animation of model to draw.
+ * \param frame (Integer): Frame of model to draw.
+ * \param x (Number): X position
+ * \param y (Number): Y position
+ * \param scale (Number): Model scale
+ * \param rx (Number): X rotation in radians
+ * \param ry (Number): Y rotation in radians
+ * \param rz (Number): Z rotation in radians
+ * \ns Draw3D
+ */
+VMValue Draw3D_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(9);
+
+    IModel* model = GET_ARG(0, GetModel);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetDecimal) * 0x100;
+    float x = GET_ARG(3, GetDecimal);
+    float y = GET_ARG(4, GetDecimal);
+    float scale = GET_ARG(5, GetDecimal);
+    float rx = GET_ARG(6, GetDecimal);
+    float ry = GET_ARG(7, GetDecimal);
+    float rz = GET_ARG(8, GetDecimal);
+
+    Matrix4x4 matrixScaleTranslate;
+    Matrix4x4::IdentityScale(&matrixScaleTranslate, scale, scale, scale);
+    Matrix4x4::Translate(&matrixScaleTranslate, &matrixScaleTranslate, x, y, 0);
+
+    Matrix4x4 matrixModel;
+    Matrix4x4::IdentityRotationXYZ(&matrixModel, 0, ry, rz);
+    Matrix4x4::Multiply(&matrixModel, &matrixModel, &matrixScaleTranslate);
+
+    Matrix4x4 matrixRotationX;
+    Matrix4x4::IdentityRotationX(&matrixRotationX, rx);
+    Matrix4x4 matrixNormal;
+    Matrix4x4::IdentityRotationXYZ(&matrixNormal, 0, ry, rz);
+    Matrix4x4::Multiply(&matrixNormal, &matrixNormal, &matrixRotationX);
+
+    Graphics::DrawModel(model, animation, frame, &matrixModel, &matrixNormal);
+    return NULL_VAL;
+}
+
+#define PREPARE_MATRICES(matrixModelArr, matrixNormalArr) \
+    Matrix4x4* matrixModel = NULL; \
+    Matrix4x4* matrixNormal = NULL; \
+    Matrix4x4 sMatrixModel, sMatrixNormal; \
+    if (matrixModelArr) { \
+        matrixModel = &sMatrixModel; \
+        PrepareMatrix(matrixModel, matrixModelArr); \
+    } \
+    if (matrixNormalArr) { \
+        matrixNormal = &sMatrixNormal; \
+        PrepareMatrix(matrixNormal, matrixNormalArr); \
+    }
+
+static void DrawPolygon3D(VertexAttribute *data, int vertexCount, int vertexFlag, Texture* texture, ObjArray* matrixModelArr, ObjArray* matrixNormalArr) {
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+    Graphics::DrawPolygon3D(data, vertexCount, vertexFlag, texture, matrixModel, matrixNormal);
+}
+
+#define VERTEX_ARGS(num, offset) \
+    int argOffset = offset; \
+    for (int i = 0; i < num; i++) { \
+        data[i].Position.X = FP16_TO(GET_ARG(i * 3 + argOffset,     GetDecimal)); \
+        data[i].Position.Y = FP16_TO(GET_ARG(i * 3 + argOffset + 1, GetDecimal)); \
+        data[i].Position.Z = FP16_TO(GET_ARG(i * 3 + argOffset + 2, GetDecimal)); \
+        data[i].Normal.X   = data[i].Normal.Y = data[i].Normal.Z = data[i].Normal.W = 0; \
+        data[i].UV.X       = data[i].UV.Y = 0; \
+    } \
+    argOffset += 3 * num
+
+#define VERTEX_COLOR_ARGS(num) \
+    for (int i = 0; i < num; i++) { \
+        if (argCount <= i + argOffset) \
+            break; \
+        if (!IS_NULL(args[i + argOffset])) \
+            data[i].Color = GET_ARG(i + argOffset, GetInteger); \
+        else \
+            data[i].Color = 0xFFFFFF; \
+    } \
+    argOffset += num
+
+#define VERTEX_UV_ARGS(num) \
+    for (int i = 0; i < num; i++) { \
+        if (argCount <= (i * 2) + argOffset) \
+            break; \
+        if (!IS_NULL(args[(i * 2) + argOffset])) \
+            data[i].UV.X = FP16_TO(GET_ARG((i * 2) + argOffset, GetDecimal)); \
+        if (!IS_NULL(args[(i * 2) + 1 + argOffset])) \
+            data[i].UV.Y = FP16_TO(GET_ARG((i * 2) + 1 + argOffset, GetDecimal)); \
+    } \
+    argOffset += num * 2
+
+#define GET_MATRICES(offset) \
+    ObjArray* matrixModelArr = NULL; \
+    if (argCount > offset && !IS_NULL(args[offset])) \
+        matrixModelArr = GET_ARG(offset, GetArray); \
+    ObjArray* matrixNormalArr = NULL; \
+    if (argCount > offset + 1 && !IS_NULL(args[offset + 1])) \
+        matrixNormalArr = GET_ARG(offset + 1, GetArray)
+
+/***
+ * Draw.Triangle3D
+ * \desc Draws a triangle in 3D space.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(9);
+
+    VertexAttribute data[3];
+
+    VERTEX_ARGS(3, 0);
+    VERTEX_COLOR_ARGS(3);
+    GET_MATRICES(argOffset);
+
+    DrawPolygon3D(data, 3, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.Quad
+ * \desc Draws a quadrilateral in 3D space.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \param z4 (Number): Z position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(12);
+
+    VertexAttribute data[4];
+
+    VERTEX_ARGS(4, 0);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
+
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Color, NULL, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+
+/***
+ * Draw3D.Sprite
+ * \desc Draws a sprite in 3D space.
+ * \param sprite (Integer): Index of the loaded sprite.
+ * \param animation (Integer): Index of the animation entry.
+ * \param frame (Integer): Index of the frame in the animation entry.
+ * \param x (Number): X position of where to draw the sprite.
+ * \param y (Number): Y position of where to draw the sprite.
+ * \param z (Number): Z position of where to draw the sprite.
+ * \param flipX (Integer): Whether or not to flip the sprite horizontally.
+ * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(7);
+
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    float x = GET_ARG(3, GetDecimal);
+    float y = GET_ARG(4, GetDecimal);
+    float z = GET_ARG(5, GetDecimal);
+    int flipX = GET_ARG(6, GetInteger);
+    int flipY = GET_ARG(7, GetInteger);
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    if (argCount > 8)
+        scaleX = GET_ARG(8, GetDecimal);
+    if (argCount > 9)
+        scaleY = GET_ARG(9, GetDecimal);
+
+    GET_MATRICES(10);
+
+    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
+        return NULL_VAL;
+
+    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
+
+    VertexAttribute data[4];
+
+    x += frameStr.OffsetX * scaleX;
+    y -= frameStr.OffsetY * scaleY;
+
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.SpritePart
+ * \desc Draws part of a sprite in 3D space.
+ * \param sprite (Integer): Index of the loaded sprite.
+ * \param animation (Integer): Index of the animation entry.
+ * \param frame (Integer): Index of the frame in the animation entry.
+ * \param x (Number): X position of where to draw the sprite.
+ * \param y (Number): Y position of where to draw the sprite.
+ * \param z (Number): Z position of where to draw the sprite.
+ * \param partX (Integer): X coordinate of part of frame to draw.
+ * \param partY (Integer): Y coordinate of part of frame to draw.
+ * \param partW (Integer): Width of part of frame to draw.
+ * \param partH (Integer): Height of part of frame to draw.
+ * \param flipX (Integer): Whether or not to flip the sprite horizontally.
+ * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(11);
+
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    float x = GET_ARG(3, GetDecimal);
+    float y = GET_ARG(4, GetDecimal);
+    float z = GET_ARG(5, GetDecimal);
+    int sx = (int)GET_ARG(6, GetDecimal);
+    int sy = (int)GET_ARG(7, GetDecimal);
+    int sw = (int)GET_ARG(8, GetDecimal);
+    int sh = (int)GET_ARG(9, GetDecimal);
+    int flipX = GET_ARG(10, GetInteger);
+    int flipY = GET_ARG(11, GetInteger);
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    if (argCount > 12)
+        scaleX = GET_ARG(12, GetDecimal);
+    if (argCount > 13)
+        scaleY = GET_ARG(13, GetDecimal);
+
+    GET_MATRICES(14);
+
+    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
+        return NULL_VAL;
+
+    if (sw < 1 || sh < 1)
+        return NULL_VAL;
+
+    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
+
+    VertexAttribute data[4];
+
+    x += frameStr.OffsetX * scaleX;
+    y -= frameStr.OffsetY * scaleY;
+
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, scaleX, scaleY, texture, sx, sy, sw, sh);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.Image
+ * \desc Draws an image in 3D space.
+ * \param image (Integer): Index of the loaded image.
+ * \param x (Number): X position of where to draw the image.
+ * \param y (Number): Y position of where to draw the image.
+ * \param z (Number): Z position of where to draw the image.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(4);
+
+    Image* image = GET_ARG(0, GetImage);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float z = GET_ARG(3, GetDecimal);
+
+    GET_MATRICES(4);
+
+    Texture* texture = image->TexturePtr;
+    VertexAttribute data[4];
+
+    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, 0, 0, texture->Width, texture->Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.ImagePart
+ * \desc Draws part of an image in 3D space.
+ * \param image (Integer): Index of the loaded image.
+ * \param x (Number): X position of where to draw the image.
+ * \param y (Number): Y position of where to draw the image.
+ * \param z (Number): Z position of where to draw the image.
+ * \param partX (Integer): X coordinate of part of image to draw.
+ * \param partY (Integer): Y coordinate of part of image to draw.
+ * \param partW (Integer): Width of part of image to draw.
+ * \param partH (Integer): Height of part of image to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(8);
+
+    Image* image = GET_ARG(0, GetImage);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float z = GET_ARG(3, GetDecimal);
+    int sx = (int)GET_ARG(4, GetDecimal);
+    int sy = (int)GET_ARG(5, GetDecimal);
+    int sw = (int)GET_ARG(6, GetDecimal);
+    int sh = (int)GET_ARG(7, GetDecimal);
+
+    GET_MATRICES(8);
+
+    Texture* texture = image->TexturePtr;
+    VertexAttribute data[4];
+
+    Graphics::MakeSpritePolygon(data, x, y, z, 0, 0, 1.0f, 1.0f, texture, sx, sy, sw, sh);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_Normal | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.Tile
+ * \desc Draws a tile in 3D space.
+ * \param ID (Integer): ID of the tile to draw.
+ * \param x (Number): X position of where to draw the tile.
+ * \param y (Number): Y position of where to draw the tile.
+ * \param z (Number): Z position of where to draw the tile.
+ * \param flipX (Integer): Whether or not to flip the tile horizontally.
+ * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(6);
+
+    Uint32 id = GET_ARG(0, GetInteger);
+    float x = GET_ARG(1, GetDecimal);
+    float y = GET_ARG(2, GetDecimal);
+    float z = GET_ARG(3, GetDecimal);
+    int flipX = GET_ARG(4, GetInteger);
+    int flipY = GET_ARG(5, GetInteger);
+
+    GET_MATRICES(6);
+
+    TileSpriteInfo info;
+    ISprite* sprite;
+    if (id < Scene::TileSpriteInfos.size() && (info = Scene::TileSpriteInfos[id]).Sprite != NULL)
+        sprite = info.Sprite;
+    else
+        return NULL_VAL;
+
+    AnimFrame frameStr = sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
+
+    VertexAttribute data[4];
+
+    Graphics::MakeSpritePolygon(data, x, y, z, flipX, flipY, 1.0f, 1.0f, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.TriangleTextured
+ * \desc Draws a textured triangle in 3D space. The texture source should be an image.
+ * \param image (Integer): Index of the loaded image.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(7);
+
+    VertexAttribute data[3];
+
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+
+    VERTEX_ARGS(3, 1);
+    VERTEX_COLOR_ARGS(3);
+
+    // 0
+    // | \
+    // 1--2
+
+    data[1].UV.X = FP16_TO(1.0f);
+
+    data[2].UV.X = FP16_TO(1.0f);
+    data[2].UV.Y = FP16_TO(1.0f);
+
+    VERTEX_UV_ARGS(3);
+
+    GET_MATRICES(argOffset);
+
+    DrawPolygon3D(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.QuadTextured
+ * \desc Draws a textured quad in 3D space. The texture source should be an image.
+ * \param image (Integer): Index of the loaded image.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \param z4 (Number): Z position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt u1 (Number): Texture U of the first vertex.
+ * \paramOpt v1 (Number): Texture V of the first vertex.
+ * \paramOpt u2 (Number): Texture U of the second vertex.
+ * \paramOpt v2 (Number): Texture V of the second vertex.
+ * \paramOpt u3 (Number): Texture U of the third vertex.
+ * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \paramOpt u4 (Number): Texture U of the fourth vertex.
+ * \paramOpt v4 (Number): Texture V of the fourth vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(13);
+
+    VertexAttribute data[4];
+
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+
+    VERTEX_ARGS(4, 1);
+    VERTEX_COLOR_ARGS(4);
+
+    // 0--1
+    // |  |
+    // 3--2
+
+    data[1].UV.X = FP16_TO(1.0f);
+
+    data[2].UV.X = FP16_TO(1.0f);
+    data[2].UV.Y = FP16_TO(1.0f);
+
+    data[3].UV.Y = FP16_TO(1.0f);
+
+    VERTEX_UV_ARGS(4);
+
+    GET_MATRICES(argOffset);
+
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.SpritePoints
+ * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
+ * \param sprite (Integer): Index of the loaded sprite.
+ * \param animation (Integer): Index of the animation entry.
+ * \param frame (Integer): Index of the frame in the animation entry.
+ * \param flipX (Integer): Whether or not to flip the sprite horizontally.
+ * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \param z4 (Number): Z position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(16);
+
+    VertexAttribute data[4];
+
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    int frame = GET_ARG(2, GetInteger);
+    int flipX = GET_ARG(3, GetInteger);
+    int flipY = GET_ARG(4, GetInteger);
+
+    if (Graphics::SpriteRangeCheck(sprite, animation, frame))
+        return NULL_VAL;
+
+    AnimFrame frameStr = sprite->Animations[animation].Frames[frame];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
+
+    VERTEX_ARGS(4, 5);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
+
+    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.TilePoints
+ * \desc Draws a textured rectangle in 3D space.
+ * \param ID (Integer): ID of the tile to draw.
+ * \param flipX (Integer): Whether or not to flip the tile horizontally.
+ * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \param x1 (Number): X position of the first vertex.
+ * \param y1 (Number): Y position of the first vertex.
+ * \param z1 (Number): Z position of the first vertex.
+ * \param x2 (Number): X position of the second vertex.
+ * \param y2 (Number): Y position of the second vertex.
+ * \param z2 (Number): Z position of the second vertex.
+ * \param x3 (Number): X position of the third vertex.
+ * \param y3 (Number): Y position of the third vertex.
+ * \param z3 (Number): Z position of the third vertex.
+ * \param x4 (Number): X position of the fourth vertex.
+ * \param y4 (Number): Y position of the fourth vertex.
+ * \param z4 (Number): Z position of the fourth vertex.
+ * \paramOpt color1 (Integer): Color of the first vertex.
+ * \paramOpt color2 (Integer): Color of the second vertex.
+ * \paramOpt color3 (Integer): Color of the third vertex.
+ * \paramOpt color4 (Integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(15);
+
+    VertexAttribute data[4];
+    TileSpriteInfo info;
+    ISprite* sprite;
+
+    Uint32 id = GET_ARG(0, GetInteger);
+    int flipX = GET_ARG(1, GetInteger);
+    int flipY = GET_ARG(2, GetInteger);
+    if (id < Scene::TileSpriteInfos.size() && (info = Scene::TileSpriteInfos[id]).Sprite != NULL)
+        sprite = info.Sprite;
+    else
+        return NULL_VAL;
+
+    AnimFrame frameStr = sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+    Texture* texture = sprite->Spritesheets[frameStr.SheetNumber];
+
+    VERTEX_ARGS(4, 3);
+    VERTEX_COLOR_ARGS(4);
+    GET_MATRICES(argOffset);
+
+    Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameStr.X, frameStr.Y, frameStr.Width, frameStr.Height);
+    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.SceneLayer
+ * \desc Draws a scene layer in 3D space.
+ * \param layer (Integer): Index of the layer.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int layerID = GET_ARG(0, GetInteger);
+
+    GET_MATRICES(1);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    SceneLayer* layer = &Scene::Layers[layerID];
+    Graphics::DrawSceneLayer3D(layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.SceneLayerPart
+ * \desc Draws part of a scene layer in 3D space.
+ * \param layer (Integer): Index of the layer.
+ * \param partX (Integer): X coordinate (in tiles) of part of layer to draw.
+ * \param partY (Integer): Y coordinate (in tiles) of part of layer to draw.
+ * \param partW (Integer): Width (in tiles) of part of layer to draw.
+ * \param partH (Integer): Height (in tiles) of part of layer to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \ns Draw3D
+ */
+VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(5);
+    int layerID = GET_ARG(0, GetInteger);
+    int sx = (int)GET_ARG(1, GetDecimal);
+    int sy = (int)GET_ARG(2, GetDecimal);
+    int sw = (int)GET_ARG(3, GetDecimal);
+    int sh = (int)GET_ARG(4, GetDecimal);
+
+    GET_MATRICES(5);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    SceneLayer* layer = &Scene::Layers[layerID];
+    if (sx < 0)
+        sx = 0;
+    if (sy < 0)
+        sy = 0;
+    if (sw <= 0 || sh <= 0)
+        return NULL_VAL;
+    if (sw > layer->Width)
+        sw = layer->Width;
+    if (sh > layer->Height)
+        sh = layer->Height;
+    if (sx >= sw || sy >= sh)
+        return NULL_VAL;
+
+    Graphics::DrawSceneLayer3D(layer, sx, sy, sw, sh, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+/***
+ * Draw3D.VertexBuffer
+ * \desc Draws a vertex buffer.
+ * \param vertexBufferIndex (Integer): The vertex buffer to draw.
+ * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \return
+ * \ns Draw3D
+ */
+VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
+        return NULL_VAL;
+
+    GET_MATRICES(1);
+    PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
+
+    Graphics::DrawVertexBuffer(vertexBufferIndex, matrixModel, matrixNormal);
+    return NULL_VAL;
+}
+#undef PREPARE_MATRICES
+/***
+ * Draw3D.RenderScene
+ * \desc Draws everything in the 3D scene.
+ * \param scene3DIndex (Integer): The 3D scene at the index to draw.
+ * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.
+ * \ns Draw3D
+ */
+VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    Uint32 scene3DIndex = GET_ARG(0, GetInteger);
+    Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
+    GET_SCENE_3D();
+    Graphics::DrawScene3D(scene3DIndex, drawMode);
     return NULL_VAL;
 }
 // #endregion
@@ -5029,6 +5189,247 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Geometry
+static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, int threadID) {
+    vector<FVector2> input;
+
+    for (unsigned i = 0; i < array->Values->size(); i++) {
+        VMValue vtxVal = (*array->Values)[i];
+
+        if (!IS_ARRAY(vtxVal)) {
+            THROW_ERROR("Expected value at index %d of %s to be of type %s instead of %s.", i, arrName, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
+            return {};
+        }
+
+        ObjArray* vtx = AS_ARRAY(vtxVal);
+        VMValue xVal = (*vtx->Values)[0];
+        VMValue yVal = (*vtx->Values)[1];
+
+        float x, y;
+
+        // Get X
+        if (IS_DECIMAL(xVal))
+            x = AS_DECIMAL(xVal);
+        else if (IS_INTEGER(xVal))
+            x = (float)(AS_INTEGER(xVal));
+        else {
+            THROW_ERROR("Expected X value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 0, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
+            return {};
+        }
+
+        // Get Y
+        if (IS_DECIMAL(yVal))
+            y = AS_DECIMAL(yVal);
+        else if (IS_INTEGER(yVal))
+            y = (float)(AS_INTEGER(yVal));
+        else {
+            THROW_ERROR("Expected Y value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 1, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
+            return {};
+        }
+
+        FVector2 vec(x, y);
+
+        input.push_back(vec);
+    }
+
+    return input;
+}
+/***
+ * Geometry.Triangulate
+ * \desc Triangulates a 2D polygon.
+ * \param polygon (Array): Array of vertices that compromise the polygon to triangulate.
+ * \paramOpt holes (Array): Array of polygons that compromise the holes to be made in the resulting shape.
+ * \return Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.
+ * \ns Geometry
+ */
+VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+
+    ObjArray* arrPoly = GET_ARG(0, GetArray);
+    ObjArray* arrHoles = GET_ARG_OPT(1, GetArray, nullptr);
+
+    vector<FVector2> points = GetPolygonPoints(arrPoly, "polygon array", threadID);
+    if (!points.size())
+        return NULL_VAL;
+
+    Polygon2D inputPoly(points);
+    vector<Polygon2D> inputHoles;
+
+    if (arrHoles) {
+        for (unsigned i = 0; i < arrHoles->Values->size(); i++) {
+            VMValue value = (*arrHoles->Values)[i];
+            if (!IS_ARRAY(value)) {
+                THROW_ERROR("Expected value at index %d of holes array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+                return NULL_VAL;
+            }
+
+            Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), "holes array", threadID));
+            inputHoles.push_back(hole);
+        }
+
+        // Holes must not be touching each other or the bounds of the shape, so these two operations are needed
+        vector<Polygon2D>* unionResult = Geometry::Intersect(GeoBooleanOp_Union, GeoFillRule_EvenOdd, inputHoles, {});
+        inputHoles.clear();
+        for (unsigned i = 0; i < unionResult->size(); i++)
+            inputHoles.push_back((*unionResult)[i]);
+        delete unionResult;
+
+        vector<Polygon2D>* intersectResult = Geometry::Intersect(GeoBooleanOp_Intersection, GeoFillRule_EvenOdd, inputHoles, {inputPoly});
+        inputHoles.clear();
+        for (unsigned i = 0; i < intersectResult->size(); i++)
+            inputHoles.push_back((*intersectResult)[i]);
+        delete intersectResult;
+    }
+
+    vector<Polygon2D>* output = Geometry::Triangulate(inputPoly, inputHoles);
+    if (!output)
+        return NULL_VAL;
+
+    ObjArray* result = NewArray();
+
+    for (unsigned i = 0; i < output->size(); i++) {
+        Polygon2D poly = (*output)[i];
+        ObjArray* triArr = NewArray();
+
+        for (unsigned j = 0; j < 3; j++) {
+            ObjArray* vtx = NewArray();
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
+            triArr->Values->push_back(OBJECT_VAL(vtx));
+        }
+
+        result->Values->push_back(OBJECT_VAL(triArr));
+    }
+
+    delete output;
+
+    return OBJECT_VAL(result);
+}
+/***
+ * Geometry.Intersect
+ * \desc Intersects a 2D polygon.
+ * \param subjects (Array): Array of subject polygons.
+ * \param clips (Array): Array of clip polygons.
+ * \paramOpt booleanOp (Enum): The <linkto ref="GeoBooleanOp_*">boolean operation</linkto>. Default is <linkto ref="GeoBooleanOp_Intersection"></linkto>.
+ * \paramOpt fillRule (Enum): The <linkto ref="GeoFillRule_*">fill rule</linkto>. Default is <linkto ref="GeoFillRule_EvenOdd"></linkto>.
+ * \return Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.
+ * \ns Geometry
+ */
+VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+
+    ObjArray* subjects = GET_ARG(0, GetArray);
+    ObjArray* clips = GET_ARG(1, GetArray);
+    int booleanOp = GET_ARG_OPT(2, GetInteger, GeoBooleanOp_Intersection);
+    int fillRule = GET_ARG_OPT(3, GetInteger, GeoFillRule_EvenOdd);
+
+    if (booleanOp < GeoBooleanOp_Intersection || booleanOp > GeoBooleanOp_ExclusiveOr) {
+        OUT_OF_RANGE_ERROR("Boolean operation", booleanOp, GeoBooleanOp_Intersection, GeoBooleanOp_ExclusiveOr);
+        return NULL_VAL;
+    }
+
+    if (fillRule < GeoFillRule_EvenOdd || fillRule > GeoFillRule_Negative) {
+        OUT_OF_RANGE_ERROR("Fill rule", fillRule, GeoFillRule_EvenOdd, GeoFillRule_Negative);
+        return NULL_VAL;
+    }
+
+    vector<Polygon2D> inputSubjects;
+    vector<Polygon2D> inputClips;
+
+    // Get subjects
+    for (unsigned i = 0; i < subjects->Values->size(); i++) {
+        VMValue value = (*subjects->Values)[i];
+        if (!IS_ARRAY(value)) {
+            THROW_ERROR("Expected value at index %d of subjects array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+            return NULL_VAL;
+        }
+
+        Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), "subject array", threadID));
+        inputSubjects.push_back(subject);
+    }
+
+    // Get clips
+    for (unsigned i = 0; i < clips->Values->size(); i++) {
+        VMValue value = (*clips->Values)[i];
+        if (!IS_ARRAY(value)) {
+            THROW_ERROR("Expected value at index %d of clips array to be of type %s instead of %s.", i, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(value));
+            return NULL_VAL;
+        }
+
+        Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), "clip array", threadID));
+        inputClips.push_back(clip);
+    }
+
+    vector<Polygon2D>* output = Geometry::Intersect(booleanOp, fillRule, inputSubjects, inputClips);
+    if (!output)
+        return NULL_VAL;
+
+    ObjArray* result = NewArray();
+
+    for (unsigned i = 0; i < output->size(); i++) {
+        Polygon2D& poly = (*output)[i];
+        ObjArray* polyArr = NewArray();
+
+        for (unsigned j = 0; j < poly.Points.size(); j++) {
+            ObjArray* vtx = NewArray();
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
+            vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
+            polyArr->Values->push_back(OBJECT_VAL(vtx));
+        }
+
+        result->Values->push_back(OBJECT_VAL(polyArr));
+    }
+
+    delete output;
+
+    return OBJECT_VAL(result);
+}
+/***
+ * Geometry.IsPointInsidePolygon
+ * \desc Checks if a point is inside a polygon.
+ * \param polygon (Array): The polygon.
+ * \param pointX (Decimal): The X of the point.
+ * \param pointY (Decimal): The Y of the point.
+ * \return Returns <code>true</code> if the point is inside, or <code>false</code> if the point is outside.
+ * \ns Geometry
+ */
+VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    ObjArray* arr = GET_ARG(0, GetArray);
+    float pointX = GET_ARG(1, GetDecimal);
+    float pointY = GET_ARG(2, GetDecimal);
+
+    Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
+
+    return INTEGER_VAL(polygon.IsPointInside(pointX, pointY));
+}
+/***
+ * Geometry.IsLineIntersectingPolygon
+ * \desc Checks if a line segment is intersecting a polygon.
+ * \param polygon (Array): The polygon to check.
+ * \param x1 (Decimal): The starting X of the segment.
+ * \param y1 (Decimal): The starting Y of the segment.
+ * \param x2 (Decimal): The ending X of the segment.
+ * \param y2 (Decimal): The ending Y of the segment.
+ * \return Returns <code>true</code> if the line segment is intersecting the polygon, or <code>false</code> if it is not.
+ * \ns Geometry
+ */
+VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+
+    ObjArray* arr = GET_ARG(0, GetArray);
+    float x1 = GET_ARG(1, GetDecimal);
+    float y1 = GET_ARG(2, GetDecimal);
+    float x2 = GET_ARG(3, GetDecimal);
+    float y2 = GET_ARG(4, GetDecimal);
+
+    Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
+
+    return INTEGER_VAL(polygon.IsLineSegmentIntersecting(x1, y1, x2, y2));
+}
+// #endregion
+
 // #region HTTP
 struct _HTTP_Bundle {
     char* url;
@@ -5112,6 +5513,35 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
         SDL_CreateThread(_HTTP_GetToFile, "HTTP.GetToFile", bundle);
     }
     return NULL_VAL;
+}
+// #endregion
+
+// #region Image
+/***
+ * Image.GetWidth
+ * \desc Gets the width of the specified image.
+ * \param image (Integer): The image index to check.
+ * \return Returns an Integer value.
+ * \ns Image
+ */
+VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+    return INTEGER_VAL((int)texture->Width);
+}
+/***
+ * Image.GetHeight
+ * \desc Gets the height of the specified image.
+ * \param image (Integer): The image index to check.
+ * \return Returns an Integer value.
+ * \ns Image
+ */
+VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Image* image = GET_ARG(0, GetImage);
+    Texture* texture = image->TexturePtr;
+    return INTEGER_VAL((int)texture->Height);
 }
 // #endregion
 
@@ -7336,8 +7766,8 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
  * Number.ToString
  * \desc Converts a Number to a String.
  * \param n (Number): Number value.
- * \paramOpt base (Integer): radix
- * \return
+ * \paramOpt base (Integer): The numerical base, or radix.
+ * \return Returns a String value.
  * \ns Number
  */
 VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
@@ -7676,6 +8106,7 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets a color from the specified palette.
  * \param paletteIndex (Integer): Index of palette.
  * \param colorIndex (Integer): Index of color.
+ * \return Returns an Integer value.
  * \ns Palette
  */
 VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -7700,12 +8131,53 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
     int palIndex = GET_ARG(0, GetInteger);
     int colorIndex = GET_ARG(1, GetInteger);
+    Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     CHECK_PALETTE_INDEX(palIndex);
     CHECK_COLOR_INDEX(colorIndex);
-    Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
     Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
     *color = (hex & 0xFFFFFFU) | 0xFF000000U;
     Graphics::ConvertFromARGBtoNative(color, 1);
+    Graphics::PaletteUpdated = true;
+    return NULL_VAL;
+}
+/***
+ * Palette.GetColorTransparent
+ * \desc Gets if the color on the specified palette is transparent.
+ * \param paletteIndex (Integer): Index of palette.
+ * \param colorIndex (Integer): Index of color.
+ * \return Returns a Boolean value.
+ * \ns Palette
+ */
+VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int palIndex = GET_ARG(0, GetInteger);
+    int colorIndex = GET_ARG(1, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
+    if (Graphics::PaletteColors[palIndex][colorIndex] & 0xFF000000U)
+        return INTEGER_VAL(false);
+    return INTEGER_VAL(true);
+}
+/***
+ * Palette.SetColorTransparent
+ * \desc Sets a color on the specified palette transparent.
+ * \param paletteIndex (Integer): Index of palette.
+ * \param colorIndex (Integer): Index of color.
+ * \param isTransparent (Boolean): Whether to make the color transparent or not.
+ * \ns Palette
+ */
+VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    int palIndex = GET_ARG(0, GetInteger);
+    int colorIndex = GET_ARG(1, GetInteger);
+    bool isTransparent = !!GET_ARG(2, GetInteger);
+    CHECK_PALETTE_INDEX(palIndex);
+    CHECK_COLOR_INDEX(colorIndex);
+    Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
+    if (isTransparent)
+        *color &= ~0xFF000000U;
+    else
+        *color |= 0xFF000000U;
     Graphics::PaletteUpdated = true;
     return NULL_VAL;
 }
@@ -7840,6 +8312,18 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Palette.UsePaletteIndexLines
+ * \desc Enables or disables the global palette index table.
+ * \param usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.
+ * \ns Palette
+ */
+VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int usePaletteIndexLines = GET_ARG(0, GetInteger);
+    Graphics::UsePaletteIndexLines = usePaletteIndexLines;
+    return NULL_VAL;
+}
+/***
  * Palette.SetPaletteIndexLines
  * \desc Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).
  * \param paletteIndex (Integer): Index of palette.
@@ -7902,7 +8386,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -7914,7 +8398,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     // FIXME: This needs to return -1 if LoadAnimation fails.
-    resource->AsSprite = new (nothrow) ISprite(filename);
+    resource->AsSprite = new (std::nothrow) ISprite(filename);
     return INTEGER_VAL((int)index);
 }
 /***
@@ -7929,7 +8413,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -7940,7 +8424,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL((int)index);
     else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    resource->AsImage = new (nothrow) Image(filename);
+    resource->AsImage = new (std::nothrow) Image(filename);
     if (!resource->AsImage->TexturePtr) {
         delete resource->AsImage;
         delete resource;
@@ -7963,7 +8447,7 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
     char*  filename = GET_ARG(0, GetString);
     int    pixel_sz = (int)GET_ARG(1, GetDecimal);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
     resource->UnloadPolicy = GET_ARG(2, GetInteger);
@@ -7997,7 +8481,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -8015,7 +8499,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(-1);
     }
 
-    resource->AsModel = new (nothrow) IModel();
+    resource->AsModel = new (std::nothrow) IModel();
     if (!resource->AsModel->Load(stream, filename)) {
         delete resource->AsModel;
         delete resource;
@@ -8039,7 +8523,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -8050,7 +8534,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL((int)index);
     else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    resource->AsMusic = new (nothrow) ISound(filename);
+    resource->AsMusic = new (std::nothrow) ISound(filename);
     return INTEGER_VAL((int)index);
 }
 /***
@@ -8065,7 +8549,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -8076,7 +8560,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL((int)index);
     else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    resource->AsSound = new (nothrow) ISound(filename);
+    resource->AsSound = new (std::nothrow) ISound(filename);
     return INTEGER_VAL((int)index);
 }
 /***
@@ -8091,7 +8575,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
 
-    ResourceType* resource = new (nothrow) ResourceType();
+    ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
@@ -8160,7 +8644,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
         Log::Print(Log::LOG_INFO, "    Channels:    %d", playerInfo.Audio.Output.Channels);
     }
 
-    MediaBag* newMediaBag = new (nothrow) MediaBag;
+    MediaBag* newMediaBag = new (std::nothrow) MediaBag;
     newMediaBag->Source = Source;
     newMediaBag->Player = Player;
     newMediaBag->VideoTexture = VideoTexture;
@@ -8652,6 +9136,18 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
+ * Scene.GetLayerUsePaletteIndexLines
+ * \desc Gets whether the layer is using the global palette index table.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a Boolean value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    return INTEGER_VAL(Scene::Layers[index].UsePaletteIndexLines);
+}
+/***
  * Scene.GetLayerProperty
  * \desc Gets a property of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -8935,7 +9431,19 @@ VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID
     CHECK_TILESET_INDEX
     return INTEGER_VAL((int)Scene::Tilesets[index].StartTile);
 }
-#undef CHECK_TILESET_INDEX
+/***
+ * Scene.GetTilesetPaletteIndex
+ * \desc Gets the palette index for the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int index = GET_ARG(0, GetInteger);
+    CHECK_TILESET_INDEX
+    return INTEGER_VAL((int)Scene::Tilesets[index].PaletteID);
+}
 /***
  * Scene.GetTileWidth
  * \desc Gets the width of tiles.
@@ -9657,6 +10165,23 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
     return NULL_VAL;
 }
 /***
+ * Scene.SetTilesetPaletteIndex
+ * \desc Sets the palette index of the specified tileset.
+ * \param tilesetID (Integer): The tileset index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Scene
+ */
+VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int palIndex = GET_ARG(1, GetInteger);
+    CHECK_TILESET_INDEX
+    CHECK_PALETTE_INDEX(palIndex);
+    Scene::Tilesets[index].PaletteID = (unsigned)palIndex;
+    return NULL_VAL;
+}
+#undef CHECK_TILESET_INDEX
+/***
  * Scene.SetLayerVisible
  * \desc Sets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -9895,6 +10420,20 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
     else if (opacity > 1.0)
         THROW_ERROR("Opacity cannot be higher than 1.0.");
     Scene::Layers[index].Opacity = opacity;
+    return NULL_VAL;
+}
+/***
+ * Scene.SetLayerUsePaletteIndexLines
+ * \desc Enables or disables the use of the global palette index table for the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param usePaletteIndexLines (Boolean): Whether the layer is using the global palette index table.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int index = GET_ARG(0, GetInteger);
+    int usePaletteIndexLines = !!GET_ARG(1, GetInteger);
+    Scene::Layers[index].UsePaletteIndexLines = usePaletteIndexLines;
     return NULL_VAL;
 }
 /***
@@ -14751,6 +15290,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Array, Clear);
     DEF_NATIVE(Array, Shift);
     DEF_NATIVE(Array, SetAll);
+    DEF_NATIVE(Array, Reverse);
+    DEF_NATIVE(Array, Sort);
     // #endregion
 
     // #region Controller
@@ -15117,27 +15658,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, ViewPart);
     DEF_NATIVE(Draw, ViewSized);
     DEF_NATIVE(Draw, ViewPartSized);
-    DEF_NATIVE(Draw, BindVertexBuffer);
-    DEF_NATIVE(Draw, UnbindVertexBuffer);
-    DEF_NATIVE(Draw, BindScene3D);
-    DEF_NATIVE(Draw, Model);
-    DEF_NATIVE(Draw, ModelSkinned);
-    DEF_NATIVE(Draw, ModelSimple);
-    DEF_NATIVE(Draw, Triangle3D);
-    DEF_NATIVE(Draw, Quad3D);
-    DEF_NATIVE(Draw, Sprite3D);
-    DEF_NATIVE(Draw, SpritePart3D);
-    DEF_NATIVE(Draw, Image3D);
-    DEF_NATIVE(Draw, ImagePart3D);
-    DEF_NATIVE(Draw, Tile3D);
-    DEF_NATIVE(Draw, TriangleTextured);
-    DEF_NATIVE(Draw, QuadTextured);
-    DEF_NATIVE(Draw, SpritePoints);
-    DEF_NATIVE(Draw, TilePoints);
-    DEF_NATIVE(Draw, SceneLayer3D);
-    DEF_NATIVE(Draw, SceneLayerPart3D);
-    DEF_NATIVE(Draw, VertexBuffer);
-    DEF_NATIVE(Draw, RenderScene3D);
     DEF_NATIVE(Draw, Video);
     DEF_NATIVE(Draw, VideoPart);
     DEF_NATIVE(Draw, VideoSized);
@@ -15183,7 +15703,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, Ellipse);
     DEF_NATIVE(Draw, Triangle);
     DEF_NATIVE(Draw, TriangleBlend);
+    DEF_NATIVE(Draw, Quad);
     DEF_NATIVE(Draw, QuadBlend);
+    DEF_NATIVE(Draw, TriangleTextured);
+    DEF_NATIVE(Draw, QuadTextured);
     DEF_NATIVE(Draw, Rectangle);
     DEF_NATIVE(Draw, CircleStroke);
     DEF_NATIVE(Draw, EllipseStroke);
@@ -15504,6 +16027,31 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM(BlendFactor_INV_DST_ALPHA);
     // #endregion
 
+    // #region Draw3D
+    INIT_CLASS(Draw3D);
+    DEF_NATIVE(Draw3D, BindVertexBuffer);
+    DEF_NATIVE(Draw3D, UnbindVertexBuffer);
+    DEF_NATIVE(Draw3D, BindScene);
+    DEF_NATIVE(Draw3D, Model);
+    DEF_NATIVE(Draw3D, ModelSkinned);
+    DEF_NATIVE(Draw3D, ModelSimple);
+    DEF_NATIVE(Draw3D, Triangle);
+    DEF_NATIVE(Draw3D, Quad);
+    DEF_NATIVE(Draw3D, Sprite);
+    DEF_NATIVE(Draw3D, SpritePart);
+    DEF_NATIVE(Draw3D, Image);
+    DEF_NATIVE(Draw3D, ImagePart);
+    DEF_NATIVE(Draw3D, Tile);
+    DEF_NATIVE(Draw3D, TriangleTextured);
+    DEF_NATIVE(Draw3D, QuadTextured);
+    DEF_NATIVE(Draw3D, SpritePoints);
+    DEF_NATIVE(Draw3D, TilePoints);
+    DEF_NATIVE(Draw3D, SceneLayer);
+    DEF_NATIVE(Draw3D, SceneLayerPart);
+    DEF_NATIVE(Draw3D, VertexBuffer);
+    DEF_NATIVE(Draw3D, RenderScene);
+    // #endregion
+
     // #region Tile Collision States
     /***
     * \enum TILECOLLISION_NONE
@@ -15764,10 +16312,66 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(File, WriteAllText);
     // #endregion
 
+    // #region Geometry
+    INIT_CLASS(Geometry);
+    DEF_NATIVE(Geometry, Triangulate);
+    DEF_NATIVE(Geometry, Intersect);
+    DEF_NATIVE(Geometry, IsPointInsidePolygon);
+    DEF_NATIVE(Geometry, IsLineIntersectingPolygon);
+
+    /***
+    * \enum GeoBooleanOp_Intersection
+    * \desc AND operation.
+    */
+    DEF_ENUM(GeoBooleanOp_Intersection);
+    /***
+    * \enum GeoBooleanOp_Union
+    * \desc OR operation.
+    */
+    DEF_ENUM(GeoBooleanOp_Union);
+    /***
+    * \enum GeoBooleanOp_Difference
+    * \desc NOT operation.
+    */
+    DEF_ENUM(GeoBooleanOp_Difference);
+    /***
+    * \enum GeoBooleanOp_ExclusiveOr
+    * \desc XOR operation.
+    */
+    DEF_ENUM(GeoBooleanOp_ExclusiveOr);
+
+    /***
+    * \enum GeoFillRule_EvenOdd
+    * \desc Only odd numbered subregions are filled.
+    */
+    DEF_ENUM(GeoFillRule_EvenOdd);
+    /***
+    * \enum GeoFillRule_NonZero
+    * \desc Only non-zero subregions are filled.
+    */
+    DEF_ENUM(GeoFillRule_NonZero);
+    /***
+    * \enum GeoFillRule_Positive
+    * \desc Only subregions that have winding counts greater than zero (> 0) are filled.
+    */
+    DEF_ENUM(GeoFillRule_Positive);
+    /***
+    * \enum GeoFillRule_Negative
+    * \desc Only subregions that have winding counts lesser than zero (< 0) are filled.
+    */
+    DEF_ENUM(GeoFillRule_Negative);
+    // #endregion
+
     // #region HTTP
     INIT_CLASS(HTTP);
     DEF_NATIVE(HTTP, GetString);
     DEF_NATIVE(HTTP, GetToFile);
+    // #endregion
+
+    // #region Image
+    INIT_CLASS(Image);
+    DEF_NATIVE(Image, GetWidth);
+    DEF_NATIVE(Image, GetHeight);
     // #endregion
 
     // #region Input
@@ -15956,10 +16560,13 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Palette, LoadFromImage);
     DEF_NATIVE(Palette, GetColor);
     DEF_NATIVE(Palette, SetColor);
+    DEF_NATIVE(Palette, GetColorTransparent);
+    DEF_NATIVE(Palette, SetColorTransparent);
     DEF_NATIVE(Palette, MixPalettes);
     DEF_NATIVE(Palette, RotateColorsLeft);
     DEF_NATIVE(Palette, RotateColorsRight);
     DEF_NATIVE(Palette, CopyColors);
+    DEF_NATIVE(Palette, UsePaletteIndexLines);
     DEF_NATIVE(Palette, SetPaletteIndexLines);
     // #endregion
 
@@ -16009,6 +16616,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetLayerIndex);
     DEF_NATIVE(Scene, GetLayerVisible);
     DEF_NATIVE(Scene, GetLayerOpacity);
+    DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
     DEF_NATIVE(Scene, GetLayerProperty);
     DEF_NATIVE(Scene, GetLayerExists);
     DEF_NATIVE(Scene, GetLayerDeformSplitLine);
@@ -16035,6 +16643,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetTilesetName);
     DEF_NATIVE(Scene, GetTilesetTileCount);
     DEF_NATIVE(Scene, GetTilesetFirstTileID);
+    DEF_NATIVE(Scene, GetTilesetPaletteIndex);
     DEF_NATIVE(Scene, GetDrawGroupCount);
     DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, GetListPos); // deprecated
@@ -16074,6 +16683,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetTileAnimSequencePaused);
     DEF_NATIVE(Scene, SetTileAnimSequenceSpeed);
     DEF_NATIVE(Scene, SetTileAnimSequenceFrame);
+    DEF_NATIVE(Scene, SetTilesetPaletteIndex);
     DEF_NATIVE(Scene, SetLayerVisible);
     DEF_NATIVE(Scene, SetLayerCollidable);
     DEF_NATIVE(Scene, SetLayerInternalSize);
@@ -16089,6 +16699,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
     DEF_NATIVE(Scene, SetLayerBlend);
     DEF_NATIVE(Scene, SetLayerOpacity);
+    DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
     DEF_NATIVE(Scene, SetLayerScroll);
     DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
     DEF_NATIVE(Scene, SetLayerSetParallaxLines);

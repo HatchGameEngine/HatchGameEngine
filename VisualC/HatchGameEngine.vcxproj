@@ -196,6 +196,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
+    <ClCompile Include="..\source\engine\math\Geometry.cpp" />
     <ClCompile Include="..\source\engine\math\Math.cpp" />
     <ClCompile Include="..\source\engine\math\Matrix4x4.cpp" />
     <ClCompile Include="..\source\engine\math\Vector.cpp" />

@@ -14,7 +14,7 @@ public:
 #include <Engine/ResourceTypes/ResourceManager.h>
 
 PUBLIC STATIC ResourceStream* ResourceStream::New(const char* filename) {
-    ResourceStream* stream = new (nothrow) ResourceStream;
+    ResourceStream* stream = new (std::nothrow) ResourceStream;
     if (!stream) {
         return NULL;
     }

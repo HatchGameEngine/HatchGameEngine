@@ -159,6 +159,9 @@
     <ClCompile Include="..\source\engine\math\Ease.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\math\Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\math\Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

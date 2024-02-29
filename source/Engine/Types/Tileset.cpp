@@ -3,8 +3,6 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/TileAnimation.h>
 
-#include <map>
-
 class Tileset {
 public:
     ISprite*                    Sprite = nullptr;
@@ -16,6 +14,7 @@ public:
     size_t                      StartTile = 0;
     size_t                      FirstGlobalTileID = 0;
     size_t                      TileCount = 0;
+    unsigned                    PaletteID = 0;
     std::map<int, TileAnimator> AnimatorMap;
 };
 #endif

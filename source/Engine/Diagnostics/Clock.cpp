@@ -27,8 +27,8 @@ public:
 #include <chrono>
 #include <thread>
 
-chrono::steady_clock::time_point        GameStartTime;
-stack<chrono::steady_clock::time_point> ClockStack;
+std::chrono::steady_clock::time_point        GameStartTime;
+stack<std::chrono::steady_clock::time_point> ClockStack;
 
 PUBLIC STATIC void   Clock::Init() {
 #ifdef USE_WIN32_CLOCK
@@ -50,7 +50,7 @@ PUBLIC STATIC void   Clock::Init() {
     }
 #endif
 
-    GameStartTime = chrono::steady_clock::now();
+    GameStartTime = std::chrono::steady_clock::now();
 }
 PUBLIC STATIC void   Clock::Start() {
 #ifdef USE_WIN32_CLOCK
@@ -60,7 +60,7 @@ PUBLIC STATIC void   Clock::Start() {
     }
 #endif
 
-    ClockStack.push(chrono::steady_clock::now());
+    ClockStack.push(std::chrono::steady_clock::now());
 }
 PUBLIC STATIC double Clock::GetTicks() {
 #ifdef USE_WIN32_CLOCK
@@ -74,7 +74,7 @@ PUBLIC STATIC double Clock::GetTicks() {
     }
 #endif
 
-    return (chrono::steady_clock::now() - GameStartTime).count() / 1000000.0;
+    return (std::chrono::steady_clock::now() - GameStartTime).count() / 1000000.0;
 }
 PUBLIC STATIC double Clock::End() {
 #ifdef USE_WIN32_CLOCK
@@ -87,7 +87,7 @@ PUBLIC STATIC double Clock::End() {
 #endif
 
     auto t1 = ClockStack.top();
-    auto t2 = chrono::steady_clock::now();
+    auto t2 = std::chrono::steady_clock::now();
     ClockStack.pop();
     return (t2 - t1).count() / 1000000.0;
 }
@@ -99,5 +99,5 @@ PUBLIC STATIC void   Clock::Delay(double milliseconds) {
     }
 #endif
 
-    this_thread::sleep_for(chrono::nanoseconds((int)(milliseconds * 1000000.0)));
+    std::this_thread::sleep_for(std::chrono::nanoseconds((int)(milliseconds * 1000000.0)));
 }

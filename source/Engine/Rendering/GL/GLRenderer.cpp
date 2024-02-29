@@ -34,6 +34,8 @@ public:
 
 // #define HAVE_GL_PERFSTATS
 
+#define USE_USHORT_VTXBUFFER
+
 #include <Engine/Rendering/GL/GLRenderer.h>
 
 #include <Engine/Application.h>
@@ -133,6 +135,8 @@ struct   GL_VertexBuffer {
     vector<GL_VertexBufferEntry*>* Entries;
     Uint32                         Capacity;
     vector<vector<Uint32>*>        VertexIndexList;
+    void*                          VertexIndexBuffer;
+    size_t                         VertexIndexBufferCapacity;
     bool                           UseVertexIndices;
     bool                           Changed;
 };
@@ -163,9 +167,6 @@ struct   GL_Scene3DBatch {
     bool           ShouldDraw;
     vector<Uint32> VertexIndices;
 };
-
-void *GL_VertexIndexBuffer = nullptr;
-size_t GL_VertexIndexBufferCapacity = 0;
 
 GLenum GL_VertexIndexBufferFormat;
 size_t GL_VertexIndexBufferMaxElements;
@@ -669,14 +670,14 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
             if (glFace.PrimitiveType == GL_TRIANGLE_FAN)
                 glFace.PrimitiveType = GL_TRIANGLES;
 
-            // Make a triangle fan
+            // Make a triangle strip
             if (vertexCount > 3) {
                 glFace.NumVertices = 3;
 
-                for (unsigned i = 0; i < vertexCount - 2; i++) {
-                    glFace.VertexIndices[0] = vtxIdx;
-                    glFace.VertexIndices[1] = vtxIdx + i + 1;
-                    glFace.VertexIndices[2] = vtxIdx + i + 2;
+                for (unsigned i = 0; i < vertexCount - 1; i += 2) {
+                    glFace.VertexIndices[0] = vtxIdx + i;
+                    glFace.VertexIndices[1] = vtxIdx + ((i + 1) % vertexCount);
+                    glFace.VertexIndices[2] = vtxIdx + ((i + 2) % vertexCount);
 
                     vertexIndices->push_back(glFace.VertexIndices[0]);
                     vertexIndices->push_back(glFace.VertexIndices[1]);
@@ -685,17 +686,20 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
                     driverData->Faces->push_back(glFace);
                 }
             }
+            else {
+                glFace.VertexIndices[0] = vtxIdx;
+                glFace.VertexIndices[1] = vtxIdx + 1;
+                glFace.VertexIndices[2] = vtxIdx + 2;
 
-            glFace.VertexIndices[0] = vtxIdx;
-            glFace.VertexIndices[1] = vtxIdx + 1;
-            glFace.VertexIndices[2] = vtxIdx + 2;
+                vertexIndices->push_back(glFace.VertexIndices[0]);
+                vertexIndices->push_back(glFace.VertexIndices[1]);
+                vertexIndices->push_back(glFace.VertexIndices[2]);
 
-            vertexIndices->push_back(glFace.VertexIndices[0]);
-            vertexIndices->push_back(glFace.VertexIndices[1]);
-            vertexIndices->push_back(glFace.VertexIndices[2]);
+                driverData->Faces->push_back(glFace);
+            }
         }
-
-        driverData->Faces->push_back(glFace);
+        else
+            driverData->Faces->push_back(glFace);
 
         verticesStartIndex += vertexCount;
     }
@@ -854,33 +858,41 @@ void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D*
     state.PrimitiveType = face.PrimitiveType;
     state.VertexAtrribs = face.Data;
 }
-void GL_DrawBatchedScene3D(vector<Uint32>* vertexIndices, GLenum primitiveType) {
+void GL_DrawBatchedScene3D(GL_VertexBuffer *driverData, vector<Uint32>* vertexIndices, GLenum primitiveType, bool remakeVtxIdxBuf) {
     size_t numIndices = vertexIndices->size();
 
     size_t capacity = numIndices * GL_VertexIndexBufferStride;
-    if (GL_VertexIndexBuffer == nullptr)
-        GL_VertexIndexBuffer = (void*)Memory::Malloc(capacity);
-    else if (capacity > GL_VertexIndexBufferCapacity)
-        GL_VertexIndexBuffer = (void*)Memory::Realloc(GL_VertexIndexBuffer, capacity);
-    GL_VertexIndexBufferCapacity = capacity;
-
-    if (GL_VertexIndexBufferFormat == GL_UNSIGNED_BYTE) {
-        Uint8* buf = (Uint8*)GL_VertexIndexBuffer;
-        for (size_t i = 0; i < numIndices; i++)
-            buf[i] = (*vertexIndices)[i];
+    if (driverData->VertexIndexBuffer == nullptr) {
+        driverData->VertexIndexBuffer = (void*)Memory::Malloc(capacity);
+        remakeVtxIdxBuf = true;
     }
-    else if (GL_VertexIndexBufferFormat == GL_UNSIGNED_SHORT) {
-        Uint16* buf = (Uint16*)GL_VertexIndexBuffer;
-        for (size_t i = 0; i < numIndices; i++)
-            buf[i] = (*vertexIndices)[i];
-    }
-    else {
-        Uint32* buf = (Uint32*)GL_VertexIndexBuffer;
-        for (size_t i = 0; i < numIndices; i++)
-            buf[i] = (*vertexIndices)[i];
+    else if (capacity > driverData->VertexIndexBufferCapacity) {
+        driverData->VertexIndexBuffer = (void*)Memory::Realloc(driverData->VertexIndexBuffer, capacity);
+        remakeVtxIdxBuf = true;
     }
 
-    glDrawElements(primitiveType, numIndices, GL_VertexIndexBufferFormat, (const void *)GL_VertexIndexBuffer); CHECK_GL();
+    driverData->VertexIndexBufferCapacity = capacity;
+
+    // This can take enough time to matter with buffers that have a lot of vertices, so this is only done when needed.
+    if (remakeVtxIdxBuf) {
+        if (GL_VertexIndexBufferFormat == GL_UNSIGNED_BYTE) {
+            Uint8* buf = (Uint8*)driverData->VertexIndexBuffer;
+            for (size_t i = 0; i < numIndices; i++)
+                buf[i] = (*vertexIndices)[i];
+        }
+        else if (GL_VertexIndexBufferFormat == GL_UNSIGNED_SHORT) {
+            Uint16* buf = (Uint16*)driverData->VertexIndexBuffer;
+            for (size_t i = 0; i < numIndices; i++)
+                buf[i] = (*vertexIndices)[i];
+        }
+        else {
+            Uint32* buf = (Uint32*)driverData->VertexIndexBuffer;
+            for (size_t i = 0; i < numIndices; i++)
+                buf[i] = (*vertexIndices)[i];
+        }
+    }
+
+    glDrawElements(primitiveType, numIndices, GL_VertexIndexBufferFormat, (const void *)driverData->VertexIndexBuffer); CHECK_GL();
 }
 PolygonRenderer* GL_GetPolygonRenderer() {
     if (!polyRenderer.SetBuffers())
@@ -915,10 +927,11 @@ PUBLIC STATIC void     GLRenderer::Init() {
     }
     #endif
 
-	if (Application::Platform == Platforms::iOS) {
-		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
-		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-	}
+    if (Application::Platform == Platforms::iOS)
+        SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
+
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     Context = SDL_GL_CreateContext(Application::Window); CHECK_GL();
     if (!Context) {
@@ -982,6 +995,11 @@ PUBLIC STATIC void     GLRenderer::Init() {
         glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST); CHECK_GL();
     #endif
 
+#ifdef USE_USHORT_VTXBUFFER
+    GL_VertexIndexBufferFormat = GL_UNSIGNED_SHORT;
+    GL_VertexIndexBufferMaxElements = 0xFFFF;
+    GL_VertexIndexBufferStride = sizeof(Uint16);
+#else
     if (Application::Platform == Platforms::iOS || Application::Platform == Platforms::Android) {
         GL_VertexIndexBufferFormat = GL_UNSIGNED_SHORT;
         GL_VertexIndexBufferMaxElements = 0xFFFF;
@@ -992,6 +1010,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
         GL_VertexIndexBufferMaxElements = 0xFFFFFFFF;
         GL_VertexIndexBufferStride = sizeof(Uint32);
     }
+#endif
 
     GL_MakeShaders();
     GL_MakeShapeBuffers();
@@ -1570,7 +1589,7 @@ PUBLIC STATIC void     GLRenderer::StrokeLine(float x1, float y1, float x2, floa
         glDrawArrays(GL_LINES, 0, 2); CHECK_GL();
     // Graphics::Restore();
 }
-PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     Graphics::Save();
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
@@ -1721,7 +1740,7 @@ PUBLIC STATIC void     GLRenderer::DrawTexture(Texture* texture, float sx, float
     h *= RetinaScale;
     GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
-PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     // /*
@@ -1744,7 +1763,7 @@ PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, in
     //     x + fX * animframe.OffsetX,
     //     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
-PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -1824,6 +1843,9 @@ PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Ma
 
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     driverData->Changed = true;
+
+    driverData = (GL_VertexBuffer*)scene->Buffer->DriverData;
+    driverData->Changed = true;
 }
 PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
@@ -1852,10 +1874,12 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
 
     bool useBatching = true;
+    bool remakeVtxIdxBuf = false;
     bool driverDataChanged = driverData->Changed;
     if (driverDataChanged) {
         GL_UpdateVertexBuffer(scene, vertexBuffer, drawMode, useBatching);
         driverData->Changed = false;
+        remakeVtxIdxBuf = true;
     }
 
     size_t numFaces = driverData->Faces->size();
@@ -1916,7 +1940,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         size_t numBatches = driverData->VertexIndexList.size();
         for (size_t i = 0; i < numBatches; i++) {
             GL_SetVertexAttribPointers((*driverData->Entries)[i]);
-            GL_DrawBatchedScene3D(driverData->VertexIndexList[i], state.PrimitiveType);
+            GL_DrawBatchedScene3D(driverData, driverData->VertexIndexList[i], state.PrimitiveType, remakeVtxIdxBuf);
             PERF_DRAW_CALL(perf);
         }
     }
@@ -1950,7 +1974,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
 
                     // Draw the current batch, then start the next
                     if (batch.ShouldDraw) {
-                        GL_DrawBatchedScene3D(&batch.VertexIndices, lastState.PrimitiveType);
+                        GL_DrawBatchedScene3D(driverData, &batch.VertexIndices, lastState.PrimitiveType, true);
                         PERF_DRAW_CALL(perf);
                         batch.VertexIndices.clear();
                         didDraw = true;
@@ -1985,7 +2009,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
         // Draw the last remaining batch
         if (batch.ShouldDraw) {
             GL_SetState(state, driverData, &projMat, &viewMat);
-            GL_DrawBatchedScene3D(&batch.VertexIndices, state.PrimitiveType);
+            GL_DrawBatchedScene3D(driverData, &batch.VertexIndices, state.PrimitiveType, true);
             PERF_STATE_CHANGE(perf);
             PERF_DRAW_CALL(perf);
         }
@@ -2042,6 +2066,8 @@ PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
         delete driverData->VertexIndexList[i];
     for (size_t e = 0; e < driverData->Entries->size(); e++)
         Memory::Free((*driverData->Entries)[e]);
+    if (driverData->VertexIndexBuffer)
+        Memory::Free(driverData->VertexIndexBuffer);
     delete driverData->Entries;
     delete driverData->Faces;
 

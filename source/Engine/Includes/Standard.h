@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <map>
 #include <deque>
 #include <stack>
 #include <csetjmp>
@@ -28,7 +29,19 @@
     #define R_PI 3.1415927
 #endif
 
-using namespace std;
+template <typename T>
+using vector = std::vector<T>;
+
+template <typename T1, typename T2>
+using map = std::map<T1, T2>;
+
+template <typename T>
+using stack = std::stack<T>;
+
+template <typename T>
+using deque = std::deque<T>;
+
+using string = std::string;
 
 enum class Platforms {
     Windows,

@@ -29,7 +29,7 @@ PUBLIC STATIC Vector4 Vector::Subtract(Vector4 v1, Vector4 v2) {
     return result;
 }
 
-PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, int t) {
+PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, Sint64 t) {
     Vector4 result;
     result.X = FP16_MULTIPLY(v.X, t);
     result.Y = FP16_MULTIPLY(v.Y, t);
