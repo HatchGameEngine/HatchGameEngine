@@ -72,9 +72,12 @@
             <li><a href="#Reference_Number">Number</a></li>
             <li><a href="#Reference_Object">Object</a></li>
             <li><a href="#Reference_Palette">Palette</a></li>
+            <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
+            <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
+            <li><a href="#Reference_SceneList">SceneList</a></li>
             <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
@@ -126,7 +129,9 @@
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
             <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
             <li><a href="#Reference_TILECOLLISION_*">TILECOLLISION_*</a></li>
+            <li><a href="#Reference_TimeOfDay_*">TimeOfDay_*</a></li>
             <li><a href="#Reference_TintMode_*">TintMode_*</a></li>
+            <li><a href="#Reference_Weekday_*">Weekday_*</a></li>
         </ul>
         <h3>Constants</h3>
         <ul>
@@ -194,18 +199,24 @@
                 <h2>Application</h2>
                 <i>Class methods:</i>
                 <ul>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionString">Application.GetEngineVersionString</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionMajor">Application.GetEngineVersionMajor</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionMinor">Application.GetEngineVersionMinor</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionPatch">Application.GetEngineVersionPatch</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionPrerelease">Application.GetEngineVersionPrerelease</a></li>
+                    <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitle">Application.GetGameTitle</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitleShort">Application.GetGameTitleShort</a></li>
-                    <li><a href="#Reference_functions_Application_GetVersion">Application.GetVersion</a></li>
-                    <li><a href="#Reference_functions_Application_GetDescription">Application.GetDescription</a></li>
+                    <li><a href="#Reference_functions_Application_GetGameVersion">Application.GetGameVersion</a></li>
+                    <li><a href="#Reference_functions_Application_GetGameDescription">Application.GetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitle">Application.SetGameTitle</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitleShort">Application.SetGameTitleShort</a></li>
-                    <li><a href="#Reference_functions_Application_SetVersion">Application.SetVersion</a></li>
-                    <li><a href="#Reference_functions_Application_SetDescription">Application.SetDescription</a></li>
+                    <li><a href="#Reference_functions_Application_SetGameVersion">Application.SetGameVersion</a></li>
+                    <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
                 </ul>
@@ -251,6 +262,8 @@
                     <li><a href="#Reference_functions_Controller_HasShareButton">Controller.HasShareButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasMicrophoneButton">Controller.HasMicrophoneButton</a></li>
                     <li><a href="#Reference_functions_Controller_HasPaddles">Controller.HasPaddles</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></li>
+                    <li><a href="#Reference_functions_Controller_IsButtonPressed">Controller.IsButtonPressed</a></li>
                     <li><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></li>
                     <li><a href="#Reference_functions_Controller_GetAxis">Controller.GetAxis</a></li>
                     <li><a href="#Reference_functions_Controller_GetType">Controller.GetType</a></li>
@@ -324,40 +337,6 @@
                     <li><a href="#Reference_functions_Draw_ViewPart">Draw.ViewPart</a></li>
                     <li><a href="#Reference_functions_Draw_ViewSized">Draw.ViewSized</a></li>
                     <li><a href="#Reference_functions_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
-                    <li><a href="#Reference_functions_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_InitArrayBuffer">Draw.InitArrayBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_SetArrayBufferDrawMode">Draw.SetArrayBufferDrawMode</a></li>
-                    <li><a href="#Reference_functions_Draw_SetProjectionMatrix">Draw.SetProjectionMatrix</a></li>
-                    <li><a href="#Reference_functions_Draw_SetViewMatrix">Draw.SetViewMatrix</a></li>
-                    <li><a href="#Reference_functions_Draw_SetAmbientLighting">Draw.SetAmbientLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetDiffuseLighting">Draw.SetDiffuseLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetSpecularLighting">Draw.SetSpecularLighting</a></li>
-                    <li><a href="#Reference_functions_Draw_SetFogDensity">Draw.SetFogDensity</a></li>
-                    <li><a href="#Reference_functions_Draw_SetFogColor">Draw.SetFogColor</a></li>
-                    <li><a href="#Reference_functions_Draw_SetClipPolygons">Draw.SetClipPolygons</a></li>
-                    <li><a href="#Reference_functions_Draw_SetPointSize">Draw.SetPointSize</a></li>
-                    <li><a href="#Reference_functions_Draw_BindArrayBuffer">Draw.BindArrayBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_BindScene3D">Draw.BindScene3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Model">Draw.Model</a></li>
-                    <li><a href="#Reference_functions_Draw_ModelSkinned">Draw.ModelSkinned</a></li>
-                    <li><a href="#Reference_functions_Draw_ModelSimple">Draw.ModelSimple</a></li>
-                    <li><a href="#Reference_functions_Draw_Triangle3D">Draw.Triangle3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Quad3D">Draw.Quad3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Sprite3D">Draw.Sprite3D</a></li>
-                    <li><a href="#Reference_functions_Draw_SpritePart3D">Draw.SpritePart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Image3D">Draw.Image3D</a></li>
-                    <li><a href="#Reference_functions_Draw_ImagePart3D">Draw.ImagePart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Tile3D">Draw.Tile3D</a></li>
-                    <li><a href="#Reference_functions_Draw_TriangleTextured">Draw.TriangleTextured</a></li>
-                    <li><a href="#Reference_functions_Draw_QuadTextured">Draw.QuadTextured</a></li>
-                    <li><a href="#Reference_functions_Draw_SpritePoints">Draw.SpritePoints</a></li>
-                    <li><a href="#Reference_functions_Draw_TilePoints">Draw.TilePoints</a></li>
-                    <li><a href="#Reference_functions_Draw_SceneLayer3D">Draw.SceneLayer3D</a></li>
-                    <li><a href="#Reference_functions_Draw_SceneLayerPart3D">Draw.SceneLayerPart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_VertexBuffer">Draw.VertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_RenderArrayBuffer">Draw.RenderArrayBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_RenderScene3D">Draw.RenderScene3D</a></li>
                     <li><a href="#Reference_functions_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_functions_Draw_VideoPart">Draw.VideoPart</a></li>
                     <li><a href="#Reference_functions_Draw_VideoSized">Draw.VideoSized</a></li>
@@ -546,12 +525,6 @@
                     <li><a href="#Reference_functions_Input_IsKeyDown">Input.IsKeyDown</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyPressed">Input.IsKeyPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyReleased">Input.IsKeyReleased</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerCount">Input.GetControllerCount</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerAttached">Input.GetControllerAttached</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerHat">Input.GetControllerHat</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerAxis">Input.GetControllerAxis</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerButton">Input.GetControllerButton</a></li>
-                    <li><a href="#Reference_functions_Input_GetControllerName">Input.GetControllerName</a></li>
                     <li><a href="#Reference_functions_Input_GetKeyName">Input.GetKeyName</a></li>
                     <li><a href="#Reference_functions_Input_GetButtonName">Input.GetButtonName</a></li>
                     <li><a href="#Reference_functions_Input_GetAxisName">Input.GetAxisName</a></li>
@@ -580,13 +553,14 @@
                     <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
+                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
                     <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
                     <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
                     <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -654,6 +628,10 @@
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffY">instance.HitboxOffY</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxLeft">instance.HitboxLeft</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxTop">instance.HitboxTop</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxRight">instance.HitboxRight</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxBottom">instance.HitboxBottom</a></li>
                     <li><a href="#Reference_fields_instance_FlipFlag">instance.FlipFlag</a></li>
                     <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
                     <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
@@ -717,23 +695,6 @@
                     <li><a href="#Reference_functions_Math_Sqrt">Math.Sqrt</a></li>
                     <li><a href="#Reference_functions_Math_Pow">Math.Pow</a></li>
                     <li><a href="#Reference_functions_Math_Exp">Math.Exp</a></li>
-                    <li><a href="#Reference_functions_Math_ClearTrigLookupTables">Math.ClearTrigLookupTables</a></li>
-                    <li><a href="#Reference_functions_Math_CalculateTrigAngles">Math.CalculateTrigAngles</a></li>
-                    <li><a href="#Reference_functions_Math_Sin1024">Math.Sin1024</a></li>
-                    <li><a href="#Reference_functions_Math_Cos1024">Math.Cos1024</a></li>
-                    <li><a href="#Reference_functions_Math_Tan1024">Math.Tan1024</a></li>
-                    <li><a href="#Reference_functions_Math_ASin1024">Math.ASin1024</a></li>
-                    <li><a href="#Reference_functions_Math_ACos1024">Math.ACos1024</a></li>
-                    <li><a href="#Reference_functions_Math_Cos512">Math.Cos512</a></li>
-                    <li><a href="#Reference_functions_Math_Tan512">Math.Tan512</a></li>
-                    <li><a href="#Reference_functions_Math_ASin512">Math.ASin512</a></li>
-                    <li><a href="#Reference_functions_Math_ACos512">Math.ACos512</a></li>
-                    <li><a href="#Reference_functions_Math_Cos256">Math.Cos256</a></li>
-                    <li><a href="#Reference_functions_Math_Tan256">Math.Tan256</a></li>
-                    <li><a href="#Reference_functions_Math_ASin256">Math.ASin256</a></li>
-                    <li><a href="#Reference_functions_Math_ACos256">Math.ACos256</a></li>
-                    <li><a href="#Reference_functions_Math_RadianToInteger">Math.RadianToInteger</a></li>
-                    <li><a href="#Reference_functions_Math_IntegerToRadian">Math.IntegerToRadian</a></li>
                 </ul>
             </p>
             <p id="Reference_Matrix">
@@ -748,15 +709,6 @@
                     <li><a href="#Reference_functions_Matrix_Translate">Matrix.Translate</a></li>
                     <li><a href="#Reference_functions_Matrix_Scale">Matrix.Scale</a></li>
                     <li><a href="#Reference_functions_Matrix_Rotate">Matrix.Rotate</a></li>
-                    <li><a href="#Reference_functions_Matrix_Create256">Matrix.Create256</a></li>
-                    <li><a href="#Reference_functions_Matrix_Identity256">Matrix.Identity256</a></li>
-                    <li><a href="#Reference_functions_Matrix_Multiply256">Matrix.Multiply256</a></li>
-                    <li><a href="#Reference_functions_Matrix_Translate256">Matrix.Translate256</a></li>
-                    <li><a href="#Reference_functions_Matrix_Scale256">Matrix.Scale256</a></li>
-                    <li><a href="#Reference_functions_Matrix_RotateX256">Matrix.RotateX256</a></li>
-                    <li><a href="#Reference_functions_Matrix_RotateY256">Matrix.RotateY256</a></li>
-                    <li><a href="#Reference_functions_Matrix_RotateZ256">Matrix.RotateZ256</a></li>
-                    <li><a href="#Reference_functions_Matrix_Rotate256">Matrix.Rotate256</a></li>
                 </ul>
             </p>
             <p id="Reference_Model">
@@ -832,6 +784,44 @@
                     <li><a href="#Reference_functions_Palette_SetPaletteIndexLines">Palette.SetPaletteIndexLines</a></li>
                 </ul>
             </p>
+            <p id="Reference_RSDK.Math">
+                <h2>RSDK.Math</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_RSDK_Math_ClearTrigLookupTables">RSDK.Math.ClearTrigLookupTables</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_CalculateTrigAngles">RSDK.Math.CalculateTrigAngles</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Sin1024">RSDK.Math.Sin1024</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Cos1024">RSDK.Math.Cos1024</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Tan1024">RSDK.Math.Tan1024</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ASin1024">RSDK.Math.ASin1024</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ACos1024">RSDK.Math.ACos1024</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Cos512">RSDK.Math.Cos512</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Tan512">RSDK.Math.Tan512</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ASin512">RSDK.Math.ASin512</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ACos512">RSDK.Math.ACos512</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Cos256">RSDK.Math.Cos256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_Tan256">RSDK.Math.Tan256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ASin256">RSDK.Math.ASin256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ACos256">RSDK.Math.ACos256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_RadianToInteger">RSDK.Math.RadianToInteger</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_IntegerToRadian">RSDK.Math.IntegerToRadian</a></li>
+                </ul>
+            </p>
+            <p id="Reference_RSDK.Matrix">
+                <h2>RSDK.Matrix</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Create256">RSDK.Matrix.Create256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Identity256">RSDK.Matrix.Identity256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Multiply256">RSDK.Matrix.Multiply256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Translate256">RSDK.Matrix.Translate256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Scale256">RSDK.Matrix.Scale256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_RotateX256">RSDK.Matrix.RotateX256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_RotateY256">RSDK.Matrix.RotateY256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_RotateZ256">RSDK.Matrix.RotateZ256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Matrix_Rotate256">RSDK.Matrix.Rotate256</a></li>
+                </ul>
+            </p>
             <p id="Reference_Resources">
                 <h2>Resources</h2>
                 <i>Class methods:</i>
@@ -886,6 +876,8 @@
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetX">Scene.GetLayerOffsetX</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOffsetY">Scene.GetLayerOffsetY</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerDrawGroup">Scene.GetLayerDrawGroup</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerHorizontalRepeat">Scene.GetLayerHorizontalRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerVerticalRepeat">Scene.GetLayerVerticalRepeat</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetCount">Scene.GetTilesetCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetIndex">Scene.GetTilesetIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
@@ -894,7 +886,6 @@
                     <li><a href="#Reference_functions_Scene_GetTilesetPaletteIndex">Scene.GetTilesetPaletteIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></li>
-                    <li><a href="#Reference_functions_Scene_GetTileSize">Scene.GetTileSize</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipX">Scene.GetTileFlipX</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileFlipY">Scene.GetTileFlipY</a></li>
@@ -947,6 +938,8 @@
                     <li><a href="#Reference_functions_Scene_SetLayerDrawGroup">Scene.SetLayerDrawGroup</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerDrawBehavior">Scene.SetLayerDrawBehavior</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerRepeat">Scene.SetLayerRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerHorizontalRepeat">Scene.SetLayerHorizontalRepeat</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerVerticalRepeat">Scene.SetLayerVerticalRepeat</a></li>
                     <li><a href="#Reference_functions_Scene_SetDrawGroupCount">Scene.SetDrawGroupCount</a></li>
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
@@ -992,6 +985,23 @@
                     <li><a href="#Reference_functions_Scene3D_SetFogSmoothness">Scene3D.SetFogSmoothness</a></li>
                     <li><a href="#Reference_functions_Scene3D_SetPointSize">Scene3D.SetPointSize</a></li>
                     <li><a href="#Reference_functions_Scene3D_Clear">Scene3D.Clear</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SceneList">
+                <h2>SceneList</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_SceneList_Get">SceneList.Get</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryID">SceneList.GetEntryID</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryID">SceneList.GetCategoryID</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryName">SceneList.GetEntryName</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryName">SceneList.GetCategoryName</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetEntryProperty">SceneList.GetEntryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryProperty">SceneList.GetCategoryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_HasEntryProperty">SceneList.HasEntryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_HasCategoryProperty">SceneList.HasCategoryProperty</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetCategoryCount">SceneList.GetCategoryCount</a></li>
+                    <li><a href="#Reference_functions_SceneList_GetSceneCount">SceneList.GetSceneCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Serializer">
@@ -1093,6 +1103,8 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameHitbox">Sprite.GetFrameHitbox</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -1332,13 +1344,14 @@
                     <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
                     <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
+                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
                     <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
                     <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
                     <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -1406,6 +1419,10 @@
                     <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
                     <li><a href="#Reference_fields_instance_HitboxOffY">instance.HitboxOffY</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxLeft">instance.HitboxLeft</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxTop">instance.HitboxTop</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxRight">instance.HitboxRight</a></li>
+                    <li><a href="#Reference_fields_instance_HitboxBottom">instance.HitboxBottom</a></li>
                     <li><a href="#Reference_fields_instance_FlipFlag">instance.FlipFlag</a></li>
                     <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
                     <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
@@ -1736,6 +1753,15 @@
                     <li><a href="#Reference_enums_TILECOLLISION_UP">TILECOLLISION_UP</a></li>
                 </ul>
             </p>
+            <p id="Reference_TimeOfDay_*">
+                <h2><code>TimeOfDay_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_TimeOfDay_MORNING">TimeOfDay_MORNING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_MIDDAY">TimeOfDay_MIDDAY</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_EVENING">TimeOfDay_EVENING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_NIGHT">TimeOfDay_NIGHT</a></li>
+                </ul>
+            </p>
             <p id="Reference_TintMode_*">
                 <h2><code>TintMode_*</code></h2>
                 <ul>
@@ -1743,6 +1769,18 @@
                     <li><a href="#Reference_enums_TintMode_DST_NORMAL">TintMode_DST_NORMAL</a></li>
                     <li><a href="#Reference_enums_TintMode_SRC_BLEND">TintMode_SRC_BLEND</a></li>
                     <li><a href="#Reference_enums_TintMode_DST_BLEND">TintMode_DST_BLEND</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Weekday_*">
+                <h2><code>Weekday_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_Weekday_SUNDAY">Weekday_SUNDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_MONDAY">Weekday_MONDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_TUESDAY">Weekday_TUESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_WEDNESDAY">Weekday_WEDNESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_THURSDAY">Weekday_THURSDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_FRIDAY">Weekday_FRIDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_SATURDAY">Weekday_SATURDAY</a></li>
                 </ul>
             </p>
         <h3>Constants</h3>
@@ -2008,6 +2046,48 @@
         <li>amount (Integer): The amount to adjust the animator's duration.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Application_GetEngineVersionString">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionString</h2>
+        <code>Application.GetEngineVersionString()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine version string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionMajor">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionMajor</h2>
+        <code>Application.GetEngineVersionMajor()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the major engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionMinor">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionMinor</h2>
+        <code>Application.GetEngineVersionMinor()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the minor engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionPatch">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionPatch</h2>
+        <code>Application.GetEngineVersionPatch()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the minor engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionPrerelease">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionPrerelease</h2>
+        <code>Application.GetEngineVersionPrerelease()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the prerelease engine version.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_Application_GetEngineVersionCodename">
+        <h2 style="margin-bottom: 8px;">Application.GetEngineVersionCodename</h2>
+        <code>Application.GetEngineVersionCodename()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine version codename.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_Application_GetFPS">
         <h2 style="margin-bottom: 8px;">Application.GetFPS</h2>
         <code>Application.GetFPS()</code>
@@ -2051,20 +2131,20 @@
         <code>Application.GetGameTitleShort()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the short game title of the application.</div>
         </p>
-        <p id="Reference_functions_Application_GetVersion">
-        <h2 style="margin-bottom: 8px;">Application.GetVersion</h2>
-        <code>Application.GetVersion()</code>
+        <p id="Reference_functions_Application_GetGameVersion">
+        <h2 style="margin-bottom: 8px;">Application.GetGameVersion</h2>
+        <code>Application.GetGameVersion()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the version of the application.</div>
         </p>
-        <p id="Reference_functions_Application_GetDescription">
-        <h2 style="margin-bottom: 8px;">Application.GetDescription</h2>
-        <code>Application.GetDescription()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the description of the application.</div>
+        <p id="Reference_functions_Application_GetGameDescription">
+        <h2 style="margin-bottom: 8px;">Application.GetGameDescription</h2>
+        <code>Application.GetGameDescription()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the description of the game.</div>
         </p>
         <p id="Reference_functions_Application_SetGameTitle">
         <h2 style="margin-bottom: 8px;">Application.SetGameTitle</h2>
         <code>Application.SetGameTitle(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the game title of the application.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the title of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game title.</li>
@@ -2073,25 +2153,25 @@
         <p id="Reference_functions_Application_SetGameTitleShort">
         <h2 style="margin-bottom: 8px;">Application.SetGameTitleShort</h2>
         <code>Application.SetGameTitleShort(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the short game title of the application.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the short title of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Short game title.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Application_SetVersion">
-        <h2 style="margin-bottom: 8px;">Application.SetVersion</h2>
-        <code>Application.SetVersion(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the version of the application.</div>
+        <p id="Reference_functions_Application_SetGameVersion">
+        <h2 style="margin-bottom: 8px;">Application.SetGameVersion</h2>
+        <code>Application.SetGameVersion(title)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the version of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game version.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Application_SetDescription">
-        <h2 style="margin-bottom: 8px;">Application.SetDescription</h2>
-        <code>Application.SetDescription(title)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the description of the application.</div>
+        <p id="Reference_functions_Application_SetGameDescription">
+        <h2 style="margin-bottom: 8px;">Application.SetGameDescription</h2>
+        <code>Application.SetGameDescription(title)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the description of the game.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game description.</li>
@@ -2362,10 +2442,34 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the controller at the index has paddles.</div>
         </p>
+        <p id="Reference_functions_Controller_IsButtonHeld">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonHeld</h2>
+        <code>Controller.IsButtonHeld(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is held.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Controller_IsButtonPressed">
+        <h2 style="margin-bottom: 8px;">Controller.IsButtonPressed</h2>
+        <code>Controller.IsButtonPressed(controllerIndex, buttonIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is pressed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>controllerIndex (Integer): Index of the controller to check.</li>
+        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Controller_GetButton">
         <h2 style="margin-bottom: 8px;">Controller.GetButton</h2>
         <code>Controller.GetButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
@@ -2442,13 +2546,12 @@
         </p>
         <p id="Reference_functions_Controller_Rumble">
         <h2 style="margin-bottom: 8px;">Controller.Rumble</h2>
-        <code>Controller.Rumble(controllerIndex, largeMotorFrequency, smallMotorFrequency, duration)</code>
+        <code>Controller.Rumble(controllerIndex, strength, duration)</code>
         <div style="margin-top: 8px; font-size: 14px;">Rumbles a controller.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to rumble.</li>
-        <li>largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)</li>
-        <li>smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)</li>
+        <li>strength (Number): Rumble strength. (0.0 - 1.0)</li>
         <li>duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.</li>
         </ul>
         </p>
@@ -2484,7 +2587,7 @@
         <p id="Reference_functions_Controller_SetLargeMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
         <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2494,7 +2597,7 @@
         <p id="Reference_functions_Controller_SetSmallMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
         <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2872,142 +2975,6 @@
         <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Draw_UnbindVertexBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.UnbindVertexBuffer</h2>
-        <code>Draw.UnbindVertexBuffer()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Unbinds the currently bound vertex buffer.</div>
-        </p>
-        <p id="Reference_functions_Draw_InitArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.InitArrayBuffer</h2>
-        <code>Draw.InitArrayBuffer(arrayBufferIndex, numVertices)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Initializes an array buffer. There are 32 array buffers. (Deprecated; use <code><a href="#Reference_functions_Scene3D_Create">Scene3D.Create</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The array buffer at the index to use. (Maximum index: 31)</li>
-        <li>numVertices (Integer): The initial capacity of this array buffer.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetArrayBufferDrawMode">
-        <h2 style="margin-bottom: 8px;">Draw.SetArrayBufferDrawMode</h2>
-        <code>Draw.SetArrayBufferDrawMode(arrayBufferIndex, drawMode)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw mode of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetDrawMode">Scene3D.SetDrawMode</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetProjectionMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetProjectionMatrix</h2>
-        <code>Draw.SetProjectionMatrix(arrayBufferIndex, projMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the projection matrix. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetCustomProjectionMatrix">Scene3D.SetCustomProjectionMatrix</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>projMatrix (Matrix): The projection matrix.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetViewMatrix">
-        <h2 style="margin-bottom: 8px;">Draw.SetViewMatrix</h2>
-        <code>Draw.SetViewMatrix(arrayBufferIndex, viewMatrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the view matrix. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetViewMatrix">Scene3D.SetViewMatrix</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>viewMatrix (Matrix): The view matrix.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetAmbientLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetAmbientLighting</h2>
-        <code>Draw.SetAmbientLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the ambient lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetAmbientLighting">Scene3D.SetAmbientLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetDiffuseLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetDiffuseLighting</h2>
-        <code>Draw.SetDiffuseLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the diffuse lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetDiffuseLighting">Scene3D.SetDiffuseLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetSpecularLighting">
-        <h2 style="margin-bottom: 8px;">Draw.SetSpecularLighting</h2>
-        <code>Draw.SetSpecularLighting(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the specular lighting of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetSpecularLighting">Scene3D.SetSpecularLighting</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetFogDensity">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogDensity</h2>
-        <code>Draw.SetFogDensity(arrayBufferIndex, density)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the density of the array buffer's fog. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetFogDensity">Scene3D.SetFogDensity</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>density (Number): The fog density.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetFogColor">
-        <h2 style="margin-bottom: 8px;">Draw.SetFogColor</h2>
-        <code>Draw.SetFogColor(arrayBufferIndex, red, green, blue)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the fog color of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetFogColor">Scene3D.SetFogColor</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>red (Number): The red color value, bounded by 0.0 - 1.0.</li>
-        <li>green (Number): The green color value, bounded by 0.0 - 1.0.</li>
-        <li>blue (Number): The blue color value, bounded by 0.0 - 1.0.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetClipPolygons">
-        <h2 style="margin-bottom: 8px;">Draw.SetClipPolygons</h2>
-        <code>Draw.SetClipPolygons(arrayBufferIndex, clipPolygons)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Enables or disables polygon clipping by the view frustum of the array buffer. (Deprecated; software-renderer only.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>clipPolygons (Boolean): Whether or not to clip polygons.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetPointSize">
-        <h2 style="margin-bottom: 8px;">Draw.SetPointSize</h2>
-        <code>Draw.SetPointSize(arrayBufferIndex, pointSize)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the point size of the array buffer. (Deprecated; use <code><a href="#Reference_functions_Scene3D_SetPointSize">Scene3D.SetPointSize</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The index of the array buffer.</li>
-        <li>pointSize (Decimal): The point size.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_BindArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.BindArrayBuffer</h2>
-        <code>Draw.BindArrayBuffer(arrayBufferIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds an array buffer for drawing polygons in 3D space. (Deprecated; use <code><a href="#Reference_functions_Draw_BindScene3D">Draw.BindScene3D</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): Sets the array buffer to bind.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_BindScene3D">
-        <h2 style="margin-bottom: 8px;">Draw.BindScene3D</h2>
-        <code>Draw.BindScene3D(scene3DIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds a 3D scene for drawing polygons in 3D space.</div>
         <p id="Reference_functions_Draw_Texture">
         <h2 style="margin-bottom: 8px;">Draw.Texture</h2>
         <code>Draw.Texture(texture, x, y)</code>
@@ -3214,20 +3181,6 @@
         <li>amount (Number): Tint amount, from 0.0 to 1.0.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Draw_RenderArrayBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.RenderArrayBuffer</h2>
-        <code>Draw.RenderArrayBuffer(arrayBufferIndex[, drawMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the array buffer. (Deprecated; use <code><a href="#Reference_functions_Draw_RenderScene3D">Draw.RenderScene3D</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>arrayBufferIndex (Integer): The array buffer at the index to draw.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the array buffer.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_RenderScene3D">
-        <h2 style="margin-bottom: 8px;">Draw.RenderScene3D</h2>
-        <code>Draw.RenderScene3D(scene3DIndex[, drawMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the 3D scene.</div>
         <p id="Reference_functions_Draw_SetTintMode">
         <h2 style="margin-bottom: 8px;">Draw.SetTintMode</h2>
         <code>Draw.SetTintMode(tintMode)</code>
@@ -3610,6 +3563,34 @@
         <h2 style="margin-bottom: 8px;">Draw.ClearClip</h2>
         <code>Draw.ClearClip()</code>
         <div style="margin-top: 8px; font-size: 14px;">Resets the drawing region.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipX">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipX</h2>
+        <code>Draw.GetClipX()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the X position in which drawing starts to occur.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The X position if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipY">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipY</h2>
+        <code>Draw.GetClipY()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Y position in which drawing starts to occur.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The Y position if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipWidth">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipWidth</h2>
+        <code>Draw.GetClipWidth()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width in which drawing occurs.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The width if clipping is enabled, else 0.</div>
+        </p>
+        <p id="Reference_functions_Draw_GetClipHeight">
+        <h2 style="margin-bottom: 8px;">Draw.GetClipHeight</h2>
+        <code>Draw.GetClipHeight()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the height in which drawing occurs.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The height if clipping is enabled, else 0.</div>
         </p>
         <p id="Reference_functions_Draw_Save">
         <h2 style="margin-bottom: 8px; color: red;">Draw.Save</h2>
@@ -4016,75 +3997,6 @@
         <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Draw_ClearClip">
-        <h2 style="margin-bottom: 8px;">Draw.ClearClip</h2>
-        <code>Draw.ClearClip()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Resets the drawing region.</div>
-        </p>
-        <p id="Reference_functions_Draw_GetClipX">
-        <h2 style="margin-bottom: 8px;">Draw.GetClipX</h2>
-        <code>Draw.GetClipX()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the X position in which drawing starts to occur.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The X position if clipping is enabled, else 0.</div>
-        </p>
-        <p id="Reference_functions_Draw_GetClipY">
-        <h2 style="margin-bottom: 8px;">Draw.GetClipY</h2>
-        <code>Draw.GetClipY()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the Y position in which drawing starts to occur.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The Y position if clipping is enabled, else 0.</div>
-        </p>
-        <p id="Reference_functions_Draw_GetClipWidth">
-        <h2 style="margin-bottom: 8px;">Draw.GetClipWidth</h2>
-        <code>Draw.GetClipWidth()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the width in which drawing occurs.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The width if clipping is enabled, else 0.</div>
-        </p>
-        <p id="Reference_functions_Draw_GetClipHeight">
-        <h2 style="margin-bottom: 8px;">Draw.GetClipHeight</h2>
-        <code>Draw.GetClipHeight()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the height in which drawing occurs.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The height if clipping is enabled, else 0.</div>
-        </p>
-        <p id="Reference_functions_Draw_Save">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Save</h2>
-        <code>Draw.Save()</code>
-        </p>
-        <p id="Reference_functions_Draw_Scale">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Scale</h2>
-        <code>Draw.Scale()</code>
-        </p>
-        <p id="Reference_functions_Draw_Rotate">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Rotate</h2>
-        <code>Draw.Rotate()</code>
-        </p>
-        <p id="Reference_functions_Draw_Restore">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Restore</h2>
-        <code>Draw.Restore()</code>
-        </p>
-        <p id="Reference_functions_Draw_Translate">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Translate</h2>
-        <code>Draw.Translate()</code>
-        </p>
-        <p id="Reference_functions_Draw_SetTextureTarget">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.SetTextureTarget</h2>
-        <code>Draw.SetTextureTarget()</code>
-        </p>
-        <p id="Reference_functions_Draw_Clear">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.Clear</h2>
-        <code>Draw.Clear()</code>
-        </p>
-        <p id="Reference_functions_Draw_ResetTextureTarget">
-        <h2 style="margin-bottom: 8px; color: red;">Draw.ResetTextureTarget</h2>
-        <code>Draw.ResetTextureTarget()</code>
-        </p>
-        <p id="Reference_functions_Draw_UseSpriteDeform">
-        <h2 style="margin-bottom: 8px;">Draw.UseSpriteDeform</h2>
-        <code>Draw.UseSpriteDeform(useDeform)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use sprite deform when drawing.</div>
         <p id="Reference_functions_Draw3D_SceneLayer">
         <h2 style="margin-bottom: 8px;">Draw3D.SceneLayer</h2>
         <code>Draw3D.SceneLayer(layer[, matrixModel, matrixNormal])</code>
@@ -4671,71 +4583,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key released during the current frame.</div>
         </p>
-        <p id="Reference_functions_Input_GetControllerCount">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerCount</h2>
-        <code>Input.GetControllerCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of connected controllers in the device. (Deprecated; use <code><a href="#Reference_functions_Controller_GetCount">Controller.GetCount</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the amount of connected controllers in the device.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerAttached">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerAttached</h2>
-        <code>Input.GetControllerAttached(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the controller at the index is connected. (Deprecated; use <code><a href="#Reference_functions_Controller_IsConnected">Controller.IsConnected</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether the controller at the index is connected.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerHat">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerHat</h2>
-        <code>Input.GetControllerHat(controllerIndex, hatIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hat value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>hatIndex (Integer): Index of the hat to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the hat value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerAxis">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerAxis</h2>
-        <code>Input.GetControllerAxis(controllerIndex, axisIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the axis value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetAxis">Controller.GetAxis</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>axisIndex (Integer): Index of the axis to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerButton">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerButton</h2>
-        <code>Input.GetControllerButton(controllerIndex, buttonIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the button value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetButton">Controller.GetButton</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Integer): Index of the button to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
-        </p>
-        <p id="Reference_functions_Input_GetControllerName">
-        <h2 style="margin-bottom: 8px;">Input.GetControllerName</h2>
-        <code>Input.GetControllerName(controllerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_GetName">Controller.GetName</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>controllerIndex (Integer): Index of the controller to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the controller at the index.</div>
-        </p>
         <p id="Reference_functions_Input_GetKeyName">
         <h2 style="margin-bottom: 8px;">Input.GetKeyName</h2>
         <code>Input.GetKeyName(keyID)</code>
@@ -4883,7 +4730,7 @@
         <li>slotID (Integer): The slot ID to search a corresponding instance for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, <code>null</code> if the instance could not be found.</div>
+        <div style="font-size: 14px;">Returns the instance corresponding to the specified slot ID, or <code>null</code> if no instance was found.</div>
         </p>
         <p id="Reference_functions_Instance_DisableAutoAnimate">
         <h2 style="margin-bottom: 8px;">Instance.DisableAutoAnimate</h2>
@@ -4930,7 +4777,7 @@
         </p>
         <p id="Reference_functions_JSON_ToString">
         <h2 style="margin-bottom: 8px;">JSON.ToString</h2>
-        <code>JSON.ToString(json, prettyPrint)</code>
+        <code>JSON.ToString(json[, prettyPrint])</code>
         <div style="margin-top: 8px; font-size: 14px;">Converts a Map value into a String value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -5232,181 +5079,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the result number.</div>
         </p>
-        <p id="Reference_functions_Math_ClearTrigLookupTables">
-        <h2 style="margin-bottom: 8px;">Math.ClearTrigLookupTables</h2>
-        <code>Math.ClearTrigLookupTables()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Clears the engine's angle lookup tables.</div>
-        </p>
-        <p id="Reference_functions_Math_CalculateTrigAngles">
-        <h2 style="margin-bottom: 8px;">Math.CalculateTrigAngles</h2>
-        <code>Math.CalculateTrigAngles()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's angle lookup tables.</div>
-        </p>
-        <p id="Reference_functions_Math_Sin1024">
-        <h2 style="margin-bottom: 8px;">Math.Sin1024</h2>
-        <code>Math.Sin1024(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the sine of an angle of x based on a max of 1024.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the sine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The sine 1024 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Cos1024">
-        <h2 style="margin-bottom: 8px;">Math.Cos1024</h2>
-        <code>Math.Cos1024(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 1024.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The cosine 1024 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Tan1024">
-        <h2 style="margin-bottom: 8px;">Math.Tan1024</h2>
-        <code>Math.Tan1024(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 1024.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the tangent of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The tangent 1024 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ASin1024">
-        <h2 style="margin-bottom: 8px;">Math.ASin1024</h2>
-        <code>Math.ASin1024(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 1024.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc sine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc sine 1024 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ACos1024">
-        <h2 style="margin-bottom: 8px;">Math.ACos1024</h2>
-        <code>Math.ACos1024(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 1024.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc cosine 1024 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Cos512">
-        <h2 style="margin-bottom: 8px;">Math.Cos512</h2>
-        <code>Math.Cos512(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 512.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The cosine 512 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Tan512">
-        <h2 style="margin-bottom: 8px;">Math.Tan512</h2>
-        <code>Math.Tan512(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 512.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the tangent of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The tangent 512 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ASin512">
-        <h2 style="margin-bottom: 8px;">Math.ASin512</h2>
-        <code>Math.ASin512(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 512.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc sine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc sine 512 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ACos512">
-        <h2 style="margin-bottom: 8px;">Math.ACos512</h2>
-        <code>Math.ACos512(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 512.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc cosine 512 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Cos256">
-        <h2 style="margin-bottom: 8px;">Math.Cos256</h2>
-        <code>Math.Cos256(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the cosine of an angle of x based on a max of 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The cosine 256 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_Tan256">
-        <h2 style="margin-bottom: 8px;">Math.Tan256</h2>
-        <code>Math.Tan256(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the tangent of an angle of x based on a max of 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the tangent of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The tangent 256 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ASin256">
-        <h2 style="margin-bottom: 8px;">Math.ASin256</h2>
-        <code>Math.ASin256(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc sine of an angle of x based on a max of 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc sine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc sine 256 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_ACos256">
-        <h2 style="margin-bottom: 8px;">Math.ACos256</h2>
-        <code>Math.ACos256(angle)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the arc cosine of an angle of x based on a max of 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>angle (Integer): Angle to get the arc cosine of.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The arc cosine 256 of the angle.</div>
-        </p>
-        <p id="Reference_functions_Math_RadianToInteger">
-        <h2 style="margin-bottom: 8px;">Math.RadianToInteger</h2>
-        <code>Math.RadianToInteger(radian)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the integer conversion of a radian, based on 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>radian (Decimal): Radian value to convert.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">An integer value of the converted radian.</div>
-        </p>
-        <p id="Reference_functions_Math_IntegerToRadian">
-        <h2 style="margin-bottom: 8px;">Math.IntegerToRadian</h2>
-        <code>Math.IntegerToRadian(integer)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the radian decimal conversion of an integer, based on 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>integer (Integer): Integer value to convert.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">A radian decimal value of the converted integer.</div>
-        </p>
         <p id="Reference_functions_Matrix_Create">
         <h2 style="margin-bottom: 8px;">Matrix.Create</h2>
         <code>Matrix.Create()</code>
@@ -5493,100 +5165,6 @@
         <li>x (Number): X rotation value.</li>
         <li>y (Number): Y rotation value.</li>
         <li>z (Number): Z rotation value.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_Create256">
-        <h2 style="margin-bottom: 8px;">Matrix.Create256</h2>
-        <code>Matrix.Create256()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the Matrix as an Array.</div>
-        </p>
-        <p id="Reference_functions_Matrix_Identity256">
-        <h2 style="margin-bottom: 8px;">Matrix.Identity256</h2>
-        <code>Matrix.Identity256(matrix)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to the identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_Multiply256">
-        <h2 style="margin-bottom: 8px;">Matrix.Multiply256</h2>
-        <code>Matrix.Multiply256(matrix, a, b)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Multiplies two matrices based on the deciaml 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>a (Matrix): The first matrix to use for multiplying.</li>
-        <li>b (Matrix): The second matrix to use for multiplying.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_Translate256">
-        <h2 style="margin-bottom: 8px;">Matrix.Translate256</h2>
-        <code>Matrix.Translate256(matrix, x, y, z, setIdentity)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Translates the matrix based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>x (Number): X position value.</li>
-        <li>y (Number): Y position value.</li>
-        <li>z (Number): Z position value.</li>
-        <li>setIdentity (Boolean): Whether or not to set the matrix as the identity.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_Scale256">
-        <h2 style="margin-bottom: 8px;">Matrix.Scale256</h2>
-        <code>Matrix.Scale256(matrix, scaleX, scaleY, scaleZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a scale identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>scaleX (Number): X scale value.</li>
-        <li>scaleY (Number): Y scale value.</li>
-        <li>scaleZ (Number): Z scale value.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_RotateX256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateX256</h2>
-        <code>Matrix.RotateX256(matrix, rotationY)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation X identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationY (Number): X rotation value.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_RotateY256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateY256</h2>
-        <code>Matrix.RotateY256(matrix, rotationY)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Y identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationY (Number): Y rotation value.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_RotateZ256">
-        <h2 style="margin-bottom: 8px;">Matrix.RotateZ256</h2>
-        <code>Matrix.RotateZ256(matrix, rotationZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Z identity based on the decimal 256.0.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationZ (Number): Z rotation value.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Matrix_Rotate256">
-        <h2 style="margin-bottom: 8px;">Matrix.Rotate256</h2>
-        <code>Matrix.Rotate256(matrix, rotationX, rotationY, rotationZ)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation identity based on 256.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>matrix (Matrix): The matrix to output the values to.</li>
-        <li>rotationX (Number): X rotation value.</li>
-        <li>rotationY (Number): Y rotation value.</li>
-        <li>rotationZ (Number): Z rotation value.</li>
         </ul>
         </p>
         <p id="Reference_functions_Model_GetVertexCount">
@@ -6215,109 +5793,114 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the integer conversion of a radian, based on 256.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>usePalettes (Boolean): Whether or not to use palettes.</li>
+        <li>radian (Decimal): Radian value to convert.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">An integer value of the converted radian.</div>
         </p>
-        <p id="Reference_functions_Palette_LoadFromResource">
-        <h2 style="margin-bottom: 8px;">Palette.LoadFromResource</h2>
-        <code>Palette.LoadFromResource(paletteIndex, filename[, activeRows])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an .act, .col, .gif, .png, or .hpal resource.</div>
+        <p id="Reference_functions_RSDK_Math_IntegerToRadian">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.IntegerToRadian</h2>
+        <code>RSDK.Math.IntegerToRadian(integer)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the radian decimal conversion of an integer, based on 256.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette to load to.</li>
-        <li>filename (String): Filepath of resource.</li>
-        <li>activeRows (Bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.</li>
+        <li>integer (Integer): Integer value to convert.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">A radian decimal value of the converted integer.</div>
         </p>
-        <p id="Reference_functions_Palette_LoadFromImage">
-        <h2 style="margin-bottom: 8px;">Palette.LoadFromImage</h2>
-        <code>Palette.LoadFromImage(paletteIndex, image)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an image resource.</div>
+        <p id="Reference_functions_RSDK_Matrix_Create256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Create256</h2>
+        <code>RSDK.Matrix.Create256()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a 4x4 matrix based on the decimal 256.0.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the Matrix as an Array.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Matrix_Identity256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Identity256</h2>
+        <code>RSDK.Matrix.Identity256(matrix)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to the identity based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette to load to.</li>
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_GetColor">
-        <h2 style="margin-bottom: 8px;">Palette.GetColor</h2>
-        <code>Palette.GetColor(paletteIndex, colorIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a color from the specified palette.</div>
+        <p id="Reference_functions_RSDK_Matrix_Multiply256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Multiply256</h2>
+        <code>RSDK.Matrix.Multiply256(matrix, a, b)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Multiplies two matrices based on the deciaml 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette.</li>
-        <li>colorIndex (Integer): Index of color.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>a (Matrix): The first matrix to use for multiplying.</li>
+        <li>b (Matrix): The second matrix to use for multiplying.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_SetColor">
-        <h2 style="margin-bottom: 8px;">Palette.SetColor</h2>
-        <code>Palette.SetColor(paletteIndex, colorIndex, hex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets a color on the specified palette, format 0xRRGGBB.</div>
+        <p id="Reference_functions_RSDK_Matrix_Translate256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Translate256</h2>
+        <code>RSDK.Matrix.Translate256(matrix, x, y, z, setIdentity)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Translates the matrix based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette.</li>
-        <li>colorIndex (Integer): Index of color.</li>
-        <li>hex (Integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>x (Number): X position value.</li>
+        <li>y (Number): Y position value.</li>
+        <li>z (Number): Z position value.</li>
+        <li>setIdentity (Boolean): Whether or not to set the matrix as the identity.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_MixPalettes">
-        <h2 style="margin-bottom: 8px;">Palette.MixPalettes</h2>
-        <code>Palette.MixPalettes(destinationPaletteIndex, paletteIndexA, paletteIndexB, mixRatio, colorIndexStart, colorCount)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Mixes colors between two palettes and outputs to another palette.</div>
+        <p id="Reference_functions_RSDK_Matrix_Scale256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Scale256</h2>
+        <code>RSDK.Matrix.Scale256(matrix, scaleX, scaleY, scaleZ)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a scale identity based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>destinationPaletteIndex (Integer): Index of palette to put colors to.</li>
-        <li>paletteIndexA (Integer): First index of palette.</li>
-        <li>paletteIndexB (Integer): Second index of palette.</li>
-        <li>mixRatio (Number): Percentage to mix the colors between 0.0 - 1.0.</li>
-        <li>colorIndexStart (Integer): First index of colors to mix.</li>
-        <li>colorCount (Integer): Amount of colors to mix.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>scaleX (Number): X scale value.</li>
+        <li>scaleY (Number): Y scale value.</li>
+        <li>scaleZ (Number): Z scale value.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_RotateColorsLeft">
-        <h2 style="margin-bottom: 8px;">Palette.RotateColorsLeft</h2>
-        <code>Palette.RotateColorsLeft(paletteIndex, colorIndexStart, colorCount)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Shifts the colors on the palette to the left.</div>
+        <p id="Reference_functions_RSDK_Matrix_RotateX256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.RotateX256</h2>
+        <code>RSDK.Matrix.RotateX256(matrix, rotationY)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation X identity based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette.</li>
-        <li>colorIndexStart (Integer): First index of colors to shift.</li>
-        <li>colorCount (Integer): Amount of colors to shift.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>rotationY (Number): X rotation value.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_RotateColorsRight">
-        <h2 style="margin-bottom: 8px;">Palette.RotateColorsRight</h2>
-        <code>Palette.RotateColorsRight(paletteIndex, colorIndexStart, colorCount)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Shifts the colors on the palette to the right.</div>
+        <p id="Reference_functions_RSDK_Matrix_RotateY256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.RotateY256</h2>
+        <code>RSDK.Matrix.RotateY256(matrix, rotationY)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Y identity based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette.</li>
-        <li>colorIndexStart (Integer): First index of colors to shift.</li>
-        <li>colorCount (Integer): Amount of colors to shift.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>rotationY (Number): Y rotation value.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_CopyColors">
-        <h2 style="margin-bottom: 8px;">Palette.CopyColors</h2>
-        <code>Palette.CopyColors(paletteIndexA, colorIndexStartA, paletteIndexB, colorIndexStartB, colorCount)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Copies colors from Palette A to Palette B</div>
+        <p id="Reference_functions_RSDK_Matrix_RotateZ256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.RotateZ256</h2>
+        <code>RSDK.Matrix.RotateZ256(matrix, rotationZ)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation Z identity based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndexA (Integer): Index of palette to get colors from.</li>
-        <li>colorIndexStartA (Integer): First index of colors to copy.</li>
-        <li>paletteIndexB (Integer): Index of palette to put colors to.</li>
-        <li>colorIndexStartB (Integer): First index of colors to be placed.</li>
-        <li>colorCount (Integer): Amount of colors to be copied.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>rotationZ (Number): Z rotation value.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Palette_SetPaletteIndexLines">
-        <h2 style="margin-bottom: 8px;">Palette.SetPaletteIndexLines</h2>
-        <code>Palette.SetPaletteIndexLines(paletteIndex, lineStart, lineEnd)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).</div>
+        <p id="Reference_functions_RSDK_Matrix_Rotate256">
+        <h2 style="margin-bottom: 8px;">RSDK.Matrix.Rotate256</h2>
+        <code>RSDK.Matrix.Rotate256(matrix, rotationX, rotationY, rotationZ)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the matrix to a rotation identity based on 256.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>paletteIndex (Integer): Index of palette.</li>
-        <li>lineStart (Number): Start line to set to the palette.</li>
-        <li>lineEnd (Number): Line where to stop setting the palette.</li>
+        <li>matrix (Matrix): The matrix to output the values to.</li>
+        <li>rotationX (Number): X rotation value.</li>
+        <li>rotationY (Number): Y rotation value.</li>
+        <li>rotationZ (Number): Z rotation value.</li>
         </ul>
         </p>
         <p id="Reference_functions_Resources_LoadSprite">
@@ -6547,7 +6130,7 @@
         <p id="Reference_functions_Scene_LoadPosition">
         <h2 style="margin-bottom: 8px;">Scene.LoadPosition</h2>
         <code>Scene.LoadPosition([persistency])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene sist is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
@@ -6778,13 +6361,36 @@
         </p>
         <p id="Reference_functions_Scene_GetLayerDrawGroup">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDrawGroup</h2>
-        <code>Scene.GetLayerDrawGroup(layerIndex, drawGroup)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the draw group of the specified layer.</div>
+        <code>Scene.GetLayerDrawGroup(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the draw group of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLayerHorizontalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerHorizontalRepeat</h2>
+        <code>Scene.GetLayerHorizontalRepeat(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats horizontally.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetLayerVerticalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerVerticalRepeat</h2>
+        <code>Scene.GetLayerVerticalRepeat(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats vertically.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTilesetCount">
         <h2 style="margin-bottom: 8px;">Scene.GetTilesetCount</h2>
@@ -6862,13 +6468,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the height of tiles.</div>
         </p>
-        <p id="Reference_functions_Scene_GetTileSize">
-        <h2 style="margin-bottom: 8px;">Scene.GetTileSize</h2>
-        <code>Scene.GetTileSize()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the size of tiles. (Deprecated; use <code><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></code> and <code><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the size of tiles.</div>
-        </p>
         <p id="Reference_functions_Scene_GetTileID">
         <h2 style="margin-bottom: 8px;">Scene.GetTileID</h2>
         <code>Scene.GetTileID(layer, x, y)</code>
@@ -6929,7 +6528,7 @@
         <p id="Reference_functions_Scene_GetListPos">
         <h2 style="margin-bottom: 8px;">Scene.GetListPos</h2>
         <code>Scene.GetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6971,14 +6570,14 @@
         <p id="Reference_functions_Scene_GetCategoryCount">
         <h2 style="margin-bottom: 8px;">Scene.GetCategoryCount</h2>
         <code>Scene.GetCategoryCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list. (Deprecated; use <code><a href="#Reference_functions_SceneList_GetCategoryCount">SceneList.GetCategoryCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetStageCount">
         <h2 style="margin-bottom: 8px;">Scene.GetStageCount</h2>
         <code>Scene.GetStageCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of stages in the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of stages in the scene list. (Deprecated; use <code><a href="#Reference_functions_SceneList_GetSceneCount">SceneList.GetSceneCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -7089,14 +6688,14 @@
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_CheckSceneFolder">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneFolder</h2>
         <code>Scene.CheckSceneFolder(folder)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>folder (String): Folder name to compare.</li>
@@ -7107,7 +6706,7 @@
         <p id="Reference_functions_Scene_CheckSceneID">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneID</h2>
         <code>Scene.CheckSceneID(id)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>id (String): ID to compare.</li>
@@ -7125,12 +6724,12 @@
         <p id="Reference_functions_Scene_SetListPos">
         <h2 style="margin-bottom: 8px;">Scene.SetListPos</h2>
         <code>Scene.SetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated)</div>
         </p>
         <p id="Reference_functions_Scene_SetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.SetActiveCategory</h2>
         <code>Scene.SetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated)</div>
         </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
@@ -7140,11 +6739,11 @@
         <p id="Reference_functions_Scene_SetScene">
         <h2 style="margin-bottom: 8px;">Scene.SetScene</h2>
         <code>Scene.SetScene(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>category (String): Category name.</li>
-        <li>scene (String): Scene name. If the scene name is not found but the category name is, the</li>
+        <li>scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetTile">
@@ -7340,6 +6939,26 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>doesRepeat (Boolean): Whether or not the layer repeats.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerHorizontalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerHorizontalRepeat</h2>
+        <code>Scene.SetLayerHorizontalRepeat(layerIndex, doesRepeat)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats horizontally.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doesRepeat (Boolean): Whether or not the layer repeats horizontally.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerVerticalRepeat">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerVerticalRepeat</h2>
+        <code>Scene.SetLayerVerticalRepeat(layerIndex, doesRepeat)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats vertically.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>doesRepeat (Boolean): Whether or not the layer repeats vertically.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetDrawGroupCount">
@@ -7745,6 +7364,132 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>scene3DIndex (Integer): The index of the 3D scene.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_SceneList_Get">
+        <h2 style="margin-bottom: 8px;">SceneList.Get</h2>
+        <code>SceneList.Get(category, entry)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the scene path for the specified category and entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetEntryID">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryID</h2>
+        <code>SceneList.GetEntryID(categoryName, entryName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the entry ID for the specified category and entry name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        <li>entryName (String): The entry name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the entry ID, or <code>-1</code> if not found.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryID">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryID</h2>
+        <code>SceneList.GetCategoryID(categoryName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the category ID for the specified category name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the category ID, or <code>-1</code> if not found.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetEntryName">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryName</h2>
+        <code>SceneList.GetEntryName(category, entryID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the entry name for the specified category and entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entryID (Integer): The entry ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the entry name.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryName">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryName</h2>
+        <code>SceneList.GetCategoryName(categoryID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the category name for the specified category ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryID (Integer): The category ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the category name, or <code>-1</code> if not valid.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetEntryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.GetEntryProperty</h2>
+        <code>SceneList.GetEntryProperty(category, entry, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property for an entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code> if the entry has no such property.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryProperty</h2>
+        <code>SceneList.GetCategoryProperty(category, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a property for a category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code> if the category has no such property.</div>
+        </p>
+        <p id="Reference_functions_SceneList_HasEntryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.HasEntryProperty</h2>
+        <code>SceneList.HasEntryProperty(category, entry, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a given property exists in the entry.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>entry (String): The entry.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if not.</div>
+        </p>
+        <p id="Reference_functions_SceneList_HasCategoryProperty">
+        <h2 style="margin-bottom: 8px;">SceneList.HasCategoryProperty</h2>
+        <code>SceneList.HasCategoryProperty(category, property)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a given property exists in the category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): The category.</li>
+        <li>property (String): The property.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if not.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetCategoryCount">
+        <h2 style="margin-bottom: 8px;">SceneList.GetCategoryCount</h2>
+        <code>SceneList.GetCategoryCount()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of categories in the scene list.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_SceneList_GetSceneCount">
+        <h2 style="margin-bottom: 8px;">SceneList.GetSceneCount</h2>
+        <code>SceneList.GetSceneCount([categoryName])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of scenes in a category.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryName (String): The category name.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.</div>
         </p>
         <p id="Reference_functions_Serializer_WriteToStream">
         <h2 style="margin-bottom: 8px;">Serializer.WriteToStream</h2>
@@ -8360,6 +8105,25 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        </p>
+        <p id="Reference_functions_Sprite_MakePalettized">
+        <h2 style="margin-bottom: 8px;">Sprite.MakePalettized</h2>
+        <code>Sprite.MakePalettized(sprite, paletteIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a sprite's colors to the ones in the specified palette index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>paletteIndex (Integer): The palette index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Sprite_MakeNonPalettized">
+        <h2 style="margin-bottom: 8px;">Sprite.MakeNonPalettized</h2>
+        <code>Sprite.MakeNonPalettized(sprite)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes a sprite's palette.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Stream_FromResource">
         <h2 style="margin-bottom: 8px;">Stream.FromResource</h2>
@@ -9692,7 +9456,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>684 out of 743 functions have descriptions. </p>
+        <p>692 out of 751 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -9719,6 +9483,13 @@
         <h2 style="margin-bottom: 8px;">instance.Animate</h2>
         <code>instance.Animate()</code>
         <div style="margin-top: 8px; font-size: 14px;">Animates the entity.</div>
+        </p>
+        <p id="Reference_methods_instance_GetIDWithinClass">
+        <h2 style="margin-bottom: 8px;">instance.GetIDWithinClass</h2>
+        <code>instance.GetIDWithinClass()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the ordered ID of the entity amongst other entities of the same type.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_methods_instance_AddToRegistry">
         <h2 style="margin-bottom: 8px;">instance.AddToRegistry</h2>
@@ -9781,9 +9552,9 @@
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_GetHitboxFromSprite">
-        <h2 style="margin-bottom: 8px;">instance.GetHitboxFromSprite</h2>
-        <code>instance.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
+        <p id="Reference_methods_instance_ReturnHitboxFromSprite">
+        <h2 style="margin-bottom: 8px;">instance.ReturnHitboxFromSprite</h2>
+        <code>instance.ReturnHitboxFromSprite(sprite, animation, frame, hitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -9942,7 +9713,7 @@
         <code>instance.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p>24 out of 24 methods have descriptions. </p>
+        <p>25 out of 25 methods have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
@@ -10242,6 +10013,30 @@
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical offset of the hitbox.</div>
         </p>
+        <p id="Reference_fields_instance_HitboxLeft">
+        <h3 style="margin-bottom: 8px;"><code>instance.HitboxLeft</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The left extent of the hitbox.</div>
+        </p>
+        <p id="Reference_fields_instance_HitboxTop">
+        <h3 style="margin-bottom: 8px;"><code>instance.HitboxTop</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The top extent of the hitbox.</div>
+        </p>
+        <p id="Reference_fields_instance_HitboxRight">
+        <h3 style="margin-bottom: 8px;"><code>instance.HitboxRight</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The right extent of the hitbox.</div>
+        </p>
+        <p id="Reference_fields_instance_HitboxBottom">
+        <h3 style="margin-bottom: 8px;"><code>instance.HitboxBottom</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom extent of the hitbox.</div>
+        </p>
         <p id="Reference_fields_instance_FlipFlag">
         <h3 style="margin-bottom: 8px;"><code>instance.FlipFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
@@ -10376,7 +10171,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>69 out of 73 fields have descriptions. </p>
+        <p>73 out of 77 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -11075,6 +10870,22 @@
         <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_UP</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects upward gravity for tile collision.</div>
         </p>
+        <p id="Reference_enums_TimeOfDay_MORNING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MORNING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The early hours of the day (5AM to 11AM, or 05:00 to 11:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_MIDDAY">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MIDDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_EVENING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_EVENING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The later hours of the day (5PM to 8PM, or 17:00 to 20:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_NIGHT">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_NIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).</div>
+        </p>
         <p id="Reference_enums_TintMode_SRC_NORMAL">
         <h3 style="margin-bottom: 8px;"><code>TintMode_SRC_NORMAL</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Tints the source pixel with the tint color.</div>
@@ -11091,7 +10902,6 @@
         <h3 style="margin-bottom: 8px;"><code>TintMode_DST_BLEND</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Blends the destination pixel with the tint color.</div>
         </p>
-        <p>166 out of 181 enums have descriptions. </p>
         <p id="Reference_enums_Weekday_SUNDAY">
         <h3 style="margin-bottom: 8px;"><code>Weekday_SUNDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The first day of the week.</div>
