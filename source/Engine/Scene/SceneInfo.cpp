@@ -147,7 +147,7 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
 
     char filePath[4096];
     if (!strcmp(scene.Filetype, "bin")) {
-        snprintf(filePath, sizeof(filePath), "Scene%s.%s", scene.Folder, scene.ID, scene.Filetype);
+        snprintf(filePath, sizeof(filePath), "Scene%s.%s", scene.ID, scene.Filetype);
     }
     else {
         if (scene.Folder == nullptr) {

@@ -1389,15 +1389,16 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
                 ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
             }
         }
+        else {
+            // TODO: Check existing scene folder and id here to reset them upon reload
+            Scene::ActiveCategory = 0;
+            Application::StartSceneNum = 0;
+        }
 
         // Open and read SceneConfig
         XMLNode* sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
         if (!sceneConfig)
             return;
-
-        // TODO: Check existing scene folder and id here to reset them upon reload
-        Scene::ActiveCategory = 0;
-        Application::StartSceneNum = 0;
 
         // Parse Scene List
         if (SceneInfo::Load(sceneConfig->children[0])) {
@@ -1413,6 +1414,8 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
             Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)",
                 SceneInfo::Categories.size(), SceneInfo::Entries.size());
         }
+
+        StringUtils::Copy(StartingScene, SceneInfo::GetFilename(Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));
 
         XMLParser::Free(sceneConfig);
     }

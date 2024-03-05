@@ -267,7 +267,7 @@ PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
     }
     ogg = NULL;
 
-OGG_Load_SUCCESS:
+    OGG_Load_SUCCESS:
     stream->Close();
     return ogg;
 }
