@@ -14802,9 +14802,9 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
  * View.CheckOnScreen
  * \desc Determines whether an instance is on screen.
  * \param instance (Instance): The instance to check.
- * \param rangeX (Decimal): The x range to check, or null if an update region width should be used.
- * \param rangeY (Decimal): The y range to check, or null if an update region height should be used.
- * \return Returns whether or not the instance is on screen on any view.
+ * \param rangeX (Decimal): The x range to check, or <code>-1</code> if the instance's update region width should be used.
+ * \param rangeY (Decimal): The y range to check, or <code>-1</code> if the instance's update region height should be used.
+ * \return Returns whether the instance is on screen on any view.
  * \ns View
  */
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -14812,17 +14812,16 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     Entity* self            = (Entity*)instance->EntityPtr;
-    // TODO: Check if GetDecimal can get null values
     float rangeX            = GET_ARG(1, GetDecimal);
     float rangeY            = GET_ARG(2, GetDecimal);
 
     if (!self)
         return INTEGER_VAL(false);
 
-    if (!rangeX)
+    if (rangeX == -1.0)
         rangeX = self->OnScreenHitboxW;
 
-    if (!rangeY)
+    if (rangeY == -1.0)
         rangeY = self->OnScreenHitboxH;
 
     return INTEGER_VAL(Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
