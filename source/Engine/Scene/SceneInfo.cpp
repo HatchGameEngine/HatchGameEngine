@@ -253,9 +253,9 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                         entry.ID = StringUtils::Duplicate(buf);
                     }
 
-                    // Sprite folder
-                    if (stgElement->attributes.Exists("spriteFolder"))
-                        entry.SpriteFolder = XMLParser::TokenToString(stgElement->attributes.Get("spriteFolder"));
+                    // Resource folder
+                    if (stgElement->attributes.Exists("resourceFolder"))
+                        entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("resourceFolder"));
 
                     // Filetype
                     if (stgElement->attributes.Exists("fileExtension"))
@@ -271,7 +271,7 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     entry.Properties->Put("name", entry.Name);
                     entry.Properties->Put("folder", entry.Folder);
                     entry.Properties->Put("id", entry.ID);
-                    entry.Properties->Put("spriteFolder", entry.SpriteFolder);
+                    entry.Properties->Put("resourceFolder", entry.ResourceFolder);
                     entry.Properties->Put("fileExtension", entry.Filetype);
 
                     FillAttributesHashMap(&stgElement->attributes, entry.Properties);

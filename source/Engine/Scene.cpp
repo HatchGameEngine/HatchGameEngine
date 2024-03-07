@@ -108,7 +108,7 @@ public:
     static int                       CurrentSceneInList;
     static char                      CurrentFolder[256];
     static char                      CurrentID[256];
-    static char                      CurrentSpriteFolder[256];
+    static char                      CurrentResourceFolder[256];
     static char                      CurrentCategory[256];
     static int                       ActiveCategory;
 
@@ -246,7 +246,7 @@ int                       Scene::Filter = 0xFF;
 int                       Scene::CurrentSceneInList;
 char                      Scene::CurrentFolder[256];
 char                      Scene::CurrentID[256];
-char                      Scene::CurrentSpriteFolder[256];
+char                      Scene::CurrentResourceFolder[256];
 char                      Scene::CurrentCategory[256];
 int                       Scene::ActiveCategory;
 
@@ -661,7 +661,7 @@ PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
 
     strcpy(Scene::CurrentFolder, scene.Folder);
     strcpy(Scene::CurrentID, scene.ID);
-    strcpy(Scene::CurrentSpriteFolder, scene.SpriteFolder);
+    strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
     strcpy(Scene::CurrentCategory, category.Name);
 
     Scene::CurrentSceneInList = entryID;

@@ -8414,7 +8414,7 @@ VMValue Resources_LoadSpriteByFolder(int argCount, VMValue* args, Uint32 threadI
     CHECK_ARGCOUNT(3);
 
     char filename[4096];
-    snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", Scene::CurrentSpriteFolder, GET_ARG(1, GetString));
+    snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", Scene::CurrentResourceFolder, GET_ARG(1, GetString));
     if (!ResourceManager::ResourceExists(filename))
         snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", GET_ARG(0, GetString), GET_ARG(1, GetString));
 
@@ -9608,14 +9608,14 @@ VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
     return OBJECT_VAL(CopyString(Scene::CurrentID));
 }
 /***
- * Scene.GetCurrentSpriteFolder
- * \desc Gets the current sprite folder of the scene.
+ * Scene.GetCurrentResourceFolder
+ * \desc Gets the current resource folder of the scene.
  * \return Returns a String value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentSpriteFolder));
+    return OBJECT_VAL(CopyString(Scene::CurrentResourceFolder));
 }
 /***
  * Scene.GetCurrentCategory
@@ -16661,7 +16661,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetListPos);
     DEF_NATIVE(Scene, GetCurrentFolder);
     DEF_NATIVE(Scene, GetCurrentID);
-    DEF_NATIVE(Scene, GetCurrentSpriteFolder);
+    DEF_NATIVE(Scene, GetCurrentResourceFolder);
     DEF_NATIVE(Scene, GetCurrentCategory);
     DEF_NATIVE(Scene, GetActiveCategory);
     DEF_NATIVE(Scene, GetDebugMode);
