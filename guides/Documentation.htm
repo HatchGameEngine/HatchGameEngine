@@ -827,6 +827,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Resources_LoadSprite">Resources.LoadSprite</a></li>
+                    <li><a href="#Reference_functions_Resources_LoadSpriteByFolder">Resources.LoadSpriteByFolder</a></li>
                     <li><a href="#Reference_functions_Resources_LoadImage">Resources.LoadImage</a></li>
                     <li><a href="#Reference_functions_Resources_LoadFont">Resources.LoadFont</a></li>
                     <li><a href="#Reference_functions_Resources_LoadModel">Resources.LoadModel</a></li>
@@ -5913,6 +5914,19 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Resource.</div>
         </p>
+        <p id="Reference_functions_Resources_LoadSpriteByFolder">
+        <h2 style="margin-bottom: 8px;">Resources.LoadSpriteByFolder</h2>
+        <code>Resources.LoadSpriteByFolder(fallbackFolder, name, unloadPolicy)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.</li>
+        <li>name (String): Name of the animation file within the resource folder.</li>
+        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        </p>
         <p id="Reference_functions_Resources_LoadImage">
         <h2 style="margin-bottom: 8px;">Resources.LoadImage</h2>
         <code>Resources.LoadImage(filename, unloadPolicy)</code>
@@ -9440,7 +9454,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>690 out of 749 functions have descriptions. </p>
+        <p>691 out of 750 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

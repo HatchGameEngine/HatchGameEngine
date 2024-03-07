@@ -8402,6 +8402,38 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)index);
 }
 /***
+ * Resources.LoadSpriteByFolder
+ * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
+ * \param fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.
+ * \param name (String): Name of the animation file within the resource folder.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return Returns the index of the Resource.
+ * \ns Resources
+ */
+VMValue Resources_LoadSpriteByFolder(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+
+    char filename[4096];
+    snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", Scene::CurrentSpriteFolder, GET_ARG(1, GetString));
+    if (!ResourceManager::ResourceExists(filename))
+        snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", GET_ARG(0, GetString), GET_ARG(1, GetString));
+
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = GET_ARG(2, GetInteger);
+
+    size_t index = 0;
+    bool emptySlot = false;
+    vector<ResourceType*>* list = &Scene::SpriteList;
+    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+        return INTEGER_VAL((int)index);
+    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
+
+    // FIXME: This needs to return -1 if LoadAnimation fails.
+    resource->AsSprite = new (std::nothrow) ISprite(filename);
+    return INTEGER_VAL((int)index);
+}
+/***
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (String): Filename of the resource.
@@ -16552,6 +16584,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Resources
     INIT_CLASS(Resources);
     DEF_NATIVE(Resources, LoadSprite);
+    DEF_NATIVE(Resources, LoadSpriteByFolder);
     DEF_NATIVE(Resources, LoadImage);
     DEF_NATIVE(Resources, LoadFont);
     DEF_NATIVE(Resources, LoadModel);
