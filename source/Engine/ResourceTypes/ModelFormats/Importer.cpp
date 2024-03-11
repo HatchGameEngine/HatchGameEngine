@@ -14,7 +14,6 @@ public:
 #include <Engine/Rendering/3D.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Utilities/StringUtils.h>
-#include <Engine/Diagnostics/Clock.h>
 
 vector<int> ModelImporter::MeshIDs;
 char*       ModelImporter::ParentDirectory;
@@ -67,28 +66,6 @@ static Matrix4x4* CopyMatrix(aiMatrix4x4 mat) {
     return out;
 }
 
-static Image* LoadImage(const char* path) {
-    Image* image = new Image(path);
-
-    // Couldn't find an image, so try again, prefixing the parent path
-    if (!image->TexturePtr && ModelImporter::ParentDirectory) {
-        image->Dispose();
-
-        char* concat = StringUtils::ConcatPaths(ModelImporter::ParentDirectory, path);
-        image = new Image(concat);
-
-        Memory::Free(concat);
-    }
-
-    // Well, we tried
-    if (!image->TexturePtr) {
-        image->Dispose();
-        image = nullptr;
-    }
-
-    return image;
-}
-
 static AnimBehavior ConvertPrePostState(aiAnimBehaviour state) {
     switch (state) {
         case aiAnimBehaviour_CONSTANT:
@@ -131,10 +108,10 @@ PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* ames
 
     Mesh* mesh = new Mesh;
     mesh->Name = GetString(amesh->mName);
-    mesh->NumVertices = numVertices;
+    mesh->VertexCount = numVertices;
 
     mesh->VertexIndexCount = numFaces * 3;
-    mesh->VertexIndexBuffer = (Sint16*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint16));
+    mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint32));
 
     mesh->MaterialIndex = (int)amesh->mMaterialIndex;
 
@@ -219,7 +196,7 @@ PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMa
     unsigned int n = 1;
 
     if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS)
-        material->ImagePtr = LoadImage(texDiffuse.data);
+        material->ImagePtr = IModel::LoadMaterialImage(texDiffuse.data, ModelImporter::ParentDirectory);
 
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &colorDiffuse) == AI_SUCCESS)
         CopyColors(material->Diffuse, colorDiffuse);
@@ -268,7 +245,7 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
     Skeleton* skeleton = new Skeleton;
 
     skeleton->NumBones = amesh->mNumBones;
-    skeleton->NumVertices = mesh->NumVertices;
+    skeleton->NumVertices = mesh->VertexCount;
     skeleton->Bones = new MeshBone*[skeleton->NumBones];
     skeleton->VertexWeights = (Uint32*)Memory::Calloc(skeleton->NumVertices, sizeof(Uint32));
     skeleton->PositionBuffer = mesh->PositionBuffer;
@@ -453,8 +430,8 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
     }
 
     // Load animations
-    // FIXME: Doesn't seem to be working with Collada scenes for some reason.
-    // Might be an issue in Open Asset Importer?
+    // FIXME: Doesn't seem to be working with COLLADA scenes for some reason.
+    // Might be an issue in assimp?
     if (scene->HasAnimations()) {
         imodel->AnimationCount = scene->mNumAnimations;
         imodel->Animations = new ModelAnim*[imodel->AnimationCount];
@@ -505,14 +482,7 @@ PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const c
     MeshIDs.clear();
     ParentDirectory = StringUtils::GetPath(path);
 
-    bool success;
-
-    Clock::Start();
-    success = DoConversion(scene, model);
-    Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms", Clock::End());
-
-    if (!success)
-        model->Dispose();
+    bool success = DoConversion(scene, model);
 
     Memory::Free(data);
     Memory::Free(ParentDirectory);

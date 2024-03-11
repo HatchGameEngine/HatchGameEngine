@@ -41,9 +41,11 @@ public:
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
+#include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
+#include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
-
-#define RSDK_MODEL_MAGIC 0x4D444C00 // MDL0
+#include <Engine/Diagnostics/Clock.h>
 
 PUBLIC IModel::IModel() {
     VertexCount = 0;
@@ -80,18 +82,73 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
     if (!stream) return false;
     if (!filename) return false;
 
-    Uint32 magic = stream->ReadUInt32BE();
+    bool success;
 
-    stream->Seek(0);
+    Clock::Start();
 
-    if (magic == RSDK_MODEL_MAGIC)
-        return this->ReadRSDK(stream);
+    if (MD3Model::IsMagic(stream))
+        success = MD3Model::Convert(this, stream, filename);
+    else if (RSDKModel::IsMagic(stream))
+        success = RSDKModel::Convert(this, stream);
+    else
+        success = ModelImporter::Convert(this, stream, filename);
 
-    return !!ModelImporter::Convert(this, stream, filename);
+    if (success) {
+        Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
+        return true;
+    }
+    else
+        Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
+
+    return false;
 }
 
 PUBLIC bool IModel::HasMaterials() {
     return MaterialCount > 0;
+}
+
+PRIVATE STATIC Image* IModel::TryLoadMaterialImage(std::string imagePath, const char *parentDirectory) {
+    std::string filename = imagePath;
+
+    if (parentDirectory) {
+        char* concat = StringUtils::ConcatPaths(parentDirectory, filename.c_str());
+        filename = std::string(concat);
+        Memory::Free(concat);
+    }
+
+    const char *cfilename = filename.c_str();
+    if (!ResourceManager::ResourceExists(cfilename))
+        return nullptr;
+
+    Image* image = new Image(cfilename);
+    if (image->TexturePtr)
+        return image;
+
+    image->Dispose();
+
+    return nullptr;
+}
+
+PUBLIC STATIC Image* IModel::LoadMaterialImage(string imagePath, const char *parentDirectory) {
+    // Try possible combinations
+    Image* image = nullptr;
+
+    if ((image = TryLoadMaterialImage(imagePath, parentDirectory))) return image;
+    if ((image = TryLoadMaterialImage(imagePath + ".png", parentDirectory))) return image;
+    if ((image = TryLoadMaterialImage("Textures/" + imagePath, parentDirectory))) return image;
+    if ((image = TryLoadMaterialImage("Textures/" + imagePath + ".png", parentDirectory))) return image;
+
+    if ((image = TryLoadMaterialImage(imagePath, nullptr))) return image;
+    if ((image = TryLoadMaterialImage(imagePath + ".png", nullptr))) return image;
+    if ((image = TryLoadMaterialImage("Textures/" + imagePath, nullptr))) return image;
+    if ((image = TryLoadMaterialImage("Textures/" + imagePath + ".png", nullptr))) return image;
+
+    // Well, we tried
+    return nullptr;
+}
+
+PUBLIC STATIC Image* IModel::LoadMaterialImage(const char *imagePath, const char *parentDirectory) {
+    return LoadMaterialImage(std::string(imagePath), parentDirectory);
 }
 
 PUBLIC bool IModel::HasBones() {
@@ -226,6 +283,47 @@ PUBLIC Sint64 IModel::GetInBetween(Uint32 frame) {
     return inbetween;
 }
 
+PUBLIC void IModel::DoVertexFrameInterpolation(Mesh* mesh, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
+    Uint32 keyframe = GetKeyFrame(frame) % mesh->FrameCount;
+    Uint32 nextKeyframe = (keyframe + 1) % mesh->FrameCount;
+    Sint64 inbetween = GetInBetween(frame);
+
+    if (inbetween == 0 || inbetween == 0x10000) {
+        if (inbetween == 0x10000)
+            keyframe = nextKeyframe;
+
+        *positionBuffer = mesh->PositionBuffer + (keyframe * mesh->VertexCount);
+        *normalBuffer = mesh->NormalBuffer + (keyframe * mesh->VertexCount);
+        *uvBuffer = mesh->UVBuffer + (keyframe * mesh->VertexCount);
+    }
+    else {
+        if (mesh->InbetweenPositions == nullptr)
+            mesh->InbetweenPositions = (Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
+        if (mesh->InbetweenNormals == nullptr)
+            mesh->InbetweenNormals = (Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
+
+        Vector3* outPos = mesh->InbetweenPositions;
+        Vector3* outNormal = mesh->InbetweenNormals;
+
+        *positionBuffer = outPos;
+        *normalBuffer = outNormal;
+
+        // UVs are not interpolated
+        *uvBuffer = mesh->UVBuffer + (keyframe * mesh->VertexCount);
+
+        for (size_t i = 0; i < mesh->VertexCount; i++) {
+            Vector3 posA = mesh->PositionBuffer[(keyframe * mesh->VertexCount) + i];
+            Vector3 posB = mesh->PositionBuffer[(nextKeyframe * mesh->VertexCount) + i];
+
+            Vector3 normA = mesh->NormalBuffer[(keyframe * mesh->VertexCount) + i];
+            Vector3 normB = mesh->NormalBuffer[(nextKeyframe * mesh->VertexCount) + i];
+
+            *outPos++ = Vector::Interpolate(posA, posB, inbetween);
+            *outNormal++ = Vector::Interpolate(normA, normB, inbetween);
+        }
+    }
+}
+
 PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
     Uint32 keyframe = GetKeyFrame(frame);
     Sint64 inbetween = GetInBetween(frame);
@@ -357,107 +455,4 @@ PUBLIC void IModel::Dispose() {
 
 PUBLIC IModel::~IModel() {
     Dispose();
-}
-
-PUBLIC bool IModel::ReadRSDK(Stream* stream) {
-    if (stream->ReadUInt32BE() != RSDK_MODEL_MAGIC) {
-        Log::Print(Log::LOG_ERROR, "Model not of RSDK type!");
-        return false;
-    }
-
-    Uint8 vertexFlag = stream->ReadByte();
-
-    VertexPerFace = stream->ReadByte();
-    VertexCount = stream->ReadUInt16();
-    FrameCount = stream->ReadUInt16();
-
-    // We only need one mesh for RSDK models
-    Mesh* mesh = new Mesh;
-    Meshes = new Mesh*[1];
-    Meshes[0] = mesh;
-    MeshCount = 1;
-
-    mesh->VertexFlag = vertexFlag;
-    mesh->PositionBuffer = (Vector3*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector3));
-
-    if (vertexFlag & VertexType_Normal)
-        mesh->NormalBuffer = (Vector3*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector3));
-
-    if (vertexFlag & VertexType_UV)
-        mesh->UVBuffer = (Vector2*)Memory::Malloc(VertexCount * FrameCount * sizeof(Vector2));
-
-    if (vertexFlag & VertexType_Color)
-        mesh->ColorBuffer = (Uint32*)Memory::Malloc(VertexCount * FrameCount * sizeof(Uint32));
-
-    // Read UVs
-    if (vertexFlag & VertexType_UV) {
-        int uvX, uvY;
-        for (size_t i = 0; i < VertexCount; i++) {
-            Vector2* uv = &mesh->UVBuffer[i];
-            uv->X = uvX = (int)(stream->ReadFloat() * 0x10000);
-            uv->Y = uvY = (int)(stream->ReadFloat() * 0x10000);
-            // Copy the values to other frames
-            for (size_t f = 1; f < FrameCount; f++) {
-                uv += VertexCount;
-                uv->X = uvX;
-                uv->Y = uvY;
-            }
-        }
-    }
-    // Read Colors
-    if (vertexFlag & VertexType_Color) {
-        Uint32* colorPtr, color;
-        for (size_t i = 0; i < VertexCount; i++) {
-            colorPtr = &mesh->ColorBuffer[i];
-            *colorPtr = color = stream->ReadUInt32();
-            // Copy the value to other frames
-            for (size_t f = 1; f < FrameCount; f++) {
-                colorPtr += VertexCount;
-                *colorPtr = color;
-            }
-        }
-    }
-
-    Materials = nullptr;
-    Animations = nullptr;
-    BaseArmature = nullptr;
-    GlobalInverseMatrix = nullptr;
-    UseVertexAnimation = true;
-
-    VertexIndexCount = stream->ReadInt16();
-    mesh->VertexIndexCount = VertexIndexCount;
-    mesh->VertexIndexBuffer = (Sint16*)Memory::Malloc((VertexIndexCount + 1) * sizeof(Sint16));
-
-    for (size_t i = 0; i < VertexIndexCount; i++)
-        mesh->VertexIndexBuffer[i] = stream->ReadInt16();
-    mesh->VertexIndexBuffer[VertexIndexCount] = -1;
-
-    if (vertexFlag & VertexType_Normal) {
-        Vector3* vert = mesh->PositionBuffer;
-        Vector3* norm = mesh->NormalBuffer;
-        size_t totalVertexCount = VertexCount * FrameCount;
-        for (size_t v = 0; v < totalVertexCount; v++) {
-            vert->X = (int)(stream->ReadFloat() * 0x10000);
-            vert->Y = (int)(stream->ReadFloat() * 0x10000);
-            vert->Z = (int)(stream->ReadFloat() * 0x10000);
-            vert++;
-
-            norm->X = (int)(stream->ReadFloat() * 0x10000);
-            norm->Y = (int)(stream->ReadFloat() * 0x10000);
-            norm->Z = (int)(stream->ReadFloat() * 0x10000);
-            norm++;
-        }
-    }
-    else {
-        Vector3* vert = mesh->PositionBuffer;
-        size_t totalVertexCount = VertexCount * FrameCount;
-        for (size_t v = 0; v < totalVertexCount; v++) {
-            vert->X = (int)(stream->ReadFloat() * 0x10000);
-            vert->Y = (int)(stream->ReadFloat() * 0x10000);
-            vert->Z = (int)(stream->ReadFloat() * 0x10000);
-            vert++;
-        }
-    }
-
-    return true;
 }

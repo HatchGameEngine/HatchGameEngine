@@ -61,6 +61,15 @@ PUBLIC STATIC Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
     return result;
 }
 
+PUBLIC STATIC Vector2 Vector::Interpolate(Vector2 v1, Vector2 v2, Sint64 t) {
+    Vector2 result;
+
+    result.X = v1.X + FP16_MULTIPLY(v2.X - v1.X, t);
+    result.Y = v1.Y + FP16_MULTIPLY(v2.Y - v1.Y, t);
+
+    return result;
+}
+
 PUBLIC STATIC Vector3 Vector::Interpolate(Vector3 v1, Vector3 v2, Sint64 t) {
     Vector3 result;
 

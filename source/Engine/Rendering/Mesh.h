@@ -288,17 +288,23 @@ struct Mesh {
     Vector2*           UVBuffer;
     Uint32*            ColorBuffer;
 
-    size_t             NumVertices;
+    Uint32             VertexCount;
 
-    Sint16*            VertexIndexBuffer;
-    Uint16             VertexIndexCount;
+    // For vertex animation
+    Uint32             FrameCount;
+    Vector3*           InbetweenPositions;
+    Vector3*           InbetweenNormals;
+
+    Sint32*            VertexIndexBuffer;
+    Uint32             VertexIndexCount;
     Uint8              VertexFlag;
 
     int                MaterialIndex;
     int                SkeletonIndex;
 
     Mesh() {
-        NumVertices = 0;
+        VertexCount = 0;
+        FrameCount = 0;
         VertexFlag = 0;
         MaterialIndex = -1;
         SkeletonIndex = -1;
@@ -306,6 +312,8 @@ struct Mesh {
         NormalBuffer = nullptr;
         UVBuffer = nullptr;
         ColorBuffer = nullptr;
+        InbetweenPositions = nullptr;
+        InbetweenNormals = nullptr;
         Name = nullptr;
     };
 
@@ -316,6 +324,8 @@ struct Mesh {
         Memory::Free(UVBuffer);
         Memory::Free(ColorBuffer);
         Memory::Free(VertexIndexBuffer);
+        Memory::Free(InbetweenPositions);
+        Memory::Free(InbetweenNormals);
     }
 };
 
