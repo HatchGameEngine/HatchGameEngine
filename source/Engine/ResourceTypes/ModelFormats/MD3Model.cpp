@@ -4,7 +4,6 @@
 class MD3Model {
 public:
     static Sint32 Version;
-    static bool UseUVKeyframes;
     static Sint32 DataEndOffset;
     static vector<string> MaterialNames;
 };
@@ -19,8 +18,7 @@ public:
 
 #define MD3_MODEL_MAGIC 0x49445033 // IDP3
 
-#define MD3_BASE_VERSION 15
-#define MD3_EXTRA_VERSION 2038
+#define MD3_VERSION 15
 
 #define MD3_XYZ_SCALE (1.0 / 64)
 
@@ -31,7 +29,6 @@ public:
 #define MAX_QPATH 64
 
 Sint32 MD3Model::Version;
-bool MD3Model::UseUVKeyframes;
 Sint32 MD3Model::DataEndOffset;
 vector<string> MD3Model::MaterialNames;
 
@@ -165,24 +162,16 @@ PUBLIC STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t 
 
     stream->Seek(surfaceDataOffset + stDataOffset);
 
-    if (UseUVKeyframes) {
-        for (Sint32 i = 0; i < frameCount; i++) {
-            ReadUVs(uv, vertexCount, stream);
-            uv += vertexCount;
-        }
-    }
-    else {
-        ReadUVs(uv, vertexCount, stream);
+    ReadUVs(uv, vertexCount, stream);
 
-        // Copy the values to other frames
-        for (Sint32 i = 0; i < vertexCount; i++) {
-            Vector2* uvA = &mesh->UVBuffer[i];
+    // Copy the values to other frames
+    for (Sint32 i = 0; i < vertexCount; i++) {
+        Vector2* uvA = &mesh->UVBuffer[i];
 
-            for (Sint32 j = 1; j < frameCount; j++) {
-                Vector2* uvB = &mesh->UVBuffer[i + (vertexCount * j)];
-                uvB->X = uvA->X;
-                uvB->Y = uvA->X;
-            }
+        for (Sint32 j = 1; j < frameCount; j++) {
+            Vector2* uvB = &mesh->UVBuffer[i + (vertexCount * j)];
+            uvB->X = uvA->X;
+            uvB->Y = uvA->X;
         }
     }
 
@@ -220,12 +209,10 @@ PUBLIC STATIC bool MD3Model::Convert(IModel* model, Stream* stream, const char* 
 
     Version = stream->ReadInt32();
 
-    if (Version != MD3_BASE_VERSION && Version != MD3_EXTRA_VERSION) {
-        Log::Print(Log::LOG_ERROR, "Unknown MD3 model version!");
+    if (Version != MD3_VERSION) {
+        Log::Print(Log::LOG_ERROR, "Unsupported MD3 model version!");
         return false;
     }
-
-    UseUVKeyframes = Version == MD3_EXTRA_VERSION;
 
     char name[MAX_QPATH + 1];
     memset(name, '\0', sizeof name);
