@@ -7363,7 +7363,7 @@ VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Model.GetFrameCount
- * \desc Returns how many frames exist in the model.
+ * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="Model.GetAnimationLength"></linkto> instead.)
  * \param model (Integer): The model index to check.
  * \return The frame count. Will always return <code>0</code> for skeletal-animated models.
  * \ns Model
@@ -7371,7 +7371,7 @@ VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
-    return INTEGER_VAL((int)model->FrameCount);
+    return INTEGER_VAL((int)model->Meshes[0]->FrameCount);
 }
 /***
  * Model.GetAnimationLength

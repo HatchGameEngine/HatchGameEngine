@@ -33,40 +33,42 @@ PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
     Uint8 vertexFlag = stream->ReadByte();
 
     model->VertexPerFace = stream->ReadByte();
-    model->VertexCount = stream->ReadUInt16();
-    model->FrameCount = stream->ReadUInt16();
+
+    Uint16 vertexCount = stream->ReadUInt16();
+    Uint16 frameCount = stream->ReadUInt16();
 
     // We only need one mesh for RSDK models
     Mesh* mesh = new Mesh;
     model->Meshes = new Mesh*[1];
     model->Meshes[0] = mesh;
     model->MeshCount = 1;
+    model->VertexCount = vertexCount;
 
-    mesh->VertexCount = model->VertexCount;
-    mesh->FrameCount = model->FrameCount;
+    mesh->VertexCount = vertexCount;
+    mesh->FrameCount = frameCount;
 
     mesh->VertexFlag = vertexFlag;
-    mesh->PositionBuffer = (Vector3*)Memory::Malloc(model->VertexCount * model->FrameCount * sizeof(Vector3));
+    mesh->PositionBuffer = (Vector3*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector3));
 
     if (vertexFlag & VertexType_Normal)
-        mesh->NormalBuffer = (Vector3*)Memory::Malloc(model->VertexCount * model->FrameCount * sizeof(Vector3));
+        mesh->NormalBuffer = (Vector3*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector3));
 
     if (vertexFlag & VertexType_UV)
-        mesh->UVBuffer = (Vector2*)Memory::Malloc(model->VertexCount * model->FrameCount * sizeof(Vector2));
+        mesh->UVBuffer = (Vector2*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector2));
 
     if (vertexFlag & VertexType_Color)
-        mesh->ColorBuffer = (Uint32*)Memory::Malloc(model->VertexCount * model->FrameCount * sizeof(Uint32));
+        mesh->ColorBuffer = (Uint32*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Uint32));
 
     // Read UVs
     if (vertexFlag & VertexType_UV) {
         int uvX, uvY;
-        for (size_t i = 0; i < model->VertexCount; i++) {
+        for (size_t i = 0; i < mesh->VertexCount; i++) {
             Vector2* uv = &mesh->UVBuffer[i];
             uv->X = uvX = (int)(stream->ReadFloat() * 0x10000);
             uv->Y = uvY = (int)(stream->ReadFloat() * 0x10000);
             // Copy the values to other frames
-            for (size_t f = 1; f < model->FrameCount; f++) {
-                uv += model->VertexCount;
+            for (size_t f = 1; f < frameCount; f++) {
+                uv += mesh->VertexCount;
                 uv->X = uvX;
                 uv->Y = uvY;
             }
@@ -75,12 +77,12 @@ PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
     // Read Colors
     if (vertexFlag & VertexType_Color) {
         Uint32* colorPtr, color;
-        for (size_t i = 0; i < model->VertexCount; i++) {
+        for (size_t i = 0; i < mesh->VertexCount; i++) {
             colorPtr = &mesh->ColorBuffer[i];
             *colorPtr = color = stream->ReadUInt32();
             // Copy the value to other frames
-            for (size_t f = 1; f < model->FrameCount; f++) {
-                colorPtr += model->VertexCount;
+            for (size_t f = 1; f < frameCount; f++) {
+                colorPtr += mesh->VertexCount;
                 *colorPtr = color;
             }
         }
@@ -91,6 +93,12 @@ PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
     model->BaseArmature = nullptr;
     model->GlobalInverseMatrix = nullptr;
     model->UseVertexAnimation = true;
+
+    model->AnimationCount = 1;
+    model->Animations = new ModelAnim*[1];
+    model->Animations[0] = new ModelAnim;
+    model->Animations[0]->Name = StringUtils::Duplicate("Vertex Animation");
+    model->Animations[0]->Length = frameCount;
 
     model->VertexIndexCount = stream->ReadInt16();
     mesh->VertexIndexCount = model->VertexIndexCount;
@@ -103,7 +111,7 @@ PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
     if (vertexFlag & VertexType_Normal) {
         Vector3* vert = mesh->PositionBuffer;
         Vector3* norm = mesh->NormalBuffer;
-        size_t totalVertexCount = model->VertexCount * model->FrameCount;
+        size_t totalVertexCount = mesh->VertexCount * frameCount;
         for (size_t v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);
             vert->Y = (int)(stream->ReadFloat() * 0x10000);
@@ -118,7 +126,7 @@ PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
     }
     else {
         Vector3* vert = mesh->PositionBuffer;
-        size_t totalVertexCount = model->VertexCount * model->FrameCount;
+        size_t totalVertexCount = mesh->VertexCount * frameCount;
         for (size_t v = 0; v < totalVertexCount; v++) {
             vert->X = (int)(stream->ReadFloat() * 0x10000);
             vert->Y = (int)(stream->ReadFloat() * 0x10000);

@@ -17,6 +17,14 @@ PUBLIC STATIC Uint32 ColorUtils::ToRGB(int r, int g, int b) {
 
     return 0xFF000000U | r << 16 | g << 8 | b;
 }
+PUBLIC STATIC Uint32 ColorUtils::ToRGB(int r, int g, int b, int a) {
+    CLAMP_VAL(r, 0x00, 0xFF);
+    CLAMP_VAL(g, 0x00, 0xFF);
+    CLAMP_VAL(b, 0x00, 0xFF);
+    CLAMP_VAL(a, 0x00, 0xFF);
+
+    return a << 24 | r << 16 | g << 8 | b;
+}
 PUBLIC STATIC Uint32 ColorUtils::ToRGB(float r, float g, float b) {
     int colR = (int)(r * 0xFF);
     int colG = (int)(g * 0xFF);
@@ -24,8 +32,19 @@ PUBLIC STATIC Uint32 ColorUtils::ToRGB(float r, float g, float b) {
 
     return ColorUtils::ToRGB(colR, colG, colB);
 }
+PUBLIC STATIC Uint32 ColorUtils::ToRGB(float r, float g, float b, float a) {
+    int colR = (int)(r * 0xFF);
+    int colG = (int)(g * 0xFF);
+    int colB = (int)(b * 0xFF);
+    int colA = (int)(a * 0xFF);
+
+    return ColorUtils::ToRGB(colR, colG, colB, colA);
+}
 PUBLIC STATIC Uint32 ColorUtils::ToRGB(float *r) {
     return ToRGB(r[0], r[1], r[2]);
+}
+PUBLIC STATIC Uint32 ColorUtils::ToRGBA(float *r) {
+    return ToRGB(r[0], r[1], r[2], r[3]);
 }
 PUBLIC STATIC void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
     dest[0] = (color >> 16 & 0xFF) / 255.f;
@@ -36,13 +55,22 @@ PUBLIC STATIC void ColorUtils::Separate(Uint32 color, float* dest) {
     dest[3] = (color >> 24 & 0xFF) / 255.f;
     SeparateRGB(color, dest);
 }
-PUBLIC STATIC void ColorUtils::SeparateRGB(Uint32 color, Uint32* dest) {
+PUBLIC STATIC void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
     dest[0] = (color >> 16) & 0xFF;
     dest[1] = (color >> 8) & 0xFF;
     dest[2] = color & 0xFF;
 }
-PUBLIC STATIC void ColorUtils::Separate(Uint32 color, Uint32* dest) {
+PUBLIC STATIC void ColorUtils::Separate(Uint32 color, Uint8* dest) {
     dest[3] = (color >> 24) & 0xFF;
+    SeparateRGB(color, dest);
+}
+PUBLIC STATIC void ColorUtils::SeparateRGB(float* color, Uint8* dest) {
+    dest[0] = color[0] * 0xFF;
+    dest[1] = color[1] * 0xFF;
+    dest[2] = color[2] * 0xFF;
+}
+PUBLIC STATIC void ColorUtils::Separate(float* color, Uint8* dest) {
+    dest[2] = color[3] * 0xFF;
     SeparateRGB(color, dest);
 }
 PUBLIC STATIC Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {

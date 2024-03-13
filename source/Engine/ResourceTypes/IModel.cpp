@@ -12,7 +12,6 @@ public:
     size_t              MeshCount;
 
     size_t              VertexCount;
-    size_t              FrameCount;
     size_t              VertexIndexCount;
 
     Uint8               VertexPerFace;
@@ -41,15 +40,15 @@ public:
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
-#include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
+#include <Engine/ResourceTypes/ModelFormats/HatchModel.h>
 #include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
+#include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Clock.h>
 
 PUBLIC IModel::IModel() {
     VertexCount = 0;
-    FrameCount = 0;
 
     Meshes = nullptr;
     MeshCount = 0;
@@ -86,7 +85,9 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
 
     Clock::Start();
 
-    if (MD3Model::IsMagic(stream))
+    if (HatchModel::IsMagic(stream))
+        success = HatchModel::Convert(this, stream, filename);
+    else if (MD3Model::IsMagic(stream))
         success = MD3Model::Convert(this, stream, filename);
     else if (RSDKModel::IsMagic(stream))
         success = RSDKModel::Convert(this, stream);
@@ -158,7 +159,7 @@ PUBLIC bool IModel::HasBones() {
     return BaseArmature->NumSkeletons > 0;
 }
 
-PUBLIC void IModel::AnimateNode(ModelNode* node, ModelAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
+PUBLIC void IModel::AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
     NodeAnim* nodeAnim = animation->NodeLookup->Get(node->Name);
     if (nodeAnim)
         UpdateChannel(node->LocalTransform, nodeAnim, frame);
@@ -173,7 +174,7 @@ PUBLIC void IModel::Pose() {
     BaseArmature->RootNode->Transform();
 }
 
-PUBLIC void IModel::Pose(Armature* armature, ModelAnim* animation, Uint32 frame) {
+PUBLIC void IModel::Pose(Armature* armature, SkeletalAnim* animation, Uint32 frame) {
     Matrix4x4 identity;
     Matrix4x4::Identity(&identity);
 
@@ -283,9 +284,23 @@ PUBLIC Sint64 IModel::GetInBetween(Uint32 frame) {
     return inbetween;
 }
 
-PUBLIC void IModel::DoVertexFrameInterpolation(Mesh* mesh, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
-    Uint32 keyframe = GetKeyFrame(frame) % mesh->FrameCount;
-    Uint32 nextKeyframe = (keyframe + 1) % mesh->FrameCount;
+PUBLIC void IModel::DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
+    Uint32 startFrame = 0;
+    Uint32 animLength;
+
+    if (animation) {
+        animLength = animation->Length % (mesh->FrameCount + 1);
+        if (!animLength)
+            animLength = 1;
+        startFrame = animation->StartFrame % animLength;
+    }
+    else if (mesh->FrameCount)
+        animLength = mesh->FrameCount;
+    else
+        animLength = 1;
+
+    Uint32 keyframe = startFrame + (GetKeyFrame(frame) % animLength);
+    Uint32 nextKeyframe = startFrame + ((keyframe + 1) % animLength);
     Sint64 inbetween = GetInBetween(frame);
 
     if (inbetween == 0 || inbetween == 0x10000) {
@@ -362,9 +377,24 @@ PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 fra
 }
 
 PUBLIC void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
-    Pose(armature, animation, frame);
+    if (animation->Skeletal == nullptr)
+        return;
+
+    if (armature == nullptr)
+        armature = BaseArmature;
+
+    Pose(armature, animation->Skeletal, frame);
 
     armature->UpdateSkeletons();
+}
+
+PUBLIC void IModel::Animate(Uint16 animation, Uint32 frame) {
+    if (AnimationCount > 0) {
+        if (animation >= AnimationCount)
+            animation = AnimationCount - 1;
+
+        Animate(nullptr, Animations[animation], frame);
+    }
 }
 
 PUBLIC int IModel::GetAnimationIndex(const char* animationName) {

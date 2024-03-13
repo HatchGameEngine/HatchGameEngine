@@ -4,6 +4,7 @@
 class MD3Model {
 public:
     static Sint32 Version;
+    static bool UseUVKeyframes;
     static Sint32 DataEndOffset;
     static vector<string> MaterialNames;
 };
@@ -18,7 +19,8 @@ public:
 
 #define MD3_MODEL_MAGIC 0x49445033 // IDP3
 
-#define MD3_VERSION 15
+#define MD3_BASE_VERSION 15
+#define MD3_EXTRA_VERSION 2038
 
 #define MD3_XYZ_SCALE (1.0 / 64)
 
@@ -29,6 +31,7 @@ public:
 #define MAX_QPATH 64
 
 Sint32 MD3Model::Version;
+bool MD3Model::UseUVKeyframes;
 Sint32 MD3Model::DataEndOffset;
 vector<string> MD3Model::MaterialNames;
 
@@ -40,7 +43,7 @@ PUBLIC STATIC bool MD3Model::IsMagic(Stream* stream) {
     return magic == MD3_MODEL_MAGIC;
 }
 
-PUBLIC STATIC void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, float& z) {
+PRIVATE STATIC void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, float& z) {
     unsigned latIdx = (index >> 8) & 0xFF;
     unsigned lngIdx = index & 0xFF;
 
@@ -52,7 +55,7 @@ PUBLIC STATIC void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, floa
     z = cosf(lng);
 }
 
-PUBLIC STATIC void MD3Model::ReadShader(Stream* stream) {
+PRIVATE STATIC void MD3Model::ReadShader(Stream* stream) {
     char name[MAX_QPATH + 1];
     memset(name, '\0', sizeof name);
     stream->ReadBytes(name, MAX_QPATH);
@@ -62,7 +65,7 @@ PUBLIC STATIC void MD3Model::ReadShader(Stream* stream) {
     MaterialNames.push_back(shaderName);
 }
 
-PUBLIC STATIC void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* norm, Sint32 vertexCount, Stream* stream) {
+PRIVATE STATIC void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* norm, Sint32 vertexCount, Stream* stream) {
     for (Sint32 i = 0; i < vertexCount; i++) {
         // MD3 coordinate system is usually Z up and Y forward (I think.)
         vert->X = stream->ReadInt16() * FP16_TO(MD3_XYZ_SCALE);
@@ -80,7 +83,7 @@ PUBLIC STATIC void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* norm
     }
 }
 
-PUBLIC STATIC void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* stream) {
+PRIVATE STATIC void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* stream) {
     for (Sint32 i = 0; i < vertexCount; i++) {
         uvs->X = (int)(stream->ReadFloat() * 0x10000);
         uvs->Y = (int)(stream->ReadFloat() * 0x10000);
@@ -88,7 +91,7 @@ PUBLIC STATIC void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* s
     }
 }
 
-PUBLIC STATIC void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
+PRIVATE STATIC void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
     for (Sint32 i = 0; i < triangleCount; i++) {
         *indices++ = stream->ReadUInt32();
         *indices++ = stream->ReadUInt32();
@@ -98,7 +101,7 @@ PUBLIC STATIC void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleC
     *indices = -1;
 }
 
-PUBLIC STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
+PRIVATE STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
     Sint32 magic = stream->ReadUInt32BE();
     if (magic != MD3_MODEL_MAGIC) {
         Log::Print(Log::LOG_ERROR, "Invalid magic for MD3 surface!");
@@ -162,16 +165,24 @@ PUBLIC STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t 
 
     stream->Seek(surfaceDataOffset + stDataOffset);
 
-    ReadUVs(uv, vertexCount, stream);
+    if (UseUVKeyframes) {
+        for (Sint32 i = 0; i < frameCount; i++) {
+            ReadUVs(uv, vertexCount, stream);
+            uv += vertexCount;
+        }
+    }
+    else {
+        ReadUVs(uv, vertexCount, stream);
 
-    // Copy the values to other frames
-    for (Sint32 i = 0; i < vertexCount; i++) {
-        Vector2* uvA = &mesh->UVBuffer[i];
+        // Copy the values to other frames
+        for (Sint32 i = 0; i < vertexCount; i++) {
+            Vector2* uvA = &mesh->UVBuffer[i];
 
-        for (Sint32 j = 1; j < frameCount; j++) {
-            Vector2* uvB = &mesh->UVBuffer[i + (vertexCount * j)];
-            uvB->X = uvA->X;
-            uvB->Y = uvA->X;
+            for (Sint32 j = 1; j < frameCount; j++) {
+                Vector2* uvB = &mesh->UVBuffer[i + (vertexCount * j)];
+                uvB->X = uvA->X;
+                uvB->Y = uvA->X;
+            }
         }
     }
 
@@ -209,10 +220,12 @@ PUBLIC STATIC bool MD3Model::Convert(IModel* model, Stream* stream, const char* 
 
     Version = stream->ReadInt32();
 
-    if (Version != MD3_VERSION) {
-        Log::Print(Log::LOG_ERROR, "Unsupported MD3 model version!");
+    if (Version != MD3_BASE_VERSION && Version != MD3_EXTRA_VERSION) {
+        Log::Print(Log::LOG_ERROR, "Unknown MD3 model version!");
         return false;
     }
+
+    UseUVKeyframes = Version == MD3_EXTRA_VERSION;
 
     char name[MAX_QPATH + 1];
     memset(name, '\0', sizeof name);
@@ -267,20 +280,29 @@ PUBLIC STATIC bool MD3Model::Convert(IModel* model, Stream* stream, const char* 
 
     size_t offset = surfaceDataOffset;
 
+    Sint32 maxFrameCount = frameCount;
+
     for (Sint32 i = 0; i < surfCount; i++) {
         Mesh* mesh = ReadSurface(model, stream, offset);
-        if (mesh == nullptr)
+        if (mesh == nullptr) {
+            for (signed j = 0; j <= i; j++) {
+                delete model->Meshes[j];
+                delete model->Meshes;
+                model->Meshes = nullptr;
+            }
             return false;
+        }
 
         model->Meshes[i] = mesh;
         model->VertexCount += mesh->VertexCount;
+
+        if (mesh->FrameCount > maxFrameCount)
+            maxFrameCount = mesh->FrameCount;
 
         offset += DataEndOffset;
 
         stream->Seek(offset);
     }
-
-    model->FrameCount = model->Meshes[0]->FrameCount;
 
     // Add materials
     size_t numMaterials = MaterialNames.size();
@@ -292,12 +314,21 @@ PUBLIC STATIC bool MD3Model::Convert(IModel* model, Stream* stream, const char* 
 
         for (size_t i = 0; i < numMaterials; i++) {
             Material* material = new Material();
-            material->ImagePtr = IModel::LoadMaterialImage(MaterialNames[i], parentDirectory);
+            material->Name = StringUtils::Create(MaterialNames[i]);
+            material->TextureDiffuse = IModel::LoadMaterialImage(MaterialNames[i], parentDirectory);
+            if (material->TextureDiffuse)
+                material->TextureDiffuseName = StringUtils::Duplicate(material->TextureDiffuse->Filename);
             model->Materials[i] = material;
         }
 
         MaterialNames.clear();
     }
+
+    model->AnimationCount = 1;
+    model->Animations = new ModelAnim*[1];
+    model->Animations[0] = new ModelAnim;
+    model->Animations[0]->Name = StringUtils::Duplicate("Vertex Animation");
+    model->Animations[0]->Length = maxFrameCount;
 
     return true;
 }

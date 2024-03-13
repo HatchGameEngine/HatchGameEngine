@@ -107,24 +107,39 @@ struct NodeAnim {
     }
 };
 
-struct ModelAnim {
-    char*               Name;
+struct ModelAnim;
+
+struct SkeletalAnim {
+    ModelAnim*          ParentAnim;
 
     vector<NodeAnim*>   Channels;
     HashMap<NodeAnim*>* NodeLookup;
 
-    Uint32              Length;
     Uint32              DurationInFrames;
+
     double              BaseDuration;
     double              TicksPerSecond;
 
-    ~ModelAnim() {
-        Memory::Free(Name);
-
+    ~SkeletalAnim() {
         for (size_t i = 0; i < Channels.size(); i++)
             delete Channels[i];
 
         delete NodeLookup;
+    }
+};
+
+struct ModelAnim {
+    char*               Name = nullptr;
+
+    Uint32              StartFrame = 0;
+    Uint32              Length = 0;
+
+    SkeletalAnim*       Skeletal = nullptr;
+
+    ~ModelAnim() {
+        Memory::Free(Name);
+
+        delete Skeletal;
     }
 };
 

@@ -127,13 +127,17 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
     DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
 }
 
-PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint32 frame, Matrix4x4& mvpMatrix) {
+PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix) {
     Vector3* positionBuffer = mesh->PositionBuffer;
     Vector3* normalBuffer = mesh->NormalBuffer;
     Vector2* uvBuffer = mesh->UVBuffer;
 
-    if (model->UseVertexAnimation && mesh->FrameCount) {
-        model->DoVertexFrameInterpolation(mesh, frame, &positionBuffer, &normalBuffer, &uvBuffer);
+    if (model->UseVertexAnimation) {
+        ModelAnim* anim = nullptr;
+        if (animation < model->AnimationCount)
+            anim = model->Animations[animation];
+
+        model->DoVertexFrameInterpolation(mesh, anim, frame, &positionBuffer, &normalBuffer, &uvBuffer);
     }
 
     DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
@@ -399,7 +403,7 @@ PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* 
         DrawNode(model, node->Children[i], world);
 }
 
-PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
+PRIVATE void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, Uint32 frame) {
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
@@ -414,23 +418,26 @@ PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
     else {
         // Just render every mesh directly
         for (size_t i = 0; i < model->MeshCount; i++)
-            DrawMesh(model, model->Meshes[i], frame, MVPMatrix);
+            DrawMesh(model, model->Meshes[i], animation, frame, MVPMatrix);
     }
 }
 
 PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+    Uint16 numAnims = model->AnimationCount;
+    if (numAnims > 0) {
+        if (animation >= numAnims)
+            animation = numAnims - 1;
+    }
+    else
+        animation = 0;
+
     if (!model->UseVertexAnimation) {
         if (ArmaturePtr == nullptr)
             ArmaturePtr = model->BaseArmature;
 
-        Uint16 numAnims = model->AnimationCount;
-        if (numAnims > 0) {
-            if (animation >= numAnims)
-                animation = numAnims - 1;
-
+        if (numAnims > 0)
             model->Animate(ArmaturePtr, model->Animations[animation], frame);
-        }
     }
 
-    DrawModel(model, frame);
+    DrawModelInternal(model, animation, frame);
 }
