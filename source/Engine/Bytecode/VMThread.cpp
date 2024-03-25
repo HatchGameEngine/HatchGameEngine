@@ -830,7 +830,6 @@ SUCCESS_OP_SET_PROPERTY:
                 ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetValueTypeString(object));
             }
 
-            FAIL_OP_HAS_PROPERTY:
             Pop();
             Push(INTEGER_VAL(false));
             ScriptManager::Unlock();
@@ -1641,7 +1640,6 @@ SUCCESS_OP_SET_PROPERTY:
         VM_CASE(OP_GET_SUPERCLASS): {
             ObjClass* klass = nullptr;
             VMValue object = Peek(0);
-            VMValue result;
 
             // If it's an instance,
             if (IS_INSTANCE(object)) {
@@ -1984,7 +1982,9 @@ PRIVATE bool   VMThread::CallValue(VMValue callee, int argCount) {
                 try {
                     returnValue = nativeFn(argCount, StackTop - argCount, ID);
                 }
-                catch (const char* err) { }
+                catch (const char* err) {
+                    (void)err;
+                }
 
                 StackTop -= argCount; // Pop arguments
                 StackTop -= 1; // Pop receiver / class
@@ -2013,7 +2013,9 @@ PRIVATE bool   VMThread::CallForObject(VMValue callee, int argCount) {
                 // receiver, which is the reason these +1 and -1 are here.
                 returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
             }
-            catch (const char* err) { }
+            catch (const char* err) {
+                (void)err;
+            }
 
             StackTop -= argCount; // Pop arguments
             StackTop -= 1; // Pop receiver / class

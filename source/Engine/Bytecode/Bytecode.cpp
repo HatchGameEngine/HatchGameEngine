@@ -144,11 +144,12 @@ PUBLIC bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* to
 }
 
 PUBLIC void        Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap) {
-    bool hasSourceFilename = sourceFilename != nullptr;
+    int hasSourceFilename = (sourceFilename != nullptr) ? 1 : 0;
+    int hasDebugInfo = HasDebugInfo ? 1 : 0;
 
     stream->WriteBytes((char*)Bytecode::Magic, 4);
     stream->WriteByte(Version);
-    stream->WriteByte((hasSourceFilename << 1) | HasDebugInfo);
+    stream->WriteByte((hasSourceFilename << 1) | hasDebugInfo);
     stream->WriteByte(0x00);
     stream->WriteByte(0x00);
 

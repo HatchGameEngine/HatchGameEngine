@@ -66,20 +66,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

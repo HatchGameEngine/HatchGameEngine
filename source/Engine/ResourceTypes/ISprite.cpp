@@ -224,7 +224,7 @@ PUBLIC void ISprite::ConvertToPalette(unsigned paletteNumber) {
 
 PUBLIC bool ISprite::LoadAnimation(const char* filename) {
     char* str, altered[4096];
-    int animationCount, previousAnimationCount, frameCount;
+    int animationCount, previousAnimationCount;
 
     Stream* reader = ResourceStream::New(filename);
     if (!reader) {
@@ -266,7 +266,7 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 
         strcpy(SpritesheetsFilenames[i], str);
 
-        sprintf(altered, "Sprites/%s", str);
+        snprintf(altered, sizeof altered, "Sprites/%s", str);
         Memory::Free(str);
 
         if (Graphics::SpriteSheetTextureMap->Exists(altered))

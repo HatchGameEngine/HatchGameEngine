@@ -94,6 +94,9 @@ PRIVATE void Serializer::WriteValue(VMValue val) {
                         StreamPtr->WriteByte(Serializer::VAL_TYPE_OBJECT);
                         StreamPtr->WriteUInt32(objectID);
                         return;
+                    default:
+                        StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
+                        return;
                 }
             }
         }
@@ -284,6 +287,8 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
             });
             return;
         }
+        default:
+            return;
     }
 }
 

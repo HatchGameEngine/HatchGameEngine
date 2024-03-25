@@ -377,8 +377,12 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
             continue;
         }
 
+        int meshID = (int)meshCount;
+
         ameshes.push_back(amesh);
-        MeshIDs.push_back(meshCount++);
+        MeshIDs.push_back(meshID);
+
+        meshCount++;
 
         totalVertices += amesh->mNumVertices;
     }

@@ -555,16 +555,16 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
     // Load Tileset and copy palette
     LoadTileset(parentFolder);
 
-    char stageConfigFilename[256];
+    const char* gameConfigFilename = "Game/GameConfig.bin";
     // Load GameConfig palettes
-    sprintf(stageConfigFilename, "Game/GameConfig.bin");
-    if (ResourceManager::ResourceExists(stageConfigFilename))
-        GameConfig_GetColors(stageConfigFilename);
+    if (ResourceManager::ResourceExists(gameConfigFilename))
+        GameConfig_GetColors(gameConfigFilename);
     else
-        Log::Print(Log::LOG_WARN, "No GameConfig at '%s'!", stageConfigFilename);
+        Log::Print(Log::LOG_WARN, "No GameConfig at '%s'!", gameConfigFilename);
 
     // Load StageConfig palettes
-    sprintf(stageConfigFilename, "%sStageConfig.bin", parentFolder);
+    char stageConfigFilename[4096];
+    snprintf(stageConfigFilename, sizeof stageConfigFilename, "%sStageConfig.bin", parentFolder);
     if (ResourceManager::ResourceExists(stageConfigFilename))
         StageConfig_GetColors(stageConfigFilename);
     else

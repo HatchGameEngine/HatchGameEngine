@@ -152,19 +152,14 @@ PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
 
     goto OGG_Load_SUCCESS;
 #else
-    size_t fileLength;
-    void* fileData;
 
     ogg = new (std::nothrow) OGG;
     if (!ogg) {
         goto OGG_Load_FAIL;
     }
 
-    // ogg->StreamPtr = stream;
-
     {
         vorbis = (VorbisGroup*)ogg->Vorbis;
-
 
         size_t fileLength = stream->Length();
         void* fileData = malloc(fileLength);
@@ -268,7 +263,8 @@ PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
     ogg = NULL;
 
 OGG_Load_SUCCESS:
-    stream->Close();
+    if (stream)
+        stream->Close();
     return ogg;
 }
 

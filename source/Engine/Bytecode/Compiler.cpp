@@ -680,7 +680,7 @@ PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* str
 
     va_list args;
     va_start(args, string);
-    vsprintf(message, string, args);
+    vsnprintf(message, sizeof message, string, args);
     va_end(args);
 
     Log::Print(fatal ? Log::LOG_ERROR : Log::LOG_WARN, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
@@ -699,7 +699,7 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, con
 
     va_list args;
     va_start(args, string);
-    vsprintf(message, string, args);
+    vsnprintf(message, sizeof message, string, args);
     va_end(args);
 
 	char* textBuffer = (char*)malloc(512);
@@ -777,7 +777,7 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
 
     va_list args;
     va_start(args, format);
-    vsprintf(message, format, args);
+    vsnprintf(message, sizeof message, format, args);
     va_end(args);
 
     char* textBuffer = (char*)malloc(512);
@@ -869,7 +869,7 @@ PRIVATE void Compiler::WarnVariablesUnused() {
 
     for (int i = numUnused - 1; i >= 0; i--) {
         Local& local = (*UnusedVariables)[i];
-        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", local.Name.Length, local.Name.Start, local.Name.Line);
+        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", (int)local.Name.Length, local.Name.Start, local.Name.Line);
         message += std::string(temp);
         if (i != 0)
             message += "\n    ";
@@ -1132,7 +1132,7 @@ PUBLIC int   Compiler::AddModuleLocal(Token name) {
     local.Depth = -1;
     local.Resolved = false;
     Compiler::ModuleLocals.push_back(local);
-    return Compiler::ModuleLocals.size() - 1;
+    return ((int)Compiler::ModuleLocals.size()) - 1;
 }
 PUBLIC int   Compiler::ResolveModuleLocal(Token* name) {
     for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
@@ -1738,7 +1738,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
 
         EmitCopy(1);
 
-        for (int i = 0; i < case_info.CodeLength; i++)
+        for (Uint32 i = 0; i < case_info.CodeLength; i++)
             chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
 
         EmitByte(OP_EQUAL);

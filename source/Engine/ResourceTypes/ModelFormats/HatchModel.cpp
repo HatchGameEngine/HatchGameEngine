@@ -231,8 +231,8 @@ PRIVATE STATIC Uint32 HatchModel::GetStoredColor(Uint32 idx) {
     return ColorStore[idx];
 }
 
-PRIVATE STATIC void HatchModel::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
-    for (Sint32 i = 0; i < triangleCount; i++) {
+PRIVATE STATIC void HatchModel::ReadVertexIndices(Sint32* indices, Uint32 triangleCount, Stream* stream) {
+    for (Uint32 i = 0; i < triangleCount; i++) {
         *indices++ = stream->ReadUInt32();
         *indices++ = stream->ReadUInt32();
         *indices++ = stream->ReadUInt32();
@@ -282,8 +282,8 @@ PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
 
     // Read vertices
     Vector3* vert = mesh->PositionBuffer;
-    for (Sint32 i = 0; i < frameCount; i++) {
-        for (Sint32 j = 0; j < vertexCount; j++)
+    for (Uint16 i = 0; i < frameCount; i++) {
+        for (Uint32 j = 0; j < vertexCount; j++)
             *vert++ = GetStoredVertex(stream->ReadUInt32());
     }
 
@@ -292,8 +292,8 @@ PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
         mesh->NormalBuffer = (Vector3*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector3));
 
         Vector3* norm = mesh->NormalBuffer;
-        for (Sint32 i = 0; i < frameCount; i++)
-            for (Sint32 j = 0; j < vertexCount; j++)
+        for (Uint16 i = 0; i < frameCount; i++)
+            for (Uint32 j = 0; j < vertexCount; j++)
                 *norm++ = GetStoredNormal(stream->ReadUInt32());
     }
 
@@ -302,8 +302,8 @@ PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
         mesh->UVBuffer = (Vector2*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector2));
 
         Vector2* uv = mesh->UVBuffer;
-        for (Sint32 i = 0; i < frameCount; i++)
-            for (Sint32 j = 0; j < vertexCount; j++)
+        for (Uint16 i = 0; i < frameCount; i++)
+            for (Uint32 j = 0; j < vertexCount; j++)
                 *uv++ = GetStoredTexCoord(stream->ReadUInt32());
     }
 
@@ -312,8 +312,8 @@ PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
         mesh->ColorBuffer = (Uint32*)Memory::Malloc(vertexCount * frameCount * sizeof(Uint32));
 
         Uint32* colors = mesh->ColorBuffer;
-        for (Sint32 i = 0; i < frameCount; i++)
-            for (Sint32 j = 0; j < vertexCount; j++)
+        for (Uint16 i = 0; i < frameCount; i++)
+            for (Uint32 j = 0; j < vertexCount; j++)
                 *colors++ = GetStoredColor(stream->ReadUInt32());
     }
 
@@ -499,13 +499,13 @@ PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 
     // Write vertices
     Vector3* vert = mesh->PositionBuffer;
-    for (Sint32 j = 0; j < frameCount; j++) {
-        for (Sint32 k = 0; k < vertexCount; k++) {
+    for (Uint16 j = 0; j < frameCount; j++) {
+        for (Uint32 k = 0; k < vertexCount; k++) {
             Uint32 key = vertexIDs->HashFunction(vert, sizeof(*vert));
             if (vertexIDs->Exists(key))
                 stream->WriteUInt32(vertexIDs->Get(key));
             else {
-                vertexIDs->Put(key, vertexList.size());
+                vertexIDs->Put(key, (Uint32)(vertexList.size()));
                 stream->WriteUInt32(vertexList.size());
                 vertexList.push_back(*vert);
             }
@@ -516,13 +516,13 @@ PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
     // Write normals
     if (flags & 1) {
         Vector3* norm = mesh->NormalBuffer;
-        for (Sint32 j = 0; j < frameCount; j++) {
-            for (Sint32 k = 0; k < vertexCount; k++) {
+        for (Uint16 j = 0; j < frameCount; j++) {
+            for (Uint32 k = 0; k < vertexCount; k++) {
                 Uint32 key = normalIDs->HashFunction(norm, sizeof(*norm));
                 if (normalIDs->Exists(key))
                     stream->WriteUInt32(normalIDs->Get(key));
                 else {
-                    normalIDs->Put(key, normalList.size());
+                    normalIDs->Put(key, (Uint32)(normalList.size()));
                     stream->WriteUInt32(normalList.size());
                     normalList.push_back(*norm);
                 }
@@ -534,13 +534,13 @@ PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
     // Write texture coordinates
     if (flags & 2) {
         Vector2* uv = mesh->UVBuffer;
-        for (Sint32 j = 0; j < frameCount; j++) {
-            for (Sint32 k = 0; k < vertexCount; k++) {
+        for (Uint16 j = 0; j < frameCount; j++) {
+            for (Uint32 k = 0; k < vertexCount; k++) {
                 Uint32 key = texCoordIDs->HashFunction(uv, sizeof(*uv));
                 if (texCoordIDs->Exists(key))
                     stream->WriteUInt32(texCoordIDs->Get(key));
                 else {
-                    texCoordIDs->Put(key, texCoordList.size());
+                    texCoordIDs->Put(key, (Uint32)(texCoordList.size()));
                     stream->WriteUInt32(texCoordList.size());
                     texCoordList.push_back(*uv);
                 }
@@ -552,8 +552,8 @@ PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
     // Write colors
     if (flags & 4) {
         Uint32* color = mesh->ColorBuffer;
-        for (Sint32 j = 0; j < frameCount; j++) {
-            for (Sint32 k = 0; k < vertexCount; k++) {
+        for (Uint16 j = 0; j < frameCount; j++) {
+            for (Uint32 k = 0; k < vertexCount; k++) {
                 HatchModel::WriteColorIndex(color, stream);
                 color++;
             }
@@ -582,7 +582,7 @@ PRIVATE STATIC void HatchModel::WriteColorIndex(Uint32* color, Stream* stream) {
     if (colorIDs->Exists(key))
         stream->WriteUInt32(colorIDs->Get(key));
     else {
-        colorIDs->Put(key, colorList.size());
+        colorIDs->Put(key, (Uint32)(colorList.size()));
         stream->WriteUInt32(colorList.size());
         colorList.push_back(*color);
     }

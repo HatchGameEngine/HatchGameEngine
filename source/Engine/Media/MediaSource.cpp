@@ -72,8 +72,8 @@ void    _AVLogCallback(void *ptr, int level, const char* fmt, va_list vargs) {
             return;
     }
 
-    char str[4000];
-    vsprintf(str, fmt, vargs);
+    char str[4096];
+    vsnprintf(str, sizeof str, fmt, vargs);
     str[strlen(str) - 1] = 0;
 
     char* force = (char*)str + strlen(str);
