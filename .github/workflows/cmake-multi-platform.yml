@@ -1,25 +1,18 @@
-name: CMake (Ubuntu and Windows)
+name: CMake (Linux and Windows)
 
 on:
   push:
     branches: [ "master", "dev", "workflow-test" ]
   pull_request:
-    branches: [ "master", "dev", "workflow-test" ]
+    branches: [ "master", "dev" ]
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
       fail-fast: false
 
-      # Set up a matrix to run the following 3 configurations:
-      # 1. <Windows, Release, latest MSVC compiler toolchain on the default runner image, default generator>
-      # 2. <Linux, Release, latest GCC compiler toolchain on the default runner image, default generator>
-      # 3. <Linux, Release, latest Clang compiler toolchain on the default runner image, default generator>
-      #
-      # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release, Debug]
@@ -66,11 +59,18 @@ jobs:
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Upload build
+    - name: Upload Linux build
+      if: startsWith(matrix.os, 'ubuntu')
       uses: actions/upload-artifact@v3
       with:
-        name: HatchGameEngine-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.c_compiler }}
-        path: |
-          build/HatchGameEngine-${{ matrix.build_type }}
-          build/${{ matrix.build_type }}/HatchGameEngine-${{ matrix.build_type }}.exe
+        name: HatchGameEngine-Linux-${{ matrix.build_type }}-${{ github.sha }}-${{ matrix.c_compiler }}
+        path: build/HatchGameEngine-${{ matrix.build_type }}
+        retention-days: 7
+
+    - name: Upload Windows build
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v3
+      with:
+        name: HatchGameEngine-Windows-${{ matrix.build_type }}-${{ github.sha }}
+        path: build/${{ matrix.build_type }}/HatchGameEngine-${{ matrix.build_type }}.exe
         retention-days: 7
