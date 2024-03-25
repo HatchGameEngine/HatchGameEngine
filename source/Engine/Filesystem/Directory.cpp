@@ -58,7 +58,7 @@ PUBLIC STATIC bool          Directory::GetCurrentWorkingDirectory(char* out, siz
 PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
-        snprintf(winPath, sizeof MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
+        snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
         for (char* i = winPath; *i; i++) {
             if (*i == '/') *i = '\\';
