@@ -700,10 +700,14 @@ static void StencilOpReplace(Uint8* buf, Uint8 value) {
     *buf = value;
 }
 static void StencilOpIncrWrap(Uint8* buf, Uint8 value) {
-    *buf++;
+    value = *buf;
+    value++;
+    *buf = value;
 }
 static void StencilOpDecrWrap(Uint8* buf, Uint8 value) {
-    *buf--;
+    value = *buf;
+    value--;
+    *buf = value;
 }
 
 // Stencil buffer funcs
@@ -1764,7 +1768,7 @@ PRIVATE STATIC void     SoftwareRenderer::StrokeThickCircle(float x, float y, fl
 
     int dst_strideY = dst_y1 * dstStride;
 
-    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+    if (!UseStencil && ((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, dst_strideY += dstStride) {
             Contour contourA = contourBufferA[dst_y];
             if (contourA.MaxX < contourA.MinX)
@@ -1961,7 +1965,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+    if (!UseStencil && ((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Contour contour = ContourBuffer[dst_y];
             if (contour.MaxX < contour.MinX) {
@@ -2055,7 +2059,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
     int* multSubTableAt = &MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
 
-    if (!UseStencil && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+    if (!UseStencil && ((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
             dst_strideY += dstStride;

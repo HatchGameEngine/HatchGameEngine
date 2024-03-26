@@ -1,0 +1,76 @@
+name: CMake (Linux and Windows)
+
+on:
+  push:
+    branches: [ "master", "dev", "workflow-test" ]
+  pull_request:
+    branches: [ "master", "dev" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release, Debug]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Setup libraries
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt-get install libsdl2-dev libassimp5 libglew2.2 libglew-dev
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Upload Linux build
+      if: startsWith(matrix.os, 'ubuntu')
+      uses: actions/upload-artifact@v3
+      with:
+        name: HatchGameEngine-Linux-${{ matrix.build_type }}-${{ github.sha }}-${{ matrix.c_compiler }}
+        path: build/HatchGameEngine-${{ matrix.build_type }}
+        retention-days: 7
+
+    - name: Upload Windows build
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v3
+      with:
+        name: HatchGameEngine-Windows-${{ matrix.build_type }}-${{ github.sha }}
+        path: build/${{ matrix.build_type }}/HatchGameEngine-${{ matrix.build_type }}.exe
+        retention-days: 7

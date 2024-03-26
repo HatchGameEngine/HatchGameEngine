@@ -4,44 +4,54 @@
 
 class Material {
 public:
-    float Diffuse[4];
-    float Specular[4];
-    float Ambient[4];
-    float Emissive[4];
+    char* Name = nullptr;
 
-    float Shininess;
-    float ShininessStrength;
-    float Opacity;
-    float IndexOfRefraction;
+    float ColorDiffuse[4];
+    float ColorSpecular[4];
+    float ColorAmbient[4];
+    float ColorEmissive[4];
 
-    Image* ImagePtr;
+    float Shininess = 0.0f;
+    float ShininessStrength = 1.0f;
+    float Opacity = 1.0f;
+
+    char* TextureDiffuseName = nullptr;
+    char* TextureSpecularName = nullptr;
+    char* TextureAmbientName = nullptr;
+    char* TextureEmissiveName = nullptr;
+
+    Image* TextureDiffuse = nullptr;
+    Image* TextureSpecular = nullptr;
+    Image* TextureAmbient = nullptr;
+    Image* TextureEmissive = nullptr;
 };
 #endif
 
 #include <Engine/Rendering/Material.h>
 
+#include <Engine/Diagnostics/Memory.h>
+
 PUBLIC Material::Material() {
-    for (int i = 0; i < 3; i++) {
-        Diffuse[i] =
-        Specular[i] =
-        Ambient[i] =
-        Emissive[i] = 0.0f;
+    for (int i = 0; i < 4; i++) {
+        ColorDiffuse[i] =
+        ColorSpecular[i] =
+        ColorAmbient[i] =
+        ColorEmissive[i] = 1.0f;
     }
-
-    Diffuse[3] =
-    Specular[3] =
-    Ambient[3] =
-    Emissive[3] = 1.0f;
-
-    Shininess = 0.0f;
-    ShininessStrength = 1.0f;
-    Opacity = 1.0f;
-
-    ImagePtr = nullptr;
 }
 
 PUBLIC void Material::Dispose() {
-    delete ImagePtr;
+    delete TextureDiffuse;
+    delete TextureSpecular;
+    delete TextureAmbient;
+    delete TextureEmissive;
+
+    Memory::Free(Name);
+
+    Memory::Free(TextureDiffuseName);
+    Memory::Free(TextureSpecularName);
+    Memory::Free(TextureAmbientName);
+    Memory::Free(TextureEmissiveName);
 }
 
 PUBLIC Material::~Material() {

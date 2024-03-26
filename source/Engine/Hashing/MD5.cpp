@@ -149,16 +149,13 @@ PUBLIC STATIC Uint8* MD5::EncryptString(Uint8* dest, const char* message) {
 
 PUBLIC STATIC Uint8* MD5::EncryptData(Uint8* dest, void* data, size_t size) {
     // Init
-    // Uint32 block[16];
     Uint8  buffer[64];
-    Uint32 lo = 0, hi = 0;
+    size_t lo = 0, hi = 0;
 	Uint32 a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476;
 
     // Update
-    Uint32 saved_lo;
 	size_t used, available;
-
-	saved_lo = lo;
+	size_t saved_lo = lo;
 	if ((lo = (saved_lo + size) & 0x1fffffff) < saved_lo)
 		hi++;
 	hi += size >> 29;
@@ -187,7 +184,6 @@ PUBLIC STATIC Uint8* MD5::EncryptData(Uint8* dest, void* data, size_t size) {
 	memcpy(buffer, data, size);
 
     // Final
-    // unsigned long used, available;
 	used = lo & 0x3f;
 
 	buffer[used++] = 0x80;

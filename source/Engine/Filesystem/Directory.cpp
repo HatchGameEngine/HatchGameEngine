@@ -13,13 +13,13 @@ private:
 #if WIN32
     #include <windows.h>
     #include <direct.h>
-#elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #define MAX_PATH_SIZE 1024
+#else
     #include <dirent.h>
     #include <unistd.h>
     #include <sys/stat.h>
+    #define MAX_PATH_SIZE 4096
 #endif
-
-#define MAX_PATH_SIZE 1024
 
 bool CompareFunction(char* i, char* j) {
     return strcmp(i, j) < 0;
@@ -30,7 +30,7 @@ PUBLIC STATIC bool          Directory::Exists(const char* path) {
         DWORD ftyp = GetFileAttributesA(path);
         if (ftyp == INVALID_FILE_ATTRIBUTES) return false;  // Something is wrong with your path
         if (ftyp & FILE_ATTRIBUTE_DIRECTORY) return true;
-    #elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #else
         DIR* dir = opendir(path);
         if (dir) {
             closedir(dir);
@@ -42,25 +42,23 @@ PUBLIC STATIC bool          Directory::Exists(const char* path) {
 PUBLIC STATIC bool          Directory::Create(const char* path) {
     #if WIN32
         return CreateDirectoryA(path, NULL);
-    #elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #else
         return mkdir(path, 0777) == 0;
     #endif
-    return false;
 }
 
 PUBLIC STATIC bool          Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
     #if WIN32
         return _getcwd(out, sz) != NULL;
-    #elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #else
         return getcwd(out, sz) != NULL;
     #endif
-    return false;
 }
 
 PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
-        sprintf(winPath, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
+        snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
         for (char* i = winPath; *i; i++) {
             if (*i == '/') *i = '\\';
@@ -78,14 +76,14 @@ PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char
 
                 if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
                     if (allDirs) {
-                        sprintf(fullpath, "%s\\%s", path, data.cFileName);
+                        snprintf(fullpath, sizeof fullpath, "%s\\%s", path, data.cFileName);
                         Directory::GetFiles(files, fullpath, searchPattern, true);
                     }
                 }
                 else if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
                     i = strlen(data.cFileName) + strlen(path) + 1;
                     char* str = (char*)calloc(1, i + 1);
-                    sprintf(str, "%s/%s", path, data.cFileName);
+                    snprintf(str, i + 1, "%s/%s", path, data.cFileName);
                     str[i] = 0;
                     for (char* istr = str; *istr; istr++) {
                         if (*istr == '\\') *istr = '/';
@@ -96,7 +94,7 @@ PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char
             while (FindNextFile(hFind, &data));
             FindClose(hFind);
         }
-    #elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #else
         char fullpath[MAX_PATH_SIZE];
         DIR* dir = opendir(path);
         if (dir) {
@@ -109,14 +107,14 @@ PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char
 
                 if (d->d_type == DT_DIR) {
                     if (allDirs) {
-                        sprintf(fullpath, "%s/%s", path, d->d_name);
+                        snprintf(fullpath, sizeof fullpath, "%s/%s", path, d->d_name);
                         Directory::GetFiles(files, fullpath, searchPattern, true);
                     }
                 }
                 else if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
                     i = strlen(d->d_name) + strlen(path) + 1;
                     char* str = (char*)calloc(1, i + 1);
-                    sprintf(str, "%s/%s", path, d->d_name);
+                    snprintf(str, i + 1, "%s/%s", path, d->d_name);
                     str[i] = 0;
 
                     files->push_back(str);
@@ -137,7 +135,7 @@ PUBLIC STATIC vector<char*> Directory::GetFiles(const char* path, const char* se
 PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
-        sprintf(winPath, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
+        snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
         for (char* i = winPath; *i; i++) {
             if (*i == '/') *i = '\\';
@@ -157,7 +155,7 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
                     if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
                         i = strlen(data.cFileName) + strlen(path) + 1;
                         char* str = (char*)calloc(1, i + 1);
-                        sprintf(str, "%s/%s", path, data.cFileName);
+                        snprintf(str, i + 1, "%s/%s", path, data.cFileName);
                         str[i] = 0;
                         for (char* istr = str; *istr; istr++) {
                             if (*istr == '\\') *istr = '/';
@@ -165,7 +163,7 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
                         files->push_back(str);
                     }
                     if (allDirs) {
-                        sprintf(fullpath, "%s\\%s", path, data.cFileName);
+                        snprintf(fullpath, sizeof fullpath, "%s\\%s", path, data.cFileName);
                         Directory::GetFiles(files, fullpath, searchPattern, true);
                     }
                 }
@@ -173,7 +171,7 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
             while (FindNextFile(hFind, &data));
             FindClose(hFind);
         }
-    #elif MACOSX || LINUX || SWITCH || IOS || ANDROID
+    #else
         char fullpath[MAX_PATH_SIZE];
         DIR* dir = opendir(path);
         if (dir) {
@@ -188,12 +186,12 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
                     if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
                         i = strlen(d->d_name) + strlen(path) + 1;
                         char* str = (char*)calloc(1, i + 1);
-                        sprintf(str, "%s/%s", path, d->d_name);
+                        snprintf(str, i + 1, "%s/%s", path, d->d_name);
                         str[i] = 0;
                         files->push_back(str);
                     }
                     if (allDirs) {
-                        sprintf(fullpath, "%s/%s", path, d->d_name);
+                        snprintf(fullpath, sizeof fullpath, "%s/%s", path, d->d_name);
                         Directory::GetFiles(files, fullpath, searchPattern, true);
                     }
                 }

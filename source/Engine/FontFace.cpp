@@ -249,7 +249,7 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
         }
 
         char testFilename[256];
-        sprintf(testFilename, "Fonts/%s_%d.bmp", filenameJustName, pixelSize);
+        snprintf(testFilename, sizeof testFilename, "Fonts/%s_%d.bmp", filenameJustName, pixelSize);
         strncpy(sprite->SpritesheetsFilenames[0], testFilename, 32);
 
         SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixelData, package->Width, package->Height, 32, package->Width * 4,
@@ -257,7 +257,7 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
         SDL_SaveBMP(surface, testFilename);
         SDL_FreeSurface(surface);
 
-        sprintf(testFilename, "Fonts/%s_%d.bin", filenameJustName, pixelSize);
+        snprintf(testFilename, sizeof testFilename, "Fonts/%s_%d.bin", filenameJustName, pixelSize);
         sprite->SaveAnimation(testFilename);
     }
 

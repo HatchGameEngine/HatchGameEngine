@@ -150,10 +150,10 @@ enum ObjType {
     OBJ_STREAM,
     OBJ_NAMESPACE,
     OBJ_ENUM,
-    OBJ_MODULE,
-
-    MAX_OBJ_TYPE
+    OBJ_MODULE
 };
+
+#define MAX_OBJ_TYPE (OBJ_MODULE + 1)
 
 typedef HashMap<VMValue> Table;
 

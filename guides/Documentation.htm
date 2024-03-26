@@ -5186,7 +5186,7 @@
         <li>model (Integer): The model index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The animation count. Will always return <code>0</code> for vertex-animated models.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Model_GetAnimationName">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationName</h2>
@@ -5215,13 +5215,13 @@
         <p id="Reference_functions_Model_GetFrameCount">
         <h2 style="margin-bottom: 8px;">Model.GetFrameCount</h2>
         <code>Model.GetFrameCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Integer): The model index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The frame count. Will always return <code>0</code> for skeletal-animated models.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Model_GetAnimationLength">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationLength</h2>
@@ -5400,7 +5400,7 @@
         <li>music (Integer): The music index to play.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the music is playing.</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Music_GetPosition">
         <h2 style="margin-bottom: 8px;">Music.GetPosition</h2>
@@ -5410,6 +5410,8 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to get the current position (in seconds) of.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Music_Alter">
         <h2 style="margin-bottom: 8px;">Music.Alter</h2>
@@ -5448,13 +5450,13 @@
         <p id="Reference_functions_Number_AsDecimal">
         <h2 style="margin-bottom: 8px;">Number.AsDecimal</h2>
         <code>Number.AsDecimal(n)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Converts a Integer to an Decimal.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a Integer to a Decimal.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>n (Number): Number value.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Decimal value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Object_Loaded">
         <h2 style="margin-bottom: 8px;">Object.Loaded</h2>
@@ -5800,13 +5802,13 @@
         <p id="Reference_functions_RSDK_Math_IntegerToRadian">
         <h2 style="margin-bottom: 8px;">RSDK.Math.IntegerToRadian</h2>
         <code>RSDK.Math.IntegerToRadian(integer)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the radian decimal conversion of an integer, based on 256.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the radia Decimal conversion of an integer, based on 256.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>integer (Integer): Integer value to convert.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">A radian decimal value of the converted integer.</div>
+        <div style="font-size: 14px;">A radia Decimal value of the converted integer.</div>
         </p>
         <p id="Reference_functions_RSDK_Matrix_Create256">
         <h2 style="margin-bottom: 8px;">RSDK.Matrix.Create256</h2>
@@ -7762,7 +7764,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_Loop">
         <h2 style="margin-bottom: 8px;">Sound.Loop</h2>
@@ -7777,7 +7779,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_Stop">
         <h2 style="margin-bottom: 8px;">Sound.Stop</h2>
@@ -7829,6 +7831,8 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Sound_PlayMultiple">
         <h2 style="margin-bottom: 8px;">Sound.PlayMultiple</h2>
@@ -7842,7 +7846,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_LoopMultiple">
         <h2 style="margin-bottom: 8px;">Sound.LoopMultiple</h2>
@@ -7857,7 +7861,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_PlayAtChannel">
         <h2 style="margin-bottom: 8px;">Sound.PlayAtChannel</h2>
@@ -8624,13 +8628,13 @@
         <p id="Reference_functions_String_ParseDecimal">
         <h2 style="margin-bottom: 8px;">String.ParseDecimal</h2>
         <code>String.ParseDecimal(string)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Decimal value if possible.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to a Decimal value if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>string (String): The string to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the value as an Decimal.</div>
+        <div style="font-size: 14px;">Returns the value as a Decimal.</div>
         </p>
         <p id="Reference_functions_Texture_Create">
         <h2 style="margin-bottom: 8px; color: red;">Texture.Create</h2>

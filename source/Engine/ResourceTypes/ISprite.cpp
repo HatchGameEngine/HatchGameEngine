@@ -7,6 +7,8 @@ class ISprite {
 public:
     char              Filename[256];
 
+    bool              LoadFailed;
+
     Texture*          Spritesheets[32];
     bool              SpritesheetsBorrowed[32];
     char              SpritesheetsFilenames[128][32];
@@ -41,6 +43,7 @@ PUBLIC ISprite::ISprite() {
     memset(Spritesheets, 0, sizeof(Spritesheets));
     memset(SpritesheetsBorrowed, 0, sizeof(SpritesheetsBorrowed));
     memset(Filename, 0, 256);
+    LoadFailed = true;
 }
 PUBLIC ISprite::ISprite(const char* filename) {
     memset(Spritesheets, 0, sizeof(Spritesheets));
@@ -48,7 +51,7 @@ PUBLIC ISprite::ISprite(const char* filename) {
     memset(Filename, 0, 256);
 
     strncpy(Filename, filename, 255);
-    LoadAnimation(Filename);
+    LoadFailed = !LoadAnimation(Filename);
 }
 
 PUBLIC STATIC Texture* ISprite::AddSpriteSheet(const char* filename) {
@@ -224,7 +227,7 @@ PUBLIC void ISprite::ConvertToPalette(unsigned paletteNumber) {
 
 PUBLIC bool ISprite::LoadAnimation(const char* filename) {
     char* str, altered[4096];
-    int animationCount, previousAnimationCount, frameCount;
+    int animationCount, previousAnimationCount;
 
     Stream* reader = ResourceStream::New(filename);
     if (!reader) {
@@ -266,7 +269,7 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 
         strcpy(SpritesheetsFilenames[i], str);
 
-        sprintf(altered, "Sprites/%s", str);
+        snprintf(altered, sizeof altered, "Sprites/%s", str);
         Memory::Free(str);
 
         if (Graphics::SpriteSheetTextureMap->Exists(altered))

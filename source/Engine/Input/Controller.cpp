@@ -86,20 +86,22 @@ PRIVATE STATIC ControllerType Controller::DetermineType(void* gamecontroller) {
             return ControllerType::PS4;
         case SDL_CONTROLLER_TYPE_PS5:
             return ControllerType::PS5;
-        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
-            return ControllerType::SwitchJoyConLeft;
-        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
-            return ControllerType::SwitchJoyConRight;
-        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
-            return ControllerType::SwitchJoyConPair;
         case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
             return ControllerType::SwitchPro;
         case SDL_CONTROLLER_TYPE_GOOGLE_STADIA:
             return ControllerType::Stadia;
         case SDL_CONTROLLER_TYPE_AMAZON_LUNA:
             return ControllerType::AmazonLuna;
+#if SDL_VERSION_ATLEAST(2,24,0)
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+            return ControllerType::SwitchJoyConLeft;
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+            return ControllerType::SwitchJoyConRight;
+        case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_JOYCON_PAIR:
+            return ControllerType::SwitchJoyConPair;
         case SDL_CONTROLLER_TYPE_NVIDIA_SHIELD:
             return ControllerType::NvidiaShield;
+#endif
         case SDL_CONTROLLER_TYPE_UNKNOWN:
             return ControllerType::Unknown;
         default:

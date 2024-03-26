@@ -450,85 +450,113 @@ PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
     return !KeyboardState[scancode] && KeyboardStateLast[scancode];
 }
 
-#define GET_CONTROLLER(ret) \
-    if (index < 0 || index >= InputManager::NumControllers) \
-        return ret; \
-    Controller* controller = InputManager::Controllers[index]; \
-    if (!controller) return ret
+PRIVATE STATIC Controller* InputManager::GetController(int index) {
+    if (index >= 0 && index < InputManager::NumControllers) {
+        return InputManager::Controllers[index];
+    }
+    return nullptr;
+}
 
 PUBLIC STATIC bool  InputManager::ControllerIsConnected(int index) {
-    GET_CONTROLLER(false);
-    return controller->Connected;
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->Connected;
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsXbox(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsXbox();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsXbox();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsPlayStation(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsPlayStation();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsXbox();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsJoyCon(int index) {
-    GET_CONTROLLER(false);
-    return controller->IsJoyCon();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsJoyCon();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasShareButton(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasShareButton();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasShareButton();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasMicrophoneButton(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasMicrophoneButton();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasMicrophoneButton();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerHasPaddles(int index) {
-    GET_CONTROLLER(false);
-    return controller->HasPaddles();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->HasPaddles();
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsButtonHeld(int index, int button) {
-    GET_CONTROLLER(false);
-    return controller->IsButtonHeld(button);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsButtonHeld(button);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsButtonPressed(int index, int button) {
-    GET_CONTROLLER(false);
-    return controller->IsButtonPressed(button);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->IsButtonPressed(button);
+    return false;
 }
 PUBLIC STATIC float InputManager::ControllerGetAxis(int index, int axis) {
-    GET_CONTROLLER(0.0f);
-    return controller->GetAxis(axis);
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->GetAxis(axis);
+    return 0.0f;
 }
 PUBLIC STATIC int   InputManager::ControllerGetType(int index) {
-    GET_CONTROLLER((int)ControllerType::Unknown);
-    return (int)controller->Type;
+    Controller* controller = GetController(index);
+    if (controller)
+        return (int)controller->Type;
+    return (int)ControllerType::Unknown;
 }
 PUBLIC STATIC char* InputManager::ControllerGetName(int index) {
-    GET_CONTROLLER(nullptr);
-    return controller->GetName();
+    Controller* controller = GetController(index);
+    if (controller)
+        return controller->GetName();
+    return nullptr;
 }
 PUBLIC STATIC void  InputManager::ControllerSetPlayerIndex(int index, int player_index) {
-    GET_CONTROLLER();
-    controller->SetPlayerIndex(player_index);
+    Controller* controller = GetController(index);
+    if (controller)
+        controller->SetPlayerIndex(player_index);
 }
 PUBLIC STATIC bool  InputManager::ControllerHasRumble(int index) {
-    GET_CONTROLLER(false);
-    return controller->Rumble != nullptr;
+    Controller* controller = GetController(index);
+    return controller && controller->Rumble;
 }
 PUBLIC STATIC bool  InputManager::ControllerIsRumbleActive(int index) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Active;
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Active;
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float large_frequency, float small_frequency, int duration) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Enable(large_frequency, small_frequency, (Uint32)duration);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Enable(large_frequency, small_frequency, (Uint32)duration);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerRumble(int index, float strength, int duration) {
     return InputManager::ControllerRumble(index, strength, strength, duration);
 }
 PUBLIC STATIC void  InputManager::ControllerStopRumble(int index) {
-    GET_CONTROLLER();
-    if (!controller->Rumble) return;
-    controller->Rumble->Stop();
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        controller->Rumble->Stop();
 }
 PUBLIC STATIC void  InputManager::ControllerStopRumble() {
     for (int i = 0; i < InputManager::NumControllers; i++) {
@@ -541,27 +569,28 @@ PUBLIC STATIC void  InputManager::ControllerStopRumble() {
     }
 }
 PUBLIC STATIC bool  InputManager::ControllerIsRumblePaused(int index) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->Paused;
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->Paused;
+    return false;
 }
 PUBLIC STATIC void  InputManager::ControllerSetRumblePaused(int index, bool paused) {
-    GET_CONTROLLER();
-    if (!controller->Rumble) return;
-    controller->Rumble->SetPaused(paused);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        controller->Rumble->SetPaused(paused);
 }
 PUBLIC STATIC bool  InputManager::ControllerSetLargeMotorFrequency(int index, float frequency) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->SetLargeMotorFrequency(frequency);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->SetLargeMotorFrequency(frequency);
+    return false;
 }
 PUBLIC STATIC bool  InputManager::ControllerSetSmallMotorFrequency(int index, float frequency) {
-    GET_CONTROLLER(false);
-    if (!controller->Rumble) return false;
-    return controller->Rumble->SetSmallMotorFrequency(frequency);
+    Controller* controller = GetController(index);
+    if (controller && controller->Rumble)
+        return controller->Rumble->SetSmallMotorFrequency(frequency);
+    return false;
 }
-
-#undef GET_CONTROLLER
 
 PUBLIC STATIC float InputManager::TouchGetX(int touch_index) {
     TouchState* states = (TouchState*)TouchStates;

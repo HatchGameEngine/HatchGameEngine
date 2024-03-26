@@ -240,32 +240,31 @@ namespace LOCAL {
         return value;
     }
 
-    inline ISprite*        GetSprite(VMValue* args, int index, Uint32 threadID) {
-        int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::SpriteList.size()) {
+    inline ISprite*        GetSpriteIndex(int where, Uint32 threadID) {
+        if (where < 0 || where >= (int)Scene::SpriteList.size()) {
             if (THROW_ERROR(
                 "Sprite index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::SpriteList[where]) return NULL;
 
         return Scene::SpriteList[where]->AsSprite;
     }
-    inline ISprite*        GetSpriteIndex(int index) {
-        if (index < 0 || index > (int)Scene::SpriteList.size() || !Scene::SpriteList[index])
-            return NULL;
-
-        if (!Scene::SpriteList[index]) return NULL;
-
-        return Scene::SpriteList[index]->AsSprite;
+    inline ISprite*        GetSprite(VMValue* args, int index, Uint32 threadID) {
+        int where = GetInteger(args, index, threadID);
+        return GetSpriteIndex(where, threadID);
     }
     inline Image*         GetImage(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::ImageList.size()) {
+        if (where < 0 || where >= (int)Scene::ImageList.size()) {
             if (THROW_ERROR(
                 "Image index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::ImageList[where]) return NULL;
@@ -274,10 +273,12 @@ namespace LOCAL {
     }
     inline GameTexture*   GetTexture(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::TextureList.size()) {
+        if (where < 0 || where >= (int)Scene::TextureList.size()) {
             if (THROW_ERROR(
                 "Texture index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::TextureList[where]) return NULL;
@@ -286,10 +287,12 @@ namespace LOCAL {
     }
     inline ISound*         GetSound(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::SoundList.size()) {
+        if (where < 0 || where >= (int)Scene::SoundList.size()) {
             if (THROW_ERROR(
                 "Sound index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::SoundList[where]) return NULL;
@@ -298,10 +301,12 @@ namespace LOCAL {
     }
     inline ISound*         GetMusic(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where >(int)Scene::MusicList.size()) {
+        if (where < 0 || where >= (int)Scene::MusicList.size()) {
             if (THROW_ERROR(
                 "Music index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::MusicList[where]) return NULL;
@@ -310,10 +315,12 @@ namespace LOCAL {
     }
     inline IModel*         GetModel(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::ModelList.size()) {
+        if (where < 0 || where >= (int)Scene::ModelList.size()) {
             if (THROW_ERROR(
                 "Model index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::ModelList[where]) return NULL;
@@ -322,10 +329,12 @@ namespace LOCAL {
     }
     inline MediaBag*       GetVideo(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::MediaList.size()) {
+        if (where < 0 || where >= (int)Scene::MediaList.size()) {
             if (THROW_ERROR(
                 "Video index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
                 ScriptManager::Threads[threadID].ReturnFromNative();
+
+            return NULL;
         }
 
         if (!Scene::MediaList[where]) return NULL;
@@ -334,8 +343,13 @@ namespace LOCAL {
     }
     inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
         int where = GetInteger(args, index, threadID);
-        if (where < 0 || where > (int)Scene::AnimatorList.size())
+        if (where < 0 || where >= (int)Scene::AnimatorList.size()) {
+            if (THROW_ERROR(
+                "Animator index \"%d\" outside bounds of list.", where) == ERROR_RES_CONTINUE)
+                ScriptManager::Threads[threadID].ReturnFromNative();
+
             return NULL;
+        }
 
         if (!Scene::AnimatorList[where]) return NULL;
 
@@ -523,7 +537,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     ISprite* sprite = Scene::SpriteList[spriteIndex]->AsSprite;
-    if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
+    if (!sprite || animationID < 0 || animationID >= (int)sprite->Animations.size()) {
         animator->CurrentAnimation = -1;
         return NULL_VAL;
     }
@@ -566,10 +580,10 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
     if (!animator || !animator->Frames.size())
         return NULL_VAL;
 
-    if (animator->Sprite < 0 || animator->Sprite >= (int)Scene::SpriteList.size())
+    ISprite* sprite = Scene::GetSpriteResource(animator->Sprite);
+    if (!sprite)
         return NULL_VAL;
 
-    ISprite* sprite = Scene::SpriteList[animator->Sprite]->AsSprite;
     if (animator->CurrentAnimation < 0 || animator->CurrentAnimation >= (int)sprite->Animations.size()
         || animator->CurrentFrame < 0 || animator->CurrentFrame >= (int)sprite->Animations[animator->CurrentAnimation].Frames.size()) {
         return NULL_VAL;
@@ -2094,7 +2108,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     Entity* entity          = (Entity*)instance->EntityPtr;
-    ISprite* sprite         = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite));
+    ISprite* sprite         = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite, threadID));
     float rotation          = 0.0f;
 
     if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
@@ -2143,7 +2157,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
 
     if (animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
-        ISprite* sprite = GetSpriteIndex(animator->Sprite);
+        ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
         if (!sprite)
             return NULL_VAL;
 
@@ -2177,14 +2191,17 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
     Animator* animator      = GET_ARG(0, GetAnimator);
     ObjInstance* instance   = GET_ARG(1, GetInstance);
     Entity* entity          = (Entity*)instance->EntityPtr;
-    ISprite* sprite         = (argCount > 2) ? GetSpriteIndex(GET_ARG(2, GetInteger)) : GetSpriteIndex(animator->Sprite);
+    ISprite* sprite         = (argCount > 2) ? GET_ARG(2, GetSprite) : GetSpriteIndex(animator->Sprite, threadID);
     float rotation          = 0.0f;
 
     if (!animator || !animator->Frames.size())
         return NULL_VAL;
 
     if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
-        ISprite* sprite = GetSpriteIndex(animator->Sprite);
+        ISprite* animatorSprite = GetSpriteIndex(animator->Sprite, threadID);
+        if (animatorSprite)
+            sprite = animatorSprite;
+
         if (!sprite)
             return NULL_VAL;
 
@@ -2279,7 +2296,8 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(1, GetDecimal);
     float y = GET_ARG(2, GetDecimal);
 
-    Graphics::DrawTexture(image->TexturePtr, 0, 0, image->TexturePtr->Width, image->TexturePtr->Height, x, y, image->TexturePtr->Width, image->TexturePtr->Height);
+    if (image)
+        Graphics::DrawTexture(image->TexturePtr, 0, 0, image->TexturePtr->Width, image->TexturePtr->Height, x, y, image->TexturePtr->Width, image->TexturePtr->Height);
     return NULL_VAL;
 }
 /***
@@ -2305,7 +2323,8 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
     float x = GET_ARG(5, GetDecimal);
     float y = GET_ARG(6, GetDecimal);
 
-    Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh);
+    if (image)
+        Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh);
     return NULL_VAL;
 }
 /***
@@ -2327,7 +2346,8 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
     float w = GET_ARG(3, GetDecimal);
     float h = GET_ARG(4, GetDecimal);
 
-    Graphics::DrawTexture(image->TexturePtr, 0, 0, image->TexturePtr->Width, image->TexturePtr->Height, x, y, w, h);
+    if (image)
+        Graphics::DrawTexture(image->TexturePtr, 0, 0, image->TexturePtr->Width, image->TexturePtr->Height, x, y, w, h);
     return NULL_VAL;
 }
 /***
@@ -2357,7 +2377,8 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
     float w = GET_ARG(7, GetDecimal);
     float h = GET_ARG(8, GetDecimal);
 
-    Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
+    if (image)
+        Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
     return NULL_VAL;
 }
 /***
@@ -2774,6 +2795,9 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(1, GetSprite);
     char*    text   = GET_ARG(2, GetString);
 
+    if (!sprite)
+        return NULL_VAL;
+
     float x = 0.0, y = 0.0;
     float maxW = 0.0, maxH = 0.0;
     float lineHeight = sprite->Animations[0].FrameToLoop;
@@ -2824,6 +2848,9 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
     int      maxLines = 0x7FFFFFFF;
     if (argCount > 4)
         maxLines = GET_ARG(4, GetInteger);
+
+    if (!sprite)
+        return NULL_VAL;
 
     int word = 0;
     char* linestart = text;
@@ -2908,6 +2935,9 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
     float*   lineWidths;
     int      line = 0;
 
+    if (!sprite)
+        return NULL_VAL;
+
     // Count lines
     for (char* i = text; *i; i++) {
         if (*i == '\n') {
@@ -2982,6 +3012,9 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
     int      maxLines = 0x7FFFFFFF;
     if (argCount > 5)
         maxLines = GET_ARG(5, GetInteger);
+
+    if (!sprite)
+        return NULL_VAL;
 
     float    x = basex;
     float    y = basey;
@@ -3081,6 +3114,9 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
     float    x = GET_ARG(2, GetDecimal);
     float    y = GET_ARG(3, GetDecimal);
     float    maxwidth = GET_ARG(4, GetDecimal);
+
+    if (!sprite)
+        return NULL_VAL;
 
     float    elpisswidth = sprite->Animations[0].Frames['.'].Advance * 3;
 
@@ -3596,18 +3632,20 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(7);
 
     Image* image = GET_ARG(0, GetImage);
+    if (image) {
+        // TODO: Implement for GL renderer
+        SoftwareRenderer::DrawTriangleTextured(image->TexturePtr,
+            GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
+            GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
+            GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
+            GET_ARG_OPT(7, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(8, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(10, GetDecimal, 0.0), GET_ARG_OPT(11, GetDecimal, 0.0),
+            GET_ARG_OPT(12, GetDecimal, 1.0), GET_ARG_OPT(13, GetDecimal, 0.0),
+            GET_ARG_OPT(14, GetDecimal, 1.0), GET_ARG_OPT(15, GetDecimal, 1.0));
+    }
 
-    // TODO: Implement for GL renderer
-    SoftwareRenderer::DrawTriangleTextured(image->TexturePtr,
-        GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
-        GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
-        GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
-        GET_ARG_OPT(7, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(8, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(10, GetDecimal, 0.0), GET_ARG_OPT(11, GetDecimal, 0.0),
-        GET_ARG_OPT(12, GetDecimal, 1.0), GET_ARG_OPT(13, GetDecimal, 0.0),
-        GET_ARG_OPT(14, GetDecimal, 1.0), GET_ARG_OPT(15, GetDecimal, 1.0));
     return NULL_VAL;
 }
 /***
@@ -3640,21 +3678,23 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(9);
 
     Image* image = GET_ARG(0, GetImage);
+    if (image) {
+        // TODO: Implement for GL renderer
+        SoftwareRenderer::DrawQuadTextured(image->TexturePtr,
+            GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
+            GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
+            GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
+            GET_ARG(7, GetDecimal), GET_ARG(8, GetDecimal),
+            GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(10, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(11, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(12, GetInteger, 0xFFFFFF),
+            GET_ARG_OPT(13, GetDecimal, 0.0), GET_ARG_OPT(14, GetDecimal, 0.0),
+            GET_ARG_OPT(15, GetDecimal, 1.0), GET_ARG_OPT(16, GetDecimal, 0.0),
+            GET_ARG_OPT(17, GetDecimal, 1.0), GET_ARG_OPT(18, GetDecimal, 1.0),
+            GET_ARG_OPT(19, GetDecimal, 0.0), GET_ARG_OPT(20, GetDecimal, 1.0));
+    }
 
-    // TODO: Implement for GL renderer
-    SoftwareRenderer::DrawQuadTextured(image->TexturePtr,
-        GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal),
-        GET_ARG(3, GetDecimal), GET_ARG(4, GetDecimal),
-        GET_ARG(5, GetDecimal), GET_ARG(6, GetDecimal),
-        GET_ARG(7, GetDecimal), GET_ARG(8, GetDecimal),
-        GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(10, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(11, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(12, GetInteger, 0xFFFFFF),
-        GET_ARG_OPT(13, GetDecimal, 0.0), GET_ARG_OPT(14, GetDecimal, 0.0),
-        GET_ARG_OPT(15, GetDecimal, 1.0), GET_ARG_OPT(16, GetDecimal, 0.0),
-        GET_ARG_OPT(17, GetDecimal, 1.0), GET_ARG_OPT(18, GetDecimal, 1.0),
-        GET_ARG_OPT(19, GetDecimal, 0.0), GET_ARG_OPT(20, GetDecimal, 1.0));
     return NULL_VAL;
 }
 /***
@@ -4116,7 +4156,8 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
         PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
 
-    Graphics::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+    if (model)
+        Graphics::DrawModel(model, animation, frame, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -4149,7 +4190,8 @@ VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
         PrepareMatrix(&matrixNormal, matrixNormalArr);
     }
 
-    Graphics::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
+    if (model)
+        Graphics::DrawModelSkinned(model, armature, matrixModelArr ? &matrixModel : NULL, matrixNormalArr ? &matrixNormal : NULL);
 
     return NULL_VAL;
 }
@@ -4460,6 +4502,9 @@ VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
 
     GET_MATRICES(4);
 
+    if (!image)
+        return NULL_VAL;
+
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
 
@@ -4495,6 +4540,9 @@ VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
     int sh = (int)GET_ARG(7, GetDecimal);
 
     GET_MATRICES(8);
+
+    if (!image)
+        return NULL_VAL;
 
     Texture* texture = image->TexturePtr;
     VertexAttribute data[4];
@@ -4576,7 +4624,6 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
     VertexAttribute data[3];
 
     Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
 
     VERTEX_ARGS(3, 1);
     VERTEX_COLOR_ARGS(3);
@@ -4594,7 +4641,8 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     GET_MATRICES(argOffset);
 
-    DrawPolygon3D(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    if (image)
+        DrawPolygon3D(data, 3, VertexType_Position | VertexType_UV | VertexType_Color, image->TexturePtr, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -4635,7 +4683,6 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
     VertexAttribute data[4];
 
     Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
 
     VERTEX_ARGS(4, 1);
     VERTEX_COLOR_ARGS(4);
@@ -4655,7 +4702,8 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
     GET_MATRICES(argOffset);
 
-    DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, texture, matrixModelArr, matrixNormalArr);
+    if (image)
+        DrawPolygon3D(data, 4, VertexType_Position | VertexType_UV | VertexType_Color, image->TexturePtr, matrixModelArr, matrixNormalArr);
     return NULL_VAL;
 }
 /***
@@ -5527,8 +5575,11 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
-    return INTEGER_VAL((int)texture->Width);
+    if (image) {
+        Texture* texture = image->TexturePtr;
+        return INTEGER_VAL((int)texture->Width);
+    }
+    return INTEGER_VAL(0);
 }
 /***
  * Image.GetHeight
@@ -5540,8 +5591,11 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     Image* image = GET_ARG(0, GetImage);
-    Texture* texture = image->TexturePtr;
-    return INTEGER_VAL((int)texture->Height);
+    if (image) {
+        Texture* texture = image->TexturePtr;
+        return INTEGER_VAL((int)texture->Height);
+    }
+    return INTEGER_VAL(0);
 }
 // #endregion
 
@@ -6779,9 +6833,9 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Math.IntegerToRadian
- * \desc Gets the radian decimal conversion of an integer, based on 256.
+ * \desc Gets the radia Decimal conversion of an integer, based on 256.
  * \param integer (Integer): Integer value to convert.
- * \return A radian decimal value of the converted integer.
+ * \return A radia Decimal value of the converted integer.
  * \ns RSDK.Math
  */
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
@@ -7364,18 +7418,22 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(0);
     return INTEGER_VAL((int)model->VertexCount);
 }
 /***
  * Model.GetAnimationCount
  * \desc Returns how many animations exist in the model.
  * \param model (Integer): The model index to check.
- * \return The animation count. Will always return <code>0</code> for vertex-animated models.
+ * \return Returns an Integer value.
  * \ns Model
  */
 VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(0);
     return INTEGER_VAL((int)model->AnimationCount);
 }
 /***
@@ -7392,7 +7450,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     IModel* model = GET_ARG(0, GetModel);
     int animation = GET_ARG(1, GetInteger);
 
-    if (model->AnimationCount == 0)
+    if (!model || model->AnimationCount == 0)
         return NULL_VAL;
 
     CHECK_MODEL_ANIMATION_INDEX(animation);
@@ -7414,20 +7472,24 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(-1);
     char* animationName = GET_ARG(1, GetString);
     return INTEGER_VAL(model->GetAnimationIndex(animationName));
 }
 /***
  * Model.GetFrameCount
- * \desc Returns how many frames exist in the model.
+ * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="Model.GetAnimationLength"></linkto> instead.)
  * \param model (Integer): The model index to check.
- * \return The frame count. Will always return <code>0</code> for skeletal-animated models.
+ * \return Returns an Integer value.
  * \ns Model
  */
 VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
-    return INTEGER_VAL((int)model->FrameCount);
+    if (!model)
+        return INTEGER_VAL(0);
+    return INTEGER_VAL((int)model->Meshes[0]->FrameCount);
 }
 /***
  * Model.GetAnimationLength
@@ -7441,6 +7503,8 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int animation = GET_ARG(1, GetInteger);
+    if (!model)
+        return INTEGER_VAL(0);
     CHECK_MODEL_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)model->Animations[animation]->Length);
 }
@@ -7454,6 +7518,8 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(0);
     return INTEGER_VAL((int)model->HasMaterials());
 }
 /***
@@ -7466,6 +7532,8 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(0);
     return INTEGER_VAL((int)model->HasBones());
 }
 /***
@@ -7478,6 +7546,8 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(-1);
     return INTEGER_VAL(model->NewArmature());
 }
 /***
@@ -7494,6 +7564,9 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int armature = GET_ARG(1, GetInteger);
+
+    if (!model)
+        return NULL_VAL;
 
     CHECK_ARMATURE_INDEX(armature);
 
@@ -7525,6 +7598,8 @@ VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int armature = GET_ARG(1, GetInteger);
+    if (!model)
+        return NULL_VAL;
     CHECK_ARMATURE_INDEX(armature);
     model->ArmatureList[armature]->Reset();
     return NULL_VAL;
@@ -7541,6 +7616,8 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     IModel* model = GET_ARG(0, GetModel);
     int armature = GET_ARG(1, GetInteger);
+    if (!model)
+        return NULL_VAL;
     CHECK_ARMATURE_INDEX(armature);
     model->DeleteArmature((size_t)armature);
     return NULL_VAL;
@@ -7570,8 +7647,8 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
     float fadeInAfterFinished = GET_ARG_OPT(4, GetDecimal, 0.0f);
     if (fadeInAfterFinished < 0.f)
         fadeInAfterFinished = 0.f;
-
-    AudioManager::PushMusicAt(audio, 0.0, false, 0, panning, speed, volume, fadeInAfterFinished);
+    if (audio)
+        AudioManager::PushMusicAt(audio, 0.0, false, 0, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
@@ -7595,8 +7672,8 @@ VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
     float fadeInAfterFinished = GET_ARG_OPT(5, GetDecimal, 0.0f);
     if (fadeInAfterFinished < 0.f)
         fadeInAfterFinished = 0.f;
-
-    AudioManager::PushMusicAt(audio, start_point, false, 0, panning, speed, volume, fadeInAfterFinished);
+    if (audio)
+        AudioManager::PushMusicAt(audio, start_point, false, 0, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
@@ -7608,7 +7685,8 @@ VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetMusic);
-    AudioManager::RemoveMusic(audio);
+    if (audio)
+        AudioManager::RemoveMusic(audio);
     return NULL_VAL;
 }
 /***
@@ -7686,8 +7764,8 @@ VMValue Music_Loop(int argCount, VMValue* args, Uint32 threadID) {
     float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
     if (fadeInAfterFinished < 0.f)
         fadeInAfterFinished = 0.f;
-
-    AudioManager::PushMusic(audio, true, loop_point, panning, speed, volume, fadeInAfterFinished);
+    if (audio)
+        AudioManager::PushMusic(audio, true, loop_point, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
@@ -7715,31 +7793,36 @@ VMValue Music_LoopAtTime(int argCount, VMValue* args, Uint32 threadID) {
     float fadeInAfterFinished = GET_ARG_OPT(7, GetDecimal, 0.0f);
     if (fadeInAfterFinished < 0.f)
         fadeInAfterFinished = 0.f;
-
-    AudioManager::PushMusicAt(audio, start_point, true, loop_point, panning, speed, volume, fadeInAfterFinished);
+    if (audio)
+        AudioManager::PushMusicAt(audio, start_point, true, loop_point, panning, speed, volume, fadeInAfterFinished);
     return NULL_VAL;
 }
 /***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
  * \param music (Integer): The music index to play.
- * \return Returns whether or not the music is playing.
+ * \return Returns a Boolean value.
  * \ns Music
  */
 VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetMusic);
+    if (!audio)
+        return INTEGER_VAL(0);
     return INTEGER_VAL(AudioManager::IsPlayingMusic(audio));
 }
 /***
  * Music.GetPosition
  * \desc Gets the position of the current track playing.
  * \param music (Integer): The music index to get the current position (in seconds) of.
+ * \return Returns a Decimal value.
  * \ns Music
  */
 VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetMusic);
+    if (!audio)
+        return DECIMAL_VAL(0.0);
     return DECIMAL_VAL((float)AudioManager::GetMusicPosition(audio));
 }
 /***
@@ -7827,9 +7910,9 @@ VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Number.AsDecimal
- * \desc Converts a Integer to an Decimal.
+ * \desc Converts a Integer to a Decimal.
  * \param n (Number): Number value.
- * \return Returns an Decimal value.
+ * \return Returns a Decimal value.
  * \ns Number
  */
 VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
@@ -8080,9 +8163,13 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int palIndex = GET_ARG(0, GetInteger);
     Image* image = GET_ARG(1, GetImage);
-    Texture* texture = image->TexturePtr;
 
     CHECK_PALETTE_INDEX(palIndex);
+
+    if (!image)
+        return NULL_VAL;
+
+    Texture* texture = image->TexturePtr;
 
     size_t x = 0;
 
@@ -8354,26 +8441,6 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 // #endregion
 
 // #region Resources
-// return true if we found it in the list
-bool    GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t* index, bool* foundEmpty) {
-    *foundEmpty = false;
-    *index = list->size();
-    for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
-        if (!(*list)[i]) {
-            if (!(*foundEmpty)) {
-                *foundEmpty = true;
-                *index = i;
-            }
-            continue;
-        }
-        if ((*list)[i]->FilenameHash == resource->FilenameHash) {
-            *index = i;
-            delete resource;
-            return true;
-        }
-    }
-    return false;
-}
 /***
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
@@ -8391,14 +8458,17 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::SpriteList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    // FIXME: This needs to return -1 if LoadAnimation fails.
     resource->AsSprite = new (std::nothrow) ISprite(filename);
+    if (resource->AsSprite->LoadFailed) {
+        delete resource->AsSprite;
+        delete resource;
+        (*list)[index] = NULL;
+        return INTEGER_VAL(-1);
+    }
     return INTEGER_VAL((int)index);
 }
 /***
@@ -8450,11 +8520,9 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::ImageList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     resource->AsImage = new (std::nothrow) Image(filename);
     if (!resource->AsImage->TexturePtr) {
@@ -8485,14 +8553,13 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(2, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::SpriteList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     ResourceStream* stream = ResourceStream::New(filename);
     if (!stream) {
+        delete resource;
         (*list)[index] = NULL;
         return INTEGER_VAL(-1);
     }
@@ -8518,15 +8585,14 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::ModelList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     ResourceStream* stream = ResourceStream::New(filename);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
+        delete resource;
         (*list)[index] = NULL;
         return INTEGER_VAL(-1);
     }
@@ -8560,13 +8626,17 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::MusicList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     resource->AsMusic = new (std::nothrow) ISound(filename);
+    if (resource->AsMusic->LoadFailed) {
+        delete resource->AsMusic;
+        delete resource;
+        (*list)[index] = NULL;
+        return INTEGER_VAL(-1);
+    }
     return INTEGER_VAL((int)index);
 }
 /***
@@ -8586,13 +8656,17 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
     resource->UnloadPolicy = GET_ARG(1, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::SoundList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
     resource->AsSound = new (std::nothrow) ISound(filename);
+    if (resource->AsSound->LoadFailed) {
+        delete resource->AsSound;
+        delete resource;
+        (*list)[index] = NULL;
+        return INTEGER_VAL(-1);
+    }
     return INTEGER_VAL((int)index);
 }
 /***
@@ -8606,19 +8680,18 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
+#ifdef USING_FFMPEG
     ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    resource->UnloadPolicy = unloadPolicy;
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::MediaList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    #ifdef USING_FFMPEG
     Texture* VideoTexture = NULL;
     MediaSource* Source = NULL;
     MediaPlayer* Player = NULL;
@@ -8683,8 +8756,9 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 
     resource->AsMedia = newMediaBag;
     return INTEGER_VAL((int)index);
-    #endif
+#else
     return INTEGER_VAL(-1);
+#endif
 }
 /***
  * Resources.FileExists
@@ -12002,7 +12076,7 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Sound
  */
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
@@ -12011,8 +12085,11 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-    AudioManager::AudioStop(audio);
-    int channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
+    int channel = -1;
+    if (audio) {
+        AudioManager::AudioStop(audio);
+        channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
+    }
     return INTEGER_VAL(channel);
 }
 /***
@@ -12023,7 +12100,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Sound
  */
 VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
@@ -12033,49 +12110,50 @@ VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-    AudioManager::AudioStop(audio);
-    int channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
+    int channel = -1;
+    if (audio) {
+        AudioManager::AudioStop(audio);
+        channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
+    }
     return INTEGER_VAL(channel);
 }
 /***
  * Sound.Stop
  * \desc Stops an actively playing sound.
  * \param sound (Integer): The sound index to stop.
- * \return
  * \ns Sound
  */
 VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-
     ISound* audio = GET_ARG(0, GetSound);
-
-    AudioManager::AudioStop(audio);
+    if (audio)
+        AudioManager::AudioStop(audio);
     return NULL_VAL;
 }
 /***
  * Sound.Pause
  * \desc Pauses an actively playing sound.
  * \param sound (Integer): The sound index to pause.
- * \return
  * \ns Sound
  */
 VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetSound);
-    AudioManager::AudioPause(audio);
+    if (audio)
+        AudioManager::AudioPause(audio);
     return NULL_VAL;
 }
 /***
  * Sound.Resume
  * \desc Unpauses a paused sound.
  * \param sound (Integer): The sound index to resume.
- * \return
  * \ns Sound
  */
 VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetSound);
-    AudioManager::AudioUnpause(audio);
+    if (audio)
+        AudioManager::AudioUnpause(audio);
     return NULL_VAL;
 }
 /***
@@ -12112,11 +12190,14 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
  * Sound.IsPlaying
  * \param sound (Integer): The sound index.
  * \desc Checks whether a sound is currently playing or not.
+ * \return Returns a Boolean value.
  * \ns Sound
  */
 VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISound* audio = GET_ARG(0, GetSound);
+    if (!audio)
+        return INTEGER_VAL(0);
     return INTEGER_VAL(AudioManager::AudioIsPlaying(audio));
 }
 /***
@@ -12126,7 +12207,7 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Sound
  */
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
@@ -12135,7 +12216,10 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-    int channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
+    int channel = -1;
+    if (audio) {
+        channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
+    }
     return INTEGER_VAL(channel);
 }
 /***
@@ -12146,7 +12230,7 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Sound
  */
 VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
@@ -12156,7 +12240,10 @@ VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
     float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-    int channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
+    int channel = -1;
+    if (audio) {
+        channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, nullptr);
+    }
     return INTEGER_VAL(channel);
 }
 /***
@@ -12181,7 +12268,8 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
         THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
-    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, false, 0, panning, speed, volume, nullptr);
+    if (audio)
+        AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, false, 0, panning, speed, volume, nullptr);
     return NULL_VAL;
 }
 /***
@@ -12208,7 +12296,8 @@ VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
         THROW_ERROR("Invalid channel index %d.", channel);
         return NULL_VAL;
     }
-    AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, true, loopPoint, panning, speed, volume, nullptr);
+    if (audio)
+        AudioManager::SetSound(channel % AudioManager::SoundArrayLength, audio, true, loopPoint, panning, speed, volume, nullptr);
     return NULL_VAL;
 }
 /***
@@ -12334,6 +12423,8 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISprite* sprite = GET_ARG(0, GetSprite);
+    if (!sprite)
+        return INTEGER_VAL(0);
     return INTEGER_VAL((int)sprite->Animations.size());
 }
 /***
@@ -12348,6 +12439,8 @@ VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int index = GET_ARG(1, GetInteger);
+    if (!sprite)
+        return NULL_VAL;
     CHECK_ANIMATION_INDEX(index);
     return OBJECT_VAL(CopyString(sprite->Animations[index].Name));
 }
@@ -12363,6 +12456,8 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     char* name = GET_ARG(1, GetString);
+    if (!sprite)
+        return INTEGER_VAL(-1);
     for (size_t i = 0; i < sprite->Animations.size(); i++) {
         if (strcmp(name, sprite->Animations[i].Name) == 0)
             return INTEGER_VAL((int)i);
@@ -12381,6 +12476,8 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL(sprite->Animations[animation].FrameToLoop);
 }
@@ -12396,6 +12493,8 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL((int)sprite->Animations[animation].Frames.size());
 }
@@ -12413,6 +12512,8 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Duration);
 }
@@ -12428,6 +12529,8 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMATION_INDEX(animation);
     return INTEGER_VAL(sprite->Animations[animation].AnimationSpeed);
 }
@@ -12445,6 +12548,8 @@ VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Width);
 }
@@ -12462,6 +12567,8 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Height);
 }
@@ -12479,6 +12586,8 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
 }
@@ -12496,6 +12605,8 @@ VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetX);
 }
@@ -12513,6 +12624,8 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
     ISprite* sprite = GET_ARG(0, GetSprite);
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
+    if (!sprite)
+        return INTEGER_VAL(0);
     CHECK_ANIMFRAME_INDEX(animation, frame);
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
@@ -12566,6 +12679,8 @@ VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     ISprite* sprite = GET_ARG(0, GetSprite);
     int palIndex = GET_ARG(1, GetInteger);
+    if (!sprite)
+        return NULL_VAL;
     CHECK_PALETTE_INDEX(palIndex);
     sprite->ConvertToPalette(palIndex);
     return NULL_VAL;
@@ -12579,7 +12694,8 @@ VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     ISprite* sprite = GET_ARG(0, GetSprite);
-    sprite->ConvertToRGBA();
+    if (sprite)
+        sprite->ConvertToRGBA();
     return NULL_VAL;
 }
 #undef CHECK_ANIMATION_INDEX
@@ -13359,9 +13475,9 @@ VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ParseDecimal
- * \desc Convert a String value to an Decimal value if possible.
+ * \desc Convert a String value to a Decimal value if possible.
  * \param string (String): The string to parse.
- * \return Returns the value as an Decimal.
+ * \return Returns the value as a Decimal.
  * \ns String
  */
 VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {

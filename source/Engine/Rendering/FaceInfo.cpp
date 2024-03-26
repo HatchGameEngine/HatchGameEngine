@@ -28,14 +28,14 @@ PUBLIC void FaceInfo::SetMaterial(Material* material) {
     UseMaterial = true;
     MaterialInfo.Texture = NULL;
 
-    Image* image = material->ImagePtr;
+    Image* image = material->TextureDiffuse;
     if (image && image->TexturePtr)
         MaterialInfo.Texture = (Texture*)image->TexturePtr;
 
     for (unsigned i = 0; i < 4; i++) {
-        MaterialInfo.Specular[i] = material->Specular[i] * 0x100;
-        MaterialInfo.Ambient[i] = material->Ambient[i] * 0x100;
-        MaterialInfo.Diffuse[i] = material->Diffuse[i] * 0x100;
+        MaterialInfo.Specular[i] = material->ColorSpecular[i] * 0x100;
+        MaterialInfo.Ambient[i] = material->ColorAmbient[i] * 0x100;
+        MaterialInfo.Diffuse[i] = material->ColorDiffuse[i] * 0x100;
     }
 }
 
