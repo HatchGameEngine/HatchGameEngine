@@ -147,17 +147,13 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
 
     char filePath[4096];
     if (!strcmp(scene.Filetype, "bin")) {
-        snprintf(filePath, sizeof(filePath), "Scene%s.%s", scene.ID, scene.Filetype);
+        snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
         if (scene.Folder == nullptr) {
             if (scene.Filetype == nullptr)
                 snprintf(filePath, sizeof(filePath), "Scene%s", id);
             else
                 snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
         }
-        else if (scene.Filetype == nullptr)
-            snprintf(filePath, sizeof(filePath), "%s/Scene%s", scene.Folder, id);
-        else
-            snprintf(filePath, sizeof(filePath), "%s/Scene%s.%s", scene.Folder, id, scene.Filetype);
     }
     else {
         if (scene.Folder == nullptr) {
@@ -167,9 +163,9 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
                 snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
         }
         else if (scene.Filetype == nullptr)
-            snprintf(filePath, sizeof(filePath), "%s/%s", scene.Folder, id);
+            snprintf(filePath, sizeof(filePath), "%s", id);
         else
-            snprintf(filePath, sizeof(filePath), "%s/%s.%s", scene.Folder, id, scene.Filetype);
+            snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
     }
 
     parentPath += std::string(filePath);
