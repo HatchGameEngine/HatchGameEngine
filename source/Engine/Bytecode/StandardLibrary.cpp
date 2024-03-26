@@ -8493,14 +8493,17 @@ VMValue Resources_LoadSpriteByFolder(int argCount, VMValue* args, Uint32 threadI
     resource->UnloadPolicy = GET_ARG(2, GetInteger);
 
     size_t index = 0;
-    bool emptySlot = false;
     vector<ResourceType*>* list = &Scene::SpriteList;
-    if (GetResourceListSpace(list, resource, &index, &emptySlot))
+    if (Scene::GetResource(list, resource, index))
         return INTEGER_VAL((int)index);
-    else if (emptySlot) (*list)[index] = resource; else list->push_back(resource);
 
-    // FIXME: This needs to return -1 if LoadAnimation fails.
     resource->AsSprite = new (std::nothrow) ISprite(filename);
+    if (resource->AsSprite->LoadFailed) {
+        delete resource->AsSprite;
+        delete resource;
+        (*list)[index] = NULL;
+        return INTEGER_VAL(-1);
+    }
     return INTEGER_VAL((int)index);
 }
 /***
