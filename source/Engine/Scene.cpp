@@ -2387,6 +2387,48 @@ PUBLIC STATIC void Scene::UnloadTileCollisions() {
     Scene::TileCount = 0;
 }
 
+// Resource Management
+// return true if we found it in the list
+PUBLIC STATIC bool Scene::GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t& index, bool& foundEmpty) {
+    foundEmpty = false;
+    index = list->size();
+    for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
+        if (!(*list)[i]) {
+            if (!foundEmpty) {
+                foundEmpty = true;
+                index = i;
+            }
+            continue;
+        }
+        if ((*list)[i]->FilenameHash == resource->FilenameHash) {
+            index = i;
+            delete resource;
+            return true;
+        }
+    }
+    return false;
+}
+
+PUBLIC STATIC bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index) {
+    bool foundEmpty = false;
+    if (GetResourceListSpace(list, resource, index, foundEmpty))
+        return true;
+    else if (foundEmpty)
+        (*list)[index] = resource;
+    else
+        list->push_back(resource);
+    return false;
+}
+
+PUBLIC STATIC ISprite* Scene::GetSpriteResource(int index) {
+    if (index < 0 || index >= (int)Scene::SpriteList.size())
+        return NULL;
+
+    if (!Scene::SpriteList[index]) return NULL;
+
+    return Scene::SpriteList[index]->AsSprite;
+}
+
 PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
     // Images
     for (size_t i = 0, i_sz = Scene::ImageList.size(); i < i_sz; i++) {

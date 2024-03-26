@@ -124,12 +124,9 @@ PUBLIC void Entity::ApplyMotion() {
     Y += YSpeed;
 }
 PUBLIC void Entity::Animate() {
-    if (Sprite < 0 || (size_t)Sprite >= Scene::SpriteList.size())
-        return;
+    ISprite* sprite = Scene::GetSpriteResource(Sprite);
 
-    ISprite* sprite = Scene::SpriteList[Sprite]->AsSprite;
-
-    if (CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
+    if (!sprite || CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
         return;
 
 #ifdef USE_RSDK_ANIMATE
@@ -156,12 +153,12 @@ PUBLIC void Entity::Animate() {
                 OnAnimationFinish();
 
                 // Sprite may have changed after a call to OnAnimationFinish
-                sprite = Scene::SpriteList[Sprite]->AsSprite;
+                sprite = Scene::GetSpriteResource(Sprite);
             }
 
             // Do a basic range check, for strange loop points
             // (or just in case CurrentAnimation happens to be invalid, which is very possible)
-            if (CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 && CurrentAnimation < sprite->Animations.size()) {
+            if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 && CurrentAnimation < sprite->Animations.size()) {
                 AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
             }
             else {
@@ -181,12 +178,9 @@ PUBLIC void Entity::SetAnimation(int animation, int frame) {
         ResetAnimation(animation, frame);
 }
 PUBLIC void Entity::ResetAnimation(int animation, int frame) {
-    if (Sprite < 0 || (size_t)Sprite >= Scene::SpriteList.size())
-        return;
+    ISprite* sprite = Scene::GetSpriteResource(Sprite);
 
-    ISprite* sprite = Scene::SpriteList[Sprite]->AsSprite;
-
-    if (animation < 0 || (size_t)animation >= sprite->Animations.size())
+    if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size())
         return;
 
     if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size())
