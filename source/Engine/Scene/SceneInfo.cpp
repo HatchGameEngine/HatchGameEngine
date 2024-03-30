@@ -153,10 +153,8 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
             else
                 snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
         }
-        else if (scene.Filetype == nullptr)
-            snprintf(filePath, sizeof(filePath), "%s/Scene%s", scene.Folder, id);
         else
-            snprintf(filePath, sizeof(filePath), "%s/Scene%s.%s", scene.Folder, id, scene.Filetype);
+            snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
     }
     else {
         if (scene.Folder == nullptr) {
@@ -166,9 +164,9 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
                 snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
         }
         else if (scene.Filetype == nullptr)
-            snprintf(filePath, sizeof(filePath), "%s/%s", scene.Folder, id);
+            snprintf(filePath, sizeof(filePath), "%s", id);
         else
-            snprintf(filePath, sizeof(filePath), "%s/%s.%s", scene.Folder, id, scene.Filetype);
+            snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
     }
 
     parentPath += std::string(filePath);
@@ -264,9 +262,13 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                         entry.ID = StringUtils::Duplicate(buf);
                     }
 
-                    // Sprite folder
+                    // Resource folder
+                    if (stgElement->attributes.Exists("resourceFolder"))
+                        entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("resourceFolder"));
+
+                    // Sprite folder (backwards compat)
                     if (stgElement->attributes.Exists("spriteFolder"))
-                        entry.SpriteFolder = XMLParser::TokenToString(stgElement->attributes.Get("spriteFolder"));
+                        entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("spriteFolder"));
 
                     // Filetype
                     if (stgElement->attributes.Exists("fileExtension"))
@@ -282,7 +284,8 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     entry.Properties->Put("name", entry.Name);
                     entry.Properties->Put("folder", entry.Folder);
                     entry.Properties->Put("id", entry.ID);
-                    entry.Properties->Put("spriteFolder", entry.SpriteFolder);
+                    entry.Properties->Put("resourceFolder", entry.ResourceFolder);
+                    entry.Properties->Put("spriteFolder", entry.ResourceFolder); // backwards compat
                     entry.Properties->Put("fileExtension", entry.Filetype);
 
                     FillAttributesHashMap(&stgElement->attributes, entry.Properties);

@@ -9594,14 +9594,24 @@ VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
     return OBJECT_VAL(CopyString(Scene::CurrentID));
 }
 /***
+ * Scene.GetCurrentResourceFolder
+ * \desc Gets the current resource folder of the scene.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return OBJECT_VAL(CopyString(Scene::CurrentResourceFolder));
+}
+/***
  * Scene.GetCurrentSpriteFolder
- * \desc Gets the current sprite folder of the scene.
+ * \desc Gets the current sprite folder of the scene. (Deprecated; use <linkto ref="Scene.GetCurrentResourceFolder"></linkto> instead.)
  * \return Returns a String value.
  * \ns Scene
  */
 VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentSpriteFolder));
+    return OBJECT_VAL(CopyString(Scene::CurrentResourceFolder));
 }
 /***
  * Scene.GetCurrentCategory
@@ -16662,6 +16672,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Scene, GetListPos); // deprecated
     DEF_NATIVE(Scene, GetCurrentFolder);
     DEF_NATIVE(Scene, GetCurrentID);
+    DEF_NATIVE(Scene, GetCurrentResourceFolder);
     DEF_NATIVE(Scene, GetCurrentSpriteFolder);
     DEF_NATIVE(Scene, GetCurrentCategory);
     DEF_NATIVE(Scene, GetActiveCategory);
