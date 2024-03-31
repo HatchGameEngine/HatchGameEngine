@@ -424,7 +424,7 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
     }
 }
 
-VMValue ReturnString(char* str) {
+VMValue ReturnString(const char* str) {
     if (str && ScriptManager::Lock()) {
         ObjString* string = CopyString(str);
         ScriptManager::Unlock();
@@ -889,7 +889,7 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::EngineVersion));
+    return ReturnString(Application::EngineVersion);
 }
 /***
  * Application.GetEngineVersionMajor
@@ -930,7 +930,7 @@ VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 th
 VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 #ifdef VERSION_PRERELEASE
-    return OBJECT_VAL(CopyString(VERSION_PRERELEASE));
+    return ReturnString(VERSION_PRERELEASE);
 #else
     return NULL_VAL;
 #endif
@@ -944,7 +944,7 @@ VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint
 VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
 #ifdef VERSION_CODENAME
-    return OBJECT_VAL(CopyString(VERSION_CODENAME));
+    return ReturnString(VERSION_CODENAME);
 #else
     return NULL_VAL;
 #endif
@@ -1002,7 +1002,7 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Application_GetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::GameTitle));
+    return ReturnString(Application::GameTitle);
 }
 /***
  * Application.GetGameTitleShort
@@ -1011,7 +1011,7 @@ VMValue Application_GetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::GameTitleShort));
+    return ReturnString(Application::GameTitleShort);
 }
 /***
  * Application.GetGameVersion
@@ -1020,7 +1020,7 @@ VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Application_GetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::GameVersion));
+    return ReturnString(Application::GameVersion);
 }
 /***
  * Application.GetGameDescription
@@ -1029,7 +1029,7 @@ VMValue Application_GetGameVersion(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Application::GameDescription));
+    return ReturnString(Application::GameDescription);
 }
 /***
  * Application.SetGameTitle
@@ -5896,7 +5896,7 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
     if (!self || !self->List)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(self->List->ObjectName));
+    return ReturnString(self->List->ObjectName);
 }
 /***
  * Instance.GetCount
@@ -7436,7 +7436,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     if (!animationName)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(animationName));
+    return ReturnString(animationName);
 }
 /***
  * Model.GetAnimationIndex
@@ -7845,12 +7845,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
             char temp[16];
             snprintf(temp, sizeof temp, "%f", n);
 
-            VMValue strng = NULL_VAL;
-            if (ScriptManager::Lock()) {
-                strng = OBJECT_VAL(CopyString(temp));
-                ScriptManager::Unlock();
-            }
-            return strng;
+            return ReturnString(temp);
         }
         case VAL_INTEGER:
         case VAL_LINKED_INTEGER: {
@@ -7861,12 +7856,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
             else
                 snprintf(temp, sizeof temp, "%d", n);
 
-            VMValue strng = NULL_VAL;
-            if (ScriptManager::Lock()) {
-                strng = OBJECT_VAL(CopyString(temp));
-                ScriptManager::Unlock();
-            }
-            return strng;
+            return ReturnString(temp);
         }
         default:
             THROW_ERROR("Expected argument %d to be of type %s instead of %s.", 0 + 1, "Number", GetValueTypeString(args[0]));
@@ -9378,7 +9368,7 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentScene));
+    return ReturnString(Scene::CurrentScene);
 }
 /***
  * Scene.GetWidth
@@ -9557,7 +9547,7 @@ VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int index = GET_ARG(0, GetInteger);
     CHECK_TILESET_INDEX
-    return OBJECT_VAL(CopyString(Scene::Tilesets[index].Filename));
+    return ReturnString(Scene::Tilesets[index].Filename);
 }
 /***
  * Scene.GetTilesetTileCount
@@ -9723,7 +9713,7 @@ VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentFolder));
+    return ReturnString(Scene::CurrentFolder);
 }
 /***
  * Scene.GetCurrentID
@@ -9733,7 +9723,7 @@ VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentID));
+    return ReturnString(Scene::CurrentID);
 }
 /***
  * Scene.GetCurrentResourceFolder
@@ -9743,7 +9733,7 @@ VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentResourceFolder));
+    return ReturnString(Scene::CurrentResourceFolder);
 }
 /***
  * Scene.GetCurrentSpriteFolder
@@ -9753,7 +9743,7 @@ VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threa
  */
 VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentResourceFolder));
+    return ReturnString(Scene::CurrentResourceFolder);
 }
 /***
  * Scene.GetCurrentCategory
@@ -9763,7 +9753,7 @@ VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return OBJECT_VAL(CopyString(Scene::CurrentCategory));
+    return ReturnString(Scene::CurrentCategory);
 }
 /***
  * Scene.GetActiveCategory
@@ -11054,7 +11044,8 @@ VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
     int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
     if (actualEntryID < 0)
         return NULL_VAL;
-    return OBJECT_VAL(CopyString(SceneInfo::GetFilename(entryID).c_str()));
+
+    return ReturnString(SceneInfo::GetFilename(entryID).c_str());
 }
 /***
  * SceneList.GetEntryID
@@ -11107,7 +11098,7 @@ VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
     }
 
     int actualEntryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetInteger));
-    return OBJECT_VAL(CopyString(SceneInfo::Entries[actualEntryID].Name));
+    return ReturnString(SceneInfo::Entries[actualEntryID].Name);
 }
 /***
  * SceneList.GetCategoryName
@@ -11121,7 +11112,7 @@ VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) 
     int categoryID = GET_ARG(0, GetInteger);
     if (!SceneInfo::IsCategoryValid(categoryID))
         return NULL_VAL;
-    return OBJECT_VAL(CopyString(SceneInfo::Categories[categoryID].Name));
+    return ReturnString(SceneInfo::Categories[categoryID].Name);
 }
 /***
  * SceneList.GetEntryProperty
@@ -11164,7 +11155,7 @@ VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID)
     if (property == nullptr)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(property));
+    return ReturnString(property);
 }
 /***
  * SceneList.GetCategoryProperty
@@ -11193,7 +11184,7 @@ VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 thread
     if (property == nullptr)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(property));
+    return ReturnString(property);
 }
 /***
  * SceneList.HasEntryProperty
@@ -11759,16 +11750,15 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
     char* section = NULL;
     if (!IS_NULL(args[0]))
         section = GET_ARG(0, GetString);
-    if (!Application::Settings->SectionExists(section)) {
-        // THROW_ERROR("Section \"%s\" does not exist.", section);
+
+    if (!Application::Settings->SectionExists(section))
         return NULL_VAL;
-    }
 
     char const* result = Application::Settings->GetProperty(section, GET_ARG(1, GetString));
     if (!result)
         return NULL_VAL;
 
-    return OBJECT_VAL(CopyString(result));
+    return ReturnString(result);
 }
 /***
  * Settings.GetNumber
@@ -12602,7 +12592,7 @@ VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     if (!sprite)
         return NULL_VAL;
     CHECK_ANIMATION_INDEX(index);
-    return OBJECT_VAL(CopyString(sprite->Animations[index].Name));
+    return ReturnString(sprite->Animations[index].Name);
 }
 /***
  * Sprite.GetAnimationIndexByName
