@@ -497,6 +497,21 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)index);
 }
 /***
+ * Animator.Remove
+ * \desc Removes an animator.
+ * \param animator (Integer): The index of the animator.
+ * \ns Animator
+ */
+VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int animator = GET_ARG(0, GetInteger);
+    if (!Scene::AnimatorList[animator])
+        return NULL_VAL;
+    delete Scene::AnimatorList[animator];
+    Scene::AnimatorList[animator] = NULL;
+    return NULL_VAL;
+}
+/***
  * Animator.SetAnimation
  * \desc Sets the current animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
@@ -15338,6 +15353,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     // #region Animator
     INIT_CLASS(Animator);
     DEF_NATIVE(Animator, Create);
+    DEF_NATIVE(Animator, Remove);
     DEF_NATIVE(Animator, SetAnimation);
     DEF_NATIVE(Animator, Animate);
     DEF_NATIVE(Animator, GetSprite);
