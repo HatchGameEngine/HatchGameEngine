@@ -240,13 +240,13 @@ PUBLIC STATIC float Math::RandomMax(float max) {
 PUBLIC STATIC float Math::RandomRange(float min, float max) {
     return (Math::Random() * (max - min)) + min;
 }
-PUBLIC STATIC int Math::GetRandSeed() {
+PUBLIC STATIC int Math::RSDK_GetRandSeed() {
     return randSeed;
 }
-PUBLIC STATIC void Math::SetRandSeed(int key) {
+PUBLIC STATIC void Math::RSDK_SetRandSeed(int key) {
     randSeed = key;
 }
-PUBLIC STATIC int Math::RandomInteger(int min, int max) {
+PUBLIC STATIC int Math::RSDK_RandomInteger(int min, int max) {
     int seed1   = 1103515245 * randSeed + 12345;
     int seed2   = 1103515245 * seed1 + 12345;
     randSeed    = 1103515245 * seed2 + 12345;
@@ -261,7 +261,7 @@ PUBLIC STATIC int Math::RandomInteger(int min, int max) {
     else
         return max;
 }
-PUBLIC STATIC int Math::RandomIntegerSeeded(int min, int max, int seed) {
+PUBLIC STATIC int Math::RSDK_RandomIntegerSeeded(int min, int max, int seed) {
     if (!randSeed)
         return 0;
 
@@ -279,4 +279,3 @@ PUBLIC STATIC int Math::RandomIntegerSeeded(int min, int max, int seed) {
     else
         return max;
 }
-//

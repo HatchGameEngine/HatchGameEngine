@@ -34,6 +34,7 @@ public:
 #include <Engine/IO/Serializer.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Math/Random.h>
 #include <Engine/Math/Geometry.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
@@ -6484,28 +6485,28 @@ VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
     return DECIMAL_VAL(Math::RandomRange(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
- * Math.GetRandSeed
+ * RSDK.Math.GetRandSeed
  * \desc Gets the engine's random seed value.
  * \return Returns an integer of the engine's random seed value.
  * \ns Math
  */
 VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Math::GetRandSeed());
+    return INTEGER_VAL(Math::RSDK_GetRandSeed());
 }
 /***
- * Math.SetRandSeed
+ * RSDK.Math.SetRandSeed
  * \desc Sets the engine's random seed value.
  * \param key (Integer): Value to set the seed to.
  * \ns Math
  */
 VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    Math::SetRandSeed(GET_ARG(0, GetInteger));
+    Math::RSDK_SetRandSeed(GET_ARG(0, GetInteger));
     return NULL_VAL;
 }
 /***
- * Math.RandomInteger
+ * RSDK.Math.RandomInteger
  * \desc Gets a random number between specified minimum integer and a specified maximum integer.
  * \param min (Integer): Minimum non-inclusive integer value.
  * \param max (Integer): Maximum non-inclusive integer value.
@@ -6514,10 +6515,10 @@ VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    return INTEGER_VAL(Math::RandomInteger(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger)));
+    return INTEGER_VAL(Math::RSDK_RandomInteger(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger)));
 }
 /***
- * Math.RandomIntegerSeeded
+ * RSDK.Math.RandomIntegerSeeded
  * \desc Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.
  * \param min (Integer): Minimum non-inclusive integer value.
  * \param max (Integer): Maximum non-inclusive integer value.
@@ -6529,7 +6530,7 @@ VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     if (argCount < 3)
         return INTEGER_VAL(0);
-    return INTEGER_VAL(Math::RandomIntegerSeeded(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger), GET_ARG(2, GetInteger)));
+    return INTEGER_VAL(Math::RSDK_RandomIntegerSeeded(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger), GET_ARG(2, GetInteger)));
 }
 /***
  * Math.Floor
@@ -8404,6 +8405,54 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
     return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
+// #endregion
+
+// #region Random
+/***
+ * Random.SetSeed
+ * \desc Sets the PRNG seed.
+ * \param seed (Integer): The seed.
+ * \ns Random
+ */
+VMValue Random_SetSeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Sint32 seed = GET_ARG(0, GetInteger);
+    Random::SetSeed(seed);
+    return NULL_VAL;
+}
+/***
+ * Random.GetSeed
+ * \desc Gets the PRNG seed.
+ * \return Returns an Integer value.
+ * \ns Random
+ */
+VMValue Random_GetSeed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Random::Seed);
+}
+/***
+ * Random.Max
+ * \desc Gets a random number between 0.0 and a specified maximum, and advances the PRNG state.
+ * \param max (Number): Maximum non-inclusive value.
+ * \return Returns a Decimal value.
+ * \ns Random
+ */
+VMValue Random_Max(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return DECIMAL_VAL(Random::Max(GET_ARG(0, GetDecimal)));
+}
+/***
+ * Random.Range
+ * \desc Gets a random number between a specified minimum and a specified maximum, and advances the PRNG state.
+ * \param min (Number): Minimum non-inclusive value.
+ * \param max (Number): Maximum non-inclusive value.
+ * \return Returns a Decimal value.
+ * \ns Random
+ */
+VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    return DECIMAL_VAL(Random::Range(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+}
 // #endregion
 
 // #region Resources
@@ -16637,10 +16686,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, Random);
     DEF_NATIVE(Math, RandomMax);
     DEF_NATIVE(Math, RandomRange);
-    DEF_NATIVE(Math, GetRandSeed);
-    DEF_NATIVE(Math, SetRandSeed);
-    DEF_NATIVE(Math, RandomInteger);
-    DEF_NATIVE(Math, RandomIntegerSeeded);
     DEF_NATIVE(Math, Floor);
     DEF_NATIVE(Math, Ceil);
     DEF_NATIVE(Math, Round);
@@ -16670,6 +16715,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NAMESPACED_NATIVE(Math, ACos256);
     DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
     DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
+    DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
+    DEF_NAMESPACED_NATIVE(Math, SetRandSeed);
+    DEF_NAMESPACED_NATIVE(Math, RandomInteger);
+    DEF_NAMESPACED_NATIVE(Math, RandomIntegerSeeded);
     // #endregion
 
     // #region Matrix
@@ -16758,6 +16807,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Palette, CopyColors);
     DEF_NATIVE(Palette, UsePaletteIndexLines);
     DEF_NATIVE(Palette, SetPaletteIndexLines);
+    // #endregion
+
+    // #region Random
+    INIT_CLASS(Random);
+    DEF_NATIVE(Random, SetSeed);
+    DEF_NATIVE(Random, GetSeed);
+    DEF_NATIVE(Random, Max);
+    DEF_NATIVE(Random, Range);
     // #endregion
 
     // #region Resources
