@@ -846,6 +846,7 @@
                     <li><a href="#Reference_functions_Scene_Load">Scene.Load</a></li>
                     <li><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></li>
                     <li><a href="#Reference_functions_Scene_LoadPosition">Scene.LoadPosition</a></li>
+                    <li><a href="#Reference_functions_Scene_Change">Scene.Change</a></li>
                     <li><a href="#Reference_functions_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_functions_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
                     <li><a href="#Reference_functions_Scene_AddTileset">Scene.AddTileset</a></li>
@@ -907,6 +908,9 @@
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequencePaused">Scene.GetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequenceSpeed">Scene.GetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequenceFrame">Scene.GetTileAnimSequenceFrame</a></li>
+                    <li><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></li>
+                    <li><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></li>
+                    <li><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></li>
                     <li><a href="#Reference_functions_Scene_CheckValidScene">Scene.CheckValidScene</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneFolder">Scene.CheckSceneFolder</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneID">Scene.CheckSceneID</a></li>
@@ -2571,7 +2575,7 @@
         <p id="Reference_functions_Controller_SetLargeMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
         <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated; use <code><a href="#Reference_functions_Controller_Rumble">Controller.Rumble</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2581,7 +2585,7 @@
         <p id="Reference_functions_Controller_SetSmallMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
         <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated; use <code><a href="#Reference_functions_Controller_Rumble">Controller.Rumble</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -6069,17 +6073,18 @@
         </p>
         <p id="Reference_functions_Scene_Load">
         <h2 style="margin-bottom: 8px;">Scene.Load</h2>
-        <code>Scene.Load(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file.</div>
+        <code>Scene.Load([filename, persistency])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <code><a href="#Reference_SceneList">SceneList</a></code>.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
+        <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_LoadNoPersistency">
         <h2 style="margin-bottom: 8px;">Scene.LoadNoPersistency</h2>
         <code>Scene.LoadNoPersistency(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
@@ -6088,10 +6093,20 @@
         <p id="Reference_functions_Scene_LoadPosition">
         <h2 style="margin-bottom: 8px;">Scene.LoadPosition</h2>
         <code>Scene.LoadPosition([persistency])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_Change">
+        <h2 style="margin-bottom: 8px;">Scene.Change</h2>
+        <code>Scene.Change(category, scene)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the current scene if the category name and scene name are valid. Note that this does not load the scene; you must use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): Category name.</li>
+        <li>scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_LoadTileCollisions">
@@ -6486,7 +6501,7 @@
         <p id="Reference_functions_Scene_GetListPos">
         <h2 style="margin-bottom: 8px;">Scene.GetListPos</h2>
         <code>Scene.GetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6528,7 +6543,7 @@
         <p id="Reference_functions_Scene_GetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.GetActiveCategory</h2>
         <code>Scene.GetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current category number of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6650,17 +6665,46 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The frame index.</div>
         </p>
+        <p id="Reference_functions_Scene_IsCurrentEntryValid">
+        <h2 style="margin-bottom: 8px;">Scene.IsCurrentEntryValid</h2>
+        <code>Scene.IsCurrentEntryValid()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the current entry in the scene list is valid.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_IsUsingFolder">
+        <h2 style="margin-bottom: 8px;">Scene.IsUsingFolder</h2>
+        <code>Scene.IsUsingFolder(folder)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>folder (String): Folder name to compare.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_IsUsingID">
+        <h2 style="margin-bottom: 8px;">Scene.IsUsingID</h2>
+        <code>Scene.IsUsingID(id)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>id (String): ID to compare.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_CheckSceneFolder">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneFolder</h2>
         <code>Scene.CheckSceneFolder(folder)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>folder (String): Folder name to compare.</li>
@@ -6671,7 +6715,7 @@
         <p id="Reference_functions_Scene_CheckSceneID">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneID</h2>
         <code>Scene.CheckSceneID(id)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>id (String): ID to compare.</li>
@@ -6688,13 +6732,21 @@
         </p>
         <p id="Reference_functions_Scene_SetListPos">
         <h2 style="margin-bottom: 8px;">Scene.SetListPos</h2>
-        <code>Scene.SetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated)</div>
+        <code>Scene.SetListPos(sceneNum)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sceneNum (Integer): Scene number to use.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Scene_SetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.SetActiveCategory</h2>
-        <code>Scene.SetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated)</div>
+        <code>Scene.SetActiveCategory(categoryNum)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryNum (Integer): Scene category number to use.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
@@ -6704,7 +6756,7 @@
         <p id="Reference_functions_Scene_SetScene">
         <h2 style="margin-bottom: 8px;">Scene.SetScene</h2>
         <code>Scene.SetScene(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated; use <code><a href="#Reference_functions_Scene_Change">Scene.Change</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>category (String): Category name.</li>
@@ -9393,7 +9445,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>685 out of 744 functions have descriptions. </p>
+        <p>689 out of 748 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10665,7 +10717,7 @@
         </p>
         <p id="Reference_enums_Persistence_SCENE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_SCENE</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Persists between scenes (unless a new scene is loaded through <code><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></code>.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Persists between scenes.</div>
         </p>
         <p id="Reference_enums_Persistence_GAME">
         <h3 style="margin-bottom: 8px;"><code>Persistence_GAME</code></h2>
