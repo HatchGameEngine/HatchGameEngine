@@ -450,11 +450,17 @@ VMValue ReturnString(char* str) {
 
 #define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
 
+#define CHECK_PALETTE_INDEX(index) \
+if (index < 0 || index >= MAX_PALETTE_COUNT) { \
+    OUT_OF_RANGE_ERROR("Palette index", index, 0, MAX_PALETTE_COUNT - 1); \
+    return NULL_VAL; \
+}
+
 #define CHECK_SCENE_LAYER_INDEX(layerIdx) \
-    if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
-        OUT_OF_RANGE_ERROR("Layer index", layerIdx, 0, (int)Scene::Layers.size() - 1); \
-        return NULL_VAL; \
-    }
+if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
+    OUT_OF_RANGE_ERROR("Layer index", layerIdx, 0, (int)Scene::Layers.size() - 1); \
+    return NULL_VAL; \
+}
 
 // #region Animator
 // return true if we found it in the list
@@ -2082,7 +2088,9 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
     float scaleY = GET_ARG_OPT(8, GetDecimal, 1.0f);
     float rotation = GET_ARG_OPT(9, GetDecimal, 0.0f);
     bool useInteger = GET_ARG_OPT(10, GetInteger, false);
-    unsigned paletteID = GET_ARG_OPT(11, GetInteger, 0);
+    int paletteID = GET_ARG_OPT(11, GetInteger, 0);
+
+    CHECK_PALETTE_INDEX(paletteID);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2099,7 +2107,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
+        Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, (unsigned)paletteID);
     }
     return NULL_VAL;
 }
@@ -2267,7 +2275,9 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
     float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
     float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
     bool useInteger = GET_ARG_OPT(14, GetInteger, false);
-    unsigned paletteID = GET_ARG_OPT(15, GetInteger, 0);
+    int paletteID = GET_ARG_OPT(15, GetInteger, 0);
+
+    CHECK_PALETTE_INDEX(paletteID);
 
     if (sprite && animation >= 0 && frame >= 0) {
         if (useInteger) {
@@ -2284,7 +2294,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
             rotation = rot * M_PI / 256.0;
         }
 
-        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation, paletteID);
+        Graphics::DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleX, scaleY, rotation, (unsigned)paletteID);
     }
     return NULL_VAL;
 }
@@ -7954,11 +7964,6 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
     Graphics::UsePalettes = usePalettes;
     return NULL_VAL;
 }
-#define CHECK_PALETTE_INDEX(index) \
-if (index < 0 || index >= MAX_PALETTE_COUNT) { \
-    OUT_OF_RANGE_ERROR("Palette index", index, 0, MAX_PALETTE_COUNT - 1); \
-    return NULL_VAL; \
-}
 #define CHECK_COLOR_INDEX(index) \
 if (index < 0 || index >= 0x100) { \
     OUT_OF_RANGE_ERROR("Palette color index", index, 0, 255); \
@@ -12855,7 +12860,6 @@ VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
 }
 #undef CHECK_ANIMATION_INDEX
 #undef CHECK_ANIMFRAME_INDEX
-#undef CHECK_PALETTE_INDEX
 // #endregion
 
 // #region Stream
