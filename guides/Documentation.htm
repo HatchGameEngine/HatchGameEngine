@@ -74,6 +74,7 @@
             <li><a href="#Reference_Palette">Palette</a></li>
             <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
             <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
+            <li><a href="#Reference_Random">Random</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
@@ -681,10 +682,6 @@
                     <li><a href="#Reference_functions_Math_Random">Math.Random</a></li>
                     <li><a href="#Reference_functions_Math_RandomMax">Math.RandomMax</a></li>
                     <li><a href="#Reference_functions_Math_RandomRange">Math.RandomRange</a></li>
-                    <li><a href="#Reference_functions_Math_GetRandSeed">Math.GetRandSeed</a></li>
-                    <li><a href="#Reference_functions_Math_SetRandSeed">Math.SetRandSeed</a></li>
-                    <li><a href="#Reference_functions_Math_RandomInteger">Math.RandomInteger</a></li>
-                    <li><a href="#Reference_functions_Math_RandomIntegerSeeded">Math.RandomIntegerSeeded</a></li>
                     <li><a href="#Reference_functions_Math_Floor">Math.Floor</a></li>
                     <li><a href="#Reference_functions_Math_Ceil">Math.Ceil</a></li>
                     <li><a href="#Reference_functions_Math_Round">Math.Round</a></li>
@@ -784,6 +781,10 @@
                 <h2>RSDK.Math</h2>
                 <i>Class methods:</i>
                 <ul>
+                    <li><a href="#Reference_functions_RSDK_Math_GetRandSeed">RSDK.Math.GetRandSeed</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_SetRandSeed">RSDK.Math.SetRandSeed</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_RandomInteger">RSDK.Math.RandomInteger</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_RandomIntegerSeeded">RSDK.Math.RandomIntegerSeeded</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_ClearTrigLookupTables">RSDK.Math.ClearTrigLookupTables</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_CalculateTrigAngles">RSDK.Math.CalculateTrigAngles</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_Sin1024">RSDK.Math.Sin1024</a></li>
@@ -816,6 +817,16 @@
                     <li><a href="#Reference_functions_RSDK_Matrix_RotateY256">RSDK.Matrix.RotateY256</a></li>
                     <li><a href="#Reference_functions_RSDK_Matrix_RotateZ256">RSDK.Matrix.RotateZ256</a></li>
                     <li><a href="#Reference_functions_RSDK_Matrix_Rotate256">RSDK.Matrix.Rotate256</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Random">
+                <h2>Random</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Random_SetSeed">Random.SetSeed</a></li>
+                    <li><a href="#Reference_functions_Random_GetSeed">Random.GetSeed</a></li>
+                    <li><a href="#Reference_functions_Random_Max">Random.Max</a></li>
+                    <li><a href="#Reference_functions_Random_Range">Random.Range</a></li>
                 </ul>
             </p>
             <p id="Reference_Resources">
@@ -4941,47 +4952,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the random number.</div>
         </p>
-        <p id="Reference_functions_Math_GetRandSeed">
-        <h2 style="margin-bottom: 8px;">Math.GetRandSeed</h2>
-        <code>Math.GetRandSeed()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the engine's random seed value.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an integer of the engine's random seed value.</div>
-        </p>
-        <p id="Reference_functions_Math_SetRandSeed">
-        <h2 style="margin-bottom: 8px;">Math.SetRandSeed</h2>
-        <code>Math.SetRandSeed(key)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's random seed value.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>key (Integer): Value to set the seed to.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Math_RandomInteger">
-        <h2 style="margin-bottom: 8px;">Math.RandomInteger</h2>
-        <code>Math.RandomInteger(min, max)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>min (Integer): Minimum non-inclusive integer value.</li>
-        <li>max (Integer): Maximum non-inclusive integer value.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the random number as an integer.</div>
-        </p>
-        <p id="Reference_functions_Math_RandomIntegerSeeded">
-        <h2 style="margin-bottom: 8px;">Math.RandomIntegerSeeded</h2>
-        <code>Math.RandomIntegerSeeded(min, max[, seed])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>min (Integer): Minimum non-inclusive integer value.</li>
-        <li>max (Integer): Maximum non-inclusive integer value.</li>
-        <li>seed (Integer): Seed of which to base the number.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the random number as an integer.</div>
-        </p>
         <p id="Reference_functions_Math_Floor">
         <h2 style="margin-bottom: 8px;">Math.Floor</h2>
         <code>Math.Floor(n)</code>
@@ -5606,6 +5576,47 @@
         <li>lineEnd (Number): Line where to stop setting the palette.</li>
         </ul>
         </p>
+        <p id="Reference_functions_RSDK_Math_GetRandSeed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.GetRandSeed</h2>
+        <code>RSDK.Math.GetRandSeed()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine's random seed value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an integer of the engine's random seed value.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_SetRandSeed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.SetRandSeed</h2>
+        <code>RSDK.Math.SetRandSeed(key)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's random seed value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>key (Integer): Value to set the seed to.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_RSDK_Math_RandomInteger">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.RandomInteger</h2>
+        <code>RSDK.Math.RandomInteger(min, max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Integer): Minimum non-inclusive integer value.</li>
+        <li>max (Integer): Maximum non-inclusive integer value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the random number as an integer.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_RandomIntegerSeeded">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.RandomIntegerSeeded</h2>
+        <code>RSDK.Math.RandomIntegerSeeded(min, max[, seed])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Integer): Minimum non-inclusive integer value.</li>
+        <li>max (Integer): Maximum non-inclusive integer value.</li>
+        <li>seed (Integer): Seed of which to base the number.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the random number as an integer.</div>
+        </p>
         <p id="Reference_functions_RSDK_Math_ClearTrigLookupTables">
         <h2 style="margin-bottom: 8px;">RSDK.Math.ClearTrigLookupTables</h2>
         <code>RSDK.Math.ClearTrigLookupTables()</code>
@@ -5874,6 +5885,45 @@
         <li>rotationY (Number): Y rotation value.</li>
         <li>rotationZ (Number): Z rotation value.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Random_SetSeed">
+        <h2 style="margin-bottom: 8px;">Random.SetSeed</h2>
+        <code>Random.SetSeed(seed)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the PRNG seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>seed (Integer): The seed.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Random_GetSeed">
+        <h2 style="margin-bottom: 8px;">Random.GetSeed</h2>
+        <code>Random.GetSeed()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the PRNG seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Random_Max">
+        <h2 style="margin-bottom: 8px;">Random.Max</h2>
+        <code>Random.Max(max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between 0.0 and a specified maximum, and advances the PRNG state.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>max (Number): Maximum non-inclusive value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_functions_Random_Range">
+        <h2 style="margin-bottom: 8px;">Random.Range</h2>
+        <code>Random.Range(min, max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between a specified minimum and a specified maximum, and advances the PRNG state.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Number): Minimum non-inclusive value.</li>
+        <li>max (Number): Maximum non-inclusive value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Resources_LoadSprite">
         <h2 style="margin-bottom: 8px;">Resources.LoadSprite</h2>
@@ -9455,7 +9505,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>690 out of 749 functions have descriptions. </p>
+        <p>694 out of 753 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

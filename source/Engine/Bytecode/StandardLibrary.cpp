@@ -6488,7 +6488,7 @@ VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
  * RSDK.Math.GetRandSeed
  * \desc Gets the engine's random seed value.
  * \return Returns an integer of the engine's random seed value.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
@@ -6498,7 +6498,7 @@ VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
  * RSDK.Math.SetRandSeed
  * \desc Sets the engine's random seed value.
  * \param key (Integer): Value to set the seed to.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
@@ -6511,7 +6511,7 @@ VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
  * \param min (Integer): Minimum non-inclusive integer value.
  * \param max (Integer): Maximum non-inclusive integer value.
  * \return Returns the random number as an integer.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
@@ -6524,7 +6524,7 @@ VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \param max (Integer): Maximum non-inclusive integer value.
  * \paramOpt seed (Integer): Seed of which to base the number.
  * \return Returns the random number as an integer.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
