@@ -3,16 +3,16 @@
 
 100 ICON "icon.ico"
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION    1,0,0,0
-    PRODUCTVERSION 1,0,0,0
+    FILEVERSION    1,3,0,0
+    PRODUCTVERSION 1,3,0,0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "040904E4"
         BEGIN
         VALUE "FileDescription",    "Hatch Game Engine"
-        VALUE "CompanyName",        "aknetk"
-        VALUE "FileVersion",        "1.0"
+        VALUE "CompanyName",        "Hatch Game Engine Developers"
+        VALUE "FileVersion",        "1.3.0"
         END
     END
     BLOCK "VarFileInfo"

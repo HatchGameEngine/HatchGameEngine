@@ -154,6 +154,8 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
             else
                 snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
         }
+        else
+            snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
     }
     else {
         if (scene.Folder == nullptr) {
