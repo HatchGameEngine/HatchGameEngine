@@ -561,7 +561,6 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -682,6 +681,8 @@
                     <li><a href="#Reference_functions_Math_Min">Math.Min</a></li>
                     <li><a href="#Reference_functions_Math_Max">Math.Max</a></li>
                     <li><a href="#Reference_functions_Math_Clamp">Math.Clamp</a></li>
+                    <li><a href="#Reference_functions_Math_ToFixed">Math.ToFixed</a></li>
+                    <li><a href="#Reference_functions_Math_FromFixed">Math.FromFixed</a></li>
                     <li><a href="#Reference_functions_Math_Sign">Math.Sign</a></li>
                     <li><a href="#Reference_functions_Math_Random">Math.Random</a></li>
                     <li><a href="#Reference_functions_Math_RandomMax">Math.RandomMax</a></li>
@@ -838,7 +839,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Resources_LoadSprite">Resources.LoadSprite</a></li>
-                    <li><a href="#Reference_functions_Resources_LoadSpriteByFolder">Resources.LoadSpriteByFolder</a></li>
+                    <li><a href="#Reference_functions_Resources_LoadDynamicSprite">Resources.LoadDynamicSprite</a></li>
                     <li><a href="#Reference_functions_Resources_LoadImage">Resources.LoadImage</a></li>
                     <li><a href="#Reference_functions_Resources_LoadFont">Resources.LoadFont</a></li>
                     <li><a href="#Reference_functions_Resources_LoadModel">Resources.LoadModel</a></li>
@@ -861,8 +862,6 @@
                     <li><a href="#Reference_functions_Scene_CheckObjectCollisionBox">Scene.CheckObjectCollisionBox</a></li>
                     <li><a href="#Reference_functions_Scene_CheckObjectCollisionPlatform">Scene.CheckObjectCollisionPlatform</a></li>
                     <li><a href="#Reference_functions_Scene_Load">Scene.Load</a></li>
-                    <li><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></li>
-                    <li><a href="#Reference_functions_Scene_LoadPosition">Scene.LoadPosition</a></li>
                     <li><a href="#Reference_functions_Scene_Change">Scene.Change</a></li>
                     <li><a href="#Reference_functions_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_functions_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
@@ -904,12 +903,10 @@
                     <li><a href="#Reference_functions_Scene_GetTileFlipY">Scene.GetTileFlipY</a></li>
                     <li><a href="#Reference_functions_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDrawGroupEntityDepthSorting">Scene.GetDrawGroupEntityDepthSorting</a></li>
-                    <li><a href="#Reference_functions_Scene_GetListPos">Scene.GetListPos</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentFolder">Scene.GetCurrentFolder</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentID">Scene.GetCurrentID</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentResourceFolder">Scene.GetCurrentResourceFolder</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentCategory">Scene.GetCurrentCategory</a></li>
-                    <li><a href="#Reference_functions_Scene_GetActiveCategory">Scene.GetActiveCategory</a></li>
                     <li><a href="#Reference_functions_Scene_GetDebugMode">Scene.GetDebugMode</a></li>
                     <li><a href="#Reference_functions_Scene_GetFirstInstance">Scene.GetFirstInstance</a></li>
                     <li><a href="#Reference_functions_Scene_GetLastInstance">Scene.GetLastInstance</a></li>
@@ -925,14 +922,8 @@
                     <li><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></li>
                     <li><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></li>
                     <li><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckValidScene">Scene.CheckValidScene</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckSceneFolder">Scene.CheckSceneFolder</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckSceneID">Scene.CheckSceneID</a></li>
                     <li><a href="#Reference_functions_Scene_IsPaused">Scene.IsPaused</a></li>
-                    <li><a href="#Reference_functions_Scene_SetListPos">Scene.SetListPos</a></li>
-                    <li><a href="#Reference_functions_Scene_SetActiveCategory">Scene.SetActiveCategory</a></li>
                     <li><a href="#Reference_functions_Scene_SetDebugMode">Scene.SetDebugMode</a></li>
-                    <li><a href="#Reference_functions_Scene_SetScene">Scene.SetScene</a></li>
                     <li><a href="#Reference_functions_Scene_SetTile">Scene.SetTile</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileCollisionSides">Scene.SetTileCollisionSides</a></li>
                     <li><a href="#Reference_functions_Scene_SetPaused">Scene.SetPaused</a></li>
@@ -1365,7 +1356,6 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -4944,6 +4934,28 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the Number value if within the range, otherwise returns closest range value.</div>
         </p>
+        <p id="Reference_functions_Math_ToFixed">
+        <h2 style="margin-bottom: 8px;">Math.ToFixed</h2>
+        <code>Math.ToFixed(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a decimal number to its fixed-point equivalent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Number): Number value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted fixed-point Number value.</div>
+        </p>
+        <p id="Reference_functions_Math_FromFixed">
+        <h2 style="margin-bottom: 8px;">Math.FromFixed</h2>
+        <code>Math.FromFixed(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a fixed-point number to its decimal equivalent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Number): Number value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted decimal Number value.</div>
+        </p>
         <p id="Reference_functions_Math_Sign">
         <h2 style="margin-bottom: 8px;">Math.Sign</h2>
         <code>Math.Sign(n)</code>
@@ -5970,10 +5982,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Resource.</div>
         </p>
-        <p id="Reference_functions_Resources_LoadSpriteByFolder">
-        <h2 style="margin-bottom: 8px;">Resources.LoadSpriteByFolder</h2>
-        <code>Resources.LoadSpriteByFolder(fallbackFolder, name, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.</div>
+        <p id="Reference_functions_Resources_LoadDynamicSprite">
+        <h2 style="margin-bottom: 8px;">Resources.LoadDynamicSprite</h2>
+        <code>Resources.LoadDynamicSprite(fallbackFolder, name, unloadPolicy)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Sprite resource via the current Scene's resource folder if a scene list is loaded (else a fallback folder).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.</li>
@@ -6184,24 +6196,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
-        <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Scene_LoadNoPersistency">
-        <h2 style="margin-bottom: 8px;">Scene.LoadNoPersistency</h2>
-        <code>Scene.LoadNoPersistency(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filename (String): Filename of scene.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Scene_LoadPosition">
-        <h2 style="margin-bottom: 8px;">Scene.LoadPosition</h2>
-        <code>Scene.LoadPosition([persistency])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
         <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
         </ul>
         </p>
@@ -6604,13 +6598,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Scene_GetListPos">
-        <h2 style="margin-bottom: 8px;">Scene.GetListPos</h2>
-        <code>Scene.GetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
-        </p>
         <p id="Reference_functions_Scene_GetCurrentFolder">
         <h2 style="margin-bottom: 8px;">Scene.GetCurrentFolder</h2>
         <code>Scene.GetCurrentFolder()</code>
@@ -6632,26 +6619,12 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
         </p>
-        <p id="Reference_functions_Scene_GetCurrentSpriteFolder">
-        <h2 style="margin-bottom: 8px;">Scene.GetCurrentSpriteFolder</h2>
-        <code>Scene.GetCurrentSpriteFolder()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current sprite folder of the scene. (Deprecated; use <code><a href="#Reference_functions_Scene_GetCurrentResourceFolder">Scene.GetCurrentResourceFolder</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a String value.</div>
-        </p>
         <p id="Reference_functions_Scene_GetCurrentCategory">
         <h2 style="margin-bottom: 8px;">Scene.GetCurrentCategory</h2>
         <code>Scene.GetCurrentCategory()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the current category name of the scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
-        </p>
-        <p id="Reference_functions_Scene_GetActiveCategory">
-        <h2 style="margin-bottom: 8px;">Scene.GetActiveCategory</h2>
-        <code>Scene.GetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.GetDebugMode</h2>
@@ -6786,35 +6759,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Scene_CheckValidScene">
-        <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
-        <code>Scene.CheckValidScene()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckSceneFolder">
-        <h2 style="margin-bottom: 8px;">Scene.CheckSceneFolder</h2>
-        <code>Scene.CheckSceneFolder(folder)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>folder (String): Folder name to compare.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckSceneID">
-        <h2 style="margin-bottom: 8px;">Scene.CheckSceneID</h2>
-        <code>Scene.CheckSceneID(id)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>id (String): ID to compare.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value.</div>
-        </p>
         <p id="Reference_functions_Scene_IsPaused">
         <h2 style="margin-bottom: 8px;">Scene.IsPaused</h2>
         <code>Scene.IsPaused()</code>
@@ -6822,38 +6766,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Scene_SetListPos">
-        <h2 style="margin-bottom: 8px;">Scene.SetListPos</h2>
-        <code>Scene.SetListPos(sceneNum)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sceneNum (Integer): Scene number to use.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Scene_SetActiveCategory">
-        <h2 style="margin-bottom: 8px;">Scene.SetActiveCategory</h2>
-        <code>Scene.SetActiveCategory(categoryNum)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>categoryNum (Integer): Scene category number to use.</li>
-        </ul>
-        </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
         <code>Scene.SetDebugMode()</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets whether Debug Mode has been turned on in the current scene.</div>
-        </p>
-        <p id="Reference_functions_Scene_SetScene">
-        <h2 style="margin-bottom: 8px;">Scene.SetScene</h2>
-        <code>Scene.SetScene(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated; use <code><a href="#Reference_functions_Scene_Change">Scene.Change</a></code> instead.)</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>category (String): Category name.</li>
-        <li>scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.</li>
-        </ul>
         </p>
         <p id="Reference_functions_Scene_SetTile">
         <h2 style="margin-bottom: 8px;">Scene.SetTile</h2>
@@ -9567,7 +9483,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>694 out of 753 functions have descriptions. </p>
+        <p>691 out of 750 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -9662,20 +9578,6 @@
         <li>frame (Integer): The frame index.</li>
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
-        </p>
-        <p id="Reference_methods_instance_ReturnHitboxFromSprite">
-        <h2 style="margin-bottom: 8px;">instance.ReturnHitboxFromSprite</h2>
-        <code>instance.ReturnHitboxFromSprite(sprite, animation, frame, hitbox)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Sprite): The sprite.</li>
-        <li>animation (Integer): The animation index.</li>
-        <li>frame (Integer): The frame index.</li>
-        <li>hitbox (Integer): The hitbox ID.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an array containing the hitbox top, left, right and bottom sides in that order.</div>
         </p>
         <p id="Reference_methods_instance_CollideWithObject">
         <h2 style="margin-bottom: 8px;">instance.CollideWithObject</h2>
@@ -9824,7 +9726,7 @@
         <code>instance.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p>25 out of 25 methods have descriptions. </p>
+        <p>24 out of 24 methods have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
