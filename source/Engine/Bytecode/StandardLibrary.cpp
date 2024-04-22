@@ -6500,7 +6500,7 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return INTEGER_VAL(GET_ARG(0, GetDecimal) * 65536.0);
+    return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0));
 }
 /***
  * Math.FromFixed
@@ -6511,7 +6511,7 @@ VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(GET_ARG(0, GetInteger) / 65536.0);
+    return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0);
 }
 /***
  * Math.Sign
