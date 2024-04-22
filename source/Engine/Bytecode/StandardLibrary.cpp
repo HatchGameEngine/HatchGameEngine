@@ -12751,7 +12751,7 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjArray* array = NewArray();
     for (int i = 0; i < 4; i++)
-        array->Values->push_back(DECIMAL_VAL(0.0f));
+        array->Values->push_back(INTEGER_VAL(0));
 
     if (sprite && animationID >= 0 && frameID >= 0) {
         AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
@@ -12761,10 +12761,10 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
         CollisionBox box    = frame.Boxes[hitboxID];
         ObjArray* hitbox    = NewArray();
-        hitbox->Values->push_back(DECIMAL_VAL((float)box.Top));
-        hitbox->Values->push_back(DECIMAL_VAL((float)box.Left));
-        hitbox->Values->push_back(DECIMAL_VAL((float)box.Right));
-        hitbox->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+        hitbox->Values->push_back(INTEGER_VAL(box.Top));
+        hitbox->Values->push_back(INTEGER_VAL(box.Left));
+        hitbox->Values->push_back(INTEGER_VAL(box.Right));
+        hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
         return OBJECT_VAL(hitbox);
     }
     else {
