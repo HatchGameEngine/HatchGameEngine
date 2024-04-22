@@ -253,6 +253,8 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     // Folder
                     if (stgElement->attributes.Exists("folder"))
                         entry.Folder = XMLParser::TokenToString(stgElement->attributes.Get("folder"));
+                    else
+                        entry.Folder = StringUtils::Duplicate("Unknown");
 
                     // ID
                     if (stgElement->attributes.Exists("id"))
@@ -266,12 +268,14 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     // Resource folder
                     if (stgElement->attributes.Exists("resourceFolder"))
                         entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("resourceFolder"));
+                    else
+                        entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
 
                     // Filetype
-                    if (stgElement->attributes.Exists("fileExtension"))
-                        entry.Filetype = XMLParser::TokenToString(stgElement->attributes.Get("fileExtension"));
-                    else if (stgElement->attributes.Exists("type"))
+                    if (stgElement->attributes.Exists("type"))
                         entry.Filetype = XMLParser::TokenToString(stgElement->attributes.Get("type"));
+                    else
+                        entry.Name = StringUtils::Duplicate("tmx");
 
                     entry.ParentCategoryID = Categories.size();
                     entry.CategoryPos = category.Count;

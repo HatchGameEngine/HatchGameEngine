@@ -78,7 +78,7 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     if (verPatch >= 1)
         r->ReadByte(); // ?
 
-    // Unused (number of kits)
+    // Unused (number of kits) 
     r->ReadByte();
 
     Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
@@ -213,7 +213,7 @@ PRIVATE STATIC void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer
         info->ConstantParallax = r->ReadInt16();
         info->CanDeform = r->ReadByte();
 
-        r->ReadByte(); // ?
+        r->ReadByte(); // unused value
 
         info->Position = 0;
         info->Offset = 0;
