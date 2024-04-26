@@ -233,3 +233,13 @@ PUBLIC STATIC char* StringUtils::ReplacePathSeparators(const char* path) {
 
     return newPath;
 }
+PUBLIC STATIC void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
+    if (!path)
+        return;
+
+    while (*path) {
+        if (*path == '\\')
+            *path = '/';
+        path++;
+    }
+}

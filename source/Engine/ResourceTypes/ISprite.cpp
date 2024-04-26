@@ -225,7 +225,6 @@ PUBLIC void ISprite::ConvertToPalette(unsigned paletteNumber) {
 
 PUBLIC bool ISprite::LoadAnimation(const char* filename) {
     char* str;
-    char* altered;
     int animationCount, previousAnimationCount;
 
     Stream* reader = ResourceStream::New(filename);
@@ -256,13 +255,29 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 
     // Load textures
     for (int i = 0; i < spritesheetCount; i++) {
+        char fullPath[4096];
+
         str = reader->ReadHeaderedString();
 
-        char* sheetName = StringUtils::ReplacePathSeparators(str);
-        if (!sheetName)
-            abort();
+        // Spritesheet path is relative to where the animation file is
+        if (StringUtils::StartsWith(str, "./")) {
+            char *parentPath = StringUtils::GetPath(filename);
+            if (parentPath) {
+                snprintf(fullPath, sizeof fullPath, "%s/%s", parentPath, str + 2);
+                Memory::Free(parentPath);
+            }
+            else
+                snprintf(fullPath, sizeof fullPath, "%s", str + 2);
+        }
+        else
+            StringUtils::Copy(fullPath, str, sizeof fullPath);
 
         Memory::Free(str);
+
+        // Replace '\' with '/'
+        StringUtils::ReplacePathSeparatorsInPlace(fullPath);
+
+        char* sheetName = StringUtils::Duplicate(fullPath);
 
 #ifdef ISPRITE_DEBUG
         Log::Print(Log::LOG_VERBOSE, " - %s", sheetName);
@@ -270,13 +285,24 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 
         SpritesheetsFilenames.push_back(sheetName);
 
-        altered = StringUtils::ConcatPaths("Sprites", sheetName);
-        if (!altered)
-            abort();
+        bool shouldConcatSpritesPath = true;
+        if (StringUtils::StartsWith(sheetName, "Sprites/")) {
+            // don't need to concat "Sprites/" if the path already begins with that
+            shouldConcatSpritesPath = false;
+        }
 
-        Spritesheets.push_back(AddSpriteSheet(altered));
+        if (shouldConcatSpritesPath) {
+            char* altered = StringUtils::ConcatPaths("Sprites", sheetName);
+            if (!altered)
+                abort();
 
-        Memory::Free(altered);
+            Spritesheets.push_back(AddSpriteSheet(altered));
+
+            Memory::Free(altered);
+        }
+        else {
+            Spritesheets.push_back(AddSpriteSheet(sheetName));
+        }
     }
 
     // Get collision group count
@@ -310,8 +336,9 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
         an.Flags = reader->ReadByte();
 
 #ifdef ISPRITE_DEBUG
-        Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, frameCount);
+        Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, an.FrameCount);
 #endif
+
         an.Frames.resize(an.FrameCount);
 
         for (int i = 0; i < an.FrameCount; i++) {
