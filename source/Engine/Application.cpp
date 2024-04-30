@@ -889,21 +889,24 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             DEBUG_fontSprite = new ISprite();
 
             int cols, rows;
-            DEBUG_fontSprite->SpritesheetCount = 1;
-            DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
-            if (!DEBUG_fontSprite->Spritesheets[0])
-                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/Font.png");
-            cols = DEBUG_fontSprite->Spritesheets[0]->Width / 32;
-            rows = DEBUG_fontSprite->Spritesheets[0]->Height / 32;
+            Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
+            if (!spriteSheet)
+                spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/DebugFont.png");
+            if (spriteSheet) {
+                DEBUG_fontSprite->Spritesheets.push_back(spriteSheet);
 
-            DEBUG_fontSprite->ReserveAnimationCount(1);
-            DEBUG_fontSprite->AddAnimation("Font?", 0, 0, cols * rows);
-            for (int i = 0; i < cols * rows; i++) {
-                DEBUG_fontSprite->AddFrame(0,
-                    (i % cols) * 32,
-                    (i / cols) * 32,
-                    32, 32, 0, 0,
-                    14);
+                cols = spriteSheet->Width / 32;
+                rows = spriteSheet->Height / 32;
+
+                DEBUG_fontSprite->ReserveAnimationCount(1);
+                DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
+                for (int i = 0; i < cols * rows; i++) {
+                    DEBUG_fontSprite->AddFrame(0,
+                        (i % cols) * 32,
+                        (i / cols) * 32,
+                        32, 32, 0, 0,
+                        14);
+                }
             }
 
             Graphics::SetTextureInterpolation(original);

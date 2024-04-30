@@ -223,10 +223,17 @@ PRIVATE STATIC Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int fir
     snprintf(imagePath, sizeof(imagePath), "%s%.*s", parentFolder, (int)image_source.Length, image_source.Start);
 
     ISprite* tileSprite = new ISprite();
-    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(imagePath);
+    Texture* spriteSheet = tileSprite->AddSpriteSheet(imagePath);
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+    if (!spriteSheet) {
+        delete tileSprite;
+        return nullptr;
+    }
+
+    tileSprite->Spritesheets.push_back(spriteSheet);
+
+    int cols = spriteSheet->Width / Scene::TileWidth;
+    int rows = spriteSheet->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -289,8 +296,11 @@ PRIVATE STATIC void TiledMapReader::ParseTileAnimation(int tileID, int firstgid,
 }
 
 PRIVATE STATIC void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
+    if (!tilesetPtr)
+        return;
+
     for (size_t e = 0; e < node->children.size(); e++) {
-        if (tilesetPtr && XMLParser::MatchToken(node->children[e]->name, "animation")) {
+        if (XMLParser::MatchToken(node->children[e]->name, "animation")) {
             int firstgid = tilesetPtr->FirstGlobalTileID;
             int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id")) + firstgid;
             if ((size_t)tileID < Scene::TileSpriteInfos.size())

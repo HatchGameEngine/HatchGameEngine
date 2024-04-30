@@ -2272,14 +2272,16 @@ PRIVATE STATIC void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles)
 }
 PUBLIC STATIC bool Scene::AddTileset(char* path) {
     ISprite* tileSprite = new ISprite();
-    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(path);
-    if (!tileSprite->Spritesheets[0]) {
+    Texture* spriteSheet = tileSprite->AddSpriteSheet(path);
+    if (!spriteSheet) {
         delete tileSprite;
         return false;
     }
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+    tileSprite->Spritesheets.push_back(spriteSheet);
+
+    int cols = spriteSheet->Width / Scene::TileWidth;
+    int rows = spriteSheet->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -2445,7 +2447,6 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
         if (!Scene::SpriteList[i]) continue;
         if (Scene::SpriteList[i]->UnloadPolicy > scope) continue;
 
-        Scene::SpriteList[i]->AsSprite->Dispose();
         delete Scene::SpriteList[i]->AsSprite;
         delete Scene::SpriteList[i];
         Scene::SpriteList[i] = NULL;

@@ -2087,7 +2087,7 @@ PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame*
     GL_AnimFrameVert vertices[16];
     GL_AnimFrameVert* vert = &vertices[0];
 
-    if (frame->SheetNumber >= sprite->SpritesheetCount)
+    if (frame->SheetNumber >= sprite->Spritesheets.size())
         return;
     if (!sprite->Spritesheets[frame->SheetNumber])
         return;
