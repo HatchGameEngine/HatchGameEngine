@@ -1386,6 +1386,51 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
 
     return NULL_VAL;
 }
+/***
+ * \method ReturnHitboxFromSprite
+ * \desc Gets the hitbox in the specified sprite's animation, frame and hitbox ID.
+ * \param sprite (Sprite): The sprite.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index.
+ * \param hitbox (Integer): The hitbox ID.
+ * \return Returns an array containing the hitbox top, left, right and bottom sides in that order.
+ * \ns Instance
+ */
+PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 5);
+    ScriptEntity* self = GET_ENTITY(0);
+    ISprite* sprite = GET_ARG(1, GetSprite);
+    int animation = GET_ARG(2, GetInteger);
+    int frame = GET_ARG(3, GetInteger);
+    int hitbox = GET_ARG(4, GetInteger);
+
+    if (!self || !sprite)
+        return NULL_VAL;
+
+    if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
+        return NULL_VAL;
+    }
+    if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frame, animation);
+        return NULL_VAL;
+    }
+
+    AnimFrame frameO = sprite->Animations[animation].Frames[frame];
+
+    if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
+        // ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
+        return NULL_VAL;
+    }
+
+    CollisionBox box = frameO.Boxes[hitbox];
+    ObjArray* array = NewArray();
+    array->Values->push_back(DECIMAL_VAL((float)box.Left));
+    array->Values->push_back(DECIMAL_VAL((float)box.Top));
+    array->Values->push_back(DECIMAL_VAL((float)box.Right));
+    array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+    return OBJECT_VAL(array);
+}
 
 /***
  * \method CollideWithObject
