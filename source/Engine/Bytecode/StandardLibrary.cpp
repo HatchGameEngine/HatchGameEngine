@@ -6870,7 +6870,7 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return INTEGER_VAL(Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f), (int)(GET_ARG(1, GetDecimal) * 65536.0f)));
+    return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f), (int)(GET_ARG(1, GetDecimal) * 65536.0f)));
 }
 /***
  * RSDK.Math.RadianToInteger
@@ -16719,6 +16719,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NAMESPACED_NATIVE(Math, Tan256);
     DEF_NAMESPACED_NATIVE(Math, ASin256);
     DEF_NAMESPACED_NATIVE(Math, ACos256);
+    DEF_NAMESPACED_NATIVE(Math, ATan2);
     DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
     DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
     DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
