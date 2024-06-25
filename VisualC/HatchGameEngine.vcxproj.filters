@@ -384,6 +384,36 @@
     <ClCompile Include="..\source\Libraries\spng.c">
       <Filter>Source Files\External Libs</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\input\Controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\math\Random.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\poly2tri\common\shapes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\advancing_front.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\cdt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep_context.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.engine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.offset.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.rectclip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\engine\audio\AudioChannel.h">
@@ -467,9 +497,6 @@
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\scene\SceneConfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\engine\sprites\Animation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -496,6 +523,9 @@
     </ClInclude>
     <ClInclude Include="..\source\Libraries\stb_vorbis.h">
       <Filter>Source Files\External Libs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\source\Libraries\spng.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
