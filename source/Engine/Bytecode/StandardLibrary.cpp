@@ -1105,93 +1105,6 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 }
 // #endregion
 
-// #region Audio
-/***
- * Audio.GetMasterVolume
- * \desc Gets the master volume of the audio mixer.
- * \return The master volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Application::MasterVolume);
-}
-/***
- * Audio.GetMusicVolume
- * \desc Gets the music volume of the audio mixer.
- * \return The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Application::MusicVolume);
-}
-/***
- * Audio.GetSoundVolume
- * \desc Gets the sound effect volume of the audio mixer.
- * \return The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL(Application::SoundVolume);
-}
-/***
- * Audio.SetMasterVolume
- * \desc Sets the master volume of the audio mixer.
- * \param volume (Integer): The master volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int volume = GET_ARG(0, GetInteger);
-    if (volume < 0) {
-        THROW_ERROR("Volume cannot be lower than 0.");
-    } else if (volume > 100) {
-        THROW_ERROR("Volume cannot be higher than 100.");
-    } else
-        Application::SetMasterVolume(volume);
-
-    return NULL_VAL;
-}
-/***
- * Audio.SetMusicVolume
- * \desc Sets the music volume of the audio mixer.
- * \param volume (Integer): The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int volume = GET_ARG(0, GetInteger);
-    if (volume < 0) {
-        THROW_ERROR("Volume cannot be lower than 0.");
-    } else if (volume > 100) {
-        THROW_ERROR("Volume cannot be higher than 100.");
-    } else
-        Application::SetMusicVolume(volume);
-
-    return NULL_VAL;
-}
-/***
- * Audio.SetSoundVolume
- * \desc Sets the sound effect volume of the audio mixer.
- * \param volume (Integer): The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(1);
-    int volume = GET_ARG(0, GetInteger);
-    if (volume < 0) {
-        THROW_ERROR("Volume cannot be lower than 0.");
-    } else if (volume > 100) {
-        THROW_ERROR("Volume cannot be higher than 100.");
-    } else
-        Application::SetSoundVolume(volume);
-
-    return NULL_VAL;
-}
-// #endregion
-
 // #region Array
 /***
  * Array.Create
@@ -1455,8 +1368,9 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
                     return AS_INTEGER(result) == 1;
 
                 return false;
-            });
-        } else {
+                });
+        }
+        else {
             std::stable_sort(array->Values->begin(), array->Values->end(), [array](const VMValue& a, const VMValue& b) {
                 if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
                     return false;
@@ -1467,12 +1381,322 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
                 else {
                     return AS_INTEGER(a) < AS_INTEGER(b);
                 }
-            });
+                });
         }
 
         ScriptManager::Unlock();
     }
     return NULL_VAL;
+}
+// #endregion
+
+// #region Audio
+/***
+ * Audio.GetMasterVolume
+ * \desc Gets the master volume of the audio mixer.
+ * \return The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::MasterVolume);
+}
+/***
+ * Audio.GetMusicVolume
+ * \desc Gets the music volume of the audio mixer.
+ * \return The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::MusicVolume);
+}
+/***
+ * Audio.GetSoundVolume
+ * \desc Gets the sound effect volume of the audio mixer.
+ * \return The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::SoundVolume);
+}
+/***
+ * Audio.SetMasterVolume
+ * \desc Sets the master volume of the audio mixer.
+ * \param volume (Integer): The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        THROW_ERROR("Volume cannot be lower than 0.");
+    } else if (volume > 100) {
+        THROW_ERROR("Volume cannot be higher than 100.");
+    } else
+        Application::SetMasterVolume(volume);
+
+    return NULL_VAL;
+}
+/***
+ * Audio.SetMusicVolume
+ * \desc Sets the music volume of the audio mixer.
+ * \param volume (Integer): The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        THROW_ERROR("Volume cannot be lower than 0.");
+    } else if (volume > 100) {
+        THROW_ERROR("Volume cannot be higher than 100.");
+    } else
+        Application::SetMusicVolume(volume);
+
+    return NULL_VAL;
+}
+/***
+ * Audio.SetSoundVolume
+ * \desc Sets the sound effect volume of the audio mixer.
+ * \param volume (Integer): The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int volume = GET_ARG(0, GetInteger);
+    if (volume < 0) {
+        THROW_ERROR("Volume cannot be lower than 0.");
+    } else if (volume > 100) {
+        THROW_ERROR("Volume cannot be higher than 100.");
+    } else
+        Application::SetSoundVolume(volume);
+
+    return NULL_VAL;
+}
+// #endregion
+
+// #region Collision
+/***
+ * Collision.ProcessObjectMovement
+ * \desc Processes movement of an instance with an outer hitbox and an inner hitbox.
+ * \param entity (Instance): The instance to move.
+ * \param outer (Array): Array containing the outer hitbox.
+ * \param inner (Array): Array containing the inner hitbox.
+ * \ns Collision
+ */
+VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ObjInstance* entity = GET_ARG(0, GetInstance);
+    ObjArray* outer = GET_ARG(1, GetArray);
+    ObjArray* inner = GET_ARG(2, GetArray);
+
+    CollisionBox outerBox;
+    CollisionBox innerBox;
+
+    if (entity && outer && inner) {
+        auto ent = (Entity*)entity->EntityPtr;
+
+        outerBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*outer->Values)[0]));
+        outerBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*outer->Values)[1]));
+        outerBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*outer->Values)[2]));
+        outerBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*outer->Values)[3]));
+
+        innerBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*inner->Values)[0]));
+        innerBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*inner->Values)[1]));
+        innerBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*inner->Values)[2]));
+        innerBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*inner->Values)[3]));
+
+        Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+    }
+    return NULL_VAL;
+}
+/***
+ * Collision.ObjectTileCollision
+ * \desc Checks tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to base the values on.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Number): How far from the entity's X value to start from.
+ * \param yOffset (Number): How far from the entity's Y value to start from.
+ * \param setPos (Boolean): Whether to set the entity's position if collision is found.
+ * \return Returns whether the instance has collided with a tile.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(7);
+    ObjInstance* entity = GET_ARG(0, GetInstance);
+    int cLayers = GET_ARG(1, GetInteger);
+    int cMode = GET_ARG(2, GetInteger);
+    int cPlane = GET_ARG(3, GetInteger);
+    int xOffset = (int)GET_ARG(4, GetDecimal);
+    int yOffset = (int)GET_ARG(5, GetDecimal);
+    int setPos = GET_ARG(6, GetInteger);
+
+    auto ent = (Entity*)entity->EntityPtr;
+
+    return INTEGER_VAL(Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+}
+/***
+ * Collision.ObjectTileGrip
+ * \desc Keeps an instance gripped to tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to move.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Decimal): How far from the entity's X value to start from.
+ * \param yOffset (Decimal): How far from the entity's Y value to start from.
+ * \param tolerance (Decimal): How far of a tolerance the entity should check for.
+ * \return Returns whether to grip the instance.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(7);
+    ObjInstance* entity = GET_ARG(0, GetInstance);
+    int cLayers = GET_ARG(1, GetInteger);
+    int cMode = GET_ARG(2, GetInteger);
+    int cPlane = GET_ARG(3, GetInteger);
+    int xOffset = (int)GET_ARG(4, GetDecimal);
+    int yOffset = (int)GET_ARG(5, GetDecimal);
+    float tolerance = GET_ARG(6, GetDecimal);
+
+    auto ent = (Entity*)entity->EntityPtr;
+
+    return INTEGER_VAL(Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+}
+/***
+ * Collision.CheckObjectCollisionTouch
+ * \desc Checks if an instance is touching another instance with their respective hitboxes.
+ * \param thisEntity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \return Returns a Boolean value whether the entities are touching.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+    ObjArray* thisHitbox = GET_ARG(1, GetArray);
+    ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+    ObjArray* otherHitbox = GET_ARG(3, GetArray);
+
+    auto thisEnt = (Entity*)thisEntity->EntityPtr;
+    auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+    CollisionBox thisBox;
+    CollisionBox otherBox;
+
+    thisBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[0]));
+    thisBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[1]));
+    thisBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[2]));
+    thisBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[3]));
+
+    otherBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[0]));
+    otherBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[1]));
+    otherBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[2]));
+    otherBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[3]));
+
+
+    return INTEGER_VAL(!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+}
+/***
+ * Collision.CheckObjectCollisionCircle
+ * \desc Checks if an instance is touching another instance with within their respective radii.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisRadius (Decimal): Radius of the first entity to check.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherRadius (Array): Radius of the other entity to check.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+    float thisRadius = GET_ARG(1, GetDecimal);
+    ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+    float otherRadius = GET_ARG(3, GetDecimal);
+
+    auto thisEnt = (Entity*)thisEntity->EntityPtr;
+    auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+    return INTEGER_VAL(!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+}
+/***
+ * Collision.CheckObjectCollisionBox
+ * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns the side the entities are colliding on.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+    ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+    ObjArray* thisHitbox = GET_ARG(1, GetArray);
+    ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+    ObjArray* otherHitbox = GET_ARG(3, GetArray);
+    bool setValues = !!GET_ARG(4, GetInteger);
+
+    auto thisEnt = (Entity*)thisEntity->EntityPtr;
+    auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+    CollisionBox thisBox;
+    CollisionBox otherBox;
+
+    thisBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[0]));
+    thisBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[1]));
+    thisBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[2]));
+    thisBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[3]));
+
+    otherBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[0]));
+    otherBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[1]));
+    otherBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[2]));
+    otherBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[3]));
+
+    return INTEGER_VAL(Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+}
+/***
+ * Collision.CheckObjectCollisionPlatform
+ * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(5);
+    ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+    ObjArray* thisHitbox = GET_ARG(1, GetArray);
+    ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+    ObjArray* otherHitbox = GET_ARG(3, GetArray);
+    bool setValues = !!GET_ARG(4, GetInteger);
+
+    auto thisEnt = (Entity*)thisEntity->EntityPtr;
+    auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+    CollisionBox thisBox;
+    CollisionBox otherBox;
+
+    thisBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[0]));
+    thisBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[1]));
+    thisBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[2]));
+    thisBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[3]));
+
+    otherBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[0]));
+    otherBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[1]));
+    otherBox.Right = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[2]));
+    otherBox.Bottom = AS_INTEGER(ScriptManager::CastValueAsInteger((*otherHitbox->Values)[3]));
+
+    return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
 }
 // #endregion
 
@@ -15512,16 +15736,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_ENUM_CLASS(KeyBind, DevQuit);
     // #endregion
 
-    // #region Audio
-    INIT_CLASS(Audio);
-    DEF_NATIVE(Audio, GetMasterVolume);
-    DEF_NATIVE(Audio, GetMusicVolume);
-    DEF_NATIVE(Audio, GetSoundVolume);
-    DEF_NATIVE(Audio, SetMasterVolume);
-    DEF_NATIVE(Audio, SetMusicVolume);
-    DEF_NATIVE(Audio, SetSoundVolume);
-    // #endregion
-
     // #region Array
     INIT_CLASS(Array);
     DEF_NATIVE(Array, Create);
@@ -15535,6 +15749,27 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Array, SetAll);
     DEF_NATIVE(Array, Reverse);
     DEF_NATIVE(Array, Sort);
+    // #endregion
+
+    // #region Audio
+    INIT_CLASS(Audio);
+    DEF_NATIVE(Audio, GetMasterVolume);
+    DEF_NATIVE(Audio, GetMusicVolume);
+    DEF_NATIVE(Audio, GetSoundVolume);
+    DEF_NATIVE(Audio, SetMasterVolume);
+    DEF_NATIVE(Audio, SetMusicVolume);
+    DEF_NATIVE(Audio, SetSoundVolume);
+    // #endregion
+
+    // #region Collision
+    INIT_CLASS(Collision);
+    DEF_NATIVE(Collision, ProcessObjectMovement);
+    DEF_NATIVE(Collision, ObjectTileCollision);
+    DEF_NATIVE(Collision, ObjectTileGrip);
+    DEF_NATIVE(Collision, CheckObjectCollisionTouch);
+    DEF_NATIVE(Collision, CheckObjectCollisionCircle);
+    DEF_NATIVE(Collision, CheckObjectCollisionBox);
+    DEF_NATIVE(Collision, CheckObjectCollisionPlatform);
     // #endregion
 
     // #region Controller
@@ -16851,13 +17086,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Scene
     INIT_CLASS(Scene);
-    DEF_NATIVE(Scene, ProcessObjectMovement);
-    DEF_NATIVE(Scene, ObjectTileCollision);
-    DEF_NATIVE(Scene, ObjectTileGrip);
-    DEF_NATIVE(Scene, CheckObjectCollisionTouch);
-    DEF_NATIVE(Scene, CheckObjectCollisionCircle);
-    DEF_NATIVE(Scene, CheckObjectCollisionBox);
-    DEF_NATIVE(Scene, CheckObjectCollisionPlatform);
     DEF_NATIVE(Scene, Load);
     DEF_NATIVE(Scene, Change);
     DEF_NATIVE(Scene, LoadTileCollisions);

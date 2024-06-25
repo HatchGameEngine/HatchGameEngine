@@ -58,6 +58,7 @@ public:
     float        ScaleY = 1.0;
     float        Rotation = 0.0;
     float        Alpha = 1.0;
+    int          BlendMode = BlendMode_NORMAL;
     int          AutoPhysics = false;
 
     int          Priority = 0;

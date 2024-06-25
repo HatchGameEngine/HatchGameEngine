@@ -50,6 +50,7 @@
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
+            <li><a href="#Reference_Collision">Collision</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
             <li><a href="#Reference_Device">Device</a></li>
@@ -249,6 +250,19 @@
                     <li><a href="#Reference_functions_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Collision">
+                <h2>Collision</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Collision_ProcessObjectMovement">Collision.ProcessObjectMovement</a></li>
+                    <li><a href="#Reference_functions_Collision_ObjectTileCollision">Collision.ObjectTileCollision</a></li>
+                    <li><a href="#Reference_functions_Collision_ObjectTileGrip">Collision.ObjectTileGrip</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionTouch">Collision.CheckObjectCollisionTouch</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionCircle">Collision.CheckObjectCollisionCircle</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionBox">Collision.CheckObjectCollisionBox</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionPlatform">Collision.CheckObjectCollisionPlatform</a></li>
                 </ul>
             </p>
             <p id="Reference_Controller">
@@ -561,6 +575,7 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -593,6 +608,7 @@
                     <li><a href="#Reference_fields_instance_ScaleY">instance.ScaleY</a></li>
                     <li><a href="#Reference_fields_instance_Rotation">instance.Rotation</a></li>
                     <li><a href="#Reference_fields_instance_Alpha">instance.Alpha</a></li>
+                    <li><a href="#Reference_fields_instance_BlendMode">instance.BlendMode</a></li>
                     <li><a href="#Reference_fields_instance_Priority">instance.Priority</a></li>
                     <li><a href="#Reference_fields_instance_Depth">instance.Depth</a></li>
                     <li><a href="#Reference_fields_instance_Sprite">instance.Sprite</a></li>
@@ -805,6 +821,7 @@
                     <li><a href="#Reference_functions_RSDK_Math_Tan256">RSDK.Math.Tan256</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_ASin256">RSDK.Math.ASin256</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_ACos256">RSDK.Math.ACos256</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ATan2">RSDK.Math.ATan2</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_RadianToInteger">RSDK.Math.RadianToInteger</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_IntegerToRadian">RSDK.Math.IntegerToRadian</a></li>
                 </ul>
@@ -1356,6 +1373,7 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitboxFromSprite">instance.ReturnHitboxFromSprite</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -1388,6 +1406,7 @@
                     <li><a href="#Reference_fields_instance_ScaleY">instance.ScaleY</a></li>
                     <li><a href="#Reference_fields_instance_Rotation">instance.Rotation</a></li>
                     <li><a href="#Reference_fields_instance_Alpha">instance.Alpha</a></li>
+                    <li><a href="#Reference_fields_instance_BlendMode">instance.BlendMode</a></li>
                     <li><a href="#Reference_fields_instance_Priority">instance.Priority</a></li>
                     <li><a href="#Reference_fields_instance_Depth">instance.Depth</a></li>
                     <li><a href="#Reference_fields_instance_Sprite">instance.Sprite</a></li>
@@ -2361,6 +2380,109 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>volume (Integer): The sound effect volume, from 0 to 100.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Collision_ProcessObjectMovement">
+        <h2 style="margin-bottom: 8px;">Collision.ProcessObjectMovement</h2>
+        <code>Collision.ProcessObjectMovement(entity, outer, inner)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Processes movement of an instance with an outer hitbox and an inner hitbox.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to move.</li>
+        <li>outer (Array): Array containing the outer hitbox.</li>
+        <li>inner (Array): Array containing the inner hitbox.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Collision_ObjectTileCollision">
+        <h2 style="margin-bottom: 8px;">Collision.ObjectTileCollision</h2>
+        <code>Collision.ObjectTileCollision(entity, cLayers, cMode, cPlane, xOffset, yOffset, setPos)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks tile collision based on where an instance should check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to base the values on.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
+        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
+        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
+        <li>xOffset (Number): How far from the entity's X value to start from.</li>
+        <li>yOffset (Number): How far from the entity's Y value to start from.</li>
+        <li>setPos (Boolean): Whether to set the entity's position if collision is found.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the instance has collided with a tile.</div>
+        </p>
+        <p id="Reference_functions_Collision_ObjectTileGrip">
+        <h2 style="margin-bottom: 8px;">Collision.ObjectTileGrip</h2>
+        <code>Collision.ObjectTileGrip(entity, cLayers, cMode, cPlane, xOffset, yOffset, tolerance)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Keeps an instance gripped to tile collision based on where an instance should check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to move.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
+        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
+        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
+        <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
+        <li>yOffset (Decimal): How far from the entity's Y value to start from.</li>
+        <li>tolerance (Decimal): How far of a tolerance the entity should check for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether to grip the instance.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionTouch">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionTouch</h2>
+        <code>Collision.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEntity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionCircle">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionCircle</h2>
+        <code>Collision.CheckObjectCollisionCircle(thisEnity, thisRadius, otherEntity, otherRadius)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with within their respective radii.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisRadius (Decimal): Radius of the first entity to check.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherRadius (Array): Radius of the other entity to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionBox">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionBox</h2>
+        <code>Collision.CheckObjectCollisionBox(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the side the entities are colliding on.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionPlatform">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionPlatform</h2>
+        <code>Collision.CheckObjectCollisionPlatform(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check whether it is on top of the first instance.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
         </p>
         <p id="Reference_functions_Controller_GetCount">
         <h2 style="margin-bottom: 8px;">Controller.GetCount</h2>
@@ -5814,6 +5936,18 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The arc cosine 256 of the angle.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_ATan2">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.ATan2</h2>
+        <code>RSDK.Math.ATan2(x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the arc tangent of a position.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x (Decimal): X value of the position.</li>
+        <li>y (Decimal): Y value of the position.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The arc tangent of the position.</div>
         </p>
         <p id="Reference_functions_RSDK_Math_RadianToInteger">
         <h2 style="margin-bottom: 8px;">RSDK.Math.RadianToInteger</h2>
@@ -9483,7 +9617,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>691 out of 750 functions have descriptions. </p>
+        <p>699 out of 758 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -9578,6 +9712,20 @@
         <li>frame (Integer): The frame index.</li>
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
+        </p>
+        <p id="Reference_methods_instance_ReturnHitboxFromSprite">
+        <h2 style="margin-bottom: 8px;">instance.ReturnHitboxFromSprite</h2>
+        <code>instance.ReturnHitboxFromSprite(sprite, animation, frame, hitbox)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Sprite): The sprite.</li>
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index.</li>
+        <li>hitbox (Integer): The hitbox ID.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an array containing the hitbox top, left, right and bottom sides in that order.</div>
         </p>
         <p id="Reference_methods_instance_CollideWithObject">
         <h2 style="margin-bottom: 8px;">instance.CollideWithObject</h2>
@@ -9726,7 +9874,7 @@
         <code>instance.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p>24 out of 24 methods have descriptions. </p>
+        <p>25 out of 25 methods have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
@@ -9815,6 +9963,12 @@
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for changing the opacity of a sprite.</div>
+        </p>
+        <p id="Reference_fields_instance_BlendMode">
+        <h3 style="margin-bottom: 8px;"><code>instance.BlendMode</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>BlendMode_NORMAL</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for changing the BlendMode of a sprite.</div>
         </p>
         <p id="Reference_fields_instance_Priority">
         <h3 style="margin-bottom: 8px;"><code>instance.Priority</code></h2>
@@ -10184,7 +10338,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>73 out of 77 fields have descriptions. </p>
+        <p>74 out of 78 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
