@@ -2081,6 +2081,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     if (!currentView)
         return;
 
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
+        return;
+
     int cx = (int)std::floor(currentView->X);
     int cy = (int)std::floor(currentView->Y);
 
@@ -2096,11 +2100,15 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16;
     vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16;
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16;
-    PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, GetBlendState());
+    PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
 }
 PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
         return;
 
     int cx = (int)std::floor(currentView->X);
@@ -2119,11 +2127,15 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     vectors[0].X = ((int)x1 + x) << 16; vectors[0].Y = ((int)y1 + y) << 16; colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
     vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
-    PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, GetBlendState());
+    PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
 }
 PUBLIC STATIC void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
         return;
 
     int cx = (int)std::floor(currentView->X);
@@ -2142,11 +2154,15 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, 
     vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16;
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16;
     vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16;
-    PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, GetBlendState());
+    PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, blendState);
 }
 PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
         return;
 
     int cx = (int)std::floor(currentView->X);
@@ -2166,11 +2182,15 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float
     vectors[1].X = ((int)x2 + x) << 16; vectors[1].Y = ((int)y2 + y) << 16; colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
     vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16; colors[3] = ColorUtils::Multiply(c4, GetBlendColor());
-    PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, GetBlendState());
+    PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, blendState);
 }
 PRIVATE STATIC void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, unsigned numPoints, float* px, float* py, int* pc, float* pu, float* pv) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
+        return;
+
+    BlendState blendState = GetBlendState();
+    if (!AlterBlendState(blendState))
         return;
 
     int cx = (int)std::floor(currentView->X);
@@ -2200,7 +2220,7 @@ PRIVATE STATIC void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, 
         uv[i].Y = ((int)pv[i]) << 16;
     }
 
-    PolygonRasterizer::DrawBlendPerspective(texturePtr, vectors, uv, colors, numPoints, GetBlendState());
+    PolygonRasterizer::DrawBlendPerspective(texturePtr, vectors, uv, colors, numPoints, blendState);
 }
 PUBLIC STATIC void     SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3, float u1, float v1, float u2, float v2, float u3, float v3) {
     float px[3];
