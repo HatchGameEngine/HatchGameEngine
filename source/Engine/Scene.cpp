@@ -1530,12 +1530,6 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Dispose of resources in SCOPE_SCENE
     Scene::DisposeInScope(SCOPE_SCENE);
 
-    // TODO: Make a way for this to delete ONLY of SCOPE_SCENE, and not any sprites needed by SCOPE_GAME
-    /*Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
-        Graphics::DisposeTexture(tex);
-    });
-    Graphics::SpriteSheetTextureMap->Clear();*/
-
     // Clear and dispose of non-persistent objects
     // We force garbage collection right after, meaning that non-persistent objects may get deleted.
     Scene::RemoveNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
@@ -2277,8 +2271,6 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         delete tileSprite;
         return false;
     }
-
-    tileSprite->Spritesheets.push_back(spriteSheet);
 
     int cols = spriteSheet->Width / Scene::TileWidth;
     int rows = spriteSheet->Height / Scene::TileHeight;

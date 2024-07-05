@@ -77,6 +77,8 @@ PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *pa
         material->TextureDiffuse = IModel::LoadMaterialImage(diffuseTexture, parentDirectory);
         if (material->TextureDiffuse)
             material->TextureDiffuseName = StringUtils::Duplicate(material->TextureDiffuse->Filename);
+
+        Memory::Free(diffuseTexture);
     }
 
     // Read specular
@@ -91,6 +93,8 @@ PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *pa
         material->TextureSpecular = IModel::LoadMaterialImage(specularTexture, parentDirectory);
         if (material->TextureSpecular)
             material->TextureSpecularName = StringUtils::Duplicate(material->TextureSpecular->Filename);
+
+        Memory::Free(specularTexture);
     }
 
     // Read ambient
@@ -105,6 +109,8 @@ PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *pa
         material->TextureAmbient = IModel::LoadMaterialImage(ambientTexture, parentDirectory);
         if (material->TextureAmbient)
             material->TextureAmbientName = StringUtils::Duplicate(material->TextureAmbient->Filename);
+
+        Memory::Free(ambientTexture);
     }
 
     // Read emissive
@@ -119,6 +125,8 @@ PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *pa
         material->TextureEmissive = IModel::LoadMaterialImage(emissiveTexture, parentDirectory);
         if (material->TextureEmissive)
             material->TextureEmissiveName = StringUtils::Duplicate(material->TextureEmissive->Filename);
+
+        Memory::Free(emissiveTexture);
     }
 
     // Read shininess
@@ -392,7 +400,7 @@ PUBLIC STATIC bool HatchModel::Convert(IModel* model, Stream* stream, const char
         model->MaterialCount = materialCount;
         model->Materials = new Material*[materialCount];
 
-        const char *parentDirectory = StringUtils::GetPath(path);
+        char *parentDirectory = StringUtils::GetPath(path);
 
         for (Uint8 i = 0; i < materialCount; i++) {
             Material* material = ReadMaterial(stream, parentDirectory);
@@ -408,6 +416,8 @@ PUBLIC STATIC bool HatchModel::Convert(IModel* model, Stream* stream, const char
 
             model->Materials[i] = material;
         }
+
+        Memory::Free(parentDirectory);
     }
 
     // Read animations
@@ -803,7 +813,7 @@ PUBLIC STATIC bool HatchModel::Save(IModel* model, const char* filename) {
 
     Log::Print(Log::LOG_VERBOSE, "Material count: %d (%08X)", numMaterials, lastPos);
 
-    const char *parentDirectory = StringUtils::GetPath(filename);
+    char *parentDirectory = StringUtils::GetPath(filename);
     if (StringUtils::StartsWith(parentDirectory, "./"))
         parentDirectory += 2;
     if (StringUtils::StartsWith(parentDirectory, "Resources/"))
@@ -812,6 +822,8 @@ PUBLIC STATIC bool HatchModel::Save(IModel* model, const char* filename) {
     for (size_t i = 0; i < numMaterials; i++) {
         WriteMaterial(model->Materials[i], stream, parentDirectory);
     }
+
+    Memory::Free(parentDirectory);
 
     // Write animations
     lastPos = stream->Position();

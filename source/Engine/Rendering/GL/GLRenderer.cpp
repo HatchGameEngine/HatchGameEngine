@@ -535,6 +535,11 @@ void GL_PrepareVertexBufferUpdate(Scene3D* scene, VertexBuffer* vertexBuffer, Ui
         qsort(vertexBuffer->FaceInfoBuffer, vertexBuffer->FaceCount, sizeof(FaceInfo), PolygonRenderer::FaceSortFunction);
     }
 }
+void GL_DeleteVertexIndexList(GL_VertexBuffer* driverData) {
+    for (size_t i = 0; i < driverData->VertexIndexList.size(); i++)
+        delete driverData->VertexIndexList[i];
+    driverData->VertexIndexList.clear();
+}
 void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 drawMode, bool useBatching) {
     GL_PrepareVertexBufferUpdate(scene, vertexBuffer, drawMode);
 
@@ -552,9 +557,7 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
     if (useBatching) {
         driverData->UseVertexIndices = true;
 
-        for (size_t i = 0; i < driverData->VertexIndexList.size(); i++)
-            delete driverData->VertexIndexList[i];
-        driverData->VertexIndexList.clear();
+        GL_DeleteVertexIndexList(driverData);
 
         vertexIndices = new vector<Uint32>();
         driverData->VertexIndexList.push_back(vertexIndices);
@@ -1366,7 +1369,9 @@ PUBLIC STATIC void     GLRenderer::DisposeTexture(Texture* texture) {
         glDeleteTextures(1, &textureData->TextureU); CHECK_GL();
         glDeleteTextures(1, &textureData->TextureV); CHECK_GL();
     }
-    glDeleteTextures(1, &textureData->TextureID); CHECK_GL();
+    if (textureData->TextureID) {
+        glDeleteTextures(1, &textureData->TextureID); CHECK_GL();
+    }
     Memory::Free(textureData);
 }
 
@@ -2059,19 +2064,20 @@ PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
 PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
     VertexBuffer* vertexBuffer = (VertexBuffer*)vtxBuf;
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
-    if (!driverData)
-        return;
+    if (driverData) {
+        GL_DeleteVertexIndexList(driverData);
 
-    for (size_t i = 0; i < driverData->VertexIndexList.size(); i++)
-        delete driverData->VertexIndexList[i];
-    for (size_t e = 0; e < driverData->Entries->size(); e++)
-        Memory::Free((*driverData->Entries)[e]);
-    if (driverData->VertexIndexBuffer)
-        Memory::Free(driverData->VertexIndexBuffer);
-    delete driverData->Entries;
-    delete driverData->Faces;
+        for (size_t e = 0; e < driverData->Entries->size(); e++)
+            Memory::Free((*driverData->Entries)[e]);
 
-    Memory::Free(driverData);
+        if (driverData->VertexIndexBuffer)
+            Memory::Free(driverData->VertexIndexBuffer);
+
+        delete driverData->Entries;
+        delete driverData->Faces;
+
+        Memory::Free(driverData);
+    }
 
     delete vertexBuffer;
 }

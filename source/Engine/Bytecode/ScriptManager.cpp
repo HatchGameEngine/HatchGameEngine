@@ -554,7 +554,7 @@ PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
 
                 // Free keys
                 map->Keys->WithAll([](Uint32, char* ptr) -> void {
-                    free(ptr);
+                    Memory::Free(ptr);
                 });
 
                 // Free Keys table

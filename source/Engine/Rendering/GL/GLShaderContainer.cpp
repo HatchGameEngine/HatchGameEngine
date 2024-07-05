@@ -142,9 +142,9 @@ PUBLIC STATIC GLShaderContainer* GLShaderContainer::MakeYUV() {
 
 PUBLIC GLShaderContainer::~GLShaderContainer() {
     if (Base)
-        Base->Dispose();
+        delete Base;
     if (Textured)
-        Textured->Dispose();
+        delete Textured;
     if (PalettizedTextured)
-        PalettizedTextured->Dispose();
+        delete PalettizedTextured;
 }

@@ -7,9 +7,9 @@
 
 class GLShader {
 public:
-    GLuint ProgramID;
-    GLuint VertexProgramID;
-    GLuint FragmentProgramID;
+    GLuint ProgramID = 0;
+    GLuint VertexProgramID = 0;
+    GLuint FragmentProgramID = 0;
 
     GLint  LocProjectionMatrix;
     GLint  LocModelViewMatrix;
@@ -112,6 +112,12 @@ PUBLIC        GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
         CheckShaderError(VertexProgramID);
         CheckGLError(__LINE__);
 
+        glDeleteProgram(ProgramID); CHECK_GL();
+        glDeleteShader(VertexProgramID); CHECK_GL();
+
+        ProgramID = 0;
+        VertexProgramID = 0;
+
         free(sourceVS);
         free(sourceFS);
         return;
@@ -125,6 +131,14 @@ PUBLIC        GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
         Log::Print(Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
         CheckShaderError(FragmentProgramID);
         CheckGLError(__LINE__);
+
+        glDeleteProgram(ProgramID); CHECK_GL();
+        glDeleteShader(VertexProgramID); CHECK_GL();
+        glDeleteShader(FragmentProgramID); CHECK_GL();
+
+        ProgramID = 0;
+        VertexProgramID = 0;
+        FragmentProgramID = 0;
 
         free(sourceVS);
         free(sourceFS);
@@ -224,8 +238,22 @@ PUBLIC GLint  GLShader::GetUniformLocation(const GLchar* identifier) {
     return value;
 }
 
-PUBLIC void   GLShader::Dispose() {
-    glDeleteProgram(ProgramID); CHECK_GL();
+PUBLIC        GLShader::~GLShader() {
+    if (CachedProjectionMatrix) {
+        delete CachedProjectionMatrix;
+    }
+    if (CachedModelViewMatrix) {
+        delete CachedModelViewMatrix;
+    }
+    if (VertexProgramID) {
+        glDeleteShader(VertexProgramID); CHECK_GL();
+    }
+    if (FragmentProgramID) {
+        glDeleteShader(FragmentProgramID); CHECK_GL();
+    }
+    if (ProgramID) {
+        glDeleteProgram(ProgramID); CHECK_GL();
+    }
 }
 
 PUBLIC STATIC bool GLShader::CheckGLError(int line) {
@@ -249,11 +277,11 @@ PUBLIC STATIC bool GLShader::CheckGLError(int line) {
         case GLU_INVALID_ENUM: errstr = "invalid enumerant"; break;
         case GLU_INVALID_VALUE: errstr = "invalid value"; break;
         case GLU_OUT_OF_MEMORY: errstr = "out of memory"; break;
-        case GLU_INCOMPATIBLE_GL_VERSION: errstr = "incompatible gl version"; break;
+        case GLU_INCOMPATIBLE_GL_VERSION: errstr = "incompatible OpenGL version"; break;
         // case GLU_INVALID_OPERATION: errstr = "invalid operation"; break;
         #endif
         default:
-            errstr = "idk";
+            errstr = "unknown error";
             break;
     }
     if (error != GL_NO_ERROR) {

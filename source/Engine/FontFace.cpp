@@ -217,8 +217,10 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
 	}
 
     Texture* spriteSheet = Graphics::CreateTextureFromPixels(package->Width, package->Height, pixelData, package->Width * sizeof(Uint32));
-    if (spriteSheet)
+    if (spriteSheet) {
         sprite->Spritesheets.push_back(spriteSheet);
+        sprite->SpritesheetFilenames.push_back(std::string(filename));
+    }
 
 	// Add preliminary chars
 	sprite->AddAnimation("Font", offsetBaseline & 0xFFFF, pixelSize, 0x100);
@@ -239,7 +241,7 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
 
     bool exportFonts = false;
     Application::Settings->GetBool("dev", "exportFonts", &exportFonts);
-    if (filename && exportFonts) {
+    if (exportFonts) {
         char* filenameJustName = filename + strlen(filename) - 1;
         for (; filenameJustName > filename; filenameJustName--) {
             if (*filenameJustName == '/') {
@@ -250,7 +252,7 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
 
         char testFilename[4096];
         snprintf(testFilename, sizeof testFilename, "Fonts/%s_%d.bmp", filenameJustName, pixelSize);
-        sprite->SpritesheetsFilenames.push_back(StringUtils::Duplicate(testFilename));
+        sprite->SpritesheetsFilenames.push_back(std::string(testFilename));
 
         SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixelData, package->Width, package->Height, 32, package->Width * 4,
             0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
