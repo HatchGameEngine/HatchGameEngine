@@ -236,6 +236,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\PolygonRasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
+    <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
