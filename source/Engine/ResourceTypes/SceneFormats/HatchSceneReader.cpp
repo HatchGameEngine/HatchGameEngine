@@ -341,8 +341,6 @@ PRIVATE STATIC bool HatchSceneReader::LoadTileset(const char* parentFolder) {
         return false;
     }
 
-    tileSprite->Spritesheets.push_back(spriteSheet);
-
     int cols = spriteSheet->Width / Scene::TileWidth;
     int rows = spriteSheet->Height / Scene::TileHeight;
 

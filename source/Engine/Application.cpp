@@ -513,10 +513,7 @@ PRIVATE STATIC void Application::Restart() {
 
     Scene::Dispose();
     SceneInfo::Dispose();
-    Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
-        Graphics::DisposeTexture(tex);
-    });
-    Graphics::SpriteSheetTextureMap->Clear();
+    Graphics::DeleteSpriteSheetMap();
 
     ScriptManager::LoadAllClasses = false;
     ScriptEntity::DisableAutoAnimate = false;
@@ -893,8 +890,6 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             if (!spriteSheet)
                 spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/DebugFont.png");
             if (spriteSheet) {
-                DEBUG_fontSprite->Spritesheets.push_back(spriteSheet);
-
                 cols = spriteSheet->Width / 32;
                 rows = spriteSheet->Height / 32;
 

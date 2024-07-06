@@ -15,6 +15,7 @@
 #include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/Rendering/TextureReference.h>
 #include <Engine/Utilities/ColorUtils.h>
 
 need_t ISprite;
@@ -23,7 +24,7 @@ need_t IModel;
 class Graphics {
 public:
     static HashMap<Texture*>*   TextureMap;
-    static HashMap<Texture*>*   SpriteSheetTextureMap;
+    static map<string, TextureReference*> SpriteSheetTextureMap;
     static bool                 VsyncEnabled;
     static int                  MultisamplingEnabled;
     static int                  FontDPI;
@@ -113,7 +114,7 @@ public:
 #include <Engine/Bytecode/ScriptManager.h>
 
 HashMap<Texture*>*   Graphics::TextureMap = NULL;
-HashMap<Texture*>*   Graphics::SpriteSheetTextureMap = NULL;
+std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool                 Graphics::VsyncEnabled = true;
 int                  Graphics::MultisamplingEnabled = 0;
 int                  Graphics::FontDPI = 1;
@@ -183,7 +184,6 @@ const char*          Graphics::Renderer = "default";
 
 PUBLIC STATIC void     Graphics::Init() {
     Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
-    Graphics::SpriteSheetTextureMap = new HashMap<Texture*>(NULL, 32);
 
     Graphics::ModelViewMatrix = Matrix4x4::Create();
     Graphics::MatrixStack.push(Graphics::ModelViewMatrix);
@@ -315,6 +315,8 @@ PUBLIC STATIC void     Graphics::Dispose() {
     for (Uint32 i = 0; i < MAX_3D_SCENES; i++)
         Graphics::DeleteScene3D(i);
 
+    Graphics::DeleteSpriteSheetMap();
+
     for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
         next = texture->Next;
         Graphics::DisposeTexture(texture);
@@ -322,12 +324,9 @@ PUBLIC STATIC void     Graphics::Dispose() {
     Graphics::TextureHead = NULL;
     Graphics::PaletteTexture = NULL;
 
-    Graphics::SpriteSheetTextureMap->Clear();
-
     Graphics::GfxFunctions->Dispose();
 
     delete Graphics::TextureMap;
-    delete Graphics::SpriteSheetTextureMap;
     while (Graphics::MatrixStack.size()) {
         delete Graphics::MatrixStack.top();
         Graphics::MatrixStack.pop();
@@ -463,6 +462,44 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
     texture->Dispose();
 
     Memory::Free(texture);
+}
+PUBLIC STATIC TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
+    if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
+        TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
+        textureRef->AddRef();
+        return textureRef;
+    }
+
+    return nullptr;
+}
+PUBLIC STATIC TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
+    TextureReference *ref = Graphics::GetSpriteSheet(sheetPath);
+    if (ref == nullptr) {
+        ref = new TextureReference(texture);
+        Graphics::SpriteSheetTextureMap[sheetPath] = ref;
+    }
+    return ref;
+}
+PUBLIC STATIC void     Graphics::DisposeSpriteSheet(string sheetPath) {
+    if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
+        TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
+        if (textureRef->TakeRef()) {
+            Graphics::DisposeTexture(textureRef->TexturePtr);
+            Graphics::SpriteSheetTextureMap.erase(sheetPath);
+            delete textureRef;
+        }
+    }
+}
+PUBLIC STATIC void     Graphics::DeleteSpriteSheetMap() {
+    for (std::map<std::string, TextureReference*>::iterator it = Graphics::SpriteSheetTextureMap.begin();
+        it != Graphics::SpriteSheetTextureMap.end();
+        it++)
+    {
+        Graphics::DisposeTexture(it->second->TexturePtr);
+        delete it->second;
+    }
+
+    Graphics::SpriteSheetTextureMap.clear();
 }
 
 PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
@@ -1313,8 +1350,8 @@ PUBLIC STATIC void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
 
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     if (scene->Initialized) {
-        if (Graphics::GfxFunctions->DeleteVertexBuffer)
-            Graphics::GfxFunctions->DeleteVertexBuffer(scene->Buffer);
+        if (Graphics::Internal.DeleteVertexBuffer)
+            Graphics::Internal.DeleteVertexBuffer(scene->Buffer);
         else
             delete scene->Buffer;
 
