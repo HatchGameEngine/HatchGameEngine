@@ -122,13 +122,16 @@
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
