@@ -270,7 +270,7 @@ bool                      DEV_NoObjectRender = false;
 
 int ViewRenderList[MAX_SCENE_VIEWS];
 
-#define COLLISION_OFFSET 4.0
+#define COLLISION_OFFSET 4
 
 // Collision variables
 float                       Scene::CollisionTolerance = 0.0;

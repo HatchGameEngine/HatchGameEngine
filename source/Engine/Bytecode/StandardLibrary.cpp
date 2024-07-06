@@ -12714,22 +12714,38 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
- * Sprite.GetFrameHitbox
- * \desc Gets the hitbox of an animation and frame of a sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
+ * Sprite.GetHitbox
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
  * \param hitboxID (Integer): The index number of the hitbox.
  * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
-    ISprite* sprite = GET_ARG(0, GetSprite);
-    int animationID = GET_ARG(1, GetInteger);
-    int frameID     = GET_ARG(2, GetInteger);
-    int hitboxID    = GET_ARG(3, GetInteger);
+VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    ISprite* sprite;
+    int animationID, frameID, hitboxID;
 
+    if (argCount == 2 && IS_INSTANCE(args[0])) {
+        ObjInstance* instance = GET_ARG(0, GetInstance);
+        Entity* entity = (Entity*)instance->EntityPtr;
+        hitboxID = GET_ARG(1, GetInteger);
+
+        sprite = GetSpriteIndex(entity->Sprite, threadID);
+        animationID = entity->CurrentAnimation;
+        frameID = entity->CurrentFrame;
+    }
+    else {
+        CHECK_ARGCOUNT(4);
+        sprite = GET_ARG(0, GetSprite);
+        animationID = GET_ARG(1, GetInteger);
+        frameID = GET_ARG(2, GetInteger);
+        hitboxID = GET_ARG(3, GetInteger);
+    }
+    
     ObjArray* array = NewArray();
     for (int i = 0; i < 4; i++)
         array->Values->push_back(INTEGER_VAL(0));
@@ -12740,8 +12756,8 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
         if (!(hitboxID > -1 && hitboxID < frame.BoxCount))
             return OBJECT_VAL(array);
 
-        CollisionBox box    = frame.Boxes[hitboxID];
-        ObjArray* hitbox    = NewArray();
+        CollisionBox box = frame.Boxes[hitboxID];
+        ObjArray* hitbox = NewArray();
         hitbox->Values->push_back(INTEGER_VAL(box.Top));
         hitbox->Values->push_back(INTEGER_VAL(box.Left));
         hitbox->Values->push_back(INTEGER_VAL(box.Right));
@@ -15013,8 +15029,8 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
  * View.CheckOnScreen
  * \desc Determines whether an instance is on screen.
  * \param instance (Instance): The instance to check.
- * \param rangeX (Decimal): The x range to check, or <code>-1</code> if the instance's update region width should be used.
- * \param rangeY (Decimal): The y range to check, or <code>-1</code> if the instance's update region height should be used.
+ * \param rangeX (Decimal): The x range to check, or <code>null</code> if the instance's update region width should be used.
+ * \param rangeY (Decimal): The y range to check, or <code>null</code> if the instance's update region height should be used.
  * \return Returns whether the instance is on screen on any view.
  * \ns View
  */
@@ -15023,19 +15039,14 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     Entity* self            = (Entity*)instance->EntityPtr;
-    float rangeX            = GET_ARG(1, GetDecimal);
-    float rangeY            = GET_ARG(2, GetDecimal);
 
     if (!self)
         return INTEGER_VAL(false);
 
-    if (rangeX == -1.0)
-        rangeX = self->OnScreenHitboxW;
+    float rangeX = IS_NULL(args[1]) ? self->OnScreenHitboxW : GET_ARG(1, GetDecimal);
+    float rangeY = IS_NULL(args[2]) ? self->OnScreenHitboxH : GET_ARG(2, GetDecimal);
 
-    if (rangeY == -1.0)
-        rangeY = self->OnScreenHitboxH;
-
-    return INTEGER_VAL(Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
+    return INTEGER_VAL(!!Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
 }
 /***
  * View.CheckPosOnScreen
@@ -15050,7 +15061,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
 
-    return INTEGER_VAL(Scene::CheckPosOnScreen(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal)));
+    return INTEGER_VAL(!!Scene::CheckPosOnScreen(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal), GET_ARG(3, GetDecimal)));
 }
 // #endregion
 
@@ -17104,7 +17115,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameID);
     DEF_NATIVE(Sprite, GetFrameOffsetX);
     DEF_NATIVE(Sprite, GetFrameOffsetY);
-    DEF_NATIVE(Sprite, GetFrameHitbox);
+    DEF_NATIVE(Sprite, GetHitbox);
     DEF_NATIVE(Sprite, MakePalettized);
     DEF_NATIVE(Sprite, MakeNonPalettized);
     // #endregion
