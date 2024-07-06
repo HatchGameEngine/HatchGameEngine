@@ -2339,16 +2339,19 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.SpriteBasic
  * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param instance (Instance): The instance to draw.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
 
-    ObjInstance* instance   = GET_ARG(0, GetInstance);
-    Entity* entity          = (Entity*)instance->EntityPtr;
-    ISprite* sprite         = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite, threadID));
-    float rotation          = 0.0f;
+    ObjInstance* instance = GET_ARG(0, GetInstance);
+    Entity* entity = (Entity*)instance->EntityPtr;
+    int x = (int)GET_ARG_OPT(11, GetDecimal, entity->X);
+    int y = (int)GET_ARG_OPT(11, GetDecimal, entity->X);
+    ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
+    float rotation = 0.0f;
 
     if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
         int rot = (int)entity->Rotation;
@@ -2359,11 +2362,11 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
             case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
             case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
             case ROTSTYLE_STATICFRAMES: break;
-            default: break;
+        default: break;
         }
         rotation = rot * M_PI / 256.0;
 
-        Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+        Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, x, y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
     }
     return NULL_VAL;
 }
