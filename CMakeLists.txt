@@ -192,7 +192,7 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/msvc/x64/SDL2.lib"
-    Ws2_32.lib opengl32.lib)
+    Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
   else()
     target_link_libraries(${PROJECT_NAME}
       "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
