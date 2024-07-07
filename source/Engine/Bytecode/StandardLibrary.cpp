@@ -2370,7 +2370,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
     ObjInstance* instance = GET_ARG(0, GetInstance);
     Entity* entity = (Entity*)instance->EntityPtr;
     int x = (int)GET_ARG_OPT(11, GetDecimal, entity->X);
-    int y = (int)GET_ARG_OPT(11, GetDecimal, entity->X);
+    int y = (int)GET_ARG_OPT(11, GetDecimal, entity->Y);
     ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
     float rotation = 0.0f;
 
