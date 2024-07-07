@@ -515,7 +515,7 @@ PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentF
                     Scene::AddStatic(objectList, obj);
 
                     if (object->attributes.Exists("id"))
-                        obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id"));
+                        obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id")) + Application::ReservedSlotIDs;
 
                     if (object->attributes.Exists("width") &&
                         object->attributes.Exists("height")) {

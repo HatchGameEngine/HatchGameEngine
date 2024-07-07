@@ -1032,6 +1032,16 @@ VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threa
     return ReturnString(Application::GameDescription);
 }
 /***
+ * Application.GetReservedSlotIDs
+ * \desc Sets the number of reserved slot IDs the engine will use when creating instances.
+ * \param amount (Integer): How many reserved slot IDs the engine will use.
+ * \ns Application
+ */
+VMValue Application_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::ReservedSlotIDs);
+}
+/***
  * Application.SetGameTitle
  * \desc Sets the title of the game.
  * \param title (String): Game title.
@@ -1077,6 +1087,17 @@ VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threa
     CHECK_ARGCOUNT(1);
     const char* string = GET_ARG(0, GetString);
     StringUtils::Copy(Application::GameDescription, string, sizeof(Application::GameDescription));
+    return NULL_VAL;
+}
+/***
+ * Application.SetReservedSlotIDs
+ * \desc Sets the number of reserved slot IDs the engine will use when creating instances.
+ * \param amount (Integer): How many reserved slot IDs the engine will use.
+ * \ns Application
+ */
+VMValue Application_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    Application::ReservedSlotIDs = GET_ARG(0, GetInteger);
     return NULL_VAL;
 }
 /***
@@ -6297,8 +6318,10 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
     if (!self)
         return INTEGER_VAL(false);
 
-    if (self->ChangeClass(className))
+    if (self->ChangeClass(className)) {
+        self->Initialize();
         return INTEGER_VAL(true);
+    }
 
     return INTEGER_VAL(false);
 }
@@ -6758,6 +6781,51 @@ VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return DECIMAL_VAL(Math::Sign(GET_ARG(0, GetDecimal)));
+}
+/***
+ * Math.Uint8
+ * \desc Converts an integer to an 8-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL((int)(Uint8)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint16
+ * \desc Converts an integer to a 16-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL((int)(Uint16)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint32
+ * \desc Converts an integer to a 32-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL((int)(Uint32)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint64
+ * \desc Converts an integer to a 64-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL((int)(Uint64)GET_ARG(0, GetInteger));
+    return INTEGER_VAL((int)(Uint64)GET_ARG(0, GetInteger));
 }
 /***
  * Math.Random
@@ -7945,7 +8013,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Integer): The music index to play.
+ * \param music (Integer): The music index to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -15350,10 +15418,12 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, GetGameTitleShort);
     DEF_NATIVE(Application, GetGameVersion);
     DEF_NATIVE(Application, GetGameDescription);
+    DEF_NATIVE(Application, GetReservedSlotIDs);
     DEF_NATIVE(Application, SetGameTitle);
     DEF_NATIVE(Application, SetGameTitleShort);
     DEF_NATIVE(Application, SetGameVersion);
     DEF_NATIVE(Application, SetGameDescription);
+    DEF_NATIVE(Application, SetReservedSlotIDs);
     DEF_NATIVE(Application, SetCursorVisible);
     DEF_NATIVE(Application, GetCursorVisible);
     /***
@@ -16606,6 +16676,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Math, ToFixed);
     DEF_NATIVE(Math, FromFixed);
     DEF_NATIVE(Math, Sign);
+    DEF_NATIVE(Math, Uint8);
+    DEF_NATIVE(Math, Uint16);
+    DEF_NATIVE(Math, Uint32);
+    DEF_NATIVE(Math, Uint64);
     DEF_NATIVE(Math, Random);
     DEF_NATIVE(Math, RandomMax);
     DEF_NATIVE(Math, RandomRange);

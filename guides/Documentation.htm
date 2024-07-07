@@ -215,10 +215,12 @@
                     <li><a href="#Reference_functions_Application_GetGameTitleShort">Application.GetGameTitleShort</a></li>
                     <li><a href="#Reference_functions_Application_GetGameVersion">Application.GetGameVersion</a></li>
                     <li><a href="#Reference_functions_Application_GetGameDescription">Application.GetGameDescription</a></li>
+                    <li><a href="#Reference_functions_Application_GetReservedSlotIDs">Application.GetReservedSlotIDs</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitle">Application.SetGameTitle</a></li>
                     <li><a href="#Reference_functions_Application_SetGameTitleShort">Application.SetGameTitleShort</a></li>
                     <li><a href="#Reference_functions_Application_SetGameVersion">Application.SetGameVersion</a></li>
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
+                    <li><a href="#Reference_functions_Application_SetReservedSlotIDs">Application.SetReservedSlotIDs</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
                 </ul>
@@ -700,6 +702,10 @@
                     <li><a href="#Reference_functions_Math_ToFixed">Math.ToFixed</a></li>
                     <li><a href="#Reference_functions_Math_FromFixed">Math.FromFixed</a></li>
                     <li><a href="#Reference_functions_Math_Sign">Math.Sign</a></li>
+                    <li><a href="#Reference_functions_Math_Uint8">Math.Uint8</a></li>
+                    <li><a href="#Reference_functions_Math_Uint16">Math.Uint16</a></li>
+                    <li><a href="#Reference_functions_Math_Uint32">Math.Uint32</a></li>
+                    <li><a href="#Reference_functions_Math_Uint64">Math.Uint64</a></li>
                     <li><a href="#Reference_functions_Math_Random">Math.Random</a></li>
                     <li><a href="#Reference_functions_Math_RandomMax">Math.RandomMax</a></li>
                     <li><a href="#Reference_functions_Math_RandomRange">Math.RandomRange</a></li>
@@ -2154,6 +2160,15 @@
         <code>Application.GetGameDescription()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the description of the game.</div>
         </p>
+        <p id="Reference_functions_Application_GetReservedSlotIDs">
+        <h2 style="margin-bottom: 8px;">Application.GetReservedSlotIDs</h2>
+        <code>Application.GetReservedSlotIDs(amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the number of reserved slot IDs the engine will use when creating instances.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>amount (Integer): How many reserved slot IDs the engine will use.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Application_SetGameTitle">
         <h2 style="margin-bottom: 8px;">Application.SetGameTitle</h2>
         <code>Application.SetGameTitle(title)</code>
@@ -2188,6 +2203,15 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>title (String): Game description.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Application_SetReservedSlotIDs">
+        <h2 style="margin-bottom: 8px;">Application.SetReservedSlotIDs</h2>
+        <code>Application.SetReservedSlotIDs(amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the number of reserved slot IDs the engine will use when creating instances.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>amount (Integer): How many reserved slot IDs the engine will use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_SetCursorVisible">
@@ -5080,6 +5104,50 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>-1</code> if <code>n</code> is negative, <code>1</code> if positive, and <code>0</code> if otherwise.</div>
         </p>
+        <p id="Reference_functions_Math_Uint8">
+        <h2 style="margin-bottom: 8px;">Math.Uint8</h2>
+        <code>Math.Uint8(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to an 8-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint16">
+        <h2 style="margin-bottom: 8px;">Math.Uint16</h2>
+        <code>Math.Uint16(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 16-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint32">
+        <h2 style="margin-bottom: 8px;">Math.Uint32</h2>
+        <code>Math.Uint32(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 32-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint64">
+        <h2 style="margin-bottom: 8px;">Math.Uint64</h2>
+        <code>Math.Uint64(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 64-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
         <p id="Reference_functions_Math_Random">
         <h2 style="margin-bottom: 8px;">Math.Random</h2>
         <code>Math.Random()</code>
@@ -5420,7 +5488,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Removes the music from the music stack, stopping it if currently playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
+        <li>music (Integer): The music index to stop.</li>
         </ul>
         </p>
         <p id="Reference_functions_Music_StopWithFadeOut">
@@ -9463,7 +9531,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>689 out of 748 functions have descriptions. </p>
+        <p>695 out of 754 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

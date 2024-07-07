@@ -435,6 +435,7 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
             obj->InitialX = posX;
             obj->InitialY = posY;
             obj->List = objectList;
+            obj->SlotID = (int)i + Application::ReservedSlotIDs;
             Scene::AddStatic(objectList, obj);
 
             // Add "filter" property

@@ -45,6 +45,7 @@ public:
     static int         StartSceneNum;
 
     static bool        DevMenuActivated;
+    static int         ReservedSlotIDs;
 };
 #endif
 
@@ -137,6 +138,7 @@ int         Application::SoundVolume = 100;
 int         Application::StartSceneNum = 0;
 
 bool        Application::DevMenuActivated = false;
+int         Application::ReservedSlotIDs = 0;
 
 char    StartingScene[256];
 
