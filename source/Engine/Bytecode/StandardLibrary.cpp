@@ -2424,7 +2424,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
         if (!sprite)
             return NULL_VAL;
 
-        int rot     = (int)rotation;
+        int rot = (int)rotation;
         switch (sprite->Animations[animator->CurrentAnimation].Flags) {
             case ROTSTYLE_NONE: rot = 0; break;
             case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
@@ -2434,7 +2434,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
             case ROTSTYLE_STATICFRAMES: break;
             default: break;
         }
-        rotation    = rot * M_PI / 256.0;
+        rotation = rot * M_PI / 256.0;
 
         Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, flipX, flipY, scaleX, scaleY, rotation);
     }
@@ -2445,6 +2445,8 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param animator (Animator): The animator to draw.
  * \param instance (Instance): The instance to pull other values from.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
  * \ns Draw
  */
@@ -2454,21 +2456,19 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
     Animator* animator      = GET_ARG(0, GetAnimator);
     ObjInstance* instance   = GET_ARG(1, GetInstance);
     Entity* entity          = (Entity*)instance->EntityPtr;
-    ISprite* sprite         = (argCount > 2) ? GET_ARG(2, GetSprite) : GetSpriteIndex(animator->Sprite, threadID);
+    int x                   = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
+    int y                   = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
     float rotation          = 0.0f;
 
     if (!animator || !animator->Frames.size())
         return NULL_VAL;
 
     if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
-        ISprite* animatorSprite = GetSpriteIndex(animator->Sprite, threadID);
-        if (animatorSprite)
-            sprite = animatorSprite;
-
+        ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
         if (!sprite)
             return NULL_VAL;
 
-        int rot     = (int)rotation;
+        int rot = (int)entity->Rotation;
         switch (sprite->Animations[animator->CurrentAnimation].Flags) {
             case ROTSTYLE_NONE: rot = 0; break;
             case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
@@ -2478,9 +2478,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
             case ROTSTYLE_STATICFRAMES: break;
             default: break;
         }
-        rotation    = rot * M_PI / 256.0;
+        rotation = rot * M_PI / 256.0;
 
-        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, (int)entity->X, (int)entity->Y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
     }
     return NULL_VAL;
 }
@@ -6319,6 +6319,8 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(false);
 
     if (self->ChangeClass(className)) {
+        self->Instance->Fields->Clear();
+        self->LinkFields();
         self->Initialize();
         return INTEGER_VAL(true);
     }
@@ -13469,13 +13471,13 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
     return obj;
 }
 /***
- * String.ToUpperCase
+ * String.ToUppercase
  * \desc Convert a String value to its uppercase representation.
  * \param string (String):
  * \return Returns a uppercase String value.
  * \ns String
  */
-VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToUppercase(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
 
@@ -13494,13 +13496,13 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
     return obj;
 }
 /***
- * String.ToLowerCase
+ * String.ToLowercase
  * \desc Convert a String value to its lowercase representation.
  * \param string (String):
  * \return Returns a lowercase String value.
  * \ns String
  */
-VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToLowercase(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
 
@@ -17180,8 +17182,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(String, IndexOf);
     DEF_NATIVE(String, Contains);
     DEF_NATIVE(String, Substring);
-    DEF_NATIVE(String, ToUpperCase);
-    DEF_NATIVE(String, ToLowerCase);
+    DEF_NATIVE(String, ToUppercase);
+    DEF_NATIVE(String, ToLowercase);
     DEF_NATIVE(String, LastIndexOf);
     DEF_NATIVE(String, ParseInteger);
     DEF_NATIVE(String, ParseDecimal);
