@@ -75,6 +75,7 @@ public:
     int          CurrentFrameCount = 0;
     float        AnimationSpeedMult = 1.0;
     int          AnimationSpeedAdd = 0;
+    int          PrevAnimation = -1;
     int          AutoAnimate = true;
     float        AnimationSpeed = 0.0;
     float        AnimationTimer = 0.0;
@@ -187,6 +188,7 @@ PUBLIC void Entity::ResetAnimation(int animation, int frame) {
     if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size())
         return;
 
+    PrevAnimation           = CurrentAnimation;
     CurrentAnimation        = animation;
     AnimationTimer          = 0.0;
     CurrentFrame            = frame;
@@ -500,6 +502,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(CurrentFrameCount);
     COPY(AnimationSpeedMult);
     COPY(AnimationSpeedAdd);
+    COPY(PrevAnimation);
     COPY(AutoAnimate);
     COPY(AnimationSpeed);
     COPY(AnimationTimer);

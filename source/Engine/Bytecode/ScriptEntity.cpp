@@ -231,7 +231,7 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \type Integer
     * \default -1
     * \ns Instance
-    * \desc The current sprite  animation index of the entity.
+    * \desc The current sprite animation index of the entity.
     */
     LINK_INT(CurrentAnimation);
     /***
@@ -298,6 +298,14 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \desc This value is added to the result of <linkto ref="instance.AnimationSpeed"></linkto> * <linkto ref="instance.AnimationSpeedMult"></linkto> when the entity is being animated.
     */
     LINK_INT(AnimationSpeedAdd);
+    /***
+    * \field PrevAnimation
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The previous sprite animation index of the entity, if it was changed.
+    */
+    LINK_INT(PrevAnimation);
     /***
     * \field AutoAnimate
     * \type Boolean
