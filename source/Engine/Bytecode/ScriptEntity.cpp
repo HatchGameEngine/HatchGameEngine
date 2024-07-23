@@ -307,6 +307,14 @@ PUBLIC void ScriptEntity::LinkFields() {
     */
     LINK_INT(PrevAnimation);
     /***
+    * \field RotationStyle
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The way in which a sprite will rotate in some cases.
+    */
+    LINK_INT(RotationStyle);
+    /***
     * \field AutoAnimate
     * \type Boolean
     * \default true

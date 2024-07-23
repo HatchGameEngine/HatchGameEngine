@@ -81,6 +81,7 @@ public:
     float        AnimationTimer = 0.0;
     int          AnimationFrameDuration = 0;
     int          AnimationLoopIndex = 0;
+    int          RotationStyle = ROTSTYLE_NONE;
 
     EntityHitbox Hitbox;
     int          FlipFlag = 0;
@@ -196,6 +197,7 @@ PUBLIC void Entity::ResetAnimation(int animation, int frame) {
     AnimationFrameDuration  = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
     AnimationSpeed          = sprite->Animations[CurrentAnimation].AnimationSpeed;
     AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
+    RotationStyle           = sprite->Animations[CurrentAnimation].Flags;
 }
 PUBLIC bool Entity::BasicCollideWithObject(Entity* other) {
     float otherHitboxW = other->Hitbox.Width;
@@ -508,6 +510,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(AnimationTimer);
     COPY(AnimationFrameDuration);
     COPY(AnimationLoopIndex);
+    COPY(RotationStyle);
 
     COPY(Hitbox);
     COPY(FlipFlag);

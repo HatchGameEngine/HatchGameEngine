@@ -676,10 +676,10 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
         CollisionBox box    = frame.Boxes[hitboxID];
         ObjArray* array     = NewArray();
-        array->Values->push_back(DECIMAL_VAL((float)box.Top));
-        array->Values->push_back(DECIMAL_VAL((float)box.Left));
-        array->Values->push_back(DECIMAL_VAL((float)box.Right));
-        array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+        array->Values->push_back(INTEGER_VAL(box.Top));
+        array->Values->push_back(INTEGER_VAL(box.Left));
+        array->Values->push_back(INTEGER_VAL(box.Right));
+        array->Values->push_back(INTEGER_VAL(box.Bottom));
         return OBJECT_VAL(array);
     }
     else {
@@ -687,13 +687,13 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
     }
 }
 /***
- * Animator.GetPreviousAnimation
+ * Animator.GetPrevAnimation
  * \desc Gets the previous animation value of an animator.
  * \param animator (Integer): The index of the animator.
  * \return Returns an Integer value.
  * \ns Animator
  */
-VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation);
 }
@@ -753,6 +753,17 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex);
 }
 /***
+ * Animator.GetRotationStyle
+ * \desc Gets the loop index of an animator's rotation style.
+ * \param animator (Integer): The index of the animator.
+ * \return Returns an Integer value.
+ * \ns Animator
+ */
+VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle);
+}
+/***
  * Animator.SetSprite
  * \desc Sets the sprite index of an animator.
  * \param animator (Integer): The animator index to change.
@@ -789,6 +800,18 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
+ * Animator.SetPrevAnimation
+ * \desc Sets the previous frame of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param prevAnimation (Integer): The animator's changed previous animation.
+ * \ns Animator
+ */
+VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
  * Animator.SetAnimationSpeed
  * \desc Sets the animation speed of an animator.
  * \param animator (Integer): The animator index to change.
@@ -822,6 +845,42 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetFrameCount
+ * \desc Sets the frame count of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param frameCount (Integer): The animator's changed frame count.
+ * \ns Animator
+ */
+VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetLoopIndex
+ * \desc Sets the loop index of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param loopIndex (Integer): The animator's changed loop index.
+ * \ns Animator
+ */
+VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex = GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.SetRotationStyle
+ * \desc Sets the rotation style of an animator.
+ * \param animator (Integer): The animator index to change.
+ * \param rorationStyle (Integer): The animator's changed rotation style.
+ * \ns Animator
+ */
+VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle = GET_ARG(1, GetInteger);
     return NULL_VAL;
 }
 /***
@@ -882,6 +941,30 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustFrameCount
+ * \desc Adjusts the frame count of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's duration.
+ * \ns Animator
+ */
+VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount += GET_ARG(1, GetInteger);
+    return NULL_VAL;
+}
+/***
+ * Animator.AdjustLoopIndex
+ * \desc Adjusts the loop index of an animator by an amount.
+ * \param animator (Integer): The animator index to change.
+ * \param amount (Integer): The amount to adjust the animator's loop index.
+ * \ns Animator
+ */
+VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex += GET_ARG(1, GetInteger);
     return NULL_VAL;
 }
 // #endregion
@@ -2375,8 +2458,8 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
     ObjInstance* instance = GET_ARG(0, GetInstance);
     Entity* entity = (Entity*)instance->EntityPtr;
-    int x = (int)GET_ARG_OPT(11, GetDecimal, entity->X);
-    int y = (int)GET_ARG_OPT(11, GetDecimal, entity->Y);
+    int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
+    int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
     ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
     float rotation = 0.0f;
 
@@ -15391,7 +15474,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Animator, GetCurrentAnimation);
     DEF_NATIVE(Animator, GetCurrentFrame);
     DEF_NATIVE(Animator, GetHitbox);
-    DEF_NATIVE(Animator, GetPreviousAnimation);
+    DEF_NATIVE(Animator, GetPrevAnimation);
     DEF_NATIVE(Animator, GetAnimationSpeed);
     DEF_NATIVE(Animator, GetAnimationTimer);
     DEF_NATIVE(Animator, GetDuration);
@@ -15400,14 +15483,20 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Animator, SetSprite);
     DEF_NATIVE(Animator, SetCurrentAnimation);
     DEF_NATIVE(Animator, SetCurrentFrame);
+    DEF_NATIVE(Animator, SetPrevAnimation);
     DEF_NATIVE(Animator, SetAnimationSpeed);
     DEF_NATIVE(Animator, SetAnimationTimer);
     DEF_NATIVE(Animator, SetDuration);
+    DEF_NATIVE(Animator, SetFrameCount);
+    DEF_NATIVE(Animator, SetLoopIndex);
+    DEF_NATIVE(Animator, SetRotationStyle);
     DEF_NATIVE(Animator, AdjustCurrentAnimation);
     DEF_NATIVE(Animator, AdjustCurrentFrame);
     DEF_NATIVE(Animator, AdjustAnimationSpeed);
     DEF_NATIVE(Animator, AdjustAnimationTimer);
     DEF_NATIVE(Animator, AdjustDuration);
+    DEF_NATIVE(Animator, AdjustFrameCount);
+    DEF_NATIVE(Animator, AdjustLoopIndex);
     // #endregion
 
     // #region Application

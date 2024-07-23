@@ -178,23 +178,30 @@
                     <li><a href="#Reference_functions_Animator_GetCurrentAnimation">Animator.GetCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_GetCurrentFrame">Animator.GetCurrentFrame</a></li>
                     <li><a href="#Reference_functions_Animator_GetHitbox">Animator.GetHitbox</a></li>
-                    <li><a href="#Reference_functions_Animator_GetPreviousAnimation">Animator.GetPreviousAnimation</a></li>
+                    <li><a href="#Reference_functions_Animator_GetPrevAnimation">Animator.GetPrevAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_GetAnimationSpeed">Animator.GetAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_GetAnimationTimer">Animator.GetAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_GetDuration">Animator.GetDuration</a></li>
                     <li><a href="#Reference_functions_Animator_GetFrameCount">Animator.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Animator_GetLoopIndex">Animator.GetLoopIndex</a></li>
+                    <li><a href="#Reference_functions_Animator_GetRotationStyle">Animator.GetRotationStyle</a></li>
                     <li><a href="#Reference_functions_Animator_SetSprite">Animator.SetSprite</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentAnimation">Animator.SetCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentFrame">Animator.SetCurrentFrame</a></li>
+                    <li><a href="#Reference_functions_Animator_SetPrevAnimation">Animator.SetPrevAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationSpeed">Animator.SetAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationTimer">Animator.SetAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_SetDuration">Animator.SetDuration</a></li>
+                    <li><a href="#Reference_functions_Animator_SetFrameCount">Animator.SetFrameCount</a></li>
+                    <li><a href="#Reference_functions_Animator_SetLoopIndex">Animator.SetLoopIndex</a></li>
+                    <li><a href="#Reference_functions_Animator_SetRotationStyle">Animator.SetRotationStyle</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustCurrentAnimation">Animator.AdjustCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustCurrentFrame">Animator.AdjustCurrentFrame</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustAnimationSpeed">Animator.AdjustAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustAnimationTimer">Animator.AdjustAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustDuration">Animator.AdjustDuration</a></li>
+                    <li><a href="#Reference_functions_Animator_AdjustFrameCount">Animator.AdjustFrameCount</a></li>
+                    <li><a href="#Reference_functions_Animator_AdjustLoopIndex">Animator.AdjustLoopIndex</a></li>
                 </ul>
             </p>
             <p id="Reference_Application">
@@ -623,6 +630,8 @@
                     <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
+                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
                     <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
@@ -1177,8 +1186,8 @@
                     <li><a href="#Reference_functions_String_IndexOf">String.IndexOf</a></li>
                     <li><a href="#Reference_functions_String_Contains">String.Contains</a></li>
                     <li><a href="#Reference_functions_String_Substring">String.Substring</a></li>
-                    <li><a href="#Reference_functions_String_ToUpperCase">String.ToUpperCase</a></li>
-                    <li><a href="#Reference_functions_String_ToLowerCase">String.ToLowerCase</a></li>
+                    <li><a href="#Reference_functions_String_ToUppercase">String.ToUppercase</a></li>
+                    <li><a href="#Reference_functions_String_ToLowercase">String.ToLowercase</a></li>
                     <li><a href="#Reference_functions_String_LastIndexOf">String.LastIndexOf</a></li>
                     <li><a href="#Reference_functions_String_ParseInteger">String.ParseInteger</a></li>
                     <li><a href="#Reference_functions_String_ParseDecimal">String.ParseDecimal</a></li>
@@ -1415,6 +1424,8 @@
                     <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
+                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
                     <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
@@ -1808,8 +1819,15 @@
         <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
-        <code>Animator.Create()</code>
+        <code>Animator.Create(sprite, animationID, frameID, unloadPolicy)</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The index of the sprite.</li>
+        <li>animationID (Integer): The animator's changed animation ID.</li>
+        <li>frameID (Integer): The animator's changed frame ID.</li>
+        <li>unloadPolicy (Integer): When to unload the animator.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Animator.</div>
         </p>
@@ -1889,9 +1907,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
-        <p id="Reference_functions_Animator_GetPreviousAnimation">
-        <h2 style="margin-bottom: 8px;">Animator.GetPreviousAnimation</h2>
-        <code>Animator.GetPreviousAnimation(animator)</code>
+        <p id="Reference_functions_Animator_GetPrevAnimation">
+        <h2 style="margin-bottom: 8px;">Animator.GetPrevAnimation</h2>
+        <code>Animator.GetPrevAnimation(animator)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the previous animation value of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -1955,6 +1973,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Animator_GetRotationStyle">
+        <h2 style="margin-bottom: 8px;">Animator.GetRotationStyle</h2>
+        <code>Animator.GetRotationStyle(animator)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop index of an animator's rotation style.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The index of the animator.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
         <p id="Reference_functions_Animator_SetSprite">
         <h2 style="margin-bottom: 8px;">Animator.SetSprite</h2>
         <code>Animator.SetSprite(animator, animationID)</code>
@@ -1985,6 +2014,16 @@
         <li>frameID (Integer): The animator's changed frame ID.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Animator_SetPrevAnimation">
+        <h2 style="margin-bottom: 8px;">Animator.SetPrevAnimation</h2>
+        <code>Animator.SetPrevAnimation(animator, prevAnimation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the previous frame of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>prevAnimation (Integer): The animator's changed previous animation.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Animator_SetAnimationSpeed">
         <h2 style="margin-bottom: 8px;">Animator.SetAnimationSpeed</h2>
         <code>Animator.SetAnimationSpeed(animator, animationSpeed)</code>
@@ -2013,6 +2052,36 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
         <li>duration (Integer): The animator's changed duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetFrameCount">
+        <h2 style="margin-bottom: 8px;">Animator.SetFrameCount</h2>
+        <code>Animator.SetFrameCount(animator, frameCount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frame count of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>frameCount (Integer): The animator's changed frame count.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetLoopIndex">
+        <h2 style="margin-bottom: 8px;">Animator.SetLoopIndex</h2>
+        <code>Animator.SetLoopIndex(animator, loopIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop index of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>loopIndex (Integer): The animator's changed loop index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetRotationStyle">
+        <h2 style="margin-bottom: 8px;">Animator.SetRotationStyle</h2>
+        <code>Animator.SetRotationStyle(animator, rorationStyle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the rotation style of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>rorationStyle (Integer): The animator's changed rotation style.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_AdjustCurrentAnimation">
@@ -2063,6 +2132,26 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
         <li>amount (Integer): The amount to adjust the animator's duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_AdjustFrameCount">
+        <h2 style="margin-bottom: 8px;">Animator.AdjustFrameCount</h2>
+        <code>Animator.AdjustFrameCount(animator, amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the frame count of an animator by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>amount (Integer): The amount to adjust the animator's duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_AdjustLoopIndex">
+        <h2 style="margin-bottom: 8px;">Animator.AdjustLoopIndex</h2>
+        <code>Animator.AdjustLoopIndex(animator, amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the loop index of an animator by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>amount (Integer): The amount to adjust the animator's loop index.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetEngineVersionString">
@@ -2933,12 +3022,14 @@
         </p>
         <p id="Reference_functions_Draw_AnimatorBasic">
         <h2 style="margin-bottom: 8px;">Draw.AnimatorBasic</h2>
-        <code>Draw.AnimatorBasic(animator, instance[, sprite])</code>
+        <code>Draw.AnimatorBasic(animator, instance[, x, y, sprite])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Animator): The animator to draw.</li>
         <li>instance (Instance): The instance to pull other values from.</li>
+        <li>x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.</li>
+        <li>y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.</li>
         <li>sprite (Integer): The sprite index to use if not using the entity's sprite index.</li>
         </ul>
         </p>
@@ -8652,9 +8743,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
         </p>
-        <p id="Reference_functions_String_ToUpperCase">
-        <h2 style="margin-bottom: 8px;">String.ToUpperCase</h2>
-        <code>String.ToUpperCase(string)</code>
+        <p id="Reference_functions_String_ToUppercase">
+        <h2 style="margin-bottom: 8px;">String.ToUppercase</h2>
+        <code>String.ToUppercase(string)</code>
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to its uppercase representation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -8663,9 +8754,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a uppercase String value.</div>
         </p>
-        <p id="Reference_functions_String_ToLowerCase">
-        <h2 style="margin-bottom: 8px;">String.ToLowerCase</h2>
-        <code>String.ToLowerCase(string)</code>
+        <p id="Reference_functions_String_ToLowercase">
+        <h2 style="margin-bottom: 8px;">String.ToLowercase</h2>
+        <code>String.ToLowercase(string)</code>
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to its lowercase representation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -9531,7 +9622,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>695 out of 754 functions have descriptions. </p>
+        <p>702 out of 761 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -9906,7 +9997,7 @@
         <h3 style="margin-bottom: 8px;"><code>instance.CurrentAnimation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The current sprite  animation index of the entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The current sprite animation index of the entity.</div>
         </p>
         <p id="Reference_fields_instance_CurrentFrame">
         <h3 style="margin-bottom: 8px;"><code>instance.CurrentFrame</code></h2>
@@ -9955,6 +10046,18 @@
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">This value is added to the result of <code><a href="#Reference_fields_instance_AnimationSpeed">instance.AnimationSpeed</a></code> * <code><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></code> when the entity is being animated.</div>
+        </p>
+        <p id="Reference_fields_instance_PrevAnimation">
+        <h3 style="margin-bottom: 8px;"><code>instance.PrevAnimation</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The previous sprite animation index of the entity, if it was changed.</div>
+        </p>
+        <p id="Reference_fields_instance_RotationStyle">
+        <h3 style="margin-bottom: 8px;"><code>instance.RotationStyle</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The way in which a sprite will rotate in some cases.</div>
         </p>
         <p id="Reference_fields_instance_AutoAnimate">
         <h3 style="margin-bottom: 8px;"><code>instance.AutoAnimate</code></h2>
@@ -10252,7 +10355,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>74 out of 78 fields have descriptions. </p>
+        <p>76 out of 80 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
