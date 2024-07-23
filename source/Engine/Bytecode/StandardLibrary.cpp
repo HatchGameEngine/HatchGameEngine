@@ -6232,13 +6232,16 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.IsClass
  * \desc Determines whether or not the instance is of a specified object class.
- * \param instance (Instance): The instance to check.
+ * \param instance (Instance): The instance to check. If there is no instance, this automatically returns false.
  * \param className (String): Name of the object class.
  * \return Returns whether or not the instance is of a specified object class.
  * \ns Instance
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
+
+    if (IS_NULL(args[0]))
+        return INTEGER_VAL(false);
 
     ObjInstance* instance = GET_ARG(0, GetInstance);
     char* objectName = GET_ARG(1, GetString);
