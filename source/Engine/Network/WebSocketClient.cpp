@@ -232,7 +232,7 @@ size_t   socket_send_string(socket_t sockfd, const char* str, ...) {
     char line[1024];
     va_list args;
     va_start(args, str);
-    vsprintf(line, str, args);
+    vsnprintf(line, sizeof 1024, str, args);
 
     return send(sockfd, line, strlen(line), 0);
 }

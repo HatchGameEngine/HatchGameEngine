@@ -555,16 +555,16 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
     // Load Tileset and copy palette
     LoadTileset(parentFolder);
 
-    char stageConfigFilename[256];
+    const char* gameConfigFilename = "Game/GameConfig.bin";
     // Load GameConfig palettes
-    sprintf(stageConfigFilename, "Game/GameConfig.bin");
-    if (ResourceManager::ResourceExists(stageConfigFilename))
-        GameConfig_GetColors(stageConfigFilename);
+    if (ResourceManager::ResourceExists(gameConfigFilename))
+        GameConfig_GetColors(gameConfigFilename);
     else
-        Log::Print(Log::LOG_WARN, "No GameConfig at '%s'!", stageConfigFilename);
+        Log::Print(Log::LOG_WARN, "No GameConfig at '%s'!", gameConfigFilename);
 
     // Load StageConfig palettes
-    sprintf(stageConfigFilename, "%sStageConfig.bin", parentFolder);
+    char stageConfigFilename[4096];
+    snprintf(stageConfigFilename, sizeof stageConfigFilename, "%sStageConfig.bin", parentFolder);
     if (ResourceManager::ResourceExists(stageConfigFilename))
         StageConfig_GetColors(stageConfigFilename);
     else
@@ -572,7 +572,7 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
     return true;
 }
-PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
+PRIVATE STATIC bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
     Graphics::UsePalettes = true;
 
     char filename16x16Tiles[4096];
@@ -596,10 +596,14 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
     }
 
     ISprite* tileSprite = new ISprite();
-    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(filename16x16Tiles);
+    Texture* spriteSheet = tileSprite->AddSpriteSheet(filename16x16Tiles);
+    if (!spriteSheet) {
+        delete tileSprite;
+        return false;
+    }
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+    int cols = spriteSheet->Width / Scene::TileWidth;
+    int rows = spriteSheet->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -616,9 +620,12 @@ PRIVATE STATIC void RSDKSceneReader::LoadTileset(const char* parentFolder) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = i;
+        info.TilesetID = Scene::Tilesets.size();
         Scene::TileSpriteInfos.push_back(info);
     }
 
     Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, 0, 0, Scene::TileSpriteInfos.size(), filename16x16Tiles);
     Scene::Tilesets.push_back(sceneTileset);
+
+    return true;
 }

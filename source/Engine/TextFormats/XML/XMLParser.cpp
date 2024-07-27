@@ -333,7 +333,7 @@ void     GetAttributes() {
     }
 }
 void     GetStart() {
-    XMLNode* node = new (nothrow) XMLNode;
+    XMLNode* node = new (std::nothrow) XMLNode;
     if (!node)
         return;
 
@@ -396,7 +396,7 @@ PUBLIC STATIC float    XMLParser::TokenToNumber(Token tok) {
 }
 
 PUBLIC STATIC XMLNode* XMLParser::Parse() {
-    XMLNode* XMLRoot = new (nothrow) XMLNode;
+    XMLNode* XMLRoot = new (std::nothrow) XMLNode;
     if (!XMLRoot)
         return NULL;
 
@@ -438,7 +438,7 @@ PUBLIC STATIC XMLNode* XMLParser::Parse() {
             data.Length = scanner.Current - data.Start;
             data.Type = TOKEN_CDATA;
 
-            XMLNode* node = new (nothrow) XMLNode;
+            XMLNode* node = new (std::nothrow) XMLNode;
             if (!node)
                 return NULL;
 

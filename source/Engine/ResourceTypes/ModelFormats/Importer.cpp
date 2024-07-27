@@ -14,7 +14,6 @@ public:
 #include <Engine/Rendering/3D.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Utilities/StringUtils.h>
-#include <Engine/Diagnostics/Clock.h>
 
 vector<int> ModelImporter::MeshIDs;
 char*       ModelImporter::ParentDirectory;
@@ -55,7 +54,7 @@ static void CopyColors(float dest[4], aiColor4D& src) {
 }
 
 static char* GetString(aiString src) {
-    return StringUtils::Duplicate(src.C_Str());
+    return StringUtils::Create(src.C_Str());
 }
 
 static Matrix4x4* CopyMatrix(aiMatrix4x4 mat) {
@@ -65,28 +64,6 @@ static Matrix4x4* CopyMatrix(aiMatrix4x4 mat) {
         out->Values[i] = mat[i >> 2][i & 3];
 
     return out;
-}
-
-static Image* LoadImage(const char* path) {
-    Image* image = new Image(path);
-
-    // Couldn't find an image, so try again, prefixing the parent path
-    if (!image->TexturePtr && ModelImporter::ParentDirectory) {
-        image->Dispose();
-
-        char* concat = StringUtils::ConcatPaths(ModelImporter::ParentDirectory, path);
-        image = new Image(concat);
-
-        Memory::Free(concat);
-    }
-
-    // Well, we tried
-    if (!image->TexturePtr) {
-        image->Dispose();
-        image = nullptr;
-    }
-
-    return image;
 }
 
 static AnimBehavior ConvertPrePostState(aiAnimBehaviour state) {
@@ -131,10 +108,11 @@ PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* ames
 
     Mesh* mesh = new Mesh;
     mesh->Name = GetString(amesh->mName);
-    mesh->NumVertices = numVertices;
+    mesh->VertexCount = numVertices;
+    mesh->FrameCount = 1;
 
     mesh->VertexIndexCount = numFaces * 3;
-    mesh->VertexIndexBuffer = (Sint16*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint16));
+    mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint32));
 
     mesh->MaterialIndex = (int)amesh->mMaterialIndex;
 
@@ -207,28 +185,52 @@ PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* ames
     return mesh;
 }
 
-PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat) {
+PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
     Material* material = new Material();
 
+    aiString matName;
+
     aiString texDiffuse;
+    aiString texSpecular;
+    aiString texAmbient;
+    aiString texEmissive;
+
     aiColor4D colorDiffuse;
     aiColor4D colorSpecular;
     aiColor4D colorAmbient;
     aiColor4D colorEmissive;
+
     ai_real shininess, shininessStrength, opacity;
+
     unsigned int n = 1;
 
+    if (mat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
+        material->Name = GetString(matName);
+    else {
+        char temp[20];
+
+        snprintf(temp, sizeof temp, "Material %d", i);
+
+        material->Name = StringUtils::Duplicate(temp);
+    }
+
     if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS)
-        material->ImagePtr = LoadImage(texDiffuse.data);
+        material->TextureDiffuse = IModel::LoadMaterialImage(texDiffuse.data, ModelImporter::ParentDirectory);
+    if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) == AI_SUCCESS)
+        material->TextureSpecular = IModel::LoadMaterialImage(texSpecular.data, ModelImporter::ParentDirectory);
+    if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) == AI_SUCCESS)
+        material->TextureAmbient = IModel::LoadMaterialImage(texAmbient.data, ModelImporter::ParentDirectory);
+    if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS)
+        material->TextureEmissive = IModel::LoadMaterialImage(texEmissive.data, ModelImporter::ParentDirectory);
 
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &colorDiffuse) == AI_SUCCESS)
-        CopyColors(material->Diffuse, colorDiffuse);
+        CopyColors(material->ColorDiffuse, colorDiffuse);
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &colorSpecular) == AI_SUCCESS)
-        CopyColors(material->Specular, colorSpecular);
+        CopyColors(material->ColorSpecular, colorSpecular);
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT, &colorAmbient) == AI_SUCCESS)
-        CopyColors(material->Ambient, colorAmbient);
+        CopyColors(material->ColorAmbient, colorAmbient);
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &colorEmissive) == AI_SUCCESS)
-        CopyColors(material->Emissive, colorEmissive);
+        CopyColors(material->ColorEmissive, colorEmissive);
 
     if (aiGetMaterialFloatArray(mat, AI_MATKEY_SHININESS, &shininess, &n) == AI_SUCCESS)
         material->Shininess = shininess;
@@ -268,7 +270,7 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
     Skeleton* skeleton = new Skeleton;
 
     skeleton->NumBones = amesh->mNumBones;
-    skeleton->NumVertices = mesh->NumVertices;
+    skeleton->NumVertices = mesh->VertexCount;
     skeleton->Bones = new MeshBone*[skeleton->NumBones];
     skeleton->VertexWeights = (Uint32*)Memory::Calloc(skeleton->NumVertices, sizeof(Uint32));
     skeleton->PositionBuffer = mesh->PositionBuffer;
@@ -309,9 +311,8 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
     return skeleton;
 }
 
-PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct aiAnimation* aanim) {
-    ModelAnim* anim = new ModelAnim;
-    anim->Name = GetString(aanim->mName);
+PRIVATE STATIC SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
+    SkeletalAnim* anim = new SkeletalAnim;
     anim->Channels.resize(aanim->mNumChannels);
     anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
 
@@ -322,10 +323,12 @@ PRIVATE STATIC ModelAnim* ModelImporter::LoadAnimation(IModel* imodel, struct ai
 
     double durationInSeconds = baseDuration / ticksPerSecond;
 
-    anim->Length = (int)baseDuration;
     anim->DurationInFrames = (int)(durationInSeconds * 60);
     anim->BaseDuration = baseDuration;
     anim->TicksPerSecond = ticksPerSecond;
+
+    parentAnim->StartFrame = 0;
+    parentAnim->Length = (int)baseDuration;
 
     for (size_t i = 0; i < aanim->mNumChannels; i++) {
         struct aiNodeAnim* channel = aanim->mChannels[i];
@@ -374,8 +377,12 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
             continue;
         }
 
+        int meshID = (int)meshCount;
+
         ameshes.push_back(amesh);
-        MeshIDs.push_back(meshCount++);
+        MeshIDs.push_back(meshID);
+
+        meshCount++;
 
         totalVertices += amesh->mNumVertices;
     }
@@ -396,7 +403,7 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
         imodel->Materials = new Material*[imodel->MaterialCount];
 
         for (size_t i = 0; i < imodel->MaterialCount; i++)
-            imodel->Materials[i] = LoadMaterial(imodel, scene->mMaterials[i]);
+            imodel->Materials[i] = LoadMaterial(imodel, scene->mMaterials[i], i);
     }
 
     // Load meshes
@@ -453,14 +460,22 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
     }
 
     // Load animations
-    // FIXME: Doesn't seem to be working with Collada scenes for some reason.
-    // Might be an issue in Open Asset Importer?
     if (scene->HasAnimations()) {
         imodel->AnimationCount = scene->mNumAnimations;
         imodel->Animations = new ModelAnim*[imodel->AnimationCount];
 
-        for (size_t i = 0; i < imodel->AnimationCount; i++)
-            imodel->Animations[i] = LoadAnimation(imodel, scene->mAnimations[i]);
+        for (size_t i = 0; i < imodel->AnimationCount; i++) {
+            struct aiAnimation* aanim = scene->mAnimations[i];
+
+            ModelAnim* parentAnim = new ModelAnim;
+            parentAnim->Name = GetString(aanim->mName);
+
+            SkeletalAnim *skAnim = LoadAnimation(imodel, parentAnim, aanim);
+            skAnim->ParentAnim = parentAnim;
+            parentAnim->Skeletal = skAnim;
+
+            imodel->Animations[i] = parentAnim;
+        }
     }
 
     return true;
@@ -505,14 +520,7 @@ PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const c
     MeshIDs.clear();
     ParentDirectory = StringUtils::GetPath(path);
 
-    bool success;
-
-    Clock::Start();
-    success = DoConversion(scene, model);
-    Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms", Clock::End());
-
-    if (!success)
-        model->Dispose();
+    bool success = DoConversion(scene, model);
 
     Memory::Free(data);
     Memory::Free(ParentDirectory);

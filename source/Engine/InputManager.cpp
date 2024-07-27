@@ -464,10 +464,11 @@ PUBLIC STATIC bool  InputManager::IsKeyReleased(int key) {
     return !KeyboardState[scancode] && KeyboardStateLast[scancode];
 }
 
-PUBLIC STATIC Controller* InputManager::GetController(int index) {
-    if (index < 0 || index >= InputManager::NumControllers)
-        return nullptr;
-    return InputManager::Controllers[index];
+PRIVATE STATIC Controller* InputManager::GetController(int index) {
+    if (index >= 0 && index < InputManager::NumControllers) {
+        return InputManager::Controllers[index];
+    }
+    return nullptr;
 }
 
 PUBLIC STATIC bool  InputManager::ControllerIsConnected(int index) {

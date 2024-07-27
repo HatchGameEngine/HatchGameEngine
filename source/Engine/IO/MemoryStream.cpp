@@ -33,7 +33,7 @@ PUBLIC STATIC MemoryStream* MemoryStream::New(Stream* other) {
     return stream;
 }
 PUBLIC STATIC MemoryStream* MemoryStream::New(void* data, size_t size) {
-    MemoryStream* stream = new (nothrow) MemoryStream;
+    MemoryStream* stream = new (std::nothrow) MemoryStream;
     if (!stream) {
         return NULL;
     }

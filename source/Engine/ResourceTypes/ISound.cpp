@@ -98,5 +98,9 @@ PUBLIC AudioPlayback* ISound::CreatePlayer() {
 }
 
 PUBLIC void ISound::Dispose() {
-
+    if (SoundData) {
+        SoundData->Dispose();
+        delete SoundData;
+        SoundData = nullptr;
+    }
 }

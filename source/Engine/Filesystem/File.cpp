@@ -45,7 +45,7 @@ PUBLIC STATIC bool File::Exists(const char* path) {
         return false;
     #elif SWITCH_ROMFS
         char romfsPath[256];
-        sprintf(romfsPath, "romfs:/%s", path);
+        snprintf(romfsPath, romfsPath, "romfs:/%s", path);
         if (access(romfsPath, F_OK) != -1) {
             Log::Print(Log::LOG_WARN, "YES access \"%s\".", romfsPath);
             return true;
@@ -55,9 +55,7 @@ PUBLIC STATIC bool File::Exists(const char* path) {
 
         return false;
     #else
-#ifndef LINUX
-        Log::Print(Log::LOG_WARN, "FALLBACK access \"%s\".", path);
-#endif
+        // access probably works in most systems... right?!
         return access(path, F_OK) != -1;
     #endif
 }
@@ -89,11 +87,4 @@ PUBLIC STATIC bool   File::WriteAllBytes(const char* path, const char* bytes, si
         return true;
     }
     return false;
-
-    // FILE* f = fopen(path, "wb");
-    // if (!f) return false;
-    //
-    // fwrite(bytes, len, 1, f);
-    // fclose(f);
-    // return true;
 }

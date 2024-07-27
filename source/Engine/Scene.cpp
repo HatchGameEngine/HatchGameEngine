@@ -108,7 +108,7 @@ public:
     static int                       CurrentSceneInList;
     static char                      CurrentFolder[256];
     static char                      CurrentID[256];
-    static char                      CurrentSpriteFolder[256];
+    static char                      CurrentResourceFolder[256];
     static char                      CurrentCategory[256];
     static int                       ActiveCategory;
 
@@ -246,7 +246,7 @@ int                       Scene::Filter = 0xFF;
 int                       Scene::CurrentSceneInList;
 char                      Scene::CurrentFolder[256];
 char                      Scene::CurrentID[256];
-char                      Scene::CurrentSpriteFolder[256];
+char                      Scene::CurrentResourceFolder[256];
 char                      Scene::CurrentCategory[256];
 int                       Scene::ActiveCategory;
 
@@ -661,7 +661,7 @@ PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
 
     strcpy(Scene::CurrentFolder, scene.Folder);
     strcpy(Scene::CurrentID, scene.ID);
-    strcpy(Scene::CurrentSpriteFolder, scene.SpriteFolder);
+    strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
     strcpy(Scene::CurrentCategory, category.Name);
 
     Scene::CurrentSceneInList = entryID;
@@ -1530,12 +1530,6 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     // Dispose of resources in SCOPE_SCENE
     Scene::DisposeInScope(SCOPE_SCENE);
 
-    // TODO: Make a way for this to delete ONLY of SCOPE_SCENE, and not any sprites needed by SCOPE_GAME
-    /*Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
-        Graphics::DisposeTexture(tex);
-    });
-    Graphics::SpriteSheetTextureMap->Clear();*/
-
     // Clear and dispose of non-persistent objects
     // We force garbage collection right after, meaning that non-persistent objects may get deleted.
     Scene::RemoveNonPersistentObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
@@ -1669,7 +1663,7 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
 }
 
 PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
-    ObjectList* objectList = new (nothrow) ObjectList(objectName);
+    ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
     if (objectList && ScriptManager::LoadObjectClass(objectName, true))
         objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
     return objectList;
@@ -2272,14 +2266,14 @@ PRIVATE STATIC void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles)
 }
 PUBLIC STATIC bool Scene::AddTileset(char* path) {
     ISprite* tileSprite = new ISprite();
-    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(path);
-    if (!tileSprite->Spritesheets[0]) {
+    Texture* spriteSheet = tileSprite->AddSpriteSheet(path);
+    if (!spriteSheet) {
         delete tileSprite;
         return false;
     }
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+    int cols = spriteSheet->Width / Scene::TileWidth;
+    int rows = spriteSheet->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -2293,6 +2287,7 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        info.TilesetID = Scene::Tilesets.size() - 1;
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
@@ -2386,6 +2381,48 @@ PUBLIC STATIC void Scene::UnloadTileCollisions() {
     Scene::TileCount = 0;
 }
 
+// Resource Management
+// return true if we found it in the list
+PUBLIC STATIC bool Scene::GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t& index, bool& foundEmpty) {
+    foundEmpty = false;
+    index = list->size();
+    for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
+        if (!(*list)[i]) {
+            if (!foundEmpty) {
+                foundEmpty = true;
+                index = i;
+            }
+            continue;
+        }
+        if ((*list)[i]->FilenameHash == resource->FilenameHash) {
+            index = i;
+            delete resource;
+            return true;
+        }
+    }
+    return false;
+}
+
+PUBLIC STATIC bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index) {
+    bool foundEmpty = false;
+    if (GetResourceListSpace(list, resource, index, foundEmpty))
+        return true;
+    else if (foundEmpty)
+        (*list)[index] = resource;
+    else
+        list->push_back(resource);
+    return false;
+}
+
+PUBLIC STATIC ISprite* Scene::GetSpriteResource(int index) {
+    if (index < 0 || index >= (int)Scene::SpriteList.size())
+        return NULL;
+
+    if (!Scene::SpriteList[index]) return NULL;
+
+    return Scene::SpriteList[index]->AsSprite;
+}
+
 PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
     // Images
     for (size_t i = 0, i_sz = Scene::ImageList.size(); i < i_sz; i++) {
@@ -2402,7 +2439,6 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
         if (!Scene::SpriteList[i]) continue;
         if (Scene::SpriteList[i]->UnloadPolicy > scope) continue;
 
-        Scene::SpriteList[i]->AsSprite->Dispose();
         delete Scene::SpriteList[i]->AsSprite;
         delete Scene::SpriteList[i];
         Scene::SpriteList[i] = NULL;
@@ -3334,7 +3370,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
         default: return false;
 
         case CMODE_FLOOR:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3381,7 +3417,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
             return collided;
 
         case CMODE_LWALL:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3428,7 +3464,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
             return collided;
 
         case CMODE_ROOF:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3475,7 +3511,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
             return collided;
 
         case CMODE_RWALL:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3540,7 +3576,7 @@ PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode,
         default: return false;
 
         case CMODE_FLOOR:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3590,7 +3626,7 @@ PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode,
             return collided;
 
         case CMODE_LWALL:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3640,7 +3676,7 @@ PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode,
             return collided;
 
         case CMODE_ROOF:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3690,7 +3726,7 @@ PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode,
             return collided;
 
         case CMODE_RWALL:
-            for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+            for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
                 SceneLayer layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -3898,7 +3934,7 @@ PUBLIC STATIC void Scene::ProcessPathGrip() {
                 }
 
                 if (Sensors[0].Angle < 0xDE && Sensors[0].Angle > 0x80)
-                    CollisionEntity->CollisionMode == CMODE_LWALL;
+                    CollisionEntity->CollisionMode = CMODE_LWALL;
                 if (Sensors[0].Angle > 0x22 && Sensors[0].Angle < 0x80)
                     CollisionEntity->CollisionMode = CMODE_RWALL;
                 break;
@@ -4990,7 +5026,7 @@ PUBLIC STATIC void Scene::FindLWallPosition(CollisionSensor* sensor) {
     int startX = posX;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5060,7 +5096,7 @@ PUBLIC STATIC void Scene::FindRoofPosition(CollisionSensor* sensor) {
     int startY = posY;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5129,7 +5165,7 @@ PUBLIC STATIC void Scene::FindRWallPosition(CollisionSensor* sensor) {
     int startX = posX;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5200,7 +5236,7 @@ PUBLIC STATIC void Scene::FloorCollision(CollisionSensor* sensor) {
     float collidePos    = 65536.0;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5275,7 +5311,7 @@ PUBLIC STATIC void Scene::LWallCollision(CollisionSensor* sensor) {
     int solid = 2;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5339,7 +5375,7 @@ PUBLIC STATIC void Scene::RoofCollision(CollisionSensor* sensor) {
     float collidePos    = -1.0;
 
     int layerID = 1;
-        for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+        for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
@@ -5411,7 +5447,7 @@ PUBLIC STATIC void Scene::RWallCollision(CollisionSensor* sensor) {
     int solid = 2;
 
     int layerID = 1;
-    for (size_t l = 0; l < Layers.size(); ++l, layerID << 1) {
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
         SceneLayer layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))

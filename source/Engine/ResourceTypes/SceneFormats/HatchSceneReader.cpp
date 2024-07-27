@@ -328,17 +328,21 @@ PRIVATE STATIC void HatchSceneReader::FreeClasses() {
     SceneClasses.clear();
 }
 
-PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
+PRIVATE STATIC bool HatchSceneReader::LoadTileset(const char* parentFolder) {
     int curTileCount = (int)Scene::TileSpriteInfos.size();
 
     char tilesetFile[4096];
     snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
 
     ISprite* tileSprite = new ISprite();
-    tileSprite->Spritesheets[0] = tileSprite->AddSpriteSheet(tilesetFile);
+    Texture* spriteSheet = tileSprite->AddSpriteSheet(tilesetFile);
+    if (!spriteSheet) {
+        delete tileSprite;
+        return false;
+    }
 
-    int cols = tileSprite->Spritesheets[0]->Width / Scene::TileWidth;
-    int rows = tileSprite->Spritesheets[0]->Height / Scene::TileHeight;
+    int cols = spriteSheet->Width / Scene::TileWidth;
+    int rows = spriteSheet->Height / Scene::TileHeight;
 
     tileSprite->ReserveAnimationCount(1);
     tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
@@ -349,6 +353,7 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
         info.Sprite = tileSprite;
         info.AnimationIndex = 0;
         info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+        info.TilesetID = Scene::Tilesets.size();
         Scene::TileSpriteInfos.push_back(info);
 
         tileSprite->AddFrame(0,
@@ -363,12 +368,15 @@ PRIVATE STATIC void HatchSceneReader::LoadTileset(const char* parentFolder) {
     info.Sprite = tileSprite;
     info.AnimationIndex = 0;
     info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+    info.TilesetID = Scene::Tilesets.size();
     Scene::TileSpriteInfos.push_back(info);
 
     tileSprite->AddFrame(0, 0, 0, 1, 1, 0, 0);
 
     Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, 0, curTileCount, Scene::TileSpriteInfos.size(), tilesetFile);
     Scene::Tilesets.push_back(sceneTileset);
+
+    return true;
 }
 
 PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {

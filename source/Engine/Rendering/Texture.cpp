@@ -82,7 +82,7 @@ PUBLIC         bool  Texture::ConvertToPalette(Uint32 *palColors, unsigned numPa
         Uint32 color = pixels[i];
         if (color & 0xFF000000) {
             if (!colorsHash->GetIfExists(color, &nearestColor)) {
-                Uint32 rgb[3];
+                Uint8 rgb[3];
                 ColorUtils::SeparateRGB(color, rgb);
                 nearestColor = ColorUtils::NearestColor(rgb[0], rgb[1], rgb[2], palColors, numPaletteColors);
                 colorsHash->Put(color, nearestColor);

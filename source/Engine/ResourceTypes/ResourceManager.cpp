@@ -24,8 +24,6 @@ public:
 #include <Engine/IO/Stream.h>
 #include <Engine/Application.h>
 
-#define KEEP_DATA_PACKS_IN_MEMORY
-
 struct      StreamNode {
     Stream*            Table;
     struct StreamNode* Next;
@@ -44,25 +42,15 @@ HashMap<ResourceRegistryItem>* ResourceRegistry = NULL;
 bool                 ResourceManager::UsingDataFolder = true;
 bool                 ResourceManager::UsingModPack = false;
 
-PUBLIC STATIC void   ResourceManager::PrefixResourcePath(char* out, const char* path) {
-    #if 0
-        sprintf(out, "%s", path);
-    // #elif defined(MACOSX_APP_BUNDLE)
-    //     sprintf(out, "%s", path); 
-    #elif defined(SWITCH_ROMFS)
-        sprintf(out, "romfs:/%s", path);
-    #elif defined(ANDROID)
-        sprintf(out, "Resources/%s", path);
-    #else
-        sprintf(out, "Resources/%s", path);
-    #endif
+PUBLIC STATIC void   ResourceManager::PrefixResourcePath(char* out, size_t outSize, const char* path) {
+    snprintf(out, outSize, "Resources/%s", path);
 }
-PUBLIC STATIC void   ResourceManager::PrefixParentPath(char* out, const char* path) {
-    #if defined(SWITCH_ROMFS)
-        sprintf(out, "romfs:/%s", path);
-    #else
-        sprintf(out, "%s", path);
-    #endif
+PUBLIC STATIC void   ResourceManager::PrefixParentPath(char* out, size_t outSize, const char* path) {
+#if defined(SWITCH_ROMFS)
+    snprintf(out, outSize, "romfs:/%s", path);
+#else
+    snprintf(out, outSize, "%s", path);
+#endif
 }
 
 PUBLIC STATIC void   ResourceManager::Init(const char* filename) {
@@ -85,7 +73,6 @@ PUBLIC STATIC void   ResourceManager::Init(const char* filename) {
     char modpacksString[1024];
     if (Application::Settings->GetString("game", "modpacks", modpacksString, sizeof modpacksString)) {
         if (File::Exists(modpacksString)) {
-            // ResourceManager::UsingDataFolder = false;
             ResourceManager::UsingModPack = true;
 
             Log::Print(Log::LOG_IMPORTANT, "Using \"%s\"", modpacksString);
@@ -99,7 +86,7 @@ PUBLIC STATIC void   ResourceManager::Load(const char* filename) {
 
     // Load directly from Resource folder
     char resourcePath[4096];
-    ResourceManager::PrefixParentPath(resourcePath, filename);
+    ResourceManager::PrefixParentPath(resourcePath, sizeof resourcePath, filename);
 
     SDLStream* dataTableStream = SDLStream::New(resourcePath, SDLStream::READ_ACCESS);
     if (!dataTableStream) {
@@ -143,7 +130,8 @@ PUBLIC STATIC void   ResourceManager::Load(const char* filename) {
 }
 PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
     Uint8* memory;
-    char resourcePath[256];
+    char resourcePath[4096];
+    char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
     ResourceRegistryItem item;
 
     if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack)
@@ -152,10 +140,10 @@ PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8**
     if (!ResourceRegistry)
         goto DATA_FOLDER;
 
-    if (!ResourceRegistry->Exists(filename))
+    if (!ResourceRegistry->Exists(pathToLoad))
         goto DATA_FOLDER;
 
-    item = ResourceRegistry->Get(filename);
+    item = ResourceRegistry->Get(pathToLoad);
 
     memory = (Uint8*)Memory::Malloc(item.Size + 1);
     if (!memory)
@@ -182,7 +170,7 @@ PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8**
     if (item.DataFlag == 2) {
         Uint8 keyA[16];
         Uint8 keyB[16];
-        Uint32 filenameHash = CRC32::EncryptString(filename);
+        Uint32 filenameHash = CRC32::EncryptString(pathToLoad);
         Uint32 sizeHash = CRC32::EncryptData(&item.Size, sizeof(item.Size));
 
         // Populate Key A
@@ -241,12 +229,16 @@ PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8**
         }
     }
 
+    Memory::Free(pathToLoad);
+
     *out = memory;
     *size = (size_t)item.Size;
     return true;
 
     DATA_FOLDER:
-    ResourceManager::PrefixResourcePath(resourcePath, filename);
+    ResourceManager::PrefixResourcePath(resourcePath, sizeof resourcePath, pathToLoad);
+
+    Memory::Free(pathToLoad);
 
     SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
     if (!rw) {
@@ -273,20 +265,26 @@ PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8**
     return true;
 }
 PUBLIC STATIC bool   ResourceManager::ResourceExists(const char* filename) {
-    char resourcePath[256];
+    char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
+
+    char resourcePath[4096];
     if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack)
         goto DATA_FOLDER;
 
     if (!ResourceRegistry)
         goto DATA_FOLDER;
 
-    if (!ResourceRegistry->Exists(filename))
+    if (!ResourceRegistry->Exists(pathToLoad))
         goto DATA_FOLDER;
+
+    Memory::Free(pathToLoad);
 
     return true;
 
     DATA_FOLDER:
-    ResourceManager::PrefixResourcePath(resourcePath, filename);
+    ResourceManager::PrefixResourcePath(resourcePath, sizeof resourcePath, pathToLoad);
+
+    Memory::Free(pathToLoad);
 
     SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
     if (!rw) {

@@ -610,10 +610,10 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stre
     int bytesPerSample = BytesPerSample;
     int bytes = playback->BufferedSamples * bytesPerSample;
 
-    int advanceAccumulator = 0;
-    int advanceReadIndex = 0;
-    int advance = 0;
-    int speed = audio->Speed;
+    unsigned advanceAccumulator = 0;
+    unsigned advanceReadIndex = 0;
+    unsigned advance = 0;
+    unsigned speed = audio->Speed;
 
     // Read more bytes
     if (bytes == 0) {
@@ -657,7 +657,7 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stre
                     SDL_MixAudioFormat(stream, playback->Buffer, DeviceFormat.format, (Uint32)bytes, mixVolume);
                 else {
                     Uint32 mixAdvance = MixBufferSize * bytesPerSample;
-                    for (Uint32 o = 0; o < len; o += mixAdvance) {
+                    for (Uint32 o = 0; o < (unsigned)len; o += mixAdvance) {
                         AudioManager::MixAudioLR(MixBuffer, playback->Buffer + advanceReadIndex, MixBufferSize, volumeL, volumeR);
                         SDL_MixAudioFormat(stream + o, MixBuffer, DeviceFormat.format, mixAdvance, mixVolume);
                         advanceReadIndex += mixAdvance;
@@ -666,7 +666,7 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stre
 
                 playback->BufferedSamples -= bytes / bytesPerSample;
             }
-            else for (Uint32 o = 0; o < len; o += bytesPerSample) {
+            else for (Uint32 o = 0; o < (unsigned)len; o += bytesPerSample) {
                 advanceAccumulator += speed;
                 advance = advanceAccumulator >> 16;
                 advanceAccumulator &= 0xFFFF;

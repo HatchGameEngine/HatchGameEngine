@@ -217,3 +217,35 @@ PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* path
     memcpy(newPath, pathB, lenB);
     return out;
 }
+PUBLIC STATIC char* StringUtils::ReplacePathSeparators(const char* path) {
+    if (!path)
+        return nullptr;
+
+    char* newPath = (char*)Memory::Malloc(strlen(path) + 1);
+    if (!newPath)
+        return nullptr;
+
+    char* out = newPath;
+    while (*path) {
+        char c = *path;
+        if (c == '\\')
+            *out = '/';
+        else
+            *out = c;
+        out++;
+        path++;
+    }
+    *out = '\0';
+
+    return newPath;
+}
+PUBLIC STATIC void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
+    if (!path)
+        return;
+
+    while (*path) {
+        if (*path == '\\')
+            *path = '/';
+        path++;
+    }
+}

@@ -554,7 +554,7 @@ PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
 
                 // Free keys
                 map->Keys->WithAll([](Uint32, char* ptr) -> void {
-                    free(ptr);
+                    Memory::Free(ptr);
                 });
 
                 // Free Keys table
@@ -599,7 +599,7 @@ PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction*
     if (hash == klass->Hash)
         klass->Initializer = methodValue;
 
-    function->ClassName = klass->Name;
+    function->ClassName = CopyString(klass->Name);
 
     thread->Pop();
 }

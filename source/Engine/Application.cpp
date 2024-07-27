@@ -76,6 +76,10 @@ extern "C" {
 #endif
 
 #ifdef MSYS
+    #if !defined(_CRT_SECURE_NO_WARNINGS)
+        #define _CRT_SECURE_NO_WARNINGS
+    #endif
+
     #include <windows.h>
 #endif
 
@@ -510,10 +514,7 @@ PRIVATE STATIC void Application::Restart() {
 
     Scene::Dispose();
     SceneInfo::Dispose();
-    Graphics::SpriteSheetTextureMap->WithAll([](Uint32, Texture* tex) -> void {
-        Graphics::DisposeTexture(tex);
-    });
-    Graphics::SpriteSheetTextureMap->Clear();
+    Graphics::DeleteSpriteSheetMap();
 
     ScriptManager::LoadAllClasses = false;
     ScriptEntity::DisableAutoAnimate = false;
@@ -886,21 +887,22 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             DEBUG_fontSprite = new ISprite();
 
             int cols, rows;
-            DEBUG_fontSprite->SpritesheetCount = 1;
-            DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
-            if (!DEBUG_fontSprite->Spritesheets[0])
-                DEBUG_fontSprite->Spritesheets[0] = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/Font.png");
-            cols = DEBUG_fontSprite->Spritesheets[0]->Width / 32;
-            rows = DEBUG_fontSprite->Spritesheets[0]->Height / 32;
+            Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
+            if (!spriteSheet)
+                spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Sprites/Fonts/DebugFont.png");
+            if (spriteSheet) {
+                cols = spriteSheet->Width / 32;
+                rows = spriteSheet->Height / 32;
 
-            DEBUG_fontSprite->ReserveAnimationCount(1);
-            DEBUG_fontSprite->AddAnimation("Font?", 0, 0, cols * rows);
-            for (int i = 0; i < cols * rows; i++) {
-                DEBUG_fontSprite->AddFrame(0,
-                    (i % cols) * 32,
-                    (i / cols) * 32,
-                    32, 32, 0, 0,
-                    14);
+                DEBUG_fontSprite->ReserveAnimationCount(1);
+                DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
+                for (int i = 0; i < cols * rows; i++) {
+                    DEBUG_fontSprite->AddFrame(0,
+                        (i % cols) * 32,
+                        (i / cols) * 32,
+                        32, 32, 0, 0,
+                        14);
+                }
             }
 
             Graphics::SetTextureInterpolation(original);
@@ -970,7 +972,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
 
             if (Application::Platform == Platforms::Android || true) {
                 // Draw bar
-                float total = 0.0001;
+                double total = 0.0001;
                 for (int i = 0; i < typeCount; i++) {
                     if (types[i] < 0.0)
                         types[i] = 0.0;
@@ -983,7 +985,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
                     Graphics::FillRectangle(0.0, 0.0f, infoW - infoPadding * 2, 30.0);
                 Graphics::Restore();
 
-                float rectx = 0.0;
+                double rectx = 0.0;
                 for (int i = 0; i < typeCount; i++) {
                     Graphics::Save();
                     Graphics::Translate(infoPadding, 50.0, 0.0);
@@ -999,7 +1001,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
 
                 // Draw list
                 float listY = 90.0;
-                float totalFrameCount = 0.0f;
+                double totalFrameCount = 0.0f;
                 infoPadding += infoPadding;
                 for (int i = 0; i < typeCount; i++) {
                     Graphics::Save();
@@ -1390,15 +1392,16 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
                 ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
             }
         }
+        else {
+            // TODO: Check existing scene folder and id here to reset them upon reload
+            Scene::ActiveCategory = 0;
+            Application::StartSceneNum = 0;
+        }
 
         // Open and read SceneConfig
         XMLNode* sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
         if (!sceneConfig)
             return;
-
-        // TODO: Check existing scene folder and id here to reset them upon reload
-        Scene::ActiveCategory = 0;
-        Application::StartSceneNum = 0;
 
         // Parse Scene List
         if (SceneInfo::Load(sceneConfig->children[0])) {
@@ -1414,6 +1417,8 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
             Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)",
                 SceneInfo::Categories.size(), SceneInfo::Entries.size());
         }
+
+        StringUtils::Copy(StartingScene, SceneInfo::GetFilename(Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));
 
         XMLParser::Free(sceneConfig);
     }

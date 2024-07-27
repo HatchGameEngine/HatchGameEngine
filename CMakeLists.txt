@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
 
 # set the project name and version
-project(HatchGameEngine VERSION 1.1.0)
+project(HatchGameEngine VERSION 1.3.0)
 
 # specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=nocona")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
+else()
+  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=nocona")
+endif()
 
 # Set up CMake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -44,14 +49,14 @@ endif()
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
 option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  set(USE_OPEN_ASSET_IMPORT_LIBRARY OFF)
+endif()
+
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(USING_DIRECT3D "Use Direct3D" OFF)
-endif()
-
-if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-  add_definitions(-DUSING_ASSIMP)
 endif()
 
 if(USE_FREETYPE_LIBRARY)
@@ -69,6 +74,8 @@ endif()
 if(NOT ENABLE_SCRIPT_COMPILING)
   add_definitions(-DNO_SCRIPT_COMPILING)
 endif()
+
+add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   set(MAKEHEADERS_BINARY makeheaders.exe)
@@ -124,21 +131,31 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     add_definitions(-DUSING_LIBPNG)
   endif()
   if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-    find_package(assimp REQUIRED)
-    set(ASSIMP_INCLUDE_DIRS assimp_INCLUDE_DIRS)
-    set(ASSIMP_LIBRARIES assimp)
+    find_package(assimp)
+    if(assimp_FOUND)
+      add_definitions(-DUSING_ASSIMP)
+      set(ASSIMP_INCLUDE_DIRS assimp_INCLUDE_DIRS)
+      set(ASSIMP_LIBRARIES assimp)
+    endif()
   endif()
   if(USING_OPENGL)
     set(OPENGL_LIBRARIES "-lGL -lGLEW")
   endif()
 else()
   set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
-  if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-    set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
-    set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
-  endif()
-  if(USING_OPENGL)
-    set(OPENGL_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libglew32.a;-lgdi32;-lopengl32")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    if(USING_OPENGL)
+      set(OPENGL_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/msvc/x64/glew32s.lib")
+    endif()
+  else()
+    if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+      add_definitions(-DUSING_ASSIMP)
+      set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
+      set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
+    endif()
+    if(USING_OPENGL)
+      set(OPENGL_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libglew32.a;-lgdi32;-lopengl32")
+    endif()
   endif()
 endif()
 
@@ -173,11 +190,16 @@ endif()
 
 # Add libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  target_link_libraries(${PROJECT_NAME}
-    "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
-    -static -mwindows -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
-    -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
-    -lversion -luuid -lhid -lsetupapi -lws2_32)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/msvc/x64/SDL2.lib"
+    Ws2_32.lib opengl32.lib)
+  else()
+    target_link_libraries(${PROJECT_NAME}
+      "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
+      -static -mwindows -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
+      -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
+      -lversion -luuid -lhid -lsetupapi -lws2_32)
+  endif()
   add_definitions(-DSDL_MAIN_HANDLED)
 else()
   target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})

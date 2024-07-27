@@ -3,8 +3,6 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/TileAnimation.h>
 
-#include <map>
-
 class Tileset {
 public:
     ISprite*                    Sprite = nullptr;
@@ -16,6 +14,7 @@ public:
     size_t                      StartTile = 0;
     size_t                      FirstGlobalTileID = 0;
     size_t                      TileCount = 0;
+    unsigned                    PaletteID = 0;
     std::map<int, TileAnimator> AnimatorMap;
 };
 #endif
@@ -24,6 +23,9 @@ public:
 #include <Engine/Utilities/StringUtils.h>
 
 PUBLIC Tileset::Tileset(ISprite* sprite, int tileWidth, int tileHeight, size_t firstgid, size_t startTile, size_t tileCount, char* filename) {
+    if (sprite->Spritesheets.size() < 1)
+        return;
+
     Sprite = sprite;
     NumCols = Sprite->Spritesheets[0]->Width / tileWidth;
     NumRows = Sprite->Spritesheets[0]->Height / tileHeight;
@@ -53,6 +55,8 @@ PUBLIC void Tileset::RestartAnimations() {
 
 PUBLIC void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, vector<int>& tileIDs, vector<int>& durations) {
     ISprite* tileSprite = Sprite;
+    if (!tileSprite)
+        return;
 
     if (tileSprite->Animations.size() == 1)
         tileSprite->AddAnimation("TileAnimation", 1, 0);
@@ -65,6 +69,9 @@ PUBLIC void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteI
         AnimatorMap.erase(tileID);
         return;
     }
+
+    if (!NumCols)
+        return;
 
     for (size_t i = 0; i < tileIDs.size(); i++) {
         int otherTileID = tileIDs[i];

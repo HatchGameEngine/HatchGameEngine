@@ -1115,12 +1115,12 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args,
     if (!self)
         return NULL_VAL;
 
-    if (self->Sprite < 0) {
-        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "this.Sprite is not set!", animation);
+    ISprite* sprite = Scene::GetSpriteResource(self->Sprite);
+    if (!sprite) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite is not set!", animation);
         return NULL_VAL;
     }
 
-    ISprite* sprite = Scene::SpriteList[self->Sprite]->AsSprite;
     if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
         ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
@@ -1150,12 +1150,12 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* arg
         return NULL_VAL;
 
     int spriteIns = self->Sprite;
-    if (!(spriteIns > -1 && (size_t)spriteIns < Scene::SpriteList.size())) {
+    ISprite* sprite = Scene::GetSpriteResource(spriteIns);
+    if (!sprite) {
         ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", spriteIns);
         return NULL_VAL;
     }
 
-    ISprite* sprite = Scene::SpriteList[self->Sprite]->AsSprite;
     if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
         ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animation);
         return NULL_VAL;
@@ -1362,7 +1362,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
     int frame       = GET_ARG(3, GetInteger);
     int hitbox      = GET_ARG(4, GetInteger);
 
-    if (!self)
+    if (!self || !sprite)
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
@@ -1404,7 +1404,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMVa
     int frame               = GET_ARG(3, GetInteger);
     int hitbox              = GET_ARG(4, GetInteger);
 
-    if (!self)
+    if (!self || !sprite)
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {

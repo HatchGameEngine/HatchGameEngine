@@ -149,7 +149,8 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
         SourceFileMap::ClassMap->Clear();
     }
 
-    const char* scriptFolderPath = (std::string(scriptFolder) + "/").c_str();
+    std::string scriptFolderPathStr = std::string(scriptFolder) + "/";
+    const char* scriptFolderPath = scriptFolderPathStr.c_str();
     size_t scriptFolderPathLen = strlen(scriptFolderPath);
 
     for (size_t i = 0; i < list.size(); i++) {

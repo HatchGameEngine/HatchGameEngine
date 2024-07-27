@@ -28,22 +28,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -66,23 +66,24 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)..\meta\win\include;$(SolutionDir)..\include;$(SolutionDir)..\source;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\meta\win\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\meta\win\lib\msvc\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -91,7 +92,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>CD "..\tools"
@@ -104,6 +105,7 @@ CD ..</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -114,7 +116,7 @@ CD ..</Command>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>CD "..\tools"
@@ -126,7 +128,9 @@ CD ..</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile />
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <PreBuildEvent>
       <Command>CD "..\tools"
 "makeheaders.exe" ../source
@@ -137,6 +141,9 @@ CD ..</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
     <PreBuildEvent>
       <Command>CD "..\tools"
 "makeheaders.exe" ../source
@@ -167,7 +174,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\diagnostics\Clock.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Log.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Memory.cpp" />
-    <ClCompile Include="..\source\Engine\Diagnostics\MemoryPools.cpp" />
+    <ClCompile Include="..\source\engine\diagnostics\MemoryPools.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\PerformanceMeasure.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp" />
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
@@ -197,11 +204,13 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\io\Serializer.cpp" />
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
+    <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
+    <ClCompile Include="..\source\engine\math\Geometry.cpp" />
     <ClCompile Include="..\source\engine\math\Math.cpp" />
     <ClCompile Include="..\source\engine\math\Matrix4x4.cpp" />
+    <ClCompile Include="..\source\engine\math\Random.cpp" />
     <ClCompile Include="..\source\engine\math\Vector.cpp" />
-    <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\media\Decoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\AudioDecoder.cpp" />
     <ClCompile Include="..\source\engine\media\decoders\VideoDecoder.cpp" />
@@ -214,14 +223,14 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\network\HTTP.cpp" />
     <ClCompile Include="..\source\engine\network\WebSocketClient.cpp" />
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
-    <ClCompile Include="..\source\Engine\Rendering\FaceInfo.cpp" />
-    <ClCompile Include="..\source\Engine\Rendering\GameTexture.cpp" />
+    <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp" />
+    <ClCompile Include="..\source\engine\rendering\GameTexture.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShaderContainer.cpp" />
-    <ClCompile Include="..\source\Engine\Rendering\Material.cpp" />
-    <ClCompile Include="..\source\Engine\Rendering\ModelRenderer.cpp" />
+    <ClCompile Include="..\source\engine\rendering\Material.cpp" />
+    <ClCompile Include="..\source\engine\rendering\ModelRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\PolygonRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\sdl2\SDL2Renderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Shader.cpp" />
@@ -229,6 +238,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\rendering\software\SoftwareRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\software\PolygonRasterizer.cpp" />
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
+    <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
@@ -239,9 +249,12 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\resourcetypes\IModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISound.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\HatchModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\MD3Model.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp" />
-    <ClCompile Include="..\source\Engine\ResourceTypes\SceneFormats\HatchSceneReader.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\SceneFormats\HatchSceneReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\RSDKSceneReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\TiledMapReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\OGG.cpp" />
@@ -257,7 +270,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp" />
-    <ClCompile Include="..\source\Engine\Types\DrawGroupList.cpp" />
+    <ClCompile Include="..\source\engine\types\DrawGroupList.cpp" />
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectList.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
@@ -267,6 +280,14 @@ CD ..</Command>
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />
     <ClCompile Include="..\source\Libraries\spng.c" />
+    <ClCompile Include="..\source\Libraries\poly2tri\common\shapes.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\advancing_front.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\cdt.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep_context.cpp" />
+    <ClCompile Include="..\source\Libraries\poly2tri\sweep\sweep.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.engine.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.offset.cpp" />
+    <ClCompile Include="..\source\Libraries\clipper2\clipper.rectclip.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\engine\audio\AudioChannel.h" />
@@ -300,7 +321,7 @@ CD ..</Command>
     <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h" />
     <ClInclude Include="..\include\engine\textformats\json\jsmn.h" />
     <ClInclude Include="..\include\engine\textformats\xml\XMLNode.h" />
-    <ClInclude Include="..\include\Engine\Types\DrawGroupList.h" />
+    <ClInclude Include="..\include\engine\types\DrawGroupList.h" />
     <ClInclude Include="..\include\engine\types\EntityTypes.h" />
     <ClInclude Include="..\source\Libraries\miniz.h" />
     <ClInclude Include="..\source\Libraries\stb_image.h" />

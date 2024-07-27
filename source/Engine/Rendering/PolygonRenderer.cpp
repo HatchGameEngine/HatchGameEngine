@@ -382,7 +382,7 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     rend.ClipFaces = DoProjection;
     rend.ArmaturePtr = model->ArmatureList[armature];
     rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
-    rend.DrawModel(model, 0);
+    rend.DrawModel(model, 0, 0);
 }
 PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     Matrix4x4 mvpMatrix;

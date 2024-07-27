@@ -211,6 +211,9 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
 
 // Draws a polygon
 PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -247,7 +250,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
     int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
     int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
     int dst_strideY = dst_y1 * dstStride;
-    if (!SoftwareRenderer::IsStencilEnabled() && (blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT) == BlendFlag_OPAQUE)) {
+    if (!SoftwareRenderer::IsStencilEnabled() && ((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
         for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
             Contour contour = ContourField[dst_y];
             if (contour.MaxX < contour.MinX) {
@@ -275,6 +278,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
 }
 // Draws a blended polygon
 PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -340,6 +346,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* co
 }
 // Draws a polygon with lighting
 PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -435,6 +444,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 colo
 }
 // Draws a blended polygon with lighting
 PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -525,6 +537,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* c
 }
 // Draws an affine texture mapped polygon
 PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -581,7 +596,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
             dpW(iz); \
@@ -596,7 +611,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -620,7 +635,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
         } \
         if (contour.MaxX > max_x) \
             contour.MaxX = max_x; \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_INVZ(); \
@@ -655,6 +673,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
 }
 // Draws an affine texture mapped polygon with blending
 PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -714,7 +735,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -731,7 +752,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
@@ -758,7 +779,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         } \
         if (contour.MaxX > max_x) \
             contour.MaxX = max_x; \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
             SCANLINE_GET_MAPZ(); \
             SCANLINE_GET_INVZ(); \
@@ -867,6 +891,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
     }
 #endif
 PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -913,7 +940,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
             dpW(iz); \
@@ -928,7 +955,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             col = DoColorTint(color, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -956,7 +983,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
             SCANLINE_STEP_Z_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
         } \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
         dst_strideY += dstStride; \
     }
@@ -983,6 +1013,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
 }
 // Draws a perspective-correct texture mapped polygon with blending
 PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     Uint32* srcPx = (Uint32*)texture->Pixels;
@@ -1032,7 +1065,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
         }
 
     #define DRAW_PLACEPIXEL_PAL(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             SCANLINE_WRITE_PIXEL(col); \
@@ -1049,7 +1082,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
         }
 
     #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-        if ((texCol = srcPx[(texV * srcStride) + texU])) { \
+        if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
             SCANLINE_GET_COLOR(); \
             col = DoColorTint(col, index[texCol]); \
             col = DoFogLighting(col, mapZ); \
@@ -1081,7 +1114,10 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
             SCANLINE_STEP_RGB_BY(diff); \
             SCANLINE_STEP_UV_BY(diff); \
         } \
-        index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        if (Graphics::UsePaletteIndexLines) \
+            index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
+        else \
+            index = &Graphics::PaletteColors[0][0]; \
         DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
         dst_strideY += dstStride; \
     }
@@ -1108,6 +1144,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
 }
 // Draws a polygon with depth testing
 PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1199,6 +1238,9 @@ PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color
 }
 // Draws a blended polygon with depth testing
 PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
+    if (!Graphics::CurrentRenderTarget)
+        return;
+
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 

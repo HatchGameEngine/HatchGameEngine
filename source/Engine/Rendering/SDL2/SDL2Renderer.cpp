@@ -346,7 +346,7 @@ PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
 PUBLIC STATIC void     SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::StrokeCircle(float x, float y, float rad) {
+PUBLIC STATIC void     SDL2Renderer::StrokeCircle(float x, float y, float rad, float thickness) {
 
 }
 PUBLIC STATIC void     SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {
@@ -397,7 +397,7 @@ PUBLIC STATIC void     SDL2Renderer::DrawTexture(Texture* texture, float sx, flo
     }
     SDL_RenderCopyEx(Renderer, *textureData, &src, &dst, 0.0, NULL, (SDL_RendererFlip)flip);
 }
-PUBLIC STATIC void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -411,7 +411,7 @@ PUBLIC STATIC void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, 
         x + fX * animframe.OffsetX,
         y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
-PUBLIC STATIC void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+PUBLIC STATIC void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];

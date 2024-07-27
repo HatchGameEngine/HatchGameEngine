@@ -279,8 +279,8 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x,
     float cosZ = Math::Cos(z);
     float sinXY = sinX * sinY;
     out->Values[9]  = sinX;
+    out->Values[12] = 0.f;
     out->Values[13] = 0.f;
-    out->Values[14] = 0.f;
     out->Values[0]  = (cosY * cosZ) + (sinZ * sinXY);
     out->Values[4]  = (cosY * sinZ) - (cosZ * sinXY);
     out->Values[8]  = cosX * sinY;
@@ -290,12 +290,12 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x,
     float sincosXY = sinX * cosY;
     out->Values[2]  = (sinZ * sincosXY) - (sinY * cosZ);
     out->Values[6]  = (-(sinZ * sinY)) - (cosZ * sincosXY);
-    out->Values[15] = 0.f;
+    out->Values[14] = 0.f;
     out->Values[3]  = 0.f;
     out->Values[7]  = 0.f;
     out->Values[10] = cosX * cosY;
     out->Values[11] = 0.f;
-    out->Values[16] = 1.f;
+    out->Values[15] = 1.f;
 }
 PUBLIC STATIC void       Matrix4x4::Transpose(Matrix4x4* out) {
     Matrix4x4 transposed;

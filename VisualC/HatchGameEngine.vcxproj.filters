@@ -168,6 +168,9 @@
     <ClCompile Include="..\source\engine\math\Ease.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\math\Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\math\Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -261,6 +264,9 @@
     <ClCompile Include="..\source\engine\rendering\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\rendering\TextureReference.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -291,7 +297,16 @@
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\HatchModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\MD3Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">

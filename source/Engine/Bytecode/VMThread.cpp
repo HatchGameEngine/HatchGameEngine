@@ -14,6 +14,7 @@ public:
     Uint32    ReturnFrame;
 
     VMValue   FunctionToInvoke;
+    VMValue   InterpretResult;
 
     enum ThreadState {
         CREATED = 0,
@@ -240,8 +241,7 @@ PUBLIC void    VMThread::PrintStack() {
     }
 }
 PUBLIC void    VMThread::ReturnFromNative() throw() {
-    // std::longjmp(VMThread::JumpBuffer, 1);
-    // throw "should be ignored";
+
 }
 // #endregion
 
@@ -252,14 +252,6 @@ PUBLIC void    VMThread::Push(VMValue value) {
             return;
     }
 
-    // bool debugInstruction = ID == 1;
-    // if (debugInstruction) printf("push\n");
-
-    // if (IS_OBJECT(value)) {
-    //     if (AS_OBJECT(value) == NULL) {
-    //         ThrowRuntimeError(true, "hol up");
-    //     }
-    // }
     *(StackTop++) = value;
 }
 PUBLIC VMValue VMThread::Pop() {
@@ -268,11 +260,12 @@ PUBLIC VMValue VMThread::Pop() {
             return *StackTop;
     }
 
-    // bool debugInstruction = ID == 1;
-    // if (debugInstruction) printf("pop\n");
-
     StackTop--;
     return *StackTop;
+}
+PUBLIC void VMThread::Pop(unsigned amount) {
+    while (amount-- > 0)
+        Pop();
 }
 PUBLIC VMValue VMThread::Peek(int offset) {
     return *(StackTop - offset - 1);
@@ -836,7 +829,6 @@ SUCCESS_OP_SET_PROPERTY:
                 ThrowRuntimeError(false, "Only instances and classes have properties; value was of type %s.", GetValueTypeString(object));
             }
 
-            FAIL_OP_HAS_PROPERTY:
             Pop();
             Push(INTEGER_VAL(false));
             ScriptManager::Unlock();
@@ -1197,7 +1189,7 @@ SUCCESS_OP_SET_PROPERTY:
 
         // Frame stuffs & Returning
         VM_CASE(OP_RETURN): {
-            VMValue result = Pop();
+            InterpretResult = Pop();
 
             FrameCount--;
             if (FrameCount == ReturnFrame) {
@@ -1205,7 +1197,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
 
             StackTop = frame->Slots;
-            Push(result);
+            Push(InterpretResult);
 
             frame = &Frames[FrameCount - 1];
             VM_BREAK;
@@ -1647,7 +1639,6 @@ SUCCESS_OP_SET_PROPERTY:
         VM_CASE(OP_GET_SUPERCLASS): {
             ObjClass* klass = nullptr;
             VMValue object = Peek(0);
-            VMValue result;
 
             // If it's an instance,
             if (IS_INSTANCE(object)) {
@@ -1830,7 +1821,7 @@ PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
+PUBLIC VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
 
@@ -1843,6 +1834,8 @@ PUBLIC void    VMThread::RunEntityFunction(ObjFunction* function, int argCount) 
     FunctionToInvoke = NULL_VAL;
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
+
+    return InterpretResult;
 }
 PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = value;
@@ -1988,7 +1981,9 @@ PRIVATE bool   VMThread::CallValue(VMValue callee, int argCount) {
                 try {
                     returnValue = nativeFn(argCount, StackTop - argCount, ID);
                 }
-                catch (const char* err) { }
+                catch (const char* err) {
+                    (void)err;
+                }
 
                 StackTop -= argCount; // Pop arguments
                 StackTop -= 1; // Pop receiver / class
@@ -2017,7 +2012,9 @@ PRIVATE bool   VMThread::CallForObject(VMValue callee, int argCount) {
                 // receiver, which is the reason these +1 and -1 are here.
                 returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
             }
-            catch (const char* err) { }
+            catch (const char* err) {
+                (void)err;
+            }
 
             StackTop -= argCount; // Pop arguments
             StackTop -= 1; // Pop receiver / class

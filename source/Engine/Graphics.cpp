@@ -15,6 +15,7 @@
 #include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/Rendering/TextureReference.h>
 #include <Engine/Utilities/ColorUtils.h>
 
 need_t ISprite;
@@ -23,7 +24,7 @@ need_t IModel;
 class Graphics {
 public:
     static HashMap<Texture*>*   TextureMap;
-    static HashMap<Texture*>*   SpriteSheetTextureMap;
+    static map<string, TextureReference*> SpriteSheetTextureMap;
     static bool                 VsyncEnabled;
     static int                  MultisamplingEnabled;
     static int                  FontDPI;
@@ -36,7 +37,7 @@ public:
     static Uint32               MaxTextureHeight;
     static Texture*             TextureHead;
 
-    static VertexBuffer*        VertexBuffers[MAX_VERTEX_BUFFERS];
+    static vector<VertexBuffer*> VertexBuffers;
     static Scene3D              Scene3Ds[MAX_3D_SCENES];
 
     static stack<GraphicsState> StateStack;
@@ -81,6 +82,7 @@ public:
     static float                PixelOffset;
     static bool                 NoInternalTextures;
     static bool                 UsePalettes;
+    static bool                 UsePaletteIndexLines;
     static bool                 UseTinting;
     static bool                 UseDepthTesting;
     static bool                 UseSoftwareRenderer;
@@ -112,7 +114,7 @@ public:
 #include <Engine/Bytecode/ScriptManager.h>
 
 HashMap<Texture*>*   Graphics::TextureMap = NULL;
-HashMap<Texture*>*   Graphics::SpriteSheetTextureMap = NULL;
+std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool                 Graphics::VsyncEnabled = true;
 int                  Graphics::MultisamplingEnabled = 0;
 int                  Graphics::FontDPI = 1;
@@ -124,7 +126,7 @@ Uint32               Graphics::MaxTextureWidth = 1;
 Uint32               Graphics::MaxTextureHeight = 1;
 Texture*             Graphics::TextureHead = NULL;
 
-VertexBuffer*        Graphics::VertexBuffers[MAX_VERTEX_BUFFERS];
+vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D              Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
@@ -169,6 +171,7 @@ bool                 Graphics::SmoothStroke = false;
 float                Graphics::PixelOffset = 0.0f;
 bool                 Graphics::NoInternalTextures = false;
 bool                 Graphics::UsePalettes = false;
+bool                 Graphics::UsePaletteIndexLines = false;
 bool                 Graphics::UseTinting = false;
 bool                 Graphics::UseDepthTesting = false;
 bool                 Graphics::UseSoftwareRenderer = false;
@@ -181,7 +184,6 @@ const char*          Graphics::Renderer = "default";
 
 PUBLIC STATIC void     Graphics::Init() {
     Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
-    Graphics::SpriteSheetTextureMap = new HashMap<Texture*>(NULL, 32);
 
     Graphics::ModelViewMatrix = Matrix4x4::Create();
     Graphics::MatrixStack.push(Graphics::ModelViewMatrix);
@@ -278,6 +280,7 @@ PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
 PUBLIC STATIC void     Graphics::Reset() {
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
+    Graphics::UsePaletteIndexLines = false;
 
     Graphics::BlendColors[0] =
     Graphics::BlendColors[1] =
@@ -305,11 +308,14 @@ PUBLIC STATIC void     Graphics::Reset() {
     Graphics::StencilOpFail = StencilOp_Keep;
 }
 PUBLIC STATIC void     Graphics::Dispose() {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++)
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++)
         Graphics::DeleteVertexBuffer(i);
+    Graphics::VertexBuffers.clear();
 
     for (Uint32 i = 0; i < MAX_3D_SCENES; i++)
         Graphics::DeleteScene3D(i);
+
+    Graphics::DeleteSpriteSheetMap();
 
     for (Texture* texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
         next = texture->Next;
@@ -318,12 +324,9 @@ PUBLIC STATIC void     Graphics::Dispose() {
     Graphics::TextureHead = NULL;
     Graphics::PaletteTexture = NULL;
 
-    Graphics::SpriteSheetTextureMap->Clear();
-
     Graphics::GfxFunctions->Dispose();
 
     delete Graphics::TextureMap;
-    delete Graphics::SpriteSheetTextureMap;
     while (Graphics::MatrixStack.size()) {
         delete Graphics::MatrixStack.top();
         Graphics::MatrixStack.pop();
@@ -460,26 +463,77 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
 
     Memory::Free(texture);
 }
+PUBLIC STATIC TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
+    if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
+        TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
+        textureRef->AddRef();
+        return textureRef;
+    }
+
+    return nullptr;
+}
+PUBLIC STATIC TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
+    TextureReference *ref = Graphics::GetSpriteSheet(sheetPath);
+    if (ref == nullptr) {
+        ref = new TextureReference(texture);
+        Graphics::SpriteSheetTextureMap[sheetPath] = ref;
+    }
+    return ref;
+}
+PUBLIC STATIC void     Graphics::DisposeSpriteSheet(string sheetPath) {
+    if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
+        TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
+        if (textureRef->TakeRef()) {
+            Graphics::DisposeTexture(textureRef->TexturePtr);
+            Graphics::SpriteSheetTextureMap.erase(sheetPath);
+            delete textureRef;
+        }
+    }
+}
+PUBLIC STATIC void     Graphics::DeleteSpriteSheetMap() {
+    for (std::map<std::string, TextureReference*>::iterator it = Graphics::SpriteSheetTextureMap.begin();
+        it != Graphics::SpriteSheetTextureMap.end();
+        it++)
+    {
+        Graphics::DisposeTexture(it->second->TexturePtr);
+        delete it->second;
+    }
+
+    Graphics::SpriteSheetTextureMap.clear();
+}
 
 PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
-        if (Graphics::VertexBuffers[i] == NULL) {
-            VertexBuffer* vtxbuf;
-            if (Graphics::Internal.CreateVertexBuffer)
-                vtxbuf = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(maxVertices);
-            else
-                vtxbuf = new VertexBuffer(maxVertices);
+    Uint32 idx = 0xFFFFFFFF;
 
-            vtxbuf->UnloadPolicy = unloadPolicy;
-            Graphics::VertexBuffers[i] = vtxbuf;
-            return i;
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+        if (Graphics::VertexBuffers[i] == NULL) {
+            idx = i;
+            break;
         }
     }
 
-    return 0xFFFFFFFF;
+    VertexBuffer* vtxbuf;
+    if (Graphics::Internal.CreateVertexBuffer)
+        vtxbuf = (VertexBuffer*)Graphics::Internal.CreateVertexBuffer(maxVertices);
+    else
+        vtxbuf = new VertexBuffer(maxVertices);
+
+    vtxbuf->UnloadPolicy = unloadPolicy;
+
+    if (idx == 0xFFFFFFFF) {
+        size_t sz = Graphics::VertexBuffers.size();
+        if (sz < MAX_VERTEX_BUFFERS) {
+            Graphics::VertexBuffers.push_back(vtxbuf);
+            idx = sz;
+        }
+    }
+    else
+        Graphics::VertexBuffers[idx] = vtxbuf;
+
+    return idx;
 }
 PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
-    if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_3D_SCENES)
+    if (vertexBufferIndex < 0 || vertexBufferIndex >= Graphics::VertexBuffers.size())
         return;
     if (!Graphics::VertexBuffers[vertexBufferIndex])
         return;
@@ -535,7 +589,7 @@ PUBLIC STATIC void     Graphics::UpdateGlobalPalette() {
 }
 
 PUBLIC STATIC void     Graphics::UnloadSceneData() {
-    for (Uint32 i = 0; i < MAX_VERTEX_BUFFERS; i++) {
+    for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
         VertexBuffer* buffer = Graphics::VertexBuffers[i];
         if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
             continue;
@@ -743,14 +797,15 @@ PUBLIC STATIC void     Graphics::PushState() {
 
     GraphicsState state;
 
-    state.CurrentViewport = Graphics::CurrentViewport;
-    state.CurrentClip     = Graphics::CurrentClip;
-    state.BlendMode       = Graphics::BlendMode;
-    state.TintMode        = Graphics::TintMode;
-    state.TextureBlend    = Graphics::TextureBlend;
-    state.UsePalettes     = Graphics::UsePalettes;
-    state.UseTinting      = Graphics::UseTinting;
-    state.UseDepthTesting = Graphics::UseDepthTesting;
+    state.CurrentViewport      = Graphics::CurrentViewport;
+    state.CurrentClip          = Graphics::CurrentClip;
+    state.BlendMode            = Graphics::BlendMode;
+    state.TintMode             = Graphics::TintMode;
+    state.TextureBlend         = Graphics::TextureBlend;
+    state.UsePalettes          = Graphics::UsePalettes;
+    state.UsePaletteIndexLines = Graphics::UsePaletteIndexLines;
+    state.UseTinting           = Graphics::UseTinting;
+    state.UseDepthTesting      = Graphics::UseDepthTesting;
 
     memcpy(state.BlendColors, Graphics::BlendColors, sizeof(Graphics::BlendColors));
     memcpy(state.TintColors, Graphics::TintColors, sizeof(Graphics::TintColors));
@@ -771,11 +826,12 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::SetTintMode(state.TintMode);
     Graphics::SetTintColor(state.TintColors[0], state.TintColors[1], state.TintColors[2], state.TintColors[3]);
 
-    Graphics::CurrentViewport = state.CurrentViewport;
-    Graphics::CurrentClip     = state.CurrentClip;
-    Graphics::TextureBlend    = state.TextureBlend;
-    Graphics::UsePalettes     = state.UsePalettes;
-    Graphics::UseDepthTesting = state.UseDepthTesting;
+    Graphics::CurrentViewport      = state.CurrentViewport;
+    Graphics::CurrentClip          = state.CurrentClip;
+    Graphics::TextureBlend         = state.TextureBlend;
+    Graphics::UsePalettes          = state.UsePalettes;
+    Graphics::UsePaletteIndexLines = state.UsePaletteIndexLines;
+    Graphics::UseDepthTesting      = state.UseDepthTesting;
 
     Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 
@@ -848,8 +904,8 @@ PUBLIC STATIC void     Graphics::SetLineWidth(float n) {
 PUBLIC STATIC void     Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
     Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
 }
-PUBLIC STATIC void     Graphics::StrokeCircle(float x, float y, float rad) {
-    Graphics::GfxFunctions->StrokeCircle(x, y, rad);
+PUBLIC STATIC void     Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
+    Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
 }
 PUBLIC STATIC void     Graphics::StrokeEllipse(float x, float y, float w, float h) {
     Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
@@ -878,11 +934,17 @@ PUBLIC STATIC void     Graphics::FillRectangle(float x, float y, float w, float 
 PUBLIC STATIC void     Graphics::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
+PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+    Graphics::GfxFunctions->DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+}
+PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+    Graphics::GfxFunctions->DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+}
 PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
-    Graphics::GfxFunctions->DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation);
+    DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
 PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
-    Graphics::GfxFunctions->DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation);
+    DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
 
 PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
@@ -893,7 +955,7 @@ PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bo
     }
 
     TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-    Graphics::GfxFunctions->DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
+    DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
 }
 PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
     int tileWidth = Scene::TileWidth;
@@ -984,7 +1046,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                         if (flipX) partY = tileWidth - height - partY;
 
                         TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, partY, 0, height, tileWidth, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f, 0);
 
                         if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
                             col = 0;
@@ -1106,7 +1168,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
                         if (flipY) partY = tileHeight - height - partY;
 
                         TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f);
+                        Graphics::DrawSpritePart(info.Sprite, info.AnimationIndex, info.FrameIndex, 0, partY, tileWidth, height, baseX, baseY, flipX, flipY, 1.0f, 1.0f, 0.0f, 0);
 
                         if (Scene::ShowTileCollisionFlag && baseTileCfg && layer->ScrollInfoCount <= 1) {
                             col = 0;
@@ -1288,8 +1350,8 @@ PUBLIC STATIC void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
 
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     if (scene->Initialized) {
-        if (Graphics::GfxFunctions->DeleteVertexBuffer)
-            Graphics::GfxFunctions->DeleteVertexBuffer(scene->Buffer);
+        if (Graphics::Internal.DeleteVertexBuffer)
+            Graphics::Internal.DeleteVertexBuffer(scene->Buffer);
         else
             delete scene->Buffer;
 

@@ -2,8 +2,6 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
 
-#include <map>
-
 class Serializer {
 public:
     std::map<Obj*, Uint32> ObjToID;
@@ -95,6 +93,9 @@ PRIVATE void Serializer::WriteValue(VMValue val) {
                     case OBJ_MAP:
                         StreamPtr->WriteByte(Serializer::VAL_TYPE_OBJECT);
                         StreamPtr->WriteUInt32(objectID);
+                        return;
+                    default:
+                        StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
                         return;
                 }
             }
@@ -286,6 +287,8 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
             });
             return;
         }
+        default:
+            return;
     }
 }
 

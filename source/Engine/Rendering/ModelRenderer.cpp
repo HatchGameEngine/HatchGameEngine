@@ -115,9 +115,38 @@ PRIVATE int ModelRenderer::ClipFace(int faceVertexCount) {
 }
 
 PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
+    Vector3* positionBuffer = mesh->PositionBuffer;
+    Vector3* normalBuffer = mesh->NormalBuffer;
+    Vector2* uvBuffer = mesh->UVBuffer;
+
+    if (skeleton) {
+        positionBuffer = skeleton->TransformedPositions;
+        normalBuffer = skeleton->TransformedNormals;
+    }
+
+    DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
+}
+
+PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix) {
+    Vector3* positionBuffer = mesh->PositionBuffer;
+    Vector3* normalBuffer = mesh->NormalBuffer;
+    Vector2* uvBuffer = mesh->UVBuffer;
+
+    if (model->UseVertexAnimation) {
+        ModelAnim* anim = nullptr;
+        if (animation < model->AnimationCount)
+            anim = model->Animations[animation];
+
+        model->DoVertexFrameInterpolation(mesh, anim, frame, &positionBuffer, &normalBuffer, &uvBuffer);
+    }
+
+    DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
+}
+
+PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix) {
     Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
 
-    Sint16* modelVertexIndexPtr = mesh->VertexIndexBuffer;
+    Sint32* modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
     int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
     int color = CurrentColor;
@@ -126,14 +155,6 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
     Vector3* normalPtr;
     Uint32* colorPtr;
     Vector2* uvPtr;
-
-    Vector3* positionBuffer = mesh->PositionBuffer;
-    Vector3* normalBuffer = mesh->NormalBuffer;
-
-    if (skeleton) {
-        positionBuffer = skeleton->TransformedPositions;
-        normalBuffer = skeleton->TransformedNormals;
-    }
 
     switch (mesh->VertexFlag & vertexTypeMask) {
         case VertexType_Position:
@@ -259,7 +280,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
                     while (numVertices--) {
                         positionPtr = &positionBuffer[*modelVertexIndexPtr];
                         normalPtr = &normalBuffer[*modelVertexIndexPtr];
-                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        uvPtr = &uvBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
                         Vertex->Color = color;
@@ -282,7 +303,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
                     while (numVertices--) {
                         positionPtr = &positionBuffer[*modelVertexIndexPtr];
                         normalPtr = &normalBuffer[*modelVertexIndexPtr];
-                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        uvPtr = &uvBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
                         Vertex->Color = color;
@@ -307,7 +328,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
                     while (numVertices--) {
                         positionPtr = &positionBuffer[*modelVertexIndexPtr];
                         normalPtr = &normalBuffer[*modelVertexIndexPtr];
-                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        uvPtr = &uvBuffer[*modelVertexIndexPtr];
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
@@ -331,7 +352,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
                     while (numVertices--) {
                         positionPtr = &positionBuffer[*modelVertexIndexPtr];
                         normalPtr = &normalBuffer[*modelVertexIndexPtr];
-                        uvPtr = &mesh->UVBuffer[*modelVertexIndexPtr];
+                        uvPtr = &uvBuffer[*modelVertexIndexPtr];
                         colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
                         APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
                         COPY_NORMAL(Vertex->Normal, normalPtr[0]);
@@ -382,7 +403,7 @@ PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* 
         DrawNode(model, node->Children[i], world);
 }
 
-PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
+PRIVATE void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, Uint32 frame) {
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
@@ -395,39 +416,28 @@ PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint32 frame) {
         DrawNode(model, model->BaseArmature->RootNode, &identity);
     }
     else {
-        static Skeleton vertexAnimSkeleton;
-
-        frame = model->GetKeyFrame(frame) % model->FrameCount;
-
         // Just render every mesh directly
-        for (size_t i = 0; i < model->MeshCount; i++) {
-            Mesh* mesh = model->Meshes[i];
-
-            Skeleton *skeletonPtr = nullptr;
-            if (frame) {
-                skeletonPtr = &vertexAnimSkeleton;
-                skeletonPtr->TransformedPositions = mesh->PositionBuffer + (frame * model->VertexCount);
-                skeletonPtr->TransformedNormals = mesh->NormalBuffer + (frame * model->VertexCount);
-            }
-
-            DrawMesh(model, mesh, skeletonPtr, MVPMatrix);
-        }
+        for (size_t i = 0; i < model->MeshCount; i++)
+            DrawMesh(model, model->Meshes[i], animation, frame, MVPMatrix);
     }
 }
 
 PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+    Uint16 numAnims = model->AnimationCount;
+    if (numAnims > 0) {
+        if (animation >= numAnims)
+            animation = numAnims - 1;
+    }
+    else
+        animation = 0;
+
     if (!model->UseVertexAnimation) {
         if (ArmaturePtr == nullptr)
             ArmaturePtr = model->BaseArmature;
 
-        Uint16 numAnims = model->AnimationCount;
-        if (numAnims > 0) {
-            if (animation >= numAnims)
-                animation = numAnims - 1;
-
+        if (numAnims > 0)
             model->Animate(ArmaturePtr, model->Animations[animation], frame);
-        }
     }
 
-    DrawModel(model, frame);
+    DrawModelInternal(model, animation, frame);
 }

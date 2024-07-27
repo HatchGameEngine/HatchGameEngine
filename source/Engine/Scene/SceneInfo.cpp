@@ -147,7 +147,14 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
 
     char filePath[4096];
     if (!strcmp(scene.Filetype, "bin")) {
-        snprintf(filePath, sizeof(filePath), "Scene%s.%s", scene.Folder, scene.ID, scene.Filetype);
+        if (scene.Folder == nullptr) {
+            if (scene.Filetype == nullptr)
+                snprintf(filePath, sizeof(filePath), "Scene%s", id);
+            else
+                snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
+        }
+        else
+            snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
     }
     else {
         if (scene.Folder == nullptr) {
@@ -156,8 +163,10 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
             else
                 snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
         }
+        else if (scene.Filetype == nullptr)
+            snprintf(filePath, sizeof(filePath), "%s", id);
         else
-            snprintf(filePath, sizeof(filePath), "%s/%s.%s", scene.Folder, id, scene.Filetype);
+            snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
     }
 
     parentPath += std::string(filePath);
@@ -218,7 +227,7 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
             if (listElement->attributes.Exists("name"))
                 category.Name = XMLParser::TokenToString(listElement->attributes.Get("name"));
             else {
-                char buf[29];
+                char buf[32];
                 snprintf(buf, sizeof(buf), "Unknown category #%d", ((int)i) + 1);
                 category.Name = StringUtils::Duplicate(buf);
             }
@@ -248,14 +257,18 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     if (stgElement->attributes.Exists("id"))
                         entry.ID = XMLParser::TokenToString(stgElement->attributes.Get("id"));
                     else {
-                        char buf[11];
+                        char buf[16];
                         snprintf(buf, sizeof(buf), "%d", ((int)s) + 1);
                         entry.ID = StringUtils::Duplicate(buf);
                     }
 
-                    // Sprite folder
+                    // Resource folder
+                    if (stgElement->attributes.Exists("resourceFolder"))
+                        entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("resourceFolder"));
+
+                    // Sprite folder (backwards compat)
                     if (stgElement->attributes.Exists("spriteFolder"))
-                        entry.SpriteFolder = XMLParser::TokenToString(stgElement->attributes.Get("spriteFolder"));
+                        entry.ResourceFolder = XMLParser::TokenToString(stgElement->attributes.Get("spriteFolder"));
 
                     // Filetype
                     if (stgElement->attributes.Exists("fileExtension"))
@@ -271,7 +284,8 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     entry.Properties->Put("name", entry.Name);
                     entry.Properties->Put("folder", entry.Folder);
                     entry.Properties->Put("id", entry.ID);
-                    entry.Properties->Put("spriteFolder", entry.SpriteFolder);
+                    entry.Properties->Put("resourceFolder", entry.ResourceFolder);
+                    entry.Properties->Put("spriteFolder", entry.ResourceFolder); // backwards compat
                     entry.Properties->Put("fileExtension", entry.Filetype);
 
                     FillAttributesHashMap(&stgElement->attributes, entry.Properties);

@@ -95,6 +95,7 @@ const char* GetValueTypeString(VMValue value);
 #define AS_LINKED_INTEGER(value)  (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value)  (*((value).as.LinkedDecimal))
 
+#define IS_NUMBER(value)        (IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || IS_LINKED_INTEGER(value))
 #define IS_NOT_NUMBER(value)    (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
@@ -149,10 +150,10 @@ enum ObjType {
     OBJ_STREAM,
     OBJ_NAMESPACE,
     OBJ_ENUM,
-    OBJ_MODULE,
-
-    MAX_OBJ_TYPE
+    OBJ_MODULE
 };
+
+#define MAX_OBJ_TYPE (OBJ_MODULE + 1)
 
 typedef HashMap<VMValue> Table;
 
@@ -261,6 +262,7 @@ ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
+ObjString*         CopyString(ObjString* string);
 ObjString*         AllocString(size_t length);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);

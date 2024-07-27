@@ -29,7 +29,7 @@ PUBLIC STATIC Vector4 Vector::Subtract(Vector4 v1, Vector4 v2) {
     return result;
 }
 
-PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, int t) {
+PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, Sint64 t) {
     Vector4 result;
     result.X = FP16_MULTIPLY(v.X, t);
     result.Y = FP16_MULTIPLY(v.Y, t);
@@ -57,6 +57,15 @@ PUBLIC STATIC Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
     result.X = FP16_MULTIPLY(mat11, v.X) + FP16_MULTIPLY(mat12, v.Y) + FP16_MULTIPLY(mat13, v.Z) + mat14;
     result.Y = FP16_MULTIPLY(mat21, v.X) + FP16_MULTIPLY(mat22, v.Y) + FP16_MULTIPLY(mat23, v.Z) + mat24;
     result.Z = FP16_MULTIPLY(mat31, v.X) + FP16_MULTIPLY(mat32, v.Y) + FP16_MULTIPLY(mat33, v.Z) + mat34;
+
+    return result;
+}
+
+PUBLIC STATIC Vector2 Vector::Interpolate(Vector2 v1, Vector2 v2, Sint64 t) {
+    Vector2 result;
+
+    result.X = v1.X + FP16_MULTIPLY(v2.X - v1.X, t);
+    result.Y = v1.Y + FP16_MULTIPLY(v2.Y - v1.Y, t);
 
     return result;
 }

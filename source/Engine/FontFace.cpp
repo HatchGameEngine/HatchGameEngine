@@ -216,9 +216,11 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
 		}
 	}
 
-    sprite->Spritesheets[0] = Graphics::CreateTextureFromPixels(package->Width, package->Height, pixelData, package->Width * sizeof(Uint32));
-    sprite->SpritesheetsBorrowed[0] = false;
-    sprite->SpritesheetCount = 1;
+    Texture* spriteSheet = Graphics::CreateTextureFromPixels(package->Width, package->Height, pixelData, package->Width * sizeof(Uint32));
+    if (spriteSheet) {
+        sprite->Spritesheets.push_back(spriteSheet);
+        sprite->SpritesheetFilenames.push_back(std::string(filename));
+    }
 
 	// Add preliminary chars
 	sprite->AddAnimation("Font", offsetBaseline & 0xFFFF, pixelSize, 0x100);
@@ -239,7 +241,7 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
 
     bool exportFonts = false;
     Application::Settings->GetBool("dev", "exportFonts", &exportFonts);
-    if (filename && exportFonts) {
+    if (exportFonts) {
         char* filenameJustName = filename + strlen(filename) - 1;
         for (; filenameJustName > filename; filenameJustName--) {
             if (*filenameJustName == '/') {
@@ -248,16 +250,16 @@ PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, c
             }
         }
 
-        char testFilename[256];
-        sprintf(testFilename, "Fonts/%s_%d.bmp", filenameJustName, pixelSize);
-        strncpy(sprite->SpritesheetsFilenames[0], testFilename, 32);
+        char testFilename[4096];
+        snprintf(testFilename, sizeof testFilename, "Fonts/%s_%d.bmp", filenameJustName, pixelSize);
+        sprite->SpritesheetsFilenames.push_back(std::string(testFilename));
 
         SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixelData, package->Width, package->Height, 32, package->Width * 4,
             0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
         SDL_SaveBMP(surface, testFilename);
         SDL_FreeSurface(surface);
 
-        sprintf(testFilename, "Fonts/%s_%d.bin", filenameJustName, pixelSize);
+        snprintf(testFilename, sizeof testFilename, "Fonts/%s_%d.bin", filenameJustName, pixelSize);
         sprite->SaveAnimation(testFilename);
     }
 

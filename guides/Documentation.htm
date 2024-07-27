@@ -56,9 +56,12 @@
             <li><a href="#Reference_Directory">Directory</a></li>
             <li><a href="#Reference_Display">Display</a></li>
             <li><a href="#Reference_Draw">Draw</a></li>
+            <li><a href="#Reference_Draw3D">Draw3D</a></li>
             <li><a href="#Reference_Ease">Ease</a></li>
             <li><a href="#Reference_File">File</a></li>
+            <li><a href="#Reference_Geometry">Geometry</a></li>
             <li><a href="#Reference_HTTP">HTTP</a></li>
+            <li><a href="#Reference_Image">Image</a></li>
             <li><a href="#Reference_Input">Input</a></li>
             <li><a href="#Reference_Instance">Instance</a></li>
             <li><a href="#Reference_JSON">JSON</a></li>
@@ -71,6 +74,7 @@
             <li><a href="#Reference_Palette">Palette</a></li>
             <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
             <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
+            <li><a href="#Reference_Random">Random</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
@@ -115,6 +119,8 @@
             <li><a href="#Reference_FileStream_*">FileStream_*</a></li>
             <li><a href="#Reference_Filter_*">Filter_*</a></li>
             <li><a href="#Reference_FogEquation_*">FogEquation_*</a></li>
+            <li><a href="#Reference_GeoBooleanOp_*">GeoBooleanOp_*</a></li>
+            <li><a href="#Reference_GeoFillRule_*">GeoFillRule_*</a></li>
             <li><a href="#Reference_HitboxSide_*">HitboxSide_*</a></li>
             <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
@@ -165,6 +171,7 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Animator_Create">Animator.Create</a></li>
+                    <li><a href="#Reference_functions_Animator_Remove">Animator.Remove</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimation">Animator.SetAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_Animate">Animator.Animate</a></li>
                     <li><a href="#Reference_functions_Animator_GetSprite">Animator.GetSprite</a></li>
@@ -229,6 +236,8 @@
                     <li><a href="#Reference_functions_Array_Clear">Array.Clear</a></li>
                     <li><a href="#Reference_functions_Array_Shift">Array.Shift</a></li>
                     <li><a href="#Reference_functions_Array_SetAll">Array.SetAll</a></li>
+                    <li><a href="#Reference_functions_Array_Reverse">Array.Reverse</a></li>
+                    <li><a href="#Reference_functions_Array_Sort">Array.Sort</a></li>
                 </ul>
             </p>
             <p id="Reference_Audio">
@@ -330,27 +339,6 @@
                     <li><a href="#Reference_functions_Draw_ViewPart">Draw.ViewPart</a></li>
                     <li><a href="#Reference_functions_Draw_ViewSized">Draw.ViewSized</a></li>
                     <li><a href="#Reference_functions_Draw_ViewPartSized">Draw.ViewPartSized</a></li>
-                    <li><a href="#Reference_functions_Draw_BindVertexBuffer">Draw.BindVertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_UnbindVertexBuffer">Draw.UnbindVertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_BindScene3D">Draw.BindScene3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Model">Draw.Model</a></li>
-                    <li><a href="#Reference_functions_Draw_ModelSkinned">Draw.ModelSkinned</a></li>
-                    <li><a href="#Reference_functions_Draw_ModelSimple">Draw.ModelSimple</a></li>
-                    <li><a href="#Reference_functions_Draw_Triangle3D">Draw.Triangle3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Quad3D">Draw.Quad3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Sprite3D">Draw.Sprite3D</a></li>
-                    <li><a href="#Reference_functions_Draw_SpritePart3D">Draw.SpritePart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Image3D">Draw.Image3D</a></li>
-                    <li><a href="#Reference_functions_Draw_ImagePart3D">Draw.ImagePart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_Tile3D">Draw.Tile3D</a></li>
-                    <li><a href="#Reference_functions_Draw_TriangleTextured">Draw.TriangleTextured</a></li>
-                    <li><a href="#Reference_functions_Draw_QuadTextured">Draw.QuadTextured</a></li>
-                    <li><a href="#Reference_functions_Draw_SpritePoints">Draw.SpritePoints</a></li>
-                    <li><a href="#Reference_functions_Draw_TilePoints">Draw.TilePoints</a></li>
-                    <li><a href="#Reference_functions_Draw_SceneLayer3D">Draw.SceneLayer3D</a></li>
-                    <li><a href="#Reference_functions_Draw_SceneLayerPart3D">Draw.SceneLayerPart3D</a></li>
-                    <li><a href="#Reference_functions_Draw_VertexBuffer">Draw.VertexBuffer</a></li>
-                    <li><a href="#Reference_functions_Draw_RenderScene3D">Draw.RenderScene3D</a></li>
                     <li><a href="#Reference_functions_Draw_Video">Draw.Video</a></li>
                     <li><a href="#Reference_functions_Draw_VideoPart">Draw.VideoPart</a></li>
                     <li><a href="#Reference_functions_Draw_VideoSized">Draw.VideoSized</a></li>
@@ -396,7 +384,10 @@
                     <li><a href="#Reference_functions_Draw_Ellipse">Draw.Ellipse</a></li>
                     <li><a href="#Reference_functions_Draw_Triangle">Draw.Triangle</a></li>
                     <li><a href="#Reference_functions_Draw_TriangleBlend">Draw.TriangleBlend</a></li>
+                    <li><a href="#Reference_functions_Draw_Quad">Draw.Quad</a></li>
                     <li><a href="#Reference_functions_Draw_QuadBlend">Draw.QuadBlend</a></li>
+                    <li><a href="#Reference_functions_Draw_TriangleTextured">Draw.TriangleTextured</a></li>
+                    <li><a href="#Reference_functions_Draw_QuadTextured">Draw.QuadTextured</a></li>
                     <li><a href="#Reference_functions_Draw_Rectangle">Draw.Rectangle</a></li>
                     <li><a href="#Reference_functions_Draw_CircleStroke">Draw.CircleStroke</a></li>
                     <li><a href="#Reference_functions_Draw_EllipseStroke">Draw.EllipseStroke</a></li>
@@ -419,6 +410,33 @@
                     <li><a href="#Reference_functions_Draw_UseDepthTesting">Draw.UseDepthTesting</a></li>
                     <li><a href="#Reference_functions_Draw_GetCurrentDrawGroup">Draw.GetCurrentDrawGroup</a></li>
                     <li><a href="#Reference_functions_Draw_CopyScreen">Draw.CopyScreen</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Draw3D">
+                <h2>Draw3D</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Draw3D_BindVertexBuffer">Draw3D.BindVertexBuffer</a></li>
+                    <li><a href="#Reference_functions_Draw3D_UnbindVertexBuffer">Draw3D.UnbindVertexBuffer</a></li>
+                    <li><a href="#Reference_functions_Draw3D_BindScene">Draw3D.BindScene</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Model">Draw3D.Model</a></li>
+                    <li><a href="#Reference_functions_Draw3D_ModelSkinned">Draw3D.ModelSkinned</a></li>
+                    <li><a href="#Reference_functions_Draw3D_ModelSimple">Draw3D.ModelSimple</a></li>
+                    <li><a href="#Reference_functions_Draw_Triangle3D">Draw.Triangle3D</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Quad">Draw3D.Quad</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Sprite">Draw3D.Sprite</a></li>
+                    <li><a href="#Reference_functions_Draw3D_SpritePart">Draw3D.SpritePart</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Image">Draw3D.Image</a></li>
+                    <li><a href="#Reference_functions_Draw3D_ImagePart">Draw3D.ImagePart</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Tile">Draw3D.Tile</a></li>
+                    <li><a href="#Reference_functions_Draw3D_TriangleTextured">Draw3D.TriangleTextured</a></li>
+                    <li><a href="#Reference_functions_Draw3D_QuadTextured">Draw3D.QuadTextured</a></li>
+                    <li><a href="#Reference_functions_Draw3D_SpritePoints">Draw3D.SpritePoints</a></li>
+                    <li><a href="#Reference_functions_Draw3D_TilePoints">Draw3D.TilePoints</a></li>
+                    <li><a href="#Reference_functions_Draw3D_SceneLayer">Draw3D.SceneLayer</a></li>
+                    <li><a href="#Reference_functions_Draw3D_SceneLayerPart">Draw3D.SceneLayerPart</a></li>
+                    <li><a href="#Reference_functions_Draw3D_VertexBuffer">Draw3D.VertexBuffer</a></li>
+                    <li><a href="#Reference_functions_Draw3D_RenderScene">Draw3D.RenderScene</a></li>
                 </ul>
             </p>
             <p id="Reference_Ease">
@@ -467,12 +485,30 @@
                     <li><a href="#Reference_functions_File_WriteAllText">File.WriteAllText</a></li>
                 </ul>
             </p>
+            <p id="Reference_Geometry">
+                <h2>Geometry</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Geometry_Triangulate">Geometry.Triangulate</a></li>
+                    <li><a href="#Reference_functions_Geometry_Intersect">Geometry.Intersect</a></li>
+                    <li><a href="#Reference_functions_Geometry_IsPointInsidePolygon">Geometry.IsPointInsidePolygon</a></li>
+                    <li><a href="#Reference_functions_Geometry_IsLineIntersectingPolygon">Geometry.IsLineIntersectingPolygon</a></li>
+                </ul>
+            </p>
             <p id="Reference_HTTP">
                 <h2>HTTP</h2>
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_HTTP_GetString">HTTP.GetString</a></li>
                     <li><a href="#Reference_functions_HTTP_GetToFile">HTTP.GetToFile</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Image">
+                <h2>Image</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Image_GetWidth">Image.GetWidth</a></li>
+                    <li><a href="#Reference_functions_Image_GetHeight">Image.GetHeight</a></li>
                 </ul>
             </p>
             <p id="Reference_Input">
@@ -656,10 +692,6 @@
                     <li><a href="#Reference_functions_Math_Random">Math.Random</a></li>
                     <li><a href="#Reference_functions_Math_RandomMax">Math.RandomMax</a></li>
                     <li><a href="#Reference_functions_Math_RandomRange">Math.RandomRange</a></li>
-                    <li><a href="#Reference_functions_Math_GetRandSeed">Math.GetRandSeed</a></li>
-                    <li><a href="#Reference_functions_Math_SetRandSeed">Math.SetRandSeed</a></li>
-                    <li><a href="#Reference_functions_Math_RandomInteger">Math.RandomInteger</a></li>
-                    <li><a href="#Reference_functions_Math_RandomIntegerSeeded">Math.RandomIntegerSeeded</a></li>
                     <li><a href="#Reference_functions_Math_Floor">Math.Floor</a></li>
                     <li><a href="#Reference_functions_Math_Ceil">Math.Ceil</a></li>
                     <li><a href="#Reference_functions_Math_Round">Math.Round</a></li>
@@ -745,10 +777,13 @@
                     <li><a href="#Reference_functions_Palette_LoadFromImage">Palette.LoadFromImage</a></li>
                     <li><a href="#Reference_functions_Palette_GetColor">Palette.GetColor</a></li>
                     <li><a href="#Reference_functions_Palette_SetColor">Palette.SetColor</a></li>
+                    <li><a href="#Reference_functions_Palette_GetColorTransparent">Palette.GetColorTransparent</a></li>
+                    <li><a href="#Reference_functions_Palette_SetColorTransparent">Palette.SetColorTransparent</a></li>
                     <li><a href="#Reference_functions_Palette_MixPalettes">Palette.MixPalettes</a></li>
                     <li><a href="#Reference_functions_Palette_RotateColorsLeft">Palette.RotateColorsLeft</a></li>
                     <li><a href="#Reference_functions_Palette_RotateColorsRight">Palette.RotateColorsRight</a></li>
                     <li><a href="#Reference_functions_Palette_CopyColors">Palette.CopyColors</a></li>
+                    <li><a href="#Reference_functions_Palette_UsePaletteIndexLines">Palette.UsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Palette_SetPaletteIndexLines">Palette.SetPaletteIndexLines</a></li>
                 </ul>
             </p>
@@ -756,6 +791,10 @@
                 <h2>RSDK.Math</h2>
                 <i>Class methods:</i>
                 <ul>
+                    <li><a href="#Reference_functions_RSDK_Math_GetRandSeed">RSDK.Math.GetRandSeed</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_SetRandSeed">RSDK.Math.SetRandSeed</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_RandomInteger">RSDK.Math.RandomInteger</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_RandomIntegerSeeded">RSDK.Math.RandomIntegerSeeded</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_ClearTrigLookupTables">RSDK.Math.ClearTrigLookupTables</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_CalculateTrigAngles">RSDK.Math.CalculateTrigAngles</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_Sin1024">RSDK.Math.Sin1024</a></li>
@@ -790,6 +829,16 @@
                     <li><a href="#Reference_functions_RSDK_Matrix_Rotate256">RSDK.Matrix.Rotate256</a></li>
                 </ul>
             </p>
+            <p id="Reference_Random">
+                <h2>Random</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Random_SetSeed">Random.SetSeed</a></li>
+                    <li><a href="#Reference_functions_Random_GetSeed">Random.GetSeed</a></li>
+                    <li><a href="#Reference_functions_Random_Max">Random.Max</a></li>
+                    <li><a href="#Reference_functions_Random_Range">Random.Range</a></li>
+                </ul>
+            </p>
             <p id="Reference_Resources">
                 <h2>Resources</h2>
                 <i>Class methods:</i>
@@ -819,6 +868,7 @@
                     <li><a href="#Reference_functions_Scene_Load">Scene.Load</a></li>
                     <li><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></li>
                     <li><a href="#Reference_functions_Scene_LoadPosition">Scene.LoadPosition</a></li>
+                    <li><a href="#Reference_functions_Scene_Change">Scene.Change</a></li>
                     <li><a href="#Reference_functions_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
                     <li><a href="#Reference_functions_Scene_AreTileCollisionsLoaded">Scene.AreTileCollisionsLoaded</a></li>
                     <li><a href="#Reference_functions_Scene_AddTileset">Scene.AddTileset</a></li>
@@ -829,6 +879,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerUsePaletteIndexLines">Scene.GetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerDeformSplitLine">Scene.GetLayerDeformSplitLine</a></li>
@@ -850,6 +901,7 @@
                     <li><a href="#Reference_functions_Scene_GetTilesetName">Scene.GetTilesetName</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetTileCount">Scene.GetTilesetTileCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetTilesetFirstTileID">Scene.GetTilesetFirstTileID</a></li>
+                    <li><a href="#Reference_functions_Scene_GetTilesetPaletteIndex">Scene.GetTilesetPaletteIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileWidth">Scene.GetTileWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileHeight">Scene.GetTileHeight</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileID">Scene.GetTileID</a></li>
@@ -860,6 +912,7 @@
                     <li><a href="#Reference_functions_Scene_GetListPos">Scene.GetListPos</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentFolder">Scene.GetCurrentFolder</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentID">Scene.GetCurrentID</a></li>
+                    <li><a href="#Reference_functions_Scene_GetCurrentResourceFolder">Scene.GetCurrentResourceFolder</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentSpriteFolder">Scene.GetCurrentSpriteFolder</a></li>
                     <li><a href="#Reference_functions_Scene_GetCurrentCategory">Scene.GetCurrentCategory</a></li>
                     <li><a href="#Reference_functions_Scene_GetActiveCategory">Scene.GetActiveCategory</a></li>
@@ -877,6 +930,9 @@
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequencePaused">Scene.GetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequenceSpeed">Scene.GetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_GetTileAnimSequenceFrame">Scene.GetTileAnimSequenceFrame</a></li>
+                    <li><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></li>
+                    <li><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></li>
+                    <li><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></li>
                     <li><a href="#Reference_functions_Scene_CheckValidScene">Scene.CheckValidScene</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneFolder">Scene.CheckSceneFolder</a></li>
                     <li><a href="#Reference_functions_Scene_CheckSceneID">Scene.CheckSceneID</a></li>
@@ -894,6 +950,7 @@
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequencePaused">Scene.SetTileAnimSequencePaused</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceSpeed">Scene.SetTileAnimSequenceSpeed</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileAnimSequenceFrame">Scene.SetTileAnimSequenceFrame</a></li>
+                    <li><a href="#Reference_functions_Scene_SetTilesetPaletteIndex">Scene.SetTilesetPaletteIndex</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerVisible">Scene.SetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerCollidable">Scene.SetLayerCollidable</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerInternalSize">Scene.SetLayerInternalSize</a></li>
@@ -909,6 +966,7 @@
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerUsePaletteIndexLines">Scene.SetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLines">Scene.SetLayerSetParallaxLines</a></li>
@@ -1421,6 +1479,14 @@
                     <li><a href="#Reference_enums_ACTIVE_XBOUNDS">ACTIVE_XBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_NEVER">ACTIVE_NEVER</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_ALWAYS">ACTIVE_ALWAYS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_NORMAL">ACTIVE_NORMAL</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_PAUSED">ACTIVE_PAUSED</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_BOUNDS">ACTIVE_BOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_XBOUNDS">ACTIVE_XBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
+                    <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                 </ul>
             </p>
             <p id="Reference_Axis_*">
@@ -1495,11 +1561,20 @@
                     <li><a href="#Reference_enums_CMODE_LWALL">CMODE_LWALL</a></li>
                     <li><a href="#Reference_enums_CMODE_ROOF">CMODE_ROOF</a></li>
                     <li><a href="#Reference_enums_CMODE_RWALL">CMODE_RWALL</a></li>
+                    <li><a href="#Reference_enums_CMODE_FLOOR">CMODE_FLOOR</a></li>
+                    <li><a href="#Reference_enums_CMODE_LWALL">CMODE_LWALL</a></li>
+                    <li><a href="#Reference_enums_CMODE_ROOF">CMODE_ROOF</a></li>
+                    <li><a href="#Reference_enums_CMODE_RWALL">CMODE_RWALL</a></li>
                 </ul>
             </p>
             <p id="Reference_C_*">
                 <h2><code>C_*</code></h2>
                 <ul>
+                    <li><a href="#Reference_enums_C_NONE">C_NONE</a></li>
+                    <li><a href="#Reference_enums_C_TOP">C_TOP</a></li>
+                    <li><a href="#Reference_enums_C_LEFT">C_LEFT</a></li>
+                    <li><a href="#Reference_enums_C_RIGHT">C_RIGHT</a></li>
+                    <li><a href="#Reference_enums_C_BOTTOM">C_BOTTOM</a></li>
                     <li><a href="#Reference_enums_C_NONE">C_NONE</a></li>
                     <li><a href="#Reference_enums_C_TOP">C_TOP</a></li>
                     <li><a href="#Reference_enums_C_LEFT">C_LEFT</a></li>
@@ -1565,6 +1640,10 @@
                     <li><a href="#Reference_enums_FLIP_X">FLIP_X</a></li>
                     <li><a href="#Reference_enums_FLIP_Y">FLIP_Y</a></li>
                     <li><a href="#Reference_enums_FLIP_XY">FLIP_XY</a></li>
+                    <li><a href="#Reference_enums_FLIP_NONE">FLIP_NONE</a></li>
+                    <li><a href="#Reference_enums_FLIP_X">FLIP_X</a></li>
+                    <li><a href="#Reference_enums_FLIP_Y">FLIP_Y</a></li>
+                    <li><a href="#Reference_enums_FLIP_XY">FLIP_XY</a></li>
                 </ul>
             </p>
             <p id="Reference_FaceCull_*">
@@ -1598,9 +1677,31 @@
                     <li><a href="#Reference_enums_FogEquation_Exp">FogEquation_Exp</a></li>
                 </ul>
             </p>
+            <p id="Reference_GeoBooleanOp_*">
+                <h2><code>GeoBooleanOp_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Intersection">GeoBooleanOp_Intersection</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Union">GeoBooleanOp_Union</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_Difference">GeoBooleanOp_Difference</a></li>
+                    <li><a href="#Reference_enums_GeoBooleanOp_ExclusiveOr">GeoBooleanOp_ExclusiveOr</a></li>
+                </ul>
+            </p>
+            <p id="Reference_GeoFillRule_*">
+                <h2><code>GeoFillRule_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_GeoFillRule_EvenOdd">GeoFillRule_EvenOdd</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_NonZero">GeoFillRule_NonZero</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_Positive">GeoFillRule_Positive</a></li>
+                    <li><a href="#Reference_enums_GeoFillRule_Negative">GeoFillRule_Negative</a></li>
+                </ul>
+            </p>
             <p id="Reference_HitboxSide_*">
                 <h2><code>HitboxSide_*</code></h2>
                 <ul>
+                    <li><a href="#Reference_enums_HitboxSide_LEFT">HitboxSide_LEFT</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_TOP">HitboxSide_TOP</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_RIGHT">HitboxSide_RIGHT</a></li>
+                    <li><a href="#Reference_enums_HitboxSide_BOTTOM">HitboxSide_BOTTOM</a></li>
                     <li><a href="#Reference_enums_HitboxSide_LEFT">HitboxSide_LEFT</a></li>
                     <li><a href="#Reference_enums_HitboxSide_TOP">HitboxSide_TOP</a></li>
                     <li><a href="#Reference_enums_HitboxSide_RIGHT">HitboxSide_RIGHT</a></li>
@@ -1701,11 +1802,18 @@
                     <li><a href="#Reference_enums_TILECOLLISION_NONE">TILECOLLISION_NONE</a></li>
                     <li><a href="#Reference_enums_TILECOLLISION_DOWN">TILECOLLISION_DOWN</a></li>
                     <li><a href="#Reference_enums_TILECOLLISION_UP">TILECOLLISION_UP</a></li>
+                    <li><a href="#Reference_enums_TILECOLLISION_NONE">TILECOLLISION_NONE</a></li>
+                    <li><a href="#Reference_enums_TILECOLLISION_DOWN">TILECOLLISION_DOWN</a></li>
+                    <li><a href="#Reference_enums_TILECOLLISION_UP">TILECOLLISION_UP</a></li>
                 </ul>
             </p>
             <p id="Reference_TimeOfDay_*">
                 <h2><code>TimeOfDay_*</code></h2>
                 <ul>
+                    <li><a href="#Reference_enums_TimeOfDay_MORNING">TimeOfDay_MORNING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_MIDDAY">TimeOfDay_MIDDAY</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_EVENING">TimeOfDay_EVENING</a></li>
+                    <li><a href="#Reference_enums_TimeOfDay_NIGHT">TimeOfDay_NIGHT</a></li>
                     <li><a href="#Reference_enums_TimeOfDay_MORNING">TimeOfDay_MORNING</a></li>
                     <li><a href="#Reference_enums_TimeOfDay_MIDDAY">TimeOfDay_MIDDAY</a></li>
                     <li><a href="#Reference_enums_TimeOfDay_EVENING">TimeOfDay_EVENING</a></li>
@@ -1731,6 +1839,13 @@
                     <li><a href="#Reference_enums_Weekday_THURSDAY">Weekday_THURSDAY</a></li>
                     <li><a href="#Reference_enums_Weekday_FRIDAY">Weekday_FRIDAY</a></li>
                     <li><a href="#Reference_enums_Weekday_SATURDAY">Weekday_SATURDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_SUNDAY">Weekday_SUNDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_MONDAY">Weekday_MONDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_TUESDAY">Weekday_TUESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_WEDNESDAY">Weekday_WEDNESDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_THURSDAY">Weekday_THURSDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_FRIDAY">Weekday_FRIDAY</a></li>
+                    <li><a href="#Reference_enums_Weekday_SATURDAY">Weekday_SATURDAY</a></li>
                 </ul>
             </p>
         <h3>Constants</h3>
@@ -1743,6 +1858,15 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Animator.</div>
+        </p>
+        <p id="Reference_functions_Animator_Remove">
+        <h2 style="margin-bottom: 8px;">Animator.Remove</h2>
+        <code>Animator.Remove(animator)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The index of the animator.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Animator_SetAnimation">
         <h2 style="margin-bottom: 8px;">Animator.SetAnimation</h2>
@@ -2230,6 +2354,27 @@
         <li>value (Value): Value to set to.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Array_Reverse">
+        <h2 style="margin-bottom: 8px;">Array.Reverse</h2>
+        <code>Array.Reverse(array[, startIndex, endIndex])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reverses the elements of an array through the specified range, exclusive. The array is reversed from <code>startIndex</code> to, but not including, <code>endIndex</code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>array (Array): Array to reverse.</li>
+        <li>startIndex (Integer): Start range. Default is zero.</li>
+        <li>endIndex (Integer): End range. Default is size of array.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Array_Sort">
+        <h2 style="margin-bottom: 8px;">Array.Sort</h2>
+        <code>Array.Sort(array[, compFunction])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sorts the entries of the given array.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>array (Array): Array to sort.</li>
+        <li>compFunction (Function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Audio_GetMasterVolume">
         <h2 style="margin-bottom: 8px;">Audio.GetMasterVolume</h2>
         <code>Audio.GetMasterVolume()</code>
@@ -2466,13 +2611,12 @@
         </p>
         <p id="Reference_functions_Controller_Rumble">
         <h2 style="margin-bottom: 8px;">Controller.Rumble</h2>
-        <code>Controller.Rumble(controllerIndex, largeMotorFrequency, smallMotorFrequency, duration)</code>
+        <code>Controller.Rumble(controllerIndex, strength, duration)</code>
         <div style="margin-top: 8px; font-size: 14px;">Rumbles a controller.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to rumble.</li>
-        <li>largeMotorFrequency (Number): Frequency of the large motor. (0.0 - 1.0)</li>
-        <li>smallMotorFrequency (Number): Frequency of the small motor. (0.0 - 1.0)</li>
+        <li>strength (Number): Rumble strength. (0.0 - 1.0)</li>
         <li>duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.</li>
         </ul>
         </p>
@@ -2508,7 +2652,7 @@
         <p id="Reference_functions_Controller_SetLargeMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetLargeMotorFrequency</h2>
         <code>Controller.SetLargeMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's large motor. (Deprecated; use <code><a href="#Reference_functions_Controller_Rumble">Controller.Rumble</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2518,7 +2662,7 @@
         <p id="Reference_functions_Controller_SetSmallMotorFrequency">
         <h2 style="margin-bottom: 8px;">Controller.SetSmallMotorFrequency</h2>
         <code>Controller.SetSmallMotorFrequency(controllerIndex, frequency)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frequency of a controller's small motor. (Deprecated; use <code><a href="#Reference_functions_Controller_Rumble">Controller.Rumble</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller.</li>
@@ -2667,7 +2811,7 @@
         </p>
         <p id="Reference_functions_Draw_Sprite">
         <h2 style="margin-bottom: 8px;">Draw.Sprite</h2>
-        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation, useInteger])</code>
+        <code>Draw.Sprite(sprite, animation, frame, x, y, flipX, flipY[, scaleX, scaleY, rotation, useInteger, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2680,8 +2824,9 @@
         <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians</li>
+        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
+        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SpriteBasic">
@@ -2723,7 +2868,7 @@
         </p>
         <p id="Reference_functions_Draw_SpritePart">
         <h2 style="margin-bottom: 8px;">Draw.SpritePart</h2>
-        <code>Draw.SpritePart(sprite, animation, frame, x, y, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, rotation, useInteger])</code>
+        <code>Draw.SpritePart(sprite, animation, frame, x, y, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, rotation, useInteger, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2740,8 +2885,9 @@
         <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if useInteger is true</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians</li>
+        <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
+        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Image">
@@ -2863,382 +3009,6 @@
         <li>partH (Integer): Height of part of view to draw.</li>
         <li>width (Number): Width to draw the view.</li>
         <li>height (Number): Height to draw the view.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_BindVertexBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.BindVertexBuffer</h2>
-        <code>Draw.BindVertexBuffer(vertexBufferIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds a vertex buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>vertexBufferIndex (Integer): Sets the vertex buffer to bind.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_UnbindVertexBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.UnbindVertexBuffer</h2>
-        <code>Draw.UnbindVertexBuffer()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Unbinds the currently bound vertex buffer.</div>
-        </p>
-        <p id="Reference_functions_Draw_BindScene3D">
-        <h2 style="margin-bottom: 8px;">Draw.BindScene3D</h2>
-        <code>Draw.BindScene3D(scene3DIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds a 3D scene for drawing polygons in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>scene3DIndex (Integer): Sets the 3D scene to bind.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Model">
-        <h2 style="margin-bottom: 8px;">Draw.Model</h2>
-        <code>Draw.Model(modelIndex, animation, frame[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
-        <li>animation (Integer): Animation of model to draw.</li>
-        <li>frame (Decimal): Frame of model to draw.</li>
-        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_ModelSkinned">
-        <h2 style="margin-bottom: 8px;">Draw.ModelSkinned</h2>
-        <code>Draw.ModelSkinned(modelIndex, skeleton[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a skinned model.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
-        <li>skeleton (Integer): Skeleton of model to skin the model.</li>
-        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_ModelSimple">
-        <h2 style="margin-bottom: 8px;">Draw.ModelSimple</h2>
-        <code>Draw.ModelSimple(modelIndex, animation, frame, x, y, scale, rx, ry, rz)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a model without using matrices.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
-        <li>animation (Integer): Animation of model to draw.</li>
-        <li>frame (Integer): Frame of model to draw.</li>
-        <li>x (Number): X position</li>
-        <li>y (Number): Y position</li>
-        <li>scale (Number): Model scale</li>
-        <li>rx (Number): X rotation in radians</li>
-        <li>ry (Number): Y rotation in radians</li>
-        <li>rz (Number): Z rotation in radians</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Triangle3D">
-        <h2 style="margin-bottom: 8px;">Draw.Triangle3D</h2>
-        <code>Draw.Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Quad3D">
-        <h2 style="margin-bottom: 8px;">Draw.Quad3D</h2>
-        <code>Draw.Quad3D(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a quadrilateral in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>x4 (Number): X position of the fourth vertex.</li>
-        <li>y4 (Number): Y position of the fourth vertex.</li>
-        <li>z4 (Number): Z position of the fourth vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>color4 (Integer): Color of the fourth vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Sprite3D">
-        <h2 style="margin-bottom: 8px;">Draw.Sprite3D</h2>
-        <code>Draw.Sprite3D(sprite, animation, frame, x, y, z, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a sprite in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
-        <li>animation (Integer): Index of the animation entry.</li>
-        <li>frame (Integer): Index of the frame in the animation entry.</li>
-        <li>x (Number): X position of where to draw the sprite.</li>
-        <li>y (Number): Y position of where to draw the sprite.</li>
-        <li>z (Number): Z position of where to draw the sprite.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
-        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
-        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SpritePart3D">
-        <h2 style="margin-bottom: 8px;">Draw.SpritePart3D</h2>
-        <code>Draw.SpritePart3D(sprite, animation, frame, x, y, z, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
-        <li>animation (Integer): Index of the animation entry.</li>
-        <li>frame (Integer): Index of the frame in the animation entry.</li>
-        <li>x (Number): X position of where to draw the sprite.</li>
-        <li>y (Number): Y position of where to draw the sprite.</li>
-        <li>z (Number): Z position of where to draw the sprite.</li>
-        <li>partX (Integer): X coordinate of part of frame to draw.</li>
-        <li>partY (Integer): Y coordinate of part of frame to draw.</li>
-        <li>partW (Integer): Width of part of frame to draw.</li>
-        <li>partH (Integer): Height of part of frame to draw.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
-        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
-        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Image3D">
-        <h2 style="margin-bottom: 8px;">Draw.Image3D</h2>
-        <code>Draw.Image3D(image, x, y, z[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws an image in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
-        <li>x (Number): X position of where to draw the image.</li>
-        <li>y (Number): Y position of where to draw the image.</li>
-        <li>z (Number): Z position of where to draw the image.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_ImagePart3D">
-        <h2 style="margin-bottom: 8px;">Draw.ImagePart3D</h2>
-        <code>Draw.ImagePart3D(image, x, y, z, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws part of an image in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
-        <li>x (Number): X position of where to draw the image.</li>
-        <li>y (Number): Y position of where to draw the image.</li>
-        <li>z (Number): Z position of where to draw the image.</li>
-        <li>partX (Integer): X coordinate of part of image to draw.</li>
-        <li>partY (Integer): Y coordinate of part of image to draw.</li>
-        <li>partW (Integer): Width of part of image to draw.</li>
-        <li>partH (Integer): Height of part of image to draw.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_Tile3D">
-        <h2 style="margin-bottom: 8px;">Draw.Tile3D</h2>
-        <code>Draw.Tile3D(ID, x, y, z, flipX, flipY[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a tile in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>ID (Integer): ID of the tile to draw.</li>
-        <li>x (Number): X position of where to draw the tile.</li>
-        <li>y (Number): Y position of where to draw the tile.</li>
-        <li>z (Number): Z position of where to draw the tile.</li>
-        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_TriangleTextured">
-        <h2 style="margin-bottom: 8px;">Draw.TriangleTextured</h2>
-        <code>Draw.TriangleTextured(image, x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, u1, v1, u2, v2, u3, v3, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle in 3D space. The texture source should be an image.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>u1 (Number): Texture U of the first vertex.</li>
-        <li>v1 (Number): Texture V of the first vertex.</li>
-        <li>u2 (Number): Texture U of the second vertex.</li>
-        <li>v2 (Number): Texture V of the second vertex.</li>
-        <li>u3 (Number): Texture U of the third vertex.</li>
-        <li>v3 (Number): Texture V of the third vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_QuadTextured">
-        <h2 style="margin-bottom: 8px;">Draw.QuadTextured</h2>
-        <code>Draw.QuadTextured(image, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, u1, v1, u2, v2, u3, v3, u4, v4, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad in 3D space. The texture source should be an image.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>x4 (Number): X position of the fourth vertex.</li>
-        <li>y4 (Number): Y position of the fourth vertex.</li>
-        <li>z4 (Number): Z position of the fourth vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>color4 (Integer): Color of the fourth vertex.</li>
-        <li>u1 (Number): Texture U of the first vertex.</li>
-        <li>v1 (Number): Texture V of the first vertex.</li>
-        <li>u2 (Number): Texture U of the second vertex.</li>
-        <li>v2 (Number): Texture V of the second vertex.</li>
-        <li>u3 (Number): Texture U of the third vertex.</li>
-        <li>v3 (Number): Texture V of the third vertex.</li>
-        <li>u4 (Number): Texture U of the fourth vertex.</li>
-        <li>v4 (Number): Texture V of the fourth vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SpritePoints">
-        <h2 style="margin-bottom: 8px;">Draw.SpritePoints</h2>
-        <code>Draw.SpritePoints(sprite, animation, frame, flipX, flipY, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a sprite.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
-        <li>animation (Integer): Index of the animation entry.</li>
-        <li>frame (Integer): Index of the frame in the animation entry.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>x4 (Number): X position of the fourth vertex.</li>
-        <li>y4 (Number): Y position of the fourth vertex.</li>
-        <li>z4 (Number): Z position of the fourth vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>color4 (Integer): Color of the fourth vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_TilePoints">
-        <h2 style="margin-bottom: 8px;">Draw.TilePoints</h2>
-        <code>Draw.TilePoints(ID, flipX, flipY, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a tile.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>ID (Integer): ID of the tile to draw.</li>
-        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
-        <li>x1 (Number): X position of the first vertex.</li>
-        <li>y1 (Number): Y position of the first vertex.</li>
-        <li>z1 (Number): Z position of the first vertex.</li>
-        <li>x2 (Number): X position of the second vertex.</li>
-        <li>y2 (Number): Y position of the second vertex.</li>
-        <li>z2 (Number): Z position of the second vertex.</li>
-        <li>x3 (Number): X position of the third vertex.</li>
-        <li>y3 (Number): Y position of the third vertex.</li>
-        <li>z3 (Number): Z position of the third vertex.</li>
-        <li>x4 (Number): X position of the fourth vertex.</li>
-        <li>y4 (Number): Y position of the fourth vertex.</li>
-        <li>z4 (Number): Z position of the fourth vertex.</li>
-        <li>color1 (Integer): Color of the first vertex.</li>
-        <li>color2 (Integer): Color of the second vertex.</li>
-        <li>color3 (Integer): Color of the third vertex.</li>
-        <li>color4 (Integer): Color of the fourth vertex.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SceneLayer3D">
-        <h2 style="margin-bottom: 8px;">Draw.SceneLayer3D</h2>
-        <code>Draw.SceneLayer3D(layer[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a scene layer in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>layer (Integer): Index of the layer.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SceneLayerPart3D">
-        <h2 style="margin-bottom: 8px;">Draw.SceneLayerPart3D</h2>
-        <code>Draw.SceneLayerPart3D(layer, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws part of a scene layer in 3D space.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>layer (Integer): Index of the layer.</li>
-        <li>partX (Integer): X coordinate (in tiles) of part of layer to draw.</li>
-        <li>partY (Integer): Y coordinate (in tiles) of part of layer to draw.</li>
-        <li>partW (Integer): Width (in tiles) of part of layer to draw.</li>
-        <li>partH (Integer): Height (in tiles) of part of layer to draw.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_VertexBuffer">
-        <h2 style="margin-bottom: 8px;">Draw.VertexBuffer</h2>
-        <code>Draw.VertexBuffer(vertexBufferIndex[, matrixModel, matrixNormal])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a vertex buffer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>vertexBufferIndex (Integer): The vertex buffer to draw.</li>
-        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
-        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_RenderScene3D">
-        <h2 style="margin-bottom: 8px;">Draw.RenderScene3D</h2>
-        <code>Draw.RenderScene3D(scene3DIndex[, drawMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the 3D scene.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>scene3DIndex (Integer): The 3D scene at the index to draw.</li>
-        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Video">
@@ -3673,10 +3443,26 @@
         <li>color3 (Integer): Color of the third vertex.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Draw_Quad">
+        <h2 style="margin-bottom: 8px;">Draw.Quad</h2>
+        <code>Draw.Quad(x1, y1, x2, y2, x3, y3, x4, y4)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a quad.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Draw_QuadBlend">
         <h2 style="margin-bottom: 8px;">Draw.QuadBlend</h2>
         <code>Draw.QuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, color1, color2, color3, color4)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a quad, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>x1 (Number): X position of the first vertex.</li>
@@ -3693,6 +3479,59 @@
         <li>color4 (Integer): Color of the fourth vertex.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Draw_TriangleTextured">
+        <h2 style="margin-bottom: 8px;">Draw.TriangleTextured</h2>
+        <code>Draw.TriangleTextured(image, x1, y1, x2, y2, x3, y3[, color1, color2, color3, u1, v1, u2, v2, u3, v3])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Image to draw triangle with.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>u1 (Number): Texture U of the first vertex.</li>
+        <li>v1 (Number): Texture V of the first vertex.</li>
+        <li>u2 (Number): Texture U of the second vertex.</li>
+        <li>v2 (Number): Texture V of the second vertex.</li>
+        <li>u3 (Number): Texture U of the third vertex.</li>
+        <li>v3 (Number): Texture V of the third vertex.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_QuadTextured">
+        <h2 style="margin-bottom: 8px;">Draw.QuadTextured</h2>
+        <code>Draw.QuadTextured(image, x1, y1, x2, y2, x3, y3, x4, y4[, color1, color2, color3, color4, u1, v1, u2, v2, u3, v3, u4, v4])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Image to draw quad with.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>u1 (Number): Texture U of the first vertex.</li>
+        <li>v1 (Number): Texture V of the first vertex.</li>
+        <li>u2 (Number): Texture U of the second vertex.</li>
+        <li>v2 (Number): Texture V of the second vertex.</li>
+        <li>u3 (Number): Texture U of the third vertex.</li>
+        <li>v3 (Number): Texture V of the third vertex.</li>
+        <li>u4 (Number): Texture U of the fourth vertex.</li>
+        <li>v4 (Number): Texture V of the fourth vertex.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Draw_Rectangle">
         <h2 style="margin-bottom: 8px;">Draw.Rectangle</h2>
         <code>Draw.Rectangle(x, y, width, height)</code>
@@ -3707,13 +3546,14 @@
         </p>
         <p id="Reference_functions_Draw_CircleStroke">
         <h2 style="margin-bottom: 8px;">Draw.CircleStroke</h2>
-        <code>Draw.CircleStroke(x, y, radius)</code>
+        <code>Draw.CircleStroke(x, y, radius[, thickness])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a circle outline.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>x (Number): Center X position of where to draw the circle.</li>
         <li>y (Number): Center Y position of where to draw the circle.</li>
         <li>radius (Number): Radius of the circle.</li>
+        <li>thickness (Number): Thickness of the circle.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_EllipseStroke">
@@ -3863,6 +3703,382 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>texture (Integer): Texture index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_BindVertexBuffer">
+        <h2 style="margin-bottom: 8px;">Draw3D.BindVertexBuffer</h2>
+        <code>Draw3D.BindVertexBuffer(vertexBufferIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds a vertex buffer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>vertexBufferIndex (Integer): Sets the vertex buffer to bind.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_UnbindVertexBuffer">
+        <h2 style="margin-bottom: 8px;">Draw3D.UnbindVertexBuffer</h2>
+        <code>Draw3D.UnbindVertexBuffer()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Unbinds the currently bound vertex buffer.</div>
+        </p>
+        <p id="Reference_functions_Draw3D_BindScene">
+        <h2 style="margin-bottom: 8px;">Draw3D.BindScene</h2>
+        <code>Draw3D.BindScene(scene3DIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds a 3D scene for drawing polygons in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): Sets the 3D scene to bind.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_Model">
+        <h2 style="margin-bottom: 8px;">Draw3D.Model</h2>
+        <code>Draw3D.Model(modelIndex, animation, frame[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>animation (Integer): Animation of model to draw.</li>
+        <li>frame (Decimal): Frame of model to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_ModelSkinned">
+        <h2 style="margin-bottom: 8px;">Draw3D.ModelSkinned</h2>
+        <code>Draw3D.ModelSkinned(modelIndex, skeleton[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a skinned model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>skeleton (Integer): Skeleton of model to skin the model.</li>
+        <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_ModelSimple">
+        <h2 style="margin-bottom: 8px;">Draw3D.ModelSimple</h2>
+        <code>Draw3D.ModelSimple(modelIndex, animation, frame, x, y, scale, rx, ry, rz)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a model without using matrices.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>animation (Integer): Animation of model to draw.</li>
+        <li>frame (Integer): Frame of model to draw.</li>
+        <li>x (Number): X position</li>
+        <li>y (Number): Y position</li>
+        <li>scale (Number): Model scale</li>
+        <li>rx (Number): X rotation in radians</li>
+        <li>ry (Number): Y rotation in radians</li>
+        <li>rz (Number): Z rotation in radians</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Triangle3D">
+        <h2 style="margin-bottom: 8px;">Draw.Triangle3D</h2>
+        <code>Draw.Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_Quad">
+        <h2 style="margin-bottom: 8px;">Draw3D.Quad</h2>
+        <code>Draw3D.Quad(x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a quadrilateral in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_Sprite">
+        <h2 style="margin-bottom: 8px;">Draw3D.Sprite</h2>
+        <code>Draw3D.Sprite(sprite, animation, frame, x, y, z, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a sprite in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>x (Number): X position of where to draw the sprite.</li>
+        <li>y (Number): Y position of where to draw the sprite.</li>
+        <li>z (Number): Z position of where to draw the sprite.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
+        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_SpritePart">
+        <h2 style="margin-bottom: 8px;">Draw3D.SpritePart</h2>
+        <code>Draw3D.SpritePart(sprite, animation, frame, x, y, z, partX, partY, partW, partH, flipX, flipY[, scaleX, scaleY, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>x (Number): X position of where to draw the sprite.</li>
+        <li>y (Number): Y position of where to draw the sprite.</li>
+        <li>z (Number): Z position of where to draw the sprite.</li>
+        <li>partX (Integer): X coordinate of part of frame to draw.</li>
+        <li>partY (Integer): Y coordinate of part of frame to draw.</li>
+        <li>partW (Integer): Width of part of frame to draw.</li>
+        <li>partH (Integer): Height of part of frame to draw.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
+        <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_Image">
+        <h2 style="margin-bottom: 8px;">Draw3D.Image</h2>
+        <code>Draw3D.Image(image, x, y, z[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws an image in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x (Number): X position of where to draw the image.</li>
+        <li>y (Number): Y position of where to draw the image.</li>
+        <li>z (Number): Z position of where to draw the image.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_ImagePart">
+        <h2 style="margin-bottom: 8px;">Draw3D.ImagePart</h2>
+        <code>Draw3D.ImagePart(image, x, y, z, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of an image in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x (Number): X position of where to draw the image.</li>
+        <li>y (Number): Y position of where to draw the image.</li>
+        <li>z (Number): Z position of where to draw the image.</li>
+        <li>partX (Integer): X coordinate of part of image to draw.</li>
+        <li>partY (Integer): Y coordinate of part of image to draw.</li>
+        <li>partW (Integer): Width of part of image to draw.</li>
+        <li>partH (Integer): Height of part of image to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_Tile">
+        <h2 style="margin-bottom: 8px;">Draw3D.Tile</h2>
+        <code>Draw3D.Tile(ID, x, y, z, flipX, flipY[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a tile in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>ID (Integer): ID of the tile to draw.</li>
+        <li>x (Number): X position of where to draw the tile.</li>
+        <li>y (Number): Y position of where to draw the tile.</li>
+        <li>z (Number): Z position of where to draw the tile.</li>
+        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_TriangleTextured">
+        <h2 style="margin-bottom: 8px;">Draw3D.TriangleTextured</h2>
+        <code>Draw3D.TriangleTextured(image, x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, u1, v1, u2, v2, u3, v3, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle in 3D space. The texture source should be an image.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>u1 (Number): Texture U of the first vertex.</li>
+        <li>v1 (Number): Texture V of the first vertex.</li>
+        <li>u2 (Number): Texture U of the second vertex.</li>
+        <li>v2 (Number): Texture V of the second vertex.</li>
+        <li>u3 (Number): Texture U of the third vertex.</li>
+        <li>v3 (Number): Texture V of the third vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_QuadTextured">
+        <h2 style="margin-bottom: 8px;">Draw3D.QuadTextured</h2>
+        <code>Draw3D.QuadTextured(image, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, u1, v1, u2, v2, u3, v3, u4, v4, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad in 3D space. The texture source should be an image.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): Index of the loaded image.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>u1 (Number): Texture U of the first vertex.</li>
+        <li>v1 (Number): Texture V of the first vertex.</li>
+        <li>u2 (Number): Texture U of the second vertex.</li>
+        <li>v2 (Number): Texture V of the second vertex.</li>
+        <li>u3 (Number): Texture U of the third vertex.</li>
+        <li>v3 (Number): Texture V of the third vertex.</li>
+        <li>u4 (Number): Texture U of the fourth vertex.</li>
+        <li>v4 (Number): Texture V of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_SpritePoints">
+        <h2 style="margin-bottom: 8px;">Draw3D.SpritePoints</h2>
+        <code>Draw3D.SpritePoints(sprite, animation, frame, flipX, flipY, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>animation (Integer): Index of the animation entry.</li>
+        <li>frame (Integer): Index of the frame in the animation entry.</li>
+        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_TilePoints">
+        <h2 style="margin-bottom: 8px;">Draw3D.TilePoints</h2>
+        <code>Draw3D.TilePoints(ID, flipX, flipY, x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4[, color1, color2, color3, color4, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>ID (Integer): ID of the tile to draw.</li>
+        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>x1 (Number): X position of the first vertex.</li>
+        <li>y1 (Number): Y position of the first vertex.</li>
+        <li>z1 (Number): Z position of the first vertex.</li>
+        <li>x2 (Number): X position of the second vertex.</li>
+        <li>y2 (Number): Y position of the second vertex.</li>
+        <li>z2 (Number): Z position of the second vertex.</li>
+        <li>x3 (Number): X position of the third vertex.</li>
+        <li>y3 (Number): Y position of the third vertex.</li>
+        <li>z3 (Number): Z position of the third vertex.</li>
+        <li>x4 (Number): X position of the fourth vertex.</li>
+        <li>y4 (Number): Y position of the fourth vertex.</li>
+        <li>z4 (Number): Z position of the fourth vertex.</li>
+        <li>color1 (Integer): Color of the first vertex.</li>
+        <li>color2 (Integer): Color of the second vertex.</li>
+        <li>color3 (Integer): Color of the third vertex.</li>
+        <li>color4 (Integer): Color of the fourth vertex.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_SceneLayer">
+        <h2 style="margin-bottom: 8px;">Draw3D.SceneLayer</h2>
+        <code>Draw3D.SceneLayer(layer[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a scene layer in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layer (Integer): Index of the layer.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_SceneLayerPart">
+        <h2 style="margin-bottom: 8px;">Draw3D.SceneLayerPart</h2>
+        <code>Draw3D.SceneLayerPart(layer, partX, partY, partW, partH[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws part of a scene layer in 3D space.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layer (Integer): Index of the layer.</li>
+        <li>partX (Integer): X coordinate (in tiles) of part of layer to draw.</li>
+        <li>partY (Integer): Y coordinate (in tiles) of part of layer to draw.</li>
+        <li>partW (Integer): Width (in tiles) of part of layer to draw.</li>
+        <li>partH (Integer): Height (in tiles) of part of layer to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_VertexBuffer">
+        <h2 style="margin-bottom: 8px;">Draw3D.VertexBuffer</h2>
+        <code>Draw3D.VertexBuffer(vertexBufferIndex[, matrixModel, matrixNormal])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a vertex buffer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>vertexBufferIndex (Integer): The vertex buffer to draw.</li>
+        <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
+        <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw3D_RenderScene">
+        <h2 style="margin-bottom: 8px;">Draw3D.RenderScene</h2>
+        <code>Draw3D.RenderScene(scene3DIndex[, drawMode])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws everything in the 3D scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scene3DIndex (Integer): The 3D scene at the index to draw.</li>
+        <li>drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.</li>
         </ul>
         </p>
         <p id="Reference_functions_Ease_InSine">
@@ -4240,6 +4456,60 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if successful, <code>false</code> if otherwise.</div>
         </p>
+        <p id="Reference_functions_Geometry_Triangulate">
+        <h2 style="margin-bottom: 8px;">Geometry.Triangulate</h2>
+        <code>Geometry.Triangulate(polygon[, holes])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Triangulates a 2D polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>polygon (Array): Array of vertices that compromise the polygon to triangulate.</li>
+        <li>holes (Array): Array of polygons that compromise the holes to be made in the resulting shape.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.</div>
+        </p>
+        <p id="Reference_functions_Geometry_Intersect">
+        <h2 style="margin-bottom: 8px;">Geometry.Intersect</h2>
+        <code>Geometry.Intersect(subjects, clips[, booleanOp, fillRule])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Intersects a 2D polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>subjects (Array): Array of subject polygons.</li>
+        <li>clips (Array): Array of clip polygons.</li>
+        <li>booleanOp (Enum): The <a href="#Reference_GeoBooleanOp_*">boolean operation</a>. Default is <code><a href="#Reference_enums_GeoBooleanOp_Intersection">GeoBooleanOp_Intersection</a></code>.</li>
+        <li>fillRule (Enum): The <a href="#Reference_GeoFillRule_*">fill rule</a>. Default is <code><a href="#Reference_enums_GeoFillRule_EvenOdd">GeoFillRule_EvenOdd</a></code>.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.</div>
+        </p>
+        <p id="Reference_functions_Geometry_IsPointInsidePolygon">
+        <h2 style="margin-bottom: 8px;">Geometry.IsPointInsidePolygon</h2>
+        <code>Geometry.IsPointInsidePolygon(polygon, pointX, pointY)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a point is inside a polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>polygon (Array): The polygon.</li>
+        <li>pointX (Decimal): The X of the point.</li>
+        <li>pointY (Decimal): The Y of the point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the point is inside, or <code>false</code> if the point is outside.</div>
+        </p>
+        <p id="Reference_functions_Geometry_IsLineIntersectingPolygon">
+        <h2 style="margin-bottom: 8px;">Geometry.IsLineIntersectingPolygon</h2>
+        <code>Geometry.IsLineIntersectingPolygon(polygon, x1, y1, x2, y2)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a line segment is intersecting a polygon.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>polygon (Array): The polygon to check.</li>
+        <li>x1 (Decimal): The starting X of the segment.</li>
+        <li>y1 (Decimal): The starting Y of the segment.</li>
+        <li>x2 (Decimal): The ending X of the segment.</li>
+        <li>y2 (Decimal): The ending Y of the segment.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the line segment is intersecting the polygon, or <code>false</code> if it is not.</div>
+        </p>
         <p id="Reference_functions_HTTP_GetString">
         <h2 style="margin-bottom: 8px; color: red;">HTTP.GetString</h2>
         <code>HTTP.GetString()</code>
@@ -4247,6 +4517,28 @@
         <p id="Reference_functions_HTTP_GetToFile">
         <h2 style="margin-bottom: 8px; color: red;">HTTP.GetToFile</h2>
         <code>HTTP.GetToFile()</code>
+        </p>
+        <p id="Reference_functions_Image_GetWidth">
+        <h2 style="margin-bottom: 8px;">Image.GetWidth</h2>
+        <code>Image.GetWidth(image)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified image.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): The image index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Image_GetHeight">
+        <h2 style="margin-bottom: 8px;">Image.GetHeight</h2>
+        <code>Image.GetHeight(image)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified image.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>image (Integer): The image index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Input_GetMouseX">
         <h2 style="margin-bottom: 8px;">Input.GetMouseX</h2>
@@ -4817,47 +5109,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the random number.</div>
         </p>
-        <p id="Reference_functions_Math_GetRandSeed">
-        <h2 style="margin-bottom: 8px;">Math.GetRandSeed</h2>
-        <code>Math.GetRandSeed()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the engine's random seed value.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an integer of the engine's random seed value.</div>
-        </p>
-        <p id="Reference_functions_Math_SetRandSeed">
-        <h2 style="margin-bottom: 8px;">Math.SetRandSeed</h2>
-        <code>Math.SetRandSeed(key)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's random seed value.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>key (Integer): Value to set the seed to.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Math_RandomInteger">
-        <h2 style="margin-bottom: 8px;">Math.RandomInteger</h2>
-        <code>Math.RandomInteger(min, max)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>min (Integer): Minimum non-inclusive integer value.</li>
-        <li>max (Integer): Maximum non-inclusive integer value.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the random number as an integer.</div>
-        </p>
-        <p id="Reference_functions_Math_RandomIntegerSeeded">
-        <h2 style="margin-bottom: 8px;">Math.RandomIntegerSeeded</h2>
-        <code>Math.RandomIntegerSeeded(min, max[, seed])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>min (Integer): Minimum non-inclusive integer value.</li>
-        <li>max (Integer): Maximum non-inclusive integer value.</li>
-        <li>seed (Integer): Seed of which to base the number.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the random number as an integer.</div>
-        </p>
         <p id="Reference_functions_Math_Floor">
         <h2 style="margin-bottom: 8px;">Math.Floor</h2>
         <code>Math.Floor(n)</code>
@@ -5033,7 +5284,7 @@
         <li>model (Integer): The model index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The animation count. Will always return <code>0</code> for vertex-animated models.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Model_GetAnimationName">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationName</h2>
@@ -5062,13 +5313,13 @@
         <p id="Reference_functions_Model_GetFrameCount">
         <h2 style="margin-bottom: 8px;">Model.GetFrameCount</h2>
         <code>Model.GetFrameCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Integer): The model index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The frame count. Will always return <code>0</code> for skeletal-animated models.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Model_GetAnimationLength">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationLength</h2>
@@ -5247,7 +5498,7 @@
         <li>music (Integer): The music index to play.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the music is playing.</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Music_GetPosition">
         <h2 style="margin-bottom: 8px;">Music.GetPosition</h2>
@@ -5257,6 +5508,8 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to get the current position (in seconds) of.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Music_Alter">
         <h2 style="margin-bottom: 8px;">Music.Alter</h2>
@@ -5276,8 +5529,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>n (Number): Number value.</li>
-        <li>base (Integer): radix</li>
+        <li>base (Integer): The numerical base, or radix.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Number_AsInteger">
         <h2 style="margin-bottom: 8px;">Number.AsInteger</h2>
@@ -5293,13 +5548,13 @@
         <p id="Reference_functions_Number_AsDecimal">
         <h2 style="margin-bottom: 8px;">Number.AsDecimal</h2>
         <code>Number.AsDecimal(n)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Converts a Integer to an Decimal.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a Integer to a Decimal.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>n (Number): Number value.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Decimal value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Object_Loaded">
         <h2 style="margin-bottom: 8px;">Object.Loaded</h2>
@@ -5372,6 +5627,8 @@
         <li>paletteIndex (Integer): Index of palette.</li>
         <li>colorIndex (Integer): Index of color.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Palette_SetColor">
         <h2 style="margin-bottom: 8px;">Palette.SetColor</h2>
@@ -5382,6 +5639,29 @@
         <li>paletteIndex (Integer): Index of palette.</li>
         <li>colorIndex (Integer): Index of color.</li>
         <li>hex (Integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Palette_GetColorTransparent">
+        <h2 style="margin-bottom: 8px;">Palette.GetColorTransparent</h2>
+        <code>Palette.GetColorTransparent(paletteIndex, colorIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets if the color on the specified palette is transparent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>paletteIndex (Integer): Index of palette.</li>
+        <li>colorIndex (Integer): Index of color.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Palette_SetColorTransparent">
+        <h2 style="margin-bottom: 8px;">Palette.SetColorTransparent</h2>
+        <code>Palette.SetColorTransparent(paletteIndex, colorIndex, isTransparent)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a color on the specified palette transparent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>paletteIndex (Integer): Index of palette.</li>
+        <li>colorIndex (Integer): Index of color.</li>
+        <li>isTransparent (Boolean): Whether to make the color transparent or not.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_MixPalettes">
@@ -5433,6 +5713,15 @@
         <li>colorCount (Integer): Amount of colors to be copied.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Palette_UsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Palette.UsePaletteIndexLines</h2>
+        <code>Palette.UsePaletteIndexLines(usePaletteIndexLines)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the global palette index table.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Palette_SetPaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Palette.SetPaletteIndexLines</h2>
         <code>Palette.SetPaletteIndexLines(paletteIndex, lineStart, lineEnd)</code>
@@ -5443,6 +5732,47 @@
         <li>lineStart (Number): Start line to set to the palette.</li>
         <li>lineEnd (Number): Line where to stop setting the palette.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_RSDK_Math_GetRandSeed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.GetRandSeed</h2>
+        <code>RSDK.Math.GetRandSeed()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the engine's random seed value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an integer of the engine's random seed value.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_SetRandSeed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.SetRandSeed</h2>
+        <code>RSDK.Math.SetRandSeed(key)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the engine's random seed value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>key (Integer): Value to set the seed to.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_RSDK_Math_RandomInteger">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.RandomInteger</h2>
+        <code>RSDK.Math.RandomInteger(min, max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Integer): Minimum non-inclusive integer value.</li>
+        <li>max (Integer): Maximum non-inclusive integer value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the random number as an integer.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_RandomIntegerSeeded">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.RandomIntegerSeeded</h2>
+        <code>RSDK.Math.RandomIntegerSeeded(min, max[, seed])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Integer): Minimum non-inclusive integer value.</li>
+        <li>max (Integer): Maximum non-inclusive integer value.</li>
+        <li>seed (Integer): Seed of which to base the number.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the random number as an integer.</div>
         </p>
         <p id="Reference_functions_RSDK_Math_ClearTrigLookupTables">
         <h2 style="margin-bottom: 8px;">RSDK.Math.ClearTrigLookupTables</h2>
@@ -5611,13 +5941,13 @@
         <p id="Reference_functions_RSDK_Math_IntegerToRadian">
         <h2 style="margin-bottom: 8px;">RSDK.Math.IntegerToRadian</h2>
         <code>RSDK.Math.IntegerToRadian(integer)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the radian decimal conversion of an integer, based on 256.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the radia Decimal conversion of an integer, based on 256.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>integer (Integer): Integer value to convert.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">A radian decimal value of the converted integer.</div>
+        <div style="font-size: 14px;">A radia Decimal value of the converted integer.</div>
         </p>
         <p id="Reference_functions_RSDK_Matrix_Create256">
         <h2 style="margin-bottom: 8px;">RSDK.Matrix.Create256</h2>
@@ -5712,6 +6042,45 @@
         <li>rotationY (Number): Y rotation value.</li>
         <li>rotationZ (Number): Z rotation value.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Random_SetSeed">
+        <h2 style="margin-bottom: 8px;">Random.SetSeed</h2>
+        <code>Random.SetSeed(seed)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the PRNG seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>seed (Integer): The seed.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Random_GetSeed">
+        <h2 style="margin-bottom: 8px;">Random.GetSeed</h2>
+        <code>Random.GetSeed()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the PRNG seed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Random_Max">
+        <h2 style="margin-bottom: 8px;">Random.Max</h2>
+        <code>Random.Max(max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between 0.0 and a specified maximum, and advances the PRNG state.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>max (Number): Maximum non-inclusive value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_functions_Random_Range">
+        <h2 style="margin-bottom: 8px;">Random.Range</h2>
+        <code>Random.Range(min, max)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a random number between a specified minimum and a specified maximum, and advances the PRNG state.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>min (Number): Minimum non-inclusive value.</li>
+        <li>max (Number): Maximum non-inclusive value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Resources_LoadSprite">
         <h2 style="margin-bottom: 8px;">Resources.LoadSprite</h2>
@@ -5921,17 +6290,18 @@
         </p>
         <p id="Reference_functions_Scene_Load">
         <h2 style="margin-bottom: 8px;">Scene.Load</h2>
-        <code>Scene.Load(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file.</div>
+        <code>Scene.Load([filename, persistency])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <code><a href="#Reference_SceneList">SceneList</a></code>.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
+        <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_LoadNoPersistency">
         <h2 style="margin-bottom: 8px;">Scene.LoadNoPersistency</h2>
         <code>Scene.LoadNoPersistency(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Changes active scene to the one in the specified resource file, without keeping any persistent objects. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
@@ -5940,10 +6310,20 @@
         <p id="Reference_functions_Scene_LoadPosition">
         <h2 style="margin-bottom: 8px;">Scene.LoadPosition</h2>
         <code>Scene.LoadPosition([persistency])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads the scene located in the scene list's position slot, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_Change">
+        <h2 style="margin-bottom: 8px;">Scene.Change</h2>
+        <code>Scene.Change(category, scene)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the current scene if the category name and scene name are valid. Note that this does not load the scene; you must use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>category (String): Category name.</li>
+        <li>scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_LoadTileCollisions">
@@ -6041,6 +6421,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerUsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerUsePaletteIndexLines</h2>
+        <code>Scene.GetLayerUsePaletteIndexLines(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the layer is using the global palette index table.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerProperty">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerProperty</h2>
         <code>Scene.GetLayerProperty(layerIndex, property)</code>
@@ -6056,7 +6447,7 @@
         <p id="Reference_functions_Scene_GetLayerExists">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerExists</h2>
         <code>Scene.GetLayerExists(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether a layer exists or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether a layer exists or not. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -6121,42 +6512,42 @@
         <code>Scene.GetWidth()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of the scene (in tiles).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the width of the scene (in tiles).</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetHeight">
         <h2 style="margin-bottom: 8px;">Scene.GetHeight</h2>
         <code>Scene.GetHeight()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of the scene (in tiles).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the height of the scene (in tiles).</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerWidth</h2>
         <code>Scene.GetLayerWidth()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of a layer index (in tiles).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the width of the layer index (in tiles).</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerHeight">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerHeight</h2>
         <code>Scene.GetLayerHeight()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of a layer index (in tiles).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the height of a layer index (in tiles).</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetX">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetX</h2>
         <code>Scene.GetLayerOffsetX()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the X offset of a layer index.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetY">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetY</h2>
         <code>Scene.GetLayerOffsetY()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the Y offset of a layer index.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerDrawGroup">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDrawGroup</h2>
@@ -6218,7 +6609,7 @@
         <li>tilesetIndex (Index): The tileset index.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the tileset name.</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTilesetTileCount">
         <h2 style="margin-bottom: 8px;">Scene.GetTilesetTileCount</h2>
@@ -6242,19 +6633,30 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetTilesetPaletteIndex">
+        <h2 style="margin-bottom: 8px;">Scene.GetTilesetPaletteIndex</h2>
+        <code>Scene.GetTilesetPaletteIndex(tilesetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the palette index for the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
         <p id="Reference_functions_Scene_GetTileWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetTileWidth</h2>
         <code>Scene.GetTileWidth()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of tiles.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the width of tiles.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileHeight">
         <h2 style="margin-bottom: 8px;">Scene.GetTileHeight</h2>
         <code>Scene.GetTileHeight()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of tiles.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the height of tiles.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileID">
         <h2 style="margin-bottom: 8px;">Scene.GetTileID</h2>
@@ -6267,7 +6669,7 @@
         <li>y (Number): Y position (in tiles) of the tile</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the tile's index number.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetTileFlipX">
         <h2 style="margin-bottom: 8px;">Scene.GetTileFlipX</h2>
@@ -6300,7 +6702,7 @@
         <code>Scene.GetDrawGroupCount()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the amount of draw groups in the active scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the amount of draw groups in the active scene.</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetDrawGroupEntityDepthSorting">
         <h2 style="margin-bottom: 8px;">Scene.GetDrawGroupEntityDepthSorting</h2>
@@ -6308,7 +6710,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets if the specified draw group sorts objects by depth.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>drawGroup (Integer): Number between 0 to the result of <code><a href="#Reference_functions_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -6316,7 +6718,7 @@
         <p id="Reference_functions_Scene_GetListPos">
         <h2 style="margin-bottom: 8px;">Scene.GetListPos</h2>
         <code>Scene.GetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6334,10 +6736,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetCurrentResourceFolder">
+        <h2 style="margin-bottom: 8px;">Scene.GetCurrentResourceFolder</h2>
+        <code>Scene.GetCurrentResourceFolder()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current resource folder of the scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
         <p id="Reference_functions_Scene_GetCurrentSpriteFolder">
         <h2 style="margin-bottom: 8px;">Scene.GetCurrentSpriteFolder</h2>
         <code>Scene.GetCurrentSpriteFolder()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current sprite folder of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current sprite folder of the scene. (Deprecated; use <code><a href="#Reference_functions_Scene_GetCurrentResourceFolder">Scene.GetCurrentResourceFolder</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
         </p>
@@ -6351,7 +6760,7 @@
         <p id="Reference_functions_Scene_GetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.GetActiveCategory</h2>
         <code>Scene.GetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current category number of the scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
@@ -6473,17 +6882,46 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The frame index.</div>
         </p>
+        <p id="Reference_functions_Scene_IsCurrentEntryValid">
+        <h2 style="margin-bottom: 8px;">Scene.IsCurrentEntryValid</h2>
+        <code>Scene.IsCurrentEntryValid()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the current entry in the scene list is valid.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_IsUsingFolder">
+        <h2 style="margin-bottom: 8px;">Scene.IsUsingFolder</h2>
+        <code>Scene.IsUsingFolder(folder)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>folder (String): Folder name to compare.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_IsUsingID">
+        <h2 style="margin-bottom: 8px;">Scene.IsUsingID</h2>
+        <code>Scene.IsUsingID(id)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>id (String): ID to compare.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Scene_CheckValidScene">
         <h2 style="margin-bottom: 8px;">Scene.CheckValidScene</h2>
         <code>Scene.CheckValidScene()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsCurrentEntryValid">Scene.IsCurrentEntryValid</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Scene_CheckSceneFolder">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneFolder</h2>
         <code>Scene.CheckSceneFolder(folder)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>folder (String): Folder name to compare.</li>
@@ -6494,7 +6932,7 @@
         <p id="Reference_functions_Scene_CheckSceneID">
         <h2 style="margin-bottom: 8px;">Scene.CheckSceneID</h2>
         <code>Scene.CheckSceneID(id)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated; use <code><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>id (String): ID to compare.</li>
@@ -6511,13 +6949,21 @@
         </p>
         <p id="Reference_functions_Scene_SetListPos">
         <h2 style="margin-bottom: 8px;">Scene.SetListPos</h2>
-        <code>Scene.SetListPos()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated)</div>
+        <code>Scene.SetListPos(sceneNum)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current list position of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sceneNum (Integer): Scene number to use.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Scene_SetActiveCategory">
         <h2 style="margin-bottom: 8px;">Scene.SetActiveCategory</h2>
-        <code>Scene.SetActiveCategory()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated)</div>
+        <code>Scene.SetActiveCategory(categoryNum)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current category number of the scene. (Deprecated; use <code><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></code> instead.)</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>categoryNum (Integer): Scene category number to use.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
@@ -6527,7 +6973,7 @@
         <p id="Reference_functions_Scene_SetScene">
         <h2 style="margin-bottom: 8px;">Scene.SetScene</h2>
         <code>Scene.SetScene(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scene if the category and scene names exist within the scene list. (Deprecated; use <code><a href="#Reference_functions_Scene_Change">Scene.Change</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>category (String): Category name.</li>
@@ -6633,6 +7079,16 @@
         <li>index (Integer): The frame index.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetTilesetPaletteIndex">
+        <h2 style="margin-bottom: 8px;">Scene.SetTilesetPaletteIndex</h2>
+        <code>Scene.SetTilesetPaletteIndex(tilesetID, paletteIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the palette index of the specified tileset.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>tilesetID (Integer): The tileset index.</li>
+        <li>paletteIndex (Integer): The palette index.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetLayerVisible">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerVisible</h2>
         <code>Scene.SetLayerVisible(layerIndex, isVisible)</code>
@@ -6696,7 +7152,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>drawGroup (Integer): Number between 0 to the result of <code><a href="#Reference_functions_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></code>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerDrawBehavior">
@@ -6754,7 +7210,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the specified draw group to sort objects by depth.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>drawGroup (Integer): Number from 0 to 15. (0 = Back, 15 = Front)</li>
+        <li>drawGroup (Integer): Number between 0 to the result of <code><a href="#Reference_functions_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></code>.</li>
         <li>useEntityDepth (Boolean): Whether or not to sort objects by depth.</li>
         </ul>
         </p>
@@ -6777,6 +7233,16 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerUsePaletteIndexLines">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerUsePaletteIndexLines</h2>
+        <code>Scene.SetLayerUsePaletteIndexLines(layerIndex, usePaletteIndexLines)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the use of the global palette index table for the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>usePaletteIndexLines (Boolean): Whether the layer is using the global palette index table.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerScroll">
@@ -7532,7 +7998,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_Loop">
         <h2 style="margin-bottom: 8px;">Sound.Loop</h2>
@@ -7547,7 +8013,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_Stop">
         <h2 style="margin-bottom: 8px;">Sound.Stop</h2>
@@ -7599,6 +8065,8 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Sound_PlayMultiple">
         <h2 style="margin-bottom: 8px;">Sound.PlayMultiple</h2>
@@ -7612,7 +8080,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_LoopMultiple">
         <h2 style="margin-bottom: 8px;">Sound.LoopMultiple</h2>
@@ -7627,7 +8095,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_functions_Sound_PlayAtChannel">
         <h2 style="margin-bottom: 8px;">Sound.PlayAtChannel</h2>
@@ -8394,13 +8862,13 @@
         <p id="Reference_functions_String_ParseDecimal">
         <h2 style="margin-bottom: 8px;">String.ParseDecimal</h2>
         <code>String.ParseDecimal(string)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to an Decimal value if possible.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Convert a String value to a Decimal value if possible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>string (String): The string to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the value as an Decimal.</div>
+        <div style="font-size: 14px;">Returns the value as a Decimal.</div>
         </p>
         <p id="Reference_functions_Texture_Create">
         <h2 style="margin-bottom: 8px; color: red;">Texture.Create</h2>
@@ -9194,7 +9662,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>675 out of 734 functions have descriptions. </p>
+        <p>703 out of 762 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -9944,6 +10412,38 @@
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_RBOUNDS</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity updates within a radius. (uses UpdateRegionW)</div>
         </p>
+        <p id="Reference_enums_ACTIVE_NEVER">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_NEVER</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity never updates. Object never runs GlobalUpdate.</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_ALWAYS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_ALWAYS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity always updates. Object always runs GlobalUpdate.</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_NORMAL">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_NORMAL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_PAUSED">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_PAUSED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_BOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_BOUNDS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_XBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_XBOUNDS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates within an X bound. (only uses UpdateRegionW)</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_YBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_YBOUNDS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates within a Y bound. (only uses UpdateRegionH)</div>
+        </p>
+        <p id="Reference_enums_ACTIVE_RBOUNDS">
+        <h3 style="margin-bottom: 8px;"><code>ACTIVE_RBOUNDS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity updates within a radius. (uses UpdateRegionW)</div>
+        </p>
         <p id="Reference_enums_Axis_LEFTX">
         <h3 style="margin-bottom: 8px;"><code>Axis_LEFTX</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left controller stick X.</div>
@@ -10140,6 +10640,42 @@
         <h3 style="margin-bottom: 8px;"><code>CMODE_RWALL</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with the right side of a wall.</div>
         </p>
+        <p id="Reference_enums_CMODE_FLOOR">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_FLOOR</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with a floor.</div>
+        </p>
+        <p id="Reference_enums_CMODE_LWALL">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_LWALL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with the left side of a wall.</div>
+        </p>
+        <p id="Reference_enums_CMODE_ROOF">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_ROOF</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with a roof.</div>
+        </p>
+        <p id="Reference_enums_CMODE_RWALL">
+        <h3 style="margin-bottom: 8px;"><code>CMODE_RWALL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects to collide with the right side of a wall.</div>
+        </p>
+        <p id="Reference_enums_C_NONE">
+        <h3 style="margin-bottom: 8px;"><code>C_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">No collided side.</div>
+        </p>
+        <p id="Reference_enums_C_TOP">
+        <h3 style="margin-bottom: 8px;"><code>C_TOP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Top collided side.</div>
+        </p>
+        <p id="Reference_enums_C_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>C_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left collided side.</div>
+        </p>
+        <p id="Reference_enums_C_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>C_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right collided side.</div>
+        </p>
+        <p id="Reference_enums_C_BOTTOM">
+        <h3 style="margin-bottom: 8px;"><code>C_BOTTOM</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom collided side.</div>
+        </p>
         <p id="Reference_enums_C_NONE">
         <h3 style="margin-bottom: 8px;"><code>C_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">No collided side.</div>
@@ -10320,6 +10856,22 @@
         <h3 style="margin-bottom: 8px;"><code>FLIP_XY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Horizontal and vertical flip.</div>
         </p>
+        <p id="Reference_enums_FLIP_NONE">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">No flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_X">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_X</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Horizontal flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_Y">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_Y</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Vertical flip.</div>
+        </p>
+        <p id="Reference_enums_FLIP_XY">
+        <h3 style="margin-bottom: 8px;"><code>FLIP_XY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Horizontal and vertical flip.</div>
+        </p>
         <p id="Reference_enums_FaceCull_None">
         <h3 style="margin-bottom: 8px;"><code>FaceCull_None</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Disables face culling.</div>
@@ -10363,6 +10915,54 @@
         <p id="Reference_enums_FogEquation_Exp">
         <h3 style="margin-bottom: 8px;"><code>FogEquation_Exp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Exponential fog equation.</div>
+        </p>
+        <p id="Reference_enums_GeoBooleanOp_Intersection">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Intersection</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">AND operation.</div>
+        </p>
+        <p id="Reference_enums_GeoBooleanOp_Union">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Union</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">OR operation.</div>
+        </p>
+        <p id="Reference_enums_GeoBooleanOp_Difference">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_Difference</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">NOT operation.</div>
+        </p>
+        <p id="Reference_enums_GeoBooleanOp_ExclusiveOr">
+        <h3 style="margin-bottom: 8px;"><code>GeoBooleanOp_ExclusiveOr</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">XOR operation.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_EvenOdd">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_EvenOdd</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only odd numbered subregions are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_NonZero">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_NonZero</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only non-zero subregions are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_Positive">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_Positive</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only subregions that have winding counts greater than zero (> 0) are filled.</div>
+        </p>
+        <p id="Reference_enums_GeoFillRule_Negative">
+        <h3 style="margin-bottom: 8px;"><code>GeoFillRule_Negative</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Only subregions that have winding counts lesser than zero (< 0) are filled.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_TOP">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_TOP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox array.</div>
+        </p>
+        <p id="Reference_enums_HitboxSide_BOTTOM">
+        <h3 style="margin-bottom: 8px;"><code>HitboxSide_BOTTOM</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox array.</div>
         </p>
         <p id="Reference_enums_HitboxSide_LEFT">
         <h3 style="margin-bottom: 8px;"><code>HitboxSide_LEFT</code></h2>
@@ -10442,7 +11042,7 @@
         </p>
         <p id="Reference_enums_Persistence_SCENE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_SCENE</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Persists between scenes (unless a new scene is loaded through <code><a href="#Reference_functions_Scene_LoadNoPersistency">Scene.LoadNoPersistency</a></code>.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Persists between scenes.</div>
         </p>
         <p id="Reference_enums_Persistence_GAME">
         <h3 style="margin-bottom: 8px;"><code>Persistence_GAME</code></h2>
@@ -10584,6 +11184,34 @@
         <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_UP</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity expects upward gravity for tile collision.</div>
         </p>
+        <p id="Reference_enums_TILECOLLISION_NONE">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects no tile collision.</div>
+        </p>
+        <p id="Reference_enums_TILECOLLISION_DOWN">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_DOWN</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects downward gravity for tile collision.</div>
+        </p>
+        <p id="Reference_enums_TILECOLLISION_UP">
+        <h3 style="margin-bottom: 8px;"><code>TILECOLLISION_UP</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Entity expects upward gravity for tile collision.</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_MORNING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MORNING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The early hours of the day (5AM to 11AM, or 05:00 to 11:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_MIDDAY">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MIDDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_EVENING">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_EVENING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The later hours of the day (5PM to 8PM, or 17:00 to 20:00).</div>
+        </p>
+        <p id="Reference_enums_TimeOfDay_NIGHT">
+        <h3 style="margin-bottom: 8px;"><code>TimeOfDay_NIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).</div>
+        </p>
         <p id="Reference_enums_TimeOfDay_MORNING">
         <h3 style="margin-bottom: 8px;"><code>TimeOfDay_MORNING</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The early hours of the day (5AM to 11AM, or 05:00 to 11:00).</div>
@@ -10644,7 +11272,35 @@
         <h3 style="margin-bottom: 8px;"><code>Weekday_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>183 out of 183 enums have descriptions. </p>
+        <p id="Reference_enums_Weekday_SUNDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_SUNDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The first day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_MONDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_MONDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The second day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_TUESDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_TUESDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The third day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_WEDNESDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_WEDNESDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The fourth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_THURSDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_THURSDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The fifth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_FRIDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_FRIDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The sixth day of the week.</div>
+        </p>
+        <p id="Reference_enums_Weekday_SATURDAY">
+        <h3 style="margin-bottom: 8px;"><code>Weekday_SATURDAY</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
+        </p>
+        <p>230 out of 230 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

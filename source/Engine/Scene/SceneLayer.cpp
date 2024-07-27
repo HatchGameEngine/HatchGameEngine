@@ -46,6 +46,8 @@ public:
     Uint8             BlendMode = 0; // BlendMode_NORMAL
     float             Opacity = 1.0f;
 
+    bool              UsePaletteIndexLines = false;
+
     bool              UsingCustomScanlineFunction = false;
     ObjFunction       CustomScanlineFunction;
 
