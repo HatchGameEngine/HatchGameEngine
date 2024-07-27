@@ -529,15 +529,14 @@
                     <li><a href="#Reference_functions_Input_ParseKeyName">Input.ParseKeyName</a></li>
                     <li><a href="#Reference_functions_Input_ParseButtonName">Input.ParseButtonName</a></li>
                     <li><a href="#Reference_functions_Input_ParseAxisName">Input.ParseAxisName</a></li>
-                    <li><a href="#Reference_functions_Input_GetID">Input.GetID</a></li>
-                    <li><a href="#Reference_functions_Input_GetCount">Input.GetCount</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerIsInputHeld">Input.PlayerIsInputHeld</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerIsInputPressed">Input.PlayerIsInputPressed</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerIsAnyInputHeld">Input.PlayerIsAnyInputHeld</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerIsAnyInputPressed">Input.PlayerIsAnyInputPressed</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerIsUsingDevice">Input.PlayerIsUsingDevice</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerGetControllerIndex">Input.PlayerGetControllerIndex</a></li>
-                    <li><a href="#Reference_functions_Input_PlayerSetControllerIndex">Input.PlayerSetControllerIndex</a></li>
+                    <li><a href="#Reference_functions_Input_ActionExists">Input.ActionExists</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionHeld">Input.IsActionHeld</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionPressed">Input.IsActionPressed</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionHeld">Input.IsAnyActionHeld</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionPressed">Input.IsAnyActionPressed</a></li>
+                    <li><a href="#Reference_functions_Input_IsPlayerUsingDevice">Input.IsPlayerUsingDevice</a></li>
+                    <li><a href="#Reference_functions_Input_GetPlayerControllerIndex">Input.GetPlayerControllerIndex</a></li>
+                    <li><a href="#Reference_functions_Input_SetPlayerControllerIndex">Input.SetPlayerControllerIndex</a></li>
                 </ul>
             </p>
             <p id="Reference_Instance">
@@ -4686,54 +4685,47 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the parsed axis index, or <code>null</code> if it could not be parsed.</div>
         </p>
-        <p id="Reference_functions_Input_GetID">
-        <h2 style="margin-bottom: 8px;">Input.GetID</h2>
-        <code>Input.GetID(inputName)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the ID of a given input.</div>
+        <p id="Reference_functions_Input_ActionExists">
+        <h2 style="margin-bottom: 8px;">Input.ActionExists</h2>
+        <code>Input.ActionExists(actionName)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the given input action exists.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>inputName (String): Input name.</li>
+        <li>actionName (String): Name of the action to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the ID of the given input, or <code>-1</code> if no such input exists.</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_GetCount">
-        <h2 style="margin-bottom: 8px;">Input.GetCount</h2>
-        <code>Input.GetCount()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of registered inputs.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
-        </p>
-        <p id="Reference_functions_Input_PlayerIsInputHeld">
-        <h2 style="margin-bottom: 8px;">Input.PlayerIsInputHeld</h2>
-        <code>Input.PlayerIsInputHeld(playerID, inputID[, inputDevice])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input is currently held for the specified player.</div>
+        <p id="Reference_functions_Input_IsActionHeld">
+        <h2 style="margin-bottom: 8px;">Input.IsActionHeld</h2>
+        <code>Input.IsActionHeld(playerID, actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently held for the specified player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
-        <li>inputID (Integer): Index of the input to check.</li>
+        <li>actionName (String): Name of the action to check.</li>
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerIsInputPressed">
-        <h2 style="margin-bottom: 8px;">Input.PlayerIsInputPressed</h2>
-        <code>Input.PlayerIsInputPressed(playerID, inputID[, inputDevice])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input is currently pressed for the specified player.</div>
+        <p id="Reference_functions_Input_IsActionPressed">
+        <h2 style="margin-bottom: 8px;">Input.IsActionPressed</h2>
+        <code>Input.IsActionPressed(playerID, actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently pressed for the specified player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
-        <li>inputID (Integer): Index of the input to check.</li>
+        <li>actionName (String): Name of the action to check.</li>
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerIsAnyInputHeld">
-        <h2 style="margin-bottom: 8px;">Input.PlayerIsAnyInputHeld</h2>
-        <code>Input.PlayerIsAnyInputHeld(playerID[, inputDevice])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input is currently held for the specified player.</div>
+        <p id="Reference_functions_Input_IsAnyActionHeld">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeld</h2>
+        <code>Input.IsAnyActionHeld(playerID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently held for the specified player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
@@ -4742,10 +4734,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerIsAnyInputPressed">
-        <h2 style="margin-bottom: 8px;">Input.PlayerIsAnyInputPressed</h2>
-        <code>Input.PlayerIsAnyInputPressed(playerID[, inputDevice])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input is currently pressed for the specified player.</div>
+        <p id="Reference_functions_Input_IsAnyActionPressed">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionPressed</h2>
+        <code>Input.IsAnyActionPressed(playerID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently pressed for the specified player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
@@ -4754,9 +4746,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerIsUsingDevice">
-        <h2 style="margin-bottom: 8px;">Input.PlayerIsUsingDevice</h2>
-        <code>Input.PlayerIsUsingDevice(playerID, inputDevice)</code>
+        <p id="Reference_functions_Input_IsPlayerUsingDevice">
+        <h2 style="margin-bottom: 8px;">Input.IsPlayerUsingDevice</h2>
+        <code>Input.IsPlayerUsingDevice(playerID, inputDevice)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if a given input device is being used by the player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -4766,25 +4758,25 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerGetControllerIndex">
-        <h2 style="margin-bottom: 8px;">Input.PlayerGetControllerIndex</h2>
-        <code>Input.PlayerGetControllerIndex(playerID)</code>
+        <p id="Reference_functions_Input_GetPlayerControllerIndex">
+        <h2 style="margin-bottom: 8px;">Input.GetPlayerControllerIndex</h2>
+        <code>Input.GetPlayerControllerIndex(playerID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the controller index assigned to a specific player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the controller index, or <code>-1</code> if there is no controller assigned.</div>
+        <div style="font-size: 14px;">Returns the index of the controller, or <code>-1</code> if there is no controller assigned.</div>
         </p>
-        <p id="Reference_functions_Input_PlayerSetControllerIndex">
-        <h2 style="margin-bottom: 8px;">Input.PlayerSetControllerIndex</h2>
-        <code>Input.PlayerSetControllerIndex(playerID, playerID)</code>
+        <p id="Reference_functions_Input_SetPlayerControllerIndex">
+        <h2 style="margin-bottom: 8px;">Input.SetPlayerControllerIndex</h2>
+        <code>Input.SetPlayerControllerIndex(playerID, controllerID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Assigns a controller index to a specific player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player.</li>
-        <li>playerID (Integer): Index of the controller.</li>
+        <li>controllerID (Integer): Index of the controller.</li>
         </ul>
         </p>
         <p id="Reference_functions_Instance_Create">
@@ -9662,7 +9654,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>703 out of 762 functions have descriptions. </p>
+        <p>702 out of 761 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

@@ -210,7 +210,7 @@ struct PlayerInputStatus {
     bool AnyHeld;
     bool AnyPressed;
 
-    void SetNumInputs(size_t num) {
+    void SetNumActions(size_t num) {
         size_t oldNum = Held.size();
 
         for (size_t i = 0; i < 2; i++) {

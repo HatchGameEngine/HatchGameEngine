@@ -189,7 +189,7 @@ CD ..</Command>
     <ClCompile Include="..\source\engine\hashing\Murmur.cpp" />
     <ClCompile Include="..\source\engine\InputManager.cpp" />
     <ClCompile Include="..\source\engine\input\Controller.cpp" />
-    <ClCompile Include="..\source\engine\input\GameInput.cpp" />
+    <ClCompile Include="..\source\engine\input\InputAction.cpp" />
     <ClCompile Include="..\source\engine\input\InputPlayer.cpp" />
     <ClCompile Include="..\source\engine\io\compression\Huffman.cpp" />
     <ClCompile Include="..\source\engine\io\compression\LZ11.cpp" />

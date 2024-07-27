@@ -1,7 +1,7 @@
 #if INTERFACE
 #include <Engine/Includes/Standard.h>
 #include <Engine/Input/Input.h>
-#include <Engine/Input/GameInput.h>
+#include <Engine/Input/InputAction.h>
 
 class InputPlayer {
 public:
@@ -29,7 +29,7 @@ PUBLIC      InputPlayer::InputPlayer(int id) {
     ID = id;
 }
 
-PUBLIC void InputPlayer::SetNumInputs(size_t num) {
+PUBLIC void InputPlayer::SetNumActions(size_t num) {
     size_t oldNum = Binds.size();
 
     Binds.resize(num);
@@ -41,9 +41,9 @@ PUBLIC void InputPlayer::SetNumInputs(size_t num) {
     }
 
     for (size_t i = 0; i < 2; i++)
-        Status[i].SetNumInputs(num);
+        Status[i].SetNumActions(num);
 
-    AllStatus.SetNumInputs(num);
+    AllStatus.SetNumActions(num);
 }
 
 PUBLIC void InputPlayer::ClearBinds() {
@@ -123,50 +123,50 @@ PUBLIC void InputPlayer::ResetControllerBind(unsigned num, int bind) {
         SetControllerBind(num, *defaultBind);
 }
 
-PRIVATE bool InputPlayer::CheckIfInputHeld(unsigned inputID, unsigned device) {
-    if (inputID >= InputManager::Inputs.size())
+PRIVATE bool InputPlayer::CheckIfInputHeld(unsigned actionID, unsigned device) {
+    if (actionID >= InputManager::Actions.size())
         return false;
 
     if (device == InputDevice_Keyboard) {
-        int bind = GetKeyboardBind(inputID);
+        int bind = GetKeyboardBind(actionID);
         if (bind != -1 && InputManager::IsKeyDown(bind)) {
             IsUsingDevice[InputDevice_Keyboard] = true;
             return true;
         }
     }
-    else if (device == InputDevice_Controller && IsControllerBindHeld(inputID)) {
+    else if (device == InputDevice_Controller && IsControllerBindHeld(actionID)) {
         IsUsingDevice[InputDevice_Controller] = true;
         return true;
     }
 
     return false;
 }
-PRIVATE bool InputPlayer::CheckIfInputPressed(unsigned inputID, unsigned device) {
-    if (inputID >= InputManager::Inputs.size())
+PRIVATE bool InputPlayer::CheckIfInputPressed(unsigned actionID, unsigned device) {
+    if (actionID >= InputManager::Actions.size())
         return false;
 
     if (device == InputDevice_Keyboard) {
-        int bind = GetKeyboardBind(inputID);
+        int bind = GetKeyboardBind(actionID);
         if (bind != -1 && InputManager::IsKeyPressed(bind))
             return true;
     }
-    else if (device == InputDevice_Controller && IsControllerBindPressed(inputID))
+    else if (device == InputDevice_Controller && IsControllerBindPressed(actionID))
         return true;
 
     return false;
 }
 
-PUBLIC bool InputPlayer::IsInputHeld(unsigned inputID, unsigned device) {
-    if (inputID >= InputManager::Inputs.size() || device >= InputDevice_Controller)
+PUBLIC bool InputPlayer::IsInputHeld(unsigned actionID, unsigned device) {
+    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
         return false;
 
-    return Status[device].Held[inputID];
+    return Status[device].Held[actionID];
 }
-PUBLIC bool InputPlayer::IsInputPressed(unsigned inputID, unsigned device) {
-    if (inputID >= InputManager::Inputs.size() || device >= InputDevice_Controller)
+PUBLIC bool InputPlayer::IsInputPressed(unsigned actionID, unsigned device) {
+    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
         return false;
 
-    return Status[device].Pressed[inputID];
+    return Status[device].Pressed[actionID];
 }
 PUBLIC bool InputPlayer::IsAnyInputHeld(unsigned device) {
     if (device >= InputDevice_Controller)
@@ -181,17 +181,17 @@ PUBLIC bool InputPlayer::IsAnyInputPressed(unsigned device) {
     return Status[device].AnyPressed;
 }
 
-PUBLIC bool InputPlayer::IsInputHeld(unsigned inputID) {
-    if (inputID >= InputManager::Inputs.size())
+PUBLIC bool InputPlayer::IsInputHeld(unsigned actionID) {
+    if (actionID >= InputManager::Actions.size())
         return false;
 
-    return AllStatus.Held[inputID];
+    return AllStatus.Held[actionID];
 }
-PUBLIC bool InputPlayer::IsInputPressed(unsigned inputID) {
-    if (inputID >= InputManager::Inputs.size())
+PUBLIC bool InputPlayer::IsInputPressed(unsigned actionID) {
+    if (actionID >= InputManager::Actions.size())
         return false;
 
-    return AllStatus.Pressed[inputID];
+    return AllStatus.Pressed[actionID];
 }
 PUBLIC bool InputPlayer::IsAnyInputHeld() {
     return AllStatus.AnyHeld;
@@ -200,14 +200,14 @@ PUBLIC bool InputPlayer::IsAnyInputPressed() {
     return AllStatus.AnyPressed;
 }
 
-PUBLIC float InputPlayer::GetAnalogInput(unsigned inputID) {
-    if (inputID >= InputManager::Inputs.size())
+PUBLIC float InputPlayer::GetAnalogActionInput(unsigned actionID) {
+    if (actionID >= InputManager::Actions.size())
         return false;
 
     float result = 0.0f;
 
-    if (!GetAnalogControllerBind(inputID, &result)) {
-        if (IsInputHeld(inputID))
+    if (!GetAnalogControllerBind(actionID, &result)) {
+        if (IsInputHeld(actionID))
             result = 1.0f;
     }
 

@@ -5771,141 +5771,137 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(parsed);
 }
 /***
- * Input.GetID
- * \desc Gets the ID of a given input.
- * \param inputName (String): Input name.
- * \return Returns the ID of the given input, or <code>-1</code> if no such input exists.
+ * Input.ActionExists
+ * \desc Gets whether the given input action exists.
+ * \param actionName (String): Name of the action to check.
+ * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_GetID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    char* inputName = GET_ARG(0, GetString);
-    return INTEGER_VAL(InputManager::GetInput(inputName));
+    char* actionName = GET_ARG(0, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID != -1) {
+        return INTEGER_VAL(true);
+    }
+    return INTEGER_VAL(false);
 }
 /***
- * Input.GetCount
- * \desc Gets the amount of registered inputs.
- * \return Returns an Integer value.
- * \ns Input
- */
-VMValue Input_GetCount(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(0);
-    return INTEGER_VAL((int)InputManager::Inputs.size());
-}
-/***
- * Input.PlayerIsInputHeld
- * \desc Gets whether the input is currently held for the specified player.
+ * Input.IsActionHeld
+ * \desc Gets whether the input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
- * \param inputID (Integer): Index of the input to check.
+ * \param actionName (String): Name of the action to check.
  * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_PlayerIsInputHeld(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
-    int inputID = GET_ARG(1, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
-        return INTEGER_VAL(!!InputManager::PlayerIsInputHeld(playerID, inputID, inputDevice));
+        return INTEGER_VAL(!!InputManager::IsActionHeld(playerID, actionID, inputDevice));
     }
     else
-        return INTEGER_VAL(!!InputManager::PlayerIsInputHeld(playerID, inputID));
+        return INTEGER_VAL(!!InputManager::IsActionHeld(playerID, actionID));
 }
 /***
- * Input.PlayerIsInputPressed
- * \desc Gets whether the input is currently pressed for the specified player.
+ * Input.IsActionPressed
+ * \desc Gets whether the input action is currently pressed for the specified player.
  * \param playerID (Integer): Index of the player to check.
- * \param inputID (Integer): Index of the input to check.
+ * \param actionName (String): Name of the action to check.
  * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_PlayerIsInputPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
-    int inputID = GET_ARG(1, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
-        return INTEGER_VAL(!!InputManager::PlayerIsInputPressed(playerID, inputID, inputDevice));
+        return INTEGER_VAL(!!InputManager::IsActionPressed(playerID, actionID, inputDevice));
     }
     else
-        return INTEGER_VAL(!!InputManager::PlayerIsInputPressed(playerID, inputID));
+        return INTEGER_VAL(!!InputManager::IsActionPressed(playerID, actionID));
 }
 /***
- * Input.PlayerIsAnyInputHeld
- * \desc Gets whether any input is currently held for the specified player.
+ * Input.IsAnyActionHeld
+ * \desc Gets whether any input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
  * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_PlayerIsAnyInputHeld(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
     if (argCount >= 2) {
         int inputDevice = GET_ARG(1, GetInteger);
-        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputHeld(playerID, inputDevice));
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeld(playerID, inputDevice));
     }
     else
-        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputHeld(playerID));
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeld(playerID));
 }
 /***
- * Input.PlayerIsAnyInputPressed
- * \desc Gets whether any input is currently pressed for the specified player.
+ * Input.IsAnyActionPressed
+ * \desc Gets whether any input action is currently pressed for the specified player.
  * \param playerID (Integer): Index of the player to check.
  * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_PlayerIsAnyInputPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
     if (argCount >= 2) {
         int inputDevice = GET_ARG(1, GetInteger);
-        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputPressed(playerID, inputDevice));
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressed(playerID, inputDevice));
     }
     else
-        return INTEGER_VAL(!!InputManager::PlayerIsAnyInputPressed(playerID));
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressed(playerID));
 }
 /***
- * Input.PlayerIsUsingDevice
+ * Input.IsPlayerUsingDevice
  * \desc Checks if a given input device is being used by the player.
  * \param playerID (Integer): Index of the player to check.
  * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Input
  */
-VMValue Input_PlayerIsUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     int inputDevice = GET_ARG(1, GetInteger);
-    return INTEGER_VAL(!!InputManager::PlayerIsUsingDevice(playerID, inputDevice));
+    return INTEGER_VAL(!!InputManager::IsPlayerUsingDevice(playerID, inputDevice));
 }
 /***
- * Input.PlayerGetControllerIndex
+ * Input.GetPlayerControllerIndex
  * \desc Gets the controller index assigned to a specific player.
  * \param playerID (Integer): Index of the player to check.
- * \return Returns the controller index, or <code>-1</code> if there is no controller assigned.
+ * \return Returns the index of the controller, or <code>-1</code> if there is no controller assigned.
  * \ns Input
  */
-VMValue Input_PlayerGetControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    return INTEGER_VAL(InputManager::PlayerGetControllerIndex(playerID));
+    return INTEGER_VAL(InputManager::GetPlayerControllerIndex(playerID));
 }
 /***
- * Input.PlayerSetControllerIndex
+ * Input.SetPlayerControllerIndex
  * \desc Assigns a controller index to a specific player.
  * \param playerID (Integer): Index of the player.
- * \param playerID (Integer): Index of the controller.
+ * \param controllerID (Integer): Index of the controller.
  * \ns Input
  */
-VMValue Input_PlayerSetControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
-    int controllerID = GET_ARG(0, GetInteger);
-    InputManager::PlayerSetControllerIndex(playerID, controllerID);
+    int controllerID = GET_ARG(1, GetInteger);
+    InputManager::SetPlayerControllerIndex(playerID, controllerID);
     return NULL_VAL;
 }
 // #endregion
@@ -16819,15 +16815,14 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, ParseKeyName);
     DEF_NATIVE(Input, ParseButtonName);
     DEF_NATIVE(Input, ParseAxisName);
-    DEF_NATIVE(Input, GetID);
-    DEF_NATIVE(Input, GetCount);
-    DEF_NATIVE(Input, PlayerIsInputHeld);
-    DEF_NATIVE(Input, PlayerIsInputPressed);
-    DEF_NATIVE(Input, PlayerIsAnyInputHeld);
-    DEF_NATIVE(Input, PlayerIsAnyInputPressed);
-    DEF_NATIVE(Input, PlayerIsUsingDevice);
-    DEF_NATIVE(Input, PlayerGetControllerIndex);
-    DEF_NATIVE(Input, PlayerSetControllerIndex);
+    DEF_NATIVE(Input, ActionExists);
+    DEF_NATIVE(Input, IsActionHeld);
+    DEF_NATIVE(Input, IsActionPressed);
+    DEF_NATIVE(Input, IsAnyActionHeld);
+    DEF_NATIVE(Input, IsAnyActionPressed);
+    DEF_NATIVE(Input, IsPlayerUsingDevice);
+    DEF_NATIVE(Input, GetPlayerControllerIndex);
+    DEF_NATIVE(Input, SetPlayerControllerIndex);
 
     /***
     * \enum InputDevice_Keyboard

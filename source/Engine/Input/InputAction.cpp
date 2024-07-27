@@ -2,19 +2,19 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Input/Input.h>
 
-class GameInput {
+class InputAction {
 public:
     unsigned ID;
     string   Name;
 };
 #endif
 
-#include <Engine/Input/GameInput.h>
+#include <Engine/Input/InputAction.h>
 
-PUBLIC GameInput::GameInput(const char* name, unsigned id) {
+PUBLIC InputAction::InputAction(const char* name, unsigned id) {
     Name = std::string(name);
     ID = id;
 }
-PUBLIC GameInput::~GameInput() {
+PUBLIC InputAction::~InputAction() {
 
 }
