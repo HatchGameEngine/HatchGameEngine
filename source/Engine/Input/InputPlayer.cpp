@@ -13,6 +13,8 @@ public:
     PlayerInputStatus Status[InputDevice_MAX];
     PlayerInputStatus AllStatus;
 
+    vector<Uint8> ControllerState;
+
     bool IsUsingDevice[InputDevice_MAX];
 
     int ControllerIndex = -1;
@@ -34,10 +36,12 @@ PUBLIC void InputPlayer::SetNumActions(size_t num) {
 
     Binds.resize(num);
     DefaultBinds.resize(num);
+    ControllerState.resize(num);
 
     for (size_t n = oldNum; n < num; n++) {
         Binds[n].Clear();
         DefaultBinds[n].Clear();
+        ControllerState[n] = 0;
     }
 
     for (unsigned i = 0; i < (unsigned)InputDevice_MAX; i++)
@@ -62,6 +66,9 @@ PUBLIC void InputPlayer::Update() {
     IsUsingDevice[InputDevice_Controller] = false;
 
     AllStatus.Reset();
+
+    for (size_t i = 0; i < Binds.size(); i++)
+        InputPlayer::UpdateControllerBind(i);
 
     for (unsigned s = 0; s < (unsigned)InputDevice_MAX; s++) {
         Status[s].AnyHeld = false;
@@ -99,7 +106,7 @@ PUBLIC void InputPlayer::SetKeyboardBind(unsigned num, int bind) {
     if (num < Binds.size())
         Binds[num].KeyboardBind = bind;
 }
-PUBLIC void InputPlayer::SetControllerBind(unsigned num, struct ControllerBind bind) {
+PUBLIC void InputPlayer::SetControllerBind(unsigned num, ControllerBind bind) {
     if (num < Binds.size())
         Binds[num].ControllerBind = bind;
 }
@@ -153,11 +160,15 @@ PRIVATE bool InputPlayer::CheckIfInputPressed(unsigned actionID, unsigned device
 
     if (device == InputDevice_Keyboard) {
         int bind = GetKeyboardBind(actionID);
-        if (bind != -1 && InputManager::IsKeyPressed(bind))
+        if (bind != -1 && InputManager::IsKeyPressed(bind)) {
+            IsUsingDevice[InputDevice_Keyboard] = true;
             return true;
+        }
     }
-    else if (device == InputDevice_Controller && IsControllerBindPressed(actionID))
+    else if (device == InputDevice_Controller && IsControllerBindPressed(actionID)) {
+        IsUsingDevice[InputDevice_Controller] = true;
         return true;
+    }
 
     return false;
 }
@@ -233,7 +244,7 @@ PUBLIC float InputPlayer::GetAnalogActionInput(unsigned actionID) {
 
     float result = 0.0f;
 
-    if (!GetAnalogControllerBind(actionID, &result)) {
+    if (!GetAnalogControllerBind(actionID, result)) {
         if (IsInputHeld(actionID))
             result = 1.0f;
     }
@@ -241,47 +252,53 @@ PUBLIC float InputPlayer::GetAnalogActionInput(unsigned actionID) {
     return result;
 }
 
+#define BUTTON_UNPUSHED 0
+#define BUTTON_PRESSED  1
+#define BUTTON_HELD     2
+#define BUTTON_RELEASED 3
+
 PRIVATE bool InputPlayer::IsControllerBindHeld(unsigned num) {
-    if (ControllerIndex == -1)
-        return false;
-
-    Controller* controller = InputManager::GetController(ControllerIndex);
-    if (controller == nullptr)
-        return false;
-
-    ControllerBind& bind = Binds[num].ControllerBind;
-
-    bool isHeld = false;
-    if (bind.Axis != -1) {
-        if (bind.IsAxisNegative) {
-            if (controller->GetAxis(bind.Axis) < -bind.AxisDigitalThreshold)
-                isHeld = true;
-        }
-        else if (controller->GetAxis(bind.Axis) > bind.AxisDigitalThreshold)
-            isHeld = true;
-    }
-    if (bind.Button != -1 && controller->IsButtonHeld(bind.Button))
-        isHeld = true;
-
-    return isHeld;
+    Uint8 state = ControllerState[num];
+    return state == BUTTON_PRESSED || state == BUTTON_HELD;
 }
 PRIVATE bool InputPlayer::IsControllerBindPressed(unsigned num) {
-    if (ControllerIndex == -1)
-        return false;
-
-    Controller* controller = InputManager::GetController(ControllerIndex);
-    if (controller == nullptr)
-        return false;
-
-    ControllerBind& bind = Binds[num].ControllerBind;
-
-    bool isPressed = false;
-    if (bind.Button != -1 && controller->IsButtonPressed(bind.Button))
-        isPressed = true;
-
-    return isPressed;
+    return ControllerState[num] == BUTTON_PRESSED;
 }
-PRIVATE bool InputPlayer::GetAnalogControllerBind(unsigned num, float* result) {
+PRIVATE void InputPlayer::UpdateControllerBind(unsigned num) {
+    Controller* controller = nullptr;
+    if (ControllerIndex != -1)
+        controller = InputManager::GetController(ControllerIndex);
+
+    PlayerInputStatus &state = Status[InputDevice_Controller];
+
+    bool isDown = false;
+
+    if (controller != nullptr) {
+        ControllerBind& bind = Binds[num].ControllerBind;
+        if (bind.Axis != -1) {
+            if (bind.IsAxisNegative) {
+                if (controller->GetAxis(bind.Axis) < -bind.AxisDigitalThreshold)
+                    isDown = true;
+            }
+            else if (controller->GetAxis(bind.Axis) > bind.AxisDigitalThreshold)
+                isDown = true;
+        }
+        if (bind.Button != -1 && controller->IsButtonHeld(bind.Button))
+            isDown = true;
+    }
+
+    if (isDown) {
+        if (ControllerState[num] == BUTTON_RELEASED)
+            ControllerState[num] = BUTTON_PRESSED;
+        else if (ControllerState[num] < BUTTON_HELD)
+            ControllerState[num]++;
+    }
+    else if (ControllerState[num] == BUTTON_PRESSED || ControllerState[num] == BUTTON_HELD)
+        ControllerState[num] = BUTTON_RELEASED;
+    else if (ControllerState[num] != BUTTON_UNPUSHED)
+        ControllerState[num] = BUTTON_UNPUSHED;
+}
+PRIVATE bool InputPlayer::GetAnalogControllerBind(unsigned num, float& result) {
     if (ControllerIndex == -1)
         return false;
 
@@ -291,11 +308,31 @@ PRIVATE bool InputPlayer::GetAnalogControllerBind(unsigned num, float* result) {
 
     ControllerBind& bind = Binds[num].ControllerBind;
     if (bind.Axis != -1) {
-        *result = controller->GetAxis(bind.Axis);
+        float magnitude = controller->GetAxis(bind.Axis);
+
+        if (bind.AxisDeadzone != 0.0) {
+            if (bind.AxisDeadzone == 1.0) {
+                if (magnitude < 1.0)
+                    magnitude = 0.0;
+            }
+            else {
+                float scale = (magnitude - bind.AxisDeadzone) / (1.0 - bind.AxisDeadzone);
+
+                if (scale < 0.0)
+                    scale = 0.0;
+                else if (scale > 1.0)
+                    scale = 1.0;
+
+                magnitude *= scale;
+            }
+        }
+
+        result = magnitude;
+
         return true;
     }
     else if (bind.Button != -1 && controller->IsButtonHeld(bind.Button)) {
-        *result = 1.0f;
+        result = 1.0f;
         return true;
     }
 
@@ -319,7 +356,7 @@ PUBLIC void InputPlayer::SetDefaultKeyboardBind(unsigned num, int bind) {
     if (num < DefaultBinds.size())
         DefaultBinds[num].KeyboardBind = bind;
 }
-PUBLIC void InputPlayer::SetDefaultControllerBind(unsigned num, struct ControllerBind bind) {
+PUBLIC void InputPlayer::SetDefaultControllerBind(unsigned num, ControllerBind bind) {
     if (num < DefaultBinds.size())
         DefaultBinds[num].ControllerBind = bind;
 }
