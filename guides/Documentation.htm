@@ -538,6 +538,9 @@
                     <li><a href="#Reference_functions_Input_IsAnyActionReleased">Input.IsAnyActionReleased</a></li>
                     <li><a href="#Reference_functions_Input_GetActionBind">Input.GetActionBind</a></li>
                     <li><a href="#Reference_functions_Input_SetActionBind">Input.SetActionBind</a></li>
+                    <li><a href="#Reference_functions_Input_GetDefaultActionBind">Input.GetDefaultActionBind</a></li>
+                    <li><a href="#Reference_functions_Input_SetDefaultActionBind">Input.SetDefaultActionBind</a></li>
+                    <li><a href="#Reference_functions_Input_ResetActionBindsToDefaults">Input.ResetActionBindsToDefaults</a></li>
                     <li><a href="#Reference_functions_Input_IsPlayerUsingDevice">Input.IsPlayerUsingDevice</a></li>
                     <li><a href="#Reference_functions_Input_GetPlayerControllerIndex">Input.GetPlayerControllerIndex</a></li>
                     <li><a href="#Reference_functions_Input_SetPlayerControllerIndex">Input.SetPlayerControllerIndex</a></li>
@@ -4781,9 +4784,9 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the bound input action for a specific player and input device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>playerID (Integer): Index of the player to check.</li>
-        <li>actionName (String): Name of the action to check.</li>
-        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get action binds for.</li>
+        <li>playerID (Integer): Index of the player.</li>
+        <li>actionName (String): Name of the action to get.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get the bind for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Enum value, a Map value, or <code>null</code> if the input action is not bound.</div>
@@ -4794,10 +4797,44 @@
         <div style="margin-top: 8px; font-size: 14px;">Binds an input action for a specific player and input device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>playerID (Integer): Index of the player to check.</li>
-        <li>actionName (String): Name of the action to check.</li>
+        <li>playerID (Integer): Index of the player.</li>
+        <li>actionName (String): Name of the action to set.</li>
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get action binds for.</li>
         <li>actionBind (Enum or Map): The action bind definition.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Input_GetDefaultActionBind">
+        <h2 style="margin-bottom: 8px;">Input.GetDefaultActionBind</h2>
+        <code>Input.GetDefaultActionBind(playerID, actionName, inputDevice)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the default bound input action for a specific player and input device.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player.</li>
+        <li>actionName (String): Name of the action to get.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get the bind for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Enum value, a Map value, or <code>null</code> if there is no default bind for that action.</div>
+        </p>
+        <p id="Reference_functions_Input_SetDefaultActionBind">
+        <h2 style="margin-bottom: 8px;">Input.SetDefaultActionBind</h2>
+        <code>Input.SetDefaultActionBind(playerID, actionName, inputDevice, actionBind)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds a default input action for a specific player and input device.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player.</li>
+        <li>actionName (String): Name of the action to set.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get action binds for.</li>
+        <li>actionBind (Enum or Map): The action bind definition.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Input_ResetActionBindsToDefaults">
+        <h2 style="margin-bottom: 8px;">Input.ResetActionBindsToDefaults</h2>
+        <code>Input.ResetActionBindsToDefaults(playerID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets all input actions for a specific player to its defaults.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player.</li>
         </ul>
         </p>
         <p id="Reference_functions_Input_IsPlayerUsingDevice">
@@ -9708,7 +9745,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>706 out of 765 functions have descriptions. </p>
+        <p>709 out of 768 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

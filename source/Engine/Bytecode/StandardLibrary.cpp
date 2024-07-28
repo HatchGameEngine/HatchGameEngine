@@ -5932,12 +5932,92 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
     else
         return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 }
+static ControllerBind GetControllerBind(ObjMap* map, Uint32 threadID) {
+    ControllerBind bind;
+
+    // button: Integer
+    if (map->Keys->Exists("button")) {
+        VMValue value = map->Values->Get("button");
+        if (IS_INTEGER(value)) {
+            bind.Button = AS_INTEGER(value);
+        }
+        else if (!IS_NULL(value)) {
+            THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+        }
+    }
+
+    // axis: Integer
+    if (map->Keys->Exists("axis")) {
+        VMValue value = map->Values->Get("axis");
+        if (IS_INTEGER(value)) {
+            bind.Axis = AS_INTEGER(value);
+        }
+        else if (!IS_NULL(value)) {
+            THROW_ERROR("Expected \"axis\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+        }
+    }
+
+    // axis_deadzone: Decimal
+    if (map->Keys->Exists("axis_deadzone")) {
+        VMValue value = map->Values->Get("axis_deadzone");
+        if (IS_DECIMAL(value)) {
+            bind.AxisDeadzone = AS_DECIMAL(value);
+        }
+        else if (!IS_NULL(value)) {
+            THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+        }
+    }
+
+    // axis_digital_threshold: Decimal
+    if (map->Keys->Exists("axis_digital_threshold")) {
+        VMValue value = map->Values->Get("axis_digital_threshold");
+        if (IS_DECIMAL(value)) {
+            bind.AxisDigitalThreshold = AS_DECIMAL(value);
+        }
+        else if (!IS_NULL(value)) {
+            THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+        }
+    }
+
+    // axis_negative: Integer
+    if (map->Keys->Exists("axis_negative")) {
+        VMValue value = map->Values->Get("axis_negative");
+        if (IS_INTEGER(value)) {
+            if (AS_INTEGER(value) != 0)
+                bind.IsAxisNegative = true;
+            else
+                bind.IsAxisNegative = false;
+        }
+        else if (!IS_NULL(value)) {
+            THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+        }
+    }
+
+    return bind;
+}
+static ObjMap* CreateControllerMap(ControllerBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
+        AddToMap(map, "button", (bind->Button != -1) ? INTEGER_VAL(bind->Button) : NULL_VAL);
+        AddToMap(map, "axis", (bind->Axis != -1) ? INTEGER_VAL(bind->Axis) : NULL_VAL);
+        AddToMap(map, "axis_deadzone", DECIMAL_VAL((float)bind->AxisDeadzone));
+        AddToMap(map, "axis_digital_threshold", DECIMAL_VAL((float)bind->AxisDigitalThreshold));
+        AddToMap(map, "axis_negative", INTEGER_VAL(bind->IsAxisNegative));
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
 /***
  * Input.GetActionBind
  * \desc Gets the bound input action for a specific player and input device.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get the bind for.
  * \return Returns an Enum value, a Map value, or <code>null</code> if the input action is not bound.
  * \ns Input
  */
@@ -5967,17 +6047,8 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     }
     case InputDevice_Controller: {
         ControllerBind* bind = InputManager::GetPlayerControllerBind(playerID, actionID);
-        if (bind != nullptr && ScriptManager::Lock()) {
-            ObjMap* map = NewMap();
-
-            AddToMap(map, "button", (bind->Button != -1) ? INTEGER_VAL(bind->Button) : NULL_VAL);
-            AddToMap(map, "axis", (bind->Axis != -1) ? INTEGER_VAL(bind->Axis) : NULL_VAL);
-            AddToMap(map, "axis_deadzone", DECIMAL_VAL((float)bind->AxisDeadzone));
-            AddToMap(map, "axis_digital_threshold", DECIMAL_VAL((float)bind->AxisDigitalThreshold));
-            AddToMap(map, "axis_negative", INTEGER_VAL(bind->IsAxisNegative));
-
-            ScriptManager::Unlock();
-
+        ObjMap* map = CreateControllerMap(bind);
+        if (map) {
             return OBJECT_VAL(map);
         }
         break;
@@ -5991,8 +6062,8 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.SetActionBind
  * \desc Binds an input action for a specific player and input device.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to set.
  * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
  * \param actionBind (Enum or Map): The action bind definition.
  * \ns Input
@@ -6024,74 +6095,120 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     }
     case InputDevice_Controller: {
         ObjMap* map = GET_ARG(3, GetMap);
-        ControllerBind bind;
-
-        // button: Integer
-        if (map->Keys->Exists("button")) {
-            VMValue value = map->Values->Get("button");
-            if (IS_INTEGER(value)) {
-                bind.Button = AS_INTEGER(value);
-            }
-            else if (!IS_NULL(value)) {
-                THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
-            }
-        }
-
-        // axis: Integer
-        if (map->Keys->Exists("axis")) {
-            VMValue value = map->Values->Get("axis");
-            if (IS_INTEGER(value)) {
-                bind.Axis = AS_INTEGER(value);
-            }
-            else if (!IS_NULL(value)) {
-                THROW_ERROR("Expected \"axis\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
-            }
-        }
-
-        // axis_deadzone: Decimal
-        if (map->Keys->Exists("axis_deadzone")) {
-            VMValue value = map->Values->Get("axis_deadzone");
-            if (IS_DECIMAL(value)) {
-                bind.AxisDeadzone = AS_DECIMAL(value);
-            }
-            else if (!IS_NULL(value)) {
-                THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
-            }
-        }
-
-        // axis_digital_threshold: Decimal
-        if (map->Keys->Exists("axis_digital_threshold")) {
-            VMValue value = map->Values->Get("axis_digital_threshold");
-            if (IS_DECIMAL(value)) {
-                bind.AxisDigitalThreshold = AS_DECIMAL(value);
-            }
-            else if (!IS_NULL(value)) {
-                THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
-            }
-        }
-
-        // axis_negative: Integer
-        if (map->Keys->Exists("axis_negative")) {
-            VMValue value = map->Values->Get("axis_negative");
-            if (IS_INTEGER(value)) {
-                if (AS_INTEGER(value) != 0)
-                    bind.IsAxisNegative = true;
-                else
-                    bind.IsAxisNegative = false;
-            }
-            else if (!IS_NULL(value)) {
-                THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
-            }
-        }
-
+        ControllerBind bind = GetControllerBind(map, threadID);
         InputManager::SetPlayerControllerBind(playerID, actionID, bind);
-
         break;
     }
     default:
         break;
     }
 
+    return NULL_VAL;
+}
+/***
+ * Input.GetDefaultActionBind
+ * \desc Gets the default bound input action for a specific player and input device.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get the bind for.
+ * \return Returns an Enum value, a Map value, or <code>null</code> if there is no default bind for that action.
+ * \ns Input
+ */
+VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputDevice = GET_ARG(2, GetInteger);
+
+    CHECK_INPUT_PLAYER(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_DEVICE(inputDevice);
+
+    switch ((InputDevice)inputDevice) {
+    case InputDevice_Keyboard: {
+        int bind = InputManager::GetDefaultKeyboardBind(playerID, actionID);
+        if (bind != -1) {
+            return INTEGER_VAL(bind);
+        }
+        break;
+    }
+    case InputDevice_Controller: {
+        ControllerBind* bind = InputManager::GetDefaultControllerBind(playerID, actionID);
+        ObjMap* map = CreateControllerMap(bind);
+        if (map) {
+            return OBJECT_VAL(map);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Input.SetDefaultActionBind
+ * \desc Binds a default input action for a specific player and input device.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to set.
+ * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
+ * \param actionBind (Enum or Map): The action bind definition.
+ * \ns Input
+ */
+VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputDevice = GET_ARG(2, GetInteger);
+
+    CHECK_INPUT_PLAYER(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_DEVICE(inputDevice);
+
+    switch ((InputDevice)inputDevice) {
+    case InputDevice_Keyboard: {
+        int bind = -1;
+        if (!IS_NULL(args[3])) {
+            bind = GET_ARG(3, GetInteger);
+        }
+        InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
+        break;
+    }
+    case InputDevice_Controller: {
+        ObjMap* map = GET_ARG(3, GetMap);
+        ControllerBind bind = GetControllerBind(map, threadID);
+        InputManager::SetDefaultControllerBind(playerID, actionID, bind);
+        break;
+    }
+    default:
+        break;
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Input.ResetActionBindsToDefaults
+ * \desc Sets all input actions for a specific player to its defaults.
+ * \param playerID (Integer): Index of the player.
+ * \ns Input
+ */
+VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER(playerID);
+    InputManager::ResetPlayerBinds(playerID);
     return NULL_VAL;
 }
 /***
@@ -17063,6 +17180,9 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsAnyActionReleased);
     DEF_NATIVE(Input, GetActionBind);
     DEF_NATIVE(Input, SetActionBind);
+    DEF_NATIVE(Input, GetDefaultActionBind);
+    DEF_NATIVE(Input, SetDefaultActionBind);
+    DEF_NATIVE(Input, ResetActionBindsToDefaults);
     DEF_NATIVE(Input, IsPlayerUsingDevice);
     DEF_NATIVE(Input, GetPlayerControllerIndex);
     DEF_NATIVE(Input, SetPlayerControllerIndex);

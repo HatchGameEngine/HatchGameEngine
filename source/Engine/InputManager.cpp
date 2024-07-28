@@ -809,6 +809,46 @@ PUBLIC STATIC void  InputManager::SetPlayerControllerBind(unsigned playerID, uns
 
     player.SetControllerBind(actionID, bind);
 }
+PUBLIC STATIC int   InputManager::GetDefaultKeyboardBind(unsigned playerID, unsigned actionID) {
+    if (playerID >= InputManager::Players.size())
+        return -1;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.GetDefaultKeyboardBind(actionID);
+}
+PUBLIC STATIC ControllerBind* InputManager::GetDefaultControllerBind(unsigned playerID, unsigned actionID) {
+    if (playerID >= InputManager::Players.size())
+        return nullptr;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.GetDefaultControllerBind(actionID);
+}
+PUBLIC STATIC void  InputManager::SetDefaultKeyboardBind(unsigned playerID, unsigned actionID, int bind) {
+    if (playerID >= InputManager::Players.size())
+        return;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    player.SetDefaultKeyboardBind(actionID, bind);
+}
+PUBLIC STATIC void  InputManager::SetDefaultControllerBind(unsigned playerID, unsigned actionID, ControllerBind bind) {
+    if (playerID >= InputManager::Players.size())
+        return;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    player.SetDefaultControllerBind(actionID, bind);
+}
+PUBLIC STATIC void  InputManager::ResetPlayerBinds(unsigned playerID) {
+    if (playerID >= InputManager::Players.size())
+        return;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    player.ResetBinds();
+}
 PUBLIC STATIC void  InputManager::ClearPlayers() {
     InputManager::Players.clear();
 }
