@@ -2476,7 +2476,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
         }
         rotation = rot * M_PI / 256.0;
 
-        Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, x, y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+        Graphics::DrawSprite(sprite, entity->CurrentAnimation, entity->CurrentFrame, x, y, entity->Direction & FLIP_X, entity->Direction & FLIP_Y, entity->ScaleX, entity->ScaleY, rotation);
     }
     return NULL_VAL;
 }
@@ -2569,7 +2569,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
         }
         rotation = rot * M_PI / 256.0;
 
-        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, entity->Direction & 1, entity->Direction & 2, entity->ScaleX, entity->ScaleY, rotation);
+        Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, entity->Direction & FLIP_X, entity->Direction & FLIP_Y, entity->ScaleX, entity->ScaleY, rotation);
     }
     return NULL_VAL;
 }

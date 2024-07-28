@@ -271,6 +271,12 @@ PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
                     else
                         entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
 
+                    // Filter
+                    if (stgElement->attributes.Exists("filter"))
+                        entry.Filter = (int)XMLParser::TokenToNumber(stgElement->attributes.Get("filter"));
+                    else
+                        entry.Filter = 0;
+
                     // Filetype
                     if (stgElement->attributes.Exists("type"))
                         entry.Filetype = XMLParser::TokenToString(stgElement->attributes.Get("type"));

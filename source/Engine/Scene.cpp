@@ -240,7 +240,7 @@ int                       Scene::Milliseconds = 0;
 int                       Scene::Seconds = 0;
 int                       Scene::Minutes = 0;
 
-int                       Scene::Filter = 0xFF;
+int                       Scene::Filter = 0;
 
 // Scene list variables
 int                       Scene::CurrentSceneInList;
@@ -662,6 +662,7 @@ PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
     strcpy(Scene::CurrentFolder, scene.Folder);
     strcpy(Scene::CurrentID, scene.ID);
     strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
+    Scene::Filter = scene.Filter;
     strcpy(Scene::CurrentCategory, category.Name);
 
     Scene::CurrentSceneInList = entryID;

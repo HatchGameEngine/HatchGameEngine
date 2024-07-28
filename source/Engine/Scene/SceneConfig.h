@@ -19,6 +19,7 @@ struct SceneListEntry {
     char*           ID = nullptr;
     char*           ResourceFolder = nullptr;
     char*           Filetype = nullptr;
+    int             Filter = 0;
 
     size_t          ParentCategoryID;
     size_t          CategoryPos;
