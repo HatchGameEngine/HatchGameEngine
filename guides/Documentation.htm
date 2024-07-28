@@ -532,8 +532,10 @@
                     <li><a href="#Reference_functions_Input_ActionExists">Input.ActionExists</a></li>
                     <li><a href="#Reference_functions_Input_IsActionHeld">Input.IsActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsActionPressed">Input.IsActionPressed</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionReleased">Input.IsActionReleased</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionHeld">Input.IsAnyActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionPressed">Input.IsAnyActionPressed</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionReleased">Input.IsAnyActionReleased</a></li>
                     <li><a href="#Reference_functions_Input_IsPlayerUsingDevice">Input.IsPlayerUsingDevice</a></li>
                     <li><a href="#Reference_functions_Input_GetPlayerControllerIndex">Input.GetPlayerControllerIndex</a></li>
                     <li><a href="#Reference_functions_Input_SetPlayerControllerIndex">Input.SetPlayerControllerIndex</a></li>
@@ -4722,6 +4724,19 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
+        <p id="Reference_functions_Input_IsActionReleased">
+        <h2 style="margin-bottom: 8px;">Input.IsActionReleased</h2>
+        <code>Input.IsActionReleased(playerID, actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action was released for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Input_IsAnyActionHeld">
         <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeld</h2>
         <code>Input.IsAnyActionHeld(playerID[, inputDevice])</code>
@@ -4738,6 +4753,18 @@
         <h2 style="margin-bottom: 8px;">Input.IsAnyActionPressed</h2>
         <code>Input.IsAnyActionPressed(playerID[, inputDevice])</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently pressed for the specified player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionReleased">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionReleased</h2>
+        <code>Input.IsAnyActionReleased(playerID[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action was released for the specified player.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
@@ -9654,7 +9681,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>702 out of 761 functions have descriptions. </p>
+        <p>704 out of 763 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

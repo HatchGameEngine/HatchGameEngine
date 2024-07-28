@@ -5829,6 +5829,27 @@ VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(!!InputManager::IsActionPressed(playerID, actionID));
 }
 /***
+ * Input.IsActionReleased
+ * \desc Gets whether the input action was released for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        return INTEGER_VAL(!!InputManager::IsActionReleased(playerID, actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionReleased(playerID, actionID));
+}
+/***
  * Input.IsAnyActionHeld
  * \desc Gets whether any input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
@@ -5863,6 +5884,24 @@ VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     }
     else
         return INTEGER_VAL(!!InputManager::IsAnyActionPressed(playerID));
+}
+/***
+ * Input.IsAnyActionReleased
+ * \desc Gets whether any input action was released for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 }
 /***
  * Input.IsPlayerUsingDevice
@@ -16818,8 +16857,10 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, ActionExists);
     DEF_NATIVE(Input, IsActionHeld);
     DEF_NATIVE(Input, IsActionPressed);
+    DEF_NATIVE(Input, IsActionReleased);
     DEF_NATIVE(Input, IsAnyActionHeld);
     DEF_NATIVE(Input, IsAnyActionPressed);
+    DEF_NATIVE(Input, IsAnyActionReleased);
     DEF_NATIVE(Input, IsPlayerUsingDevice);
     DEF_NATIVE(Input, GetPlayerControllerIndex);
     DEF_NATIVE(Input, SetPlayerControllerIndex);

@@ -10,10 +10,10 @@ public:
     vector<PlayerInputConfig> Binds;
     vector<PlayerInputConfig> DefaultBinds;
 
-    PlayerInputStatus Status[2];
+    PlayerInputStatus Status[InputDevice_MAX];
     PlayerInputStatus AllStatus;
 
-    bool IsUsingDevice[2];
+    bool IsUsingDevice[InputDevice_MAX];
 
     int ControllerIndex = -1;
 
@@ -40,7 +40,7 @@ PUBLIC void InputPlayer::SetNumActions(size_t num) {
         DefaultBinds[n].Clear();
     }
 
-    for (size_t i = 0; i < 2; i++)
+    for (unsigned i = 0; i < (unsigned)InputDevice_MAX; i++)
         Status[i].SetNumActions(num);
 
     AllStatus.SetNumActions(num);
@@ -63,24 +63,30 @@ PUBLIC void InputPlayer::Update() {
 
     AllStatus.Reset();
 
-    for (size_t s = 0; s < 2; s++) {
+    for (unsigned s = 0; s < (unsigned)InputDevice_MAX; s++) {
         Status[s].AnyHeld = false;
         Status[s].AnyPressed = false;
+        Status[s].AnyReleased = false;
 
         for (size_t i = 0; i < Binds.size(); i++) {
             bool isHeld = CheckIfInputHeld(i, s);
             bool isPressed = CheckIfInputPressed(i, s);
+            bool wasHeld = Status[s].Held[i];
+
+            Status[s].Released[i] = false;
 
             if (isHeld) {
                 Status[s].AnyHeld = true;
-                AllStatus.AnyHeld = true;
-                AllStatus.Held[i] = true;
+                AllStatus.AnyHeld = AllStatus.Held[i] = true;
+            }
+            else if (wasHeld) {
+                Status[s].Released[i] = Status[s].AnyReleased = true;
+                AllStatus.AnyReleased = AllStatus.Released[i] = true;
             }
 
             if (isPressed) {
                 Status[s].AnyPressed = true;
-                AllStatus.AnyPressed = true;
-                AllStatus.Pressed[i] = true;
+                AllStatus.AnyPressed = AllStatus.Pressed[i] = true;
             }
 
             Status[s].Held[i] = isHeld;
@@ -168,6 +174,12 @@ PUBLIC bool InputPlayer::IsInputPressed(unsigned actionID, unsigned device) {
 
     return Status[device].Pressed[actionID];
 }
+PUBLIC bool InputPlayer::IsInputReleased(unsigned actionID, unsigned device) {
+    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
+        return false;
+
+    return Status[device].Released[actionID];
+}
 PUBLIC bool InputPlayer::IsAnyInputHeld(unsigned device) {
     if (device >= InputDevice_Controller)
         return false;
@@ -179,6 +191,12 @@ PUBLIC bool InputPlayer::IsAnyInputPressed(unsigned device) {
         return false;
 
     return Status[device].AnyPressed;
+}
+PUBLIC bool InputPlayer::IsAnyInputReleased(unsigned device) {
+    if (device >= InputDevice_Controller)
+        return false;
+
+    return Status[device].AnyReleased;
 }
 
 PUBLIC bool InputPlayer::IsInputHeld(unsigned actionID) {
@@ -193,11 +211,20 @@ PUBLIC bool InputPlayer::IsInputPressed(unsigned actionID) {
 
     return AllStatus.Pressed[actionID];
 }
+PUBLIC bool InputPlayer::IsInputReleased(unsigned actionID) {
+    if (actionID >= InputManager::Actions.size())
+        return false;
+
+    return AllStatus.Released[actionID];
+}
 PUBLIC bool InputPlayer::IsAnyInputHeld() {
     return AllStatus.AnyHeld;
 }
 PUBLIC bool InputPlayer::IsAnyInputPressed() {
     return AllStatus.AnyPressed;
+}
+PUBLIC bool InputPlayer::IsAnyInputReleased() {
+    return AllStatus.AnyReleased;
 }
 
 PUBLIC float InputPlayer::GetAnalogActionInput(unsigned actionID) {

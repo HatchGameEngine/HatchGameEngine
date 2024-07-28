@@ -180,7 +180,8 @@ enum class ControllerAxis {
 
 enum InputDevice {
     InputDevice_Keyboard,
-    InputDevice_Controller
+    InputDevice_Controller,
+    InputDevice_MAX
 };
 
 struct ControllerBind {
@@ -206,31 +207,29 @@ struct ControllerBind {
 struct PlayerInputStatus {
     vector<bool> Held;
     vector<bool> Pressed;
+    vector<bool> Released;
 
     bool AnyHeld;
     bool AnyPressed;
+    bool AnyReleased;
 
     void SetNumActions(size_t num) {
         size_t oldNum = Held.size();
 
-        for (size_t i = 0; i < 2; i++) {
-            Pressed.resize(num);
-            Held.resize(num);
-        }
+        Pressed.resize(num);
+        Held.resize(num);
+        Released.resize(num);
 
         for (size_t i = oldNum; i < num; i++) {
-            Pressed[i] = false;
-            Held[i] = false;
+            Pressed[i] = Held[i] = Released[i] = false;
         }
     }
 
     void Reset() {
-        AnyHeld = false;
-        AnyPressed = false;
+        AnyHeld = AnyPressed = AnyReleased = false;
 
         for (size_t i = 0; i < Held.size(); i++) {
-            Pressed[i] = false;
-            Held[i] = false;
+            Pressed[i] = Held[i] = Released[i] = false;
         }
     }
 };

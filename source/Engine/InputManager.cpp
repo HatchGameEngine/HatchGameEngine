@@ -681,6 +681,14 @@ PUBLIC STATIC bool  InputManager::IsActionPressed(unsigned playerID, unsigned ac
 
     return player.IsInputPressed(actionID);
 }
+PUBLIC STATIC bool  InputManager::IsActionReleased(unsigned playerID, unsigned actionID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputReleased(actionID);
+}
 PUBLIC STATIC bool  InputManager::IsAnyActionHeld(unsigned playerID) {
     if (playerID >= InputManager::Players.size())
         return false;
@@ -696,6 +704,14 @@ PUBLIC STATIC bool  InputManager::IsAnyActionPressed(unsigned playerID) {
     InputPlayer& player = InputManager::Players[playerID];
 
     return player.IsAnyInputPressed();
+}
+PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputReleased();
 }
 PUBLIC STATIC bool  InputManager::IsActionHeld(unsigned playerID, unsigned actionID, unsigned device) {
     if (playerID >= InputManager::Players.size())
@@ -713,6 +729,14 @@ PUBLIC STATIC bool  InputManager::IsActionPressed(unsigned playerID, unsigned ac
 
     return player.IsInputPressed(actionID, device);
 }
+PUBLIC STATIC bool  InputManager::IsActionReleased(unsigned playerID, unsigned actionID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsInputReleased(actionID, device);
+}
 PUBLIC STATIC bool  InputManager::IsAnyActionHeld(unsigned playerID, unsigned device) {
     if (playerID >= InputManager::Players.size())
         return false;
@@ -728,6 +752,14 @@ PUBLIC STATIC bool  InputManager::IsAnyActionPressed(unsigned playerID, unsigned
     InputPlayer& player = InputManager::Players[playerID];
 
     return player.IsAnyInputPressed(device);
+}
+PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID, unsigned device) {
+    if (playerID >= InputManager::Players.size())
+        return false;
+
+    InputPlayer& player = InputManager::Players[playerID];
+
+    return player.IsAnyInputReleased(device);
 }
 PUBLIC STATIC bool  InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
     if (device >= InputDevice_Controller)
