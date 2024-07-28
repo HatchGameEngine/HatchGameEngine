@@ -184,6 +184,29 @@ enum InputDevice {
     InputDevice_MAX
 };
 
+#define KB_MODIFIER_LSHIFT   1
+#define KB_MODIFIER_RSHIFT   2
+#define KB_MODIFIER_LCTRL    4
+#define KB_MODIFIER_RCTRL    8
+#define KB_MODIFIER_LALT    16
+#define KB_MODIFIER_RALT    32
+#define KB_MODIFIER_NUM     64
+#define KB_MODIFIER_CAPS   128
+
+struct KeyboardBind {
+    int Key;
+    Uint8 Modifiers;
+
+    KeyboardBind() {
+        Clear();
+    }
+
+    void Clear() {
+        Key = -1;
+        Modifiers = 0;
+    }
+};
+
 struct ControllerBind {
     int Button;
     int Axis;
@@ -235,7 +258,7 @@ struct PlayerInputStatus {
 };
 
 struct PlayerInputConfig {
-    int KeyboardBind;
+    struct KeyboardBind KeyboardBind;
 
     struct ControllerBind ControllerBind;
 
@@ -244,7 +267,7 @@ struct PlayerInputConfig {
     }
 
     void Clear() {
-        KeyboardBind = -1;
+        KeyboardBind.Clear();
         ControllerBind.Clear();
     }
 };

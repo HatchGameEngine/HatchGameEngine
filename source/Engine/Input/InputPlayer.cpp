@@ -102,13 +102,21 @@ PUBLIC void InputPlayer::Update() {
     }
 }
 
-PUBLIC void InputPlayer::SetKeyboardBind(unsigned num, int bind) {
+PUBLIC void InputPlayer::SetKeyboardBind(unsigned num, KeyboardBind bind) {
     if (num < Binds.size())
         Binds[num].KeyboardBind = bind;
 }
 PUBLIC void InputPlayer::SetControllerBind(unsigned num, ControllerBind bind) {
     if (num < Binds.size())
         Binds[num].ControllerBind = bind;
+}
+PUBLIC void InputPlayer::SetKeyboardBind(unsigned num, int key) {
+    if (num < Binds.size())
+        Binds[num].KeyboardBind.Key = key;
+}
+PUBLIC void InputPlayer::SetControllerBind(unsigned num, int button) {
+    if (num < Binds.size())
+        Binds[num].ControllerBind.Button = button;
 }
 PUBLIC void InputPlayer::SetControllerBindAxisDeadzone(unsigned num, float deadzone) {
     if (num < Binds.size())
@@ -119,21 +127,80 @@ PUBLIC void InputPlayer::SetControllerBindAxisDigitalThreshold(unsigned num, flo
         Binds[num].ControllerBind.AxisDigitalThreshold = threshold;
 }
 
+PUBLIC KeyboardBind* InputPlayer::GetKeyboardBind(unsigned num) {
+    if (num < Binds.size())
+        return &Binds[num].KeyboardBind;
+
+    return nullptr;
+}
+PUBLIC ControllerBind* InputPlayer::GetControllerBind(unsigned num) {
+    if (num < Binds.size())
+        return &Binds[num].ControllerBind;
+
+    return nullptr;
+}
+
+PUBLIC void InputPlayer::SetDefaultKeyboardBind(unsigned num, KeyboardBind bind) {
+    if (num < DefaultBinds.size())
+        DefaultBinds[num].KeyboardBind = bind;
+}
+PUBLIC void InputPlayer::SetDefaultControllerBind(unsigned num, ControllerBind bind) {
+    if (num < DefaultBinds.size())
+        DefaultBinds[num].ControllerBind = bind;
+}
+PUBLIC void InputPlayer::SetDefaultKeyboardBind(unsigned num, int key) {
+    if (num < DefaultBinds.size())
+        DefaultBinds[num].KeyboardBind.Key = key;
+}
+PUBLIC void InputPlayer::SetDefaultControllerBind(unsigned num, int button) {
+    if (num < DefaultBinds.size())
+        DefaultBinds[num].ControllerBind.Button = button;
+}
+
+PUBLIC KeyboardBind* InputPlayer::GetDefaultKeyboardBind(unsigned num) {
+    if (num < DefaultBinds.size())
+        return &DefaultBinds[num].KeyboardBind;
+
+    return nullptr;
+}
+PUBLIC ControllerBind* InputPlayer::GetDefaultControllerBind(unsigned num) {
+    if (num < DefaultBinds.size())
+        return &DefaultBinds[num].ControllerBind;
+
+    return nullptr;
+}
+
 PUBLIC void InputPlayer::ClearKeyboardBind(unsigned num) {
-    SetKeyboardBind(num, -1);
+    if (num < Binds.size())
+        Binds[num].KeyboardBind.Clear();
 }
 PUBLIC void InputPlayer::ClearControllerBind(unsigned num) {
     if (num < Binds.size())
         Binds[num].ControllerBind.Clear();
 }
 
+PUBLIC void InputPlayer::ClearDefaultKeyboardBind(unsigned num) {
+    if (num < Binds.size())
+        DefaultBinds[num].KeyboardBind.Clear();
+}
+PUBLIC void InputPlayer::ClearDefaultControllerBind(unsigned num) {
+    if (num < Binds.size())
+        DefaultBinds[num].ControllerBind.Clear();
+}
+
 PUBLIC void InputPlayer::ResetKeyboardBind(unsigned num, int bind) {
-    SetKeyboardBind(num, GetDefaultKeyboardBind(num));
+    KeyboardBind* defaultBind = GetDefaultKeyboardBind(num);
+    if (defaultBind)
+        SetKeyboardBind(num, *defaultBind);
+    else
+        ClearKeyboardBind(num);
 }
 PUBLIC void InputPlayer::ResetControllerBind(unsigned num, int bind) {
     ControllerBind* defaultBind = GetDefaultControllerBind(num);
     if (defaultBind)
         SetControllerBind(num, *defaultBind);
+    else
+        ClearControllerBind(num);
 }
 
 PRIVATE bool InputPlayer::CheckIfInputHeld(unsigned actionID, unsigned device) {
@@ -141,8 +208,8 @@ PRIVATE bool InputPlayer::CheckIfInputHeld(unsigned actionID, unsigned device) {
         return false;
 
     if (device == InputDevice_Keyboard) {
-        int bind = GetKeyboardBind(actionID);
-        if (bind != -1 && InputManager::IsKeyDown(bind)) {
+        KeyboardBind* bind = GetKeyboardBind(actionID);
+        if (bind != nullptr && InputManager::IsKeyDown(bind->Key)) {
             IsUsingDevice[InputDevice_Keyboard] = true;
             return true;
         }
@@ -159,8 +226,8 @@ PRIVATE bool InputPlayer::CheckIfInputPressed(unsigned actionID, unsigned device
         return false;
 
     if (device == InputDevice_Keyboard) {
-        int bind = GetKeyboardBind(actionID);
-        if (bind != -1 && InputManager::IsKeyPressed(bind)) {
+        KeyboardBind* bind = GetKeyboardBind(actionID);
+        if (bind != nullptr && InputManager::IsKeyPressed(bind->Key)) {
             IsUsingDevice[InputDevice_Keyboard] = true;
             return true;
         }
@@ -337,39 +404,4 @@ PRIVATE bool InputPlayer::GetAnalogControllerBind(unsigned num, float& result) {
     }
 
     return false;
-}
-
-PUBLIC int  InputPlayer::GetKeyboardBind(unsigned num) {
-    if (num < Binds.size())
-        return Binds[num].KeyboardBind;
-
-    return -1;
-}
-PUBLIC ControllerBind* InputPlayer::GetControllerBind(unsigned num) {
-    if (num < Binds.size())
-        return &Binds[num].ControllerBind;
-
-    return nullptr;
-}
-
-PUBLIC void InputPlayer::SetDefaultKeyboardBind(unsigned num, int bind) {
-    if (num < DefaultBinds.size())
-        DefaultBinds[num].KeyboardBind = bind;
-}
-PUBLIC void InputPlayer::SetDefaultControllerBind(unsigned num, ControllerBind bind) {
-    if (num < DefaultBinds.size())
-        DefaultBinds[num].ControllerBind = bind;
-}
-
-PUBLIC int  InputPlayer::GetDefaultKeyboardBind(unsigned num) {
-    if (num < DefaultBinds.size())
-        return DefaultBinds[num].KeyboardBind;
-
-    return -1;
-}
-PUBLIC ControllerBind* InputPlayer::GetDefaultControllerBind(unsigned num) {
-    if (num < DefaultBinds.size())
-        return &DefaultBinds[num].ControllerBind;
-
-    return nullptr;
 }

@@ -2515,48 +2515,48 @@
         </p>
         <p id="Reference_functions_Controller_IsButtonHeld">
         <h2 style="margin-bottom: 8px;">Controller.IsButtonHeld</h2>
-        <code>Controller.IsButtonHeld(controllerIndex, buttonIndex)</code>
+        <code>Controller.IsButtonHeld(controllerIndex, button)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is held.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        <li>button (Enum): Which <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Controller_IsButtonPressed">
         <h2 style="margin-bottom: 8px;">Controller.IsButtonPressed</h2>
-        <code>Controller.IsButtonPressed(controllerIndex, buttonIndex)</code>
+        <code>Controller.IsButtonPressed(controllerIndex, button)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if a <a href="#Reference_Button_*">button</a> is pressed.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        <li>button (Enum): Which <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_functions_Controller_GetButton">
         <h2 style="margin-bottom: 8px;">Controller.GetButton</h2>
-        <code>Controller.GetButton(controllerIndex, buttonIndex)</code>
+        <code>Controller.GetButton(controllerIndex, button)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Button_*">button</a> value from the controller at the index. (Deprecated; use <code><a href="#Reference_functions_Controller_IsButtonHeld">Controller.IsButtonHeld</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>buttonIndex (Enum): Index of the <a href="#Reference_Button_*">button</a> to check.</li>
+        <li>button (Enum): Which <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the button value from the controller at the index.</div>
         </p>
         <p id="Reference_functions_Controller_GetAxis">
         <h2 style="margin-bottom: 8px;">Controller.GetAxis</h2>
-        <code>Controller.GetAxis(controllerIndex, axisIndex)</code>
+        <code>Controller.GetAxis(controllerIndex, axis)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_Axis_*">axis</a> value from the controller at the index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>controllerIndex (Integer): Index of the controller to check.</li>
-        <li>axisIndex (Enum): Index of the <a href="#Reference_Axis_*">axis</a> to check.</li>
+        <li>axis (Enum): Which <a href="#Reference_Axis_*">axis</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the axis value from the controller at the index.</div>
@@ -4635,29 +4635,29 @@
         <li>keyID (Integer): Index of the key to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the key.</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Input_GetButtonName">
         <h2 style="margin-bottom: 8px;">Input.GetButtonName</h2>
-        <code>Input.GetButtonName(buttonIndex)</code>
+        <code>Input.GetButtonName(button)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the button.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>buttonIndex (Integer): Index of the button to check.</li>
+        <li>button (Enum): Which <a href="#Reference_Button_*">button</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the button.</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Input_GetAxisName">
         <h2 style="margin-bottom: 8px;">Input.GetAxisName</h2>
-        <code>Input.GetAxisName(axisIndex)</code>
+        <code>Input.GetAxisName(axis)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the axis.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>axisIndex (Integer): Index of the axis to check.</li>
+        <li>axis (Enum): Which <a href="#Reference_Axis_*">axis</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the axis.</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Input_ParseKeyName">
         <h2 style="margin-bottom: 8px;">Input.ParseKeyName</h2>
@@ -4800,7 +4800,7 @@
         <li>playerID (Integer): Index of the player.</li>
         <li>actionName (String): Name of the action to set.</li>
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get action binds for.</li>
-        <li>actionBind (Enum or Map): The action bind definition.</li>
+        <li>actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.</li>
         </ul>
         </p>
         <p id="Reference_functions_Input_GetDefaultActionBind">
@@ -4825,7 +4825,7 @@
         <li>playerID (Integer): Index of the player.</li>
         <li>actionName (String): Name of the action to set.</li>
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to get action binds for.</li>
-        <li>actionBind (Enum or Map): The action bind definition.</li>
+        <li>actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.</li>
         </ul>
         </p>
         <p id="Reference_functions_Input_ResetActionBindsToDefaults">

@@ -469,6 +469,46 @@ if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
     return NULL_VAL; \
 }
 
+#define CHECK_INPUT_PLAYER(playerNum) \
+if (playerNum < 0 || playerNum >= NUM_INPUT_PLAYERS) { \
+    OUT_OF_RANGE_ERROR("Player index", playerNum, 0, NUM_INPUT_PLAYERS - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_INPUT_DEVICE(deviceType) \
+if (deviceType < 0 || deviceType >= (int)InputDevice_MAX) { \
+    OUT_OF_RANGE_ERROR("Input device", deviceType, 0, (int)InputDevice_MAX - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_KEYBOARD_KEY(kbKey) \
+if (kbKey < 0 || kbKey >= NUM_KEYBOARD_KEYS) { \
+    OUT_OF_RANGE_ERROR("Keyboard key", kbKey, 0, NUM_KEYBOARD_KEYS - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_BUTTON(controllerButton) \
+if (controllerButton < 0 || controllerButton >= (int)ControllerButton::Max) { \
+    OUT_OF_RANGE_ERROR("Controller button", controllerButton, 0, (int)ControllerButton::Max - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_AXIS(controllerAxis) \
+if (controllerAxis < 0 || controllerAxis >= (int)ControllerAxis::Max) { \
+    OUT_OF_RANGE_ERROR("Controller axis", controllerAxis, 0, (int)ControllerAxis::Max - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_INDEX(idx) \
+if (InputManager::NumControllers == 0) { \
+    THROW_ERROR("No controllers are connected."); \
+    return NULL_VAL; \
+} \
+else if (idx < 0 || idx >= InputManager::NumControllers) { \
+    OUT_OF_RANGE_ERROR("Controller index", idx, 0, InputManager::NumControllers - 1); \
+    return NULL_VAL; \
+}
+
 // #region Animator
 // return true if we found it in the list
 bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) {
@@ -1484,15 +1524,6 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Controller
-#define CHECK_CONTROLLER_INDEX(idx) \
-if (InputManager::NumControllers == 0) { \
-    THROW_ERROR("No controllers are connected."); \
-    return NULL_VAL; \
-} \
-else if (idx < 0 || idx >= InputManager::NumControllers) { \
-    OUT_OF_RANGE_ERROR("Controller index", idx, 0, InputManager::NumControllers - 1); \
-    return NULL_VAL; \
-}
 /***
  * Controller.GetCount
  * \desc Gets the amount of connected controllers in the device.
@@ -1585,7 +1616,7 @@ CONTROLLER_GET_BOOL(HasPaddles)
  * Controller.IsButtonHeld
  * \desc Checks if a <linkto ref="Button_*">button</linkto> is held.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Controller
  */
@@ -1604,7 +1635,7 @@ VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.IsButtonPressed
  * \desc Checks if a <linkto ref="Button_*">button</linkto> is pressed.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Controller
  */
@@ -1623,7 +1654,7 @@ VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID)
  * Controller.GetButton
  * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index. (Deprecated; use <linkto ref="Controller.IsButtonHeld"></linkto> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns the button value from the controller at the index.
  * \ns Controller
  */
@@ -1634,7 +1665,7 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.GetAxis
  * \desc Gets the <linkto ref="Axis_*">axis</linkto> value from the controller at the index.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param axisIndex (Enum): Index of the <linkto ref="Axis_*">axis</linkto> to check.
+ * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
  * \return Returns the axis value from the controller at the index.
  * \ns Controller
  */
@@ -5667,6 +5698,7 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
+    CHECK_KEYBOARD_KEY(key);
     return INTEGER_VAL(InputManager::IsKeyDown(key));
 }
 /***
@@ -5679,8 +5711,8 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = InputManager::IsKeyPressed(key);
-    return INTEGER_VAL(down);
+    CHECK_KEYBOARD_KEY(key);
+    return INTEGER_VAL(InputManager::IsKeyPressed(key));
 }
 /***
  * Input.IsKeyReleased
@@ -5692,45 +5724,47 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = InputManager::IsKeyReleased(key);
-    return INTEGER_VAL(down);
+    CHECK_KEYBOARD_KEY(key);
+    return INTEGER_VAL(InputManager::IsKeyReleased(key));
 }
-#undef CHECK_CONTROLLER_INDEX
 /***
  * Input.GetKeyName
  * \desc Gets the name of the key.
  * \param keyID (Integer): Index of the key to check.
- * \return Returns the name of the key.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
+    CHECK_KEYBOARD_KEY(key);
     return ReturnString(InputManager::GetKeyName(key));
 }
 /***
  * Input.GetButtonName
  * \desc Gets the name of the button.
- * \param buttonIndex (Integer): Index of the button to check.
- * \return Returns the name of the button.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int key = GET_ARG(0, GetInteger);
-    return ReturnString(InputManager::GetButtonName(key));
+    int button = GET_ARG(0, GetInteger);
+    CHECK_CONTROLLER_BUTTON(button);
+    return ReturnString(InputManager::GetButtonName(button));
 }
 /***
  * Input.GetAxisName
  * \desc Gets the name of the axis.
- * \param axisIndex (Integer): Index of the axis to check.
- * \return Returns the name of the axis.
+ * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int key = GET_ARG(0, GetInteger);
-    return ReturnString(InputManager::GetAxisName(key));
+    int axis = GET_ARG(0, GetInteger);
+    CHECK_CONTROLLER_AXIS(axis);
+    return ReturnString(InputManager::GetAxisName(axis));
 }
 /***
  * Input.ParseKeyName
@@ -5792,16 +5826,6 @@ VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(true);
     }
     return INTEGER_VAL(false);
-}
-#define CHECK_INPUT_PLAYER(playerNum) \
-if (playerNum < 0 || playerNum >= NUM_INPUT_PLAYERS) { \
-    OUT_OF_RANGE_ERROR("Player index", playerNum, 0, NUM_INPUT_PLAYERS - 1); \
-    return NULL_VAL; \
-}
-#define CHECK_INPUT_DEVICE(deviceType) \
-if (deviceType < 0 || deviceType >= (int)InputDevice_MAX) { \
-    OUT_OF_RANGE_ERROR("Input device", deviceType, 0, (int)InputDevice_MAX - 1); \
-    return NULL_VAL; \
 }
 /***
  * Input.IsActionHeld
@@ -5932,70 +5956,132 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
     else
         return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 }
-static ControllerBind GetControllerBind(ObjMap* map, Uint32 threadID) {
-    ControllerBind bind;
+static KeyboardBind GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
+    KeyboardBind bind;
 
-    // button: Integer
-    if (map->Keys->Exists("button")) {
-        VMValue value = map->Values->Get("button");
-        if (IS_INTEGER(value)) {
-            bind.Button = AS_INTEGER(value);
-        }
-        else if (!IS_NULL(value)) {
-            THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
-        }
-    }
+    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
 
-    // axis: Integer
-    if (map->Keys->Exists("axis")) {
-        VMValue value = map->Values->Get("axis");
-        if (IS_INTEGER(value)) {
-            bind.Axis = AS_INTEGER(value);
+        // key: Integer
+        if (strcmp("key", key) == 0) {
+            value = map->Values->Get(hash);
+            if (IS_INTEGER(value)) {
+                int key = AS_INTEGER(value);
+                if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
+                    bind.Key = AS_INTEGER(value);
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Keyboard key", key, 0, NUM_KEYBOARD_KEYS - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"key\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
         }
-        else if (!IS_NULL(value)) {
-            THROW_ERROR("Expected \"axis\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+        // modifiers: Integer
+        else if (strcmp("modifiers", key) == 0) {
+            value = map->Values->Get("modifiers");
+            if (IS_INTEGER(value)) {
+                bind.Modifiers = AS_INTEGER(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"modifiers\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
         }
-    }
-
-    // axis_deadzone: Decimal
-    if (map->Keys->Exists("axis_deadzone")) {
-        VMValue value = map->Values->Get("axis_deadzone");
-        if (IS_DECIMAL(value)) {
-            bind.AxisDeadzone = AS_DECIMAL(value);
-        }
-        else if (!IS_NULL(value)) {
-            THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
-        }
-    }
-
-    // axis_digital_threshold: Decimal
-    if (map->Keys->Exists("axis_digital_threshold")) {
-        VMValue value = map->Values->Get("axis_digital_threshold");
-        if (IS_DECIMAL(value)) {
-            bind.AxisDigitalThreshold = AS_DECIMAL(value);
-        }
-        else if (!IS_NULL(value)) {
-            THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
-        }
-    }
-
-    // axis_negative: Integer
-    if (map->Keys->Exists("axis_negative")) {
-        VMValue value = map->Values->Get("axis_negative");
-        if (IS_INTEGER(value)) {
-            if (AS_INTEGER(value) != 0)
-                bind.IsAxisNegative = true;
-            else
-                bind.IsAxisNegative = false;
-        }
-        else if (!IS_NULL(value)) {
-            THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
-        }
-    }
+    });
 
     return bind;
 }
-static ObjMap* CreateControllerMap(ControllerBind* bind) {
+static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
+    ControllerBind bind;
+
+    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
+
+        // button: Integer
+        if (strcmp("button", key) == 0) {
+            value = map->Values->Get(hash);
+            if (IS_INTEGER(value)) {
+                int button = AS_INTEGER(value);
+                if (button >= 0 && button < (int)ControllerButton::Max) {
+                    bind.Button = AS_INTEGER(value);
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Controller button", button, 0, (int)ControllerButton::Max - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+        // axis: Integer
+        else if (strcmp("axis", key) == 0) {
+            value = map->Values->Get("axis");
+            if (IS_INTEGER(value)) {
+                int axis = AS_INTEGER(value);
+                if (axis >= 0 && axis < (int)ControllerAxis::Max) {
+                    bind.Axis = axis;
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Controller axis", axis, 0, (int)ControllerAxis::Max - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+        // axis_deadzone: Decimal
+        else if (strcmp("axis_deadzone", key) == 0) {
+            value = map->Values->Get("axis_deadzone");
+            if (IS_DECIMAL(value)) {
+                bind.AxisDeadzone = AS_DECIMAL(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+            }
+        }
+        // axis_deadzone: Decimal
+        else if (strcmp("axis_digital_threshold", key) == 0) {
+            value = map->Values->Get("axis_digital_threshold");
+            if (IS_DECIMAL(value)) {
+                bind.AxisDigitalThreshold = AS_DECIMAL(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+            }
+        }
+        // axis_negative: Integer
+        else if (strcmp("axis_negative", key) == 0) {
+            value = map->Values->Get("axis_negative");
+            if (IS_INTEGER(value)) {
+                if (AS_INTEGER(value) != 0)
+                    bind.IsAxisNegative = true;
+                else
+                    bind.IsAxisNegative = false;
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+    });
+
+    return bind;
+}
+static ObjMap* CreateKeyboardActionMap(KeyboardBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
+        AddToMap(map, "key", (bind->Key != -1) ? INTEGER_VAL(bind->Key) : NULL_VAL);
+        AddToMap(map, "modifiers",  INTEGER_VAL(bind->Modifiers));
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
+static ObjMap* CreateControllerActionMap(ControllerBind* bind) {
     if (bind != nullptr && ScriptManager::Lock()) {
         ObjMap* map = NewMap();
 
@@ -6039,15 +6125,16 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     switch ((InputDevice)inputDevice) {
     case InputDevice_Keyboard: {
-        int bind = InputManager::GetPlayerKeyboardBind(playerID, actionID);
-        if (bind != -1) {
-            return INTEGER_VAL(bind);
+        KeyboardBind* bind = InputManager::GetPlayerKeyboardBind(playerID, actionID);
+        ObjMap* map = CreateKeyboardActionMap(bind);
+        if (map) {
+            return OBJECT_VAL(map);
         }
         break;
     }
     case InputDevice_Controller: {
         ControllerBind* bind = InputManager::GetPlayerControllerBind(playerID, actionID);
-        ObjMap* map = CreateControllerMap(bind);
+        ObjMap* map = CreateControllerActionMap(bind);
         if (map) {
             return OBJECT_VAL(map);
         }
@@ -6065,7 +6152,7 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to set.
  * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
- * \param actionBind (Enum or Map): The action bind definition.
+ * \param actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.
  * \ns Input
  */
 VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -6086,17 +6173,35 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     switch ((InputDevice)inputDevice) {
     case InputDevice_Keyboard: {
-        int bind = -1;
-        if (!IS_NULL(args[3])) {
-            bind = GET_ARG(3, GetInteger);
+        if (IS_INTEGER(args[3])) {
+            int bind = GET_ARG(3, GetInteger);
+            CHECK_KEYBOARD_KEY(bind);
+            InputManager::SetPlayerKeyboardBind(playerID, actionID, bind);
         }
-        InputManager::SetPlayerKeyboardBind(playerID, actionID, bind);
+        else if (IS_NULL(args[3])) {
+            InputManager::ClearPlayerKeyboardBind(playerID, actionID);
+        }
+        else {
+            ObjMap* map = GET_ARG(3, GetMap);
+            KeyboardBind bind = GetKeyboardActionBind(map, threadID);
+            InputManager::SetPlayerKeyboardBind(playerID, actionID, bind);
+        }
         break;
     }
     case InputDevice_Controller: {
-        ObjMap* map = GET_ARG(3, GetMap);
-        ControllerBind bind = GetControllerBind(map, threadID);
-        InputManager::SetPlayerControllerBind(playerID, actionID, bind);
+        if (IS_INTEGER(args[3])) {
+            int bind = GET_ARG(3, GetInteger);
+            CHECK_CONTROLLER_BUTTON(bind);
+            InputManager::SetPlayerControllerBind(playerID, actionID, bind);
+        }
+        else if (IS_NULL(args[3])) {
+            InputManager::ClearPlayerControllerBind(playerID, actionID);
+        }
+        else {
+            ObjMap* map = GET_ARG(3, GetMap);
+            ControllerBind bind = GetControllerActionBind(map, threadID);
+            InputManager::SetPlayerControllerBind(playerID, actionID, bind);
+        }
         break;
     }
     default:
@@ -6132,15 +6237,16 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
     switch ((InputDevice)inputDevice) {
     case InputDevice_Keyboard: {
-        int bind = InputManager::GetDefaultKeyboardBind(playerID, actionID);
-        if (bind != -1) {
-            return INTEGER_VAL(bind);
+        KeyboardBind* bind = InputManager::GetDefaultKeyboardBind(playerID, actionID);
+        ObjMap* map = CreateKeyboardActionMap(bind);
+        if (map) {
+            return OBJECT_VAL(map);
         }
         break;
     }
     case InputDevice_Controller: {
         ControllerBind* bind = InputManager::GetDefaultControllerBind(playerID, actionID);
-        ObjMap* map = CreateControllerMap(bind);
+        ObjMap* map = CreateControllerActionMap(bind);
         if (map) {
             return OBJECT_VAL(map);
         }
@@ -6158,7 +6264,7 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to set.
  * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
- * \param actionBind (Enum or Map): The action bind definition.
+ * \param actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.
  * \ns Input
  */
 VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -6179,17 +6285,35 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
     switch ((InputDevice)inputDevice) {
     case InputDevice_Keyboard: {
-        int bind = -1;
-        if (!IS_NULL(args[3])) {
-            bind = GET_ARG(3, GetInteger);
+        if (IS_INTEGER(args[3])) {
+            int bind = GET_ARG(3, GetInteger);
+            CHECK_KEYBOARD_KEY(bind);
+            InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
         }
-        InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
+        else if (IS_NULL(args[3])) {
+            InputManager::ClearDefaultKeyboardBind(playerID, actionID);
+        }
+        else {
+            ObjMap* map = GET_ARG(3, GetMap);
+            KeyboardBind bind = GetKeyboardActionBind(map, threadID);
+            InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
+        }
         break;
     }
     case InputDevice_Controller: {
-        ObjMap* map = GET_ARG(3, GetMap);
-        ControllerBind bind = GetControllerBind(map, threadID);
-        InputManager::SetDefaultControllerBind(playerID, actionID, bind);
+        if (IS_INTEGER(args[3])) {
+            int bind = GET_ARG(3, GetInteger);
+            CHECK_CONTROLLER_BUTTON(bind);
+            InputManager::SetDefaultControllerBind(playerID, actionID, bind);
+        }
+        else if (IS_NULL(args[3])) {
+            InputManager::ClearDefaultControllerBind(playerID, actionID);
+        }
+        else {
+            ObjMap* map = GET_ARG(3, GetMap);
+            ControllerBind bind = GetControllerActionBind(map, threadID);
+            InputManager::SetDefaultControllerBind(playerID, actionID, bind);
+        }
         break;
     }
     default:
