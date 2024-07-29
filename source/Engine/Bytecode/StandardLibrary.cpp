@@ -5818,6 +5818,32 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL(parsed);
 }
 /***
+ * Input.GetActionList
+ * \desc Gets a list of all input actions.
+ * \return Returns an Array value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjArray* array = NewArray();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+
+        ObjString* actionName = CopyString(action.Name.c_str());
+
+        array->Values->push_back(OBJECT_VAL(actionName));
+    }
+
+    return OBJECT_VAL(array);
+}
+/***
  * Input.ActionExists
  * \desc Gets whether the given input action exists.
  * \param actionName (String): Name of the action to check.
@@ -17362,6 +17388,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, ParseKeyName);
     DEF_NATIVE(Input, ParseButtonName);
     DEF_NATIVE(Input, ParseAxisName);
+    DEF_NATIVE(Input, GetActionList);
     DEF_NATIVE(Input, ActionExists);
     DEF_NATIVE(Input, IsActionHeld);
     DEF_NATIVE(Input, IsActionPressed);
@@ -17398,6 +17425,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Controller input device.
     */
     DEF_ENUM(InputDevice_Controller);
+    /***
+    * \constant NUM_INPUT_DEVICE_TYPES
+    * \desc Number of input device types.
+    */
+    DEF_CONST_INT("NUM_INPUT_DEVICE_TYPES", (int)InputDevice_MAX);
 
     /***
     * \enum InputBind_Keyboard
