@@ -640,314 +640,257 @@ PUBLIC STATIC bool  InputManager::TouchIsReleased(int touch_index) {
 }
 
 PUBLIC STATIC int   InputManager::AddPlayer() {
-    int id = (int)InputManager::Players.size();
+    int id = (int)Players.size();
 
     InputPlayer player(id);
 
-    player.SetNumActions(InputManager::Actions.size());
+    player.SetNumActions(Actions.size());
 
-    InputManager::Players.push_back(player);
+    Players.push_back(player);
 
     return id;
 }
+PUBLIC STATIC int   InputManager::GetPlayerCount() {
+    return (int)Players.size();
+}
 PUBLIC STATIC void  InputManager::SetPlayerControllerIndex(unsigned playerID, int index) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return;
 
     if (index < 0)
         index = -1;
 
-    InputManager::Players[playerID].ControllerIndex = index;
+    Players[playerID].ControllerIndex = index;
 }
 PUBLIC STATIC int   InputManager::GetPlayerControllerIndex(unsigned playerID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return -1;
 
-    return InputManager::Players[playerID].ControllerIndex;
+    return Players[playerID].ControllerIndex;
 }
 PUBLIC STATIC bool  InputManager::IsActionHeld(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputHeld(actionID);
 }
 PUBLIC STATIC bool  InputManager::IsActionPressed(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputPressed(actionID);
 }
 PUBLIC STATIC bool  InputManager::IsActionReleased(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputReleased(actionID);
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionHeld(unsigned playerID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputHeld();
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionPressed(unsigned playerID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputPressed();
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputReleased();
 }
 PUBLIC STATIC bool  InputManager::IsActionHeld(unsigned playerID, unsigned actionID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputHeld(actionID, device);
 }
 PUBLIC STATIC bool  InputManager::IsActionPressed(unsigned playerID, unsigned actionID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputPressed(actionID, device);
 }
 PUBLIC STATIC bool  InputManager::IsActionReleased(unsigned playerID, unsigned actionID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsInputReleased(actionID, device);
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionHeld(unsigned playerID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputHeld(device);
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionPressed(unsigned playerID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputPressed(device);
 }
 PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID, unsigned device) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputReleased(device);
 }
 PUBLIC STATIC bool  InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
-    if (device >= InputDevice_Controller)
+    if (playerID >= Players.size() || device >= InputDevice_Controller)
         return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.IsUsingDevice[device];
 }
 PUBLIC STATIC float InputManager::GetAnalogActionInput(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return 0.0f;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     return player.GetAnalogActionInput(actionID);
 }
-PUBLIC STATIC KeyboardBind* InputManager::GetPlayerKeyboardBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
+
+PUBLIC STATIC InputBind* InputManager::GetPlayerInputBind(unsigned playerID, unsigned actionID, unsigned index, bool isDefault) {
+    if (playerID >= Players.size())
         return nullptr;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
-    return player.GetKeyboardBind(actionID);
+    if (isDefault)
+        return player.GetDefaultBind(actionID, index);
+    else
+        return player.GetBind(actionID, index);
 }
-PUBLIC STATIC ControllerBind* InputManager::GetPlayerControllerBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return nullptr;
+PUBLIC STATIC bool  InputManager::SetPlayerInputBind(unsigned playerID, unsigned actionID, InputBind* bind, unsigned index, bool isDefault) {
+    if (playerID >= Players.size())
+        return false;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
-    return player.GetControllerBind(actionID);
+    if (isDefault)
+        return player.ReplaceDefaultBind(actionID, bind, index);
+    else
+        return player.ReplaceBind(actionID, bind, index);
 }
-PUBLIC STATIC void  InputManager::SetPlayerKeyboardBind(unsigned playerID, unsigned actionID, KeyboardBind bind) {
-    if (playerID >= InputManager::Players.size())
+PUBLIC STATIC int   InputManager::AddPlayerInputBind(unsigned playerID, unsigned actionID, InputBind* bind, bool isDefault) {
+    if (playerID >= Players.size())
+        return -1;
+
+    InputPlayer& player = Players[playerID];
+
+    if (isDefault)
+        return player.AddDefaultBind(actionID, bind);
+    else
+        return player.AddBind(actionID, bind);
+}
+PUBLIC STATIC bool  InputManager::RemovePlayerInputBind(unsigned playerID, unsigned actionID, unsigned index, bool isDefault) {
+    if (playerID >= Players.size())
+        return false;
+
+    InputPlayer& player = Players[playerID];
+
+    if (isDefault)
+        return player.RemoveDefaultBind(actionID, index);
+    else
+        return player.RemoveBind(actionID, index);
+}
+PUBLIC STATIC int InputManager::GetPlayerInputBindCount(unsigned playerID, unsigned actionID, bool isDefault) {
+    if (playerID >= Players.size())
+        return 0;
+
+    InputPlayer& player = Players[playerID];
+
+    if (isDefault)
+        return player.GetDefaultBindCount(actionID);
+    else
+        return player.GetBindCount(actionID);
+}
+
+PUBLIC STATIC void  InputManager::ClearPlayerBinds(unsigned playerID, unsigned actionID, bool isDefault) {
+    if (playerID >= Players.size())
         return;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
-    player.SetKeyboardBind(actionID, bind);
+    if (isDefault)
+        player.ClearDefaultBinds(actionID);
+    else
+        player.ClearBinds(actionID);
 }
-PUBLIC STATIC void  InputManager::SetPlayerControllerBind(unsigned playerID, unsigned actionID, ControllerBind bind) {
-    if (playerID >= InputManager::Players.size())
-        return;
 
-    InputPlayer& player = InputManager::Players[playerID];
+PUBLIC STATIC bool  InputManager::IsBindIndexValid(unsigned playerID, unsigned actionID, unsigned index) {
+    if (playerID >= Players.size())
+        return false;
 
-    player.SetControllerBind(actionID, bind);
+    InputPlayer& player = Players[playerID];
+
+    return player.IsBindIndexValid(actionID, index);
 }
-PUBLIC STATIC void  InputManager::SetPlayerKeyboardBind(unsigned playerID, unsigned actionID, KeyboardBind* bind) {
-    SetPlayerKeyboardBind(playerID, actionID, *bind);
-}
-PUBLIC STATIC void  InputManager::SetPlayerControllerBind(unsigned playerID, unsigned actionID, ControllerBind* bind) {
-    SetPlayerControllerBind(playerID, actionID, *bind);
-}
-PUBLIC STATIC void  InputManager::SetPlayerKeyboardBind(unsigned playerID, unsigned actionID, int key) {
-    if (playerID >= InputManager::Players.size())
-        return;
 
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetKeyboardBind(actionID, key);
-}
-PUBLIC STATIC void  InputManager::SetPlayerControllerBind(unsigned playerID, unsigned actionID, int button) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetControllerBind(actionID, button);
-}
-PUBLIC STATIC KeyboardBind* InputManager::GetDefaultKeyboardBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return nullptr;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    return player.GetDefaultKeyboardBind(actionID);
-}
-PUBLIC STATIC ControllerBind* InputManager::GetDefaultControllerBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return nullptr;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    return player.GetDefaultControllerBind(actionID);
-}
-PUBLIC STATIC void  InputManager::SetDefaultKeyboardBind(unsigned playerID, unsigned actionID, KeyboardBind bind) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetDefaultKeyboardBind(actionID, bind);
-}
-PUBLIC STATIC void  InputManager::SetDefaultControllerBind(unsigned playerID, unsigned actionID, ControllerBind bind) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetDefaultControllerBind(actionID, bind);
-}
-PUBLIC STATIC void  InputManager::SetDefaultKeyboardBind(unsigned playerID, unsigned actionID, KeyboardBind* bind) {
-    SetDefaultKeyboardBind(playerID, actionID, *bind);
-}
-PUBLIC STATIC void  InputManager::SetDefaultControllerBind(unsigned playerID, unsigned actionID, ControllerBind* bind) {
-    SetDefaultControllerBind(playerID, actionID, *bind);
-}
-PUBLIC STATIC void  InputManager::SetDefaultKeyboardBind(unsigned playerID, unsigned actionID, int key) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetDefaultKeyboardBind(actionID, key);
-}
-PUBLIC STATIC void  InputManager::SetDefaultControllerBind(unsigned playerID, unsigned actionID, int button) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.SetDefaultControllerBind(actionID, button);
-}
-PUBLIC STATIC void  InputManager::ClearPlayerKeyboardBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.ClearKeyboardBind(actionID);
-}
-PUBLIC STATIC void  InputManager::ClearPlayerControllerBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.ClearControllerBind(actionID);
-}
-PUBLIC STATIC void  InputManager::ClearDefaultKeyboardBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.ClearDefaultKeyboardBind(actionID);
-}
-PUBLIC STATIC void  InputManager::ClearDefaultControllerBind(unsigned playerID, unsigned actionID) {
-    if (playerID >= InputManager::Players.size())
-        return;
-
-    InputPlayer& player = InputManager::Players[playerID];
-
-    player.ClearDefaultControllerBind(actionID);
-}
 PUBLIC STATIC void  InputManager::ResetPlayerBinds(unsigned playerID) {
-    if (playerID >= InputManager::Players.size())
+    if (playerID >= Players.size())
         return;
 
-    InputPlayer& player = InputManager::Players[playerID];
+    InputPlayer& player = Players[playerID];
 
     player.ResetBinds();
 }
+
 PUBLIC STATIC void  InputManager::ClearPlayers() {
-    InputManager::Players.clear();
+    Players.clear();
 }
+
 PUBLIC STATIC int   InputManager::RegisterAction(const char* name) {
-    int id = InputManager::GetActionID(name);
+    int id = GetActionID(name);
     if (id != -1)
         return id;
 
-    id = (int)InputManager::Actions.size();
+    id = (int)Actions.size();
 
     InputAction input(name, id);
 
-    InputManager::Actions.push_back(input);
+    Actions.push_back(input);
 
-    for (size_t i = 0; i < InputManager::Players.size(); i++)
-        InputManager::Players[i].SetNumActions(InputManager::Actions.size());
+    for (size_t i = 0; i < Players.size(); i++)
+        Players[i].SetNumActions(Actions.size());
 
     return id;
 }
 PUBLIC STATIC int   InputManager::GetActionID(const char* name) {
     if (name != nullptr && name[0] != '\0') {
-        for (size_t i = 0; i < InputManager::Actions.size(); i++) {
-            if (strcmp(InputManager::Actions[i].Name.c_str(), name) == 0)
+        for (size_t i = 0; i < Actions.size(); i++) {
+            if (strcmp(Actions[i].Name.c_str(), name) == 0)
                 return (int)i;
         }
     }
@@ -955,10 +898,10 @@ PUBLIC STATIC int   InputManager::GetActionID(const char* name) {
     return -1;
 }
 PUBLIC STATIC void  InputManager::ClearInputs() {
-    InputManager::Actions.clear();
+    Actions.clear();
 
-    for (size_t i = 0; i < InputManager::Players.size(); i++)
-        InputManager::Players[i].SetNumActions(0);
+    for (size_t i = 0; i < Players.size(); i++)
+        Players[i].SetNumActions(0);
 }
 
 PUBLIC STATIC void  InputManager::InitPlayerControls() {
@@ -985,15 +928,15 @@ PUBLIC STATIC void  InputManager::InitPlayerControls() {
 
     // Add players
     for (int i = 0; i < numPlayers; i++)
-        InputManager::AddPlayer();
+        AddPlayer();
 
     // Parse inputs
     for (size_t i = 0; i < controlsNode->children.size(); i++) {
         XMLNode* child = controlsNode->children[i];
-        if (XMLParser::MatchToken(child->name, "input")) {
+        if (XMLParser::MatchToken(child->name, "action")) {
             if (child->children[0]->name.Length > 0) {
                 Token& name = child->children[0]->name;
-                InputManager::RegisterAction(name.ToString().c_str());
+                RegisterAction(name.ToString().c_str());
             }
         }
     }
@@ -1012,7 +955,7 @@ PUBLIC STATIC void  InputManager::InitPlayerControls() {
             if (id < 1 || id > numPlayers)
                 continue;
 
-            InputPlayer& player = InputManager::Players[id - 1];
+            InputPlayer& player = Players[id - 1];
 
             player.ControllerIndex = id - 1;
 
@@ -1024,90 +967,110 @@ PUBLIC STATIC void  InputManager::InitPlayerControls() {
 }
 
 PRIVATE STATIC void InputManager::ParsePlayerControls(InputPlayer& player, XMLNode* node) {
-    // Parse keyboard controls
-    XMLNode* controlsNode = XMLParser::SearchNode(node, "keyboard");
-    if (controlsNode) {
-        for (size_t i = 0; i < controlsNode->children.size(); i++) {
-            XMLNode* child = controlsNode->children[i];
-            int actionID = InputManager::GetActionID(child->name.ToString().c_str());
-            if (actionID == -1)
-                continue;
-
-            if (!child->children[0]->name.Length)
-                continue;
-
-            int keyID = InputManager::ParseKeyName(child->children[0]->name.ToString().c_str());
-            if (keyID != -1)
-                player.SetDefaultKeyboardBind(actionID, keyID);
-        }
-    }
-
-    // Parse controller controls
-    controlsNode = XMLParser::SearchNode(node, "controller");
-    if (controlsNode) {
-        for (size_t i = 0; i < controlsNode->children.size(); i++) {
-            XMLNode* child = controlsNode->children[i];
-            int actionID = InputManager::GetActionID(child->name.ToString().c_str());
-            if (actionID == -1)
-                continue;
-
-            ControllerBind bind;
-
-            if (child->children.size() == 1 && !child->children[0]->children.size()) {
-                bind.Button = InputManager::ParseButtonName(child->children[0]->name.ToString().c_str());
+    for (size_t i = 0; i < node->children.size(); i++) {
+        XMLNode* child = node->children[i];
+        if (XMLParser::MatchToken(child->name, "default")) {
+            if (child->attributes.Exists("action")) {
+                std::string actionName = child->attributes.Get("action").ToString();
+                int actionID = GetActionID(actionName.c_str());
+                if (actionID != -1) {
+                    ParseDefaultInputBinds(player, actionID, actionName, child);
+                }
             }
-            else {
-                bind = ParseControllerBind(child);
-            }
+            else if (child->attributes.Exists("copy") && child->attributes.Exists("id")) {
+                int id = 0;
+                if (!StringUtils::ToNumber(&id, child->attributes.Get("id").ToString()))
+                    continue;
 
-            player.SetDefaultControllerBind(actionID, bind);
+                if (id < 1 || id > GetPlayerCount())
+                    continue;
+
+                std::string copyType = child->attributes.Get("copy").ToString();
+                int filterType = -1;
+                if (copyType == "key") {
+                    filterType = INPUT_BIND_KEYBOARD;
+                }
+                else if (copyType == "button") {
+                    filterType = INPUT_BIND_CONTROLLER_BUTTON;
+                }
+                else if (copyType == "axis") {
+                    filterType = INPUT_BIND_CONTROLLER_AXIS;
+                }
+                else {
+                    continue;
+                }
+
+                InputPlayer& copyPlayer = Players[id - 1];
+                player.CopyDefaultBinds(copyPlayer, filterType);
+            }
         }
     }
 }
 
-PRIVATE STATIC ControllerBind InputManager::ParseControllerBind(XMLNode* node) {
-    ControllerBind bind;
-
+PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, int actionID, string& actionName, XMLNode* node) {
     for (size_t i = 0; i < node->children.size(); i++) {
         XMLNode* child = node->children[i];
-        if (XMLParser::MatchToken(child->name, "button")) {
-            bind.Button = InputManager::ParseButtonName(child->children[0]->name.ToString().c_str());
+
+        if (XMLParser::MatchToken(child->name, "key")) {
+            const char* keyName = child->children[0]->name.ToString().c_str();
+            int key = ParseKeyName(keyName);
+            if (key != -1) {
+                KeyboardBind* bind = new KeyboardBind(key);
+                if (player.AddDefaultBind(actionID, bind) < 0)
+                    delete bind;
+            }
+            else {
+                Log::Print(Log::LOG_ERROR, "Unknown key \"%s\"! for action \"%s\"!", keyName, actionName.c_str());
+            }
+        }
+        else if (XMLParser::MatchToken(child->name, "button")) {
+            const char* buttonName = child->children[0]->name.ToString().c_str();
+            int button = ParseButtonName(buttonName);
+            if (button != -1) {
+                ControllerButtonBind* bind = new ControllerButtonBind(button);
+                if (player.AddDefaultBind(actionID, bind) < 0)
+                    delete bind;
+            }
+            else {
+                Log::Print(Log::LOG_ERROR, "Unknown controller button \"%s\"! for action \"%s\"!", buttonName, actionName.c_str());
+            }
         }
         else if (XMLParser::MatchToken(child->name, "axis")) {
             const char* axisName = child->children[0]->name.ToString().c_str();
 
             int axisID;
-            bool isNegative = false;
-
-            if (axisName[0] == '-' || axisName[0] == '+') {
-                isNegative = axisName[0] == '-';
-                axisID = InputManager::ParseAxisName(&axisName[1]);
-            }
+            if (axisName[0] == '-' || axisName[0] == '+')
+                axisID = ParseAxisName(&axisName[1]);
             else
-                axisID = InputManager::ParseAxisName(axisName);
+                axisID = ParseAxisName(axisName);
 
-            if (axisID != -1) {
-                bind.Axis = axisID;
-                bind.IsAxisNegative = isNegative;
+            if (axisID == -1) {
+                Log::Print(Log::LOG_ERROR, "Unknown controller axis \"%s\"! for action \"%s\"!", axisName, actionName.c_str());
+                continue;
             }
+
+            ControllerAxisBind* bind = new ControllerAxisBind();
+            bind->Axis = axisID;
+            bind->IsAxisNegative = axisName[0] == '-';
 
             if (child->attributes.Exists("deadzone")) {
                 double deadzone;
                 if (StringUtils::ToDecimal(&deadzone, child->attributes.Get("deadzone").ToString())) {
-                    bind.AxisDeadzone = deadzone;
+                    bind->AxisDeadzone = deadzone;
                 }
             }
 
             if (child->attributes.Exists("digital_threshold")) {
                 double threshold;
                 if (StringUtils::ToDecimal(&threshold, child->attributes.Get("digital_threshold").ToString())) {
-                    bind.AxisDigitalThreshold = threshold;
+                    bind->AxisDigitalThreshold = threshold;
                 }
             }
+
+            if (player.AddDefaultBind(actionID, bind) < 0)
+                delete bind;
         }
     }
-
-    return bind;
 }
 
 PUBLIC STATIC void  InputManager::Dispose() {

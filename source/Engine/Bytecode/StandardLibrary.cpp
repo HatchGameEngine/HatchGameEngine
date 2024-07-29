@@ -469,15 +469,21 @@ if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
     return NULL_VAL; \
 }
 
-#define CHECK_INPUT_PLAYER(playerNum) \
-if (playerNum < 0 || playerNum >= NUM_INPUT_PLAYERS) { \
-    OUT_OF_RANGE_ERROR("Player index", playerNum, 0, NUM_INPUT_PLAYERS - 1); \
+#define CHECK_INPUT_PLAYER_INDEX(playerNum) \
+if (playerNum < 0 || playerNum >= InputManager::GetPlayerCount()) { \
+    OUT_OF_RANGE_ERROR("Player index", playerNum, 0, InputManager::GetPlayerCount() - 1); \
     return NULL_VAL; \
 }
 
 #define CHECK_INPUT_DEVICE(deviceType) \
 if (deviceType < 0 || deviceType >= (int)InputDevice_MAX) { \
     OUT_OF_RANGE_ERROR("Input device", deviceType, 0, (int)InputDevice_MAX - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_INPUT_BIND_TYPE(bindType) \
+if (bindType < 0 || bindType >= NUM_INPUT_BIND_TYPES) { \
+    OUT_OF_RANGE_ERROR("Input bind type", bindType, 0, NUM_INPUT_BIND_TYPES - 1); \
     return NULL_VAL; \
 }
 
@@ -5841,7 +5847,7 @@ VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5864,7 +5870,7 @@ VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5887,7 +5893,7 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5907,7 +5913,7 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 2) {
         int inputDevice = GET_ARG(1, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5927,7 +5933,7 @@ VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 2) {
         int inputDevice = GET_ARG(1, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5947,7 +5953,7 @@ VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     if (argCount >= 2) {
         int inputDevice = GET_ARG(1, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5956,10 +5962,10 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
     else
         return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 }
-static KeyboardBind GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
-    KeyboardBind bind;
+static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
+    KeyboardBind* bind = new KeyboardBind();
 
-    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+    map->Keys->WithAllOrdered([bind, map, threadID](Uint32 hash, char* key) -> void {
         VMValue value;
 
         // key: Integer
@@ -5968,7 +5974,7 @@ static KeyboardBind GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
             if (IS_INTEGER(value)) {
                 int key = AS_INTEGER(value);
                 if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
-                    bind.Key = AS_INTEGER(value);
+                    bind->Key = AS_INTEGER(value);
                 }
                 else {
                     OUT_OF_RANGE_ERROR("Keyboard key", key, 0, NUM_KEYBOARD_KEYS - 1);
@@ -5982,7 +5988,7 @@ static KeyboardBind GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
         else if (strcmp("modifiers", key) == 0) {
             value = map->Values->Get("modifiers");
             if (IS_INTEGER(value)) {
-                bind.Modifiers = AS_INTEGER(value);
+                bind->Modifiers = AS_INTEGER(value);
             }
             else if (!IS_NULL(value)) {
                 THROW_ERROR("Expected \"modifiers\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
@@ -5992,8 +5998,8 @@ static KeyboardBind GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
 
     return bind;
 }
-static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
-    ControllerBind bind;
+static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 threadID) {
+    ControllerButtonBind* bind = new ControllerButtonBind();
 
     map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
         VMValue value;
@@ -6004,7 +6010,7 @@ static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
             if (IS_INTEGER(value)) {
                 int button = AS_INTEGER(value);
                 if (button >= 0 && button < (int)ControllerButton::Max) {
-                    bind.Button = AS_INTEGER(value);
+                    bind->Button = AS_INTEGER(value);
                 }
                 else {
                     OUT_OF_RANGE_ERROR("Controller button", button, 0, (int)ControllerButton::Max - 1);
@@ -6014,13 +6020,23 @@ static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
                 THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
             }
         }
+    });
+
+    return bind;
+}
+static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, Uint32 threadID) {
+    ControllerAxisBind* bind = new ControllerAxisBind();
+
+    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
+
         // axis: Integer
-        else if (strcmp("axis", key) == 0) {
+        if (strcmp("axis", key) == 0) {
             value = map->Values->Get("axis");
             if (IS_INTEGER(value)) {
                 int axis = AS_INTEGER(value);
                 if (axis >= 0 && axis < (int)ControllerAxis::Max) {
-                    bind.Axis = axis;
+                    bind->Axis = axis;
                 }
                 else {
                     OUT_OF_RANGE_ERROR("Controller axis", axis, 0, (int)ControllerAxis::Max - 1);
@@ -6034,17 +6050,17 @@ static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
         else if (strcmp("axis_deadzone", key) == 0) {
             value = map->Values->Get("axis_deadzone");
             if (IS_DECIMAL(value)) {
-                bind.AxisDeadzone = AS_DECIMAL(value);
+                bind->AxisDeadzone = AS_DECIMAL(value);
             }
             else if (!IS_NULL(value)) {
                 THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
             }
         }
-        // axis_deadzone: Decimal
+        // axis_digital_threshold: Decimal
         else if (strcmp("axis_digital_threshold", key) == 0) {
             value = map->Values->Get("axis_digital_threshold");
             if (IS_DECIMAL(value)) {
-                bind.AxisDigitalThreshold = AS_DECIMAL(value);
+                bind->AxisDigitalThreshold = AS_DECIMAL(value);
             }
             else if (!IS_NULL(value)) {
                 THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
@@ -6055,9 +6071,9 @@ static ControllerBind GetControllerActionBind(ObjMap* map, Uint32 threadID) {
             value = map->Values->Get("axis_negative");
             if (IS_INTEGER(value)) {
                 if (AS_INTEGER(value) != 0)
-                    bind.IsAxisNegative = true;
+                    bind->IsAxisNegative = true;
                 else
-                    bind.IsAxisNegative = false;
+                    bind->IsAxisNegative = false;
             }
             else if (!IS_NULL(value)) {
                 THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
@@ -6072,7 +6088,7 @@ static ObjMap* CreateKeyboardActionMap(KeyboardBind* bind) {
         ObjMap* map = NewMap();
 
         AddToMap(map, "key", (bind->Key != -1) ? INTEGER_VAL(bind->Key) : NULL_VAL);
-        AddToMap(map, "modifiers",  INTEGER_VAL(bind->Modifiers));
+        AddToMap(map, "modifiers", INTEGER_VAL(bind->Modifiers));
 
         ScriptManager::Unlock();
 
@@ -6081,11 +6097,23 @@ static ObjMap* CreateKeyboardActionMap(KeyboardBind* bind) {
 
     return nullptr;
 }
-static ObjMap* CreateControllerActionMap(ControllerBind* bind) {
+static ObjMap* CreateControllerButtonActionMap(ControllerButtonBind* bind) {
     if (bind != nullptr && ScriptManager::Lock()) {
         ObjMap* map = NewMap();
 
         AddToMap(map, "button", (bind->Button != -1) ? INTEGER_VAL(bind->Button) : NULL_VAL);
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
+static ObjMap* CreateControllerAxisActionMap(ControllerAxisBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
         AddToMap(map, "axis", (bind->Axis != -1) ? INTEGER_VAL(bind->Axis) : NULL_VAL);
         AddToMap(map, "axis_deadzone", DECIMAL_VAL((float)bind->AxisDeadzone));
         AddToMap(map, "axis_digital_threshold", DECIMAL_VAL((float)bind->AxisDigitalThreshold));
@@ -6098,22 +6126,51 @@ static ObjMap* CreateControllerActionMap(ControllerBind* bind) {
 
     return nullptr;
 }
+static ObjMap* CreateInputActionMap(InputBind* bind) {
+    if (bind == nullptr)
+        return nullptr;
+
+    ObjMap* map = nullptr;
+
+    switch (bind->Type) {
+    case INPUT_BIND_KEYBOARD:
+        map = CreateKeyboardActionMap(static_cast<KeyboardBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("key")));
+        }
+        break;
+    case INPUT_BIND_CONTROLLER_BUTTON:
+        map = CreateControllerButtonActionMap(static_cast<ControllerButtonBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("controller_button")));
+        }
+        break;
+    case INPUT_BIND_CONTROLLER_AXIS:
+        map = CreateControllerAxisActionMap(static_cast<ControllerAxisBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("controller_axis")));
+        }
+        break;
+    }
+
+    return map;
+}
 /***
  * Input.GetActionBind
- * \desc Gets the bound input action for a specific player and input device.
+ * \desc Gets the bound input action for a specific player.
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to get.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get the bind for.
- * \return Returns an Enum value, a Map value, or <code>null</code> if the input action is not bound.
+ * \paramOpt bindIndex (Integer): Which bind index to get.
+ * \return Returns a Map value, or <code>null</code> if the input action is not bound.
  * \ns Input
  */
 VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
+    CHECK_AT_LEAST_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int inputDevice = GET_ARG(2, GetInteger);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
 
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
@@ -6121,47 +6178,119 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    CHECK_INPUT_DEVICE(inputDevice);
-
-    switch ((InputDevice)inputDevice) {
-    case InputDevice_Keyboard: {
-        KeyboardBind* bind = InputManager::GetPlayerKeyboardBind(playerID, actionID);
-        ObjMap* map = CreateKeyboardActionMap(bind);
-        if (map) {
+    InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, false);
+    if (bind != nullptr) {
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
             return OBJECT_VAL(map);
+        }
+    }
+
+    return NULL_VAL;
+}
+static VMValue SetActionBindFromArg(int playerID, int actionID, int bindIndex, int inputBindType, int argIndex, bool setDefault, VMValue* args, Uint32 threadID) {
+    InputBind* bind = nullptr;
+
+    switch (inputBindType) {
+    case INPUT_BIND_KEYBOARD: {
+        if (IS_INTEGER(args[argIndex])) {
+            int key = GET_ARG(argIndex, GetInteger);
+            CHECK_KEYBOARD_KEY(key);
+            bind = new KeyboardBind(key);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetKeyboardActionBind(map, threadID);
         }
         break;
     }
-    case InputDevice_Controller: {
-        ControllerBind* bind = InputManager::GetPlayerControllerBind(playerID, actionID);
-        ObjMap* map = CreateControllerActionMap(bind);
-        if (map) {
-            return OBJECT_VAL(map);
+    case INPUT_BIND_CONTROLLER_BUTTON: {
+        if (IS_INTEGER(args[argIndex])) {
+            int button = GET_ARG(argIndex, GetInteger);
+            CHECK_CONTROLLER_BUTTON(button);
+            bind = new ControllerButtonBind(button);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetControllerButtonActionBind(map, threadID);
+        }
+        break;
+    }
+    case INPUT_BIND_CONTROLLER_AXIS: {
+        if (IS_INTEGER(args[argIndex])) {
+            int axis = GET_ARG(argIndex, GetInteger);
+            CHECK_CONTROLLER_AXIS(axis);
+            bind = new ControllerAxisBind(axis);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetControllerAxisActionBind(map, threadID);
         }
         break;
     }
     default:
         break;
+    }
+
+    if (bind != nullptr) {
+        if (bindIndex < 0) {
+            int idx = InputManager::AddPlayerInputBind(playerID, actionID, bind, setDefault);
+            if (idx != -1) {
+                return INTEGER_VAL(idx);
+            }
+        }
+        else
+            InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault);
     }
 
     return NULL_VAL;
 }
 /***
  * Input.SetActionBind
- * \desc Binds an input action for a specific player and input device.
+ * \desc Binds an input action for a specific player.
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to set.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
- * \param actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \paramOpt bindIndex (Integer): Which bind index to set.
  * \ns Input
  */
 VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, bindIndex, inputBindType, 3, false, args, threadID);
+}
+/***
+ * Input.AddActionBind
+ * \desc Adds an input action bind for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \return Returns the index of the added input action as an Integer value.
+ * \ns Input
+ */
+VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(4);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int inputDevice = GET_ARG(2, GetInteger);
+    int inputBindType = GET_ARG(2, GetInteger);
 
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
@@ -6169,63 +6298,68 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     }
 
-    CHECK_INPUT_DEVICE(inputDevice);
+    CHECK_INPUT_BIND_TYPE(inputBindType);
 
-    switch ((InputDevice)inputDevice) {
-    case InputDevice_Keyboard: {
-        if (IS_INTEGER(args[3])) {
-            int bind = GET_ARG(3, GetInteger);
-            CHECK_KEYBOARD_KEY(bind);
-            InputManager::SetPlayerKeyboardBind(playerID, actionID, bind);
-        }
-        else if (IS_NULL(args[3])) {
-            InputManager::ClearPlayerKeyboardBind(playerID, actionID);
-        }
-        else {
-            ObjMap* map = GET_ARG(3, GetMap);
-            KeyboardBind bind = GetKeyboardActionBind(map, threadID);
-            InputManager::SetPlayerKeyboardBind(playerID, actionID, bind);
-        }
-        break;
+    return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, false, args, threadID);
+}
+/***
+ * Input.RemoveActionBind
+ * \desc Removes a bound input action from a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to unbind.
+ * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \ns Input
+ */
+VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
     }
-    case InputDevice_Controller: {
-        if (IS_INTEGER(args[3])) {
-            int bind = GET_ARG(3, GetInteger);
-            CHECK_CONTROLLER_BUTTON(bind);
-            InputManager::SetPlayerControllerBind(playerID, actionID, bind);
-        }
-        else if (IS_NULL(args[3])) {
-            InputManager::ClearPlayerControllerBind(playerID, actionID);
-        }
-        else {
-            ObjMap* map = GET_ARG(3, GetMap);
-            ControllerBind bind = GetControllerActionBind(map, threadID);
-            InputManager::SetPlayerControllerBind(playerID, actionID, bind);
-        }
-        break;
-    }
-    default:
-        break;
-    }
+
+    if (argCount >= 3)
+        InputManager::RemovePlayerInputBind(playerID, actionID, bindIndex, false);
+    else
+        InputManager::ClearPlayerBinds(playerID, actionID, false);
 
     return NULL_VAL;
 }
+static ObjArray* GetBoundActionList(int playerID, int actionID, bool isDefault) {
+    ObjArray* array = NewArray();
+
+    size_t count = InputManager::GetPlayerInputBindCount(playerID, actionID, isDefault);
+
+    for (size_t i = 0; i < count; i++) {
+        InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, i, isDefault);
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
+            array->Values->push_back(OBJECT_VAL(map));
+        }
+    }
+
+    return array;
+}
 /***
- * Input.GetDefaultActionBind
- * \desc Gets the default bound input action for a specific player and input device.
+ * Input.GetBoundActionList
+ * \desc Gets a list of the input actions currently bound to a specific player.
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to get.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get the bind for.
- * \return Returns an Enum value, a Map value, or <code>null</code> if there is no default bind for that action.
+ * \return Returns an Array of Map values.
  * \ns Input
  */
-VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
+VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int inputDevice = GET_ARG(2, GetInteger);
 
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
@@ -6233,47 +6367,107 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
         return NULL_VAL;
     }
 
-    CHECK_INPUT_DEVICE(inputDevice);
+    return OBJECT_VAL(GetBoundActionList(playerID, actionID, false));
+}
+/***
+ * Input.GetBoundActionCount
+ * \desc Gets the amount of bound input actions for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \return Returns an Integer value.
+ * \ns Input
+ */
+VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
 
-    switch ((InputDevice)inputDevice) {
-    case InputDevice_Keyboard: {
-        KeyboardBind* bind = InputManager::GetDefaultKeyboardBind(playerID, actionID);
-        ObjMap* map = CreateKeyboardActionMap(bind);
-        if (map) {
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL((int)InputManager::GetPlayerInputBindCount(playerID, actionID, false));
+}
+/***
+ * Input.GetBoundActionMap
+ * \desc Gets a map of the input actions currently bound to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjMap* map = NewMap();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+        AddToMap(map, action.Name.c_str(), OBJECT_VAL(GetBoundActionList(playerID, i, false)));
+    }
+
+    return OBJECT_VAL(map);
+}
+/***
+ * Input.GetDefaultActionBind
+ * \desc Gets the default bound input action for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \paramOpt bindIndex (Integer): Which bind index to get.
+ * \return Returns a Map value, or <code>null</code> if the input action is not bound.
+ * \ns Input
+ */
+VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, true);
+    if (bind != nullptr) {
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
             return OBJECT_VAL(map);
         }
-        break;
-    }
-    case InputDevice_Controller: {
-        ControllerBind* bind = InputManager::GetDefaultControllerBind(playerID, actionID);
-        ObjMap* map = CreateControllerActionMap(bind);
-        if (map) {
-            return OBJECT_VAL(map);
-        }
-        break;
-    }
-    default:
-        break;
     }
 
     return NULL_VAL;
 }
 /***
  * Input.SetDefaultActionBind
- * \desc Binds a default input action for a specific player and input device.
+ * \desc Binds a default input action for a specific player.
  * \param playerID (Integer): Index of the player.
  * \param actionName (String): Name of the action to set.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to get action binds for.
- * \param actionBind (Enum or Map): The bind definition, or <code>null</code> to unbind.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \paramOpt bindIndex (Integer): Which bind index to set.
  * \ns Input
  */
 VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(4);
+    CHECK_AT_LEAST_ARGCOUNT(4);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int inputDevice = GET_ARG(2, GetInteger);
+    int inputBindType = GET_ARG(2, GetInteger);
+    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
 
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
@@ -6281,46 +6475,137 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
         return NULL_VAL;
     }
 
-    CHECK_INPUT_DEVICE(inputDevice);
+    CHECK_INPUT_BIND_TYPE(inputBindType);
 
-    switch ((InputDevice)inputDevice) {
-    case InputDevice_Keyboard: {
-        if (IS_INTEGER(args[3])) {
-            int bind = GET_ARG(3, GetInteger);
-            CHECK_KEYBOARD_KEY(bind);
-            InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
-        }
-        else if (IS_NULL(args[3])) {
-            InputManager::ClearDefaultKeyboardBind(playerID, actionID);
-        }
-        else {
-            ObjMap* map = GET_ARG(3, GetMap);
-            KeyboardBind bind = GetKeyboardActionBind(map, threadID);
-            InputManager::SetDefaultKeyboardBind(playerID, actionID, bind);
-        }
-        break;
+    return SetActionBindFromArg(playerID, actionID, bindIndex, inputBindType, 3, true, args, threadID);
+}
+/***
+ * Input.AddDefaultActionBind
+ * \desc Adds a default input action bind for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \return Returns the index of the added input action as an Integer value.
+ * \ns Input
+ */
+VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
     }
-    case InputDevice_Controller: {
-        if (IS_INTEGER(args[3])) {
-            int bind = GET_ARG(3, GetInteger);
-            CHECK_CONTROLLER_BUTTON(bind);
-            InputManager::SetDefaultControllerBind(playerID, actionID, bind);
-        }
-        else if (IS_NULL(args[3])) {
-            InputManager::ClearDefaultControllerBind(playerID, actionID);
-        }
-        else {
-            ObjMap* map = GET_ARG(3, GetMap);
-            ControllerBind bind = GetControllerActionBind(map, threadID);
-            InputManager::SetDefaultControllerBind(playerID, actionID, bind);
-        }
-        break;
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, true, args, threadID);
+}
+/***
+ * Input.RemoveDefaultActionBind
+ * \desc Removes a bound input action default from a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to unbind.
+ * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \ns Input
+ */
+VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
     }
-    default:
-        break;
-    }
+
+    if (argCount >= 3)
+        InputManager::RemovePlayerInputBind(playerID, actionID, bindIndex, true);
+    else
+        InputManager::ClearPlayerBinds(playerID, actionID, true);
 
     return NULL_VAL;
+}
+/***
+ * Input.GetDefaultBoundActionList
+ * \desc Gets a list of the input actions bound by default to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \return Returns an Array of Map values.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    return OBJECT_VAL(GetBoundActionList(playerID, actionID, true));
+}
+/***
+ * Input.GetDefaultBoundActionCount
+ * \desc Gets the amount of bound default input actions for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \return Returns an Integer value.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL((int)InputManager::GetPlayerInputBindCount(playerID, actionID, true));
+}
+/***
+ * Input.GetDefaultBoundActionMap
+ * \desc Gets a map of the input actions bound by default to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjMap* map = NewMap();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+        AddToMap(map, action.Name.c_str(), OBJECT_VAL(GetBoundActionList(playerID, i, true)));
+    }
+
+    return OBJECT_VAL(map);
 }
 /***
  * Input.ResetActionBindsToDefaults
@@ -6331,7 +6616,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     InputManager::ResetPlayerBinds(playerID);
     return NULL_VAL;
 }
@@ -6347,7 +6632,7 @@ VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) 
     CHECK_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     int inputDevice = GET_ARG(1, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     CHECK_INPUT_DEVICE(inputDevice);
     return INTEGER_VAL(!!InputManager::IsPlayerUsingDevice(playerID, inputDevice));
 }
@@ -6361,7 +6646,7 @@ VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int playerID = GET_ARG(0, GetInteger);
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     return INTEGER_VAL(InputManager::GetPlayerControllerIndex(playerID));
 }
 /***
@@ -6378,11 +6663,11 @@ VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
     if (!IS_NULL(args[1])) {
         controllerID = GET_ARG(1, GetInteger);
     }
-    CHECK_INPUT_PLAYER(playerID);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
     InputManager::SetPlayerControllerIndex(playerID, controllerID);
     return NULL_VAL;
 }
-#undef CHECK_INPUT_PLAYER
+#undef CHECK_INPUT_PLAYER_INDEX
 #undef CHECK_INPUT_DEVICE
 // #endregion
 
@@ -17304,8 +17589,18 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsAnyActionReleased);
     DEF_NATIVE(Input, GetActionBind);
     DEF_NATIVE(Input, SetActionBind);
+    DEF_NATIVE(Input, AddActionBind);
+    DEF_NATIVE(Input, RemoveActionBind);
+    DEF_NATIVE(Input, GetBoundActionList);
+    DEF_NATIVE(Input, GetBoundActionCount);
+    DEF_NATIVE(Input, GetBoundActionMap);
     DEF_NATIVE(Input, GetDefaultActionBind);
     DEF_NATIVE(Input, SetDefaultActionBind);
+    DEF_NATIVE(Input, AddDefaultActionBind);
+    DEF_NATIVE(Input, RemoveDefaultActionBind);
+    DEF_NATIVE(Input, GetDefaultBoundActionList);
+    DEF_NATIVE(Input, GetDefaultBoundActionCount);
+    DEF_NATIVE(Input, GetDefaultBoundActionMap);
     DEF_NATIVE(Input, ResetActionBindsToDefaults);
     DEF_NATIVE(Input, IsPlayerUsingDevice);
     DEF_NATIVE(Input, GetPlayerControllerIndex);
@@ -17321,6 +17616,27 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Controller input device.
     */
     DEF_ENUM(InputDevice_Controller);
+
+    /***
+    * \enum InputBind_Keyboard
+    * \desc Keyboard key input bind.
+    */
+    DEF_CONST_INT("InputBind_Keyboard", INPUT_BIND_KEYBOARD);
+    /***
+    * \enum InputBind_ControllerButton
+    * \desc Controller button input bind.
+    */
+    DEF_CONST_INT("InputBind_ControllerButton", INPUT_BIND_CONTROLLER_BUTTON);
+    /***
+    * \enum InputBind_ControllerAxis
+    * \desc Controller axis input bind.
+    */
+    DEF_CONST_INT("InputBind_ControllerAxis", INPUT_BIND_CONTROLLER_AXIS);
+    /***
+    * \constant NUM_INPUT_BIND_TYPES
+    * \desc Number of input bind types.
+    */
+    DEF_ENUM(NUM_INPUT_BIND_TYPES);
     // #endregion
 
     // #region Instance

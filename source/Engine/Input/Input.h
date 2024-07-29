@@ -193,82 +193,167 @@ enum InputDevice {
 #define KB_MODIFIER_NUM     64
 #define KB_MODIFIER_CAPS   128
 
-struct KeyboardBind {
+#define INPUT_BIND_KEYBOARD          0
+#define INPUT_BIND_CONTROLLER_BUTTON 1
+#define INPUT_BIND_CONTROLLER_AXIS   2
+#define NUM_INPUT_BIND_TYPES         3
+
+class InputBind {
+public:
+    Uint8 Type;
+
+    InputBind() {
+        Type = INPUT_BIND_KEYBOARD;
+    }
+
+    InputBind(Uint8 type) {
+        Type = type;
+    }
+
+    virtual void Clear() {}
+
+    virtual bool IsDefined() const = 0;
+
+    virtual InputBind* Clone() const = 0;
+};
+
+class KeyboardBind : public InputBind {
+public:
     int Key;
     Uint8 Modifiers;
 
-    KeyboardBind() {
+    KeyboardBind() : InputBind(INPUT_BIND_KEYBOARD) {
         Clear();
+    }
+
+    KeyboardBind(int key) : KeyboardBind() {
+        Key = key;
     }
 
     void Clear() {
         Key = -1;
         Modifiers = 0;
     }
+
+    bool IsDefined() const {
+        return Key != -1;
+    }
+
+    InputBind* Clone() const {
+        KeyboardBind* clone = new KeyboardBind(Key);
+        clone->Modifiers = Modifiers;
+        return static_cast<InputBind*>(clone);
+    }
 };
 
-struct ControllerBind {
+class ControllerButtonBind : public InputBind {
+public:
     int Button;
+
+    ControllerButtonBind() : InputBind(INPUT_BIND_CONTROLLER_BUTTON) {
+        Clear();
+    }
+
+    ControllerButtonBind(int button) : ControllerButtonBind() {
+        Button = button;
+    }
+
+    void Clear() {
+        Button = -1;
+    }
+
+    bool IsDefined() const {
+        return Button != -1;
+    }
+
+    InputBind* Clone() const {
+        ControllerButtonBind* clone = new ControllerButtonBind(Button);
+        return static_cast<InputBind*>(clone);
+    }
+};
+
+class ControllerAxisBind : public InputBind {
+public:
     int Axis;
     double AxisDeadzone;
     double AxisDigitalThreshold;
     bool IsAxisNegative;
 
-    ControllerBind() {
+    ControllerAxisBind() : InputBind(INPUT_BIND_CONTROLLER_AXIS) {
         Clear();
     }
 
+    ControllerAxisBind(int axis) : ControllerAxisBind() {
+        Axis = axis;
+    }
+
     void Clear() {
-        Button = -1;
         Axis = -1;
         AxisDeadzone = 0.0;
         AxisDigitalThreshold = DEFAULT_DIGITAL_AXIS_THRESHOLD;
         IsAxisNegative = false;
     }
+
+    bool IsDefined() const {
+        return Axis != -1;
+    }
+
+    InputBind* Clone() const {
+        ControllerAxisBind* clone = new ControllerAxisBind(Axis);
+        clone->AxisDeadzone = AxisDeadzone;
+        clone->AxisDigitalThreshold = AxisDigitalThreshold;
+        clone->IsAxisNegative = IsAxisNegative;
+        return static_cast<InputBind*>(clone);
+    }
 };
 
-struct PlayerInputStatus {
-    vector<bool> Held;
-    vector<bool> Pressed;
-    vector<bool> Released;
+#define INPUT_STATE_UNPUSHED 0
+#define INPUT_STATE_PRESSED  1
+#define INPUT_STATE_HELD     2
+#define INPUT_STATE_RELEASED 3
 
-    bool AnyHeld;
-    bool AnyPressed;
-    bool AnyReleased;
+struct PlayerInputStatus {
+    vector<Uint8> State;
+
+    Uint8 NumHeld;
+    Uint8 NumPressed;
+    Uint8 NumReleased;
 
     void SetNumActions(size_t num) {
-        size_t oldNum = Held.size();
+        size_t oldNum = State.size();
 
-        Pressed.resize(num);
-        Held.resize(num);
-        Released.resize(num);
+        State.resize(num);
 
         for (size_t i = oldNum; i < num; i++) {
-            Pressed[i] = Held[i] = Released[i] = false;
+            State[i] = INPUT_STATE_UNPUSHED;
         }
     }
 
     void Reset() {
-        AnyHeld = AnyPressed = AnyReleased = false;
+        NumHeld = NumPressed = NumReleased = 0;
 
-        for (size_t i = 0; i < Held.size(); i++) {
-            Pressed[i] = Held[i] = Released[i] = false;
+        for (size_t i = 0; i < State.size(); i++) {
+            State[i] = INPUT_STATE_UNPUSHED;
         }
     }
 };
 
 struct PlayerInputConfig {
-    struct KeyboardBind KeyboardBind;
-
-    struct ControllerBind ControllerBind;
+    std::vector<InputBind*> Binds;
 
     PlayerInputConfig() {
-        Clear();
+        Binds.clear();
     }
 
     void Clear() {
-        KeyboardBind.Clear();
-        ControllerBind.Clear();
+        for (size_t i = 0; i < Binds.size(); i++)
+            delete Binds[i];
+
+        Binds.clear();
+    }
+
+    ~PlayerInputConfig() {
+        Clear();
     }
 };
 

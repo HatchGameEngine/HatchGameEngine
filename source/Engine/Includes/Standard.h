@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <memory>
 #include <map>
 #include <deque>
 #include <stack>
