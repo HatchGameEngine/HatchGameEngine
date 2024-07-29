@@ -379,6 +379,7 @@
                     <li><a href="#Reference_functions_Draw_Text">Draw.Text</a></li>
                     <li><a href="#Reference_functions_Draw_TextWrapped">Draw.TextWrapped</a></li>
                     <li><a href="#Reference_functions_Draw_TextEllipsis">Draw.TextEllipsis</a></li>
+                    <li><a href="#Reference_functions_Draw_TextArray">Draw.TextArray</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTextureBlend">Draw.SetTextureBlend</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendMode">Draw.SetBlendMode</a></li>
@@ -1131,6 +1132,8 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
+                    <li><a href="#Reference_functions_Sprite_SetSpriteString">Sprite.SetSpriteString</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetStringWidth">Sprite.GetStringWidth</a></li>
                     <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
                     <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
                 </ul>
@@ -3344,6 +3347,25 @@
         <p id="Reference_functions_Draw_TextEllipsis">
         <h2 style="margin-bottom: 8px; color: red;">Draw.TextEllipsis</h2>
         <code>Draw.TextEllipsis()</code>
+        </p>
+        <p id="Reference_functions_Draw_TextArray">
+        <h2 style="margin-bottom: 8px;">Draw.TextArray</h2>
+        <code>Draw.TextArray(sprite, animation, x, y, string, startFrame, endFrame, align, spacing[, charOffsetsX, charOffsetsY])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a series of sprites based on a converted sprite string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The index of the loaded sprite to be used as text.</li>
+        <li>animation (Integer): The animation index.</li>
+        <li>x (Number): The X value to begin drawing.</li>
+        <li>y (Number): The Y value to begin drawing.</li>
+        <li>string (Array): The array containing frame indexes.</li>
+        <li>startFrame (Integer): The index to begin drawing.</li>
+        <li>endFrame (Integer): The index to end drawing.</li>
+        <li>align (Integer): The text alignment.</li>
+        <li>spacing (Integer): The space between drawn sprites.</li>
+        <li>charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.</li>
+        <li>charOffsetsY (Array): The Y offsets at which to draw per frame.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendColor">
         <h2 style="margin-bottom: 8px;">Draw.SetBlendColor</h2>
@@ -8286,6 +8308,30 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
+        <p id="Reference_functions_Sprite_SetSpriteString">
+        <h2 style="margin-bottom: 8px;">Sprite.SetSpriteString</h2>
+        <code>Sprite.SetSpriteString(sprite, animation, string)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>animation (Integer): The animation index containing frames with UTF-16 ID values.</li>
+        <li>string (String): The string to convert.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Sprite_GetStringWidth">
+        <h2 style="margin-bottom: 8px;">Sprite.GetStringWidth</h2>
+        <code>Sprite.GetStringWidth(sprite, animation, string, startIndex, spacing)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width (in pixels) of a converted sprite string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>animation (Integer): The animation index.</li>
+        <li>string (Array): The array containing frame indexes.</li>
+        <li>startIndex (Integer): Where to start checking the width.</li>
+        <li>spacing (Integer): The spacing (in pixels) between frames.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Sprite_MakePalettized">
         <h2 style="margin-bottom: 8px;">Sprite.MakePalettized</h2>
         <code>Sprite.MakePalettized(sprite, paletteIndex)</code>
@@ -8687,15 +8733,16 @@
         </p>
         <p id="Reference_functions_String_CharAt">
         <h2 style="margin-bottom: 8px;">String.CharAt</h2>
-        <code>String.CharAt(string, index)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the UTF8 value of the character at the specified index.</div>
+        <code>String.CharAt(string, index[, utf16])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the value of the character at the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>index (Integer):</li>
+        <li>string (String): The string containing the character.</li>
+        <li>index (Integer): The character index to check.</li>
+        <li>utf16 (Boolean): Whether to use UTF-16 encoding. Otherwise, UTF-8 encoding is used.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the UTF8 value as an Integer.</div>
+        <div style="font-size: 14px;">Returns the value as an Integer.</div>
         </p>
         <p id="Reference_functions_String_Length">
         <h2 style="margin-bottom: 8px;">String.Length</h2>
@@ -9636,7 +9683,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>703 out of 762 functions have descriptions. </p>
+        <p>706 out of 765 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

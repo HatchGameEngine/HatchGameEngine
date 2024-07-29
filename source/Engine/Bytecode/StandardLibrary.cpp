@@ -2391,6 +2391,27 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Draw
+static Uint16* UTF8toUTF16(const char* utf8String) {
+    size_t len = strlen(utf8String);
+    Uint16* utf16String = (Uint16*)malloc((len + 1) * sizeof(Uint16));
+    size_t i = 0, j = 0;
+    while (utf8String[i]) {
+        if ((utf8String[i] & 0x80) == 0) { // 1-byte
+            utf16String[j++] = utf8String[i];
+        }
+        else if ((utf8String[i] & 0xE0) == 0xC0) { // 2-byte
+            utf16String[j++] = ((utf8String[i] & 0x1F) << 6) | (utf8String[i + 1] & 0x3F);
+            i++;
+        }
+        else if ((utf8String[i] & 0xF0) == 0xE0) { // 3-byte
+            utf16String[j++] = ((utf8String[i] & 0x0F) << 12) | ((utf8String[i + 1] & 0x3F) << 6) | (utf8String[i + 2] & 0x3F);
+            i += 2;
+        }
+        i++;
+    }
+    utf16String[j] = 0;
+    return utf16String;
+}
 /***
  * Draw.Sprite
  * \desc Draws a sprite.
@@ -3505,7 +3526,115 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
     // Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
     return NULL_VAL;
 }
+/***
+ * Draw.TextArray
+ * \desc Draws a series of sprites based on a converted sprite string.
+ * \param sprite (Integer): The index of the loaded sprite to be used as text.
+ * \param animation (Integer): The animation index.
+ * \param x (Number): The X value to begin drawing.
+ * \param y (Number): The Y value to begin drawing.
+ * \param string (Array): The array containing frame indexes.
+ * \param startFrame (Integer): The index to begin drawing.
+ * \param endFrame (Integer): The index to end drawing.
+ * \param align (Integer): The text alignment.
+ * \param spacing (Integer): The space between drawn sprites.
+ * \paramOpt charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.
+ * \paramOpt charOffsetsY (Array): The Y offsets at which to draw per frame.
+ * \ns Draw
+ */
+VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(9);
+    if (ScriptManager::Lock()) {
+        ISprite* sprite         = GET_ARG(0, GetSprite);
+        int animation           = GET_ARG(1, GetInteger);
+        float x                 = GET_ARG(2, GetDecimal);
+        float y                 = GET_ARG(3, GetDecimal);
+        ObjArray* string        = GET_ARG(4, GetArray);
+        int startFrame          = GET_ARG(5, GetInteger);
+        int endFrame            = GET_ARG(6, GetInteger);
+        int align               = GET_ARG(7, GetInteger);
+        int spacing             = GET_ARG(8, GetInteger);
+        ObjArray* charOffsetsX  = GET_ARG_OPT(9, GetArray, NewArray());
+        ObjArray* charOffsetsY  = GET_ARG_OPT(10, GetArray, NewArray());
 
+        if (sprite && string->Values) {
+            startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
+
+            if (endFrame <= 0 || endFrame > (int)string->Values->size())
+                endFrame = (int)string->Values->size();
+
+            int charOffsetIndex = 0;
+            switch (align) {
+                case 0: // ALIGN_LEFT
+                    if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+                        for (; startFrame < endFrame; ++startFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[startFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite,
+                                    animation,
+                                    curChar,
+                                    x + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+                                    y + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+                                    false, false, 1.0f, 1.0f, 0.0f);
+                                x += spacing + frame.Width;
+                                ++charOffsetIndex;
+                            }
+                        }
+                    }
+                    else {
+                        for (; startFrame < endFrame; ++startFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[startFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+                                x += spacing + frame.Width;
+                            }
+                        }
+                    }
+                    break;
+
+                case 1: // ALIGN_RIGHT
+                    break;
+
+                case 2: // ALIGN_CENTER
+                    --endFrame;
+                    if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+                        charOffsetIndex = endFrame;
+                        for (; endFrame >= startFrame; --endFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[endFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite,
+                                    animation,
+                                    curChar,
+                                    x  - (frame.Width / 2) + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+                                    y + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+                                    false, false, 1.0f, 1.0f, 0.0f);
+                                x = (x - frame.Width) - spacing;
+                                --charOffsetIndex;
+                            }
+                        }
+                    }
+                    else {
+                        for (; endFrame >= startFrame; --endFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[endFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
+                                x = (x - frame.Width) - spacing;
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+
+        ScriptManager::Unlock();
+        return NULL_VAL;
+    }
+    return NULL_VAL;
+}
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
@@ -12864,8 +12993,8 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
         CollisionBox box = frame.Boxes[hitboxID];
         ObjArray* hitbox = NewArray();
-        hitbox->Values->push_back(INTEGER_VAL(box.Top));
         hitbox->Values->push_back(INTEGER_VAL(box.Left));
+        hitbox->Values->push_back(INTEGER_VAL(box.Top));
         hitbox->Values->push_back(INTEGER_VAL(box.Right));
         hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
         return OBJECT_VAL(hitbox);
@@ -12873,6 +13002,108 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
     else {
         return OBJECT_VAL(array);
     }
+}
+/***
+ * Sprite.SetSpriteString
+ * \desc Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index containing frames with UTF-16 ID values.
+ * \param string (String): The string to convert.
+ * \ns Sprite
+ */
+VMValue Sprite_SetSpriteString(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(3);
+    ISprite* sprite = GET_ARG(0, GetSprite);
+    int animation = GET_ARG(1, GetInteger);
+    char* string = GET_ARG(2, GetString);
+
+    ObjArray* spriteString = NewArray();
+
+    if (!sprite || !string)
+        return OBJECT_VAL(spriteString);
+
+    Uint16* utf16String = UTF8toUTF16(string);
+
+    if (utf16String == NULL) {
+        // Handle UTF-16 conversion failure, if needed
+        return OBJECT_VAL(spriteString);
+    }
+
+    if (animation >= 0 && animation < (int)sprite->Animations.size()) {
+        for (size_t index = 0; utf16String[index] != 0; ++index) {
+            Uint16 unicodeChar = utf16String[index];
+
+            bool found = false;
+            for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
+                if (sprite->Animations[animation].Frames[f].Advance == (int)unicodeChar) {
+                    spriteString->Values->push_back(INTEGER_VAL(f));
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                spriteString->Values->push_back(INTEGER_VAL(-1));
+        }
+    }
+
+    free(utf16String);
+    return OBJECT_VAL(spriteString);
+}
+/***
+ * Sprite.GetStringWidth
+ * \desc Gets the width (in pixels) of a converted sprite string.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index.
+ * \param string (Array): The array containing frame indexes.
+ * \param startIndex (Integer): Where to start checking the width.
+ * \param spacing (Integer): The spacing (in pixels) between frames.
+ * \ns Sprite
+ */
+VMValue Sprite_GetStringWidth(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(6);
+    
+    if (ScriptManager::Lock()) {
+        ISprite* sprite     = GET_ARG(0, GetSprite);
+        int animation       = GET_ARG(1, GetInteger);
+        ObjArray* string    = GET_ARG(2, GetArray);
+        int startIndex      = GET_ARG(3, GetInteger);
+        int length          = GET_ARG(4, GetInteger);
+        int spacing         = GET_ARG(5, GetInteger);
+
+        if (!sprite || !string->Values) {
+            ScriptManager::Unlock();
+            return INTEGER_VAL(0);
+        }
+        
+        if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
+            Animation anim = sprite->Animations[animation];
+
+            startIndex = (int)Math::Clamp(startIndex, 0, (int)string->Values->size() - 1);
+
+            if (length <= 0 || length > (int)string->Values->size())
+                length = (int)string->Values->size();
+
+            int w = 0;
+            for (int c = startIndex; c < length; c++) {
+                int charFrame = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[c]));
+                if (charFrame  < anim.Frames.size()) {
+                    w += anim.Frames[charFrame].Width;
+                    if (c + 1 >= length) {
+                        ScriptManager::Unlock();
+                        return INTEGER_VAL(w);
+                    }
+
+                    w += spacing;
+                }
+            }
+
+            ScriptManager::Unlock();
+            return INTEGER_VAL(w);
+        }
+        
+    }
+    return INTEGER_VAL(0);
 }
 /***
  * Sprite.MakePalettized
@@ -13485,17 +13716,28 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.CharAt
- * \desc Gets the UTF8 value of the character at the specified index.
- * \param string (String):
- * \param index (Integer):
- * \return Returns the UTF8 value as an Integer.
+ * \desc Gets the value of the character at the specified index.
+ * \param string (String): The string containing the character.
+ * \param index (Integer): The character index to check.
+ * \paramOpt utf16 (Boolean): Whether to use UTF-16 encoding. Otherwise, UTF-8 encoding is used.
+ * \return Returns the value as an Integer.
  * \ns String
  */
 VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
+    CHECK_AT_LEAST_ARGCOUNT(2);
     char* string = GET_ARG(0, GetString);
-    int   n = GET_ARG(1, GetInteger);
-    return INTEGER_VAL((Uint8)string[n]);
+    int n = GET_ARG(1, GetInteger);
+    int utf16 = GET_ARG_OPT(2, GetInteger, 0);
+
+    if (utf16) {
+        Uint16* utf16String = UTF8toUTF16(string);
+        Uint16 utf16Char = utf16String[n];
+        free(utf16String);
+        return INTEGER_VAL(utf16Char);
+    }
+    else {
+        return INTEGER_VAL((Uint8)string[n]);
+    }
 }
 /***
  * String.Length
@@ -16024,6 +16266,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw, Text);
     DEF_NATIVE(Draw, TextWrapped);
     DEF_NATIVE(Draw, TextEllipsis);
+    DEF_NATIVE(Draw, TextArray);
     DEF_NATIVE(Draw, SetBlendColor);
     DEF_NATIVE(Draw, SetTextureBlend);
     DEF_NATIVE(Draw, SetBlendMode);
@@ -17232,6 +17475,8 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Sprite, GetFrameOffsetX);
     DEF_NATIVE(Sprite, GetFrameOffsetY);
     DEF_NATIVE(Sprite, GetHitbox);
+    DEF_NATIVE(Sprite, SetSpriteString);
+    DEF_NATIVE(Sprite, GetStringWidth);
     DEF_NATIVE(Sprite, MakePalettized);
     DEF_NATIVE(Sprite, MakeNonPalettized);
     // #endregion
