@@ -46,6 +46,8 @@ public:
 
     static bool        DevMenuActivated;
     static int         ReservedSlotIDs;
+
+    static bool        DevShowHitboxes;
 };
 #endif
 
@@ -139,6 +141,8 @@ int         Application::StartSceneNum = 0;
 
 bool        Application::DevMenuActivated = false;
 int         Application::ReservedSlotIDs = 0;
+
+bool        Application::DevShowHitboxes = false;
 
 char    StartingScene[256];
 
@@ -499,6 +503,7 @@ PUBLIC STATIC void Application::UpdateWindowTitle() {
     if (Stepper) {
         ADD_TEXT("Frame Stepper ON");
     }
+
 #undef ADD_TEXT
 
     if (paren)
@@ -619,6 +624,7 @@ PRIVATE STATIC void Application::LoadKeyBinds() {
     GET_KEY("devShowTileCol",        DevTileCol,       Key_F7);
     GET_KEY("devShowObjectRegions",  DevObjectRegions, Key_F8);
     GET_KEY("devQuit",               DevQuit,          Key_ESCAPE);
+    GET_KEY("devShowHitboxes",       DevShowHitboxes,  Key_F11);
 
 #undef GET_KEY
 }
@@ -798,6 +804,11 @@ PRIVATE STATIC void Application::PollEvents() {
                         Stepper = true;
                         Step = true;
                         MetricFrameCounterTime++;
+                        Application::UpdateWindowTitle();
+                        break;
+                    }
+                    else if (key == KeyBindsSDL[(int)KeyBind::DevShowHitboxes]) {
+                        Application::DevShowHitboxes = !Application::DevShowHitboxes;
                         Application::UpdateWindowTitle();
                         break;
                     }

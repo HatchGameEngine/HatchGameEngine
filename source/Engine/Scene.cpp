@@ -127,7 +127,6 @@ public:
     static int                       FloorAngleTolerance;
     static int                       WallAngleTolerance;
     static int                       RoofAngleTolerance;
-    static bool                      ShowHitboxes;
     static int                       DebugHitboxCount;
     static DebugHitboxInfo           DebugHitboxList[DEBUG_HITBOX_COUNT];
 };
@@ -286,7 +285,6 @@ float                       Scene::HighCollisionTolerance = 14.0;
 int                         Scene::FloorAngleTolerance = 0x20;
 int                         Scene::WallAngleTolerance = 0x20;
 int                         Scene::RoofAngleTolerance = 0x20;
-bool                        Scene::ShowHitboxes = false;
 int                         Scene::DebugHitboxCount = 0;
 DebugHitboxInfo             Scene::DebugHitboxList[DEBUG_HITBOX_COUNT];
 
@@ -739,6 +737,8 @@ PUBLIC STATIC void Scene::ResetPerf() {
     }
 }
 PUBLIC STATIC void Scene::Update() {
+    DebugHitboxCount = 0;
+
     // Animate tiles
     Scene::RunTileAnimations();
 
@@ -1150,6 +1150,96 @@ DoCheckRender:
         }
         Graphics::TextureBlend = texBlend;
     }
+
+    if (Application::DevShowHitboxes) {
+        bool storeBlend = Graphics::TextureBlend;
+        Graphics::TextureBlend = true;
+        for (int i = 0; i < DebugHitboxCount; ++i) {
+            DebugHitboxInfo* info = &DebugHitboxList[i];
+            int x = info->x + info->hitbox.Left;
+            int y = info->y + info->hitbox.Top;
+            int w = abs((info->x + info->hitbox.Right) - x);
+            int h = abs((info->y + info->hitbox.Bottom) - y);
+
+            switch (info->type) {
+            case H_TYPE_TOUCH: {
+                int hex = info->collision ? 0x808000 : 0xFF0000;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+                break;
+            }
+
+            case H_TYPE_CIRCLE: {
+                int hex = info->collision ? 0x808000 : 0xFF0000;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillCircle(info->x, info->y, info->hitbox.Left);
+                break;
+            }
+
+            case H_TYPE_BOX: {
+                int hex = 0x0000FF;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+
+                hex = 0xFFFF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                if (info->collision & 1)
+                    Graphics::FillRectangle(x, y, w, 1);
+
+                if (info->collision & 8)
+                    Graphics::FillRectangle(x, y + h, w, 1);
+
+                if (info->collision & 2) {
+                    int sy = y;
+                    int sh = h;
+
+                    if (info->collision & 1) {
+                        sy += 1;
+                        sh -= 1;
+                    }
+
+                    if (info->collision * 8)
+                        sh -= 1;
+
+                    Graphics::FillRectangle(x, sy, 1, sh);
+                }
+
+                if (info->collision & 4) {
+                    int sy = y;
+                    int sh = h;
+
+                    if (info->collision & 1) {
+                        sy += 1;
+                        sh -= 1;
+                    }
+
+                    if (info->collision * 8)
+                        sh -= 1;
+
+                    Graphics::FillRectangle(x + w, sy, 1, sh);
+                }
+                break;
+            }
+
+            case H_TYPE_PLAT: {
+                int hex = 0x00FF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+
+                hex = 0xFFFF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                if (info->collision & 1)
+                    Graphics::FillRectangle(x, y, w, 1);
+
+                if (info->collision * 8)
+                    Graphics::FillRectangle(x, y + h, w, 1);
+                break;
+            }
+            }
+        }
+        Graphics::TextureBlend = storeBlend;
+    }
+
     if (viewPerf)
         viewPerf->ObjectRenderTime = objectTimeTotal;
 
@@ -3016,7 +3106,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionTouch(Entity* thisEntity, Collisio
         otherHitbox->Bottom = store;
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_TOUCH, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_TOUCH, thisEntity->Direction, otherEntity, otherHitbox);
 
@@ -3034,7 +3124,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionCircle(Entity* thisEntity, float t
     float y = thisEntity->Y - otherEntity->Y;
     float r = thisRadius + otherRadius;
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         bool collided = x * x + y * y < r * r;
         CollisionBox thisHitbox;
         CollisionBox otherHitbox;
@@ -3234,7 +3324,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionBox(Entity* thisEntity, CollisionB
             }
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_BOX, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_BOX, thisEntity->Direction, otherEntity, otherHitbox);
 
@@ -3334,7 +3424,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, Colli
         otherHitbox->Bottom = store;
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_PLAT, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_PLAT, thisEntity->Direction, otherEntity, otherHitbox);
         if (otherEntity->TileCollisions == TILECOLLISION_UP) {

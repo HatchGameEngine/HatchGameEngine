@@ -68,6 +68,7 @@ enum class KeyBind {
     DevTileCol,
     DevObjectRegions,
     DevQuit,
+    DevShowHitboxes,
 
     Max
 };

@@ -676,8 +676,8 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
         CollisionBox box    = frame.Boxes[hitboxID];
         ObjArray* array     = NewArray();
-        array->Values->push_back(INTEGER_VAL(box.Top));
         array->Values->push_back(INTEGER_VAL(box.Left));
+        array->Values->push_back(INTEGER_VAL(box.Top));
         array->Values->push_back(INTEGER_VAL(box.Right));
         array->Values->push_back(INTEGER_VAL(box.Bottom));
         return OBJECT_VAL(array);
@@ -1756,8 +1756,8 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
     auto thisEnt = (Entity*)thisEntity->EntityPtr;
     auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-    CollisionBox thisBox;
-    CollisionBox otherBox;
+    CollisionBox thisBox = { 0, 0, 0, 0 };
+    CollisionBox otherBox = { 0, 0, 0, 0 };
 
     thisBox.Left = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[0]));
     thisBox.Top = AS_INTEGER(ScriptManager::CastValueAsInteger((*thisHitbox->Values)[1]));
