@@ -5783,7 +5783,7 @@ VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* key = GET_ARG(0, GetString);
     int parsed = InputManager::ParseKeyName(key);
-    if (parsed < 0)
+    if (parsed == Key_UNKNOWN)
         return NULL_VAL;
     return INTEGER_VAL(parsed);
 }
@@ -18526,117 +18526,637 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
+        /***
+        * \enum Key_UNKNOWN
+        * \type Integer
+        * \desc Invalid key.
+        */
         CONST_KEY(UNKNOWN);
+        /***
+        * \enum Key_A
+        * \type Integer
+        * \desc A key.
+        */
         CONST_KEY(A);
+        /***
+        * \enum Key_B
+        * \type Integer
+        * \desc B key.
+        */
         CONST_KEY(B);
+        /***
+        * \enum Key_C
+        * \type Integer
+        * \desc C key.
+        */
         CONST_KEY(C);
+        /***
+        * \enum Key_D
+        * \type Integer
+        * \desc D key.
+        */
         CONST_KEY(D);
+        /***
+        * \enum Key_E
+        * \type Integer
+        * \desc E key.
+        */
         CONST_KEY(E);
+        /***
+        * \enum Key_F
+        * \type Integer
+        * \desc F key.
+        */
         CONST_KEY(F);
+        /***
+        * \enum Key_G
+        * \type Integer
+        * \desc G key.
+        */
         CONST_KEY(G);
+        /***
+        * \enum Key_H
+        * \type Integer
+        * \desc H key.
+        */
         CONST_KEY(H);
+        /***
+        * \enum Key_I
+        * \type Integer
+        * \desc I key.
+        */
         CONST_KEY(I);
+        /***
+        * \enum Key_J
+        * \type Integer
+        * \desc J key.
+        */
         CONST_KEY(J);
+        /***
+        * \enum Key_K
+        * \type Integer
+        * \desc K key.
+        */
         CONST_KEY(K);
+        /***
+        * \enum Key_L
+        * \type Integer
+        * \desc L key.
+        */
         CONST_KEY(L);
+        /***
+        * \enum Key_M
+        * \type Integer
+        * \desc M key.
+        */
         CONST_KEY(M);
+        /***
+        * \enum Key_N
+        * \type Integer
+        * \desc N key.
+        */
         CONST_KEY(N);
+        /***
+        * \enum Key_O
+        * \type Integer
+        * \desc O key.
+        */
         CONST_KEY(O);
+        /***
+        * \enum Key_P
+        * \type Integer
+        * \desc P key.
+        */
         CONST_KEY(P);
+        /***
+        * \enum Key_Q
+        * \type Integer
+        * \desc Q key.
+        */
         CONST_KEY(Q);
+        /***
+        * \enum Key_R
+        * \type Integer
+        * \desc R key.
+        */
         CONST_KEY(R);
+        /***
+        * \enum Key_S
+        * \type Integer
+        * \desc S key.
+        */
         CONST_KEY(S);
+        /***
+        * \enum Key_T
+        * \type Integer
+        * \desc T key.
+        */
         CONST_KEY(T);
+        /***
+        * \enum Key_U
+        * \type Integer
+        * \desc U key.
+        */
         CONST_KEY(U);
+        /***
+        * \enum Key_V
+        * \type Integer
+        * \desc V key.
+        */
         CONST_KEY(V);
+        /***
+        * \enum Key_W
+        * \type Integer
+        * \desc W key.
+        */
         CONST_KEY(W);
+        /***
+        * \enum Key_X
+        * \type Integer
+        * \desc X key.
+        */
         CONST_KEY(X);
+        /***
+        * \enum Key_Y
+        * \type Integer
+        * \desc Y key.
+        */
         CONST_KEY(Y);
+        /***
+        * \enum Key_Z
+        * \type Integer
+        * \desc Z key.
+        */
         CONST_KEY(Z);
 
+        /***
+        * \enum Key_1
+        * \type Integer
+        * \desc Number 1 key.
+        */
         CONST_KEY(1);
+        /***
+        * \enum Key_2
+        * \type Integer
+        * \desc Number 2 key.
+        */
         CONST_KEY(2);
+        /***
+        * \enum Key_3
+        * \type Integer
+        * \desc Number 3 key.
+        */
         CONST_KEY(3);
+        /***
+        * \enum Key_4
+        * \type Integer
+        * \desc Number 4 key.
+        */
         CONST_KEY(4);
+        /***
+        * \enum Key_5
+        * \type Integer
+        * \desc Number 5 key.
+        */
         CONST_KEY(5);
+        /***
+        * \enum Key_6
+        * \type Integer
+        * \desc Number 6 key.
+        */
         CONST_KEY(6);
+        /***
+        * \enum Key_7
+        * \type Integer
+        * \desc Number 7 key.
+        */
         CONST_KEY(7);
+        /***
+        * \enum Key_8
+        * \type Integer
+        * \desc Number 8 key.
+        */
         CONST_KEY(8);
+        /***
+        * \enum Key_9
+        * \type Integer
+        * \desc Number 9 key.
+        */
         CONST_KEY(9);
+        /***
+        * \enum Key_0
+        * \type Integer
+        * \desc Number 0 key.
+        */
         CONST_KEY(0);
 
+        /***
+        * \enum Key_RETURN
+        * \type Integer
+        * \desc Return key.
+        */
         CONST_KEY(RETURN);
+        /***
+        * \enum Key_ESCAPE
+        * \type Integer
+        * \desc Escape key.
+        */
         CONST_KEY(ESCAPE);
+        /***
+        * \enum Key_BACKSPACE
+        * \type Integer
+        * \desc Backspace key.
+        */
         CONST_KEY(BACKSPACE);
+        /***
+        * \enum Key_TAB
+        * \type Integer
+        * \desc Tab key.
+        */
         CONST_KEY(TAB);
+        /***
+        * \enum Key_SPACE
+        * \type Integer
+        * \desc Space Bar key.
+        */
         CONST_KEY(SPACE);
 
+        /***
+        * \enum Key_MINUS
+        * \type Integer
+        * \desc Minus key.
+        */
         CONST_KEY(MINUS);
+        /***
+        * \enum Key_EQUALS
+        * \type Integer
+        * \desc Equals key.
+        */
         CONST_KEY(EQUALS);
+        /***
+        * \enum Key_LEFTBRACKET
+        * \type Integer
+        * \desc Left Bracket key.
+        */
         CONST_KEY(LEFTBRACKET);
+        /***
+        * \enum Key_RIGHTBRACKET
+        * \type Integer
+        * \desc Right Bracket key.
+        */
         CONST_KEY(RIGHTBRACKET);
+        /***
+        * \enum Key_BACKSLASH
+        * \type Integer
+        * \desc Backslash key.
+        */
         CONST_KEY(BACKSLASH);
+        /***
+        * \enum Key_SEMICOLON
+        * \type Integer
+        * \desc Semicolon key.
+        */
         CONST_KEY(SEMICOLON);
+        /***
+        * \enum Key_APOSTROPHE
+        * \type Integer
+        * \desc Apostrophe key.
+        */
         CONST_KEY(APOSTROPHE);
+        /***
+        * \enum Key_GRAVE
+        * \type Integer
+        * \desc Grave key.
+        */
         CONST_KEY(GRAVE);
+        /***
+        * \enum Key_COMMA
+        * \type Integer
+        * \desc Comma key.
+        */
         CONST_KEY(COMMA);
+        /***
+        * \enum Key_PERIOD
+        * \type Integer
+        * \desc Period key.
+        */
         CONST_KEY(PERIOD);
+        /***
+        * \enum Key_SLASH
+        * \type Integer
+        * \desc SLASH key.
+        */
         CONST_KEY(SLASH);
 
+        /***
+        * \enum Key_CAPSLOCK
+        * \type Integer
+        * \desc Caps Lock key.
+        */
         CONST_KEY(CAPSLOCK);
 
+        /***
+        * \enum Key_F1
+        * \type Integer
+        * \desc F1 key.
+        */
         CONST_KEY(F1);
+        /***
+        * \enum Key_F2
+        * \type Integer
+        * \desc F2 key.
+        */
         CONST_KEY(F2);
+        /***
+        * \enum Key_F3
+        * \type Integer
+        * \desc F3 key.
+        */
         CONST_KEY(F3);
+        /***
+        * \enum Key_F4
+        * \type Integer
+        * \desc F4 key.
+        */
         CONST_KEY(F4);
+        /***
+        * \enum Key_F5
+        * \type Integer
+        * \desc F5 key.
+        */
         CONST_KEY(F5);
+        /***
+        * \enum Key_F6
+        * \type Integer
+        * \desc F6 key.
+        */
         CONST_KEY(F6);
+        /***
+        * \enum Key_F7
+        * \type Integer
+        * \desc F7 key.
+        */
         CONST_KEY(F7);
+        /***
+        * \enum Key_F8
+        * \type Integer
+        * \desc F8 key.
+        */
         CONST_KEY(F8);
+        /***
+        * \enum Key_F9
+        * \type Integer
+        * \desc F9 key.
+        */
         CONST_KEY(F9);
+        /***
+        * \enum Key_F10
+        * \type Integer
+        * \desc F10 key.
+        */
         CONST_KEY(F10);
+        /***
+        * \enum Key_F11
+        * \type Integer
+        * \desc F11 key.
+        */
         CONST_KEY(F11);
+        /***
+        * \enum Key_F12
+        * \type Integer
+        * \desc F12 key.
+        */
         CONST_KEY(F12);
 
+        /***
+        * \enum Key_PRINTSCREEN
+        * \type Integer
+        * \desc Print Screen key.
+        */
         CONST_KEY(PRINTSCREEN);
+        /***
+        * \enum Key_SCROLLLOCK
+        * \type Integer
+        * \desc Scroll Lock key.
+        */
         CONST_KEY(SCROLLLOCK);
+        /***
+        * \enum Key_PAUSE
+        * \type Integer
+        * \desc Pause/Break key.
+        */
         CONST_KEY(PAUSE);
+        /***
+        * \enum Key_INSERT
+        * \type Integer
+        * \desc Insert key.
+        */
         CONST_KEY(INSERT);
+        /***
+        * \enum Key_HOME
+        * \type Integer
+        * \desc Home key.
+        */
         CONST_KEY(HOME);
+        /***
+        * \enum Key_PAGEUP
+        * \type Integer
+        * \desc Page Up key.
+        */
         CONST_KEY(PAGEUP);
+        /***
+        * \enum Key_DELETE
+        * \type Integer
+        * \desc Delete key.
+        */
         CONST_KEY(DELETE);
+        /***
+        * \enum Key_END
+        * \type Integer
+        * \desc End key.
+        */
         CONST_KEY(END);
+        /***
+        * \enum Key_PAGEDOWN
+        * \type Integer
+        * \desc Page Down key.
+        */
         CONST_KEY(PAGEDOWN);
+        /***
+        * \enum Key_RIGHT
+        * \type Integer
+        * \desc Arrow Right key.
+        */
         CONST_KEY(RIGHT);
+        /***
+        * \enum Key_LEFT
+        * \type Integer
+        * \desc Arrow Left key.
+        */
         CONST_KEY(LEFT);
+        /***
+        * \enum Key_DOWN
+        * \type Integer
+        * \desc Arrow Down key.
+        */
         CONST_KEY(DOWN);
+        /***
+        * \enum Key_UP
+        * \type Integer
+        * \desc Arrow Up key.
+        */
         CONST_KEY(UP);
 
+        /***
+        * \enum Key_NUMLOCKCLEAR
+        * \type Integer
+        * \desc Num Clear key.
+        */
         CONST_KEY(NUMLOCKCLEAR);
+        /***
+        * \enum Key_KP_DIVIDE
+        * \type Integer
+        * \desc Keypad Divide key.
+        */
         CONST_KEY(KP_DIVIDE);
+        /***
+        * \enum Key_KP_MULTIPLY
+        * \type Integer
+        * \desc Keypad Multiply key.
+        */
         CONST_KEY(KP_MULTIPLY);
+        /***
+        * \enum Key_KP_MINUS
+        * \type Integer
+        * \desc Keypad Minus key.
+        */
         CONST_KEY(KP_MINUS);
+        /***
+        * \enum Key_KP_PLUS
+        * \type Integer
+        * \desc Keypad Plus key.
+        */
         CONST_KEY(KP_PLUS);
+        /***
+        * \enum Key_KP_ENTER
+        * \type Integer
+        * \desc Keypad Enter key.
+        */
         CONST_KEY(KP_ENTER);
+        /***
+        * \enum Key_KP_1
+        * \type Integer
+        * \desc Keypad 1 key.
+        */
         CONST_KEY(KP_1);
+        /***
+        * \enum Key_KP_2
+        * \type Integer
+        * \desc Keypad 2 key.
+        */
         CONST_KEY(KP_2);
+        /***
+        * \enum Key_KP_3
+        * \type Integer
+        * \desc Keypad 3 key.
+        */
         CONST_KEY(KP_3);
+        /***
+        * \enum Key_KP_4
+        * \type Integer
+        * \desc Keypad 4 key.
+        */
         CONST_KEY(KP_4);
+        /***
+        * \enum Key_KP_5
+        * \type Integer
+        * \desc Keypad 5 key.
+        */
         CONST_KEY(KP_5);
+        /***
+        * \enum Key_KP_6
+        * \type Integer
+        * \desc Keypad 6 key.
+        */
         CONST_KEY(KP_6);
+        /***
+        * \enum Key_KP_7
+        * \type Integer
+        * \desc Keypad 7 key.
+        */
         CONST_KEY(KP_7);
+        /***
+        * \enum Key_KP_8
+        * \type Integer
+        * \desc Keypad 8 key.
+        */
         CONST_KEY(KP_8);
+        /***
+        * \enum Key_KP_9
+        * \type Integer
+        * \desc Keypad 9 key.
+        */
         CONST_KEY(KP_9);
+        /***
+        * \enum Key_KP_0
+        * \type Integer
+        * \desc Keypad 0 key.
+        */
         CONST_KEY(KP_0);
+        /***
+        * \enum Key_KP_PERIOD
+        * \type Integer
+        * \desc Keypad Period key.
+        */
         CONST_KEY(KP_PERIOD);
 
+        /***
+        * \enum Key_LCTRL
+        * \type Integer
+        * \desc Left Ctrl key.
+        */
         CONST_KEY(LCTRL);
+        /***
+        * \enum Key_LSHIFT
+        * \type Integer
+        * \desc Left Shift key.
+        */
         CONST_KEY(LSHIFT);
+        /***
+        * \enum Key_LALT
+        * \type Integer
+        * \desc Left Alt key.
+        */
         CONST_KEY(LALT);
+        /***
+        * \enum Key_LGUI
+        * \type Integer
+        * \desc Left GUI key.
+        */
         CONST_KEY(LGUI);
+        /***
+        * \enum Key_RCTRL
+        * \type Integer
+        * \desc Right Ctrl key.
+        */
         CONST_KEY(RCTRL);
+        /***
+        * \enum Key_RSHIFT
+        * \type Integer
+        * \desc Right Shift key.
+        */
         CONST_KEY(RSHIFT);
+        /***
+        * \enum Key_RALT
+        * \type Integer
+        * \desc Right Alt key.
+        */
         CONST_KEY(RALT);
+        /***
+        * \enum Key_RGUI
+        * \type Integer
+        * \desc Right GUI key.
+        */
         CONST_KEY(RGUI);
     }
     #undef  CONST_KEY

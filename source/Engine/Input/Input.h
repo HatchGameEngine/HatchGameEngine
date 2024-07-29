@@ -234,12 +234,12 @@ public:
     }
 
     void Clear() {
-        Key = -1;
+        Key = Key_UNKNOWN;
         Modifiers = 0;
     }
 
     bool IsDefined() const {
-        return Key != -1;
+        return Key != Key_UNKNOWN;
     }
 
     InputBind* Clone() const {

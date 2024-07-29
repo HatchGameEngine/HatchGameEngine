@@ -1085,7 +1085,7 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
         if (XMLParser::MatchToken(child->name, "key")) {
             const char* keyName = child->children[0]->name.ToString().c_str();
             int key = ParseKeyName(keyName);
-            if (key != -1) {
+            if (key != Key_UNKNOWN) {
                 KeyboardBind* bind = new KeyboardBind(key);
 
                 if (child->attributes.Exists("modifiers")) {
