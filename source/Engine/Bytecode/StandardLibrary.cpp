@@ -18447,6 +18447,83 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_ENUM(MAX_PALETTE_COUNT);
 
+    /***
+    * \constant KeyMod_SHIFT
+    * \type Integer
+    * \desc Key modifier for either Shift key.
+    */
+    DEF_CONST_INT("KeyMod_SHIFT", KB_MODIFIER_SHIFT);
+
+    /***
+    * \constant KeyMod_CTRL
+    * \type Integer
+    * \desc Key modifier for either Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_CTRL", KB_MODIFIER_CTRL);
+
+    /***
+    * \constant KeyMod_ALT
+    * \type Integer
+    * \desc Key modifier for either Alt key.
+    */
+    DEF_CONST_INT("KeyMod_ALT", KB_MODIFIER_ALT);
+
+    /***
+    * \constant KeyMod_LSHIFT
+    * \type Integer
+    * \desc Key modifier for the Left Shift key.
+    */
+    DEF_CONST_INT("KeyMod_LSHIFT", KB_MODIFIER_LSHIFT);
+
+    /***
+    * \constant KeyMod_RSHIFT
+    * \type Integer
+    * \desc Key modifier for the Right Shift key.
+    */
+    DEF_CONST_INT("KeyMod_RSHIFT", KB_MODIFIER_RSHIFT);
+
+    /***
+    * \constant KeyMod_LCTRL
+    * \type Integer
+    * \desc Key modifier for the Left Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_LCTRL", KB_MODIFIER_LCTRL);
+
+    /***
+    * \constant KeyMod_RCTRL
+    * \type Integer
+    * \desc Key modifier for the Right Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_RCTRL", KB_MODIFIER_RCTRL);
+
+    /***
+    * \constant KeyMod_LALT
+    * \type Integer
+    * \desc Key modifier for the Left Alt key.
+    */
+    DEF_CONST_INT("KeyMod_LALT", KB_MODIFIER_LALT);
+
+    /***
+    * \constant KeyMod_RALT
+    * \type Integer
+    * \desc Key modifier for the Right Alt key.
+    */
+    DEF_CONST_INT("KeyMod_RALT", KB_MODIFIER_RALT);
+
+    /***
+    * \constant KeyMod_NUMLOCK
+    * \type Integer
+    * \desc Key modifier for the Num Lock key.
+    */
+    DEF_CONST_INT("KeyMod_NUMLOCK", KB_MODIFIER_NUM);
+
+    /***
+    * \constant KeyMod_CAPSLOCK
+    * \type Integer
+    * \desc Key modifier for the Caps Lock key.
+    */
+    DEF_CONST_INT("KeyMod_CAPSLOCK", KB_MODIFIER_CAPS);
+
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
         CONST_KEY(UNKNOWN);

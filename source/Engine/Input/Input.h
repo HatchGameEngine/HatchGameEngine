@@ -184,14 +184,17 @@ enum InputDevice {
     InputDevice_MAX
 };
 
-#define KB_MODIFIER_LSHIFT   1
-#define KB_MODIFIER_RSHIFT   2
-#define KB_MODIFIER_LCTRL    4
-#define KB_MODIFIER_RCTRL    8
-#define KB_MODIFIER_LALT    16
-#define KB_MODIFIER_RALT    32
-#define KB_MODIFIER_NUM     64
-#define KB_MODIFIER_CAPS   128
+#define KB_MODIFIER_SHIFT    1    // Either Shift key
+#define KB_MODIFIER_CTRL     2    // Either Ctrl key
+#define KB_MODIFIER_ALT      4    // Either Alt key
+#define KB_MODIFIER_LSHIFT   8    // Left Shift
+#define KB_MODIFIER_RSHIFT  16    // Right Shift
+#define KB_MODIFIER_LCTRL   32    // Left Ctrl
+#define KB_MODIFIER_RCTRL   64    // Right Ctrl
+#define KB_MODIFIER_LALT   128    // Left Alt
+#define KB_MODIFIER_RALT   256    // Right Alt
+#define KB_MODIFIER_NUM    512    // Num Lock
+#define KB_MODIFIER_CAPS  1024    // Caps Lock
 
 #define INPUT_BIND_KEYBOARD          0
 #define INPUT_BIND_CONTROLLER_BUTTON 1
@@ -220,7 +223,7 @@ public:
 class KeyboardBind : public InputBind {
 public:
     int Key;
-    Uint8 Modifiers;
+    Uint16 Modifiers;
 
     KeyboardBind() : InputBind(INPUT_BIND_KEYBOARD) {
         Clear();

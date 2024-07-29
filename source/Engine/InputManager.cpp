@@ -21,6 +21,7 @@ public:
 
     static Uint8               KeyboardState[0x120];
     static Uint8               KeyboardStateLast[0x120];
+    static Uint16              KeymodState;
     static SDL_Scancode        KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
     static int                 NumControllers;
@@ -36,6 +37,8 @@ public:
 
 #include <Engine/InputManager.h>
 
+#include <sstream>
+
 float               InputManager::MouseX = 0;
 float               InputManager::MouseY = 0;
 int                 InputManager::MouseDown = 0;
@@ -44,6 +47,7 @@ int                 InputManager::MouseReleased = 0;
 
 Uint8               InputManager::KeyboardState[0x120];
 Uint8               InputManager::KeyboardStateLast[0x120];
+Uint16              InputManager::KeymodState;
 SDL_Scancode        InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
 
 int                 InputManager::NumControllers;
@@ -54,6 +58,8 @@ void*               InputManager::TouchStates;
 
 vector<InputPlayer> InputManager::Players;
 vector<InputAction> InputManager::Actions;
+
+static std::map<std::string, Uint16> KeymodStrToFlags;
 
 struct TouchState {
     float X;
@@ -66,6 +72,8 @@ struct TouchState {
 PUBLIC STATIC void  InputManager::Init() {
     memset(KeyboardState, 0, NUM_KEYBOARD_KEYS);
     memset(KeyboardStateLast, 0, NUM_KEYBOARD_KEYS);
+
+    KeymodState = 0;
 
     InputManager::InitStringLookup();
     InputManager::InitControllers();
@@ -246,6 +254,18 @@ PRIVATE STATIC void InputManager::InitStringLookup() {
     DEF_AXIS(TRIGGERLEFT, TriggerLeft);
     DEF_AXIS(TRIGGERRIGHT, TriggerRight);
     #undef DEF_AXIS
+
+    KeymodStrToFlags.insert({ "shift",    KB_MODIFIER_SHIFT });
+    KeymodStrToFlags.insert({ "ctrl",     KB_MODIFIER_CTRL });
+    KeymodStrToFlags.insert({ "alt",      KB_MODIFIER_ALT });
+    KeymodStrToFlags.insert({ "lshift",   KB_MODIFIER_LSHIFT });
+    KeymodStrToFlags.insert({ "rshift",   KB_MODIFIER_RSHIFT });
+    KeymodStrToFlags.insert({ "lctrl",    KB_MODIFIER_LCTRL });
+    KeymodStrToFlags.insert({ "rctrl",    KB_MODIFIER_RCTRL });
+    KeymodStrToFlags.insert({ "lalt",     KB_MODIFIER_LALT });
+    KeymodStrToFlags.insert({ "ralt",     KB_MODIFIER_RALT });
+    KeymodStrToFlags.insert({ "numlock",  KB_MODIFIER_NUM });
+    KeymodStrToFlags.insert({ "capslock", KB_MODIFIER_CAPS });
 }
 
 PUBLIC STATIC char* InputManager::GetKeyName(int key) {
@@ -420,6 +440,27 @@ PUBLIC STATIC void  InputManager::Poll() {
     memcpy(KeyboardStateLast, KeyboardState, 0x11C + 1);
     memcpy(KeyboardState, state, 0x11C + 1);
 
+    SDL_Keymod sdlKeyMod = SDL_GetModState();
+
+    KeymodState = 0;
+
+    if (sdlKeyMod & KMOD_LSHIFT)
+        KeymodState |= KB_MODIFIER_LSHIFT | KB_MODIFIER_SHIFT;
+    if (sdlKeyMod & KMOD_RSHIFT)
+        KeymodState |= KB_MODIFIER_RSHIFT | KB_MODIFIER_SHIFT;
+    if (sdlKeyMod & KMOD_LCTRL)
+        KeymodState |= KB_MODIFIER_LCTRL | KB_MODIFIER_CTRL;
+    if (sdlKeyMod & KMOD_RCTRL)
+        KeymodState |= KB_MODIFIER_RCTRL | KB_MODIFIER_CTRL;
+    if (sdlKeyMod & KMOD_LALT)
+        KeymodState |= KB_MODIFIER_LALT | KB_MODIFIER_ALT;
+    if (sdlKeyMod & KMOD_RALT)
+        KeymodState |= KB_MODIFIER_RALT | KB_MODIFIER_ALT;
+    if (sdlKeyMod & KMOD_NUM)
+        KeymodState |= KB_MODIFIER_NUM;
+    if (sdlKeyMod & KMOD_CAPS)
+        KeymodState |= KB_MODIFIER_CAPS;
+
     int mx, my, buttons;
     buttons = SDL_GetMouseState(&mx, &my);
     MouseX = mx;
@@ -449,6 +490,10 @@ PUBLIC STATIC void  InputManager::Poll() {
 
     for (size_t i = 0; i < InputManager::Players.size(); i++)
         InputManager::Players[i].Update();
+}
+
+PUBLIC STATIC Uint16 InputManager::CheckKeyModifiers(Uint16 modifiers) {
+    return (KeymodState & modifiers) == modifiers;
 }
 
 PUBLIC STATIC bool  InputManager::IsKeyDown(int key) {
@@ -1007,6 +1052,32 @@ PRIVATE STATIC void InputManager::ParsePlayerControls(InputPlayer& player, XMLNo
     }
 }
 
+PRIVATE STATIC Uint16 InputManager::ParseKeyModifiers(string& str, string& actionName) {
+    Uint16 flags = 0;
+
+    std::stringstream strStream(str);
+    std::string token;
+    std::vector<std::string> result;
+
+    while (getline(strStream, token, ' ')) {
+        result.push_back(token);
+    }
+
+    for (int i = 0; i < result.size(); i++) {
+        token = result[i];
+
+        auto it = KeymodStrToFlags.find(token);
+        if (it != KeymodStrToFlags.end()) {
+            flags |= it->second;
+        }
+        else {
+            Log::Print(Log::LOG_ERROR, "Unknown key modifier \"%s\" for action \"%s\"!", token.c_str(), actionName.c_str());
+        }
+    }
+
+    return flags;
+}
+
 PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, int actionID, string& actionName, XMLNode* node) {
     for (size_t i = 0; i < node->children.size(); i++) {
         XMLNode* child = node->children[i];
@@ -1016,11 +1087,17 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
             int key = ParseKeyName(keyName);
             if (key != -1) {
                 KeyboardBind* bind = new KeyboardBind(key);
+
+                if (child->attributes.Exists("modifiers")) {
+                    std::string keymod = child->attributes.Get("modifiers").ToString();
+                    bind->Modifiers = ParseKeyModifiers(keymod, actionName);
+                }
+
                 if (player.AddDefaultBind(actionID, bind) < 0)
                     delete bind;
             }
             else {
-                Log::Print(Log::LOG_ERROR, "Unknown key \"%s\"! for action \"%s\"!", keyName, actionName.c_str());
+                Log::Print(Log::LOG_ERROR, "Unknown key \"%s\" for action \"%s\"!", keyName, actionName.c_str());
             }
         }
         else if (XMLParser::MatchToken(child->name, "button")) {
@@ -1032,7 +1109,7 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
                     delete bind;
             }
             else {
-                Log::Print(Log::LOG_ERROR, "Unknown controller button \"%s\"! for action \"%s\"!", buttonName, actionName.c_str());
+                Log::Print(Log::LOG_ERROR, "Unknown controller button \"%s\" for action \"%s\"!", buttonName, actionName.c_str());
             }
         }
         else if (XMLParser::MatchToken(child->name, "axis")) {
@@ -1045,7 +1122,7 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
                 axisID = ParseAxisName(axisName);
 
             if (axisID == -1) {
-                Log::Print(Log::LOG_ERROR, "Unknown controller axis \"%s\"! for action \"%s\"!", axisName, actionName.c_str());
+                Log::Print(Log::LOG_ERROR, "Unknown controller axis \"%s\" for action \"%s\"!", axisName, actionName.c_str());
                 continue;
             }
 

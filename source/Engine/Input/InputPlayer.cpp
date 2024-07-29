@@ -327,6 +327,12 @@ PUBLIC void InputPlayer::ResetBind(unsigned num) {
 PRIVATE bool InputPlayer::CheckInputBindState(InputBind* bind, bool held) {
     if (bind->IsDefined() && bind->Type == INPUT_BIND_KEYBOARD) {
         KeyboardBind* keyBind = static_cast<KeyboardBind*>(bind);
+
+        if (keyBind->Modifiers != 0) {
+            if (!InputManager::CheckKeyModifiers(keyBind->Modifiers))
+                return false;
+        }
+
         if (held)
             return InputManager::IsKeyDown(keyBind->Key);
         else
