@@ -5874,6 +5874,10 @@ VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
     CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5897,6 +5901,10 @@ VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
     CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5920,6 +5928,10 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
     char* actionName = GET_ARG(1, GetString);
     int actionID = InputManager::GetActionID(actionName);
     CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
     if (argCount >= 3) {
         int inputDevice = GET_ARG(2, GetInteger);
         CHECK_INPUT_DEVICE(inputDevice);
@@ -5987,6 +5999,26 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
     }
     else
         return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
+}
+/***
+ * Input.GetAnalogActionInput
+ * \desc Gets the analog value of a specific action.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \return Returns a Decimal value.
+ * \ns Input
+ */
+VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    return DECIMAL_VAL(InputManager::GetAnalogActionInput(playerID, actionID));
 }
 static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
     KeyboardBind* bind = new KeyboardBind();
@@ -6200,7 +6232,7 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6292,7 +6324,7 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6320,7 +6352,7 @@ VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6346,7 +6378,7 @@ VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6389,7 +6421,7 @@ VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6412,7 +6444,7 @@ VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) 
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6462,7 +6494,7 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6497,7 +6529,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6525,7 +6557,7 @@ VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6551,7 +6583,7 @@ VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 thread
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6579,7 +6611,7 @@ VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 thre
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -6602,7 +6634,7 @@ VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 thr
 
     int actionID = InputManager::GetActionID(actionName);
     if (actionID == -1) {
-        THROW_ERROR("Invalid input action \"%s\".", actionName);
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
         return NULL_VAL;
     }
 
@@ -17396,6 +17428,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsAnyActionHeld);
     DEF_NATIVE(Input, IsAnyActionPressed);
     DEF_NATIVE(Input, IsAnyActionReleased);
+    DEF_NATIVE(Input, GetAnalogActionInput);
     DEF_NATIVE(Input, GetActionBind);
     DEF_NATIVE(Input, SetActionBind);
     DEF_NATIVE(Input, AddActionBind);
