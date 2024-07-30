@@ -472,6 +472,22 @@ PRIVATE bool InputPlayer::IsControllerBindPressed(unsigned num) {
     return ControllerState[num] == INPUT_STATE_PRESSED;
 }
 
+static float ApplyAxisDeadzone(float magnitude, float deadzone) {
+    if (deadzone >= 1.0) {
+        if (magnitude < 1.0)
+            return 0.0;
+    }
+
+    float scale = (magnitude - deadzone) / (1.0 - deadzone);
+
+    if (scale < 0.0)
+        scale = 0.0;
+    else if (scale > 1.0)
+        scale = 1.0;
+
+    return magnitude * scale;
+}
+
 static bool CheckControllerBindHeld(PlayerInputConfig& config, Controller* controller) {
     if (controller == nullptr || !controller->Connected)
         return false;
@@ -484,11 +500,16 @@ static bool CheckControllerBindHeld(PlayerInputConfig& config, Controller* contr
         else if (bind->Type == INPUT_BIND_CONTROLLER_AXIS) {
             ControllerAxisBind* axisBind = static_cast<ControllerAxisBind*>(bind);
 
+            float magnitude = controller->GetAxis(axisBind->Axis);
+            if (axisBind->AxisDeadzone != 0.0) {
+                magnitude = ApplyAxisDeadzone(magnitude, axisBind->AxisDeadzone);
+            }
+
             if (axisBind->IsAxisNegative) {
-                if (controller->GetAxis(axisBind->Axis) < -axisBind->AxisDigitalThreshold)
+                if (magnitude < -axisBind->AxisDigitalThreshold)
                     return true;
             }
-            else if (controller->GetAxis(axisBind->Axis) > axisBind->AxisDigitalThreshold)
+            else if (magnitude > axisBind->AxisDigitalThreshold)
                 return true;
         }
         else if (bind->Type == INPUT_BIND_CONTROLLER_BUTTON) {
@@ -531,25 +552,12 @@ PRIVATE bool InputPlayer::GetAnalogControllerBind(unsigned num, float& result) {
             ControllerAxisBind* axisBind = static_cast<ControllerAxisBind*>(bind);
 
             float magnitude = controller->GetAxis(axisBind->Axis);
-
             if (axisBind->AxisDeadzone != 0.0) {
-                if (axisBind->AxisDeadzone == 1.0) {
-                    if (magnitude < 1.0)
-                        magnitude = 0.0;
-                }
-                else {
-                    float scale = (magnitude - axisBind->AxisDeadzone) / (1.0 - axisBind->AxisDeadzone);
-
-                    if (scale < 0.0)
-                        scale = 0.0;
-                    else if (scale > 1.0)
-                        scale = 1.0;
-
-                    magnitude *= scale;
-                }
+                result = ApplyAxisDeadzone(magnitude, axisBind->AxisDeadzone);
             }
-
-            result = magnitude;
+            else {
+                result = magnitude;
+            }
 
             return true;
         }
