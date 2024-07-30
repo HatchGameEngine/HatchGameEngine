@@ -810,7 +810,7 @@ PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID, unsigne
     return player.IsAnyInputReleased(device);
 }
 PUBLIC STATIC bool  InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
-    if (playerID >= Players.size() || device >= InputDevice_Controller)
+    if (playerID >= Players.size() || device >= InputDevice_MAX)
         return false;
 
     InputPlayer& player = Players[playerID];
