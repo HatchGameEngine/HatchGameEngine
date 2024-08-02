@@ -592,6 +592,9 @@ PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     for (int l = 0; l < Scene::PriorityPerLayer; l++)
         PriorityLists[l].Remove(obj);
 
+    // Stop all sounds
+    AudioManager::StopAllOriginSounds((void*)obj);
+
     // Remove it from the scene
     Scene::RemoveFromScene(obj);
 

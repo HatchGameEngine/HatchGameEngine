@@ -1041,14 +1041,22 @@ ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
         return nullptr;
     return (ScriptEntity*)entity->EntityPtr;
 }
-bool TestEntityCollision(ScriptEntity* other, ScriptEntity* self) {
-    if (!other->Active || other->Removed)
+bool IsValidEntity(Entity* self) {
+    if (!self || !self->Active || self->Removed)
+        return false;
+
+    return true;
+}
+bool TestEntityCollision(Entity* other, Entity* self) {
+    if (!IsValidEntity(other))
         return false;
 
     return self->CollideWithObject(other);
 }
 PUBLIC STATIC bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
     Entity* self = GetScriptEntity(object);
+    if (self == nullptr)
+        return false;
 
     if (hash == Hash_HitboxLeft) {
         if (result)
@@ -1075,6 +1083,8 @@ PUBLIC STATIC bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* re
 }
 PUBLIC STATIC bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
     Entity* self = GetScriptEntity(object);
+    if (self == nullptr)
+        return false;
 
     if (hash == Hash_HitboxLeft) {
         if (ScriptManager::DoDecimalConversion(value, threadID))
@@ -1112,7 +1122,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args,
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
 
-    if (!self)
+    if (!IsValidEntity(self))
         return NULL_VAL;
 
     ISprite* sprite = Scene::GetSpriteResource(self->Sprite);
@@ -1146,7 +1156,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* arg
     int animation = GET_ARG(1, GetInteger);
     int frame = GET_ARG(2, GetInteger);
 
-    if (!self)
+    if (!IsValidEntity(self))
         return NULL_VAL;
 
     int spriteIns = self->Sprite;
@@ -1218,7 +1228,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
 
-    if (!self)
+    if (!IsValidEntity(self))
         return NULL_VAL;
 
     ObjectRegistry* objectRegistry;
@@ -1246,9 +1256,8 @@ PUBLIC STATIC VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args,
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
 
-    if (!self || !Scene::ObjectRegistries->Exists(registry)) {
+    if (!IsValidEntity(self) || !Scene::ObjectRegistries->Exists(registry))
         return NULL_VAL;
-    }
 
     ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
 
@@ -1265,14 +1274,10 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue*
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
 
-    if (!self)
+    if (!IsValidEntity(self) || !Scene::ObjectRegistries->Exists(registry))
         return NULL_VAL;
 
-    ObjectRegistry* objectRegistry;
-    if (!Scene::ObjectRegistries->Exists(registry)) {
-        return NULL_VAL;
-    }
-    objectRegistry = Scene::ObjectRegistries->Get(registry);
+    ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
 
     objectRegistry->Remove(self);
 
@@ -1286,7 +1291,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue*
 PUBLIC STATIC VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
-    if (self)
+    if (IsValidEntity(self))
         self->ApplyMotion();
     return NULL_VAL;
 }
@@ -1329,13 +1334,11 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue*
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ScriptEntity* self = GET_ENTITY(0);
-    if (!self)
+    if (IsValidEntity(self))
         return NULL_VAL;
 
     if (IS_INSTANCE(args[1])) {
         ScriptEntity* other = GET_ENTITY(1);
-        if (!other)
-            return NULL_VAL;
         if (TestEntityCollision(other, self))
             return OBJECT_VAL(other->Instance);
         return NULL_VAL;
@@ -1382,7 +1385,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
     int frame       = GET_ARG(3, GetInteger);
     int hitbox      = GET_ARG(4, GetInteger);
 
-    if (!self || !sprite)
+    if (!IsValidEntity(self) || !sprite)
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
@@ -1424,7 +1427,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMVa
     int frame               = GET_ARG(3, GetInteger);
     int hitbox              = GET_ARG(4, GetInteger);
 
-    if (!self || !sprite)
+    if (!IsValidEntity(self) || !sprite)
         return NULL_VAL;
 
     if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
@@ -1455,7 +1458,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMVa
 /***
  * \method CollideWithObject
  * \desc Does collision with another entity.
- * \param other (Instance): The other entity.
+ * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
@@ -1463,14 +1466,14 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollideWithObject(int argCount, VMValue* 
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
-    if (!self || !other)
+    if (!IsValidEntity(self) || !IsValidEntity(other))
         return NULL_VAL;
     return INTEGER_VAL(self->CollideWithObject(other));
 }
 /***
  * \method SolidCollideWithObject
  * \desc Does solid collision with another entity.
- * \param other (Instance): The other entity.
+ * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
@@ -1479,14 +1482,14 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount, VMVa
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
     int flag = GET_ARG(2, GetInteger);
-    if (!self || !other)
+    if (!IsValidEntity(self) || !IsValidEntity(other))
         return NULL_VAL;
     return INTEGER_VAL(self->SolidCollideWithObject(other, flag));
 }
 /***
  * \method TopSolidCollideWithObject
  * \desc Does solid collision with another entity's top.
- * \param other (Instance): The other entity.
+ * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
@@ -1495,7 +1498,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, V
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
     int flag = GET_ARG(2, GetInteger);
-    if (!self || !other)
+    if (!IsValidEntity(self) || !IsValidEntity(other))
         return NULL_VAL;
     return INTEGER_VAL(self->TopSolidCollideWithObject(other, flag));
 }
@@ -1503,7 +1506,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, V
 PUBLIC STATIC VMValue ScriptEntity::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     ScriptEntity* self = GET_ENTITY(0);
-    if (self)
+    if (IsValidEntity(self))
         self->ApplyPhysics();
     return NULL_VAL;
 }
@@ -1551,7 +1554,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetViewVisibility(int argCount, VMValue* 
     ScriptEntity* self = GET_ENTITY(0);
     int viewIndex = GET_ARG(1, GetInteger);
     bool visible = GET_ARG(2, GetInteger);
-    if (self) {
+    if (IsValidEntity(self)) {
         int flag = 1 << viewIndex;
         if (visible)
             self->ViewRenderFlag |= flag;
@@ -1572,7 +1575,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* ar
     ScriptEntity* self = GET_ENTITY(0);
     int viewIndex = GET_ARG(1, GetInteger);
     bool override = GET_ARG(2, GetInteger);
-    if (self) {
+    if (IsValidEntity(self)) {
         int flag = 1 << viewIndex;
         if (override)
             self->ViewOverrideFlag |= flag;
@@ -1591,6 +1594,8 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* ar
 PUBLIC STATIC VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
+    if (!IsValidEntity(self))
+        return NULL_VAL;
     int drawGroup = GET_ARG(1, GetInteger);
     if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
         if (!Scene::PriorityLists[drawGroup].Contains(self))
@@ -1610,6 +1615,8 @@ PUBLIC STATIC VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* arg
 PUBLIC STATIC VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
+    if (!IsValidEntity(self))
+        return INTEGER_VAL(false);
     int drawGroup = GET_ARG(1, GetInteger);
     if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
         return INTEGER_VAL(!!(Scene::PriorityLists[drawGroup].Contains(self)));
@@ -1626,6 +1633,8 @@ PUBLIC STATIC VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args
 PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
+    if (!IsValidEntity(self))
+        return NULL_VAL;
     int drawGroup = GET_ARG(1, GetInteger);
     if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer)
         Scene::PriorityLists[drawGroup].Remove(self);
@@ -1641,7 +1650,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
 PUBLIC STATIC VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
@@ -1652,7 +1661,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Ui
     float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
     int channel = -1;
-    if (self) {
+    if (IsValidEntity(self)) {
         AudioManager::StopOriginSound((void*)self, audio);
         channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, (void*)self);
     }
@@ -1666,7 +1675,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Ui
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play.
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
 PUBLIC STATIC VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
@@ -1678,7 +1687,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Ui
     float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
     float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
     int channel = -1;
-    if (self) {
+    if (IsValidEntity(self)) {
         AudioManager::StopOriginSound((void*)self, audio);
         channel = AudioManager::PlaySound(audio, true, loopPoint, panning, speed, volume, (void*)self);
     }
@@ -1694,7 +1703,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Ui
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ISound* audio = GET_ARG(1, GetSound);
-    if (self)
+    if (IsValidEntity(self))
         AudioManager::StopOriginSound((void*)self, audio);
     return NULL_VAL;
 }
@@ -1706,7 +1715,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Ui
 PUBLIC STATIC VMValue ScriptEntity::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     ScriptEntity* self = GET_ENTITY(0);
-    if (self)
+    if (IsValidEntity(self))
         AudioManager::StopAllOriginSounds((void*)self);
     return NULL_VAL;
 }

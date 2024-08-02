@@ -10120,7 +10120,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Does collision with another entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>other (Instance): The other entity.</li>
+        <li>other (Instance): The other entity to check collision for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
@@ -10131,7 +10131,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Does solid collision with another entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>other (Instance): The other entity.</li>
+        <li>other (Instance): The other entity to check collision for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
@@ -10142,7 +10142,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Does solid collision with another entity's top.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>other (Instance): The other entity.</li>
+        <li>other (Instance): The other entity to check collision for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
@@ -10230,7 +10230,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_methods_instance_LoopSound">
         <h2 style="margin-bottom: 8px;">instance.LoopSound</h2>
@@ -10245,7 +10245,7 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play.</div>
+        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
         <p id="Reference_methods_instance_StopSound">
         <h2 style="margin-bottom: 8px;">instance.StopSound</h2>
