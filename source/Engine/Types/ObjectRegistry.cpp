@@ -13,7 +13,8 @@ public:
 #include <Engine/Application.h>
 
 PUBLIC void    ObjectRegistry::Add(Entity* obj) {
-    List.push_back(obj);
+    if (!Contains(obj))
+        List.push_back(obj);
 }
 PUBLIC bool    ObjectRegistry::Contains(Entity* obj) {
     return std::find(List.begin(), List.end(), obj) != List.end();
@@ -21,12 +22,9 @@ PUBLIC bool    ObjectRegistry::Contains(Entity* obj) {
 PUBLIC void    ObjectRegistry::Remove(Entity* obj) {
     if (obj == NULL) return;
 
-    for (int i = 0, iSz = (int)List.size(); i < iSz; i++) {
-        if (List[i] == obj) {
-            List.erase(List.begin() + i);
-            break;
-        }
-    }
+    auto it = std::find(List.begin(), List.end(), obj);
+    if (it != List.end())
+        List.erase(it);
 }
 PUBLIC void    ObjectRegistry::Clear() {
     List.clear();
@@ -40,7 +38,7 @@ PUBLIC void ObjectRegistry::RemoveNonPersistentFromLinkedList(Entity* first, int
         // it can still be used to point at the end of the loop.
         next = ent->NextEntity;
 
-        if (ent->Persistence <= persistence && Contains(ent))
+        if (ent->Persistence <= persistence)
             Remove(ent);
     }
 }
