@@ -1235,6 +1235,26 @@ PUBLIC STATIC VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args
     return NULL_VAL;
 }
 /***
+ * \method IsInRegistry
+ * \desc Checks if the entity is in a registry.
+ * \param registry (String): The registry name.
+ * \return Returns a Boolean value.
+ * \ns Instance
+ */
+PUBLIC STATIC VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+    Entity* self = GET_ENTITY(0);
+    char*   registry = GET_ARG(1, GetString);
+
+    if (!self || !Scene::ObjectRegistries->Exists(registry)) {
+        return NULL_VAL;
+    }
+
+    ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
+
+    return INTEGER_VAL(objectRegistry->Contains(self));
+}
+/***
  * \method RemoveFromRegistry
  * \desc Removes the entity from a registry.
  * \param registry (String): The registry name.
