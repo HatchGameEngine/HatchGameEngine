@@ -504,6 +504,10 @@ PUBLIC STATIC void Application::UpdateWindowTitle() {
         ADD_TEXT("Frame Stepper ON");
     }
 
+    if (Application::DevShowHitboxes) {
+        ADD_TEXT("Showing Hitboxes");
+    }
+
 #undef ADD_TEXT
 
     if (paren)
