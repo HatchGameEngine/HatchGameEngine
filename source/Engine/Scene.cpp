@@ -579,9 +579,19 @@ PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     if (obj->List)
         obj->List->Remove(obj);
 
+    // Remove from registries
+    if (Scene::ObjectRegistries) {
+        Scene::ObjectRegistries->WithAll([obj](Uint32, ObjectRegistry* registry) -> void {
+            registry->Remove(obj);
+        });
+    }
+
     // Remove from draw groups
     for (int l = 0; l < Scene::PriorityPerLayer; l++)
         PriorityLists[l].Remove(obj);
+
+    // Stop all sounds
+    AudioManager::StopAllOriginSounds((void*)obj);
 
     // Remove it from the scene
     Scene::RemoveFromScene(obj);

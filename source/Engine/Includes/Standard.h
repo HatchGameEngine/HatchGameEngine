@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <memory>
 #include <map>
 #include <deque>
 #include <stack>
@@ -72,15 +73,6 @@ enum class KeyBind {
 
     Max
 };
-
-#ifndef __OBJC__
-
-#endif
-
-#define PLAYER_COUNT 8
-#define INPUTDEVICE_COUNT 16
-
-#define INPUT_DEADZONE 0.3f
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256

@@ -174,115 +174,190 @@ enum class ControllerAxis {
     Max
 };
 
-struct ControllerRumble {
-    float  LargeMotorFrequency;
-    float  SmallMotorFrequency;
-    Uint32 TicksLeft;
-    Uint32 Expiration;
-    bool   Active;
-    bool   Paused;
-    void*  Device;
+#define NUM_INPUT_PLAYERS 8
+#define NUM_TOUCH_STATES 8
+#define DEFAULT_DIGITAL_AXIS_THRESHOLD 0.5
 
-    ControllerRumble(void *device) {
-        Active = false;
-        LargeMotorFrequency = SmallMotorFrequency = 0.0f;
-        TicksLeft = Expiration = 0;
-        Device = device;
-    };
-    bool Enable(float large_frequency, float small_frequency, Uint32 duration) {
-        if (large_frequency < 0.0f)
-            large_frequency = 0.0f;
-        else if (large_frequency > 1.0f)
-            large_frequency = 1.0f;
+enum InputDevice {
+    InputDevice_Keyboard,
+    InputDevice_Controller,
+    InputDevice_MAX
+};
 
-        if (small_frequency < 0.0f)
-            small_frequency = 0.0f;
-        else if (small_frequency > 1.0f)
-            small_frequency = 1.0f;
+#define KB_MODIFIER_SHIFT    1    // Either Shift key
+#define KB_MODIFIER_CTRL     2    // Either Ctrl key
+#define KB_MODIFIER_ALT      4    // Either Alt key
+#define KB_MODIFIER_LSHIFT   8    // Left Shift
+#define KB_MODIFIER_RSHIFT  16    // Right Shift
+#define KB_MODIFIER_LCTRL   32    // Left Ctrl
+#define KB_MODIFIER_RCTRL   64    // Right Ctrl
+#define KB_MODIFIER_LALT   128    // Left Alt
+#define KB_MODIFIER_RALT   256    // Right Alt
+#define KB_MODIFIER_NUM    512    // Num Lock
+#define KB_MODIFIER_CAPS  1024    // Caps Lock
 
-        Uint16 largeMotorFrequency = large_frequency * 0xFFFF;
-        Uint16 smallMotorFrequency = small_frequency * 0xFFFF;
+#define INPUT_BIND_KEYBOARD          0
+#define INPUT_BIND_CONTROLLER_BUTTON 1
+#define INPUT_BIND_CONTROLLER_AXIS   2
+#define NUM_INPUT_BIND_TYPES         3
 
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, smallMotorFrequency, 0) == -1)
-            return false;
+class InputBind {
+public:
+    Uint8 Type;
 
-        Active = true;
-        LargeMotorFrequency = large_frequency;
-        SmallMotorFrequency = small_frequency;
+    InputBind() {
+        Type = INPUT_BIND_KEYBOARD;
+    }
 
-        if (duration)
-            Expiration = SDL_GetTicks() + duration;
-        else
-            Expiration = 0;
+    InputBind(Uint8 type) {
+        Type = type;
+    }
 
-        return true;
-    };
-    bool SetLargeMotorFrequency(float frequency) {
-        if (frequency < 0.0f)
-            frequency = 0.0f;
-        else if (frequency > 1.0f)
-            frequency = 1.0f;
+    virtual void Clear() {}
 
-        Uint16 largeMotorFrequency = frequency * 0xFFFF;
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, SmallMotorFrequency * 0xFFFF, 0) == -1)
-            return false;
+    virtual bool IsDefined() const = 0;
 
-        Active = true;
-        LargeMotorFrequency = frequency;
+    virtual InputBind* Clone() const = 0;
+};
 
-        return true;
-    };
-    bool SetSmallMotorFrequency(float frequency) {
-        if (frequency < 0.0f)
-            frequency = 0.0f;
-        else if (frequency > 1.0f)
-            frequency = 1.0f;
+class KeyboardBind : public InputBind {
+public:
+    int Key;
+    Uint16 Modifiers;
 
-        Uint16 smallMotorFrequency = frequency * 0xFFFF;
-        if (SDL_GameControllerRumble((SDL_GameController*)Device, LargeMotorFrequency * 0xFFFF, smallMotorFrequency, 0) == -1)
-            return false;
+    KeyboardBind() : InputBind(INPUT_BIND_KEYBOARD) {
+        Clear();
+    }
 
-        Active = true;
-        SmallMotorFrequency = frequency;
+    KeyboardBind(int key) : KeyboardBind() {
+        Key = key;
+    }
 
-        return true;
-    };
-    void Update() {
-        if (!Active)
-            return;
+    void Clear() {
+        Key = Key_UNKNOWN;
+        Modifiers = 0;
+    }
 
-        if (Expiration && !Paused && SDL_TICKS_PASSED(SDL_GetTicks(), Expiration))
-            Stop();
-    };
-    void Stop() {
-        Active = false;
-        LargeMotorFrequency = SmallMotorFrequency = 0.0f;
-        TicksLeft = Expiration = 0;
-        SDL_GameControllerRumble((SDL_GameController*)Device, 0, 0, 0);
-    };
-    void SetPaused(bool paused) {
-        if (!Active || paused == Paused)
-            return;
+    bool IsDefined() const {
+        return Key != Key_UNKNOWN;
+    }
 
-        Paused = paused;
+    InputBind* Clone() const {
+        KeyboardBind* clone = new KeyboardBind(Key);
+        clone->Modifiers = Modifiers;
+        return static_cast<InputBind*>(clone);
+    }
+};
 
-        if (Paused) {
-            SDL_GameControllerRumble((SDL_GameController*)Device, 0, 0, 0);
+class ControllerButtonBind : public InputBind {
+public:
+    int Button;
 
-            if (Expiration) {
-                TicksLeft = Expiration - SDL_GetTicks();
-                Expiration = 0;
-            }
+    ControllerButtonBind() : InputBind(INPUT_BIND_CONTROLLER_BUTTON) {
+        Clear();
+    }
+
+    ControllerButtonBind(int button) : ControllerButtonBind() {
+        Button = button;
+    }
+
+    void Clear() {
+        Button = -1;
+    }
+
+    bool IsDefined() const {
+        return Button != -1;
+    }
+
+    InputBind* Clone() const {
+        ControllerButtonBind* clone = new ControllerButtonBind(Button);
+        return static_cast<InputBind*>(clone);
+    }
+};
+
+class ControllerAxisBind : public InputBind {
+public:
+    int Axis;
+    double AxisDeadzone;
+    double AxisDigitalThreshold;
+    bool IsAxisNegative;
+
+    ControllerAxisBind() : InputBind(INPUT_BIND_CONTROLLER_AXIS) {
+        Clear();
+    }
+
+    ControllerAxisBind(int axis) : ControllerAxisBind() {
+        Axis = axis;
+    }
+
+    void Clear() {
+        Axis = -1;
+        AxisDeadzone = 0.0;
+        AxisDigitalThreshold = DEFAULT_DIGITAL_AXIS_THRESHOLD;
+        IsAxisNegative = false;
+    }
+
+    bool IsDefined() const {
+        return Axis != -1;
+    }
+
+    InputBind* Clone() const {
+        ControllerAxisBind* clone = new ControllerAxisBind(Axis);
+        clone->AxisDeadzone = AxisDeadzone;
+        clone->AxisDigitalThreshold = AxisDigitalThreshold;
+        clone->IsAxisNegative = IsAxisNegative;
+        return static_cast<InputBind*>(clone);
+    }
+};
+
+#define INPUT_STATE_UNPUSHED 0
+#define INPUT_STATE_PRESSED  1
+#define INPUT_STATE_HELD     2
+#define INPUT_STATE_RELEASED 3
+
+struct PlayerInputStatus {
+    vector<Uint8> State;
+
+    Uint8 NumHeld;
+    Uint8 NumPressed;
+    Uint8 NumReleased;
+
+    void SetNumActions(size_t num) {
+        size_t oldNum = State.size();
+
+        State.resize(num);
+
+        for (size_t i = oldNum; i < num; i++) {
+            State[i] = INPUT_STATE_UNPUSHED;
         }
-        else {
-            Uint16 largeMotorFrequency = LargeMotorFrequency * 0xFFFF;
-            Uint16 smallMotorFrequency = SmallMotorFrequency * 0xFFFF;
-            SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, smallMotorFrequency, 0);
+    }
 
-            if (TicksLeft)
-                Expiration = SDL_GetTicks() + TicksLeft;
+    void Reset() {
+        NumHeld = NumPressed = NumReleased = 0;
+
+        for (size_t i = 0; i < State.size(); i++) {
+            State[i] = INPUT_STATE_UNPUSHED;
         }
-    };
+    }
+};
+
+struct PlayerInputConfig {
+    std::vector<InputBind*> Binds;
+
+    PlayerInputConfig() {
+        Binds.clear();
+    }
+
+    void Clear() {
+        for (size_t i = 0; i < Binds.size(); i++)
+            delete Binds[i];
+
+        Binds.clear();
+    }
+
+    ~PlayerInputConfig() {
+        Clear();
+    }
 };
 
 #endif /* INPUT_H */

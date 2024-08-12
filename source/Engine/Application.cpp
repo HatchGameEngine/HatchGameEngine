@@ -263,6 +263,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::LoadGameInfo();
     Application::LoadSceneInfo();
     Application::ReadSettings();
+    Application::InitPlayerControls();
     Application::DisposeGameConfig();
 
     const char *platform;
@@ -1438,6 +1439,10 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
 
         XMLParser::Free(sceneConfig);
     }
+}
+
+PUBLIC STATIC void Application::InitPlayerControls() {
+    InputManager::InitPlayerControls();
 }
 
 PUBLIC STATIC bool Application::LoadSettings(const char* filename) {

@@ -433,6 +433,13 @@ VMValue ReturnString(const char* str) {
     return NULL_VAL;
 }
 
+void AddToMap(ObjMap* map, const char* key, VMValue value) {
+    char* keyString = StringUtils::Duplicate(key);
+    Uint32 hash = map->Keys->HashFunction(keyString, strlen(keyString));
+    map->Keys->Put(hash, keyString);
+    map->Values->Put(hash, value);
+}
+
 #define CHECK_READ_STREAM \
     if (stream->Closed) { \
         THROW_ERROR("Cannot read closed stream!"); \
@@ -459,6 +466,52 @@ if (index < 0 || index >= MAX_PALETTE_COUNT) { \
 #define CHECK_SCENE_LAYER_INDEX(layerIdx) \
 if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
     OUT_OF_RANGE_ERROR("Layer index", layerIdx, 0, (int)Scene::Layers.size() - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_INPUT_PLAYER_INDEX(playerNum) \
+if (playerNum < 0 || playerNum >= InputManager::GetPlayerCount()) { \
+    OUT_OF_RANGE_ERROR("Player index", playerNum, 0, InputManager::GetPlayerCount() - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_INPUT_DEVICE(deviceType) \
+if (deviceType < 0 || deviceType >= (int)InputDevice_MAX) { \
+    OUT_OF_RANGE_ERROR("Input device", deviceType, 0, (int)InputDevice_MAX - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_INPUT_BIND_TYPE(bindType) \
+if (bindType < 0 || bindType >= NUM_INPUT_BIND_TYPES) { \
+    OUT_OF_RANGE_ERROR("Input bind type", bindType, 0, NUM_INPUT_BIND_TYPES - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_KEYBOARD_KEY(kbKey) \
+if (kbKey < 0 || kbKey >= NUM_KEYBOARD_KEYS) { \
+    OUT_OF_RANGE_ERROR("Keyboard key", kbKey, 0, NUM_KEYBOARD_KEYS - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_BUTTON(controllerButton) \
+if (controllerButton < 0 || controllerButton >= (int)ControllerButton::Max) { \
+    OUT_OF_RANGE_ERROR("Controller button", controllerButton, 0, (int)ControllerButton::Max - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_AXIS(controllerAxis) \
+if (controllerAxis < 0 || controllerAxis >= (int)ControllerAxis::Max) { \
+    OUT_OF_RANGE_ERROR("Controller axis", controllerAxis, 0, (int)ControllerAxis::Max - 1); \
+    return NULL_VAL; \
+}
+
+#define CHECK_CONTROLLER_INDEX(idx) \
+if (InputManager::NumControllers == 0) { \
+    THROW_ERROR("No controllers are connected."); \
+    return NULL_VAL; \
+} \
+else if (idx < 0 || idx >= InputManager::NumControllers) { \
+    OUT_OF_RANGE_ERROR("Controller index", idx, 0, InputManager::NumControllers - 1); \
     return NULL_VAL; \
 }
 
@@ -1811,15 +1864,6 @@ VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint
 // #endregion
 
 // #region Controller
-#define CHECK_CONTROLLER_INDEX(idx) \
-if (InputManager::NumControllers == 0) { \
-    THROW_ERROR("No controllers are connected."); \
-    return NULL_VAL; \
-} \
-else if (idx < 0 || idx >= InputManager::NumControllers) { \
-    OUT_OF_RANGE_ERROR("Controller index", idx, 0, InputManager::NumControllers - 1); \
-    return NULL_VAL; \
-}
 /***
  * Controller.GetCount
  * \desc Gets the amount of connected controllers in the device.
@@ -1912,7 +1956,7 @@ CONTROLLER_GET_BOOL(HasPaddles)
  * Controller.IsButtonHeld
  * \desc Checks if a <linkto ref="Button_*">button</linkto> is held.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Controller
  */
@@ -1931,7 +1975,7 @@ VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.IsButtonPressed
  * \desc Checks if a <linkto ref="Button_*">button</linkto> is pressed.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns a Boolean value.
  * \ns Controller
  */
@@ -1950,7 +1994,7 @@ VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID)
  * Controller.GetButton
  * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index. (Deprecated; use <linkto ref="Controller.IsButtonHeld"></linkto> instead.)
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param buttonIndex (Enum): Index of the <linkto ref="Button_*">button</linkto> to check.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
  * \return Returns the button value from the controller at the index.
  * \ns Controller
  */
@@ -1961,7 +2005,7 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.GetAxis
  * \desc Gets the <linkto ref="Axis_*">axis</linkto> value from the controller at the index.
  * \param controllerIndex (Integer): Index of the controller to check.
- * \param axisIndex (Enum): Index of the <linkto ref="Axis_*">axis</linkto> to check.
+ * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
  * \return Returns the axis value from the controller at the index.
  * \ns Controller
  */
@@ -6167,6 +6211,7 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
+    CHECK_KEYBOARD_KEY(key);
     return INTEGER_VAL(InputManager::IsKeyDown(key));
 }
 /***
@@ -6179,8 +6224,8 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = InputManager::IsKeyPressed(key);
-    return INTEGER_VAL(down);
+    CHECK_KEYBOARD_KEY(key);
+    return INTEGER_VAL(InputManager::IsKeyPressed(key));
 }
 /***
  * Input.IsKeyReleased
@@ -6192,45 +6237,47 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
-    int down = InputManager::IsKeyReleased(key);
-    return INTEGER_VAL(down);
+    CHECK_KEYBOARD_KEY(key);
+    return INTEGER_VAL(InputManager::IsKeyReleased(key));
 }
-#undef CHECK_CONTROLLER_INDEX
 /***
  * Input.GetKeyName
  * \desc Gets the name of the key.
  * \param keyID (Integer): Index of the key to check.
- * \return Returns the name of the key.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int key = GET_ARG(0, GetInteger);
+    CHECK_KEYBOARD_KEY(key);
     return ReturnString(InputManager::GetKeyName(key));
 }
 /***
  * Input.GetButtonName
  * \desc Gets the name of the button.
- * \param buttonIndex (Integer): Index of the button to check.
- * \return Returns the name of the button.
+ * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int key = GET_ARG(0, GetInteger);
-    return ReturnString(InputManager::GetButtonName(key));
+    int button = GET_ARG(0, GetInteger);
+    CHECK_CONTROLLER_BUTTON(button);
+    return ReturnString(InputManager::GetButtonName(button));
 }
 /***
  * Input.GetAxisName
  * \desc Gets the name of the axis.
- * \param axisIndex (Integer): Index of the axis to check.
- * \return Returns the name of the axis.
+ * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
+ * \return Returns a String value.
  * \ns Input
  */
 VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    int key = GET_ARG(0, GetInteger);
-    return ReturnString(InputManager::GetAxisName(key));
+    int axis = GET_ARG(0, GetInteger);
+    CHECK_CONTROLLER_AXIS(axis);
+    return ReturnString(InputManager::GetAxisName(axis));
 }
 /***
  * Input.ParseKeyName
@@ -6243,7 +6290,7 @@ VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* key = GET_ARG(0, GetString);
     int parsed = InputManager::ParseKeyName(key);
-    if (parsed < 0)
+    if (parsed == Key_UNKNOWN)
         return NULL_VAL;
     return INTEGER_VAL(parsed);
 }
@@ -6277,9 +6324,916 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
         return NULL_VAL;
     return INTEGER_VAL(parsed);
 }
-// #endregion
+/***
+ * Input.GetActionList
+ * \desc Gets a list of all input actions.
+ * \return Returns an Array value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
 
-// #region IO
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjArray* array = NewArray();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+
+        ObjString* actionName = CopyString(action.Name.c_str());
+
+        array->Values->push_back(OBJECT_VAL(actionName));
+    }
+
+    return OBJECT_VAL(array);
+}
+/***
+ * Input.ActionExists
+ * \desc Gets whether the given input action exists.
+ * \param actionName (String): Name of the action to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    char* actionName = GET_ARG(0, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID != -1) {
+        return INTEGER_VAL(true);
+    }
+    return INTEGER_VAL(false);
+}
+/***
+ * Input.IsActionHeld
+ * \desc Gets whether the input action is currently held for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionHeld(playerID, actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionHeld(playerID, actionID));
+}
+/***
+ * Input.IsActionPressed
+ * \desc Gets whether the input action is currently pressed for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionPressed(playerID, actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionPressed(playerID, actionID));
+}
+/***
+ * Input.IsActionReleased
+ * \desc Gets whether the input action was released for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 3) {
+        int inputDevice = GET_ARG(2, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionReleased(playerID, actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionReleased(playerID, actionID));
+}
+/***
+ * Input.IsAnyActionHeld
+ * \desc Gets whether any input action is currently held for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeld(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeld(playerID));
+}
+/***
+ * Input.IsAnyActionPressed
+ * \desc Gets whether any input action is currently pressed for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressed(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressed(playerID));
+}
+/***
+ * Input.IsAnyActionReleased
+ * \desc Gets whether any input action was released for the specified player.
+ * \param playerID (Integer): Index of the player to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
+}
+/***
+ * Input.GetAnalogActionInput
+ * \desc Gets the analog value of a specific action.
+ * \param playerID (Integer): Index of the player to check.
+ * \param actionName (String): Name of the action to check.
+ * \return Returns a Decimal value.
+ * \ns Input
+ */
+VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    return DECIMAL_VAL(InputManager::GetAnalogActionInput(playerID, actionID));
+}
+static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
+    KeyboardBind* bind = new KeyboardBind();
+
+    map->Keys->WithAllOrdered([bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
+
+        // key: Integer
+        if (strcmp("key", key) == 0) {
+            value = map->Values->Get(hash);
+            if (IS_INTEGER(value)) {
+                int key = AS_INTEGER(value);
+                if (key >= 0 && key < NUM_KEYBOARD_KEYS) {
+                    bind->Key = AS_INTEGER(value);
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Keyboard key", key, 0, NUM_KEYBOARD_KEYS - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"key\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+        // modifiers: Integer
+        else if (strcmp("modifiers", key) == 0) {
+            value = map->Values->Get("modifiers");
+            if (IS_INTEGER(value)) {
+                bind->Modifiers = AS_INTEGER(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"modifiers\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+    });
+
+    return bind;
+}
+static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 threadID) {
+    ControllerButtonBind* bind = new ControllerButtonBind();
+
+    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
+
+        // button: Integer
+        if (strcmp("button", key) == 0) {
+            value = map->Values->Get(hash);
+            if (IS_INTEGER(value)) {
+                int button = AS_INTEGER(value);
+                if (button >= 0 && button < (int)ControllerButton::Max) {
+                    bind->Button = AS_INTEGER(value);
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Controller button", button, 0, (int)ControllerButton::Max - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"button\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+    });
+
+    return bind;
+}
+static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, Uint32 threadID) {
+    ControllerAxisBind* bind = new ControllerAxisBind();
+
+    map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+        VMValue value;
+
+        // axis: Integer
+        if (strcmp("axis", key) == 0) {
+            value = map->Values->Get("axis");
+            if (IS_INTEGER(value)) {
+                int axis = AS_INTEGER(value);
+                if (axis >= 0 && axis < (int)ControllerAxis::Max) {
+                    bind->Axis = axis;
+                }
+                else {
+                    OUT_OF_RANGE_ERROR("Controller axis", axis, 0, (int)ControllerAxis::Max - 1);
+                }
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+        // axis_deadzone: Decimal
+        else if (strcmp("axis_deadzone", key) == 0) {
+            value = map->Values->Get("axis_deadzone");
+            if (IS_DECIMAL(value)) {
+                bind->AxisDeadzone = AS_DECIMAL(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_deadzone\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+            }
+        }
+        // axis_digital_threshold: Decimal
+        else if (strcmp("axis_digital_threshold", key) == 0) {
+            value = map->Values->Get("axis_digital_threshold");
+            if (IS_DECIMAL(value)) {
+                bind->AxisDigitalThreshold = AS_DECIMAL(value);
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_digital_threshold\" to be of type %s instead of %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
+            }
+        }
+        // axis_negative: Integer
+        else if (strcmp("axis_negative", key) == 0) {
+            value = map->Values->Get("axis_negative");
+            if (IS_INTEGER(value)) {
+                if (AS_INTEGER(value) != 0)
+                    bind->IsAxisNegative = true;
+                else
+                    bind->IsAxisNegative = false;
+            }
+            else if (!IS_NULL(value)) {
+                THROW_ERROR("Expected \"axis_negative\" to be of type %s instead of %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
+            }
+        }
+    });
+
+    return bind;
+}
+static ObjMap* CreateKeyboardActionMap(KeyboardBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
+        AddToMap(map, "key", (bind->Key != -1) ? INTEGER_VAL(bind->Key) : NULL_VAL);
+        AddToMap(map, "modifiers", INTEGER_VAL(bind->Modifiers));
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
+static ObjMap* CreateControllerButtonActionMap(ControllerButtonBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
+        AddToMap(map, "button", (bind->Button != -1) ? INTEGER_VAL(bind->Button) : NULL_VAL);
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
+static ObjMap* CreateControllerAxisActionMap(ControllerAxisBind* bind) {
+    if (bind != nullptr && ScriptManager::Lock()) {
+        ObjMap* map = NewMap();
+
+        AddToMap(map, "axis", (bind->Axis != -1) ? INTEGER_VAL(bind->Axis) : NULL_VAL);
+        AddToMap(map, "axis_deadzone", DECIMAL_VAL((float)bind->AxisDeadzone));
+        AddToMap(map, "axis_digital_threshold", DECIMAL_VAL((float)bind->AxisDigitalThreshold));
+        AddToMap(map, "axis_negative", INTEGER_VAL(bind->IsAxisNegative));
+
+        ScriptManager::Unlock();
+
+        return map;
+    }
+
+    return nullptr;
+}
+static ObjMap* CreateInputActionMap(InputBind* bind) {
+    if (bind == nullptr)
+        return nullptr;
+
+    ObjMap* map = nullptr;
+
+    switch (bind->Type) {
+    case INPUT_BIND_KEYBOARD:
+        map = CreateKeyboardActionMap(static_cast<KeyboardBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("key")));
+        }
+        break;
+    case INPUT_BIND_CONTROLLER_BUTTON:
+        map = CreateControllerButtonActionMap(static_cast<ControllerButtonBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("controller_button")));
+        }
+        break;
+    case INPUT_BIND_CONTROLLER_AXIS:
+        map = CreateControllerAxisActionMap(static_cast<ControllerAxisBind*>(bind));
+        if (map != nullptr) {
+            AddToMap(map, "type", OBJECT_VAL(CopyString("controller_axis")));
+        }
+        break;
+    }
+
+    return map;
+}
+/***
+ * Input.GetActionBind
+ * \desc Gets the bound input action for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \paramOpt bindIndex (Integer): Which bind index to get.
+ * \return Returns a Map value, or <code>null</code> if the input action is not bound.
+ * \ns Input
+ */
+VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, false);
+    if (bind != nullptr) {
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
+            return OBJECT_VAL(map);
+        }
+    }
+
+    return NULL_VAL;
+}
+static VMValue SetActionBindFromArg(int playerID, int actionID, int bindIndex, int inputBindType, int argIndex, bool setDefault, VMValue* args, Uint32 threadID) {
+    InputBind* bind = nullptr;
+
+    switch (inputBindType) {
+    case INPUT_BIND_KEYBOARD: {
+        if (IS_INTEGER(args[argIndex])) {
+            int key = GET_ARG(argIndex, GetInteger);
+            CHECK_KEYBOARD_KEY(key);
+            bind = new KeyboardBind(key);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetKeyboardActionBind(map, threadID);
+        }
+        break;
+    }
+    case INPUT_BIND_CONTROLLER_BUTTON: {
+        if (IS_INTEGER(args[argIndex])) {
+            int button = GET_ARG(argIndex, GetInteger);
+            CHECK_CONTROLLER_BUTTON(button);
+            bind = new ControllerButtonBind(button);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetControllerButtonActionBind(map, threadID);
+        }
+        break;
+    }
+    case INPUT_BIND_CONTROLLER_AXIS: {
+        if (IS_INTEGER(args[argIndex])) {
+            int axis = GET_ARG(argIndex, GetInteger);
+            CHECK_CONTROLLER_AXIS(axis);
+            bind = new ControllerAxisBind(axis);
+        }
+        else {
+            ObjMap* map = GET_ARG(argIndex, GetMap);
+            bind = GetControllerAxisActionBind(map, threadID);
+        }
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (bind != nullptr) {
+        if (bindIndex < 0) {
+            int idx = InputManager::AddPlayerInputBind(playerID, actionID, bind, setDefault);
+            if (idx != -1) {
+                return INTEGER_VAL(idx);
+            }
+        }
+        else
+            InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault);
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Input.SetActionBind
+ * \desc Binds an input action for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to set.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \paramOpt bindIndex (Integer): Which bind index to set.
+ * \ns Input
+ */
+VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, bindIndex, inputBindType, 3, false, args, threadID);
+}
+/***
+ * Input.AddActionBind
+ * \desc Adds an input action bind for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \return Returns the index of the added input action as an Integer value.
+ * \ns Input
+ */
+VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, false, args, threadID);
+}
+/***
+ * Input.RemoveActionBind
+ * \desc Removes a bound input action from a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to unbind.
+ * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \ns Input
+ */
+VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    if (argCount >= 3)
+        InputManager::RemovePlayerInputBind(playerID, actionID, bindIndex, false);
+    else
+        InputManager::ClearPlayerBinds(playerID, actionID, false);
+
+    return NULL_VAL;
+}
+static ObjArray* GetBoundActionList(int playerID, int actionID, bool isDefault) {
+    ObjArray* array = NewArray();
+
+    size_t count = InputManager::GetPlayerInputBindCount(playerID, actionID, isDefault);
+
+    for (size_t i = 0; i < count; i++) {
+        InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, i, isDefault);
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
+            array->Values->push_back(OBJECT_VAL(map));
+        }
+    }
+
+    return array;
+}
+/***
+ * Input.GetBoundActionList
+ * \desc Gets a list of the input actions currently bound to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \return Returns an Array of Map values.
+ * \ns Input
+ */
+VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    return OBJECT_VAL(GetBoundActionList(playerID, actionID, false));
+}
+/***
+ * Input.GetBoundActionCount
+ * \desc Gets the amount of bound input actions for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \return Returns an Integer value.
+ * \ns Input
+ */
+VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL((int)InputManager::GetPlayerInputBindCount(playerID, actionID, false));
+}
+/***
+ * Input.GetBoundActionMap
+ * \desc Gets a map of the input actions currently bound to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjMap* map = NewMap();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+        AddToMap(map, action.Name.c_str(), OBJECT_VAL(GetBoundActionList(playerID, i, false)));
+    }
+
+    return OBJECT_VAL(map);
+}
+/***
+ * Input.GetDefaultActionBind
+ * \desc Gets the default bound input action for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \paramOpt bindIndex (Integer): Which bind index to get.
+ * \return Returns a Map value, or <code>null</code> if the input action is not bound.
+ * \ns Input
+ */
+VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, true);
+    if (bind != nullptr) {
+        ObjMap* map = CreateInputActionMap(bind);
+        if (map != nullptr) {
+            return OBJECT_VAL(map);
+        }
+    }
+
+    return NULL_VAL;
+}
+/***
+ * Input.SetDefaultActionBind
+ * \desc Binds a default input action for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to set.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \paramOpt bindIndex (Integer): Which bind index to set.
+ * \ns Input
+ */
+VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, bindIndex, inputBindType, 3, true, args, threadID);
+}
+/***
+ * Input.AddDefaultActionBind
+ * \desc Adds a default input action bind for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
+ * \param actionBind (Enum or Map): The bind definition.
+ * \return Returns the index of the added input action as an Integer value.
+ * \ns Input
+ */
+VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(4);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int inputBindType = GET_ARG(2, GetInteger);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    CHECK_INPUT_BIND_TYPE(inputBindType);
+
+    return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, true, args, threadID);
+}
+/***
+ * Input.RemoveDefaultActionBind
+ * \desc Removes a bound input action default from a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to unbind.
+ * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \ns Input
+ */
+VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    if (argCount >= 3)
+        InputManager::RemovePlayerInputBind(playerID, actionID, bindIndex, true);
+    else
+        InputManager::ClearPlayerBinds(playerID, actionID, true);
+
+    return NULL_VAL;
+}
+/***
+ * Input.GetDefaultBoundActionList
+ * \desc Gets a list of the input actions bound by default to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action to get.
+ * \return Returns an Array of Map values.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    return OBJECT_VAL(GetBoundActionList(playerID, actionID, true));
+}
+/***
+ * Input.GetDefaultBoundActionCount
+ * \desc Gets the amount of bound default input actions for a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param actionName (String): Name of the action.
+ * \return Returns an Integer value.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    char* actionName = GET_ARG(1, GetString);
+
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+
+    return INTEGER_VAL((int)InputManager::GetPlayerInputBindCount(playerID, actionID, true));
+}
+/***
+ * Input.GetDefaultBoundActionMap
+ * \desc Gets a map of the input actions bound by default to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \ns Input
+ */
+VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+
+    size_t count = InputManager::Actions.size();
+    if (count == 0) {
+        return NULL_VAL;
+    }
+
+    ObjMap* map = NewMap();
+
+    for (size_t i = 0; i < count; i++) {
+        InputAction& action = InputManager::Actions[i];
+        AddToMap(map, action.Name.c_str(), OBJECT_VAL(GetBoundActionList(playerID, i, true)));
+    }
+
+    return OBJECT_VAL(map);
+}
+/***
+ * Input.ResetActionBindsToDefaults
+ * \desc Sets all input actions for a specific player to its defaults.
+ * \param playerID (Integer): Index of the player.
+ * \ns Input
+ */
+VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    InputManager::ResetPlayerBinds(playerID);
+    return NULL_VAL;
+}
+/***
+ * Input.IsPlayerUsingDevice
+ * \desc Checks if a given input device is being used by the player.
+ * \param playerID (Integer): Index of the player to check.
+ * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int inputDevice = GET_ARG(1, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    CHECK_INPUT_DEVICE(inputDevice);
+    return INTEGER_VAL(!!InputManager::IsPlayerUsingDevice(playerID, inputDevice));
+}
+/***
+ * Input.GetPlayerControllerIndex
+ * \desc Gets the controller index assigned to a specific player.
+ * \param playerID (Integer): Index of the player to check.
+ * \return Returns the index of the controller, or <code>-1</code> if there is no controller assigned.
+ * \ns Input
+ */
+VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int playerID = GET_ARG(0, GetInteger);
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    return INTEGER_VAL(InputManager::GetPlayerControllerIndex(playerID));
+}
+/***
+ * Input.SetPlayerControllerIndex
+ * \desc Assigns a controller index to a specific player.
+ * \param playerID (Integer): Index of the player.
+ * \param controllerID (Integer or <code>null</code>): Index of the controller to assign, or <code>null</code> to unassign.
+ * \ns Input
+ */
+VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+    int playerID = GET_ARG(0, GetInteger);
+    int controllerID = -1;
+    if (!IS_NULL(args[1])) {
+        controllerID = GET_ARG(1, GetInteger);
+    }
+    CHECK_INPUT_PLAYER_INDEX(playerID);
+    InputManager::SetPlayerControllerIndex(playerID, controllerID);
+    return NULL_VAL;
+}
+#undef CHECK_INPUT_PLAYER_INDEX
+#undef CHECK_INPUT_DEVICE
 // #endregion
 
 // #region Instance
@@ -16642,7 +17596,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Draw3D, VertexBuffer);
     DEF_NATIVE(Draw3D, RenderScene);
     // #endregion
-
+	
     // #region Tile Collision States
     /***
     * \enum TILECOLLISION_NONE
@@ -16981,6 +17935,70 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Input, ParseKeyName);
     DEF_NATIVE(Input, ParseButtonName);
     DEF_NATIVE(Input, ParseAxisName);
+    DEF_NATIVE(Input, GetActionList);
+    DEF_NATIVE(Input, ActionExists);
+    DEF_NATIVE(Input, IsActionHeld);
+    DEF_NATIVE(Input, IsActionPressed);
+    DEF_NATIVE(Input, IsActionReleased);
+    DEF_NATIVE(Input, IsAnyActionHeld);
+    DEF_NATIVE(Input, IsAnyActionPressed);
+    DEF_NATIVE(Input, IsAnyActionReleased);
+    DEF_NATIVE(Input, GetAnalogActionInput);
+    DEF_NATIVE(Input, GetActionBind);
+    DEF_NATIVE(Input, SetActionBind);
+    DEF_NATIVE(Input, AddActionBind);
+    DEF_NATIVE(Input, RemoveActionBind);
+    DEF_NATIVE(Input, GetBoundActionList);
+    DEF_NATIVE(Input, GetBoundActionCount);
+    DEF_NATIVE(Input, GetBoundActionMap);
+    DEF_NATIVE(Input, GetDefaultActionBind);
+    DEF_NATIVE(Input, SetDefaultActionBind);
+    DEF_NATIVE(Input, AddDefaultActionBind);
+    DEF_NATIVE(Input, RemoveDefaultActionBind);
+    DEF_NATIVE(Input, GetDefaultBoundActionList);
+    DEF_NATIVE(Input, GetDefaultBoundActionCount);
+    DEF_NATIVE(Input, GetDefaultBoundActionMap);
+    DEF_NATIVE(Input, ResetActionBindsToDefaults);
+    DEF_NATIVE(Input, IsPlayerUsingDevice);
+    DEF_NATIVE(Input, GetPlayerControllerIndex);
+    DEF_NATIVE(Input, SetPlayerControllerIndex);
+
+    /***
+    * \enum InputDevice_Keyboard
+    * \desc Keyboard input device.
+    */
+    DEF_ENUM(InputDevice_Keyboard);
+    /***
+    * \enum InputDevice_Controller
+    * \desc Controller input device.
+    */
+    DEF_ENUM(InputDevice_Controller);
+    /***
+    * \constant NUM_INPUT_DEVICE_TYPES
+    * \desc Number of input device types.
+    */
+    DEF_CONST_INT("NUM_INPUT_DEVICE_TYPES", (int)InputDevice_MAX);
+
+    /***
+    * \enum InputBind_Keyboard
+    * \desc Keyboard key input bind.
+    */
+    DEF_CONST_INT("InputBind_Keyboard", INPUT_BIND_KEYBOARD);
+    /***
+    * \enum InputBind_ControllerButton
+    * \desc Controller button input bind.
+    */
+    DEF_CONST_INT("InputBind_ControllerButton", INPUT_BIND_CONTROLLER_BUTTON);
+    /***
+    * \enum InputBind_ControllerAxis
+    * \desc Controller axis input bind.
+    */
+    DEF_CONST_INT("InputBind_ControllerAxis", INPUT_BIND_CONTROLLER_AXIS);
+    /***
+    * \constant NUM_INPUT_BIND_TYPES
+    * \desc Number of input bind types.
+    */
+    DEF_ENUM(NUM_INPUT_BIND_TYPES);
     // #endregion
 
     // #region Instance
@@ -16995,7 +18013,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Instance, DisableAutoAnimate);
     DEF_NATIVE(Instance, Copy);
     DEF_NATIVE(Instance, ChangeClass);
-    // #endregion
 
     /***
     * \enum Persistence_NONE
@@ -17712,6 +18729,164 @@ PUBLIC STATIC void StandardLibrary::Link() {
     #undef ALIAS_NATIVE
     #undef INIT_CLASS
 
+    // #region Tile Collision States
+    /***
+    * \enum TILECOLLISION_NONE
+    * \desc Entity expects no tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_NONE);
+    /***
+    * \enum TILECOLLISION_DOWN
+    * \desc Entity expects downward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_DOWN);
+    /***
+    * \enum TILECOLLISION_UP
+    * \desc Entity expects upward gravity for tile collision.
+    */
+    DEF_ENUM(TILECOLLISION_UP);
+    // #endregion
+
+    // #region Collision Sides
+    /***
+    * \enum C_NONE
+    * \desc No collided side.
+    */
+    DEF_ENUM(C_NONE);
+    /***
+    * \enum C_TOP
+    * \desc Top collided side.
+    */
+    DEF_ENUM(C_TOP);
+    /***
+    * \enum C_LEFT
+    * \desc Left collided side.
+    */
+    DEF_ENUM(C_LEFT);
+    /***
+    * \enum C_RIGHT
+    * \desc Right collided side.
+    */
+    DEF_ENUM(C_RIGHT);
+    /***
+    * \enum C_BOTTOM
+    * \desc Bottom collided side.
+    */
+    DEF_ENUM(C_BOTTOM);
+    // #endregion
+
+    // #region Flip Flags
+    /***
+    * \enum FLIP_NONE
+    * \desc No flip.
+    */
+    DEF_ENUM(FLIP_NONE);
+    /***
+    * \enum FLIP_X
+    * \desc Horizontal flip.
+    */
+    DEF_ENUM(FLIP_X);
+    /***
+    * \enum FLIP_Y
+    * \desc Vertical flip.
+    */
+    DEF_ENUM(FLIP_Y);
+    /***
+    * \enum FLIP_XY
+    * \desc Horizontal and vertical flip.
+    */
+    DEF_ENUM(FLIP_XY);
+    // #endregion
+
+    // #region Collision Modes
+    /***
+    * \enum CMODE_FLOOR
+    * \desc Entity expects to collide with a floor.
+    */
+    DEF_ENUM(CMODE_FLOOR);
+    /***
+    * \enum CMODE_LWALL
+    * \desc Entity expects to collide with the left side of a wall.
+    */
+    DEF_ENUM(CMODE_LWALL);
+    /***
+    * \enum CMODE_ROOF
+    * \desc Entity expects to collide with a roof.
+    */
+    DEF_ENUM(CMODE_ROOF);
+    /***
+    * \enum CMODE_RWALL
+    * \desc Entity expects to collide with the right side of a wall.
+    */
+    DEF_ENUM(CMODE_RWALL);
+    // #endregion
+
+    // #region Active States
+    /***
+    * \enum ACTIVE_NEVER
+    * \desc Entity never updates. Object never runs GlobalUpdate.
+    */
+    DEF_ENUM(ACTIVE_NEVER);
+    /***
+    * \enum ACTIVE_ALWAYS
+    * \desc Entity always updates. Object always runs GlobalUpdate.
+    */
+    DEF_ENUM(ACTIVE_ALWAYS);
+    /***
+    * \enum ACTIVE_NORMAL
+    * \desc Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.
+    */
+    DEF_ENUM(ACTIVE_NORMAL);
+    /***
+    * \enum ACTIVE_PAUSED
+    * \desc Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.
+    */
+    DEF_ENUM(ACTIVE_PAUSED);
+    /***
+    * \enum ACTIVE_BOUNDS
+    * \desc Entity only updates if it is within its bounds (uses UpdateRegionW and uses UpdateRegionH).
+    */
+    DEF_ENUM(ACTIVE_BOUNDS);
+    /***
+    * \enum ACTIVE_XBOUNDS
+    * \desc Entity only updates within an X bound. (only uses UpdateRegionW)
+    */
+    DEF_ENUM(ACTIVE_XBOUNDS);
+    /***
+    * \enum ACTIVE_YBOUNDS
+    * \desc Entity only updates within a Y bound. (only uses UpdateRegionH)
+    */
+    DEF_ENUM(ACTIVE_YBOUNDS);
+    /***
+    * \enum ACTIVE_RBOUNDS
+    * \desc Entity updates within a radius. (uses UpdateRegionW)
+    */
+    DEF_ENUM(ACTIVE_RBOUNDS);
+    // #endregion
+
+    // #region Hitbox Sides
+    /***
+    * \enum HitboxSide_LEFT
+    * \desc Left side, slot 0 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_LEFT);
+    /***
+    * \enum HitboxSide_TOP
+    * \desc Top side, slot 1 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_TOP);
+    /***
+    * \enum HitboxSide_RIGHT
+    * \desc Right side, slot 2 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_RIGHT);
+    /***
+    * \enum HitboxSide_BOTTOM
+    * \desc Bottom side, slot 3 of a hitbox array.
+    */
+    DEF_ENUM(HitboxSide_BOTTOM);
+    // #endregion
+
     /***
     * \global CameraX
     * \type Decimal
@@ -17843,119 +19018,716 @@ PUBLIC STATIC void StandardLibrary::Link() {
     */
     DEF_ENUM(MAX_PALETTE_COUNT);
 
+    /***
+    * \constant KeyMod_SHIFT
+    * \type Integer
+    * \desc Key modifier for either Shift key.
+    */
+    DEF_CONST_INT("KeyMod_SHIFT", KB_MODIFIER_SHIFT);
+
+    /***
+    * \constant KeyMod_CTRL
+    * \type Integer
+    * \desc Key modifier for either Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_CTRL", KB_MODIFIER_CTRL);
+
+    /***
+    * \constant KeyMod_ALT
+    * \type Integer
+    * \desc Key modifier for either Alt key.
+    */
+    DEF_CONST_INT("KeyMod_ALT", KB_MODIFIER_ALT);
+
+    /***
+    * \constant KeyMod_LSHIFT
+    * \type Integer
+    * \desc Key modifier for the Left Shift key.
+    */
+    DEF_CONST_INT("KeyMod_LSHIFT", KB_MODIFIER_LSHIFT);
+
+    /***
+    * \constant KeyMod_RSHIFT
+    * \type Integer
+    * \desc Key modifier for the Right Shift key.
+    */
+    DEF_CONST_INT("KeyMod_RSHIFT", KB_MODIFIER_RSHIFT);
+
+    /***
+    * \constant KeyMod_LCTRL
+    * \type Integer
+    * \desc Key modifier for the Left Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_LCTRL", KB_MODIFIER_LCTRL);
+
+    /***
+    * \constant KeyMod_RCTRL
+    * \type Integer
+    * \desc Key modifier for the Right Ctrl key.
+    */
+    DEF_CONST_INT("KeyMod_RCTRL", KB_MODIFIER_RCTRL);
+
+    /***
+    * \constant KeyMod_LALT
+    * \type Integer
+    * \desc Key modifier for the Left Alt key.
+    */
+    DEF_CONST_INT("KeyMod_LALT", KB_MODIFIER_LALT);
+
+    /***
+    * \constant KeyMod_RALT
+    * \type Integer
+    * \desc Key modifier for the Right Alt key.
+    */
+    DEF_CONST_INT("KeyMod_RALT", KB_MODIFIER_RALT);
+
+    /***
+    * \constant KeyMod_NUMLOCK
+    * \type Integer
+    * \desc Key modifier for the Num Lock key.
+    */
+    DEF_CONST_INT("KeyMod_NUMLOCK", KB_MODIFIER_NUM);
+
+    /***
+    * \constant KeyMod_CAPSLOCK
+    * \type Integer
+    * \desc Key modifier for the Caps Lock key.
+    */
+    DEF_CONST_INT("KeyMod_CAPSLOCK", KB_MODIFIER_CAPS);
+
     #define CONST_KEY(key) DEF_CONST_INT("Key_"#key, Key_##key);
     {
+        /***
+        * \enum Key_UNKNOWN
+        * \type Integer
+        * \desc Invalid key.
+        */
         CONST_KEY(UNKNOWN);
+        /***
+        * \enum Key_A
+        * \type Integer
+        * \desc A key.
+        */
         CONST_KEY(A);
+        /***
+        * \enum Key_B
+        * \type Integer
+        * \desc B key.
+        */
         CONST_KEY(B);
+        /***
+        * \enum Key_C
+        * \type Integer
+        * \desc C key.
+        */
         CONST_KEY(C);
+        /***
+        * \enum Key_D
+        * \type Integer
+        * \desc D key.
+        */
         CONST_KEY(D);
+        /***
+        * \enum Key_E
+        * \type Integer
+        * \desc E key.
+        */
         CONST_KEY(E);
+        /***
+        * \enum Key_F
+        * \type Integer
+        * \desc F key.
+        */
         CONST_KEY(F);
+        /***
+        * \enum Key_G
+        * \type Integer
+        * \desc G key.
+        */
         CONST_KEY(G);
+        /***
+        * \enum Key_H
+        * \type Integer
+        * \desc H key.
+        */
         CONST_KEY(H);
+        /***
+        * \enum Key_I
+        * \type Integer
+        * \desc I key.
+        */
         CONST_KEY(I);
+        /***
+        * \enum Key_J
+        * \type Integer
+        * \desc J key.
+        */
         CONST_KEY(J);
+        /***
+        * \enum Key_K
+        * \type Integer
+        * \desc K key.
+        */
         CONST_KEY(K);
+        /***
+        * \enum Key_L
+        * \type Integer
+        * \desc L key.
+        */
         CONST_KEY(L);
+        /***
+        * \enum Key_M
+        * \type Integer
+        * \desc M key.
+        */
         CONST_KEY(M);
+        /***
+        * \enum Key_N
+        * \type Integer
+        * \desc N key.
+        */
         CONST_KEY(N);
+        /***
+        * \enum Key_O
+        * \type Integer
+        * \desc O key.
+        */
         CONST_KEY(O);
+        /***
+        * \enum Key_P
+        * \type Integer
+        * \desc P key.
+        */
         CONST_KEY(P);
+        /***
+        * \enum Key_Q
+        * \type Integer
+        * \desc Q key.
+        */
         CONST_KEY(Q);
+        /***
+        * \enum Key_R
+        * \type Integer
+        * \desc R key.
+        */
         CONST_KEY(R);
+        /***
+        * \enum Key_S
+        * \type Integer
+        * \desc S key.
+        */
         CONST_KEY(S);
+        /***
+        * \enum Key_T
+        * \type Integer
+        * \desc T key.
+        */
         CONST_KEY(T);
+        /***
+        * \enum Key_U
+        * \type Integer
+        * \desc U key.
+        */
         CONST_KEY(U);
+        /***
+        * \enum Key_V
+        * \type Integer
+        * \desc V key.
+        */
         CONST_KEY(V);
+        /***
+        * \enum Key_W
+        * \type Integer
+        * \desc W key.
+        */
         CONST_KEY(W);
+        /***
+        * \enum Key_X
+        * \type Integer
+        * \desc X key.
+        */
         CONST_KEY(X);
+        /***
+        * \enum Key_Y
+        * \type Integer
+        * \desc Y key.
+        */
         CONST_KEY(Y);
+        /***
+        * \enum Key_Z
+        * \type Integer
+        * \desc Z key.
+        */
         CONST_KEY(Z);
 
+        /***
+        * \enum Key_1
+        * \type Integer
+        * \desc Number 1 key.
+        */
         CONST_KEY(1);
+        /***
+        * \enum Key_2
+        * \type Integer
+        * \desc Number 2 key.
+        */
         CONST_KEY(2);
+        /***
+        * \enum Key_3
+        * \type Integer
+        * \desc Number 3 key.
+        */
         CONST_KEY(3);
+        /***
+        * \enum Key_4
+        * \type Integer
+        * \desc Number 4 key.
+        */
         CONST_KEY(4);
+        /***
+        * \enum Key_5
+        * \type Integer
+        * \desc Number 5 key.
+        */
         CONST_KEY(5);
+        /***
+        * \enum Key_6
+        * \type Integer
+        * \desc Number 6 key.
+        */
         CONST_KEY(6);
+        /***
+        * \enum Key_7
+        * \type Integer
+        * \desc Number 7 key.
+        */
         CONST_KEY(7);
+        /***
+        * \enum Key_8
+        * \type Integer
+        * \desc Number 8 key.
+        */
         CONST_KEY(8);
+        /***
+        * \enum Key_9
+        * \type Integer
+        * \desc Number 9 key.
+        */
         CONST_KEY(9);
+        /***
+        * \enum Key_0
+        * \type Integer
+        * \desc Number 0 key.
+        */
         CONST_KEY(0);
 
+        /***
+        * \enum Key_RETURN
+        * \type Integer
+        * \desc Return key.
+        */
         CONST_KEY(RETURN);
+        /***
+        * \enum Key_ESCAPE
+        * \type Integer
+        * \desc Escape key.
+        */
         CONST_KEY(ESCAPE);
+        /***
+        * \enum Key_BACKSPACE
+        * \type Integer
+        * \desc Backspace key.
+        */
         CONST_KEY(BACKSPACE);
+        /***
+        * \enum Key_TAB
+        * \type Integer
+        * \desc Tab key.
+        */
         CONST_KEY(TAB);
+        /***
+        * \enum Key_SPACE
+        * \type Integer
+        * \desc Space Bar key.
+        */
         CONST_KEY(SPACE);
 
+        /***
+        * \enum Key_MINUS
+        * \type Integer
+        * \desc Minus key.
+        */
         CONST_KEY(MINUS);
+        /***
+        * \enum Key_EQUALS
+        * \type Integer
+        * \desc Equals key.
+        */
         CONST_KEY(EQUALS);
+        /***
+        * \enum Key_LEFTBRACKET
+        * \type Integer
+        * \desc Left Bracket key.
+        */
         CONST_KEY(LEFTBRACKET);
+        /***
+        * \enum Key_RIGHTBRACKET
+        * \type Integer
+        * \desc Right Bracket key.
+        */
         CONST_KEY(RIGHTBRACKET);
+        /***
+        * \enum Key_BACKSLASH
+        * \type Integer
+        * \desc Backslash key.
+        */
         CONST_KEY(BACKSLASH);
+        /***
+        * \enum Key_SEMICOLON
+        * \type Integer
+        * \desc Semicolon key.
+        */
         CONST_KEY(SEMICOLON);
+        /***
+        * \enum Key_APOSTROPHE
+        * \type Integer
+        * \desc Apostrophe key.
+        */
         CONST_KEY(APOSTROPHE);
+        /***
+        * \enum Key_GRAVE
+        * \type Integer
+        * \desc Grave key.
+        */
         CONST_KEY(GRAVE);
+        /***
+        * \enum Key_COMMA
+        * \type Integer
+        * \desc Comma key.
+        */
         CONST_KEY(COMMA);
+        /***
+        * \enum Key_PERIOD
+        * \type Integer
+        * \desc Period key.
+        */
         CONST_KEY(PERIOD);
+        /***
+        * \enum Key_SLASH
+        * \type Integer
+        * \desc SLASH key.
+        */
         CONST_KEY(SLASH);
 
+        /***
+        * \enum Key_CAPSLOCK
+        * \type Integer
+        * \desc Caps Lock key.
+        */
         CONST_KEY(CAPSLOCK);
 
+        /***
+        * \enum Key_F1
+        * \type Integer
+        * \desc F1 key.
+        */
         CONST_KEY(F1);
+        /***
+        * \enum Key_F2
+        * \type Integer
+        * \desc F2 key.
+        */
         CONST_KEY(F2);
+        /***
+        * \enum Key_F3
+        * \type Integer
+        * \desc F3 key.
+        */
         CONST_KEY(F3);
+        /***
+        * \enum Key_F4
+        * \type Integer
+        * \desc F4 key.
+        */
         CONST_KEY(F4);
+        /***
+        * \enum Key_F5
+        * \type Integer
+        * \desc F5 key.
+        */
         CONST_KEY(F5);
+        /***
+        * \enum Key_F6
+        * \type Integer
+        * \desc F6 key.
+        */
         CONST_KEY(F6);
+        /***
+        * \enum Key_F7
+        * \type Integer
+        * \desc F7 key.
+        */
         CONST_KEY(F7);
+        /***
+        * \enum Key_F8
+        * \type Integer
+        * \desc F8 key.
+        */
         CONST_KEY(F8);
+        /***
+        * \enum Key_F9
+        * \type Integer
+        * \desc F9 key.
+        */
         CONST_KEY(F9);
+        /***
+        * \enum Key_F10
+        * \type Integer
+        * \desc F10 key.
+        */
         CONST_KEY(F10);
+        /***
+        * \enum Key_F11
+        * \type Integer
+        * \desc F11 key.
+        */
         CONST_KEY(F11);
+        /***
+        * \enum Key_F12
+        * \type Integer
+        * \desc F12 key.
+        */
         CONST_KEY(F12);
 
+        /***
+        * \enum Key_PRINTSCREEN
+        * \type Integer
+        * \desc Print Screen key.
+        */
         CONST_KEY(PRINTSCREEN);
+        /***
+        * \enum Key_SCROLLLOCK
+        * \type Integer
+        * \desc Scroll Lock key.
+        */
         CONST_KEY(SCROLLLOCK);
+        /***
+        * \enum Key_PAUSE
+        * \type Integer
+        * \desc Pause/Break key.
+        */
         CONST_KEY(PAUSE);
+        /***
+        * \enum Key_INSERT
+        * \type Integer
+        * \desc Insert key.
+        */
         CONST_KEY(INSERT);
+        /***
+        * \enum Key_HOME
+        * \type Integer
+        * \desc Home key.
+        */
         CONST_KEY(HOME);
+        /***
+        * \enum Key_PAGEUP
+        * \type Integer
+        * \desc Page Up key.
+        */
         CONST_KEY(PAGEUP);
+        /***
+        * \enum Key_DELETE
+        * \type Integer
+        * \desc Delete key.
+        */
         CONST_KEY(DELETE);
+        /***
+        * \enum Key_END
+        * \type Integer
+        * \desc End key.
+        */
         CONST_KEY(END);
+        /***
+        * \enum Key_PAGEDOWN
+        * \type Integer
+        * \desc Page Down key.
+        */
         CONST_KEY(PAGEDOWN);
+        /***
+        * \enum Key_RIGHT
+        * \type Integer
+        * \desc Arrow Right key.
+        */
         CONST_KEY(RIGHT);
+        /***
+        * \enum Key_LEFT
+        * \type Integer
+        * \desc Arrow Left key.
+        */
         CONST_KEY(LEFT);
+        /***
+        * \enum Key_DOWN
+        * \type Integer
+        * \desc Arrow Down key.
+        */
         CONST_KEY(DOWN);
+        /***
+        * \enum Key_UP
+        * \type Integer
+        * \desc Arrow Up key.
+        */
         CONST_KEY(UP);
 
+        /***
+        * \enum Key_NUMLOCKCLEAR
+        * \type Integer
+        * \desc Num Clear key.
+        */
         CONST_KEY(NUMLOCKCLEAR);
+        /***
+        * \enum Key_KP_DIVIDE
+        * \type Integer
+        * \desc Keypad Divide key.
+        */
         CONST_KEY(KP_DIVIDE);
+        /***
+        * \enum Key_KP_MULTIPLY
+        * \type Integer
+        * \desc Keypad Multiply key.
+        */
         CONST_KEY(KP_MULTIPLY);
+        /***
+        * \enum Key_KP_MINUS
+        * \type Integer
+        * \desc Keypad Minus key.
+        */
         CONST_KEY(KP_MINUS);
+        /***
+        * \enum Key_KP_PLUS
+        * \type Integer
+        * \desc Keypad Plus key.
+        */
         CONST_KEY(KP_PLUS);
+        /***
+        * \enum Key_KP_ENTER
+        * \type Integer
+        * \desc Keypad Enter key.
+        */
         CONST_KEY(KP_ENTER);
+        /***
+        * \enum Key_KP_1
+        * \type Integer
+        * \desc Keypad 1 key.
+        */
         CONST_KEY(KP_1);
+        /***
+        * \enum Key_KP_2
+        * \type Integer
+        * \desc Keypad 2 key.
+        */
         CONST_KEY(KP_2);
+        /***
+        * \enum Key_KP_3
+        * \type Integer
+        * \desc Keypad 3 key.
+        */
         CONST_KEY(KP_3);
+        /***
+        * \enum Key_KP_4
+        * \type Integer
+        * \desc Keypad 4 key.
+        */
         CONST_KEY(KP_4);
+        /***
+        * \enum Key_KP_5
+        * \type Integer
+        * \desc Keypad 5 key.
+        */
         CONST_KEY(KP_5);
+        /***
+        * \enum Key_KP_6
+        * \type Integer
+        * \desc Keypad 6 key.
+        */
         CONST_KEY(KP_6);
+        /***
+        * \enum Key_KP_7
+        * \type Integer
+        * \desc Keypad 7 key.
+        */
         CONST_KEY(KP_7);
+        /***
+        * \enum Key_KP_8
+        * \type Integer
+        * \desc Keypad 8 key.
+        */
         CONST_KEY(KP_8);
+        /***
+        * \enum Key_KP_9
+        * \type Integer
+        * \desc Keypad 9 key.
+        */
         CONST_KEY(KP_9);
+        /***
+        * \enum Key_KP_0
+        * \type Integer
+        * \desc Keypad 0 key.
+        */
         CONST_KEY(KP_0);
+        /***
+        * \enum Key_KP_PERIOD
+        * \type Integer
+        * \desc Keypad Period key.
+        */
         CONST_KEY(KP_PERIOD);
 
+        /***
+        * \enum Key_LCTRL
+        * \type Integer
+        * \desc Left Ctrl key.
+        */
         CONST_KEY(LCTRL);
+        /***
+        * \enum Key_LSHIFT
+        * \type Integer
+        * \desc Left Shift key.
+        */
         CONST_KEY(LSHIFT);
+        /***
+        * \enum Key_LALT
+        * \type Integer
+        * \desc Left Alt key.
+        */
         CONST_KEY(LALT);
+        /***
+        * \enum Key_LGUI
+        * \type Integer
+        * \desc Left GUI key.
+        */
         CONST_KEY(LGUI);
+        /***
+        * \enum Key_RCTRL
+        * \type Integer
+        * \desc Right Ctrl key.
+        */
         CONST_KEY(RCTRL);
+        /***
+        * \enum Key_RSHIFT
+        * \type Integer
+        * \desc Right Shift key.
+        */
         CONST_KEY(RSHIFT);
+        /***
+        * \enum Key_RALT
+        * \type Integer
+        * \desc Right Alt key.
+        */
         CONST_KEY(RALT);
+        /***
+        * \enum Key_RGUI
+        * \type Integer
+        * \desc Right GUI key.
+        */
         CONST_KEY(RGUI);
     }
     #undef  CONST_KEY
