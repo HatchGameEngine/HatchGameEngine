@@ -1083,7 +1083,8 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
         XMLNode* child = node->children[i];
 
         if (XMLParser::MatchToken(child->name, "key")) {
-            const char* keyName = child->children[0]->name.ToString().c_str();
+            std::string keyNameStr = child->children[0]->name.ToString();
+            const char* keyName = keyNameStr.c_str();
             int key = ParseKeyName(keyName);
             if (key != Key_UNKNOWN) {
                 KeyboardBind* bind = new KeyboardBind(key);
@@ -1101,7 +1102,8 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
             }
         }
         else if (XMLParser::MatchToken(child->name, "button")) {
-            const char* buttonName = child->children[0]->name.ToString().c_str();
+            std::string buttonNameStr = child->children[0]->name.ToString();
+            const char* buttonName = buttonNameStr.c_str();
             int button = ParseButtonName(buttonName);
             if (button != -1) {
                 ControllerButtonBind* bind = new ControllerButtonBind(button);
@@ -1113,7 +1115,8 @@ PRIVATE STATIC void InputManager::ParseDefaultInputBinds(InputPlayer& player, in
             }
         }
         else if (XMLParser::MatchToken(child->name, "axis")) {
-            const char* axisName = child->children[0]->name.ToString().c_str();
+            std::string axisNameStr = child->children[0]->name.ToString();
+            const char* axisName = axisNameStr.c_str();
 
             int axisID;
             if (axisName[0] == '-' || axisName[0] == '+')
