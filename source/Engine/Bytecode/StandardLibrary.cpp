@@ -7364,7 +7364,10 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
-    return DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
+    if (IS_INTEGER(args[0]))
+        return INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetInteger)));
+    else
+        return DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
 }
 /***
  * Math.Min
@@ -7376,8 +7379,10 @@ VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    // respect the type of number
-    return DECIMAL_VAL(Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+    if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
+        return INTEGER_VAL((int)Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+    else
+        return DECIMAL_VAL(Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
  * Math.Max
@@ -7389,7 +7394,10 @@ VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
-    return DECIMAL_VAL(Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+    if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
+        return INTEGER_VAL((int)Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+    else
+        return DECIMAL_VAL(Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
  * Math.Clamp
@@ -7402,7 +7410,10 @@ VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
-    return DECIMAL_VAL(Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+    if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2]))
+        return INTEGER_VAL((int)Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+    else
+        return DECIMAL_VAL(Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
 }
 /***
  * Math.Sign
