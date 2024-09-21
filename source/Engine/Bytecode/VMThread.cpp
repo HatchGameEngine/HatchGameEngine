@@ -228,15 +228,16 @@ PUBLIC void    VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* error
     }
 }
 PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
+    bool showMessageBox = true;
     if (VMThread::InstructionIgnoreMap[000000000]) {
-        return ERROR_RES_CONTINUE;
+        showMessageBox = false;
     }
 
     THROW_ERROR_START();
 
     MakeErrorMessage(&buffer, errorString);
 
-    THROW_ERROR_END(true);
+    THROW_ERROR_END(showMessageBox);
 
     return ERROR_RES_CONTINUE;
 }
@@ -325,10 +326,6 @@ PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
 
 #ifdef VM_DEBUG
 PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
-    if (VMThread::InstructionIgnoreMap[000000001]) {
-        return false;
-    }
-
     va_list args;
     char errorString[2048];
     va_start(args, errorMessage);
@@ -345,6 +342,11 @@ PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 
     Log::Print(Log::LOG_WARN, textBuffer);
     PrintStack();
+
+    if (VMThread::InstructionIgnoreMap[000000001]) {
+        return false;
+    }
+
     const SDL_MessageBoxButtonData buttons[] = {
         { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
         { 0                                      , 2, "Ignore All" },
@@ -358,22 +360,24 @@ PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
         buttons,
         NULL,
     };
+
     int buttonClicked;
     if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
         buttonClicked = 0;
     }
+
     free(textBuffer);
+
     switch (buttonClicked) {
-        /* Exit Game */
+        // Exit Game
         case 1:
             Application::Cleanup();
             exit(-1);
             break;
-        /* Ignore All */
+        // Ignore All
         case 2:
             VMThread::InstructionIgnoreMap[000000001] = true;
-            return ERROR_RES_CONTINUE;
-        /* Break Out */
+        // Break Out
         case 0:
             return false;
     }
