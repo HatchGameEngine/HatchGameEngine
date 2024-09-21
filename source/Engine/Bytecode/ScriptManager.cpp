@@ -75,6 +75,10 @@ vector<ObjClass*>           ScriptManager::ClassImplList;
 
 SDL_mutex*                  ScriptManager::GlobalLock = NULL;
 
+#ifdef VM_DEBUG
+static Uint32 VMBranchLimit = 0;
+#endif
+
 // #define DEBUG_STRESS_GC
 
 PUBLIC STATIC void    ScriptManager::RequestGarbageCollection() {
@@ -129,6 +133,10 @@ PUBLIC STATIC void    ScriptManager::Init() {
 
     GlobalLock = SDL_CreateMutex();
 
+#ifdef VM_DEBUG
+    VMBranchLimit = GetBranchLimit();
+#endif
+
     for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
         memset(&Threads[i].Stack, 0, sizeof(Threads[i].Stack));
         memset(&Threads[i].RegisterValue, 0, sizeof(Threads[i].RegisterValue));
@@ -137,13 +145,35 @@ PUBLIC STATIC void    ScriptManager::Init() {
 
         Threads[i].FrameCount = 0;
         Threads[i].ReturnFrame = 0;
-        Threads[i].DebugInfo = false;
 
         Threads[i].ID = i;
         Threads[i].StackTop = Threads[i].Stack;
+
+        Threads[i].DebugInfo = false;
+        Threads[i].BranchLimit = VMBranchLimit;
     }
     ThreadCount = 1;
 }
+#ifdef VM_DEBUG
+PRIVATE STATIC Uint32 ScriptManager::GetBranchLimit() {
+    int branchLimit = 0;
+
+    if (Application::Settings->GetInteger("dev", "branchLimit", &branchLimit) == true) {
+        if (branchLimit < 0) {
+            branchLimit = 0;
+        }
+    }
+    else {
+        bool useBranchLimit = false;
+        if (Application::Settings->GetBool("dev", "branchLimit", &useBranchLimit)
+        && useBranchLimit == true) {
+            branchLimit = DEFAULT_BRANCH_LIMIT;
+        }
+    }
+
+    return (Uint32)branchLimit;
+}
+#endif
 PUBLIC STATIC void    ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
     globals->ForAll(FreeGlobalValue);
     globals->Clear();
