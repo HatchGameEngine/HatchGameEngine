@@ -1334,7 +1334,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue*
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ScriptEntity* self = GET_ENTITY(0);
-    if (IsValidEntity(self))
+    if (!IsValidEntity(self))
         return NULL_VAL;
 
     if (IS_INSTANCE(args[1])) {
