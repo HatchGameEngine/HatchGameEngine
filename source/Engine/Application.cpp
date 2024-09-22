@@ -133,8 +133,6 @@ bool             Application::Running = false;
 bool             Application::GameStart = false;
 int              Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float            Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
-bool             Application::Running = false;
-bool             Application::GameStart = false;
 
 SDL_Window*      Application::Window = NULL;
 char             Application::WindowTitle[256];
