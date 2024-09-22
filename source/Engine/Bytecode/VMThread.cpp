@@ -324,6 +324,16 @@ PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
     return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
 }
 
+#define DO_RETURN() { \
+    FrameCount--; \
+    if (FrameCount == ReturnFrame) { \
+        return INTERPRET_FINISHED; \
+    } \
+    StackTop = frame->Slots; \
+    Push(InterpretResult); \
+    frame = &Frames[FrameCount - 1]; \
+}
+
 #ifdef VM_DEBUG
 PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
     va_list args;
@@ -399,16 +409,6 @@ PRIVATE bool   VMThread::DoJump(CallFrame* frame, int offset) {
 PRIVATE bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
     frame->IP -= offset;
     return CheckBranchLimit(frame);
-}
-
-#define DO_RETURN() { \
-    FrameCount--; \
-    if (FrameCount == ReturnFrame) { \
-        return INTERPRET_FINISHED; \
-    } \
-    StackTop = frame->Slots; \
-    Push(InterpretResult); \
-    frame = &Frames[FrameCount - 1]; \
 }
 
 #define JUMP(offset) \

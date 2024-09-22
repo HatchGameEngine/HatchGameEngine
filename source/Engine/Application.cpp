@@ -979,7 +979,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             Graphics::Save();
             Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
             Graphics::Scale(0.85, 0.85, 1.0);
-                snprintf(textBuffer, 256, "FPS: %03.1f", TargetFPS);
+                snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
                 DEBUG_DrawText(textBuffer, 0.0, 0.0);
             Graphics::Restore();
 

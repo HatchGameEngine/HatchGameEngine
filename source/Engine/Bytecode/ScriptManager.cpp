@@ -75,9 +75,7 @@ vector<ObjClass*>           ScriptManager::ClassImplList;
 
 SDL_mutex*                  ScriptManager::GlobalLock = NULL;
 
-#ifdef VM_DEBUG
 static Uint32 VMBranchLimit = 0;
-#endif
 
 // #define DEBUG_STRESS_GC
 
