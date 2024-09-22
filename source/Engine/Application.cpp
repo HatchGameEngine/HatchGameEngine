@@ -1094,30 +1094,20 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
     MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
 PRIVATE STATIC void Application::DelayFrame() {
-    // HACK: MacOS V-Sync timing gets disabled if window is not visible
-    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOS) {
-        double frameTime = Clock::GetTicks() - FrameTimeStart;
-        double frameDurationRemainder = FrameTimeDesired - frameTime;
-        if (frameDurationRemainder >= 0.0) {
-            // NOTE: Delay duration will always be more than requested wait time.
-            if (frameDurationRemainder > 1.0) {
-                double delayStartTime = Clock::GetTicks();
+    double frameTime = Clock::GetTicks() - FrameTimeStart;
+    double frameDurationRemainder = FrameTimeDesired - frameTime;
+    if (frameDurationRemainder >= 0.0) {
+        // NOTE: Delay duration will always be more than requested wait time.
+        if (frameDurationRemainder > 1.0) {
+            double delayStartTime = Clock::GetTicks();
 
-                Clock::Delay(frameDurationRemainder - 1.0);
+            Clock::Delay(frameDurationRemainder - 1.0);
 
-                double delayTime = Clock::GetTicks() - delayStartTime;
-                Overdelay = delayTime - (frameDurationRemainder - 1.0);
-            }
-
-            // frameDurationRemainder = floor(frameDurationRemainder);
-            // if (delayTime > frameDurationRemainder)
-            //     printf("delayTime: %.3f   frameDurationRemainder: %.3f\n", delayTime, frameDurationRemainder);
-
-            while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired);
+            double delayTime = Clock::GetTicks() - delayStartTime;
+            Overdelay = delayTime - (frameDurationRemainder - 1.0);
         }
-    }
-    else {
-        Clock::Delay(1);
+
+        while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired);
     }
 }
 PUBLIC STATIC void Application::Run(int argc, char* args[]) {
