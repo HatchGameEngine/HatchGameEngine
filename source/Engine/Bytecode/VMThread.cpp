@@ -25,7 +25,9 @@ public:
 
     char      Name[THREAD_NAME_MAX];
     Uint32    ID;
+
     bool      DebugInfo;
+    Uint32    BranchLimit;
 
     static    bool InstructionIgnoreMap[0x100];
     static    std::jmp_buf JumpBuffer;
@@ -66,8 +68,12 @@ std::jmp_buf VMThread::JumpBuffer;
     buffer.Buffer = &textBuffer; \
     buffer.WriteIndex = 0; \
     buffer.BufferSize = 512
-#define THROW_ERROR_END() Log::Print(Log::LOG_ERROR, textBuffer); \
+#define THROW_ERROR_END(showMessageBox) Log::Print(Log::LOG_ERROR, textBuffer); \
     PrintStack(); \
+    if (!showMessageBox) { \
+        free(textBuffer); \
+        return ERROR_RES_CONTINUE; \
+    } \
     const SDL_MessageBoxButtonData buttonsError[] = { \
         { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" }, \
         { 0                                      , 2, "Ignore All" }, \
@@ -188,17 +194,12 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
         buffer_printf(buffer, "\n");
     }
 }
-PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
-    if (VMThread::InstructionIgnoreMap[000000000])
-        return ERROR_RES_CONTINUE;
-
-    THROW_ERROR_START();
-
+PUBLIC void    VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
     if (FrameCount > 0)
-        PrintStackTrace(&buffer, errorString);
+        PrintStackTrace(buffer, errorString);
     else if (IS_OBJECT(FunctionToInvoke)) {
         if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE) {
-            buffer_printf(&buffer, "While calling native function:\n\n    %s\n", errorString);
+            buffer_printf(buffer, "While calling native function:\n\n    %s\n", errorString);
         } else {
             ObjFunction* function = NULL;
 
@@ -213,20 +214,30 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
             if (function) {
                 std::string functionName = GetFunctionName(function);
                 if (function->Module->SourceFilename)
-                    buffer_printf(&buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->Module->SourceFilename->Chars, errorString);
+                    buffer_printf(buffer, "While calling %s of %s:\n\n    %s\n", functionName.c_str(), function->Module->SourceFilename->Chars, errorString);
                 else
-                    buffer_printf(&buffer, "While calling %s:\n\n    %s\n", functionName.c_str(), errorString);
+                    buffer_printf(buffer, "While calling %s:\n\n    %s\n", functionName.c_str(), errorString);
             }
             else {
-                buffer_printf(&buffer, "While calling value: %s\n", errorString);
+                buffer_printf(buffer, "While calling value: %s\n", errorString);
             }
         }
     }
     else {
-        buffer_printf(&buffer, "%s\n", errorString);
+        buffer_printf(buffer, "%s\n", errorString);
+    }
+}
+PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
+    bool showMessageBox = true;
+    if (VMThread::InstructionIgnoreMap[000000000]) {
+        showMessageBox = false;
     }
 
-    THROW_ERROR_END();
+    THROW_ERROR_START();
+
+    MakeErrorMessage(&buffer, errorString);
+
+    THROW_ERROR_END(showMessageBox);
 
     return ERROR_RES_CONTINUE;
 }
@@ -312,6 +323,116 @@ PUBLIC Sint32  VMThread::ReadSInt32(CallFrame* frame) {
 PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
     return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
 }
+
+#define DO_RETURN() { \
+    FrameCount--; \
+    if (FrameCount == ReturnFrame) { \
+        return INTERPRET_FINISHED; \
+    } \
+    StackTop = frame->Slots; \
+    Push(InterpretResult); \
+    frame = &Frames[FrameCount - 1]; \
+}
+
+#ifdef VM_DEBUG
+PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
+    va_list args;
+    char errorString[2048];
+    va_start(args, errorMessage);
+    vsnprintf(errorString, sizeof(errorString), errorMessage, args);
+    va_end(args);
+
+    char* textBuffer = (char*)malloc(512);
+    PrintBuffer buffer;
+    buffer.Buffer = &textBuffer;
+    buffer.WriteIndex = 0;
+    buffer.BufferSize = 512;
+
+    MakeErrorMessage(&buffer, errorString);
+
+    Log::Print(Log::LOG_WARN, textBuffer);
+    PrintStack();
+
+    if (VMThread::InstructionIgnoreMap[000000001]) {
+        return false;
+    }
+
+    const SDL_MessageBoxButtonData buttons[] = {
+        { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game" },
+        { 0                                      , 2, "Ignore All" },
+        { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Exit Frame" },
+    };
+    const SDL_MessageBoxData messageBoxData = {
+        SDL_MESSAGEBOX_ERROR, NULL,
+        "VM Debug",
+        textBuffer,
+        SDL_arraysize(buttons),
+        buttons,
+        NULL,
+    };
+
+    int buttonClicked;
+    if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
+        buttonClicked = 0;
+    }
+
+    free(textBuffer);
+
+    switch (buttonClicked) {
+        // Exit Game
+        case 1:
+            Application::Cleanup();
+            exit(-1);
+            break;
+        // Ignore All
+        case 2:
+            VMThread::InstructionIgnoreMap[000000001] = true;
+        // Break Out
+        case 0:
+            return false;
+    }
+
+    return true;
+}
+
+PRIVATE bool   VMThread::CheckBranchLimit(CallFrame* frame) {
+    if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
+        return ShowBranchLimitMessage("Hit branch limit!");
+    }
+    return true;
+}
+
+PRIVATE bool   VMThread::DoJump(CallFrame* frame, int offset) {
+    frame->IP += offset;
+    return CheckBranchLimit(frame);
+}
+PRIVATE bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
+    frame->IP -= offset;
+    return CheckBranchLimit(frame);
+}
+
+#define JUMP(offset) \
+{ \
+    if (DoJump(frame, offset) == false) { \
+        InterpretResult = NULL_VAL; \
+        DO_RETURN(); \
+        VM_BREAK; \
+    } \
+}
+
+#define JUMP_BACK(offset) \
+{ \
+    if (DoJumpBack(frame, offset) == false) { \
+        InterpretResult = NULL_VAL; \
+        DO_RETURN(); \
+        VM_BREAK; \
+    } \
+}
+
+#else
+#define JUMP(offset) { frame->IP += offset; }
+#define JUMP_BACK(offset) { frame->IP -= offset; }
+#endif
 
 PUBLIC int     VMThread::RunInstruction() {
     // NOTE: MSVC cannot take advantage of the dispatch table.
@@ -1191,33 +1312,26 @@ SUCCESS_OP_SET_PROPERTY:
         VM_CASE(OP_RETURN): {
             InterpretResult = Pop();
 
-            FrameCount--;
-            if (FrameCount == ReturnFrame) {
-                return INTERPRET_FINISHED;
-            }
+            DO_RETURN();
 
-            StackTop = frame->Slots;
-            Push(InterpretResult);
-
-            frame = &Frames[FrameCount - 1];
             VM_BREAK;
         }
 
         // Jumping
         VM_CASE(OP_JUMP): {
             Sint32 offset = ReadSInt16(frame);
-            frame->IP += offset;
+            JUMP(offset);
             VM_BREAK;
         }
         VM_CASE(OP_JUMP_BACK): {
             Sint32 offset = ReadSInt16(frame);
-            frame->IP -= offset;
+            JUMP_BACK(offset);
             VM_BREAK;
         }
         VM_CASE(OP_JUMP_IF_FALSE): {
             Sint32 offset = ReadSInt16(frame);
             if (ScriptManager::ValueFalsey(Peek(0))) {
-                frame->IP += offset;
+                JUMP(offset);
             }
             VM_BREAK;
         }
@@ -1274,7 +1388,7 @@ SUCCESS_OP_SET_PROPERTY:
                 case WITH_STATE_INIT_SLOTTED: {
                     VMValue receiver = Peek(0);
                     if (receiver.Type == VAL_NULL) {
-                        frame->IP += offset;
+                        JUMP(offset);
                         Pop(); // pop receiver
                         break;
                     }
@@ -1291,7 +1405,7 @@ SUCCESS_OP_SET_PROPERTY:
                         Pop(); // pop receiver
 
                         if (!objectList && !registry) {
-                            frame->IP += offset;
+                            JUMP(offset);
                             break;
                         }
 
@@ -1301,7 +1415,7 @@ SUCCESS_OP_SET_PROPERTY:
                         // If in list,
                         if (objectList) {
                             if (objectList->Count() == 0) {
-                                frame->IP += offset;
+                                JUMP(offset);
                                 break;
                             }
 
@@ -1316,7 +1430,7 @@ SUCCESS_OP_SET_PROPERTY:
                         else {
                             int count = registry->Count();
                             if (count == 0) {
-                                frame->IP += offset;
+                                JUMP(offset);
                                 break;
                             }
 
@@ -1331,7 +1445,7 @@ SUCCESS_OP_SET_PROPERTY:
                         }
 
                         if (!objectStart) {
-                            frame->IP += offset;
+                            JUMP(offset);
                             break;
                         }
 
@@ -2092,6 +2206,10 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
     frame->WithReceiverStackTop = frame->WithReceiverStack;
     frame->WithIteratorStackTop = frame->WithIteratorStack;
     frame->Module = function->Module;
+
+#ifdef VM_DEBUG
+    frame->BranchCount = 0;
+#endif
 
     return true;
 }

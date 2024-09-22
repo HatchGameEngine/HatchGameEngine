@@ -8,6 +8,8 @@
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
 
+#define DEFAULT_BRANCH_LIMIT 100000
+
 typedef enum {
     ERROR_RES_EXIT,
     ERROR_RES_CONTINUE,
@@ -308,6 +310,10 @@ struct CallFrame {
     Uint8*       IPStart;
     VMValue*     Slots;
     ObjModule*   Module;
+
+#ifdef VM_DEBUG
+    Uint32 BranchCount;
+#endif
 
     VMValue   WithReceiverStack[16];
     VMValue*  WithReceiverStackTop = WithReceiverStack;

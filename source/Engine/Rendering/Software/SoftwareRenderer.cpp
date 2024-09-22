@@ -3211,9 +3211,9 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         bool isInLayer = tScanLine->SrcX >= 0 && tScanLine->SrcX < layerWidthInPixels;
         if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
             if (tScanLine->SrcX < 0)
-                tScanLine->SrcX += layerWidthInPixels;
-            else if (tScanLine->SrcX >= layerWidthInPixels)
-                tScanLine->SrcX -= layerWidthInPixels;
+                tScanLine->SrcX = -(tScanLine->SrcX % layerWidthInPixels);
+            else
+                tScanLine->SrcX %= layerWidthInPixels;
             isInLayer = true;
         }
 

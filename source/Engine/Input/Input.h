@@ -218,6 +218,8 @@ public:
     virtual bool IsDefined() const = 0;
 
     virtual InputBind* Clone() const = 0;
+
+    virtual ~InputBind() = default;
 };
 
 class KeyboardBind : public InputBind {

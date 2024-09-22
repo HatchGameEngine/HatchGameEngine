@@ -20,7 +20,9 @@ PUBLIC STATIC void StringImpl::Init() {
     Class = NewClass(Murmur::EncryptString(name));
     Class->Name = CopyString(name);
     Class->ElementGet = StringImpl::VM_ElementGet;
+#if 0
     Class->ElementSet = StringImpl::VM_ElementSet;
+#endif
 
     ScriptManager::ClassImplList.push_back(Class);
 }
@@ -52,6 +54,7 @@ PUBLIC STATIC bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* r
         *result = OBJECT_VAL(CopyString(&string->Chars[index], 1));
     return true;
 }
+#if 0
 PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue value, Uint32 threadID) {
     ObjString* string = (ObjString*)object;
 
@@ -75,10 +78,13 @@ PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue va
     }
     else if (IS_STRING(value)) {
         ObjString* str = AS_STRING(value);
-        if (str->Length > 1)
-            THROW_ERROR("Cannot modify string character a String value longer than a single character.");
-        if (str->Length > 0)
+        if (str->Length == 1) {
             string->Chars[index] = str->Chars[0];
+        }
+        else {
+            THROW_ERROR("Cannot modify string character; expected String value to have a length of 1, but it had a length of %d.",
+                str->Length);
+        }
     }
     else {
         THROW_ERROR("Cannot modify string character using non-Integer or non-String value.");
@@ -86,3 +92,4 @@ PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue va
 
     return true;
 }
+#endif

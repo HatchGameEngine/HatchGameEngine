@@ -42,6 +42,12 @@ endif()
 # Build options
 option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  option(ENABLE_VM_DEBUGGING "Enable VM debugging" ON)
+else()
+  option(ENABLE_VM_DEBUGGING "Enable VM debugging" OFF)
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
 endif()
@@ -73,6 +79,10 @@ endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
   add_definitions(-DNO_SCRIPT_COMPILING)
+endif()
+
+if(ENABLE_VM_DEBUGGING)
+  add_definitions(-DVM_DEBUG)
 endif()
 
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )

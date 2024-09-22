@@ -11,12 +11,18 @@
 
 class Application {
 public:
+    static vector<char*>    CmdLineArgs;
+
     static INI*             Settings;
     static char             SettingsFile[4096];
 
     static XMLNode*         GameConfig;
 
     static float            FPS;
+    static bool             Running;
+    static bool             GameStart;
+    static int              TargetFPS;
+    static float            CurrentFPS;
     static bool             Running;
     static bool             GameStart;
 
@@ -117,11 +123,16 @@ extern "C" {
 
 INI*             Application::Settings = NULL;
 char             Application::SettingsFile[4096];
+vector<char*>    Application::CmdLineArgs;
 
 XMLNode*         Application::GameConfig = NULL;
 
 float            Application::FPS = 60.f;
 int              TargetFPS = 60;
+bool             Application::Running = false;
+bool             Application::GameStart = false;
+int              Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
+float            Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool             Application::Running = false;
 bool             Application::GameStart = false;
 
@@ -172,7 +183,7 @@ double  BenchmarkTickStart = 0.0;
 
 double  Overdelay = 0.0;
 double  FrameTimeStart = 0.0;
-double  FrameTimeDesired = 1000.0 / TargetFPS;
+double  FrameTimeDesired = 1000.0 / Application::TargetFPS;
 
 int     KeyBinds[(int)KeyBind::Max];
 
@@ -263,6 +274,9 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
         #endif
     }
 
+    for (int i = 1; i < argc; i++)
+        Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
+
     // Initialize subsystems
     Math::Init();
     Graphics::Init();
@@ -274,6 +288,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     InputManager::Init();
     Clock::Init();
 
+    Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
     Application::LoadGameConfig();
     Application::LoadGameInfo();
     Application::LoadSceneInfo();
@@ -307,6 +322,17 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::SetWindowTitle(Application::GameTitleShort);
 
     Running = true;
+}
+
+PUBLIC STATIC void  Application::SetTargetFrameRate(int targetFPS) {
+    if (targetFPS < 1)
+        TargetFPS = 1;
+    else if (targetFPS > MAX_TARGET_FRAMERATE)
+        TargetFPS = MAX_TARGET_FRAMERATE;
+    else
+        TargetFPS = targetFPS;
+
+    FrameTimeDesired = 1000.0 / TargetFPS;
 }
 
 PRIVATE STATIC void Application::MakeEngineVersion() {
@@ -368,7 +394,7 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
             MetricPresentTime,
             0.0,
             MetricFrameTime,
-            FPS,
+            CurrentFPS
         };
         const char* typeNames[] = {
             "Event Polling:         %8.3f ms",
@@ -1006,7 +1032,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             Graphics::Save();
             Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
             Graphics::Scale(0.85, 0.85, 1.0);
-                snprintf(textBuffer, 256, "FPS: %03.1f", FPS);
+                snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
                 DEBUG_DrawText(textBuffer, 0.0, 0.0);
             Graphics::Restore();
 
@@ -1134,30 +1160,20 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
     MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
 PRIVATE STATIC void Application::DelayFrame() {
-    // HACK: MacOS V-Sync timing gets disabled if window is not visible
-    if (!Graphics::VsyncEnabled || Application::Platform == Platforms::MacOS) {
-        double frameTime = Clock::GetTicks() - FrameTimeStart;
-        double frameDurationRemainder = FrameTimeDesired - frameTime;
-        if (frameDurationRemainder >= 0.0) {
-            // NOTE: Delay duration will always be more than requested wait time.
-            if (frameDurationRemainder > 1.0) {
-                double delayStartTime = Clock::GetTicks();
+    double frameTime = Clock::GetTicks() - FrameTimeStart;
+    double frameDurationRemainder = FrameTimeDesired - frameTime;
+    if (frameDurationRemainder >= 0.0) {
+        // NOTE: Delay duration will always be more than requested wait time.
+        if (frameDurationRemainder > 1.0) {
+            double delayStartTime = Clock::GetTicks();
 
-                Clock::Delay(frameDurationRemainder - 1.0);
+            Clock::Delay(frameDurationRemainder - 1.0);
 
-                double delayTime = Clock::GetTicks() - delayStartTime;
-                Overdelay = delayTime - (frameDurationRemainder - 1.0);
-            }
-
-            // frameDurationRemainder = floor(frameDurationRemainder);
-            // if (delayTime > frameDurationRemainder)
-            //     printf("delayTime: %.3f   frameDurationRemainder: %.3f\n", delayTime, frameDurationRemainder);
-
-            while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired);
+            double delayTime = Clock::GetTicks() - delayStartTime;
+            Overdelay = delayTime - (frameDurationRemainder - 1.0);
         }
-    }
-    else {
-        Clock::Delay(1);
+
+        while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired);
     }
 }
 PUBLIC STATIC void Application::Run(int argc, char* args[]) {
@@ -1213,7 +1229,7 @@ PUBLIC STATIC void Application::Run(int argc, char* args[]) {
             BenchmarkFrameCount++;
             if (BenchmarkFrameCount == TargetFPS) {
                 double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-                FPS = 1000.0 / floor(measuredSecond) * TargetFPS;
+                CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
                 BenchmarkFrameCount = 0;
             }
 
@@ -1250,6 +1266,10 @@ PUBLIC STATIC void Application::Cleanup() {
     InputManager::Dispose();
 
     Graphics::Dispose();
+
+    for (size_t i = 0; i < Application::CmdLineArgs.size(); i++)
+        Memory::Free(Application::CmdLineArgs[i]);
+    Application::CmdLineArgs.clear();
 
     SDL_DestroyWindow(Application::Window);
 
@@ -1297,6 +1317,10 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     // Read engine settings
     node = XMLParser::SearchNode(root, "engine");
     if (node) {
+        int targetFPS = DEFAULT_TARGET_FRAMERATE;
+        ParseGameConfigInt(node, "framerate", targetFPS);
+        Application::SetTargetFrameRate(targetFPS);
+
         ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
         ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
         ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
