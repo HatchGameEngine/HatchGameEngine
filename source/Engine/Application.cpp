@@ -16,7 +16,8 @@ public:
 
     static XMLNode*    GameConfig;
 
-    static float       FPS;
+    static int         TargetFPS;
+    static float       CurrentFPS;
     static bool        Running;
     static bool        GameStart;
 
@@ -108,8 +109,8 @@ char        Application::SettingsFile[4096];
 
 XMLNode*    Application::GameConfig = NULL;
 
-float       Application::FPS = DEFAULT_TARGET_FRAMERATE;
-int         TargetFPS = DEFAULT_TARGET_FRAMERATE;
+int         Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
+float       Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool        Application::Running = false;
 bool        Application::GameStart = false;
 
@@ -151,7 +152,7 @@ double  BenchmarkTickStart = 0.0;
 
 double  Overdelay = 0.0;
 double  FrameTimeStart = 0.0;
-double  FrameTimeDesired = 1000.0 / TargetFPS;
+double  FrameTimeDesired = 1000.0 / Application::TargetFPS;
 
 int     KeyBinds[(int)KeyBind::Max];
 
@@ -292,8 +293,8 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
 PUBLIC STATIC void  Application::SetTargetFrameRate(int targetFPS) {
     if (targetFPS < 1)
         TargetFPS = 1;
-    else if (targetFPS > 240)
-        TargetFPS = 240;
+    else if (targetFPS > MAX_TARGET_FRAMERATE)
+        TargetFPS = MAX_TARGET_FRAMERATE;
     else
         TargetFPS = targetFPS;
 
@@ -359,7 +360,7 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
             MetricPresentTime,
             0.0,
             MetricFrameTime,
-            FPS,
+            CurrentFPS
         };
         const char* typeNames[] = {
             "Event Polling:         %8.3f ms",
@@ -978,7 +979,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
             Graphics::Save();
             Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
             Graphics::Scale(0.85, 0.85, 1.0);
-                snprintf(textBuffer, 256, "FPS: %03.1f", FPS);
+                snprintf(textBuffer, 256, "FPS: %03.1f", TargetFPS);
                 DEBUG_DrawText(textBuffer, 0.0, 0.0);
             Graphics::Restore();
 
@@ -1175,7 +1176,7 @@ PUBLIC STATIC void Application::Run(int argc, char* args[]) {
             BenchmarkFrameCount++;
             if (BenchmarkFrameCount == TargetFPS) {
                 double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-                FPS = 1000.0 / floor(measuredSecond) * TargetFPS;
+                CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
                 BenchmarkFrameCount = 0;
             }
 

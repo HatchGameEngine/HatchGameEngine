@@ -1003,14 +1003,40 @@ VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32
 #endif
 }
 /***
+ * Application.GetTargetFrameRate
+ * \desc Gets the target frame rate.
+ * \return Returns an Integer value.
+ * \ns Application
+ */
+VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    return INTEGER_VAL(Application::TargetFPS);
+}
+/***
+ * Application.SetTargetFrameRate
+ * \desc Sets the target frame rate.
+ * \param framerate (Integer): The target frame rate.
+ * \ns Application
+ */
+VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    int framerate = GET_ARG(0, GetInteger);
+    if (framerate < 1 || framerate > MAX_TARGET_FRAMERATE) {
+        OUT_OF_RANGE_ERROR("Framerate", framerate, 1, MAX_TARGET_FRAMERATE);
+        return NULL_VAL;
+    }
+    Application::SetTargetFrameRate(framerate);
+    return NULL_VAL;
+}
+/***
  * Application.GetFPS
- * \desc Gets the current FPS.
+ * \desc Gets the current FPS (frames per second).
  * \return Returns a Decimal value.
  * \ns Application
  */
 VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return DECIMAL_VAL(Application::FPS);
+    return DECIMAL_VAL(Application::CurrentFPS);
 }
 /***
  * Application.GetKeyBind
@@ -16395,10 +16421,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, GetEngineVersionPatch);
     DEF_NATIVE(Application, GetEngineVersionPrerelease);
     DEF_NATIVE(Application, GetEngineVersionCodename);
+    DEF_NATIVE(Application, GetTargetFrameRate);
+    DEF_NATIVE(Application, SetTargetFrameRate);
     DEF_NATIVE(Application, GetFPS);
     DEF_NATIVE(Application, GetKeyBind);
     DEF_NATIVE(Application, SetKeyBind);
-    DEF_NATIVE(Application, Quit);
     DEF_NATIVE(Application, GetGameTitle);
     DEF_NATIVE(Application, GetGameTitleShort);
     DEF_NATIVE(Application, GetGameVersion);
@@ -16409,6 +16436,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
     DEF_NATIVE(Application, SetGameDescription);
     DEF_NATIVE(Application, SetCursorVisible);
     DEF_NATIVE(Application, GetCursorVisible);
+    DEF_NATIVE(Application, Quit);
     /***
     * \enum KeyBind_Fullscreen
     * \desc Fullscreen keybind.
