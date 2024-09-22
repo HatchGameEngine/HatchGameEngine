@@ -45,6 +45,7 @@ public:
     float        OnScreenRegionBottom = 0.0f;
     int          ViewRenderFlag = 0xFFFFFFFF;
     int          ViewOverrideFlag = 0;
+    int          Visible = false;
     float        RenderRegionW = 0.0f;
     float        RenderRegionH = 0.0f;
     float        RenderRegionTop = 0.0f;
@@ -475,6 +476,7 @@ PUBLIC void Entity::CopyFields(Entity* other) {
     COPY(OnScreenRegionBottom);
     COPY(ViewRenderFlag);
     COPY(ViewOverrideFlag);
+    COPY(Visible);
     COPY(RenderRegionW);
     COPY(RenderRegionH);
     COPY(RenderRegionTop);

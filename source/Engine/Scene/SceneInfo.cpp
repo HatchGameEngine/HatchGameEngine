@@ -129,7 +129,7 @@ PUBLIC STATIC string SceneInfo::GetParentPath(int entryID) {
         snprintf(filePath, sizeof(filePath), "Stages/%s/", entry.Folder);
     }
     else {
-        if (entry.Folder == nullptr)
+        if (!strcmp(entry.Folder, "Unknown"))
             snprintf(filePath, sizeof(filePath), "Scenes/");
         else
             snprintf(filePath, sizeof(filePath), "Scenes/%s/", entry.Folder);
@@ -158,7 +158,7 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
             snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
     }
     else {
-        if (scene.Folder == nullptr) {
+        if (!strcmp(scene.Folder, "Unknown")) {
             if (scene.Filetype == nullptr)
                 snprintf(filePath, sizeof(filePath), "%s", id);
             else

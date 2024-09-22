@@ -1100,7 +1100,7 @@ DoCheckRender:
                     Graphics::FillRectangle(entX1, entY1, entX2 - entX1, entY2 - entY1);
                 }
 
-                if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
+                if ((ent->ViewRenderFlag & viewRenderFlag) == 0 || !ent->Visible)
                     continue;
                 if ((ent->ViewOverrideFlag & viewRenderFlag) == 0 && (Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;
@@ -1269,6 +1269,14 @@ DoCheckRender:
     }
     Scene::CurrentDrawGroup = -1;
     PERF_END(ObjectRenderLateTime);
+
+    if (Application::DevMenuActivated) {
+        // Poll for inputs, since the frame did not run
+        InputManager::Poll();
+
+        if (Application::DeveloperMenu.State)
+            Application::DeveloperMenu.State();
+    }
 
     PERF_START(RenderFinishTime);
     if (useDrawTarget && currentView->Software)
@@ -1492,6 +1500,9 @@ PUBLIC STATIC void Scene::Restart() {
         Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
         Scene::SetTileCount(Scene::BaseTileCount);
     }
+
+    Application::DeveloperDarkFont = Application::LoadDevFont("Sprites/UI/DarkFont.bin");
+    Application::DeveloperLightFont = Application::LoadDevFont("Sprites/UI/SmallFont.bin");
 
     // Restart tile animations
     for (Tileset& tileset : Scene::Tilesets)

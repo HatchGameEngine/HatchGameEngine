@@ -761,6 +761,30 @@ PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID) {
 
     return player.IsAnyInputReleased();
 }
+PUBLIC STATIC bool  InputManager::IsActionHeldByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputHeld(actionID)) return true;
+    }
+
+    return false;
+}
+PUBLIC STATIC bool  InputManager::IsActionPressedByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputPressed(actionID)) return true;
+    }
+
+    return false;
+}
+PUBLIC STATIC bool  InputManager::IsActionReleasedByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputReleased(actionID)) return true;
+    }
+
+    return false;
+}
 PUBLIC STATIC bool  InputManager::IsActionHeld(unsigned playerID, unsigned actionID, unsigned device) {
     if (playerID >= Players.size())
         return false;
@@ -808,6 +832,30 @@ PUBLIC STATIC bool  InputManager::IsAnyActionReleased(unsigned playerID, unsigne
     InputPlayer& player = Players[playerID];
 
     return player.IsAnyInputReleased(device);
+}
+PUBLIC STATIC bool  InputManager::IsActionHeldByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputHeld(actionID, device)) return true;
+    }
+
+    return false;
+}
+PUBLIC STATIC bool  InputManager::IsActionPressedByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputPressed(actionID, device)) return true;
+    }
+
+    return false;
+}
+PUBLIC STATIC bool  InputManager::IsActionReleasedByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputReleased(actionID, device)) return true;
+    }
+
+    return false;
 }
 PUBLIC STATIC bool  InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
     if (playerID >= Players.size() || device >= InputDevice_MAX)

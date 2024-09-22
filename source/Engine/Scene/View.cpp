@@ -36,6 +36,8 @@ public:
 };
 #endif
 
+// TODO: Should also include CenterX and CenterY per-view
+
 #include <Engine/Scene/View.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Math/Math.h>

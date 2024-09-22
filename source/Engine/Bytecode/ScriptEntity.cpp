@@ -371,6 +371,14 @@ PUBLIC void ScriptEntity::LinkFields() {
     * \desc A bitfield similar to <linkto ref="instance.ViewRenderFlag"></linkto>. Bypasses each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
     */
     LINK_INT(ViewOverrideFlag);
+    /***
+   * \field Visible
+   * \type Boolean
+   * \default true
+   * \ns Instance
+   * \desc Whether the entity will render.
+   */
+    LINK_INT(ViewRenderFlag);
 
     /***
     * \field UpdateRegionW
