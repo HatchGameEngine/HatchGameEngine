@@ -933,6 +933,24 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Application
 /***
+ * Application.GetCommandLineArguments
+ * \desc Gets a list of the command line arguments passed to the application.
+ * \return Returns an Array of String values.
+ * \ns Application
+ */
+VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(0);
+    if (ScriptManager::Lock()) {
+        ObjArray* array = NewArray();
+        for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
+            array->Values->push_back(OBJECT_VAL(CopyString(Application::CmdLineArgs[i])));
+        }
+        ScriptManager::Unlock();
+        return OBJECT_VAL(array);
+    }
+    return NULL_VAL;
+}
+/***
  * Application.GetEngineVersionString
  * \desc Gets the engine version string.
  * \return Returns a String value.
@@ -10859,7 +10877,7 @@ VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
  * Scene.GetTileAnimSequence
  * \desc Gets the tile IDs of the animation sequence for a tile ID.
  * \param tileID (Integer): Which tile ID.
- * \return Returns an array of tile IDs.
+ * \return Returns an Array of tile IDs.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
@@ -10893,7 +10911,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
  * Scene.GetTileAnimSequenceDurations
  * \desc Gets the frame durations of the animation sequence for a tile ID.
  * \param tileID (Integer): Which tile ID.
- * \return Returns an array of frame durations.
+ * \return Returns an Array of frame durations.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 threadID) {
@@ -14457,7 +14475,7 @@ VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Splits a string by a delimiter.
  * \param string (String): The string to split.
  * \param delimiter (Integer): The delimiter string.
- * \return Returns an array of strings.
+ * \return Returns an Array of String values.
  * \ns String
  */
 VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
@@ -16478,6 +16496,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region Application
     INIT_CLASS(Application);
+    DEF_NATIVE(Application, GetCommandLineArguments);
     DEF_NATIVE(Application, GetEngineVersionString);
     DEF_NATIVE(Application, GetEngineVersionMajor);
     DEF_NATIVE(Application, GetEngineVersionMinor);

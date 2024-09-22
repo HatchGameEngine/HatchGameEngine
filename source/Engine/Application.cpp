@@ -11,6 +11,8 @@
 
 class Application {
 public:
+    static vector<char*> CmdLineArgs;
+
     static INI*        Settings;
     static char        SettingsFile[4096];
 
@@ -103,6 +105,8 @@ extern "C" {
 #else
     Platforms Application::Platform = Platforms::Unknown;
 #endif
+
+vector<char*> Application::CmdLineArgs;
 
 INI*        Application::Settings = NULL;
 char        Application::SettingsFile[4096];
@@ -242,6 +246,9 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
         Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
         #endif
     }
+
+    for (int i = 1; i < argc; i++)
+        Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
 
     // Initialize subsystems
     Math::Init();
@@ -1213,6 +1220,10 @@ PUBLIC STATIC void Application::Cleanup() {
     InputManager::Dispose();
 
     Graphics::Dispose();
+
+    for (size_t i = 0; i < Application::CmdLineArgs.size(); i++)
+        Memory::Free(Application::CmdLineArgs[i]);
+    Application::CmdLineArgs.clear();
 
     SDL_DestroyWindow(Application::Window);
 
