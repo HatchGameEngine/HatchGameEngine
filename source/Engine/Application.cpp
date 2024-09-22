@@ -23,8 +23,6 @@ public:
     static bool             GameStart;
     static int              TargetFPS;
     static float            CurrentFPS;
-    static bool             Running;
-    static bool             GameStart;
 
     static SDL_Window*      Window;
     static char             WindowTitle[256];
