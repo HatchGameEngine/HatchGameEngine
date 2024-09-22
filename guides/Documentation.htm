@@ -222,6 +222,8 @@
                     <li><a href="#Reference_functions_Application_GetEngineVersionPatch">Application.GetEngineVersionPatch</a></li>
                     <li><a href="#Reference_functions_Application_GetEngineVersionPrerelease">Application.GetEngineVersionPrerelease</a></li>
                     <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
+                    <li><a href="#Reference_functions_Application_GetTargetFrameRate">Application.GetTargetFrameRate</a></li>
+                    <li><a href="#Reference_functions_Application_SetTargetFrameRate">Application.SetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
@@ -2266,10 +2268,26 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
         </p>
+        <p id="Reference_functions_Application_GetTargetFrameRate">
+        <h2 style="margin-bottom: 8px;">Application.GetTargetFrameRate</h2>
+        <code>Application.GetTargetFrameRate()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Application_SetTargetFrameRate">
+        <h2 style="margin-bottom: 8px;">Application.SetTargetFrameRate</h2>
+        <code>Application.SetTargetFrameRate(framerate)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>framerate (Integer): The target frame rate.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Application_GetFPS">
         <h2 style="margin-bottom: 8px;">Application.GetFPS</h2>
         <code>Application.GetFPS()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the current FPS.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current FPS (frames per second).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
@@ -9993,7 +10011,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>721 out of 780 functions have descriptions. </p>
+        <p>723 out of 782 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
