@@ -1210,6 +1210,7 @@
                 <h2>String</h2>
                 <i>Class methods:</i>
                 <ul>
+                    <li><a href="#Reference_functions_String_Format">String.Format</a></li>
                     <li><a href="#Reference_functions_String_Split">String.Split</a></li>
                     <li><a href="#Reference_functions_String_CharAt">String.CharAt</a></li>
                     <li><a href="#Reference_functions_String_Length">String.Length</a></li>
@@ -9078,6 +9079,18 @@
         <li>string (String): The string to write.</li>
         </ul>
         </p>
+        <p id="Reference_functions_String_Format">
+        <h2 style="margin-bottom: 8px;">String.Format</h2>
+        <code>String.Format(string[, values])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Formats a <b>format string</b> according to the given <b>format specifiers</b>. A format specifier is a string of the form<br><br><code>%[flags][width][.precision][conversion specifier]</code><br><br>where a <b>conversion specifier</b> must be one of the following:<br/><ul><li><code>d</code>: Integers</li><li><code>f</code> or <code>%F</code>: Decimals</li><li><code>s</code>: Strings</li><li><code>c</code>: Characters</li><li><code>x</code> or <code>%X</code>: Hexadecimal integers</li><li><code>b</code> or <code>%b</code>: Binary integers</li><li><code>o</code>: Octal integers</li><li><code>%</code>: A literal percent sign character</li></ul><b>Flags</b> are optional, and must be one of the following:<br/><ul><li><code>0</code>: Pads the value with leading zeroes. See the <b>width sub-specifier</b>.</li><li><code>-</code>: Left-justifies the result. See the <b>width sub-specifier</b>.</li><li><code>#</code>: Prefixes something to the value depending on the <b>conversion specifier</b>:<ul><li><code>x</code> or <code>X</code>: Prefixes the value with <code>0x</code> or <code>0X</code> respectively.</li><li><code>b</code> or <code>B</code>: Prefixes the value with <code>0b</code> or <code>0B</code> respectively.</li><li><code>f</code>: Prefixes the value with a <code>.</code> character.</li><li><code>o</code>: Prefixes the value with a <code>0</code> character.</li></ul><li><code>+</code>: Prefixes positive numbers with a plus sign.</li><li>A space character: If no sign character (<code>-</code> or <code>+</code>) was written, a space character is written instead.</li></ul>A <b>width sub-specifier</b> is used in conjunction with the flags:<br/><ul><li>A number: The amount of padding to add.</li><li><code>*</code>: This functions the same as the above, but the width is given in the next argument as an Integer value.</li></ul><b>Precision specifiers</b> are also supported:<br/><ul><li><code>.</code> followed by a number:<ul><li>For Integer values, this pads the value with leading zeroes.</li><li>For Decimal values, this specifies the number of digits to be printed after the decimal point (which is 6 by default).</li><li>For String values, this is the maximum amount of characters to be printed.</li></ul><li><code>.</code> followed by a <code>*</code>: This functions the same as the above, but the precision is given in the next argument as an Integer value.</li></ul></div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The format string.</li>
+        <li>values (any type): Variable arguments.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
         <p id="Reference_functions_String_Split">
         <h2 style="margin-bottom: 8px;">String.Split</h2>
         <code>String.Split(string, delimiter)</code>
@@ -10011,7 +10024,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>723 out of 782 functions have descriptions. </p>
+        <p>724 out of 783 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

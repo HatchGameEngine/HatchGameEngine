@@ -57,6 +57,15 @@ public:
 #include FT_FREETYPE_H
 #endif
 
+#define NANOPRINTF_IMPLEMENTATION
+#define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_FLOAT_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_USE_BINARY_FORMAT_SPECIFIERS 1
+#define NANOPRINTF_VISIBILITY_STATIC 1
+
+#include <Libraries/nanoprintf.h>
+
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
 #define CHECK_ARGCOUNT(expects) \
@@ -113,130 +122,116 @@ namespace LOCAL {
     inline char*           GetString(VMValue* args, int index, Uint32 threadID) {
         char* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_STRING(args[index])) {
+            if (IS_STRING(args[index])) {
+                value = AS_CSTRING(args[index]);
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STRING), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
                     ScriptManager::Unlock();
                     ScriptManager::Threads[threadID].ReturnFromNative();
                 }
             }
-
-            value = AS_CSTRING(args[index]);
             ScriptManager::Unlock();
         }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "String"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
+        return value;
+    }
+    inline ObjString*      GetVMString(VMValue* args, int index, Uint32 threadID) {
+        ObjString* value = NULL;
+        if (ScriptManager::Lock()) {
+            if (IS_STRING(args[index])) {
+                value = AS_STRING(args[index]);
+            } else {
+                if (THROW_ERROR(
+                    "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STRING), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+                    ScriptManager::Unlock();
+                    ScriptManager::Threads[threadID].ReturnFromNative();
+                }
+            }
+            ScriptManager::Unlock();
         }
         return value;
     }
     inline ObjArray*       GetArray(VMValue* args, int index, Uint32 threadID) {
         ObjArray* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_ARRAY(args[index])) {
+            if (IS_ARRAY(args[index])) {
+                value = (ObjArray*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
             }
-
-            value = (ObjArray*)(AS_OBJECT(args[index]));
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Array"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjMap*         GetMap(VMValue* args, int index, Uint32 threadID) {
         ObjMap* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_MAP(args[index]))
+            if (IS_MAP(args[index])) {
+                value = (ObjMap*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_MAP), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
-
-            value = (ObjMap*)(AS_OBJECT(args[index]));
+            }
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Map"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
         ObjBoundMethod* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_BOUND_METHOD(args[index]))
+            if (IS_BOUND_METHOD(args[index])) {
+                value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_BOUND_METHOD), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
-
-            value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
+            }
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Event"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjFunction*    GetFunction(VMValue* args, int index, Uint32 threadID) {
         ObjFunction* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_FUNCTION(args[index]))
+            if (IS_FUNCTION(args[index])) {
+                value = (ObjFunction*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_FUNCTION), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
-
-            value = (ObjFunction*)(AS_OBJECT(args[index]));
+            }
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Event"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjInstance*    GetInstance(VMValue* args, int index, Uint32 threadID) {
         ObjInstance* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_INSTANCE(args[index]))
+            if (IS_INSTANCE(args[index])) {
+                value = (ObjInstance*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_INSTANCE), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
-
-            value = (ObjInstance*)(AS_OBJECT(args[index]));
+            }
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Instance"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
     inline ObjStream*    GetStream(VMValue* args, int index, Uint32 threadID) {
         ObjStream* value = NULL;
         if (ScriptManager::Lock()) {
-            if (!IS_STREAM(args[index]))
+            if (IS_STREAM(args[index])) {
+                value = (ObjStream*)(AS_OBJECT(args[index]));
+            } else {
                 if (THROW_ERROR(
                     "Expected argument %d to be of type %s instead of %s.", index + 1, GetObjectTypeString(OBJ_STREAM), GetValueTypeString(args[index])) == ERROR_RES_CONTINUE)
                     ScriptManager::Threads[threadID].ReturnFromNative();
-
-            value = (ObjStream*)(AS_OBJECT(args[index]));
+            }
             ScriptManager::Unlock();
-        }
-        if (!value) {
-            if (THROW_ERROR("Argument %d could not be read as type %s.", index + 1,
-                "Stream"))
-                ScriptManager::Threads[threadID].ReturnFromNative();
         }
         return value;
     }
@@ -369,6 +364,9 @@ PUBLIC STATIC float        StandardLibrary::GetDecimal(VMValue* args, int index,
 }
 PUBLIC STATIC char*        StandardLibrary::GetString(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetString(args, index, threadID);
+}
+PUBLIC STATIC ObjString*   StandardLibrary::GetVMString(VMValue* args, int index, Uint32 threadID) {
+    return LOCAL::GetVMString(args, index, threadID);
 }
 PUBLIC STATIC ObjArray*    StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetArray(args, index, threadID);
@@ -14390,6 +14388,71 @@ VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region String
 /***
+ * String.Format
+ * \desc Formats a <b>format string</b> according to the given <b>format specifiers</b>. A format specifier is a string of the form<br><br>\
+<code>%[flags][width][.precision][conversion specifier]</code><br><br>\
+where a <b>conversion specifier</b> must be one of the following:<br/>\
+<ul>\
+<li><code>d</code>: Integers</li>\
+<li><code>f</code> or <code>%F</code>: Decimals</li>\
+<li><code>s</code>: Strings</li>\
+<li><code>c</code>: Characters</li>\
+<li><code>x</code> or <code>%X</code>: Hexadecimal integers</li>\
+<li><code>b</code> or <code>%b</code>: Binary integers</li>\
+<li><code>o</code>: Octal integers</li>\
+<li><code>%</code>: A literal percent sign character</li>\
+</ul>\
+<b>Flags</b> are optional, and must be one of the following:<br/>\
+<ul>\
+<li><code>0</code>: Pads the value with leading zeroes. See the <b>width sub-specifier</b>.</li>\
+<li><code>-</code>: Left-justifies the result. See the <b>width sub-specifier</b>.</li>\
+<li><code>#</code>: Prefixes something to the value depending on the <b>conversion specifier</b>:<ul>\
+<li><code>x</code> or <code>X</code>: Prefixes the value with <code>0x</code> or <code>0X</code> respectively.</li>\
+<li><code>b</code> or <code>B</code>: Prefixes the value with <code>0b</code> or <code>0B</code> respectively.</li>\
+<li><code>f</code>: Prefixes the value with a <code>.</code> character.</li>\
+<li><code>o</code>: Prefixes the value with a <code>0</code> character.</li>\
+</ul>\
+<li><code>+</code>: Prefixes positive numbers with a plus sign.</li>\
+<li>A space character: If no sign character (<code>-</code> or <code>+</code>) was written, a space character is written instead.</li>\
+</ul>\
+A <b>width sub-specifier</b> is used in conjunction with the flags:<br/>\
+<ul>\
+<li>A number: The amount of padding to add.</li>\
+<li><code>*</code>: This functions the same as the above, but the width is given in the next argument as an Integer value.</li>\
+</ul>\
+<b>Precision specifiers</b> are also supported:<br/>\
+<ul>\
+<li><code>.</code> followed by a number:<ul>\
+<li>For Integer values, this pads the value with leading zeroes.</li>\
+<li>For Decimal values, this specifies the number of digits to be printed after the decimal point (which is 6 by default).</li>\
+<li>For String values, this is the maximum amount of characters to be printed.</li>\
+</ul>\
+<li><code>.</code> followed by a <code>*</code>: This functions the same as the above, but the precision is given in the next argument as an Integer value.</li>\
+</ul>
+ * \param string (String): The format string.
+ * \paramOpt values (any type): Variable arguments.
+ * \return Returns a String value.
+ * \ns String
+ */
+VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    char* fmtString = GET_ARG(0, GetString);
+
+    if (fmtString && ScriptManager::Lock()) {
+        ObjString* newString;
+        if (argCount > 1) {
+            newString = npf_vpprintf(fmtString, argCount - 1, args + 1, threadID);
+        }
+        else {
+            newString = CopyString(fmtString);
+        }
+        ScriptManager::Unlock();
+        return OBJECT_VAL(newString);
+    }
+
+    return NULL_VAL;
+}
+/***
  * String.Split
  * \desc Splits a string by a delimiter.
  * \param string (String): The string to split.
@@ -18090,6 +18153,7 @@ PUBLIC STATIC void StandardLibrary::Link() {
 
     // #region String
     INIT_CLASS(String);
+    DEF_NATIVE(String, Format);
     DEF_NATIVE(String, Split);
     DEF_NATIVE(String, CharAt);
     DEF_NATIVE(String, Length);
