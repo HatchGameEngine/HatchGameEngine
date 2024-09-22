@@ -108,8 +108,8 @@ char        Application::SettingsFile[4096];
 
 XMLNode*    Application::GameConfig = NULL;
 
-float       Application::FPS = 60.f;
-int         TargetFPS = 60;
+float       Application::FPS = DEFAULT_TARGET_FRAMERATE;
+int         TargetFPS = DEFAULT_TARGET_FRAMERATE;
 bool        Application::Running = false;
 bool        Application::GameStart = false;
 
@@ -253,6 +253,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     InputManager::Init();
     Clock::Init();
 
+    Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
     Application::LoadGameConfig();
     Application::LoadGameInfo();
     Application::LoadSceneInfo();
@@ -286,6 +287,17 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Application::SetWindowTitle(Application::GameTitleShort);
 
     Running = true;
+}
+
+PUBLIC STATIC void  Application::SetTargetFrameRate(int targetFPS) {
+    if (targetFPS < 1)
+        TargetFPS = 1;
+    else if (targetFPS > 240)
+        TargetFPS = 240;
+    else
+        TargetFPS = targetFPS;
+
+    FrameTimeDesired = 1000.0 / TargetFPS;
 }
 
 PRIVATE STATIC void Application::MakeEngineVersion() {
@@ -1247,6 +1259,10 @@ PRIVATE STATIC void Application::LoadGameConfig() {
     // Read engine settings
     node = XMLParser::SearchNode(root, "engine");
     if (node) {
+        int targetFPS = DEFAULT_TARGET_FRAMERATE;
+        ParseGameConfigInt(node, "framerate", targetFPS);
+        Application::SetTargetFrameRate(targetFPS);
+
         ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
         ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
         ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
