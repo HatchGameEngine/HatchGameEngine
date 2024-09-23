@@ -1270,12 +1270,12 @@ DoCheckRender:
     Scene::CurrentDrawGroup = -1;
     PERF_END(ObjectRenderLateTime);
 
-    if (Application::DevMenuActivated) {
+    if (Application::DevMenuActivated && viewIndex == 0) {
         // Poll for inputs, since the frame did not run
         InputManager::Poll();
 
-        if (Application::DeveloperMenu.State)
-            Application::DeveloperMenu.State();
+        if (Application::DevMenu.State)
+            Application::DevMenu.State();
     }
 
     PERF_START(RenderFinishTime);
