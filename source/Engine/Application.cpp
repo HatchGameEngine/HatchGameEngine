@@ -256,6 +256,10 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
         SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
         Application::WindowWidth, Application::WindowHeight, window_flags);
 
+    bool fullscreen = false;
+    Application::Settings->GetBool("display", "fullscreen", &fullscreen);
+    Application::SetWindowFullscreen(fullscreen);
+
     if (Application::Platform == Platforms::iOS) {
         SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
     }
@@ -1523,10 +1527,44 @@ PUBLIC STATIC void Application::InitSettings(const char* filename) {
 
     // NOTE: If no settings could be loaded, create settings with default values.
     if (!Application::Settings) {
+        Log::Print(Log::LOG_IMPORTANT, "Creating default config.ini.");
+        Application::SetSettingsFilename("config.ini");
         Application::Settings = INI::New(Application::SettingsFile);
+
+        Application::Settings->SetString("game", "modpacks", "Data.hatch");
 
         Application::Settings->SetBool("display", "fullscreen", false);
         Application::Settings->SetBool("display", "vsync", false);
+        Application::Settings->SetInteger("display", "defaultMonitor", 0);
+        Application::Settings->SetBool("display", "retina", false);
+        Application::Settings->SetInteger("display", "multisample", 0);
+        Application::Settings->SetBool("display", "forceSoftwareTextures", false);
+
+        Application::Settings->SetBool("dev", "devMenu", false);
+        Application::Settings->SetBool("dev", "writeToFile", false);
+        Application::Settings->SetBool("dev", "viewPerformance", false);
+        Application::Settings->SetBool("dev", "donothing", false);
+        Application::Settings->SetInteger("dev", "fastForward", 6);
+        Application::Settings->SetInteger("dev", "logLevel", 0);
+        Application::Settings->SetBool("dev", "trackMemory", false);
+        Application::Settings->SetBool("dev", "autoPerfSnapshots", false);
+        Application::Settings->SetInteger("dev", "apsMinFrameTime", 20);
+        Application::Settings->SetInteger("dev", "apsMinInterval", 5);
+        Application::Settings->SetBool("dev", "debugCompiler", false);
+        Application::Settings->SetBool("dev", "branchLimit", false);
+        Application::Settings->SetBool("dev", "exportFonts", false);
+        Application::Settings->SetString("dev", "renderer", "opengl");
+        Application::Settings->SetBool("dev", "notiles", false);
+        Application::Settings->SetBool("dev", "noobjectrender", false);
+        Application::Settings->SetBool("dev", "viewCollision", false);
+        Application::Settings->SetBool("dev", "loadAllClasses", false);
+
+        Application::Settings->SetBool("compiler", "logLevel", false);
+        Application::Settings->SetBool("compiler", "showWarnings", false);
+        Application::Settings->SetBool("compiler", "writeDebugInfo", false);
+        Application::Settings->SetBool("compiler", "writeSourceFilename", false);
+
+        Application::SaveSettings(Application::SettingsFile);
     }
 
     int logLevel = 0;
