@@ -1540,6 +1540,10 @@ PUBLIC STATIC void Application::InitSettings(const char* filename) {
         Application::Settings->SetInteger("display", "multisample", 0);
         Application::Settings->SetBool("display", "forceSoftwareTextures", false);
 
+        Application::Settings->SetInteger("audio", "masterVolume", 0);
+        Application::Settings->SetInteger("audio", "musicVolume", 0);
+        Application::Settings->SetInteger("audio", "soundVolume", 0);
+
         Application::Settings->SetBool("dev", "devMenu", false);
         Application::Settings->SetBool("dev", "writeToFile", false);
         Application::Settings->SetBool("dev", "viewPerformance", false);
@@ -1559,7 +1563,7 @@ PUBLIC STATIC void Application::InitSettings(const char* filename) {
         Application::Settings->SetBool("dev", "viewCollision", false);
         Application::Settings->SetBool("dev", "loadAllClasses", false);
 
-        Application::Settings->SetBool("compiler", "logLevel", false);
+        Application::Settings->SetBool("compiler", "log", false);
         Application::Settings->SetBool("compiler", "showWarnings", false);
         Application::Settings->SetBool("compiler", "writeDebugInfo", false);
         Application::Settings->SetBool("compiler", "writeSourceFilename", false);

@@ -371,7 +371,7 @@ void UpdateObject(Entity* ent) {
 
     switch (ent->Activity) {
     default:
-        break;
+    case ACTIVE_DISABLED: break;
 
     case ACTIVE_NEVER:
     case ACTIVE_PAUSED:

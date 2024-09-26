@@ -18795,6 +18795,11 @@ PUBLIC STATIC void StandardLibrary::Link() {
     * \desc Entity updates within a radius. (uses UpdateRegionW)
     */
     DEF_ENUM(ACTIVE_RBOUNDS);
+    /***
+    * \enum ACTIVE_DISABLED
+    * \desc Entity will not even reach a point where it would check for an update.
+    */
+    DEF_ENUM(ACTIVE_DISABLED);
 
     // #region Hitbox Sides
     /***
