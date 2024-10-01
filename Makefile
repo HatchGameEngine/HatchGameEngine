@@ -37,12 +37,6 @@ ifeq ($(PLATFORM),$(PLATFORM_WINDOWS))
 PROGRAM_SUFFIX := .exe
 endif
 
-ifeq ($(PLATFORM),$(PLATFORM_LINUX))
-MAKEHEADERS := ./tools/makeheaders
-else
-MAKEHEADERS := ./tools/makeheaders$(PROGRAM_SUFFIX)
-endif
-
 USING_LIBAV = 0
 USING_CURL = 0
 USING_LIBPNG = 1
@@ -143,7 +137,6 @@ endif
 
 all:
 	mkdir -p $(OBJ_DIRS)
-	$(MAKEHEADERS) source
 	$(MAKE) build
 
 clean:
@@ -164,7 +157,6 @@ package:
 	@mkdir -p "$(TARGETDIR).app/Contents/Resources"
 	@# @rm -rf $(OBJS)
 	@mkdir -p $(OBJ_DIRS)
-	@./tools/makeheaders source
 	@make build
 	@chmod +x "$(TARGETDIR)"
 	@cp "$(TARGETDIR)" "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
