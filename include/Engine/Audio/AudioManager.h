@@ -41,7 +41,7 @@ public:
         REQUEST_EOF = 0,
         REQUEST_ERROR = -1,
         REQUEST_CONVERTING = -2,
-    }; 
+    };
 
     static void CalculateCoeffs();
     static Sint16 ProcessSample(Sint16 inSample, int channel);
