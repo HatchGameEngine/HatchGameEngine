@@ -11,6 +11,7 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Math/Matrix4x4.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Includes/HashMap.h>
