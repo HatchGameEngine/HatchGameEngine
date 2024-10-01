@@ -36,6 +36,7 @@ mono_crash.*
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
+builds/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
