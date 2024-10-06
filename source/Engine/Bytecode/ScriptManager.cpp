@@ -612,10 +612,14 @@ PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
 
 // #region GlobalFuncs
 PUBLIC STATIC bool    ScriptManager::Lock() {
-    return (SDL_LockMutex(GlobalLock) == 0);
+    if (ScriptManager::ThreadCount == 1)
+        return true;
+
+    return SDL_LockMutex(GlobalLock) == 0;
 }
 PUBLIC STATIC void    ScriptManager::Unlock() {
-    SDL_UnlockMutex(GlobalLock);
+    if (ScriptManager::ThreadCount > 1)
+        SDL_UnlockMutex(GlobalLock);
 }
 
 PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash) {
