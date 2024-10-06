@@ -1,14 +1,6 @@
 #ifndef ENGINE_DIAGNOSTICS_REMOTEDEBUG_H
 #define ENGINE_DIAGNOSTICS_REMOTEDEBUG_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class RemoteDebug {
 public:

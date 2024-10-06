@@ -1,13 +1,5 @@
 #ifndef ENGINE_RENDERING_TEXTURE_H
 #define ENGINE_RENDERING_TEXTURE_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class Texture;
 
 #include <Engine/Includes/Standard.h>

@@ -1,13 +1,5 @@
 #ifndef ENGINE_RENDERING_MODELRENDERER_H
 #define ENGINE_RENDERING_MODELRENDERER_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class Matrix4x4;
 
 #include <Engine/Includes/Standard.h>

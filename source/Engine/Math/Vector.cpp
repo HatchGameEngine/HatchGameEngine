@@ -1,17 +1,7 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Math/VectorTypes.h>
-#include <Engine/Math/Matrix4x4.h>
-
-class Vector {
-public:
-};
-#endif
-
 #include <Engine/Math/Vector.h>
 #include <Engine/Math/FixedPoint.h>
 
-PUBLIC STATIC Vector4 Vector::Add(Vector4 v1, Vector4 v2) {
+Vector4 Vector::Add(Vector4 v1, Vector4 v2) {
     Vector4 result;
     result.X = v1.X + v2.X;
     result.Y = v1.Y + v2.Y;
@@ -20,7 +10,7 @@ PUBLIC STATIC Vector4 Vector::Add(Vector4 v1, Vector4 v2) {
     return result;
 }
 
-PUBLIC STATIC Vector4 Vector::Subtract(Vector4 v1, Vector4 v2) {
+Vector4 Vector::Subtract(Vector4 v1, Vector4 v2) {
     Vector4 result;
     result.X = v1.X - v2.X;
     result.Y = v1.Y - v2.Y;
@@ -29,7 +19,7 @@ PUBLIC STATIC Vector4 Vector::Subtract(Vector4 v1, Vector4 v2) {
     return result;
 }
 
-PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, Sint64 t) {
+Vector4 Vector::Multiply(Vector4 v, Sint64 t) {
     Vector4 result;
     result.X = FP16_MULTIPLY(v.X, t);
     result.Y = FP16_MULTIPLY(v.Y, t);
@@ -38,7 +28,7 @@ PUBLIC STATIC Vector4 Vector::Multiply(Vector4 v, Sint64 t) {
     return result;
 }
 
-PUBLIC STATIC Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
+Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
     Vector3 result;
 
     Sint64 mat11 = m->Values[0]  * 0x10000;
@@ -61,7 +51,7 @@ PUBLIC STATIC Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
     return result;
 }
 
-PUBLIC STATIC Vector2 Vector::Interpolate(Vector2 v1, Vector2 v2, Sint64 t) {
+Vector2 Vector::Interpolate(Vector2 v1, Vector2 v2, Sint64 t) {
     Vector2 result;
 
     result.X = v1.X + FP16_MULTIPLY(v2.X - v1.X, t);
@@ -70,7 +60,7 @@ PUBLIC STATIC Vector2 Vector::Interpolate(Vector2 v1, Vector2 v2, Sint64 t) {
     return result;
 }
 
-PUBLIC STATIC Vector3 Vector::Interpolate(Vector3 v1, Vector3 v2, Sint64 t) {
+Vector3 Vector::Interpolate(Vector3 v1, Vector3 v2, Sint64 t) {
     Vector3 result;
 
     result.X = v1.X + FP16_MULTIPLY(v2.X - v1.X, t);
@@ -80,7 +70,7 @@ PUBLIC STATIC Vector3 Vector::Interpolate(Vector3 v1, Vector3 v2, Sint64 t) {
     return result;
 }
 
-PUBLIC STATIC Vector4 Vector::Interpolate(Vector4 v1, Vector4 v2, Sint64 t) {
+Vector4 Vector::Interpolate(Vector4 v1, Vector4 v2, Sint64 t) {
     Vector4 result;
 
     result.X = v1.X + FP16_MULTIPLY(v2.X - v1.X, t);
@@ -91,7 +81,7 @@ PUBLIC STATIC Vector4 Vector::Interpolate(Vector4 v1, Vector4 v2, Sint64 t) {
     return result;
 }
 
-PUBLIC STATIC Sint64  Vector::DotProduct(Vector4 v1, Vector4 v2) {
+Sint64  Vector::DotProduct(Vector4 v1, Vector4 v2) {
     Sint64 result = 0;
     result += FP16_MULTIPLY(v1.X, v2.X);
     result += FP16_MULTIPLY(v1.Y, v2.Y);
@@ -100,13 +90,13 @@ PUBLIC STATIC Sint64  Vector::DotProduct(Vector4 v1, Vector4 v2) {
     return result;
 }
 
-PUBLIC STATIC Sint64  Vector::Length(Vector4 v) {
+Sint64  Vector::Length(Vector4 v) {
     float result = Vector::DotProduct(v, v);
     result = sqrtf(result / 0x10000);
     return result * 0x10000;
 }
 
-PUBLIC STATIC Vector4 Vector::Normalize(Vector4 v) {
+Vector4 Vector::Normalize(Vector4 v) {
     Vector4 result;
 
     Sint64 length = Vector::Length(v);
@@ -122,7 +112,7 @@ PUBLIC STATIC Vector4 Vector::Normalize(Vector4 v) {
     return result;
 }
 
-PUBLIC STATIC Sint64  Vector::IntersectWithPlane(Vector4 plane, Vector4 normal, Vector4 v1, Vector4 v2) {
+Sint64  Vector::IntersectWithPlane(Vector4 plane, Vector4 normal, Vector4 v1, Vector4 v2) {
     Vector4 planeNormal = Vector::Normalize(normal);
     Sint64 dotProduct = Vector::DotProduct(v1, planeNormal);
     Sint64 t = Vector::DotProduct(planeNormal, plane) - dotProduct;
@@ -133,7 +123,7 @@ PUBLIC STATIC Sint64  Vector::IntersectWithPlane(Vector4 plane, Vector4 normal, 
     return FP16_DIVIDE(t, diff);
 }
 
-PUBLIC STATIC Sint64  Vector::DistanceToPlane(Vector4 v, Vector4 plane, Vector4 normal) {
+Sint64  Vector::DistanceToPlane(Vector4 v, Vector4 plane, Vector4 normal) {
     Sint64 dotProduct = Vector::DotProduct(normal, plane);
     Sint64 result = 0;
 

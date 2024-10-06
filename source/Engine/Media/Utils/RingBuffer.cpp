@@ -1,21 +1,8 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-
-class RingBuffer {
-public:
-    int   Size;
-    int   Length;
-    int   WritePos;
-    int   ReadPos;
-    char* Data;
-};
-#endif
-
 #include <Engine/Media/Utils/RingBuffer.h>
 
 #include <Engine/Diagnostics/Log.h>
 
-PUBLIC        RingBuffer::RingBuffer(Uint32 size) {
+RingBuffer::RingBuffer(Uint32 size) {
     this->Length = 0;
     this->WritePos = 0;
     this->ReadPos = 0;
@@ -27,10 +14,10 @@ PUBLIC        RingBuffer::RingBuffer(Uint32 size) {
         exit(-1);
     }
 }
-PUBLIC        RingBuffer::~RingBuffer() {
+RingBuffer::~RingBuffer() {
     free(this->Data);
 }
-PUBLIC int    RingBuffer::Write(const char* data, int len) {
+int    RingBuffer::Write(const char* data, int len) {
     int k;
     len = (len > (this->Size - this->Length)) ? (this->Size - this->Length) : len;
     if (this->Length < this->Size) {
@@ -52,7 +39,7 @@ PUBLIC int    RingBuffer::Write(const char* data, int len) {
     return 0;
 }
 
-PUBLIC void   RingBuffer::ReadData(char* data, const int len) {
+void   RingBuffer::ReadData(char* data, const int len) {
     int k;
     if (len + this->ReadPos > this->Size) {
         k = (len + this->ReadPos) % this->Size;
@@ -63,7 +50,7 @@ PUBLIC void   RingBuffer::ReadData(char* data, const int len) {
         memcpy(data, this->Data + this->ReadPos, len);
     }
 }
-PUBLIC int    RingBuffer::Read(char* data, int len) {
+int    RingBuffer::Read(char* data, int len) {
     len = (len > this->Length) ? this->Length : len;
     if (this->Length > 0) {
         ReadData(data, len);
@@ -76,7 +63,7 @@ PUBLIC int    RingBuffer::Read(char* data, int len) {
     }
     return 0;
 }
-PUBLIC int    RingBuffer::Peek(char *data, int len) {
+int    RingBuffer::Peek(char *data, int len) {
     len = (len > this->Length) ? this->Length : len;
     if (this->Length > 0) {
         ReadData(data, len);
@@ -84,7 +71,7 @@ PUBLIC int    RingBuffer::Peek(char *data, int len) {
     }
     return 0;
 }
-PUBLIC int    RingBuffer::Advance(int len) {
+int    RingBuffer::Advance(int len) {
     len = (len > this->Length) ? this->Length : len;
     if (this->Length > 0) {
         this->Length -= len;
@@ -96,12 +83,12 @@ PUBLIC int    RingBuffer::Advance(int len) {
     }
     return 0;
 }
-PUBLIC int    RingBuffer::GetLength() {
+int    RingBuffer::GetLength() {
     return this->Length;
 }
-PUBLIC int    RingBuffer::GetSize() {
+int    RingBuffer::GetSize() {
     return this->Size;
 }
-PUBLIC int    RingBuffer::GetFree() {
+int    RingBuffer::GetFree() {
     return this->Size - this->Length;
 }

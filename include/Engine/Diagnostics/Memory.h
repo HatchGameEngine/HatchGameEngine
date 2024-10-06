@@ -1,14 +1,6 @@
 #ifndef ENGINE_DIAGNOSTICS_MEMORY_H
 #define ENGINE_DIAGNOSTICS_MEMORY_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class Memory {

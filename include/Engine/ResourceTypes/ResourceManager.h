@@ -1,14 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 #define ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/HashMap.h>
 

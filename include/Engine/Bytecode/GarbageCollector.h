@@ -1,14 +1,6 @@
 #ifndef ENGINE_BYTECODE_GARBAGECOLLECTOR_H
 #define ENGINE_BYTECODE_GARBAGECOLLECTOR_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/HashMap.h>
 

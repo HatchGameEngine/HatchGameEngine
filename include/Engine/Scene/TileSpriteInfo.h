@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_TILESPRITEINFO_H
 #define ENGINE_SCENE_TILESPRITEINFO_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class TileSpriteInfo {
 public:

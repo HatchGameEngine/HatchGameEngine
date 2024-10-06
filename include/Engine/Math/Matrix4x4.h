@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_MATRIX4X4_H
 #define ENGINE_MATH_MATRIX4X4_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class Matrix4x4 {
 public:

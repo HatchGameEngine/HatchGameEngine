@@ -1,26 +1,16 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class CRC32 {
-public:
-
-};
-#endif
-
 #include <Engine/Hashing/CRC32.h>
 
-PUBLIC STATIC Uint32 CRC32::EncryptString(char* data) {
+Uint32 CRC32::EncryptString(char* data) {
     return CRC32::EncryptData(data, strlen(data));
 }
-PUBLIC STATIC Uint32 CRC32::EncryptString(const char* message) {
+Uint32 CRC32::EncryptString(const char* message) {
     return CRC32::EncryptString((char*)message);
 }
 
-PUBLIC STATIC Uint32 CRC32::EncryptData(const void* data, size_t size) {
+Uint32 CRC32::EncryptData(const void* data, size_t size) {
     return CRC32::EncryptData(data, size, 0xFFFFFFFFU);
 }
-PUBLIC STATIC Uint32 CRC32::EncryptData(const void* data, size_t size, Uint32 crc) {
+Uint32 CRC32::EncryptData(const void* data, size_t size, Uint32 crc) {
     int j;
     Uint32 byte, mask;
     Uint8* message = (Uint8*)data;

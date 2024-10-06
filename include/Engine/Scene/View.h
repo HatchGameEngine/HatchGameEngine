@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_VIEW_H
 #define ENGINE_SCENE_VIEW_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/Texture.h>

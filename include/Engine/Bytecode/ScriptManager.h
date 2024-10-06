@@ -1,13 +1,5 @@
 #ifndef ENGINE_BYTECODE_SCRIPTMANAGER_H
 #define ENGINE_BYTECODE_SCRIPTMANAGER_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class ScriptEntity;
 
 #include <Engine/Includes/Standard.h>

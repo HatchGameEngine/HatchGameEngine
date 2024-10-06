@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_SCENELAYER_H
 #define ENGINE_SCENE_SCENELAYER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Scene/ScrollingInfo.h>

@@ -1,37 +1,28 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/Token.h>
-
-class StringUtils {
-public:
-};
-#endif
-
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Memory.h>
 
-PUBLIC STATIC char* StringUtils::Create(void* src, size_t length) {
+char* StringUtils::Create(void* src, size_t length) {
     char* string = (char*)Memory::Malloc(length + 1);
     memcpy(string, src, length);
     string[length] = '\0';
     return string;
 }
-PUBLIC STATIC char* StringUtils::Create(string src) {
+char* StringUtils::Create(string src) {
     return StringUtils::Duplicate(src.c_str());
 }
-PUBLIC STATIC char* StringUtils::Create(Token token) {
+char* StringUtils::Create(Token token) {
     char* string = (char*)Memory::Malloc(token.Length + 1);
     memcpy(string, token.Start, token.Length);
     string[token.Length] = '\0';
     return string;
 }
-PUBLIC STATIC char* StringUtils::Duplicate(const char* src) {
+char* StringUtils::Duplicate(const char* src) {
     size_t length = strlen(src) + 1;
     char* string = (char*)Memory::Malloc(length);
     memcpy(string, src, length);
     return string;
 }
-PUBLIC STATIC char* StringUtils::Duplicate(const char* src, size_t length) {
+char* StringUtils::Duplicate(const char* src, size_t length) {
     size_t srcLength = strlen(src);
     if (length > srcLength)
         length = srcLength;
@@ -40,7 +31,7 @@ PUBLIC STATIC char* StringUtils::Duplicate(const char* src, size_t length) {
     string[length] = '\0';
     return string;
 }
-PUBLIC STATIC char* StringUtils::Resize(char* src, size_t length) {
+char* StringUtils::Resize(char* src, size_t length) {
     size_t originalSize = strlen(src);
     char* string = (char *)Memory::Realloc(src, length + 1);
     if (length > originalSize)
@@ -49,7 +40,7 @@ PUBLIC STATIC char* StringUtils::Resize(char* src, size_t length) {
         string[length] = '\0';
     return string;
 }
-PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* second) {
+bool StringUtils::WildcardMatch(const char* first, const char* second) {
     if (*first == 0 && *second == 0)
         return true;
     if (*first == 0 && *second == '*' && *(second + 1) != 0)
@@ -60,14 +51,14 @@ PUBLIC STATIC bool StringUtils::WildcardMatch(const char* first, const char* sec
         return StringUtils::WildcardMatch(first, second + 1) || StringUtils::WildcardMatch(first + 1, second);
     return false;
 }
-PUBLIC STATIC bool StringUtils::StartsWith(const char* string, const char* compare) {
+bool StringUtils::StartsWith(const char* string, const char* compare) {
     size_t cmpLen = strlen(compare);
     if (strlen(string) < cmpLen)
         return false;
 
     return memcmp(string, compare, cmpLen) == 0;
 }
-PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
+char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
     if (!needle[0]) return (char*)haystack;
 
     /* Loop over all possible start positions. */
@@ -89,7 +80,7 @@ PUBLIC STATIC char* StringUtils::StrCaseStr(const char* haystack, const char* ne
     }
     return NULL;
 }
-PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
+size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
     char* d = dst;
     const char* s = src;
     size_t n = sz;
@@ -112,7 +103,7 @@ PUBLIC STATIC size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
 
     return s - src - 1; // count does not include NUL
 }
-PUBLIC STATIC size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
+size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
     char *d = dst;
     const char *s = src;
     size_t n = sz;
@@ -137,7 +128,7 @@ PUBLIC STATIC size_t StringUtils::Concat(char* dst, const char* src, size_t sz) 
 
     return dlen + (s - src); // count does not include NUL
 }
-PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
+bool StringUtils::ToNumber(int* dst, const char* src) {
     char* end;
     long num = strtol(src, &end, 10);
 
@@ -151,7 +142,7 @@ PUBLIC STATIC bool StringUtils::ToNumber(int* dst, const char* src) {
     (*dst) = num;
     return true;
 }
-PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
+bool StringUtils::ToDecimal(double* dst, const char* src) {
     char* end;
     double num = strtod(src, &end);
 
@@ -163,13 +154,13 @@ PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, const char* src) {
     (*dst) = num;
     return true;
 }
-PUBLIC STATIC bool StringUtils::ToNumber(int* dst, string src) {
+bool StringUtils::ToNumber(int* dst, string src) {
     return ToNumber(dst, src.c_str());
 }
-PUBLIC STATIC bool StringUtils::ToDecimal(double* dst, string src) {
+bool StringUtils::ToDecimal(double* dst, string src) {
     return ToDecimal(dst, src.c_str());
 }
-PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
+char* StringUtils::GetPath(const char* filename) {
     if (!filename)
         return nullptr;
 
@@ -189,7 +180,7 @@ PUBLIC STATIC char* StringUtils::GetPath(const char* filename) {
 
     return path;
 }
-PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
+char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
     if (!pathA || !pathB)
         return nullptr;
 
@@ -217,7 +208,7 @@ PUBLIC STATIC char* StringUtils::ConcatPaths(const char* pathA, const char* path
     memcpy(newPath, pathB, lenB);
     return out;
 }
-PUBLIC STATIC char* StringUtils::ReplacePathSeparators(const char* path) {
+char* StringUtils::ReplacePathSeparators(const char* path) {
     if (!path)
         return nullptr;
 
@@ -239,7 +230,7 @@ PUBLIC STATIC char* StringUtils::ReplacePathSeparators(const char* path) {
 
     return newPath;
 }
-PUBLIC STATIC void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
+void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
     if (!path)
         return;
 

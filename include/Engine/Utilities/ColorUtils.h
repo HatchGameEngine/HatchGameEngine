@@ -1,14 +1,6 @@
 #ifndef ENGINE_UTILITIES_COLORUTILS_H
 #define ENGINE_UTILITIES_COLORUTILS_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class ColorUtils {

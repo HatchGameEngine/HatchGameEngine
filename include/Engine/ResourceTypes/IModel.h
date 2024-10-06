@@ -1,14 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_IMODEL_H
 #define ENGINE_RESOURCETYPES_IMODEL_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Mesh.h>

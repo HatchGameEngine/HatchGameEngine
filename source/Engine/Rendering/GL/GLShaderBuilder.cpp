@@ -1,16 +1,6 @@
-#if INTERFACE
-#include <Engine/Rendering/GL/GLShader.h>
-#include <Engine/Rendering/GL/ShaderIncludes.h>
-
-class GLShaderBuilder {
-public:
-
-};
-#endif
-
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 
-PRIVATE STATIC void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
+void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
     if (uniforms.u_matrix) {
         shaderText += "uniform mat4 u_projectionMatrix;\n";
         shaderText += "uniform mat4 u_modelViewMatrix;\n";
@@ -41,7 +31,7 @@ PRIVATE STATIC void GLShaderBuilder::AddUniformsToShaderText(std::string& shader
         shaderText += "uniform float u_fogDensity;\n";
     }
 }
-PRIVATE STATIC void GLShaderBuilder::AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs) {
+void GLShaderBuilder::AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs) {
     if (inputs.link_position) {
         shaderText += "attribute vec3 i_position;\n";
     }
@@ -52,7 +42,7 @@ PRIVATE STATIC void GLShaderBuilder::AddInputsToVertexShaderText(std::string& sh
         shaderText += "attribute vec4 i_color;\n";
     }
 }
-PRIVATE STATIC void GLShaderBuilder::AddOutputsToVertexShaderText(std::string& shaderText, GLShaderLinkage outputs) {
+void GLShaderBuilder::AddOutputsToVertexShaderText(std::string& shaderText, GLShaderLinkage outputs) {
     if (outputs.link_position) {
         shaderText += "varying vec4 o_position;\n";
     }
@@ -63,10 +53,10 @@ PRIVATE STATIC void GLShaderBuilder::AddOutputsToVertexShaderText(std::string& s
         shaderText += "varying vec4 o_color;\n";
     }
 }
-PRIVATE STATIC void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText, GLShaderLinkage& inputs) {
+void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText, GLShaderLinkage& inputs) {
     AddOutputsToVertexShaderText(shaderText, inputs);
 }
-PRIVATE STATIC string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
+string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
     std::string shaderText = "";
 
     if (uniforms.u_fog_linear) {
@@ -140,7 +130,7 @@ PRIVATE STATIC string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinka
     return shaderText;
 }
 
-PUBLIC STATIC string GLShaderBuilder::Vertex(GLShaderLinkage& inputs, GLShaderLinkage& outputs, GLShaderUniforms& uniforms) {
+string GLShaderBuilder::Vertex(GLShaderLinkage& inputs, GLShaderLinkage& outputs, GLShaderUniforms& uniforms) {
     std::string shaderText = "";
 
 #ifdef GL_ES
@@ -166,7 +156,7 @@ PUBLIC STATIC string GLShaderBuilder::Vertex(GLShaderLinkage& inputs, GLShaderLi
 
     return shaderText;
 }
-PUBLIC STATIC string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, std::string mainText) {
+string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, std::string mainText) {
     std::string shaderText = "";
 
 #ifdef GL_ES
@@ -180,6 +170,6 @@ PUBLIC STATIC string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShader
 
     return shaderText;
 }
-PUBLIC STATIC string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
+string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
     return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms));
 }

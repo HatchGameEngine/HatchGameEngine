@@ -1,101 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-
-#include <Engine/Application.h>
-#include <Engine/Math/Matrix4x4.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/ResourceTypes/IModel.h>
-#include <Engine/Scene/SceneEnums.h>
-#include <Engine/Scene/SceneLayer.h>
-#include <Engine/Scene/View.h>
-#include <Engine/Includes/HashMap.h>
-#include <Engine/Rendering/Enums.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/GraphicsFunctions.h>
-#include <Engine/Rendering/Scene3D.h>
-#include <Engine/Rendering/VertexBuffer.h>
-#include <Engine/Rendering/TextureReference.h>
-#include <Engine/Utilities/ColorUtils.h>
-
-need_t ISprite;
-need_t IModel;
-
-class Graphics {
-public:
-    static HashMap<Texture*>*   TextureMap;
-    static map<string, TextureReference*> SpriteSheetTextureMap;
-    static bool                 VsyncEnabled;
-    static int                  MultisamplingEnabled;
-    static int                  FontDPI;
-    static bool                 SupportsBatching;
-    static bool                 TextureBlend;
-    static bool                 TextureInterpolate;
-    static Uint32               PreferredPixelFormat;
-
-    static Uint32               MaxTextureWidth;
-    static Uint32               MaxTextureHeight;
-    static Texture*             TextureHead;
-
-    static vector<VertexBuffer*> VertexBuffers;
-    static Scene3D              Scene3Ds[MAX_3D_SCENES];
-
-    static stack<GraphicsState> StateStack;
-    static stack<Matrix4x4*>    MatrixStack;
-
-    static Matrix4x4*           ModelViewMatrix;
-
-    static Viewport             CurrentViewport;
-    static Viewport             BackupViewport;
-    static ClipArea             CurrentClip;
-    static ClipArea             BackupClip;
-
-    static View*                CurrentView;
-
-    static float                BlendColors[4];
-    static float                TintColors[4];
-
-    static int                  BlendMode;
-    static int                  TintMode;
-
-    static int                  StencilTest;
-    static int                  StencilOpPass;
-    static int                  StencilOpFail;
-
-    static void*                FramebufferPixels;
-    static size_t               FramebufferSize;
-
-    static Uint32               PaletteColors[MAX_PALETTE_COUNT][0x100];
-    static Uint8                PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
-    static bool                 PaletteUpdated;
-
-    static Texture*             PaletteTexture;
-
-    static Texture*             CurrentRenderTarget;
-    static Sint32               CurrentScene3D;
-    static Sint32               CurrentVertexBuffer;
-
-    static void*                CurrentShader;
-    static bool                 SmoothFill;
-    static bool                 SmoothStroke;
-
-    static float                PixelOffset;
-    static bool                 NoInternalTextures;
-    static bool                 UsePalettes;
-    static bool                 UsePaletteIndexLines;
-    static bool                 UseTinting;
-    static bool                 UseDepthTesting;
-    static bool                 UseSoftwareRenderer;
-
-    static unsigned             CurrentFrame;
-
-    // Rendering functions
-    static GraphicsFunctions    Internal;
-    static GraphicsFunctions*   GfxFunctions;
-    static const char*          Renderer;
-};
-#endif
-
 #include <Engine/Graphics.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -182,7 +84,7 @@ GraphicsFunctions    Graphics::Internal;
 GraphicsFunctions*   Graphics::GfxFunctions = &Graphics::Internal;
 const char*          Graphics::Renderer = "default";
 
-PUBLIC STATIC void     Graphics::Init() {
+void     Graphics::Init() {
     Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
 
     Graphics::ModelViewMatrix = Matrix4x4::Create();
@@ -214,7 +116,7 @@ PUBLIC STATIC void     Graphics::Init() {
         Log::Print(Log::LOG_VERBOSE, "Multisample: false");
     Log::Print(Log::LOG_VERBOSE, "Max Texture Size: %d x %d", Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 }
-PUBLIC STATIC void     Graphics::ChooseBackend() {
+void     Graphics::ChooseBackend() {
     char renderer[64];
 
     SoftwareRenderer::SetGraphicsFunctions();
@@ -271,13 +173,13 @@ PUBLIC STATIC void     Graphics::ChooseBackend() {
         SDL2Renderer::SetGraphicsFunctions();
     }
 }
-PUBLIC STATIC Uint32   Graphics::GetWindowFlags() {
+Uint32   Graphics::GetWindowFlags() {
     return Graphics::GfxFunctions->GetWindowFlags();
 }
-PUBLIC STATIC void     Graphics::SetVSync(bool enabled) {
+void     Graphics::SetVSync(bool enabled) {
     Graphics::GfxFunctions->SetVSync(enabled);
 }
-PUBLIC STATIC void     Graphics::Reset() {
+void     Graphics::Reset() {
     Graphics::UseSoftwareRenderer = false;
     Graphics::UsePalettes = false;
     Graphics::UsePaletteIndexLines = false;
@@ -307,7 +209,7 @@ PUBLIC STATIC void     Graphics::Reset() {
     Graphics::StencilOpPass = StencilOp_Keep;
     Graphics::StencilOpFail = StencilOp_Keep;
 }
-PUBLIC STATIC void     Graphics::Dispose() {
+void     Graphics::Dispose() {
     for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++)
         Graphics::DeleteVertexBuffer(i);
     Graphics::VertexBuffers.clear();
@@ -336,7 +238,7 @@ PUBLIC STATIC void     Graphics::Dispose() {
         Memory::Free(Graphics::FramebufferPixels);
 }
 
-PUBLIC STATIC Point    Graphics::ProjectToScreen(float x, float y, float z) {
+Point    Graphics::ProjectToScreen(float x, float y, float z) {
     Point p;
     float vec4[4];
     Matrix4x4* matrix;
@@ -352,7 +254,7 @@ PUBLIC STATIC Point    Graphics::ProjectToScreen(float x, float y, float z) {
     return p;
 }
 
-PUBLIC STATIC Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture;
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
         Graphics::NoInternalTextures) {
@@ -374,33 +276,33 @@ PUBLIC STATIC Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uin
 
     return texture;
 }
-PUBLIC STATIC Texture* Graphics::CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch) {
+Texture* Graphics::CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch) {
     Texture* texture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
     if (texture)
         Graphics::UpdateTexture(texture, NULL, pixels, pitch);
 
     return texture;
 }
-PUBLIC STATIC Texture* Graphics::CreateTextureFromSurface(SDL_Surface* surface) {
+Texture* Graphics::CreateTextureFromSurface(SDL_Surface* surface) {
     Texture* texture = Graphics::CreateTexture(surface->format->format, SDL_TEXTUREACCESS_STATIC, surface->w, surface->h);
     if (texture)
         Graphics::GfxFunctions->UpdateTexture(texture, NULL, surface->pixels, surface->pitch);
     return texture;
 }
-PUBLIC STATIC int      Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
+int      Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
         Graphics::NoInternalTextures)
         return 1;
     return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
 }
-PUBLIC STATIC int      Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
+int      Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
     memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
         Graphics::NoInternalTextures)
         return 1;
     return Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
 }
-PUBLIC STATIC int      Graphics::UpdateYUVTexture(Texture* texture, SDL_Rect* src, Uint8* pixelsY, int pitchY, Uint8* pixelsU, int pitchU, Uint8* pixelsV, int pitchV) {
+int      Graphics::UpdateYUVTexture(Texture* texture, SDL_Rect* src, Uint8* pixelsY, int pitchY, Uint8* pixelsU, int pitchU, Uint8* pixelsV, int pitchV) {
     if (!Graphics::GfxFunctions->UpdateYUVTexture)
         return 0;
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
@@ -408,21 +310,21 @@ PUBLIC STATIC int      Graphics::UpdateYUVTexture(Texture* texture, SDL_Rect* sr
         return 1;
     return Graphics::GfxFunctions->UpdateYUVTexture(texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
 }
-PUBLIC STATIC int      Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
+int      Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
     texture->SetPalette((Uint32*)palette, numPaletteColors);
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
         !Graphics::GfxFunctions->SetTexturePalette || Graphics::NoInternalTextures)
         return 1;
     return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
 }
-PUBLIC STATIC int      Graphics::ConvertTextureToRGBA(Texture* texture) {
+int      Graphics::ConvertTextureToRGBA(Texture* texture) {
     texture->ConvertToRGBA();
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
         Graphics::NoInternalTextures)
         return 1;
     return Graphics::GfxFunctions->UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
 }
-PUBLIC STATIC int      Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
+int      Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
     Uint32* colors = (Uint32*)Memory::TrackedMalloc("Texture::Colors", 256 * sizeof(Uint32));
     if (!colors)
         return 0;
@@ -445,10 +347,10 @@ PUBLIC STATIC int      Graphics::ConvertTextureToPalette(Texture* texture, unsig
 
     return ok;
 }
-PUBLIC STATIC void     Graphics::UnlockTexture(Texture* texture) {
+void     Graphics::UnlockTexture(Texture* texture) {
     Graphics::GfxFunctions->UnlockTexture(texture);
 }
-PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
+void     Graphics::DisposeTexture(Texture* texture) {
     Graphics::GfxFunctions->DisposeTexture(texture);
 
     if (texture->Next)
@@ -463,7 +365,7 @@ PUBLIC STATIC void     Graphics::DisposeTexture(Texture* texture) {
 
     Memory::Free(texture);
 }
-PUBLIC STATIC TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
+TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
     if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
         TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
         textureRef->AddRef();
@@ -472,7 +374,7 @@ PUBLIC STATIC TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
 
     return nullptr;
 }
-PUBLIC STATIC TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
+TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
     TextureReference *ref = Graphics::GetSpriteSheet(sheetPath);
     if (ref == nullptr) {
         ref = new TextureReference(texture);
@@ -480,7 +382,7 @@ PUBLIC STATIC TextureReference* Graphics::AddSpriteSheet(string sheetPath, Textu
     }
     return ref;
 }
-PUBLIC STATIC void     Graphics::DisposeSpriteSheet(string sheetPath) {
+void     Graphics::DisposeSpriteSheet(string sheetPath) {
     if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
         TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
         if (textureRef->TakeRef()) {
@@ -490,7 +392,7 @@ PUBLIC STATIC void     Graphics::DisposeSpriteSheet(string sheetPath) {
         }
     }
 }
-PUBLIC STATIC void     Graphics::DeleteSpriteSheetMap() {
+void     Graphics::DeleteSpriteSheetMap() {
     for (std::map<std::string, TextureReference*>::iterator it = Graphics::SpriteSheetTextureMap.begin();
         it != Graphics::SpriteSheetTextureMap.end();
         it++)
@@ -502,7 +404,7 @@ PUBLIC STATIC void     Graphics::DeleteSpriteSheetMap() {
     Graphics::SpriteSheetTextureMap.clear();
 }
 
-PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
+Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
     Uint32 idx = 0xFFFFFFFF;
 
     for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
@@ -532,7 +434,7 @@ PUBLIC STATIC Uint32   Graphics::CreateVertexBuffer(Uint32 maxVertices, int unlo
 
     return idx;
 }
-PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
+void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= Graphics::VertexBuffers.size())
         return;
     if (!Graphics::VertexBuffers[vertexBufferIndex])
@@ -545,33 +447,33 @@ PUBLIC STATIC void     Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
     Graphics::VertexBuffers[vertexBufferIndex] = NULL;
 }
 
-PUBLIC STATIC void     Graphics::UseShader(void* shader) {
+void     Graphics::UseShader(void* shader) {
     Graphics::CurrentShader = shader;
     Graphics::GfxFunctions->UseShader(shader);
 }
-PUBLIC STATIC void     Graphics::SetTextureInterpolation(bool interpolate) {
+void     Graphics::SetTextureInterpolation(bool interpolate) {
     Graphics::TextureInterpolate = interpolate;
 }
 
-PUBLIC STATIC void     Graphics::Clear() {
+void     Graphics::Clear() {
     Graphics::GfxFunctions->Clear();
 }
-PUBLIC STATIC void     Graphics::Present() {
+void     Graphics::Present() {
     Graphics::GfxFunctions->Present();
     Graphics::CurrentFrame++;
 }
 
-PUBLIC STATIC void     Graphics::SoftwareStart() {
+void     Graphics::SoftwareStart() {
     Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
     SoftwareRenderer::RenderStart();
 }
-PUBLIC STATIC void     Graphics::SoftwareEnd() {
+void     Graphics::SoftwareEnd() {
     SoftwareRenderer::RenderEnd();
     Graphics::GfxFunctions = &Graphics::Internal;
     Graphics::UpdateTexture(Graphics::CurrentRenderTarget, NULL, Graphics::CurrentRenderTarget->Pixels, Graphics::CurrentRenderTarget->Width * 4);
 }
 
-PUBLIC STATIC void     Graphics::UpdateGlobalPalette() {
+void     Graphics::UpdateGlobalPalette() {
     if (!Graphics::GfxFunctions->UpdateGlobalPalette)
         return;
 
@@ -588,7 +490,7 @@ PUBLIC STATIC void     Graphics::UpdateGlobalPalette() {
     Graphics::GfxFunctions->UpdateGlobalPalette();
 }
 
-PUBLIC STATIC void     Graphics::UnloadSceneData() {
+void     Graphics::UnloadSceneData() {
     for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
         VertexBuffer* buffer = Graphics::VertexBuffers[i];
         if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE)
@@ -606,7 +508,7 @@ PUBLIC STATIC void     Graphics::UnloadSceneData() {
     }
 }
 
-PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
+void     Graphics::SetRenderTarget(Texture* texture) {
     if (texture && !Graphics::CurrentRenderTarget) {
         Graphics::BackupViewport = Graphics::CurrentViewport;
         Graphics::BackupClip = Graphics::CurrentClip;
@@ -631,7 +533,7 @@ PUBLIC STATIC void     Graphics::SetRenderTarget(Texture* texture) {
     Graphics::GfxFunctions->UpdateViewport();
     Graphics::GfxFunctions->UpdateClipRect();
 }
-PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int source_w, int source_h, int dest_x, int dest_y, int dest_w, int dest_h, Texture* texture) {
+void     Graphics::CopyScreen(int source_x, int source_y, int source_w, int source_h, int dest_x, int dest_y, int dest_w, int dest_h, Texture* texture) {
     if (!Graphics::GfxFunctions->ReadFramebuffer)
         return;
 
@@ -669,22 +571,22 @@ PUBLIC STATIC void     Graphics::CopyScreen(int source_x, int source_y, int sour
         }
     }
 }
-PUBLIC STATIC void     Graphics::UpdateOrtho(float width, float height) {
+void     Graphics::UpdateOrtho(float width, float height) {
     Graphics::GfxFunctions->UpdateOrtho(0.0f, 0.0f, width, height);
 }
-PUBLIC STATIC void     Graphics::UpdateOrthoFlipped(float width, float height) {
+void     Graphics::UpdateOrthoFlipped(float width, float height) {
     Graphics::GfxFunctions->UpdateOrtho(0.0f, height, width, 0.0f);
 }
-PUBLIC STATIC void     Graphics::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
+void     Graphics::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
     Graphics::GfxFunctions->UpdatePerspective(fovy, aspect, nearv, farv);
 }
-PUBLIC STATIC void     Graphics::UpdateProjectionMatrix() {
+void     Graphics::UpdateProjectionMatrix() {
     Graphics::GfxFunctions->UpdateProjectionMatrix();
 }
-PUBLIC STATIC void     Graphics::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+void     Graphics::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     Graphics::GfxFunctions->MakePerspectiveMatrix(out, fov, near, far, aspect);
 }
-PUBLIC STATIC void     Graphics::CalculateMVPMatrix(Matrix4x4* output, Matrix4x4* modelMatrix, Matrix4x4* viewMatrix, Matrix4x4* projMatrix) {
+void     Graphics::CalculateMVPMatrix(Matrix4x4* output, Matrix4x4* modelMatrix, Matrix4x4* viewMatrix, Matrix4x4* projMatrix) {
     if (viewMatrix && projMatrix) {
         Matrix4x4 modelView;
 
@@ -700,7 +602,7 @@ PUBLIC STATIC void     Graphics::CalculateMVPMatrix(Matrix4x4* output, Matrix4x4
     else
         Matrix4x4::Identity(output);
 }
-PUBLIC STATIC void     Graphics::SetViewport(float x, float y, float w, float h) {
+void     Graphics::SetViewport(float x, float y, float w, float h) {
     Viewport* vp = &Graphics::CurrentViewport;
     if (x < 0) {
         vp->X = 0.0;
@@ -724,14 +626,14 @@ PUBLIC STATIC void     Graphics::SetViewport(float x, float y, float w, float h)
     }
     Graphics::GfxFunctions->UpdateViewport();
 }
-PUBLIC STATIC void     Graphics::ResetViewport() {
+void     Graphics::ResetViewport() {
     Graphics::SetViewport(-1.0, 0.0, 0.0, 0.0);
 }
-PUBLIC STATIC void     Graphics::Resize(int width, int height) {
+void     Graphics::Resize(int width, int height) {
     Graphics::GfxFunctions->UpdateWindowSize(width, height);
 }
 
-PUBLIC STATIC void     Graphics::SetClip(int x, int y, int width, int height) {
+void     Graphics::SetClip(int x, int y, int width, int height) {
     Graphics::CurrentClip.Enabled = true;
     Graphics::CurrentClip.X = x;
     Graphics::CurrentClip.Y = y;
@@ -739,12 +641,12 @@ PUBLIC STATIC void     Graphics::SetClip(int x, int y, int width, int height) {
     Graphics::CurrentClip.Height = height;
     Graphics::GfxFunctions->UpdateClipRect();
 }
-PUBLIC STATIC void     Graphics::ClearClip() {
+void     Graphics::ClearClip() {
     Graphics::CurrentClip.Enabled = false;
     Graphics::GfxFunctions->UpdateClipRect();
 }
 
-PUBLIC STATIC void     Graphics::Save() {
+void     Graphics::Save() {
     Matrix4x4* top = MatrixStack.top();
     Matrix4x4* push = Matrix4x4::Create();
     Matrix4x4::Copy(push, top);
@@ -757,18 +659,18 @@ PUBLIC STATIC void     Graphics::Save() {
     MatrixStack.push(push);
     ModelViewMatrix = push;
 }
-PUBLIC STATIC void     Graphics::Translate(float x, float y, float z) {
+void     Graphics::Translate(float x, float y, float z) {
     Matrix4x4::Translate(ModelViewMatrix, ModelViewMatrix, x, y, z);
 }
-PUBLIC STATIC void     Graphics::Rotate(float x, float y, float z) {
+void     Graphics::Rotate(float x, float y, float z) {
     Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, x, 1.0, 0.0, 0.0);
     Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, y, 0.0, 1.0, 0.0);
     Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, z, 0.0, 0.0, 1.0);
 }
-PUBLIC STATIC void     Graphics::Scale(float x, float y, float z) {
+void     Graphics::Scale(float x, float y, float z) {
     Matrix4x4::Scale(ModelViewMatrix, ModelViewMatrix, x, y, z);
 }
-PUBLIC STATIC void     Graphics::Restore() {
+void     Graphics::Restore() {
     if (MatrixStack.size() == 1) return;
 
     delete MatrixStack.top();
@@ -777,7 +679,7 @@ PUBLIC STATIC void     Graphics::Restore() {
     ModelViewMatrix = MatrixStack.top();
 }
 
-PUBLIC STATIC BlendState Graphics::GetBlendState() {
+BlendState Graphics::GetBlendState() {
     BlendState state;
     state.Opacity = (int)(Graphics::BlendColors[3] * 0xFF);
     state.Mode = Graphics::BlendMode;
@@ -789,7 +691,7 @@ PUBLIC STATIC BlendState Graphics::GetBlendState() {
     return state;
 }
 
-PUBLIC STATIC void     Graphics::PushState() {
+void     Graphics::PushState() {
     if (StateStack.size() == 256) {
         Log::Print(Log::LOG_ERROR, "Graphics::PushState stack too big!");
         exit(-1);
@@ -814,7 +716,7 @@ PUBLIC STATIC void     Graphics::PushState() {
 
     Graphics::Save();
 }
-PUBLIC STATIC void     Graphics::PopState() {
+void     Graphics::PopState() {
     if (StateStack.size() == 0) return;
 
     GraphicsState state = StateStack.top();
@@ -843,14 +745,14 @@ PUBLIC STATIC void     Graphics::PopState() {
     Graphics::Restore();
 }
 
-PUBLIC STATIC void     Graphics::SetBlendColor(float r, float g, float b, float a) {
+void     Graphics::SetBlendColor(float r, float g, float b, float a) {
     Graphics::BlendColors[0] = Math::Clamp(r, 0.0f, 1.0f);
     Graphics::BlendColors[1] = Math::Clamp(g, 0.0f, 1.0f);
     Graphics::BlendColors[2] = Math::Clamp(b, 0.0f, 1.0f);
     Graphics::BlendColors[3] = Math::Clamp(a, 0.0f, 1.0f);
     Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
 }
-PUBLIC STATIC void     Graphics::SetBlendMode(int blendMode) {
+void     Graphics::SetBlendMode(int blendMode) {
     Graphics::BlendMode = blendMode;
     switch (blendMode) {
         case BlendMode_NORMAL:
@@ -879,75 +781,75 @@ PUBLIC STATIC void     Graphics::SetBlendMode(int blendMode) {
                 BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA);
     }
 }
-PUBLIC STATIC void     Graphics::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+void     Graphics::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
 }
-PUBLIC STATIC void     Graphics::SetTintColor(float r, float g, float b, float a) {
+void     Graphics::SetTintColor(float r, float g, float b, float a) {
     Graphics::TintColors[0] = Math::Clamp(r, 0.0f, 1.0f);
     Graphics::TintColors[1] = Math::Clamp(g, 0.0f, 1.0f);
     Graphics::TintColors[2] = Math::Clamp(b, 0.0f, 1.0f);
     Graphics::TintColors[3] = Math::Clamp(a, 0.0f, 1.0f);
     Graphics::GfxFunctions->SetTintColor(r, g, b, a);
 }
-PUBLIC STATIC void     Graphics::SetTintMode(int mode) {
+void     Graphics::SetTintMode(int mode) {
     Graphics::TintMode = mode;
     Graphics::GfxFunctions->SetTintMode(mode);
 }
-PUBLIC STATIC void     Graphics::SetTintEnabled(bool enabled) {
+void     Graphics::SetTintEnabled(bool enabled) {
     Graphics::UseTinting = enabled;
     Graphics::GfxFunctions->SetTintEnabled(enabled);
 }
-PUBLIC STATIC void     Graphics::SetLineWidth(float n) {
+void     Graphics::SetLineWidth(float n) {
     Graphics::GfxFunctions->SetLineWidth(n);
 }
 
-PUBLIC STATIC void     Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
+void     Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
     Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
 }
-PUBLIC STATIC void     Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
+void     Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
     Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
 }
-PUBLIC STATIC void     Graphics::StrokeEllipse(float x, float y, float w, float h) {
+void     Graphics::StrokeEllipse(float x, float y, float w, float h) {
     Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
 }
-PUBLIC STATIC void     Graphics::StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     Graphics::StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
     Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
     Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
     Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
 }
-PUBLIC STATIC void     Graphics::StrokeRectangle(float x, float y, float w, float h) {
+void     Graphics::StrokeRectangle(float x, float y, float w, float h) {
     Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
 }
-PUBLIC STATIC void     Graphics::FillCircle(float x, float y, float rad) {
+void     Graphics::FillCircle(float x, float y, float rad) {
     Graphics::GfxFunctions->FillCircle(x, y, rad);
 }
-PUBLIC STATIC void     Graphics::FillEllipse(float x, float y, float w, float h) {
+void     Graphics::FillEllipse(float x, float y, float w, float h) {
     Graphics::GfxFunctions->FillEllipse(x, y, w, h);
 }
-PUBLIC STATIC void     Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
     Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
 }
-PUBLIC STATIC void     Graphics::FillRectangle(float x, float y, float w, float h) {
+void     Graphics::FillRectangle(float x, float y, float w, float h) {
     Graphics::GfxFunctions->FillRectangle(x, y, w, h);
 }
 
-PUBLIC STATIC void     Graphics::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
+void     Graphics::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
-PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     Graphics::GfxFunctions->DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
-PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     Graphics::GfxFunctions->DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
-PUBLIC STATIC void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+void     Graphics::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
     DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
-PUBLIC STATIC void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
+void     Graphics::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation) {
     DrawSpritePart(sprite, animation, frame, sx, sy, sw, sh, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
 }
 
-PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
+void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
     // If possible, uses optimized software-renderer call instead.
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
         SoftwareRenderer::DrawTile(tile, x, y, flipX, flipY);
@@ -957,7 +859,7 @@ PUBLIC STATIC void     Graphics::DrawTile(int tile, int x, int y, bool flipX, bo
     TileSpriteInfo info = Scene::TileSpriteInfos[tile];
     DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, 1.0f, 1.0f, 0.0f);
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
     int tileWidth = Scene::TileWidth;
     int tileWidthHalf = tileWidth >> 1;
     int tileHeight = Scene::TileHeight;
@@ -1225,10 +1127,10 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* l
         }
     }
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
+void     Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
 
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
+void     Graphics::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
     // If possible, uses optimized software-renderer call instead.
     if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
         SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
@@ -1252,7 +1154,7 @@ PUBLIC STATIC void     Graphics::DrawSceneLayer(SceneLayer* layer, View* current
             break;
     }
 }
-PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
+void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
     VMThread* thread = &ScriptManager::Threads[0];
     if (func->Arity == 0) {
         thread->RunEntityFunction(func, 0);
@@ -1264,27 +1166,27 @@ PUBLIC STATIC void     Graphics::RunCustomSceneLayerFunction(ObjFunction* func, 
 }
 
 // 3D drawing
-PUBLIC STATIC void     Graphics::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     Graphics::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::GfxFunctions->DrawPolygon3D)
         Graphics::GfxFunctions->DrawPolygon3D(data, vertexCount, vertexFlag, texture, modelMatrix, normalMatrix);
 }
-PUBLIC STATIC void     Graphics::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     Graphics::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::GfxFunctions->DrawSceneLayer3D)
         Graphics::GfxFunctions->DrawSceneLayer3D(layer, sx, sy, sw, sh, modelMatrix, normalMatrix);
 }
-PUBLIC STATIC void     Graphics::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     Graphics::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::GfxFunctions->DrawModel)
         Graphics::GfxFunctions->DrawModel(model, animation, frame, modelMatrix, normalMatrix);
 }
-PUBLIC STATIC void     Graphics::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     Graphics::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::GfxFunctions->DrawModelSkinned)
         Graphics::GfxFunctions->DrawModelSkinned(model, armature, modelMatrix, normalMatrix);
 }
-PUBLIC STATIC void     Graphics::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     Graphics::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::GfxFunctions->DrawVertexBuffer)
         Graphics::GfxFunctions->DrawVertexBuffer(vertexBufferIndex, modelMatrix, normalMatrix);
 }
-PUBLIC STATIC void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
+void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
     if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
         UnbindVertexBuffer();
         return;
@@ -1294,12 +1196,12 @@ PUBLIC STATIC void     Graphics::BindVertexBuffer(Uint32 vertexBufferIndex) {
         Graphics::GfxFunctions->BindVertexBuffer(vertexBufferIndex);
     CurrentVertexBuffer = vertexBufferIndex;
 }
-PUBLIC STATIC void     Graphics::UnbindVertexBuffer() {
+void     Graphics::UnbindVertexBuffer() {
     if (Graphics::GfxFunctions->UnbindVertexBuffer)
         Graphics::GfxFunctions->UnbindVertexBuffer();
     CurrentVertexBuffer = -1;
 }
-PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
+void     Graphics::BindScene3D(Uint32 sceneIndex) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -1318,7 +1220,7 @@ PUBLIC STATIC void     Graphics::BindScene3D(Uint32 sceneIndex) {
         Graphics::GfxFunctions->BindScene3D(sceneIndex);
     CurrentScene3D = sceneIndex;
 }
-PUBLIC STATIC void     Graphics::ClearScene3D(Uint32 sceneIndex) {
+void     Graphics::ClearScene3D(Uint32 sceneIndex) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -1328,12 +1230,12 @@ PUBLIC STATIC void     Graphics::ClearScene3D(Uint32 sceneIndex) {
     if (Graphics::GfxFunctions->ClearScene3D)
         Graphics::GfxFunctions->ClearScene3D(sceneIndex);
 }
-PUBLIC STATIC void     Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+void     Graphics::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
     if (Graphics::GfxFunctions->DrawScene3D)
         Graphics::GfxFunctions->DrawScene3D(sceneIndex, drawMode);
 }
 
-PUBLIC STATIC Uint32   Graphics::CreateScene3D(int unloadPolicy) {
+Uint32   Graphics::CreateScene3D(int unloadPolicy) {
     for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
         if (!Graphics::Scene3Ds[i].Initialized) {
             Graphics::InitScene3D(i, 0);
@@ -1344,7 +1246,7 @@ PUBLIC STATIC Uint32   Graphics::CreateScene3D(int unloadPolicy) {
 
     return 0xFFFFFFFF;
 }
-PUBLIC STATIC void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
+void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -1358,7 +1260,7 @@ PUBLIC STATIC void     Graphics::DeleteScene3D(Uint32 sceneIndex) {
         scene->Initialized = false;
     }
 }
-PUBLIC STATIC void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertices) {
+void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertices) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -1383,7 +1285,7 @@ PUBLIC STATIC void     Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertic
     scene->Clear();
 }
 
-PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
+void     Graphics::MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
     data[3].Position.X = FP16_TO(x);
     data[3].Position.Y = FP16_TO(y - (frameH * scaleY));
     data[3].Position.Z = FP16_TO(z);
@@ -1407,7 +1309,7 @@ PUBLIC STATIC void     Graphics::MakeSpritePolygon(VertexAttribute data[4], floa
 
     Graphics::MakeSpritePolygonUVs(data, flipX, flipY, texture, frameX, frameY, frameW, frameH);
 }
-PUBLIC STATIC void     Graphics::MakeSpritePolygonUVs(VertexAttribute data[4], int flipX, int flipY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
+void     Graphics::MakeSpritePolygonUVs(VertexAttribute data[4], int flipX, int flipY, Texture* texture, int frameX, int frameY, int frameW, int frameH) {
     Sint64 textureWidth = FP16_TO(texture->Width);
     Sint64 textureHeight = FP16_TO(texture->Height);
 
@@ -1447,21 +1349,21 @@ PUBLIC STATIC void     Graphics::MakeSpritePolygonUVs(VertexAttribute data[4], i
     data[0].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
 }
 
-PUBLIC STATIC void     Graphics::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+void     Graphics::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     if (Graphics::GfxFunctions->MakeFrameBufferID)
         Graphics::GfxFunctions->MakeFrameBufferID(sprite, frame);
 }
-PUBLIC STATIC void     Graphics::DeleteFrameBufferID(AnimFrame* frame) {
+void     Graphics::DeleteFrameBufferID(AnimFrame* frame) {
     if (Graphics::GfxFunctions->DeleteFrameBufferID)
         Graphics::GfxFunctions->DeleteFrameBufferID(frame);
 }
 
-PUBLIC STATIC void     Graphics::SetDepthTesting(bool enabled) {
+void     Graphics::SetDepthTesting(bool enabled) {
     if (Graphics::GfxFunctions->SetDepthTesting)
         Graphics::GfxFunctions->SetDepthTesting(enabled);
 }
 
-PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
+bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
     //#ifdef DEBUG
     if (!sprite) return true;
     if (animation < 0 || animation >= (int)sprite->Animations.size()) {
@@ -1476,47 +1378,47 @@ PUBLIC STATIC bool     Graphics::SpriteRangeCheck(ISprite* sprite, int animation
     return false;
 }
 
-PUBLIC STATIC void     Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
+void     Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
         ColorUtils::ConvertFromARGBtoABGR(argb, count);
 }
-PUBLIC STATIC void     Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
+void     Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
     if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888)
         ColorUtils::ConvertFromABGRtoARGB(argb, count);
 }
 
-PUBLIC STATIC void     Graphics::SetStencilEnabled(bool enabled) {
+void     Graphics::SetStencilEnabled(bool enabled) {
     if (Graphics::GfxFunctions->SetStencilEnabled)
         Graphics::GfxFunctions->SetStencilEnabled(enabled);
 }
-PUBLIC STATIC bool     Graphics::GetStencilEnabled() {
+bool     Graphics::GetStencilEnabled() {
     if (Graphics::GfxFunctions->IsStencilEnabled)
         return Graphics::GfxFunctions->IsStencilEnabled();
 
     return false;
 }
-PUBLIC STATIC void     Graphics::SetStencilTestFunc(int stencilTest) {
+void     Graphics::SetStencilTestFunc(int stencilTest) {
     if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual) {
         StencilTest = stencilTest;
         if (Graphics::GfxFunctions->SetStencilTestFunc)
             Graphics::GfxFunctions->SetStencilTestFunc(stencilTest);
     }
 }
-PUBLIC STATIC void     Graphics::SetStencilPassFunc(int stencilOp) {
+void     Graphics::SetStencilPassFunc(int stencilOp) {
     if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap) {
         StencilOpPass = stencilOp;
         if (Graphics::GfxFunctions->SetStencilPassFunc)
             Graphics::GfxFunctions->SetStencilPassFunc(stencilOp);
     }
 }
-PUBLIC STATIC void     Graphics::SetStencilFailFunc(int stencilOp) {
+void     Graphics::SetStencilFailFunc(int stencilOp) {
     if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap) {
         StencilOpFail = stencilOp;
         if (Graphics::GfxFunctions->SetStencilFailFunc)
             Graphics::GfxFunctions->SetStencilFailFunc(stencilOp);
     }
 }
-PUBLIC STATIC void     Graphics::SetStencilValue(int value) {
+void     Graphics::SetStencilValue(int value) {
     if (value < 0)
         value = 0;
     else if (value > 255)
@@ -1524,7 +1426,7 @@ PUBLIC STATIC void     Graphics::SetStencilValue(int value) {
     if (Graphics::GfxFunctions->SetStencilValue)
         Graphics::GfxFunctions->SetStencilValue(value);
 }
-PUBLIC STATIC void     Graphics::SetStencilMask(int mask) {
+void     Graphics::SetStencilMask(int mask) {
     if (mask < 0)
         mask = 0;
     else if (mask > 255)
@@ -1532,7 +1434,7 @@ PUBLIC STATIC void     Graphics::SetStencilMask(int mask) {
     if (Graphics::GfxFunctions->SetStencilMask)
         Graphics::GfxFunctions->SetStencilMask(mask);
 }
-PUBLIC STATIC void     Graphics::ClearStencil() {
+void     Graphics::ClearStencil() {
     if (Graphics::GfxFunctions->ClearStencil)
         Graphics::GfxFunctions->ClearStencil();
 }

@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_SDL2_SDL2RENDERER_H
 #define ENGINE_RENDERING_SDL2_SDL2RENDERER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Math/Matrix4x4.h>

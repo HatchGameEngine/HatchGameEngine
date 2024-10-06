@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_FACEINFO_H
 #define ENGINE_RENDERING_FACEINFO_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Texture.h>

@@ -1,31 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Media/Decoder.h>
-#include <Engine/Media/MediaSource.h>
-#include <Engine/Rendering/Texture.h>
-
-class MediaPlayer {
-public:
-    enum {
-        KIT_WAITING_TO_BE_PLAYABLE = 0, ///< Playback stopped or has not started yet.
-        KIT_PLAYING,     ///< Playback started & player is actively decoding.
-        KIT_PAUSED,      ///< Playback paused; player is actively decoding but no new data is given out.
-        KIT_CLOSED,      ///< Playback is stopped and player is closing.
-        KIT_STOPPED,
-    };
-
-    Uint32       State;
-    Decoder*     Decoders[3];
-    SDL_Thread*  DecoderThread;
-    SDL_mutex*   DecoderLock;
-    MediaSource* Source;
-    double       PauseStarted;
-    double       PausedPosition;
-    double       SeekStarted;
-    Uint32       WaitState;
-};
-#endif
-
 #ifdef USING_LIBAV
 
 #include <Engine/Media/MediaPlayer.h>
@@ -61,7 +33,7 @@ All of this is based on SDL_Kitchensink
 */
 
 // Demux/decode running functions
-PUBLIC STATIC int          MediaPlayer::DemuxAllStreams(MediaPlayer* player) {
+int          MediaPlayer::DemuxAllStreams(MediaPlayer* player) {
     // Return  0 if stream is good but nothing else to do for now.
     // Return -1 if there may still work to be done.
     // Return  1 if there was an error or stream end.
@@ -123,7 +95,7 @@ PUBLIC STATIC int          MediaPlayer::DemuxAllStreams(MediaPlayer* player) {
     av_packet_free(&packet);
     return DEMUXER_KEEP_READING;
 }
-PUBLIC STATIC int          MediaPlayer::RunAllDecoders(MediaPlayer* player) {
+int          MediaPlayer::RunAllDecoders(MediaPlayer* player) {
     int got;
     bool has_room = true;
 
@@ -161,7 +133,7 @@ PUBLIC STATIC int          MediaPlayer::RunAllDecoders(MediaPlayer* player) {
     while (has_room);
     return DECODER_RUN_OKAY;
 }
-PUBLIC STATIC int          MediaPlayer::DecoderThreadFunc(void* ptr) {
+int          MediaPlayer::DecoderThreadFunc(void* ptr) {
     MediaPlayer* player = (MediaPlayer*)ptr;
     bool is_running = true;
     bool is_playing = true;
@@ -212,7 +184,7 @@ PUBLIC STATIC int          MediaPlayer::DecoderThreadFunc(void* ptr) {
 }
 
 // Lifecycle functions
-PUBLIC STATIC MediaPlayer* MediaPlayer::Create(MediaSource* src, int video_stream_index, int audio_stream_index, int subtitle_stream_index, int screen_w, int screen_h) {
+MediaPlayer* MediaPlayer::Create(MediaSource* src, int video_stream_index, int audio_stream_index, int subtitle_stream_index, int screen_w, int screen_h) {
     if (!src) {
         Log::Print(Log::LOG_ERROR, "MediaPlayer::Create: src == NULL");
         exit(-1);
@@ -336,7 +308,7 @@ PUBLIC STATIC MediaPlayer* MediaPlayer::Create(MediaSource* src, int video_strea
     exit_0:
     return NULL;
 }
-PUBLIC        void         MediaPlayer::Close() {
+void         MediaPlayer::Close() {
     // Kill the decoder thread and mutex
     if (SDL_LockMutex(this->DecoderLock) == 0) {
         this->State = KIT_CLOSED;
@@ -373,28 +345,28 @@ PUBLIC        void         MediaPlayer::Close() {
 }
 
 // Info functions
-PUBLIC        void         MediaPlayer::SetScreenSize(int w, int h) {
+void         MediaPlayer::SetScreenSize(int w, int h) {
     // SubtitleDecoder* dec = (SubtitleDecoder*)Decoders[KIT_SUBTITLE_DEC];
     // if (dec == NULL)
     //     return;
     // dec->SetSize(w, h);
 }
-PUBLIC        int          MediaPlayer::GetVideoStream() {
+int          MediaPlayer::GetVideoStream() {
     if (!Decoders[KIT_VIDEO_DEC])
         return -1;
     return Decoders[KIT_VIDEO_DEC]->GetStreamIndex();
 }
-PUBLIC        int          MediaPlayer::GetAudioStream() {
+int          MediaPlayer::GetAudioStream() {
     if (!Decoders[KIT_AUDIO_DEC])
         return -1;
     return Decoders[KIT_AUDIO_DEC]->GetStreamIndex();
 }
-PUBLIC        int          MediaPlayer::GetSubtitleStream() {
+int          MediaPlayer::GetSubtitleStream() {
     if (!Decoders[KIT_SUBTITLE_DEC])
         return -1;
     return Decoders[KIT_SUBTITLE_DEC]->GetStreamIndex();
 }
-PUBLIC        void         MediaPlayer::GetInfo(PlayerInfo* info) {
+void         MediaPlayer::GetInfo(PlayerInfo* info) {
     if (!info) {
         Log::Print(Log::LOG_ERROR, "MediaPlayer::GetInfo: info == NULL");
         exit(-1);
@@ -427,11 +399,11 @@ PUBLIC        void         MediaPlayer::GetInfo(PlayerInfo* info) {
         }
     }
 }
-PUBLIC        double       MediaPlayer::GetDuration() {
+double       MediaPlayer::GetDuration() {
     AVFormatContext* fmt_ctx = (AVFormatContext*)this->Source->FormatCtx;
     return (fmt_ctx->duration / AV_TIME_BASE);
 }
-PUBLIC        double       MediaPlayer::GetPosition() {
+double       MediaPlayer::GetPosition() {
     if (State != KIT_PLAYING)
         return PausedPosition;
 
@@ -445,7 +417,7 @@ PUBLIC        double       MediaPlayer::GetPosition() {
     }
     return 0;
 }
-PUBLIC        double       MediaPlayer::GetBufferPosition() {
+double       MediaPlayer::GetBufferPosition() {
     double maxPTS = 0.0;
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         Decoder* dec = this->Decoders[i];
@@ -467,7 +439,7 @@ PUBLIC        double       MediaPlayer::GetBufferPosition() {
 }
 
 // Data functions
-PUBLIC        bool         MediaPlayer::ManageWaiting() {
+bool         MediaPlayer::ManageWaiting() {
     if (IsOutputEmpty()) {
         return true;
     }
@@ -502,7 +474,7 @@ PUBLIC        bool         MediaPlayer::ManageWaiting() {
     }
     return false;
 }
-PUBLIC        int          MediaPlayer::GetVideoData(Texture* texture) {
+int          MediaPlayer::GetVideoData(Texture* texture) {
     Decoder* dec = (Decoder*)Decoders[KIT_VIDEO_DEC];
     if (dec == NULL) {
         return 0;
@@ -523,7 +495,7 @@ PUBLIC        int          MediaPlayer::GetVideoData(Texture* texture) {
 
     return ((VideoDecoder*)dec)->GetVideoDecoderData(texture);
 }
-PUBLIC        int          MediaPlayer::GetVideoDataForPaused(Texture* texture) {
+int          MediaPlayer::GetVideoDataForPaused(Texture* texture) {
     Decoder* dec = (Decoder*)Decoders[KIT_VIDEO_DEC];
     if (dec == NULL) {
         return 0;
@@ -531,7 +503,7 @@ PUBLIC        int          MediaPlayer::GetVideoDataForPaused(Texture* texture) 
 
     return ((VideoDecoder*)dec)->GetVideoDecoderData(texture);
 }
-PUBLIC        int          MediaPlayer::GetAudioData(unsigned char* buffer, int length) {
+int          MediaPlayer::GetAudioData(unsigned char* buffer, int length) {
     if (!buffer) {
         Log::Print(Log::LOG_ERROR, "MediaPlayer::GetAudioData: buffer == NULL");
         exit(-1);
@@ -562,7 +534,7 @@ PUBLIC        int          MediaPlayer::GetAudioData(unsigned char* buffer, int 
 
     return ((AudioDecoder*)dec)->GetAudioDecoderData(buffer, length);
 }
-PUBLIC        int          MediaPlayer::GetSubtitleData(Texture* texture, SDL_Rect* sources, SDL_Rect* targets, int limit) {
+int          MediaPlayer::GetSubtitleData(Texture* texture, SDL_Rect* sources, SDL_Rect* targets, int limit) {
     /*
     // NOTE: All asserts need to be removed/replaced.
     assert(texture != NULL);
@@ -600,21 +572,21 @@ PUBLIC        int          MediaPlayer::GetSubtitleData(Texture* texture, SDL_Re
 }
 
 // Clock functions
-PUBLIC        void         MediaPlayer::SetClockSync() {
+void         MediaPlayer::SetClockSync() {
     double sync = MediaPlayerState::GetSystemTime();
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         if (Decoders[i])
             Decoders[i]->SetClockSync(sync);
     }
 }
-PUBLIC        void         MediaPlayer::SetClockSyncOffset(double offset) {
+void         MediaPlayer::SetClockSyncOffset(double offset) {
     double sync = MediaPlayerState::GetSystemTime();
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         if (Decoders[i])
             Decoders[i]->SetClockSync(sync + offset);
     }
 }
-PUBLIC        void         MediaPlayer::ChangeClockSync(double delta) {
+void         MediaPlayer::ChangeClockSync(double delta) {
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         if (Decoders[i])
             Decoders[i]->ChangeClockSync(delta);
@@ -622,7 +594,7 @@ PUBLIC        void         MediaPlayer::ChangeClockSync(double delta) {
 }
 
 // State functions
-PUBLIC        void         MediaPlayer::Play() {
+void         MediaPlayer::Play() {
     double tmp;
     switch (this->State) {
         case KIT_WAITING_TO_BE_PLAYABLE:
@@ -655,7 +627,7 @@ PUBLIC        void         MediaPlayer::Play() {
             break;
     }
 }
-PUBLIC        void         MediaPlayer::Stop() {
+void         MediaPlayer::Stop() {
     MediaPlayer* player = this;
     if (SDL_LockMutex(player->DecoderLock) == 0) {
         switch (player->State) {
@@ -675,7 +647,7 @@ PUBLIC        void         MediaPlayer::Stop() {
         SDL_UnlockMutex(player->DecoderLock);
     }
 }
-PUBLIC        void         MediaPlayer::Pause() {
+void         MediaPlayer::Pause() {
     switch (this->State) {
         case KIT_WAITING_TO_BE_PLAYABLE:
             this->WaitState = KIT_PAUSED;
@@ -687,7 +659,7 @@ PUBLIC        void         MediaPlayer::Pause() {
     this->State = KIT_PAUSED;
     this->PauseStarted = MediaPlayerState::GetSystemTime();
 }
-PUBLIC        int          MediaPlayer::Seek(double seek_set) {
+int          MediaPlayer::Seek(double seek_set) {
     MediaPlayer* player = this;
     double position;
     double duration = 1.0;
@@ -760,12 +732,12 @@ PUBLIC        int          MediaPlayer::Seek(double seek_set) {
 
     return 0;
 }
-PUBLIC        Uint32       MediaPlayer::GetPlayerState() {
+Uint32       MediaPlayer::GetPlayerState() {
     return this->State;
 }
 
 // Buffer checks
-PUBLIC        bool         MediaPlayer::IsInputEmpty() {
+bool         MediaPlayer::IsInputEmpty() {
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         Decoder* dec = (Decoder*)this->Decoders[i];
         if (dec == NULL)
@@ -775,7 +747,7 @@ PUBLIC        bool         MediaPlayer::IsInputEmpty() {
     }
     return true;
 }
-PUBLIC        bool         MediaPlayer::IsOutputEmpty() {
+bool         MediaPlayer::IsOutputEmpty() {
     for (int i = 0; i < KIT_DEC_COUNT; i++) {
         Decoder* dec = (Decoder*)this->Decoders[i];
         if (dec == NULL)
@@ -787,13 +759,13 @@ PUBLIC        bool         MediaPlayer::IsOutputEmpty() {
 }
 
 // ???
-PUBLIC STATIC Uint32       MediaPlayer::GetInputLength(MediaPlayer* player, int i) {
+Uint32       MediaPlayer::GetInputLength(MediaPlayer* player, int i) {
     Decoder* dec = player->Decoders[i];
     if (dec == NULL)
         return 0;
     return dec->GetInputLength();
 }
-PUBLIC STATIC Uint32       MediaPlayer::GetOutputLength(MediaPlayer* player, int i) {
+Uint32       MediaPlayer::GetOutputLength(MediaPlayer* player, int i) {
     Decoder* dec = player->Decoders[i];
     if (dec == NULL)
         return 0;

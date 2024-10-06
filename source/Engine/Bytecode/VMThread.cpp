@@ -1,39 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/PrintBuffer.h>
-
-class VMThread {
-public:
-    VMValue   Stack[STACK_SIZE_MAX];
-    VMValue*  StackTop = Stack;
-    VMValue   RegisterValue;
-
-    CallFrame Frames[FRAMES_MAX];
-    Uint32    FrameCount;
-    Uint32    ReturnFrame;
-
-    VMValue   FunctionToInvoke;
-    VMValue   InterpretResult;
-
-    enum ThreadState {
-        CREATED = 0,
-        RUNNING = 1,
-        WAITING = 2,
-        CLOSED = 3,
-    };
-
-    char      Name[THREAD_NAME_MAX];
-    Uint32    ID;
-
-    bool      DebugInfo;
-    Uint32    BranchLimit;
-
-    static    bool InstructionIgnoreMap[0x100];
-    static    std::jmp_buf JumpBuffer;
-};
-#endif
-
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
@@ -108,7 +72,7 @@ std::jmp_buf VMThread::JumpBuffer;
             return ERROR_RES_CONTINUE; \
     }
 
-PRIVATE string VMThread::GetFunctionName(ObjFunction* function) {
+string VMThread::GetFunctionName(ObjFunction* function) {
     std::string functionName(GetToken(function->NameHash));
 
     if (functionName == "main")
@@ -123,7 +87,7 @@ PRIVATE string VMThread::GetFunctionName(ObjFunction* function) {
     return functionName;
 }
 
-PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
+char*   VMThread::GetToken(Uint32 hash) {
     static char GetTokenBuffer[256];
 
     if (__Tokens__ && __Tokens__->Exists(hash))
@@ -132,7 +96,7 @@ PUBLIC STATIC char*   VMThread::GetToken(Uint32 hash) {
     snprintf(GetTokenBuffer, 15, "%X", hash);
     return GetTokenBuffer;
 }
-PUBLIC STATIC char*   VMThread::GetVariableOrMethodName(Uint32 hash) {
+char*   VMThread::GetVariableOrMethodName(Uint32 hash) {
     static char GetTokenBuffer[256];
 
     if (__Tokens__ && __Tokens__->Exists(hash)) {
@@ -144,7 +108,7 @@ PUBLIC STATIC char*   VMThread::GetVariableOrMethodName(Uint32 hash) {
 
     return GetTokenBuffer;
 }
-PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
+void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
     int line;
     char* source;
 
@@ -194,7 +158,7 @@ PRIVATE void    VMThread::PrintStackTrace(PrintBuffer* buffer, const char* error
         buffer_printf(buffer, "\n");
     }
 }
-PUBLIC void    VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
+void    VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
     if (FrameCount > 0)
         PrintStackTrace(buffer, errorString);
     else if (IS_OBJECT(FunctionToInvoke)) {
@@ -227,7 +191,7 @@ PUBLIC void    VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* error
         buffer_printf(buffer, "%s\n", errorString);
     }
 }
-PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
+int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
     bool showMessageBox = true;
     if (VMThread::InstructionIgnoreMap[000000000]) {
         showMessageBox = false;
@@ -241,7 +205,7 @@ PUBLIC int     VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage,
 
     return ERROR_RES_CONTINUE;
 }
-PUBLIC void    VMThread::PrintStack() {
+void    VMThread::PrintStack() {
     int i = 0;
     printf("Stack:\n");
     for (VMValue* v = StackTop - 1; v >= Stack; v--) {
@@ -251,13 +215,13 @@ PUBLIC void    VMThread::PrintStack() {
         i--;
     }
 }
-PUBLIC void    VMThread::ReturnFromNative() throw() {
+void    VMThread::ReturnFromNative() throw() {
 
 }
 // #endregion
 
 // #region Stack stuff
-PUBLIC void    VMThread::Push(VMValue value) {
+void    VMThread::Push(VMValue value) {
     if (StackSize() == STACK_SIZE_MAX) {
         if (ThrowRuntimeError(true, "Stack overflow! \nStack Top: %p \nStack: %p\nCount: %d", StackTop, Stack, StackSize()) == ERROR_RES_CONTINUE)
             return;
@@ -265,7 +229,7 @@ PUBLIC void    VMThread::Push(VMValue value) {
 
     *(StackTop++) = value;
 }
-PUBLIC VMValue VMThread::Pop() {
+VMValue VMThread::Pop() {
     if (StackTop == Stack) {
         if (ThrowRuntimeError(true, "Stack underflow!") == ERROR_RES_CONTINUE)
             return *StackTop;
@@ -274,17 +238,17 @@ PUBLIC VMValue VMThread::Pop() {
     StackTop--;
     return *StackTop;
 }
-PUBLIC void VMThread::Pop(unsigned amount) {
+void VMThread::Pop(unsigned amount) {
     while (amount-- > 0)
         Pop();
 }
-PUBLIC VMValue VMThread::Peek(int offset) {
+VMValue VMThread::Peek(int offset) {
     return *(StackTop - offset - 1);
 }
-PUBLIC Uint32  VMThread::StackSize() {
+Uint32  VMThread::StackSize() {
     return (Uint32)(StackTop - Stack);
 }
-PUBLIC void    VMThread::ResetStack() {
+void    VMThread::ResetStack() {
     // bool debugInstruction = ID == 1;
     // if (debugInstruction) printf("reset stack\n");
 
@@ -302,25 +266,25 @@ enum   ThreadReturnCodes {
 };
 
 // NOTE: These should be inlined
-PUBLIC Uint8   VMThread::ReadByte(CallFrame* frame) {
+Uint8   VMThread::ReadByte(CallFrame* frame) {
     frame->IP += sizeof(Uint8);
     return *(Uint8*)(frame->IP - sizeof(Uint8));
 }
-PUBLIC Uint16  VMThread::ReadUInt16(CallFrame* frame) {
+Uint16  VMThread::ReadUInt16(CallFrame* frame) {
     frame->IP += sizeof(Uint16);
     return *(Uint16*)(frame->IP - sizeof(Uint16));
 }
-PUBLIC Uint32  VMThread::ReadUInt32(CallFrame* frame) {
+Uint32  VMThread::ReadUInt32(CallFrame* frame) {
     frame->IP += sizeof(Uint32);
     return *(Uint32*)(frame->IP - sizeof(Uint32));
 }
-PUBLIC Sint16  VMThread::ReadSInt16(CallFrame* frame) {
+Sint16  VMThread::ReadSInt16(CallFrame* frame) {
     return (Sint16)ReadUInt16(frame);
 }
-PUBLIC Sint32  VMThread::ReadSInt32(CallFrame* frame) {
+Sint32  VMThread::ReadSInt32(CallFrame* frame) {
     return (Sint32)ReadUInt32(frame);
 }
-PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
+VMValue VMThread::ReadConstant(CallFrame* frame) {
     return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
 }
 
@@ -335,7 +299,7 @@ PUBLIC VMValue VMThread::ReadConstant(CallFrame* frame) {
 }
 
 #ifdef VM_DEBUG
-PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
+bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
     va_list args;
     char errorString[2048];
     va_start(args, errorMessage);
@@ -395,18 +359,18 @@ PUBLIC bool    VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
     return true;
 }
 
-PRIVATE bool   VMThread::CheckBranchLimit(CallFrame* frame) {
+bool   VMThread::CheckBranchLimit(CallFrame* frame) {
     if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
         return ShowBranchLimitMessage("Hit branch limit!");
     }
     return true;
 }
 
-PRIVATE bool   VMThread::DoJump(CallFrame* frame, int offset) {
+bool   VMThread::DoJump(CallFrame* frame, int offset) {
     frame->IP += offset;
     return CheckBranchLimit(frame);
 }
-PRIVATE bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
+bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
     frame->IP -= offset;
     return CheckBranchLimit(frame);
 }
@@ -434,7 +398,7 @@ PRIVATE bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
 #define JUMP_BACK(offset) { frame->IP -= offset; }
 #endif
 
-PUBLIC int     VMThread::RunInstruction() {
+int     VMThread::RunInstruction() {
     // NOTE: MSVC cannot take advantage of the dispatch table.
     #ifdef USING_VM_DISPATCH_TABLE
         #define VM_ADD_DISPATCH(op) &&START_ ## op
@@ -1877,7 +1841,7 @@ SUCCESS_OP_SET_PROPERTY:
 
     return INTERPRET_OK;
 }
-PUBLIC void    VMThread::RunInstructionSet() {
+void    VMThread::RunInstructionSet() {
     while (true) {
         // if (!ScriptManager::Lock()) break;
 
@@ -1893,7 +1857,7 @@ PUBLIC void    VMThread::RunInstructionSet() {
 }
 // #endregion
 
-PUBLIC void    VMThread::RunValue(VMValue value, int argCount) {
+void    VMThread::RunValue(VMValue value, int argCount) {
     int lastReturnFrame = ReturnFrame;
 
     ReturnFrame = FrameCount;
@@ -1901,7 +1865,7 @@ PUBLIC void    VMThread::RunValue(VMValue value, int argCount) {
     RunInstructionSet();
     ReturnFrame = lastReturnFrame;
 }
-PUBLIC void    VMThread::RunFunction(ObjFunction* func, int argCount) {
+void    VMThread::RunFunction(ObjFunction* func, int argCount) {
     VMValue* lastStackTop = StackTop;
     int lastReturnFrame = ReturnFrame;
 
@@ -1913,7 +1877,7 @@ PUBLIC void    VMThread::RunFunction(ObjFunction* func, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
+void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
 
@@ -1935,7 +1899,7 @@ PUBLIC void    VMThread::InvokeForEntity(VMValue value, int argCount) {
     ReturnFrame = lastReturnFrame;
     StackTop = lastStackTop;
 }
-PUBLIC VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
+VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
     VMValue* lastStackTop = StackTop;
     int      lastReturnFrame = ReturnFrame;
 
@@ -1951,7 +1915,7 @@ PUBLIC VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) 
 
     return InterpretResult;
 }
-PUBLIC void    VMThread::CallInitializer(VMValue value) {
+void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = value;
 
     ObjFunction* initializer = AS_FUNCTION(value);
@@ -1973,7 +1937,7 @@ PUBLIC void    VMThread::CallInitializer(VMValue value) {
     FunctionToInvoke = NULL_VAL;
 }
 
-PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
+bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
     if (ScriptManager::Lock()) {
         VMValue value;
 
@@ -2012,13 +1976,13 @@ PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, 
     ScriptManager::Unlock();
     return false;
 }
-PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
     return GetProperty(object, klass, hash, true, klass->PropertyGet);
 }
-PRIVATE bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash) {
+bool   VMThread::GetProperty(Obj* object, ObjClass* klass, Uint32 hash) {
     return GetProperty(object, klass, hash, true);
 }
-PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
+bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter) {
     if (ScriptManager::Lock()) {
         if (checkFields && klass->Fields->Exists(hash)) {
             // Fields have priority over methods
@@ -2044,13 +2008,13 @@ PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, 
     ScriptManager::Unlock();
     return false;
 }
-PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
+bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
     return HasProperty(object, klass, checkFields, klass->PropertyGet);
 }
-PRIVATE bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash) {
+bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash) {
     return HasProperty(object, klass, true);
 }
-PRIVATE bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
+bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
     switch (field.Type) {
         case VAL_LINKED_INTEGER:
             if (!ScriptManager::DoIntegerConversion(value, this->ID))
@@ -2067,18 +2031,18 @@ PRIVATE bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, 
     }
     return true;
 }
-PRIVATE bool   VMThread::BindMethod(VMValue receiver, VMValue method) {
+bool   VMThread::BindMethod(VMValue receiver, VMValue method) {
     ObjBoundMethod* bound = NewBoundMethod(receiver, AS_FUNCTION(method));
     Push(OBJECT_VAL(bound));
     return true;
 }
-PRIVATE bool   VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
+bool   VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
     // Replace the bound method with the receiver so it's in the
     // right slot when the method is called.
     StackTop[-argCount - 1] = bound->Receiver;
     return Call(bound->Method, argCount);
 }
-PRIVATE bool   VMThread::CallValue(VMValue callee, int argCount) {
+bool   VMThread::CallValue(VMValue callee, int argCount) {
     bool result = false;
     if (ScriptManager::Lock() && IS_OBJECT(callee)) {
         switch (OBJECT_TYPE(callee)) {
@@ -2114,7 +2078,7 @@ PRIVATE bool   VMThread::CallValue(VMValue callee, int argCount) {
     ScriptManager::Unlock();
     return result;
 }
-PRIVATE bool   VMThread::CallForObject(VMValue callee, int argCount) {
+bool   VMThread::CallForObject(VMValue callee, int argCount) {
     if (ScriptManager::Lock()) {
         // Special case for native functions
         if (OBJECT_TYPE(callee) == OBJ_NATIVE) {
@@ -2143,7 +2107,7 @@ PRIVATE bool   VMThread::CallForObject(VMValue callee, int argCount) {
     }
     return false;
 }
-PRIVATE bool   VMThread::InstantiateClass(VMValue callee, int argCount) {
+bool   VMThread::InstantiateClass(VMValue callee, int argCount) {
     if (ScriptManager::Lock()) {
         bool result = false;
         if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
@@ -2172,7 +2136,7 @@ PRIVATE bool   VMThread::InstantiateClass(VMValue callee, int argCount) {
 
     return false;
 }
-PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
+bool    VMThread::Call(ObjFunction* function, int argCount) {
     if (function->MinArity < function->Arity) {
         if (argCount < function->MinArity) {
             ThrowRuntimeError(false, "Expected at least %d arguments to function call, got %d.", function->MinArity, argCount);
@@ -2213,7 +2177,7 @@ PUBLIC bool    VMThread::Call(ObjFunction* function, int argCount) {
 
     return true;
 }
-PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
+bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
     if (ScriptManager::Lock()) {
         VMValue method;
         if (klass->Methods->GetIfExists(hash, &method)) {
@@ -2232,7 +2196,7 @@ PUBLIC bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCo
     }
     return false;
 }
-PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
+bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
     ObjInstance* instance = AS_INSTANCE(Peek(argCount));
     ObjClass* klass = instance->Object.Class;
 
@@ -2258,7 +2222,7 @@ PUBLIC bool    VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSup
     }
     return InvokeFromClass(klass, hash, argCount);
 }
-PRIVATE bool   VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
+bool   VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
     ObjClass* src = AS_CLASS(value);
     ObjClass* dst = AS_CLASS(originalValue);
 
@@ -2276,7 +2240,7 @@ PRIVATE bool   VMThread::DoClassExtension(VMValue value, VMValue originalValue, 
 
     return true;
 }
-PUBLIC bool    VMThread::Import(VMValue value) {
+bool    VMThread::Import(VMValue value) {
     bool result = false;
     if (ScriptManager::Lock()) {
         if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
@@ -2298,7 +2262,7 @@ PUBLIC bool    VMThread::Import(VMValue value) {
     ScriptManager::Unlock();
     return result;
 }
-PUBLIC bool    VMThread::ImportModule(VMValue value) {
+bool    VMThread::ImportModule(VMValue value) {
     bool result = false;
     if (ScriptManager::Lock()) {
         if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
@@ -2327,7 +2291,7 @@ PUBLIC bool    VMThread::ImportModule(VMValue value) {
 
 // If one of the operators is a decimal, they both become one
 
-PUBLIC VMValue VMThread::Values_Multiply() {
+VMValue VMThread::Values_Multiply() {
     VMValue b = Peek(0);
     VMValue a = Peek(1);
 
@@ -2346,7 +2310,7 @@ PUBLIC VMValue VMThread::Values_Multiply() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d * b_d);
 }
-PUBLIC VMValue VMThread::Values_Division() {
+VMValue VMThread::Values_Division() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2370,7 +2334,7 @@ PUBLIC VMValue VMThread::Values_Division() {
     }
     return INTEGER_VAL(a_d / b_d);
 }
-PUBLIC VMValue VMThread::Values_Modulo() {
+VMValue VMThread::Values_Modulo() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2386,7 +2350,7 @@ PUBLIC VMValue VMThread::Values_Modulo() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d % b_d);
 }
-PUBLIC VMValue VMThread::Values_Plus() {
+VMValue VMThread::Values_Plus() {
     VMValue b = Peek(0);
     VMValue a = Peek(1);
     if (IS_STRING(a) || IS_STRING(b)) {
@@ -2417,7 +2381,7 @@ PUBLIC VMValue VMThread::Values_Plus() {
     Pop();
     return INTEGER_VAL(a_d + b_d);
 }
-PUBLIC VMValue VMThread::Values_Minus() {
+VMValue VMThread::Values_Minus() {
     VMValue b = Peek(0);
     VMValue a = Peek(1);
 
@@ -2436,7 +2400,7 @@ PUBLIC VMValue VMThread::Values_Minus() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d - b_d);
 }
-PUBLIC VMValue VMThread::Values_BitwiseLeft() {
+VMValue VMThread::Values_BitwiseLeft() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2452,7 +2416,7 @@ PUBLIC VMValue VMThread::Values_BitwiseLeft() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d << b_d);
 }
-PUBLIC VMValue VMThread::Values_BitwiseRight() {
+VMValue VMThread::Values_BitwiseRight() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2468,7 +2432,7 @@ PUBLIC VMValue VMThread::Values_BitwiseRight() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d >> b_d);
 }
-PUBLIC VMValue VMThread::Values_BitwiseAnd() {
+VMValue VMThread::Values_BitwiseAnd() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2484,7 +2448,7 @@ PUBLIC VMValue VMThread::Values_BitwiseAnd() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d & b_d);
 }
-PUBLIC VMValue VMThread::Values_BitwiseXor() {
+VMValue VMThread::Values_BitwiseXor() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2500,7 +2464,7 @@ PUBLIC VMValue VMThread::Values_BitwiseXor() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d ^ b_d);
 }
-PUBLIC VMValue VMThread::Values_BitwiseOr() {
+VMValue VMThread::Values_BitwiseOr() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2516,7 +2480,7 @@ PUBLIC VMValue VMThread::Values_BitwiseOr() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d | b_d);
 }
-PUBLIC VMValue VMThread::Values_LogicalAND() {
+VMValue VMThread::Values_LogicalAND() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2533,7 +2497,7 @@ PUBLIC VMValue VMThread::Values_LogicalAND() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d && b_d);
 }
-PUBLIC VMValue VMThread::Values_LogicalOR() {
+VMValue VMThread::Values_LogicalOR() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2550,7 +2514,7 @@ PUBLIC VMValue VMThread::Values_LogicalOR() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d || b_d);
 }
-PUBLIC VMValue VMThread::Values_LessThan() {
+VMValue VMThread::Values_LessThan() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2566,7 +2530,7 @@ PUBLIC VMValue VMThread::Values_LessThan() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d < b_d);
 }
-PUBLIC VMValue VMThread::Values_GreaterThan() {
+VMValue VMThread::Values_GreaterThan() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2582,7 +2546,7 @@ PUBLIC VMValue VMThread::Values_GreaterThan() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d > b_d);
 }
-PUBLIC VMValue VMThread::Values_LessThanOrEqual() {
+VMValue VMThread::Values_LessThanOrEqual() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2598,7 +2562,7 @@ PUBLIC VMValue VMThread::Values_LessThanOrEqual() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d <= b_d);
 }
-PUBLIC VMValue VMThread::Values_GreaterThanOrEqual() {
+VMValue VMThread::Values_GreaterThanOrEqual() {
     VMValue b = Pop();
     VMValue a = Pop();
 
@@ -2614,7 +2578,7 @@ PUBLIC VMValue VMThread::Values_GreaterThanOrEqual() {
     int b_d = AS_INTEGER(b);
     return INTEGER_VAL(a_d >= b_d);
 }
-PUBLIC VMValue VMThread::Values_Increment() {
+VMValue VMThread::Values_Increment() {
     VMValue a = Pop();
 
     CHECK_IS_NUM(a, "increment", INTEGER_VAL(0));
@@ -2626,7 +2590,7 @@ PUBLIC VMValue VMThread::Values_Increment() {
     int a_d = AS_INTEGER(a);
     return INTEGER_VAL(++a_d);
 }
-PUBLIC VMValue VMThread::Values_Decrement() {
+VMValue VMThread::Values_Decrement() {
     VMValue a = Pop();
 
     CHECK_IS_NUM(a, "decrement", INTEGER_VAL(0));
@@ -2638,7 +2602,7 @@ PUBLIC VMValue VMThread::Values_Decrement() {
     int a_d = AS_INTEGER(a);
     return INTEGER_VAL(--a_d);
 }
-PUBLIC VMValue VMThread::Values_Negate() {
+VMValue VMThread::Values_Negate() {
     VMValue a = Pop();
 
     CHECK_IS_NUM(a, "negate", INTEGER_VAL(0));
@@ -2648,7 +2612,7 @@ PUBLIC VMValue VMThread::Values_Negate() {
     }
     return INTEGER_VAL(-AS_INTEGER(a));
 }
-PUBLIC VMValue VMThread::Values_LogicalNOT() {
+VMValue VMThread::Values_LogicalNOT() {
     VMValue a = Pop();
 
     // HACK: Yikes.
@@ -2667,14 +2631,14 @@ PUBLIC VMValue VMThread::Values_LogicalNOT() {
 
     return INTEGER_VAL(false);
 }
-PUBLIC VMValue VMThread::Values_BitwiseNOT() {
+VMValue VMThread::Values_BitwiseNOT() {
     VMValue a = Pop();
     if (a.Type == VAL_DECIMAL) {
         return DECIMAL_VAL((float)(~(int)AS_DECIMAL(a)));
     }
     return INTEGER_VAL(~AS_INTEGER(a));
 }
-PUBLIC VMValue VMThread::Value_TypeOf() {
+VMValue VMThread::Value_TypeOf() {
     const char *valueType = "unknown";
 
     VMValue value = Pop();

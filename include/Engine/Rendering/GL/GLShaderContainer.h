@@ -1,13 +1,5 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADERCONTAINER_H
 #define ENGINE_RENDERING_GL_GLSHADERCONTAINER_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class GLShader;
 class GLShader;
 class GLShader;

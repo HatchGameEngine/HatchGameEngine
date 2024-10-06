@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_TILECONFIG_H
 #define ENGINE_SCENE_TILECONFIG_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class TileConfig {
 public:

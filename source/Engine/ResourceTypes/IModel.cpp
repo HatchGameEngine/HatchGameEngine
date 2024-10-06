@@ -1,37 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/Mesh.h>
-#include <Engine/Rendering/Material.h>
-#include <Engine/Graphics.h>
-#include <Engine/IO/Stream.h>
-
-class IModel {
-public:
-    Mesh**              Meshes;
-    size_t              MeshCount;
-
-    size_t              VertexCount;
-    size_t              VertexIndexCount;
-
-    Uint8               VertexPerFace;
-
-    Material**          Materials;
-    size_t              MaterialCount;
-
-    ModelAnim**         Animations;
-    size_t              AnimationCount;
-
-    Armature**          ArmatureList;
-    size_t              ArmatureCount;
-
-    bool                UseVertexAnimation;
-
-    Armature*           BaseArmature;
-    Matrix4x4*          GlobalInverseMatrix;
-};
-#endif
-
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/Math/FixedPoint.h>
 #include <Engine/Math/Vector.h>
@@ -47,7 +13,7 @@ public:
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Clock.h>
 
-PUBLIC IModel::IModel() {
+IModel::IModel() {
     VertexCount = 0;
 
     Meshes = nullptr;
@@ -69,7 +35,7 @@ PUBLIC IModel::IModel() {
     GlobalInverseMatrix = nullptr;
     UseVertexAnimation = false;
 }
-PUBLIC IModel::IModel(const char* filename) {
+IModel::IModel(const char* filename) {
     ResourceStream* resourceStream = ResourceStream::New(filename);
     if (!resourceStream) return;
 
@@ -77,7 +43,7 @@ PUBLIC IModel::IModel(const char* filename) {
 
     if (resourceStream) resourceStream->Close();
 }
-PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
+bool IModel::Load(Stream* stream, const char* filename) {
     if (!stream) return false;
     if (!filename) return false;
 
@@ -104,11 +70,11 @@ PUBLIC bool IModel::Load(Stream* stream, const char* filename) {
     return false;
 }
 
-PUBLIC bool IModel::HasMaterials() {
+bool IModel::HasMaterials() {
     return MaterialCount > 0;
 }
 
-PRIVATE STATIC Image* IModel::TryLoadMaterialImage(std::string imagePath, const char *parentDirectory) {
+Image* IModel::TryLoadMaterialImage(std::string imagePath, const char *parentDirectory) {
     std::string filename = imagePath;
 
     if (parentDirectory) {
@@ -130,7 +96,7 @@ PRIVATE STATIC Image* IModel::TryLoadMaterialImage(std::string imagePath, const 
     return nullptr;
 }
 
-PUBLIC STATIC Image* IModel::LoadMaterialImage(string imagePath, const char *parentDirectory) {
+Image* IModel::LoadMaterialImage(string imagePath, const char *parentDirectory) {
     // Try possible combinations
     Image* image = nullptr;
 
@@ -148,18 +114,18 @@ PUBLIC STATIC Image* IModel::LoadMaterialImage(string imagePath, const char *par
     return nullptr;
 }
 
-PUBLIC STATIC Image* IModel::LoadMaterialImage(const char *imagePath, const char *parentDirectory) {
+Image* IModel::LoadMaterialImage(const char *imagePath, const char *parentDirectory) {
     return LoadMaterialImage(std::string(imagePath), parentDirectory);
 }
 
-PUBLIC bool IModel::HasBones() {
+bool IModel::HasBones() {
     if (BaseArmature == nullptr)
         return false;
 
     return BaseArmature->NumSkeletons > 0;
 }
 
-PUBLIC void IModel::AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
+void IModel::AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
     NodeAnim* nodeAnim = animation->NodeLookup->Get(node->Name);
     if (nodeAnim)
         UpdateChannel(node->LocalTransform, nodeAnim, frame);
@@ -170,11 +136,11 @@ PUBLIC void IModel::AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32
         AnimateNode(node->Children[i], animation, frame, node->GlobalTransform);
 }
 
-PUBLIC void IModel::Pose() {
+void IModel::Pose() {
     BaseArmature->RootNode->Transform();
 }
 
-PUBLIC void IModel::Pose(Armature* armature, SkeletalAnim* animation, Uint32 frame) {
+void IModel::Pose(Armature* armature, SkeletalAnim* animation, Uint32 frame) {
     Matrix4x4 identity;
     Matrix4x4::Identity(&identity);
 
@@ -268,11 +234,11 @@ static Vector4 InterpolateQuaternions(Vector4 q1, Vector4 q2, Sint64 t) {
     return result;
 }
 
-PUBLIC Uint32 IModel::GetKeyFrame(Uint32 frame) {
+Uint32 IModel::GetKeyFrame(Uint32 frame) {
     return (frame >> 8) & 0xFFFFFF;
 }
 
-PUBLIC Sint64 IModel::GetInBetween(Uint32 frame) {
+Sint64 IModel::GetInBetween(Uint32 frame) {
     float interp = (float)(frame & 0xFF) / 0xFF;
     Sint64 inbetween = (Sint64)(interp * 0x10000);
 
@@ -284,7 +250,7 @@ PUBLIC Sint64 IModel::GetInBetween(Uint32 frame) {
     return inbetween;
 }
 
-PUBLIC void IModel::DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
+void IModel::DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
     Uint32 startFrame = 0;
     Uint32 animLength;
 
@@ -339,7 +305,7 @@ PUBLIC void IModel::DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation,
     }
 }
 
-PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
+void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
     Uint32 keyframe = GetKeyFrame(frame);
     Sint64 inbetween = GetInBetween(frame);
 
@@ -376,7 +342,7 @@ PRIVATE void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 fra
     }
 }
 
-PUBLIC void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
+void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
     if (animation->Skeletal == nullptr)
         return;
 
@@ -388,7 +354,7 @@ PUBLIC void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 fra
     armature->UpdateSkeletons();
 }
 
-PUBLIC void IModel::Animate(Uint16 animation, Uint32 frame) {
+void IModel::Animate(Uint16 animation, Uint32 frame) {
     if (AnimationCount > 0) {
         if (animation >= AnimationCount)
             animation = AnimationCount - 1;
@@ -397,7 +363,7 @@ PUBLIC void IModel::Animate(Uint16 animation, Uint32 frame) {
     }
 }
 
-PUBLIC int IModel::GetAnimationIndex(const char* animationName) {
+int IModel::GetAnimationIndex(const char* animationName) {
     if (!AnimationCount)
         return -1;
 
@@ -408,7 +374,7 @@ PUBLIC int IModel::GetAnimationIndex(const char* animationName) {
     return -1;
 }
 
-PUBLIC int IModel::NewArmature() {
+int IModel::NewArmature() {
     if (UseVertexAnimation)
         return -1;
 
@@ -439,7 +405,7 @@ PUBLIC int IModel::NewArmature() {
     return ArmatureCount - 1;
 }
 
-PUBLIC void IModel::DeleteArmature(size_t index) {
+void IModel::DeleteArmature(size_t index) {
     if (ArmatureList == nullptr)
         return;
 
@@ -447,7 +413,7 @@ PUBLIC void IModel::DeleteArmature(size_t index) {
     ArmatureList[index] = nullptr;
 }
 
-PUBLIC void IModel::Dispose() {
+void IModel::Dispose() {
     for (size_t i = 0; i < MeshCount; i++)
         delete Meshes[i];
     delete[] Meshes;
@@ -483,6 +449,6 @@ PUBLIC void IModel::Dispose() {
     GlobalInverseMatrix = nullptr;
 }
 
-PUBLIC IModel::~IModel() {
+IModel::~IModel() {
     Dispose();
 }

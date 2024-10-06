@@ -1,24 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Application.h>
-
-#include <Engine/Audio/AudioPlayback.h>
-#include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
-
-class ISound {
-public:
-    SDL_AudioSpec     Format;
-    int               BytesPerSample;
-
-    SoundFormat*      SoundData = NULL;
-
-    char              Filename[256];
-    bool              LoadFailed = false;
-    bool              StreamFromFile = false;
-};
-#endif
-
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -29,14 +8,14 @@ public:
 #include <Engine/ResourceTypes/SoundFormats/OGG.h>
 #include <Engine/ResourceTypes/SoundFormats/WAV.h>
 
-PUBLIC      ISound::ISound(const char* filename) {
+ISound::ISound(const char* filename) {
     ISound::Load(filename, true);
 }
-PUBLIC      ISound::ISound(const char* filename, bool streamFromFile) {
+ISound::ISound(const char* filename, bool streamFromFile) {
     ISound::Load(filename, streamFromFile);
 }
 
-PUBLIC void ISound::Load(const char* filename, bool streamFromFile) {
+void ISound::Load(const char* filename, bool streamFromFile) {
     LoadFailed = true;
     StreamFromFile = streamFromFile;
     strcpy(Filename, filename);
@@ -87,7 +66,7 @@ PUBLIC void ISound::Load(const char* filename, bool streamFromFile) {
     LoadFailed = false;
 }
 
-PUBLIC AudioPlayback* ISound::CreatePlayer() {
+AudioPlayback* ISound::CreatePlayer() {
     int requiredSamples = AudioManager::DeviceFormat.samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST;
 
     AudioPlayback* playback = new AudioPlayback(Format, requiredSamples, BytesPerSample, AudioManager::BytesPerSample);
@@ -97,7 +76,7 @@ PUBLIC AudioPlayback* ISound::CreatePlayer() {
     return playback;
 }
 
-PUBLIC void ISound::Dispose() {
+void ISound::Dispose() {
     if (SoundData) {
         SoundData->Dispose();
         delete SoundData;

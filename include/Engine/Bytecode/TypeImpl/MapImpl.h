@@ -1,14 +1,6 @@
 #ifndef ENGINE_BYTECODE_TYPEIMPL_MAPIMPL_H
 #define ENGINE_BYTECODE_TYPEIMPL_MAPIMPL_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/Types.h>
 

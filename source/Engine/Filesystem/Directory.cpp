@@ -1,12 +1,3 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class Directory {
-private:
-};
-#endif
-
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -25,7 +16,7 @@ bool CompareFunction(char* i, char* j) {
     return strcmp(i, j) < 0;
 }
 
-PUBLIC STATIC bool          Directory::Exists(const char* path) {
+bool          Directory::Exists(const char* path) {
     #if WIN32
         DWORD ftyp = GetFileAttributesA(path);
         if (ftyp == INVALID_FILE_ATTRIBUTES) return false;  // Something is wrong with your path
@@ -39,7 +30,7 @@ PUBLIC STATIC bool          Directory::Exists(const char* path) {
     #endif
     return false;
 }
-PUBLIC STATIC bool          Directory::Create(const char* path) {
+bool          Directory::Create(const char* path) {
     #if WIN32
         return CreateDirectoryA(path, NULL);
     #else
@@ -47,7 +38,7 @@ PUBLIC STATIC bool          Directory::Create(const char* path) {
     #endif
 }
 
-PUBLIC STATIC bool          Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
+bool          Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
     #if WIN32
         return _getcwd(out, sz) != NULL;
     #else
@@ -55,7 +46,7 @@ PUBLIC STATIC bool          Directory::GetCurrentWorkingDirectory(char* out, siz
     #endif
 }
 
-PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
+void          Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
         snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
@@ -126,13 +117,13 @@ PUBLIC STATIC void          Directory::GetFiles(vector<char*>* files, const char
         std::sort(files->begin(), files->end(), CompareFunction);
     #endif
 }
-PUBLIC STATIC vector<char*> Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
+vector<char*> Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
     vector<char*> files;
     Directory::GetFiles(&files, path, searchPattern, allDirs);
     return files;
 }
 
-PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
+void          Directory::GetDirectories(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
         snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
@@ -200,7 +191,7 @@ PUBLIC STATIC void          Directory::GetDirectories(vector<char*>* files, cons
         }
     #endif
 }
-PUBLIC STATIC vector<char*> Directory::GetDirectories(const char* path, const char* searchPattern, bool allDirs) {
+vector<char*> Directory::GetDirectories(const char* path, const char* searchPattern, bool allDirs) {
     vector<char*> files;
     Directory::GetDirectories(&files, path, searchPattern, allDirs);
     return files;

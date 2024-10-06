@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_MATERIAL_H
 #define ENGINE_RENDERING_MATERIAL_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/Image.h>
 

@@ -1,14 +1,6 @@
 #ifndef ENGINE_MEDIA_MEDIASOURCE_H
 #define ENGINE_MEDIA_MEDIASOURCE_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Media/Includes/AVFormat.h>

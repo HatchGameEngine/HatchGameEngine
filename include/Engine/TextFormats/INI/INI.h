@@ -1,14 +1,6 @@
 #ifndef ENGINE_TEXTFORMATS_INI_INI_H
 #define ENGINE_TEXTFORMATS_INI_INI_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/TextFormats/INI/INIStructs.h>
 #include <Engine/IO/Stream.h>

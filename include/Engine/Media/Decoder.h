@@ -1,14 +1,6 @@
 #ifndef ENGINE_MEDIA_DECODER_H
 #define ENGINE_MEDIA_DECODER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Media/Includes/AVCodec.h>

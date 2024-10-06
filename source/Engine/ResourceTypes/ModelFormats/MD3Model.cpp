@@ -1,15 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/ResourceTypes/IModel.h>
-class MD3Model {
-public:
-    static Sint32 Version;
-    static bool UseUVKeyframes;
-    static Sint32 DataEndOffset;
-    static vector<string> MaterialNames;
-};
-#endif
-
 #include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
@@ -35,7 +23,7 @@ bool MD3Model::UseUVKeyframes;
 Sint32 MD3Model::DataEndOffset;
 vector<string> MD3Model::MaterialNames;
 
-PUBLIC STATIC bool MD3Model::IsMagic(Stream* stream) {
+bool MD3Model::IsMagic(Stream* stream) {
     Uint32 magic = stream->ReadUInt32BE();
 
     stream->Skip(-4);
@@ -43,7 +31,7 @@ PUBLIC STATIC bool MD3Model::IsMagic(Stream* stream) {
     return magic == MD3_MODEL_MAGIC;
 }
 
-PRIVATE STATIC void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, float& z) {
+void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, float& z) {
     unsigned latIdx = (index >> 8) & 0xFF;
     unsigned lngIdx = index & 0xFF;
 
@@ -55,7 +43,7 @@ PRIVATE STATIC void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, flo
     z = cosf(lng);
 }
 
-PRIVATE STATIC void MD3Model::ReadShader(Stream* stream) {
+void MD3Model::ReadShader(Stream* stream) {
     char name[MAX_QPATH + 1];
     memset(name, '\0', sizeof name);
     stream->ReadBytes(name, MAX_QPATH);
@@ -65,7 +53,7 @@ PRIVATE STATIC void MD3Model::ReadShader(Stream* stream) {
     MaterialNames.push_back(shaderName);
 }
 
-PRIVATE STATIC void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* norm, Sint32 vertexCount, Stream* stream) {
+void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* norm, Sint32 vertexCount, Stream* stream) {
     for (Sint32 i = 0; i < vertexCount; i++) {
         // MD3 coordinate system is usually Z up and Y forward (I think.)
         vert->X = stream->ReadInt16() * FP16_TO(MD3_XYZ_SCALE);
@@ -83,7 +71,7 @@ PRIVATE STATIC void MD3Model::ReadVerticesAndNormals(Vector3* vert, Vector3* nor
     }
 }
 
-PRIVATE STATIC void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* stream) {
+void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* stream) {
     for (Sint32 i = 0; i < vertexCount; i++) {
         uvs->X = (int)(stream->ReadFloat() * 0x10000);
         uvs->Y = (int)(stream->ReadFloat() * 0x10000);
@@ -91,7 +79,7 @@ PRIVATE STATIC void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* 
     }
 }
 
-PRIVATE STATIC void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
+void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
     for (Sint32 i = 0; i < triangleCount; i++) {
         *indices++ = stream->ReadUInt32();
         *indices++ = stream->ReadUInt32();
@@ -101,7 +89,7 @@ PRIVATE STATIC void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangle
     *indices = -1;
 }
 
-PRIVATE STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
+Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
     Sint32 magic = stream->ReadUInt32BE();
     if (magic != MD3_MODEL_MAGIC) {
         Log::Print(Log::LOG_ERROR, "Invalid magic for MD3 surface!");
@@ -212,7 +200,7 @@ PRIVATE STATIC Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t
     return mesh;
 }
 
-PUBLIC STATIC bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
+bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
     if (stream->ReadUInt32BE() != MD3_MODEL_MAGIC) {
         Log::Print(Log::LOG_ERROR, "Model not of MD3 (Quake III) type!");
         return false;

@@ -1,14 +1,6 @@
 #ifndef ENGINE_UTILITIES_STRINGUTILS_H
 #define ENGINE_UTILITIES_STRINGUTILS_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Token.h>
 

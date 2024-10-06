@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_RANDOM_H
 #define ENGINE_MATH_RANDOM_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class Random {

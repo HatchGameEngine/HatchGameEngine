@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_CLIPPER_H
 #define ENGINE_MATH_CLIPPER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 

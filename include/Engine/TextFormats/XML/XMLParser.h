@@ -1,14 +1,6 @@
 #ifndef ENGINE_TEXTFORMATS_XML_XMLPARSER_H
 #define ENGINE_TEXTFORMATS_XML_XMLPARSER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Bytecode/CompilerEnums.h>
 #include <Engine/IO/Stream.h>

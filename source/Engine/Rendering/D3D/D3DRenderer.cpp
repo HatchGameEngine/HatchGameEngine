@@ -1,17 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Includes/HashMap.h>
-
-#include <stack>
-
-class D3DRenderer {
-public:
-};
-#endif
-
 #ifdef USING_DIRECT3D
 
 #include <Engine/Rendering/D3D/D3DRenderer.h>
@@ -669,7 +655,7 @@ void        D3D_EndDrawShape(Vertex* shapeBuffer, D3DPRIMITIVETYPE prim, int tri
 }
 
 // Initialization and disposal functions
-PUBLIC STATIC void     D3DRenderer::Init() {
+void     D3DRenderer::Init() {
     Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
     D3D_MatrixIdentity = Matrix4x4::Create();
 
@@ -836,13 +822,13 @@ PUBLIC STATIC void     D3DRenderer::Init() {
 
     Log::Print(Log::LOG_INFO, "Graphics Card: %s", indent.Description);
 }
-PUBLIC STATIC Uint32   D3DRenderer::GetWindowFlags() {
+Uint32   D3DRenderer::GetWindowFlags() {
     return 0;
 }
-PUBLIC STATIC void     D3DRenderer::SetVSync(bool enabled) {
+void     D3DRenderer::SetVSync(bool enabled) {
     
 }
-PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
+void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.5f;
 
     Graphics::Internal.Init = D3DRenderer::Init;
@@ -912,7 +898,7 @@ PUBLIC STATIC void     D3DRenderer::SetGraphicsFunctions() {
     Graphics::Internal.ClearScene3D = D3DRenderer::ClearScene3D;
     Graphics::Internal.DrawScene3D = D3DRenderer::DrawScene3D;
 }
-PUBLIC STATIC void     D3DRenderer::Dispose() {
+void     D3DRenderer::Dispose() {
     Memory::Free(D3D_BufferCircleFill);
     Memory::Free(D3D_BufferCircleStroke);
     Memory::Free(D3D_BufferSquareFill);
@@ -924,7 +910,7 @@ PUBLIC STATIC void     D3DRenderer::Dispose() {
 }
 
 // Texture management functions
-PUBLIC STATIC Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = Texture::New(format, access, width, height);
 
     D3D_CreateTexture(texture);
@@ -934,10 +920,10 @@ PUBLIC STATIC Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, 
 
     return texture;
 }
-PUBLIC STATIC int      D3DRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
+int      D3DRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
     return 0;
 }
-PUBLIC STATIC int      D3DRenderer::UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch) {
+int      D3DRenderer::UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch) {
     int inputPixelsX = 0;
     int inputPixelsY = 0;
     int inputPixelsW = texture->Width;
@@ -1011,10 +997,10 @@ PUBLIC STATIC int      D3DRenderer::UpdateTexture(Texture* texture, SDL_Rect* r,
 
     return 0;
 }
-PUBLIC STATIC void     D3DRenderer::UnlockTexture(Texture* texture) {
+void     D3DRenderer::UnlockTexture(Texture* texture) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DisposeTexture(Texture* texture) {
+void     D3DRenderer::DisposeTexture(Texture* texture) {
     D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
     if (!textureData)
         return;
@@ -1035,15 +1021,15 @@ PUBLIC STATIC void     D3DRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-PUBLIC STATIC void     D3DRenderer::SetRenderTarget(Texture* texture) {
+void     D3DRenderer::SetRenderTarget(Texture* texture) {
     D3D_Predraw();
     D3D_SetRenderTarget(texture);
 }
-PUBLIC STATIC void     D3DRenderer::UpdateWindowSize(int width, int height) {
+void     D3DRenderer::UpdateWindowSize(int width, int height) {
     // D3D_UpdateViewport(0, 0, width, height);
     renderData->UpdateBackBufferSize = true;
 }
-PUBLIC STATIC void     D3DRenderer::UpdateViewport() {
+void     D3DRenderer::UpdateViewport() {
     Viewport* vp = &Graphics::CurrentViewport;
 
     D3DVIEWPORT9 viewport;
@@ -1059,7 +1045,7 @@ PUBLIC STATIC void     D3DRenderer::UpdateViewport() {
     // D3DRenderer::UpdateOrtho(vp->Width, vp->Height);
     D3DRenderer::UpdateProjectionMatrix();
 }
-PUBLIC STATIC void     D3DRenderer::UpdateClipRect() {
+void     D3DRenderer::UpdateClipRect() {
     ClipArea clip = Graphics::CurrentClip;
     if (Graphics::CurrentClip.Enabled) {
         Viewport view = Graphics::CurrentViewport;
@@ -1089,7 +1075,7 @@ PUBLIC STATIC void     D3DRenderer::UpdateClipRect() {
         IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SCISSORTESTENABLE, FALSE);
     }
 }
-PUBLIC STATIC void     D3DRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
+void     D3DRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
     if (Scene::Views[Scene::ViewCurrent].Software)
         Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, left, right, bottom, top, 500.0f, -500.0f);
     else
@@ -1101,27 +1087,27 @@ PUBLIC STATIC void     D3DRenderer::UpdateOrtho(float left, float top, float rig
         D3D_RenderScaleY = Graphics::CurrentViewport.Height / top;
     }
 }
-PUBLIC STATIC void     D3DRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
+void     D3DRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
     MakePerspectiveMatrix(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
-PUBLIC STATIC void     D3DRenderer::UpdateProjectionMatrix() {
+void     D3DRenderer::UpdateProjectionMatrix() {
     D3DMATRIX matrix;
     memcpy(&matrix.m, Scene::Views[Scene::ViewCurrent].ProjectionMatrix->Values, sizeof(float) * 16);
     IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_PROJECTION, &matrix);
 }
-PUBLIC STATIC void     D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+void     D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
 // Shader-related functions
-PUBLIC STATIC void     D3DRenderer::UseShader(void* shader) {
+void     D3DRenderer::UseShader(void* shader) {
     // if (D3D_CurrentShader != (D3DShader*)shader) {
     //     D3D_CurrentShader = (D3DShader*)shader;
     //     D3D_CurrentShader->Use();
     // }
 }
-PUBLIC STATIC void     D3DRenderer::SetUniformF(int location, int count, float* values) {
+void     D3DRenderer::SetUniformF(int location, int count, float* values) {
     // switch (count) {
     //     case 1: glUniform1f(location, values[0]); CHECK_GL(); break;
     //     case 2: glUniform2f(location, values[0], values[1]); CHECK_GL(); break;
@@ -1129,15 +1115,15 @@ PUBLIC STATIC void     D3DRenderer::SetUniformF(int location, int count, float* 
     //     case 4: glUniform4f(location, values[0], values[1], values[2], values[3]); CHECK_GL(); break;
     // }
 }
-PUBLIC STATIC void     D3DRenderer::SetUniformI(int location, int count, int* values) {
+void     D3DRenderer::SetUniformI(int location, int count, int* values) {
     // glUniform1iv(location, count, values);
 }
-PUBLIC STATIC void     D3DRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
+void     D3DRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
 
 }
 
 // These guys
-PUBLIC STATIC void     D3DRenderer::Clear() {
+void     D3DRenderer::Clear() {
     DWORD color;
     HRESULT result;
     int BackBufferWidth, BackBufferHeight;
@@ -1201,7 +1187,7 @@ PUBLIC STATIC void     D3DRenderer::Clear() {
         D3D_SetError("Clear()", result);
     }
 }
-PUBLIC STATIC void     D3DRenderer::Present() {
+void     D3DRenderer::Present() {
     HRESULT result;
 
     if (!renderData->BeginScene) {
@@ -1226,34 +1212,34 @@ PUBLIC STATIC void     D3DRenderer::Present() {
 }
 
 // Draw mode setting functions
-PUBLIC STATIC void     D3DRenderer::SetBlendColor(float r, float g, float b, float a) {
+void     D3DRenderer::SetBlendColor(float r, float g, float b, float a) {
     int ha = (int)(a * 0xFF) << 24;
     int hr = (int)(r * 0xFF) << 16;
     int hg = (int)(g * 0xFF) << 8;
     int hb = (int)(b * 0xFF);
     D3D_BlendColorsAsHex = ha | hr | hg | hb;
 }
-PUBLIC STATIC void     D3DRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+void     D3DRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     D3D_Blend_SRC_COLOR = D3D_GetBlendFactorFromHatch(srcC);
     D3D_Blend_DST_COLOR = D3D_GetBlendFactorFromHatch(dstC);
     D3D_Blend_SRC_ALPHA = D3D_GetBlendFactorFromHatch(srcA);
     D3D_Blend_DST_ALPHA = D3D_GetBlendFactorFromHatch(dstA);
 }
-PUBLIC STATIC void     D3DRenderer::SetTintColor(float r, float g, float b, float a) {
+void     D3DRenderer::SetTintColor(float r, float g, float b, float a) {
 
 }
-PUBLIC STATIC void     D3DRenderer::SetTintMode(int mode) {
+void     D3DRenderer::SetTintMode(int mode) {
 
 }
-PUBLIC STATIC void     D3DRenderer::SetTintEnabled(bool enabled) {
+void     D3DRenderer::SetTintEnabled(bool enabled) {
 
 }
-PUBLIC STATIC void     D3DRenderer::SetLineWidth(float n) {
+void     D3DRenderer::SetLineWidth(float n) {
 
 }
 
 // Primitive drawing functions
-PUBLIC STATIC void     D3DRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+void     D3DRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
     // UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderShape);
 
     Graphics::Save();
@@ -1268,7 +1254,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeLine(float x1, float y1, float x2, flo
         // glDrawArrays(GL_LINES, 0, 2);
     Graphics::Restore();
 }
-PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
+void     D3DRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     D3D_BeginDrawShape(D3D_BufferCircleStroke, 361);
 
     Graphics::Save();
@@ -1281,7 +1267,7 @@ PUBLIC STATIC void     D3DRenderer::StrokeCircle(float x, float y, float rad, fl
 
     D3D_EndDrawShape(D3D_BufferCircleStroke, D3DPT_LINESTRIP, 360);
 }
-PUBLIC STATIC void     D3DRenderer::StrokeEllipse(float x, float y, float w, float h) {
+void     D3DRenderer::StrokeEllipse(float x, float y, float w, float h) {
     // UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderShape);
 
     Graphics::Save();
@@ -1294,14 +1280,14 @@ PUBLIC STATIC void     D3DRenderer::StrokeEllipse(float x, float y, float w, flo
         // glDrawArrays(GL_LINE_STRIP, 0, 361);
     Graphics::Restore();
 }
-PUBLIC STATIC void     D3DRenderer::StrokeRectangle(float x, float y, float w, float h) {
+void     D3DRenderer::StrokeRectangle(float x, float y, float w, float h) {
     StrokeLine(x, y, x + w, y);
     StrokeLine(x, y + h, x + w, y + h);
 
     StrokeLine(x, y, x, y + h);
     StrokeLine(x + w, y, x + w, y + h);
 }
-PUBLIC STATIC void     D3DRenderer::FillCircle(float x, float y, float rad) {
+void     D3DRenderer::FillCircle(float x, float y, float rad) {
     D3D_BeginDrawShape(D3D_BufferCircleFill, 362);
 
     Graphics::Save();
@@ -1314,7 +1300,7 @@ PUBLIC STATIC void     D3DRenderer::FillCircle(float x, float y, float rad) {
 
     D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
 }
-PUBLIC STATIC void     D3DRenderer::FillEllipse(float x, float y, float w, float h) {
+void     D3DRenderer::FillEllipse(float x, float y, float w, float h) {
     D3D_BeginDrawShape(D3D_BufferCircleFill, 362);
 
     w *= 0.5f;
@@ -1330,7 +1316,7 @@ PUBLIC STATIC void     D3DRenderer::FillEllipse(float x, float y, float w, float
 
     D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
 }
-PUBLIC STATIC void     D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
     Vertex vertices[3];
     vertices[0] = Vertex { x1, y1, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f };
     vertices[1] = Vertex { x2, y2, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f };
@@ -1344,7 +1330,7 @@ PUBLIC STATIC void     D3DRenderer::FillTriangle(float x1, float y1, float x2, f
 
     D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
-PUBLIC STATIC void     D3DRenderer::FillRectangle(float x, float y, float w, float h) {
+void     D3DRenderer::FillRectangle(float x, float y, float w, float h) {
     D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
 
     Graphics::Save();
@@ -1359,13 +1345,13 @@ PUBLIC STATIC void     D3DRenderer::FillRectangle(float x, float y, float w, flo
 }
 
 // Texture drawing functions
-PUBLIC STATIC void     D3DRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
+void     D3DRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     // UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderTexturedShape);
     if (sx < 0)
         sx = 0.0, sy = 0.0, sw = texture->Width, sh = texture->Height;
     D3D_DrawTextureRaw(texture, sx, sy, sw, sh, x, y, w, h, false, texture->Access != SDL_TEXTUREACCESS_TARGET);
 }
-PUBLIC STATIC void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -1381,7 +1367,7 @@ PUBLIC STATIC void     D3DRenderer::DrawSprite(ISprite* sprite, int animation, i
         D3D_DrawTextureRaw(sprite->Spritesheets[animframe.SheetNumber], animframe.X, animframe.Y, animframe.Width, animframe.Height, animframe.OffsetX, animframe.OffsetY, animframe.Width, animframe.Height, flipX, flipY);
     Graphics::Restore();
 }
-PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -1410,40 +1396,40 @@ PUBLIC STATIC void     D3DRenderer::DrawSpritePart(ISprite* sprite, int animatio
     Graphics::Restore();
 }
 // 3D drawing functions
-PUBLIC STATIC void     D3DRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     D3DRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     D3DRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     D3DRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     D3DRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     D3DRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
 
 }
-PUBLIC STATIC void     D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+void     D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
 }
-PUBLIC STATIC void     D3DRenderer::UnbindVertexBuffer() {
+void     D3DRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     D3DRenderer::BindScene3D(Uint32 sceneIndex) {
+void     D3DRenderer::BindScene3D(Uint32 sceneIndex) {
 
 }
-PUBLIC STATIC void     D3DRenderer::ClearScene3D(Uint32 sceneIndex) {
+void     D3DRenderer::ClearScene3D(Uint32 sceneIndex) {
 
 }
-PUBLIC STATIC void     D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+void     D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 }
 
 /*
 // Draw buffering
-PUBLIC STATIC Uint32   D3DRenderer::CreateTexturedShapeBuffer(float** data, int vertexCount) {
+Uint32   D3DRenderer::CreateTexturedShapeBuffer(float** data, int vertexCount) {
     // x, y, z, u, v
     Uint32 bufferID;
     glGenBuffers(1, &bufferID);
@@ -1455,7 +1441,7 @@ PUBLIC STATIC Uint32   D3DRenderer::CreateTexturedShapeBuffer(float** data, int 
     return bufferID;
 }
 
-PUBLIC STATIC void     D3DRenderer::DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount) {
+void     D3DRenderer::DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount) {
     UseShader(D3D_SelectedShader ? D3D_SelectedShader : D3D_ShaderTexturedShape);
 
     GLTextureData* textureData = (GLTextureData*)texture->DriverData;

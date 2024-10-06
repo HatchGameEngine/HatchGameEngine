@@ -1,14 +1,6 @@
 #ifndef ENGINE_TYPES_TILESET_H
 #define ENGINE_TYPES_TILESET_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/TileAnimation.h>

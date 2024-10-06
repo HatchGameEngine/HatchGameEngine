@@ -1,56 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/Version.h>
-#include <Engine/InputManager.h>
-#include <Engine/Audio/AudioManager.h>
-#include <Engine/Scene.h>
-#include <Engine/Math/Math.h>
-#include <Engine/TextFormats/INI/INI.h>
-#include <Engine/TextFormats/XML/XMLParser.h>
-#include <Engine/TextFormats/XML/XMLNode.h>
-
-class Application {
-public:
-    static vector<char*> CmdLineArgs;
-
-    static INI*        Settings;
-    static char        SettingsFile[4096];
-
-    static XMLNode*    GameConfig;
-
-    static int         TargetFPS;
-    static float       CurrentFPS;
-    static bool        Running;
-    static bool        GameStart;
-
-    static SDL_Window* Window;
-    static char        WindowTitle[256];
-    static int         WindowWidth;
-    static int         WindowHeight;
-    static int         DefaultMonitor;
-    static Platforms   Platform;
-
-    static char        EngineVersion[256];
-
-    static char        GameTitle[256];
-    static char        GameTitleShort[256];
-    static char        GameVersion[256];
-    static char        GameDescription[256];
-
-    static int         UpdatesPerFrame;
-    static bool        Stepper;
-    static bool        Step;
-
-    static int         MasterVolume;
-    static int         MusicVolume;
-    static int         SoundVolume;
-
-    static int         StartSceneNum;
-
-    static bool        DevMenuActivated;
-};
-#endif
-
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
 
@@ -168,7 +115,7 @@ void        DEBUG_DrawText(char* text, float x, float y) {
     }
 }
 
-PUBLIC STATIC void Application::Init(int argc, char* args[]) {
+void Application::Init(int argc, char* args[]) {
 #ifdef MSYS
     AllocConsole();
     freopen_s((FILE **)stdin, "CONIN$", "w", stdin);
@@ -297,7 +244,7 @@ PUBLIC STATIC void Application::Init(int argc, char* args[]) {
     Running = true;
 }
 
-PUBLIC STATIC void  Application::SetTargetFrameRate(int targetFPS) {
+void  Application::SetTargetFrameRate(int targetFPS) {
     if (targetFPS < 1)
         TargetFPS = 1;
     else if (targetFPS > MAX_TARGET_FRAMERATE)
@@ -308,7 +255,7 @@ PUBLIC STATIC void  Application::SetTargetFrameRate(int targetFPS) {
     FrameTimeDesired = 1000.0 / TargetFPS;
 }
 
-PRIVATE STATIC void Application::MakeEngineVersion() {
+void Application::MakeEngineVersion() {
     std::string versionText = std::to_string(VERSION_MAJOR) + "." + std::to_string(VERSION_MINOR);
 
 #ifdef VERSION_PATCH
@@ -331,10 +278,10 @@ PRIVATE STATIC void Application::MakeEngineVersion() {
         StringUtils::Copy(Application::EngineVersion, versionText.c_str(), sizeof(Application::EngineVersion));
 }
 
-PUBLIC STATIC bool Application::IsPC() {
+bool Application::IsPC() {
     return Application::Platform == Platforms::Windows || Application::Platform == Platforms::MacOS || Application::Platform == Platforms::Linux;
 }
-PUBLIC STATIC bool Application::IsMobile() {
+bool Application::IsMobile() {
     return Application::Platform == Platforms::iOS || Application::Platform == Platforms::Android;
 }
 
@@ -354,7 +301,7 @@ double  MetricFPSCounterTime = -1;
 double  MetricPresentTime = -1;
 double  MetricFrameTime = 0.0;
 vector<ObjectList*> ListList;
-PUBLIC STATIC void Application::GetPerformanceSnapshot() {
+void Application::GetPerformanceSnapshot() {
     if (Scene::ObjectLists) {
         // General Performance Snapshot
         double types[] = {
@@ -474,13 +421,13 @@ PUBLIC STATIC void Application::GetPerformanceSnapshot() {
     }
 }
 
-PUBLIC STATIC void Application::SetWindowTitle(const char* title) {
+void Application::SetWindowTitle(const char* title) {
     memset(Application::WindowTitle, 0, sizeof(Application::WindowTitle));
     snprintf(Application::WindowTitle, sizeof(Application::WindowTitle), "%s", title);
     Application::UpdateWindowTitle();
 }
 
-PUBLIC STATIC void Application::UpdateWindowTitle() {
+void Application::UpdateWindowTitle() {
     std::string titleText = std::string(Application::WindowTitle);
 
     bool paren = false;
@@ -526,7 +473,7 @@ PUBLIC STATIC void Application::UpdateWindowTitle() {
     SDL_SetWindowTitle(Application::Window, titleText.c_str());
 }
 
-PRIVATE STATIC void Application::Restart() {
+void Application::Restart() {
     // Reset FPS timer
     BenchmarkFrameCount = 0;
 
@@ -554,26 +501,26 @@ PRIVATE STATIC void Application::Restart() {
     else if (vol > 100) \
         vol = 100
 
-PUBLIC STATIC void Application::SetMasterVolume(int volume) {
+void Application::SetMasterVolume(int volume) {
     CLAMP_VOLUME(volume);
 
     Application::MasterVolume = volume;
     AudioManager::MasterVolume = Application::MasterVolume / 100.0f;
 }
-PUBLIC STATIC void Application::SetMusicVolume(int volume) {
+void Application::SetMusicVolume(int volume) {
     CLAMP_VOLUME(volume);
 
     Application::MusicVolume = volume;
     AudioManager::MusicVolume = Application::MusicVolume / 100.0f;
 }
-PUBLIC STATIC void Application::SetSoundVolume(int volume) {
+void Application::SetSoundVolume(int volume) {
     CLAMP_VOLUME(volume);
 
     Application::SoundVolume = volume;
     AudioManager::SoundVolume = Application::SoundVolume / 100.0f;
 }
 
-PRIVATE STATIC void Application::LoadAudioSettings() {
+void Application::LoadAudioSettings() {
     INI* settings = Application::Settings;
 
     int masterVolume = Application::MasterVolume;
@@ -601,7 +548,7 @@ PRIVATE STATIC void Application::LoadAudioSettings() {
 
 SDL_Keycode KeyBindsSDL[(int)KeyBind::Max];
 
-PRIVATE STATIC void Application::LoadKeyBinds() {
+void Application::LoadKeyBinds() {
     XMLNode* node = nullptr;
     if (Application::GameConfig)
         node = XMLParser::SearchNode(Application::GameConfig->children[0], "keys");
@@ -642,18 +589,18 @@ PRIVATE STATIC void Application::LoadKeyBinds() {
 #undef GET_KEY
 }
 
-PRIVATE STATIC void Application::LoadDevSettings() {
+void Application::LoadDevSettings() {
     Application::Settings->GetBool("dev", "devMenu", &DevMenu);
     Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
     Application::Settings->GetBool("dev", "donothing", &DoNothing);
     Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 }
 
-PUBLIC STATIC bool Application::IsWindowResizeable() {
+bool Application::IsWindowResizeable() {
     return !Application::IsMobile();
 }
 
-PUBLIC STATIC void Application::SetWindowSize(int window_w, int window_h) {
+void Application::SetWindowSize(int window_w, int window_h) {
     if (!Application::IsWindowResizeable())
         return;
 
@@ -668,11 +615,11 @@ PUBLIC STATIC void Application::SetWindowSize(int window_w, int window_h) {
     Graphics::Resize(window_w, window_h);
 }
 
-PUBLIC STATIC bool Application::GetWindowFullscreen() {
+bool Application::GetWindowFullscreen() {
     return !!(SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
-PUBLIC STATIC void Application::SetWindowFullscreen(bool isFullscreen) {
+void Application::SetWindowFullscreen(bool isFullscreen) {
     SDL_SetWindowFullscreen(Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
     int window_w, window_h;
@@ -681,14 +628,14 @@ PUBLIC STATIC void Application::SetWindowFullscreen(bool isFullscreen) {
     Graphics::Resize(window_w, window_h);
 }
 
-PUBLIC STATIC void Application::SetWindowBorderless(bool isBorderless) {
+void Application::SetWindowBorderless(bool isBorderless) {
     SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
 }
 
-PUBLIC STATIC int  Application::GetKeyBind(int bind) {
+int  Application::GetKeyBind(int bind) {
     return KeyBinds[bind];
 }
-PUBLIC STATIC void Application::SetKeyBind(int bind, int key) {
+void Application::SetKeyBind(int bind, int key) {
     KeyBinds[bind] = key;
     if (key == Key_UNKNOWN)
         KeyBindsSDL[bind] = SDLK_UNKNOWN;
@@ -696,7 +643,7 @@ PUBLIC STATIC void Application::SetKeyBind(int bind, int key) {
         KeyBindsSDL[bind] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[key]);
 }
 
-PRIVATE STATIC void Application::PollEvents() {
+void Application::PollEvents() {
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
@@ -846,7 +793,7 @@ PRIVATE STATIC void Application::PollEvents() {
         }
     }
 }
-PRIVATE STATIC void Application::RunFrame(void* p) {
+void Application::RunFrame(void* p) {
     FrameTimeStart = Clock::GetTicks();
 
     // Event loop
@@ -1113,7 +1060,7 @@ PRIVATE STATIC void Application::RunFrame(void* p) {
 
     MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
-PRIVATE STATIC void Application::DelayFrame() {
+void Application::DelayFrame() {
     double frameTime = Clock::GetTicks() - FrameTimeStart;
     double frameDurationRemainder = FrameTimeDesired - frameTime;
     if (frameDurationRemainder >= 0.0) {
@@ -1130,7 +1077,7 @@ PRIVATE STATIC void Application::DelayFrame() {
         while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired);
     }
 }
-PUBLIC STATIC void Application::Run(int argc, char* args[]) {
+void Application::Run(int argc, char* args[]) {
     Application::Init(argc, args);
     if (!Running)
         return;
@@ -1214,7 +1161,7 @@ PUBLIC STATIC void Application::Run(int argc, char* args[]) {
     #endif
 }
 
-PUBLIC STATIC void Application::Cleanup() {
+void Application::Cleanup() {
     ResourceManager::Dispose();
     AudioManager::Dispose();
     InputManager::Dispose();
@@ -1253,7 +1200,7 @@ static void ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
     val = !strcmp(read, "true");
 }
 
-PRIVATE STATIC void Application::LoadGameConfig() {
+void Application::LoadGameConfig() {
     StartingScene[0] = '\0';
 
     Application::GameConfig = nullptr;
@@ -1323,13 +1270,13 @@ PRIVATE STATIC void Application::LoadGameConfig() {
         XMLParser::CopyTokenToString(node->children[0]->name, StartingScene, sizeof(StartingScene));
 }
 
-PRIVATE STATIC void Application::DisposeGameConfig() {
+void Application::DisposeGameConfig() {
     if (Application::GameConfig)
         XMLParser::Free(Application::GameConfig);
     Application::GameConfig = nullptr;
 }
 
-PRIVATE STATIC string Application::ParseGameVersion(XMLNode* versionNode) {
+string Application::ParseGameVersion(XMLNode* versionNode) {
     if (versionNode->children.size() == 1)
         return versionNode->children[0]->name.ToString();
 
@@ -1364,7 +1311,7 @@ PRIVATE STATIC string Application::ParseGameVersion(XMLNode* versionNode) {
     return versionText;
 }
 
-PRIVATE STATIC void Application::LoadGameInfo() {
+void Application::LoadGameInfo() {
     StringUtils::Copy(Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
     StringUtils::Copy(Application::GameTitleShort, Application::GameTitle, sizeof(Application::GameTitleShort));
     StringUtils::Copy(Application::GameVersion, "1.0", sizeof(Application::GameVersion));
@@ -1398,7 +1345,7 @@ PRIVATE STATIC void Application::LoadGameInfo() {
     }
 }
 
-PUBLIC STATIC void Application::LoadSceneInfo() {
+void Application::LoadSceneInfo() {
     if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
         XMLNode* node;
 
@@ -1442,11 +1389,11 @@ PUBLIC STATIC void Application::LoadSceneInfo() {
     }
 }
 
-PUBLIC STATIC void Application::InitPlayerControls() {
+void Application::InitPlayerControls() {
     InputManager::InitPlayerControls();
 }
 
-PUBLIC STATIC bool Application::LoadSettings(const char* filename) {
+bool Application::LoadSettings(const char* filename) {
     INI* ini = INI::Load(filename);
     if (ini == nullptr)
         return false;
@@ -1460,23 +1407,23 @@ PUBLIC STATIC bool Application::LoadSettings(const char* filename) {
     return true;
 }
 
-PUBLIC STATIC void Application::ReadSettings() {
+void Application::ReadSettings() {
     Application::LoadAudioSettings();
     Application::LoadDevSettings();
     Application::LoadKeyBinds();
 }
 
-PUBLIC STATIC void Application::ReloadSettings() {
+void Application::ReloadSettings() {
     if (Application::Settings && Application::Settings->Reload())
         Application::ReadSettings();
 }
 
-PUBLIC STATIC void Application::ReloadSettings(const char* filename) {
+void Application::ReloadSettings(const char* filename) {
     if (Application::LoadSettings(filename))
         Application::ReadSettings();
 }
 
-PUBLIC STATIC void Application::InitSettings(const char* filename) {
+void Application::InitSettings(const char* filename) {
     Application::LoadSettings(filename);
 
     // NOTE: If no settings could be loaded, create settings with default values.
@@ -1509,21 +1456,21 @@ PUBLIC STATIC void Application::InitSettings(const char* filename) {
     Application::Settings->GetInteger("display", "multisample", &Graphics::MultisamplingEnabled);
     Application::Settings->GetInteger("display", "defaultMonitor", &Application::DefaultMonitor);
 }
-PUBLIC STATIC void Application::SaveSettings() {
+void Application::SaveSettings() {
     if (Application::Settings)
         Application::Settings->Save();
 }
-PUBLIC STATIC void Application::SaveSettings(const char* filename) {
+void Application::SaveSettings(const char* filename) {
     if (Application::Settings)
         Application::Settings->Save(filename);
 }
-PUBLIC STATIC void Application::SetSettingsFilename(const char* filename) {
+void Application::SetSettingsFilename(const char* filename) {
     StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
     if (Application::Settings)
         Application::Settings->SetFilename(filename);
 }
 
-PRIVATE STATIC int Application::HandleAppEvents(void* data, SDL_Event* event) {
+int Application::HandleAppEvents(void* data, SDL_Event* event) {
     switch (event->type) {
         case SDL_APP_TERMINATING:
             Log::Print(Log::LOG_VERBOSE, "SDL_APP_TERMINATING");

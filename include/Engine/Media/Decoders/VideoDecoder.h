@@ -1,14 +1,6 @@
 #ifndef ENGINE_MEDIA_DECODERS_VIDEODECODER_H
 #define ENGINE_MEDIA_DECODERS_VIDEODECODER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Media/Decoder.h>
 #include <Engine/Media/Includes/SWScale.h>

@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADERBUILDER_H
 #define ENGINE_RENDERING_GL_GLSHADERBUILDER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Rendering/GL/GLShader.h>
 #include <Engine/Rendering/GL/ShaderIncludes.h>
 

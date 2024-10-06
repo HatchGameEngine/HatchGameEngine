@@ -1,14 +1,6 @@
 #ifndef ENGINE_NETWORK_HTTP_H
 #define ENGINE_NETWORK_HTTP_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Bytecode/Types.h>

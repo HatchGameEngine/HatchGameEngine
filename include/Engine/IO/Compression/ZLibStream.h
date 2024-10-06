@@ -1,14 +1,6 @@
 #ifndef ENGINE_IO_COMPRESSION_ZLIBSTREAM_H
 #define ENGINE_IO_COMPRESSION_ZLIBSTREAM_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
 

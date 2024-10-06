@@ -1,14 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_MODELFORMATS_MD3MODEL_H
 #define ENGINE_RESOURCETYPES_MODELFORMATS_MD3MODEL_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/IO/Stream.h>
 #include <Engine/ResourceTypes/IModel.h>
 

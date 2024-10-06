@@ -1,22 +1,3 @@
-#if INTERFACE
-#include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/HashMap.h>
-
-class GarbageCollector {
-public:
-    static vector<Obj*> GrayList;
-    static Obj*         RootObject;
-
-    static size_t       NextGC;
-    static size_t       GarbageSize;
-    static double       MaxTimeAlotted;
-
-    static bool         Print;
-    static bool         FilterSweepEnabled;
-    static int          FilterSweepType;
-};
-#endif
-
 #include <Engine/Bytecode/GarbageCollector.h>
 
 #include <Engine/Bytecode/ScriptEntity.h>
@@ -39,12 +20,12 @@ bool         GarbageCollector::Print = false;
 bool         GarbageCollector::FilterSweepEnabled = false;
 int          GarbageCollector::FilterSweepType = 0;
 
-PUBLIC STATIC void GarbageCollector::Init() {
+void GarbageCollector::Init() {
     GarbageCollector::RootObject = NULL;
     GarbageCollector::NextGC = 0x100000;
 }
 
-PUBLIC STATIC void GarbageCollector::Collect() {
+void GarbageCollector::Collect() {
     GrayList.clear();
 
     double grayElapsed = Clock::GetTicks();
@@ -158,7 +139,7 @@ PUBLIC STATIC void GarbageCollector::Collect() {
     GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
-PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
+void GarbageCollector::FreeValue(VMValue value) {
     if (!IS_OBJECT(value)) return;
 
     // If this object is an instance associated with an entity,
@@ -172,11 +153,11 @@ PRIVATE STATIC void GarbageCollector::FreeValue(VMValue value) {
     ScriptManager::FreeValue(value);
 }
 
-PRIVATE STATIC void GarbageCollector::GrayValue(VMValue value) {
+void GarbageCollector::GrayValue(VMValue value) {
     if (!IS_OBJECT(value)) return;
     GrayObject(AS_OBJECT(value));
 }
-PRIVATE STATIC void GarbageCollector::GrayObject(void* obj) {
+void GarbageCollector::GrayObject(void* obj) {
     if (obj == NULL) return;
 
     Obj* object = (Obj*)obj;
@@ -186,15 +167,15 @@ PRIVATE STATIC void GarbageCollector::GrayObject(void* obj) {
 
     GrayList.push_back(object);
 }
-PRIVATE STATIC void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
+void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
     GrayValue(value);
 }
-PRIVATE STATIC void GarbageCollector::GrayHashMap(void* pointer) {
+void GarbageCollector::GrayHashMap(void* pointer) {
     if (!pointer) return;
     ((HashMap<VMValue>*)pointer)->ForAll(GrayHashMapItem);
 }
 
-PRIVATE STATIC void GarbageCollector::BlackenObject(Obj* object) {
+void GarbageCollector::BlackenObject(Obj* object) {
     GrayObject(object->Class);
 
     switch (object->Type) {

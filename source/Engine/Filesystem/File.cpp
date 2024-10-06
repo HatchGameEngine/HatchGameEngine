@@ -1,12 +1,3 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class File {
-private:
-};
-#endif
-
 #include <Engine/Filesystem/File.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -22,7 +13,7 @@ private:
 #include <Engine/Includes/StandardSDL2.h>
 #endif
 
-PUBLIC STATIC bool File::Exists(const char* path) {
+bool File::Exists(const char* path) {
     #if WIN32
         return _access(path, 0) != -1;
     #elif MACOSX
@@ -60,7 +51,7 @@ PUBLIC STATIC bool File::Exists(const char* path) {
     #endif
 }
 
-PUBLIC STATIC size_t File::ReadAllBytes(const char* path, char** out) {
+size_t File::ReadAllBytes(const char* path, char** out) {
     FileStream* stream;
     if ((stream = FileStream::New(path, FileStream::READ_ACCESS))) {
         size_t size = stream->Length();
@@ -75,7 +66,7 @@ PUBLIC STATIC size_t File::ReadAllBytes(const char* path, char** out) {
     return 0;
 }
 
-PUBLIC STATIC bool   File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
+bool   File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
     if (!path) return false;
     if (!*path) return false;
     if (!bytes) return false;

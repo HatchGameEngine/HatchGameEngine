@@ -1,34 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/Enums.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/Scene3D.h>
-#include <Engine/Rendering/VertexBuffer.h>
-#include <Engine/ResourceTypes/IModel.h>
-#include <Engine/Scene/SceneLayer.h>
-#include <Engine/Math/Matrix4x4.h>
-
-class PolygonRenderer {
-public:
-    Scene3D*      ScenePtr = nullptr;
-    VertexBuffer* VertexBuf = nullptr;
-    Matrix4x4*    ModelMatrix = nullptr;
-    Matrix4x4*    NormalMatrix = nullptr;
-    Matrix4x4*    ViewMatrix = nullptr;
-    Matrix4x4*    ProjectionMatrix = nullptr;
-
-    Uint32        DrawMode = 0;
-    Uint8         FaceCullMode = 0;
-    Uint32        CurrentColor = 0;
-
-    bool          DoProjection = false;
-    bool          DoClipping = false;
-    bool          ClipPolygonsByFrustum = false;
-    int           NumFrustumPlanes = 0;
-    Frustum       ViewFrustum[NUM_FRUSTUM_PLANES];
-};
-#endif
-
 #include <Engine/Rendering/PolygonRenderer.h>
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Math/Clipper.h>
@@ -36,13 +5,13 @@ public:
 #include <Engine/Rendering/Material.h>
 #include <Engine/Graphics.h>
 
-PUBLIC STATIC int PolygonRenderer::FaceSortFunction(const void *a, const void *b) {
+int PolygonRenderer::FaceSortFunction(const void *a, const void *b) {
     const FaceInfo* faceA = (const FaceInfo *)a;
     const FaceInfo* faceB = (const FaceInfo *)b;
     return faceB->Depth - faceA->Depth;
 }
 
-PUBLIC void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float farClippingPlane) {
+void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float farClippingPlane) {
     // Near
     ViewFrustum[0].Plane.Z = nearClippingPlane * 0x10000;
     ViewFrustum[0].Normal.Z = 0x10000;
@@ -54,7 +23,7 @@ PUBLIC void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float f
     NumFrustumPlanes = 2;
 }
 
-PUBLIC bool PolygonRenderer::SetBuffers() {
+bool PolygonRenderer::SetBuffers() {
     VertexBuf = nullptr;
     ScenePtr = nullptr;
     ViewMatrix = nullptr;
@@ -82,7 +51,7 @@ PUBLIC bool PolygonRenderer::SetBuffers() {
     return true;
 }
 
-PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture) {
+void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture) {
     VertexBuffer* vertexBuffer = VertexBuf;
     Uint32 colRGB = CurrentColor;
 
@@ -167,7 +136,7 @@ PUBLIC void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCoun
     vertexBuffer->VertexCount += vertexCount;
     vertexBuffer->FaceCount++;
 }
-PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
+void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
     int vertexCountPerFace = 4;
     int tileWidth = Scene::TileWidth;
     int tileHeight = Scene::TileHeight;
@@ -340,7 +309,7 @@ PUBLIC void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy,
     vertexBuffer->VertexCount = arrayVertexCount;
     vertexBuffer->FaceCount = arrayFaceCount;
 }
-PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
     if (animation < 0 || frame < 0)
         return;
     else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
@@ -360,7 +329,7 @@ PUBLIC void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 f
     rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
     rend.DrawModel(model, animation, frame);
 }
-PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
+void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     if (model->UseVertexAnimation) {
         DrawModel(model, 0, 0);
         return;
@@ -384,7 +353,7 @@ PUBLIC void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
     rend.DrawModel(model, 0, 0);
 }
-PUBLIC void PolygonRenderer::DrawVertexBuffer() {
+void PolygonRenderer::DrawVertexBuffer() {
     Matrix4x4 mvpMatrix;
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
@@ -473,7 +442,7 @@ PUBLIC void PolygonRenderer::DrawVertexBuffer() {
     destVertexBuffer->VertexCount = arrayVertexCount;
     destVertexBuffer->FaceCount = arrayFaceCount;
 }
-PUBLIC int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper, VertexAttribute* input, int numVertices) {
+int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper, VertexAttribute* input, int numVertices) {
     clipper.NumPoints = 0;
     clipper.MaxPoints = MAX_POLYGON_VERTICES;
 
@@ -483,7 +452,7 @@ PUBLIC int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper, VertexAttrib
 
     return numOutVertices;
 }
-PUBLIC STATIC bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
+bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
     int numBehind[3] = { 0, 0, 0 };
     int numVertices = vertexCount;
     while (numVertices--) {
@@ -502,7 +471,7 @@ PUBLIC STATIC bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex,
 
     return true;
 }
-PUBLIC STATIC void PolygonRenderer::CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int numVertices) {
+void PolygonRenderer::CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int numVertices) {
     while (numVertices--) {
         COPY_VECTOR(output->Position, buffer->Position);
         COPY_NORMAL(output->Normal, buffer->Normal);

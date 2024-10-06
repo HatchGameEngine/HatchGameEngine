@@ -1,14 +1,6 @@
 #ifndef ENGINE_TYPES_DRAWGROUPLIST_H
 #define ENGINE_TYPES_DRAWGROUPLIST_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Types/Entity.h>
 

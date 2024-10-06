@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_VERTEXBUFFER_H
 #define ENGINE_RENDERING_VERTEXBUFFER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/FaceInfo.h>
 #include <Engine/Rendering/3D.h>

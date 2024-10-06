@@ -1,17 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/CompilerEnums.h>
-#include <Engine/IO/Stream.h>
-#include <Engine/Includes/HashMap.h>
-#include <Engine/TextFormats/XML/XMLNode.h>
-#include <Engine/IO/MemoryStream.h>
-
-class XMLParser {
-public:
-
-};
-#endif
-
 #include <Engine/TextFormats/XML/XMLParser.h>
 
 #include <Engine/Includes/Token.h>
@@ -386,16 +372,16 @@ void     GetInstruction() {
     ConsumeToken(TOKEN_RIGHT_BRACE, "Missing '>' after instruction.");
 }
 
-PUBLIC STATIC bool     XMLParser::MatchToken(Token tok, const char* string) {
+bool     XMLParser::MatchToken(Token tok, const char* string) {
     if (tok.Length == 0)
         return false;
     return memcmp(string, tok.Start, tok.Length) == 0;
 }
-PUBLIC STATIC float    XMLParser::TokenToNumber(Token tok) {
+float    XMLParser::TokenToNumber(Token tok) {
     return atof(tok.ToString().c_str());
 }
 
-PUBLIC STATIC XMLNode* XMLParser::Parse() {
+XMLNode* XMLParser::Parse() {
     XMLNode* XMLRoot = new (std::nothrow) XMLNode;
     if (!XMLRoot)
         return NULL;
@@ -476,7 +462,7 @@ PUBLIC STATIC XMLNode* XMLParser::Parse() {
 
     return XMLRoot;
 }
-PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
+XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
     // NOTE: This fixes the XML overread bug (unterminated string caused bad access/read)
     stream->SeekEnd(0);
     stream->WriteByte(0);
@@ -495,12 +481,12 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
     xml->base_stream = stream;
     return xml;
 }
-PUBLIC STATIC XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
+XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
     MemoryStream* stream = MemoryStream::New(streamSrc);
     if (!stream) return NULL;
     return XMLParser::ParseFromStream(stream);
 }
-PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
+XMLNode* XMLParser::ParseFromResource(const char* filename) {
     ResourceStream* res = ResourceStream::New(filename);
     if (!res) {
         Log::Print(Log::LOG_ERROR, "Could not open ResourceStream from \"%s\"", filename);
@@ -512,7 +498,7 @@ PUBLIC STATIC XMLNode* XMLParser::ParseFromResource(const char* filename) {
     return node;
 }
 
-PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
+char*    XMLParser::TokenToString(Token tok) {
     char* string = StringUtils::Create(tok);
     if (!string) {
         Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
@@ -521,7 +507,7 @@ PUBLIC STATIC char*    XMLParser::TokenToString(Token tok) {
     return string;
 }
 
-PUBLIC STATIC void     XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {
+void     XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {
     size_t length = tok.Length;
     if (length >= size)
         length = size - 1;
@@ -529,7 +515,7 @@ PUBLIC STATIC void     XMLParser::CopyTokenToString(Token tok, char* buffer, siz
     buffer[length] = '\0';
 }
 
-PUBLIC STATIC XMLNode* XMLParser::SearchNode(XMLNode* root, const char* search) {
+XMLNode* XMLParser::SearchNode(XMLNode* root, const char* search) {
     for (size_t i = 0; i < root->children.size(); i++) {
         XMLNode* node = root->children[i];
         if (XMLParser::MatchToken(node->name, search))
@@ -546,7 +532,7 @@ void FreeNode(XMLNode* root) {
     delete root;
 }
 
-PUBLIC STATIC void     XMLParser::Free(XMLNode* root) {
+void     XMLParser::Free(XMLNode* root) {
     if (root->base_stream)
         root->base_stream->Close();
 

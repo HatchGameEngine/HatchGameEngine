@@ -1,13 +1,5 @@
 #ifndef ENGINE_SCENE_H
 #define ENGINE_SCENE_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class Entity;
 
 #include <Engine/Includes/Standard.h>

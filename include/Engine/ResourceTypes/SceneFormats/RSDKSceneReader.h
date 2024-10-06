@@ -1,14 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H
 #define ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/IO/Stream.h>
 #include <Engine/Types/Entity.h>
 

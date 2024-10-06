@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_GEOMETRY_H
 #define ENGINE_MATH_GEOMETRY_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/GeometryTypes.h>
 

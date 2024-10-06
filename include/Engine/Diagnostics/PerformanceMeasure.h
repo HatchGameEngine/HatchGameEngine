@@ -1,14 +1,6 @@
 #ifndef ENGINE_DIAGNOSTICS_PERFORMANCEMEASURE_H
 #define ENGINE_DIAGNOSTICS_PERFORMANCEMEASURE_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 

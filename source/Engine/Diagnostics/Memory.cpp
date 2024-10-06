@@ -1,24 +1,5 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class Memory {
-private:
-    static vector<void*>       TrackedMemory;
-    static vector<size_t>      TrackedSizes;
-    static vector<const char*> TrackedMemoryNames;
-public:
-    static size_t              MemoryUsage;
-    static bool                IsTracking;
-};
-#endif
-
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-
-// #if defined(ANDROID)
-// #define NOTRACK
-// #endif
 
 vector<void*>        Memory::TrackedMemory;
 vector<size_t>       Memory::TrackedSizes;
@@ -26,7 +7,7 @@ vector<const char*>  Memory::TrackedMemoryNames;
 size_t               Memory::MemoryUsage = 0;
 bool                 Memory::IsTracking = false;
 
-PUBLIC STATIC void   Memory::Memset4(void* dst, Uint32 val, size_t dwords) {
+void   Memory::Memset4(void* dst, Uint32 val, size_t dwords) {
     #if defined(__GNUC__) && defined(i386)
         int u0, u1, u2;
         __asm__ __volatile__ (
@@ -53,7 +34,7 @@ PUBLIC STATIC void   Memory::Memset4(void* dst, Uint32 val, size_t dwords) {
     #endif
 }
 
-PUBLIC STATIC void*  Memory::Malloc(size_t size) {
+void*  Memory::Malloc(size_t size) {
     void* mem = malloc(size);
     if (Memory::IsTracking) {
         if (mem) {
@@ -69,7 +50,7 @@ PUBLIC STATIC void*  Memory::Malloc(size_t size) {
     }
     return mem;
 }
-PUBLIC STATIC void*  Memory::Calloc(size_t count, size_t size) {
+void*  Memory::Calloc(size_t count, size_t size) {
     void* mem = calloc(count, size);
     if (Memory::IsTracking) {
         if (mem) {
@@ -85,7 +66,7 @@ PUBLIC STATIC void*  Memory::Calloc(size_t count, size_t size) {
     }
     return mem;
 }
-PUBLIC STATIC void*  Memory::Realloc(void* pointer, size_t size) {
+void*  Memory::Realloc(void* pointer, size_t size) {
     void* mem = realloc(pointer, size);
     if (Memory::IsTracking) {
         if (mem) {
@@ -106,7 +87,7 @@ PUBLIC STATIC void*  Memory::Realloc(void* pointer, size_t size) {
     return mem;
 }
 // Tracking functions
-PUBLIC STATIC void*  Memory::TrackedMalloc(const char* identifier, size_t size) {
+void*  Memory::TrackedMalloc(const char* identifier, size_t size) {
     void* mem = malloc(size);
     if (Memory::IsTracking) {
         if (mem) {
@@ -125,7 +106,7 @@ PUBLIC STATIC void*  Memory::TrackedMalloc(const char* identifier, size_t size) 
     }
     return mem;
 }
-PUBLIC STATIC void*  Memory::TrackedCalloc(const char* identifier, size_t count, size_t size) {
+void*  Memory::TrackedCalloc(const char* identifier, size_t count, size_t size) {
     void* mem = calloc(count, size);
     if (Memory::IsTracking) {
         if (mem) {
@@ -141,7 +122,7 @@ PUBLIC STATIC void*  Memory::TrackedCalloc(const char* identifier, size_t count,
     }
     return mem;
 }
-PUBLIC STATIC void   Memory::Track(void* pointer, const char* identifier) {
+void   Memory::Track(void* pointer, const char* identifier) {
     if (Memory::IsTracking) {
         for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
             if (TrackedMemory[i] == pointer) {
@@ -151,7 +132,7 @@ PUBLIC STATIC void   Memory::Track(void* pointer, const char* identifier) {
         }
     }
 }
-PUBLIC STATIC void   Memory::Track(void* pointer, size_t size, const char* identifier) {
+void   Memory::Track(void* pointer, size_t size, const char* identifier) {
     if (Memory::IsTracking) {
         for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
             if (TrackedMemory[i] == pointer) {
@@ -166,13 +147,13 @@ PUBLIC STATIC void   Memory::Track(void* pointer, size_t size, const char* ident
         TrackedMemoryNames.push_back(identifier);
     }
 }
-PUBLIC STATIC void   Memory::TrackLast(const char* identifier) {
+void   Memory::TrackLast(const char* identifier) {
     if (Memory::IsTracking) {
         if (TrackedMemoryNames.size() == 0) return;
         TrackedMemoryNames[TrackedMemoryNames.size() - 1] = identifier;
     }
 }
-PUBLIC STATIC void   Memory::Free(void* pointer) {
+void   Memory::Free(void* pointer) {
     if (Memory::IsTracking) {
         #ifdef DEBUG
         for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
@@ -202,7 +183,7 @@ PUBLIC STATIC void   Memory::Free(void* pointer) {
 
     free(pointer);
 }
-PUBLIC STATIC void   Memory::Remove(void* pointer) {
+void   Memory::Remove(void* pointer) {
     if (!pointer) return;
     if (Memory::IsTracking) {
         for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
@@ -219,7 +200,7 @@ PUBLIC STATIC void   Memory::Remove(void* pointer) {
     }
 }
 
-PUBLIC STATIC const char* Memory::GetName(void* pointer) {
+const char* Memory::GetName(void* pointer) {
     if (Memory::IsTracking) {
         for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
             if (TrackedMemory[i] == pointer) {
@@ -230,19 +211,19 @@ PUBLIC STATIC const char* Memory::GetName(void* pointer) {
     return NULL;
 }
 
-PUBLIC STATIC void   Memory::ClearTrackedMemory() {
+void   Memory::ClearTrackedMemory() {
     TrackedMemoryNames.clear();
     TrackedMemory.clear();
     TrackedSizes.clear();
 }
-PUBLIC STATIC size_t Memory::CheckLeak() {
+size_t Memory::CheckLeak() {
     size_t total = 0;
     for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
         total += TrackedSizes[i];
     }
     return total;
 }
-PUBLIC STATIC void   Memory::PrintLeak() {
+void   Memory::PrintLeak() {
     size_t total = 0;
     Log::Print(Log::LOG_VERBOSE, "Printing unfreed memory... (%u count)", TrackedMemory.size());
     for (Uint32 i = 0; i < TrackedMemory.size(); i++) {

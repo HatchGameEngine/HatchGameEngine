@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_SCENEINFO_H
 #define ENGINE_SCENE_SCENEINFO_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Scene/SceneConfig.h>
 #include <Engine/TextFormats/XML/XMLParser.h>

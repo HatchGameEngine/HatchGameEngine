@@ -1,14 +1,6 @@
 #ifndef ENGINE_NETWORK_WEBSOCKETCLIENT_H
 #define ENGINE_NETWORK_WEBSOCKETCLIENT_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Network/WebSocketIncludes.h>
 #include <time.h>

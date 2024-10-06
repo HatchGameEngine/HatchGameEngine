@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Bytecode/Types.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/ResourceTypes/ISound.h>
-
-class StandardLibrary {
-public:
-
-};
-#endif
-
 #include <Engine/Bytecode/StandardLibrary.h>
 
 #include <Engine/FontFace.h>
@@ -356,45 +345,45 @@ namespace LOCAL {
 // NOTE:
 // Integers specifically need to be whole integers.
 // Floats can be just any countable real number.
-PUBLIC STATIC int          StandardLibrary::GetInteger(VMValue* args, int index, Uint32 threadID) {
+int          StandardLibrary::GetInteger(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetInteger(args, index, threadID);
 }
-PUBLIC STATIC float        StandardLibrary::GetDecimal(VMValue* args, int index, Uint32 threadID) {
+float        StandardLibrary::GetDecimal(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetDecimal(args, index, threadID);
 }
-PUBLIC STATIC char*        StandardLibrary::GetString(VMValue* args, int index, Uint32 threadID) {
+char*        StandardLibrary::GetString(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetString(args, index, threadID);
 }
-PUBLIC STATIC ObjString*   StandardLibrary::GetVMString(VMValue* args, int index, Uint32 threadID) {
+ObjString*   StandardLibrary::GetVMString(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetVMString(args, index, threadID);
 }
-PUBLIC STATIC ObjArray*    StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
+ObjArray*    StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetArray(args, index, threadID);
 }
-PUBLIC STATIC ObjMap*      StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
+ObjMap*      StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetMap(args, index, threadID);
 }
-PUBLIC STATIC ISprite*     StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
+ISprite*     StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetSprite(args, index, threadID);
 }
-PUBLIC STATIC ISound*      StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
+ISound*      StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetSound(args, index, threadID);
 }
-PUBLIC STATIC ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
+ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetInstance(args, index, threadID);
 }
-PUBLIC STATIC ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
+ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
     return LOCAL::GetFunction(args, index, threadID);
 }
 
-PUBLIC STATIC void      StandardLibrary::CheckArgCount(int argCount, int expects) {
+void      StandardLibrary::CheckArgCount(int argCount, int expects) {
     Uint32 threadID = 0;
     if (argCount != expects) {
         if (THROW_ERROR("Expected %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
             ScriptManager::Threads[threadID].ReturnFromNative();
     }
 }
-PUBLIC STATIC void      StandardLibrary::CheckAtLeastArgCount(int argCount, int expects) {
+void      StandardLibrary::CheckAtLeastArgCount(int argCount, int expects) {
     Uint32 threadID = 0;
     if (argCount < expects) {
         if (THROW_ERROR("Expected at least %d arguments but got %d.", expects, argCount) == ERROR_RES_CONTINUE)
@@ -16423,7 +16412,7 @@ ObjNamespace* InitNamespace(const char* nsName) {
     return ns;
 }
 
-PUBLIC STATIC void StandardLibrary::Link() {
+void StandardLibrary::Link() {
     ObjClass* klass;
 
     for (int i = 0; i < 0x100; i++) {
@@ -19355,6 +19344,6 @@ PUBLIC STATIC void StandardLibrary::Link() {
     #undef DEF_ENUM_CLASS
     #undef DEF_ENUM_NAMED
 }
-PUBLIC STATIC void StandardLibrary::Dispose() {
+void StandardLibrary::Dispose() {
 
 }

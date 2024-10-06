@@ -1,14 +1,6 @@
 #ifndef ENGINE_FILESYSTEM_DIRECTORY_H
 #define ENGINE_FILESYSTEM_DIRECTORY_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class Directory {

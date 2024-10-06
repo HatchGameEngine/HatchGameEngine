@@ -1,14 +1,6 @@
 #ifndef ENGINE_IO_STREAM_H
 #define ENGINE_IO_STREAM_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Diagnostics/Memory.h>
 

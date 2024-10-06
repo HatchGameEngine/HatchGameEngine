@@ -1,25 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/IO/Stream.h>
-#include <Engine/Media/Includes/AVFormat.h>
-
-class MediaSource {
-public:
-    enum {
-        STREAMTYPE_UNKNOWN,
-        STREAMTYPE_VIDEO,
-        STREAMTYPE_AUDIO,
-        STREAMTYPE_DATA,
-        STREAMTYPE_SUBTITLE,
-        STREAMTYPE_ATTACHMENT
-    };
-
-    void* FormatCtx;
-    void* AvioCtx;
-    Stream* StreamPtr;
-}
-#endif
-
 #include <Engine/Media/MediaSource.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -88,7 +66,7 @@ void    _AVLogCallback(void *ptr, int level, const char* fmt, va_list vargs) {
 
 #endif
 
-PUBLIC STATIC MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
+MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
     if (!url)
         return NULL;
 
@@ -122,7 +100,7 @@ PUBLIC STATIC MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
 
     return NULL;
 }
-PUBLIC STATIC MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
+MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
     #ifdef USING_LIBAV
     AVIOContext* avio_ctx = NULL;
     Uint8* avio_ctx_buffer = NULL;
@@ -196,7 +174,7 @@ PUBLIC STATIC MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
     return NULL;
 }
 
-PUBLIC        int          MediaSource::GetStreamInfo(Uint32* info, int index) {
+int          MediaSource::GetStreamInfo(Uint32* info, int index) {
     if (!info)
         return 1;
 
@@ -232,13 +210,13 @@ PUBLIC        int          MediaSource::GetStreamInfo(Uint32* info, int index) {
 
     return 0;
 }
-PUBLIC        int          MediaSource::GetStreamCount() {
+int          MediaSource::GetStreamCount() {
     #ifdef USING_LIBAV
     return ((AVFormatContext*)FormatCtx)->nb_streams;
     #endif
     return 0;
 }
-PUBLIC        int          MediaSource::GetBestStream(Uint32 type) {
+int          MediaSource::GetBestStream(Uint32 type) {
     #ifdef USING_LIBAV
     int avmedia_type = 0;
     switch (type) {
@@ -260,7 +238,7 @@ PUBLIC        int          MediaSource::GetBestStream(Uint32 type) {
     return -1;
 }
 
-PUBLIC        void         MediaSource::Close() {
+void         MediaSource::Close() {
     #ifdef USING_LIBAV
     AVFormatContext* format_ctx = (AVFormatContext*)this->FormatCtx;
     AVIOContext* avio_ctx = (AVIOContext*)this->AvioCtx;

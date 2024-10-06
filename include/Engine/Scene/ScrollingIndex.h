@@ -1,14 +1,6 @@
 #ifndef ENGINE_SCENE_SCROLLINGINDEX_H
 #define ENGINE_SCENE_SCROLLINGINDEX_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class ScrollingIndex {
 public:

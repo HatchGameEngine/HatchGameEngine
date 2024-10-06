@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/ResourceTypes/ImageFormats/ImageFormat.h>
-#include <Engine/IO/Stream.h>
-
-class JPEG : public ImageFormat {
-public:
-
-};
-#endif
-
 #include <Engine/ResourceTypes/ImageFormats/JPEG.h>
 
 #include <Engine/Application.h>
@@ -105,7 +94,7 @@ static void jpeg_Hatch_IO_src(j_decompress_ptr cinfo, Stream* stream) {
 }
 #endif
 
-PUBLIC STATIC JPEG*   JPEG::Load(const char* filename) {
+JPEG*   JPEG::Load(const char* filename) {
 #ifdef USING_LIBJPEG
     JPEG* jpeg = new JPEG;
     Stream* stream = NULL;
@@ -265,11 +254,11 @@ PUBLIC STATIC JPEG*   JPEG::Load(const char* filename) {
 #endif
 	return NULL;
 }
-PUBLIC STATIC bool    JPEG::Save(JPEG* jpeg, const char* filename) {
+bool    JPEG::Save(JPEG* jpeg, const char* filename) {
     return jpeg->Save(filename);
 }
 
-PUBLIC        bool    JPEG::Save(const char* filename) {
+bool    JPEG::Save(const char* filename) {
     Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
     if (!stream)
         return false;
@@ -278,6 +267,6 @@ PUBLIC        bool    JPEG::Save(const char* filename) {
     return true;
 }
 
-PUBLIC                JPEG::~JPEG() {
+JPEG::~JPEG() {
 
 }

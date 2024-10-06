@@ -1,14 +1,6 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADER_H
 #define ENGINE_RENDERING_GL_GLSHADER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/GL/Includes.h>
 #include <Engine/Math/Matrix4x4.h>

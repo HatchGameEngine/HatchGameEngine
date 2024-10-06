@@ -1,14 +1,6 @@
 #ifndef ENGINE_BYTECODE_STANDARDLIBRARY_H
 #define ENGINE_BYTECODE_STANDARDLIBRARY_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/ISound.h>

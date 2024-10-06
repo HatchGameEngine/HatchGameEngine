@@ -1,14 +1,6 @@
 #ifndef ENGINE_IO_FILESTREAM_H
 #define ENGINE_IO_FILESTREAM_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
 

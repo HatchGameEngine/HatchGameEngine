@@ -1,14 +1,6 @@
 #ifndef ENGINE_BYTECODE_SOURCEFILEMAP_H
 #define ENGINE_BYTECODE_SOURCEFILEMAP_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Includes/HashMap.h>
 

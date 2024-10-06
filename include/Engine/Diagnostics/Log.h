@@ -1,14 +1,6 @@
 #ifndef ENGINE_DIAGNOSTICS_LOG_H
 #define ENGINE_DIAGNOSTICS_LOG_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 
 class Log {
 public:

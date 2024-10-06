@@ -1,14 +1,6 @@
 #ifndef ENGINE_INPUT_INPUTPLAYER_H
 #define ENGINE_INPUT_INPUTPLAYER_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Input/Input.h>
 #include <Engine/Input/InputAction.h>

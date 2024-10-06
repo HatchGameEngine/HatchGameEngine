@@ -1,14 +1,6 @@
 #ifndef ENGINE_BYTECODE_SCRIPTENTITY_H
 #define ENGINE_BYTECODE_SCRIPTENTITY_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Types/Entity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 

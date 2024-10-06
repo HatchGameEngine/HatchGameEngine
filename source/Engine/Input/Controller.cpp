@@ -1,35 +1,12 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Input/Input.h>
-#include <Engine/Input/ControllerRumble.h>
-
-class Controller {
-public:
-    ControllerType      Type;
-    bool                Connected;
-
-    bool*               ButtonsPressed;
-    bool*               ButtonsHeld;
-    float*              AxisValues;
-
-    ControllerRumble*   Rumble;
-
-    SDL_GameController* Device;
-    SDL_Joystick*       JoystickDevice;
-    SDL_JoystickID      JoystickID;
-};
-#endif
-
 #include <Engine/InputManager.h>
 #include <Engine/Input/Controller.h>
 
-PUBLIC Controller::Controller(int index) {
+Controller::Controller(int index) {
     Reset();
     Open(index);
 }
 
-PUBLIC Controller::~Controller() {
+Controller::~Controller() {
     Close();
 }
 
@@ -75,7 +52,7 @@ static SDL_GameControllerAxis AxisEnums[] = {
 
 #undef CONST_AXIS
 
-PRIVATE STATIC ControllerType Controller::DetermineType(void* gamecontroller) {
+ControllerType Controller::DetermineType(void* gamecontroller) {
     switch (SDL_GameControllerGetType((SDL_GameController*)gamecontroller)) {
         case SDL_CONTROLLER_TYPE_XBOX360:
             return ControllerType::Xbox360;
@@ -110,7 +87,7 @@ PRIVATE STATIC ControllerType Controller::DetermineType(void* gamecontroller) {
     }
 }
 
-PUBLIC bool          Controller::Open(int index) {
+bool          Controller::Open(int index) {
     Device = SDL_GameControllerOpen(index);
     if (!Device)
         return false;
@@ -130,7 +107,7 @@ PUBLIC bool          Controller::Open(int index) {
     return true;
 }
 
-PUBLIC void          Controller::Close() {
+void          Controller::Close() {
     if (Rumble) {
         Rumble->Stop();
         delete Rumble;
@@ -156,7 +133,7 @@ PUBLIC void          Controller::Close() {
     Reset();
 }
 
-PUBLIC void          Controller::Reset() {
+void          Controller::Reset() {
     Type = ControllerType::Unknown;
     Connected = false;
     Device = nullptr;
@@ -165,38 +142,38 @@ PUBLIC void          Controller::Reset() {
     JoystickID = -1;
 }
 
-PUBLIC char*          Controller::GetName() {
+char*          Controller::GetName() {
     return (char*)SDL_GameControllerName(Device);
 }
 // Sets the LEDs in some controllers
-PUBLIC void           Controller::SetPlayerIndex(int index) {
+void           Controller::SetPlayerIndex(int index) {
     SDL_GameControllerSetPlayerIndex(Device, index);
 }
 
-PUBLIC bool          Controller::GetButton(int button) {
+bool          Controller::GetButton(int button) {
     if (button >= (int)ControllerButton::Max)
         return false;
     return SDL_GameControllerGetButton(Device, ButtonEnums[button]);
 }
 
-PUBLIC bool          Controller::IsButtonHeld(int button) {
+bool          Controller::IsButtonHeld(int button) {
     if (button < 0 || button >= (int)ControllerButton::Max)
         return false;
     return ButtonsHeld[button];
 }
-PUBLIC bool          Controller::IsButtonPressed(int button) {
+bool          Controller::IsButtonPressed(int button) {
     if (button < 0 || button >= (int)ControllerButton::Max)
         return false;
     return ButtonsPressed[button];
 }
 
-PUBLIC float          Controller::GetAxis(int axis) {
+float          Controller::GetAxis(int axis) {
     if (axis < 0 || axis >= (int)ControllerAxis::Max)
         return 0.0f;
     return AxisValues[axis];
 }
 
-PUBLIC void           Controller::Update() {
+void           Controller::Update() {
     if (Rumble)
         Rumble->Update();
 
@@ -212,30 +189,30 @@ PUBLIC void           Controller::Update() {
     }
 }
 
-PUBLIC bool          Controller::IsXbox() {
+bool          Controller::IsXbox() {
     return Type == ControllerType::Xbox360 ||
         Type == ControllerType::XboxOne ||
         Type == ControllerType::XboxSeriesXS ||
         Type == ControllerType::XboxElite;
 }
-PUBLIC bool          Controller::IsPlayStation() {
+bool          Controller::IsPlayStation() {
     return Type == ControllerType::PS3 ||
         Type == ControllerType::PS4 ||
         Type == ControllerType::PS5;
 }
-PUBLIC bool          Controller::IsJoyCon() {
+bool          Controller::IsJoyCon() {
     return Type == ControllerType::SwitchJoyConLeft ||
         Type == ControllerType::SwitchJoyConRight;
 }
-PUBLIC bool          Controller::HasShareButton() {
+bool          Controller::HasShareButton() {
     return Type == ControllerType::XboxSeriesXS ||
         Type == ControllerType::SwitchPro ||
         Type == ControllerType::SwitchJoyConLeft;
 }
-PUBLIC bool          Controller::HasMicrophoneButton() {
+bool          Controller::HasMicrophoneButton() {
     return Type == ControllerType::PS5 ||
         Type == ControllerType::AmazonLuna;
 }
-PUBLIC bool          Controller::HasPaddles() {
+bool          Controller::HasPaddles() {
     return Type == ControllerType::XboxElite;
 }

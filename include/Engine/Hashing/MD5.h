@@ -1,14 +1,6 @@
 #ifndef ENGINE_HASHING_MD5_H
 #define ENGINE_HASHING_MD5_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class MD5 {

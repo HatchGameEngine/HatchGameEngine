@@ -1,14 +1,6 @@
 #ifndef ENGINE_AUDIO_AUDIOPLAYBACK_H
 #define ENGINE_AUDIO_AUDIOPLAYBACK_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>

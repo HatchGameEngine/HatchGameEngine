@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_VECTOR_H
 #define ENGINE_MATH_VECTOR_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/VectorTypes.h>
 #include <Engine/Math/Matrix4x4.h>

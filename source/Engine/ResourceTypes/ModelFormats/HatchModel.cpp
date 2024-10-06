@@ -1,22 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/ResourceTypes/IModel.h>
-class HatchModel {
-public:
-    static Sint32   Version;
-
-    static Uint32   NumVertexStore;
-    static Uint32   NumNormalStore;
-    static Uint32   NumTexCoordStore;
-    static Uint32   NumColorStore;
-
-    static Vector3* VertexStore;
-    static Vector3* NormalStore;
-    static Vector2* TexCoordStore;
-    static Uint32*  ColorStore;
-};
-#endif
-
 #include <Engine/ResourceTypes/ModelFormats/HatchModel.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
@@ -40,7 +21,7 @@ Vector3* HatchModel::NormalStore;
 Vector2* HatchModel::TexCoordStore;
 Uint32*  HatchModel::ColorStore;
 
-PUBLIC STATIC bool HatchModel::IsMagic(Stream* stream) {
+bool HatchModel::IsMagic(Stream* stream) {
     Uint32 magic = stream->ReadUInt32BE();
 
     stream->Skip(-4);
@@ -48,7 +29,7 @@ PUBLIC STATIC bool HatchModel::IsMagic(Stream* stream) {
     return magic == HATCH_MODEL_MAGIC;
 }
 
-PUBLIC STATIC void HatchModel::ReadMaterialInfo(Stream* stream, Uint8 *destColors, char **texName) {
+void HatchModel::ReadMaterialInfo(Stream* stream, Uint8 *destColors, char **texName) {
     *texName = stream->ReadString();
 
     Uint32 colorIndex = stream->ReadUInt32();
@@ -58,7 +39,7 @@ PUBLIC STATIC void HatchModel::ReadMaterialInfo(Stream* stream, Uint8 *destColor
     ColorUtils::Separate(color, destColors);
 }
 
-PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) {
+Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) {
     Material* material = new Material();
 
     material->Name = stream->ReadString();
@@ -146,7 +127,7 @@ PRIVATE STATIC Material* HatchModel::ReadMaterial(Stream* stream, const char *pa
     return material;
 }
 
-PRIVATE STATIC void HatchModel::ReadVertexStore(Stream* stream) {
+void HatchModel::ReadVertexStore(Stream* stream) {
     NumVertexStore = stream->ReadUInt32();
     if (!NumVertexStore)
         return;
@@ -162,7 +143,7 @@ PRIVATE STATIC void HatchModel::ReadVertexStore(Stream* stream) {
     }
 }
 
-PRIVATE STATIC void HatchModel::ReadNormalStore(Stream* stream) {
+void HatchModel::ReadNormalStore(Stream* stream) {
     NumNormalStore = stream->ReadUInt32();
     if (!NumNormalStore)
         return;
@@ -178,7 +159,7 @@ PRIVATE STATIC void HatchModel::ReadNormalStore(Stream* stream) {
     }
 }
 
-PRIVATE STATIC void HatchModel::ReadTexCoordStore(Stream* stream) {
+void HatchModel::ReadTexCoordStore(Stream* stream) {
     NumTexCoordStore = stream->ReadUInt32();
     if (!NumTexCoordStore)
         return;
@@ -193,7 +174,7 @@ PRIVATE STATIC void HatchModel::ReadTexCoordStore(Stream* stream) {
     }
 }
 
-PRIVATE STATIC void HatchModel::ReadColorStore(Stream* stream) {
+void HatchModel::ReadColorStore(Stream* stream) {
     NumColorStore = stream->ReadUInt32();
     if (!NumColorStore)
         return;
@@ -211,35 +192,35 @@ PRIVATE STATIC void HatchModel::ReadColorStore(Stream* stream) {
     }
 }
 
-PRIVATE STATIC Vector3 HatchModel::GetStoredVertex(Uint32 idx) {
+Vector3 HatchModel::GetStoredVertex(Uint32 idx) {
     if (idx < 0 || idx >= NumVertexStore)
         return {};
 
     return VertexStore[idx];
 }
 
-PRIVATE STATIC Vector3 HatchModel::GetStoredNormal(Uint32 idx) {
+Vector3 HatchModel::GetStoredNormal(Uint32 idx) {
     if (idx < 0 || idx >= NumNormalStore)
         return {};
 
     return NormalStore[idx];
 }
 
-PRIVATE STATIC Vector2 HatchModel::GetStoredTexCoord(Uint32 idx) {
+Vector2 HatchModel::GetStoredTexCoord(Uint32 idx) {
     if (idx < 0 || idx >= NumTexCoordStore)
         return {};
 
     return TexCoordStore[idx];
 }
 
-PRIVATE STATIC Uint32 HatchModel::GetStoredColor(Uint32 idx) {
+Uint32 HatchModel::GetStoredColor(Uint32 idx) {
     if (idx < 0 || idx >= NumColorStore)
         return 0;
 
     return ColorStore[idx];
 }
 
-PRIVATE STATIC void HatchModel::ReadVertexIndices(Sint32* indices, Uint32 triangleCount, Stream* stream) {
+void HatchModel::ReadVertexIndices(Sint32* indices, Uint32 triangleCount, Stream* stream) {
     for (Uint32 i = 0; i < triangleCount; i++) {
         *indices++ = stream->ReadUInt32();
         *indices++ = stream->ReadUInt32();
@@ -249,7 +230,7 @@ PRIVATE STATIC void HatchModel::ReadVertexIndices(Sint32* indices, Uint32 triang
     *indices = -1;
 }
 
-PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
+Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
     // Read mesh data
     Mesh* mesh = new Mesh;
     mesh->Name = stream->ReadString();
@@ -336,7 +317,7 @@ PRIVATE STATIC Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
     return mesh;
 }
 
-PUBLIC STATIC bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
+bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
     bool success = false;
 
     if (stream->ReadUInt32BE() != HATCH_MODEL_MAGIC) {
@@ -483,7 +464,7 @@ static vector<Vector3> normalList;
 static vector<Vector2> texCoordList;
 static vector<Uint32> colorList;
 
-PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
+void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
     Uint8 flags = 0;
     if (mesh->VertexFlag & VertexType_Normal)
         flags |= 1;
@@ -575,7 +556,7 @@ PRIVATE STATIC void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
         stream->WriteUInt32(mesh->VertexIndexBuffer[j]);
 }
 
-PRIVATE STATIC char* HatchModel::GetMaterialTextureName(const char* name, const char* parentDirectory) {
+char* HatchModel::GetMaterialTextureName(const char* name, const char* parentDirectory) {
     const char* result = strstr(name, parentDirectory);
     if (result) {
         size_t offset = strlen(parentDirectory);
@@ -587,7 +568,7 @@ PRIVATE STATIC char* HatchModel::GetMaterialTextureName(const char* name, const 
     return StringUtils::Duplicate(name);
 }
 
-PRIVATE STATIC void HatchModel::WriteColorIndex(Uint32* color, Stream* stream) {
+void HatchModel::WriteColorIndex(Uint32* color, Stream* stream) {
     Uint32 key = colorIDs->HashFunction(color, sizeof(*color));
     if (colorIDs->Exists(key))
         stream->WriteUInt32(colorIDs->Get(key));
@@ -598,7 +579,7 @@ PRIVATE STATIC void HatchModel::WriteColorIndex(Uint32* color, Stream* stream) {
     }
 }
 
-PRIVATE STATIC void HatchModel::WriteMaterial(Material* material, Stream* stream, const char* parentDirectory) {
+void HatchModel::WriteMaterial(Material* material, Stream* stream, const char* parentDirectory) {
     stream->WriteString(material->Name);
 
     Uint8 flags = 0;
@@ -759,7 +740,7 @@ PRIVATE STATIC void HatchModel::WriteMaterial(Material* material, Stream* stream
     }
 }
 
-PUBLIC STATIC bool HatchModel::Save(IModel* model, const char* filename) {
+bool HatchModel::Save(IModel* model, const char* filename) {
     Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Couldn't open \"%s\"!", filename);

@@ -1,14 +1,6 @@
 #ifndef ENGINE_MATH_EASE_H
 #define ENGINE_MATH_EASE_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 
 class Ease {

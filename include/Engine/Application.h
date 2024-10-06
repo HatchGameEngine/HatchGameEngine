@@ -1,14 +1,6 @@
 #ifndef ENGINE_APPLICATION_H
 #define ENGINE_APPLICATION_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>

@@ -1,14 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_IMAGEFORMATS_GIF_H
 #define ENGINE_RESOURCETYPES_IMAGEFORMATS_GIF_H
 
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/ImageFormats/ImageFormat.h>
 #include <Engine/IO/Stream.h>

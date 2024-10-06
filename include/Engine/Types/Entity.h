@@ -1,13 +1,5 @@
 #ifndef ENGINE_TYPES_ENTITY_H
 #define ENGINE_TYPES_ENTITY_H
-
-#define PUBLIC
-#define PRIVATE
-#define PROTECTED
-#define STATIC
-#define VIRTUAL
-#define EXPOSED
-
 class ObjectList;
 class ObjectRegistry;
 class DrawGroupList;
