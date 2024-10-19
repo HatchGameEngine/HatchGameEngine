@@ -1,20 +1,3 @@
-#if INTERFACE
-class Log {
-public:
-    enum LogLevels {
-        LOG_VERBOSE = -1,
-        LOG_INFO = 0,
-        LOG_WARN = 1,
-        LOG_ERROR = 2,
-        LOG_IMPORTANT = 3,
-    };
-
-    static int         LogLevel;
-    static const char* LogFilename;
-    static bool        WriteToFile;
-};
-#endif
-
 #include <Engine/Includes/Standard.h>
 #include <Engine/Diagnostics/Log.h>
 
@@ -47,7 +30,7 @@ bool        Log_Initialized = false;
 #define USING_COLOR_CODES 1
 #endif
 
-PUBLIC STATIC void Log::Init() {
+void Log::Init() {
     if (Log_Initialized)
         return;
 
@@ -84,11 +67,11 @@ PUBLIC STATIC void Log::Init() {
     Log_Initialized = true;
 }
 
-PUBLIC STATIC void Log::SetLogLevel(int sev) {
+void Log::SetLogLevel(int sev) {
     Log::LogLevel = sev;
 }
 
-PUBLIC STATIC void Log::Print(int sev, const char* format, ...) {
+void Log::Print(int sev, const char* format, ...) {
     #ifdef USING_COLOR_CODES
     int ColorCode = 0;
     #endif

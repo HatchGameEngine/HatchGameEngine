@@ -1,32 +1,3 @@
-#if INTERFACE
-#include <Engine/Bytecode/Types.h>
-#include <Engine/Bytecode/CompilerEnums.h>
-
-class Compiler {
-public:
-    static Parser               parser;
-    static Scanner              scanner;
-    static ParseRule*           Rules;
-    static vector<ObjFunction*> Functions;
-    static vector<Local>        ModuleLocals;
-    static HashMap<Token>*      TokenMap;
-    static bool                 ShowWarnings;
-    static bool                 WriteDebugInfo;
-    static bool                 WriteSourceFilename;
-
-    class Compiler* Enclosing = nullptr;
-    ObjFunction*    Function = nullptr;
-    int             Type = 0;
-    string          ClassName;
-    Local           Locals[0x100];
-    int             LocalCount = 0;
-    int             ScopeDepth = 0;
-    vector<Uint32>  ClassHashList;
-    vector<Uint32>  ClassExtendedList;
-    vector<Local>*  UnusedVariables = nullptr;
-};
-#endif
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -173,7 +144,7 @@ enum FunctionType {
     TYPE_METHOD,
 };
 
-PUBLIC Token         Compiler::MakeToken(int type) {
+Token         Compiler::MakeToken(int type) {
     Token token;
     token.Type = type;
     token.Start = scanner.Start;
@@ -183,7 +154,7 @@ PUBLIC Token         Compiler::MakeToken(int type) {
 
     return token;
 }
-PUBLIC Token         Compiler::MakeTokenRaw(int type, const char* message) {
+Token         Compiler::MakeTokenRaw(int type, const char* message) {
     Token token;
     token.Type = type;
     token.Start = (char*)message;
@@ -193,7 +164,7 @@ PUBLIC Token         Compiler::MakeTokenRaw(int type, const char* message) {
 
     return token;
 }
-PUBLIC Token         Compiler::ErrorToken(const char* message) {
+Token         Compiler::ErrorToken(const char* message) {
     Token token;
     token.Type = TOKEN_ERROR;
     token.Start = (char*)message;
@@ -204,49 +175,49 @@ PUBLIC Token         Compiler::ErrorToken(const char* message) {
     return token;
 }
 
-PUBLIC bool          Compiler::IsEOF() {
+bool          Compiler::IsEOF() {
     return *scanner.Current == 0;
 }
-PUBLIC bool          Compiler::IsDigit(char c) {
+bool          Compiler::IsDigit(char c) {
     return c >= '0' && c <= '9';
 }
-PUBLIC bool          Compiler::IsHexDigit(char c) {
+bool          Compiler::IsHexDigit(char c) {
     return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
-PUBLIC bool          Compiler::IsAlpha(char c) {
+bool          Compiler::IsAlpha(char c) {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
-PUBLIC bool          Compiler::IsIdentifierStart(char c) {
+bool          Compiler::IsIdentifierStart(char c) {
     return IsAlpha(c) || c == '$' || c == '_';
 }
-PUBLIC bool          Compiler::IsIdentifierBody(char c) {
+bool          Compiler::IsIdentifierBody(char c) {
     return IsIdentifierStart(c) || IsDigit(c);
 }
 
-PUBLIC bool          Compiler::MatchChar(char expected) {
+bool          Compiler::MatchChar(char expected) {
     if (IsEOF()) return false;
     if (*scanner.Current != expected) return false;
 
     scanner.Current++;
     return true;
 }
-PUBLIC char          Compiler::AdvanceChar() {
+char          Compiler::AdvanceChar() {
     return *scanner.Current++;
     // scanner.Current++;
     // return *(scanner.Current - 1);
 }
-PUBLIC char          Compiler::PrevChar() {
+char          Compiler::PrevChar() {
     return *(scanner.Current - 1);
 }
-PUBLIC char          Compiler::PeekChar() {
+char          Compiler::PeekChar() {
     return *scanner.Current;
 }
-PUBLIC char          Compiler::PeekNextChar() {
+char          Compiler::PeekNextChar() {
     if (IsEOF()) return 0;
     return *(scanner.Current + 1);
 }
 
-PUBLIC VIRTUAL void  Compiler::SkipWhitespace() {
+void  Compiler::SkipWhitespace() {
     while (true) {
         char c = PeekChar();
         switch (c) {
@@ -302,14 +273,14 @@ PUBLIC VIRTUAL void  Compiler::SkipWhitespace() {
 }
 
 // Token functions
-PUBLIC int           Compiler::CheckKeyword(int start, int length, const char* rest, int type) {
+int           Compiler::CheckKeyword(int start, int length, const char* rest, int type) {
     if (scanner.Current - scanner.Start == start + length &&
         (!rest || memcmp(scanner.Start + start, rest, length) == 0))
         return type;
 
     return TOKEN_IDENTIFIER;
 }
-PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
+int   Compiler::GetKeywordType() {
     switch (*scanner.Start) {
         case 'a':
             if (scanner.Current - scanner.Start > 1) {
@@ -459,7 +430,7 @@ PUBLIC VIRTUAL int   Compiler::GetKeywordType() {
     return TOKEN_IDENTIFIER;
 }
 
-PUBLIC Token         Compiler::StringToken() {
+Token         Compiler::StringToken() {
     while (PeekChar() != '"' && !IsEOF()) {
         bool lineBreak = false;
         switch (PeekChar()) {
@@ -487,7 +458,7 @@ PUBLIC Token         Compiler::StringToken() {
     AdvanceChar();
     return MakeToken(TOKEN_STRING);
 }
-PUBLIC Token         Compiler::NumberToken() {
+Token         Compiler::NumberToken() {
     if (*scanner.Start == '0' && (PeekChar() == 'x' || PeekChar() == 'X')) {
         AdvanceChar(); // x
         while (IsHexDigit(PeekChar()))
@@ -511,13 +482,13 @@ PUBLIC Token         Compiler::NumberToken() {
 
     return MakeToken(TOKEN_NUMBER);
 }
-PUBLIC Token         Compiler::IdentifierToken() {
+Token         Compiler::IdentifierToken() {
     while (IsIdentifierBody(PeekChar()))
         AdvanceChar();
 
     return MakeToken(GetKeywordType());
 }
-PUBLIC VIRTUAL Token Compiler::ScanToken() {
+Token Compiler::ScanToken() {
     SkipWhitespace();
 
     scanner.Start = scanner.Current;
@@ -563,7 +534,7 @@ PUBLIC VIRTUAL Token Compiler::ScanToken() {
     return ErrorToken("Unexpected character.");
 }
 
-PUBLIC void          Compiler::AdvanceToken() {
+void          Compiler::AdvanceToken() {
     parser.Previous = parser.Current;
 
     while (true) {
@@ -574,14 +545,14 @@ PUBLIC void          Compiler::AdvanceToken() {
         ErrorAtCurrent(parser.Current.Start);
     }
 }
-PUBLIC Token         Compiler::NextToken() {
+Token         Compiler::NextToken() {
     AdvanceToken();
     return parser.Previous;
 }
-PUBLIC Token         Compiler::PeekToken() {
+Token         Compiler::PeekToken() {
     return parser.Current;
 }
-PUBLIC Token         Compiler::PeekNextToken() {
+Token         Compiler::PeekNextToken() {
     Parser previousParser = parser;
     Scanner previousScanner = scanner;
     Token next;
@@ -594,15 +565,15 @@ PUBLIC Token         Compiler::PeekNextToken() {
 
     return next;
 }
-PUBLIC Token         Compiler::PrevToken() {
+Token         Compiler::PrevToken() {
     return parser.Previous;
 }
-PUBLIC bool          Compiler::MatchToken(int expectedType) {
+bool          Compiler::MatchToken(int expectedType) {
     if (!CheckToken(expectedType)) return false;
     AdvanceToken();
     return true;
 }
-PUBLIC bool          Compiler::MatchAssignmentToken() {
+bool          Compiler::MatchAssignmentToken() {
     switch (parser.Current.Type) {
         case TOKEN_ASSIGNMENT:
         case TOKEN_ASSIGNMENT_MULTIPLY:
@@ -628,10 +599,10 @@ PUBLIC bool          Compiler::MatchAssignmentToken() {
     }
     return false;
 }
-PUBLIC bool          Compiler::CheckToken(int expectedType) {
+bool          Compiler::CheckToken(int expectedType) {
     return parser.Current.Type == expectedType;
 }
-PUBLIC void          Compiler::ConsumeToken(int type, const char* message) {
+void          Compiler::ConsumeToken(int type, const char* message) {
     if (parser.Current.Type == type) {
         AdvanceToken();
         return;
@@ -640,7 +611,7 @@ PUBLIC void          Compiler::ConsumeToken(int type, const char* message) {
     ErrorAtCurrent(message);
 }
 
-PUBLIC void          Compiler::SynchronizeToken() {
+void          Compiler::SynchronizeToken() {
     parser.PanicMode = false;
 
     while (PeekToken().Type != TOKEN_EOF) {
@@ -671,7 +642,7 @@ PUBLIC void          Compiler::SynchronizeToken() {
 }
 
 // Error handling
-PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
+bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
     if (!fatal && !Compiler::ShowWarnings)
         return true;
 
@@ -690,7 +661,7 @@ PUBLIC bool          Compiler::ReportError(int line, bool fatal, const char* str
 
     return !fatal;
 }
-PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
     if (!fatal && !Compiler::ShowWarnings)
         return true;
 
@@ -742,7 +713,7 @@ PUBLIC bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, con
 
     return false;
 }
-PUBLIC void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
+void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
     if (fatal) {
         if (parser.PanicMode)
             return;
@@ -759,16 +730,16 @@ PUBLIC void          Compiler::ErrorAt(Token* token, const char* message, bool f
     if (fatal)
         parser.HadError = true;
 }
-PUBLIC void          Compiler::Error(const char* message) {
+void          Compiler::Error(const char* message) {
     ErrorAt(&parser.Previous, message, true);
 }
-PUBLIC void          Compiler::ErrorAtCurrent(const char* message) {
+void          Compiler::ErrorAtCurrent(const char* message) {
     ErrorAt(&parser.Current, message, true);
 }
-PUBLIC void          Compiler::Warning(const char* message) {
+void          Compiler::Warning(const char* message) {
     ErrorAt(&parser.Current, message, false);
 }
-PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
+void          Compiler::WarningInFunction(const char* format, ...) {
     if (!Compiler::ShowWarnings)
         return;
 
@@ -803,19 +774,19 @@ PUBLIC void          Compiler::WarningInFunction(const char* format, ...) {
     free(textBuffer);
 }
 
-PUBLIC void  Compiler::ParseVariable(const char* errorMessage) {
+void  Compiler::ParseVariable(const char* errorMessage) {
     ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
     DeclareVariable(&parser.Previous);
 }
-PUBLIC bool  Compiler::IdentifiersEqual(Token* a, Token* b) {
+bool  Compiler::IdentifiersEqual(Token* a, Token* b) {
     if (a->Length != b->Length) return false;
     return memcmp(a->Start, b->Start, a->Length) == 0;
 }
-PUBLIC void  Compiler::MarkInitialized() {
+void  Compiler::MarkInitialized() {
     if (ScopeDepth == 0) return;
     Locals[LocalCount - 1].Depth = ScopeDepth;
 }
-PUBLIC void  Compiler::DefineVariableToken(Token global) {
+void  Compiler::DefineVariableToken(Token global) {
     if (ScopeDepth > 0) {
         MarkInitialized();
         return;
@@ -823,7 +794,7 @@ PUBLIC void  Compiler::DefineVariableToken(Token global) {
     EmitByte(OP_DEFINE_GLOBAL);
     EmitStringHash(global);
 }
-PUBLIC void  Compiler::DeclareVariable(Token* name) {
+void  Compiler::DeclareVariable(Token* name) {
     if (ScopeDepth == 0) return;
 
     for (int i = LocalCount - 1; i >= 0; i--) {
@@ -838,15 +809,15 @@ PUBLIC void  Compiler::DeclareVariable(Token* name) {
 
     AddLocal(*name);
 }
-PUBLIC int   Compiler::ParseModuleVariable(const char* errorMessage) {
+int   Compiler::ParseModuleVariable(const char* errorMessage) {
     ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
     return DeclareModuleVariable(&parser.Previous);
 }
-PUBLIC void  Compiler::DefineModuleVariable(int local) {
+void  Compiler::DefineModuleVariable(int local) {
     EmitByte(OP_DEFINE_MODULE_LOCAL);
     Compiler::ModuleLocals[local].Depth = 0;
 }
-PUBLIC int   Compiler::DeclareModuleVariable(Token* name) {
+int   Compiler::DeclareModuleVariable(Token* name) {
     for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
         Local& local = Compiler::ModuleLocals[i];
 
@@ -856,7 +827,7 @@ PUBLIC int   Compiler::DeclareModuleVariable(Token* name) {
 
     return AddModuleLocal(*name);
 }
-PRIVATE void Compiler::WarnVariablesUnused() {
+void Compiler::WarnVariablesUnused() {
     if (!Compiler::ShowWarnings)
         return;
 
@@ -878,7 +849,7 @@ PRIVATE void Compiler::WarnVariablesUnused() {
     WarningInFunction("%s", message.c_str());
 }
 
-PUBLIC void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
+void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
     switch (setOp) {
         case OP_SET_GLOBAL:
         case OP_SET_PROPERTY:
@@ -899,7 +870,7 @@ PUBLIC void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
             break;
     }
 }
-PUBLIC void  Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
+void  Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
     switch (getOp) {
         case OP_GET_GLOBAL:
         case OP_GET_PROPERTY:
@@ -919,7 +890,7 @@ PUBLIC void  Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
             break;
     }
 }
-PUBLIC void  Compiler::EmitAssignmentToken(Token assignmentToken) {
+void  Compiler::EmitAssignmentToken(Token assignmentToken) {
     switch (assignmentToken.Type) {
         case TOKEN_ASSIGNMENT_PLUS:
             EmitByte(OP_ADD);
@@ -962,23 +933,23 @@ PUBLIC void  Compiler::EmitAssignmentToken(Token assignmentToken) {
             break;
     }
 }
-PUBLIC void  Compiler::EmitCopy(Uint8 count) {
+void  Compiler::EmitCopy(Uint8 count) {
     EmitByte(OP_COPY);
     EmitByte(count);
 }
 
-PUBLIC void  Compiler::EmitCall(const char *name, int argCount, bool isSuper) {
+void  Compiler::EmitCall(const char *name, int argCount, bool isSuper) {
     EmitBytes(OP_INVOKE, argCount);
     EmitStringHash(name);
     EmitByte(isSuper ? 1 : 0);
 }
-PUBLIC void  Compiler::EmitCall(Token name, int argCount, bool isSuper) {
+void  Compiler::EmitCall(Token name, int argCount, bool isSuper) {
     EmitBytes(OP_INVOKE, argCount);
     EmitStringHash(name);
     EmitByte(isSuper ? 1 : 0);
 }
 
-PUBLIC void  Compiler::NamedVariable(Token name, bool canAssign) {
+void  Compiler::NamedVariable(Token name, bool canAssign) {
     Uint8 getOp, setOp;
     int arg = ResolveLocal(&name);
 
@@ -1028,14 +999,14 @@ PUBLIC void  Compiler::NamedVariable(Token name, bool canAssign) {
         EmitGetOperation(getOp, arg, name);
     }
 }
-PUBLIC void  Compiler::ScopeBegin() {
+void  Compiler::ScopeBegin() {
     ScopeDepth++;
 }
-PUBLIC void  Compiler::ScopeEnd() {
+void  Compiler::ScopeEnd() {
     ScopeDepth--;
     ClearToScope(ScopeDepth);
 }
-PUBLIC void  Compiler::ClearToScope(int depth) {
+void  Compiler::ClearToScope(int depth) {
     int popCount = 0;
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
         if (!Locals[LocalCount - 1].Resolved)
@@ -1047,7 +1018,7 @@ PUBLIC void  Compiler::ClearToScope(int depth) {
     }
     PopMultiple(popCount);
 }
-PUBLIC void  Compiler::PopToScope(int depth) {
+void  Compiler::PopToScope(int depth) {
     int lcl = LocalCount;
     int popCount = 0;
     while (lcl > 0 && Locals[lcl - 1].Depth > depth) {
@@ -1056,7 +1027,7 @@ PUBLIC void  Compiler::PopToScope(int depth) {
     }
     PopMultiple(popCount);
 }
-PUBLIC void  Compiler::PopMultiple(int count) {
+void  Compiler::PopMultiple(int count) {
     if (count == 1) {
         EmitByte(OP_POP);
         return;
@@ -1070,7 +1041,7 @@ PUBLIC void  Compiler::PopMultiple(int count) {
         count -= max;
     }
 }
-PUBLIC int   Compiler::AddLocal(Token name) {
+int   Compiler::AddLocal(Token name) {
     if (LocalCount == 0xFF) {
         Error("Too many local variables in function.");
         return -1;
@@ -1081,7 +1052,7 @@ PUBLIC int   Compiler::AddLocal(Token name) {
     local->Resolved = false;
     return LocalCount - 1;
 }
-PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
+int   Compiler::AddLocal(const char* name, size_t len) {
     if (LocalCount == 0xFF) {
         Error("Too many local variables in function.");
         return -1;
@@ -1092,24 +1063,24 @@ PUBLIC int   Compiler::AddLocal(const char* name, size_t len) {
     RenameLocal(local, name, len);
     return LocalCount - 1;
 }
-PUBLIC int   Compiler::AddHiddenLocal(const char* name, size_t len) {
+int   Compiler::AddHiddenLocal(const char* name, size_t len) {
     int local = AddLocal(name, len);
     Locals[local].Resolved = true;
     MarkInitialized();
     return local;
 }
-PUBLIC void  Compiler::RenameLocal(Local* local, const char* name, size_t len) {
+void  Compiler::RenameLocal(Local* local, const char* name, size_t len) {
     local->Name.Start = (char*)name;
     local->Name.Length = len;
 }
-PUBLIC void  Compiler::RenameLocal(Local* local, const char* name) {
+void  Compiler::RenameLocal(Local* local, const char* name) {
     local->Name.Start = (char*)name;
     local->Name.Length = strlen(name);
 }
-PUBLIC void  Compiler::RenameLocal(Local* local, Token name) {
+void  Compiler::RenameLocal(Local* local, Token name) {
     local->Name = name;
 }
-PUBLIC int   Compiler::ResolveLocal(Token* name) {
+int   Compiler::ResolveLocal(Token* name) {
     for (int i = LocalCount - 1; i >= 0; i--) {
         Local* local = &Locals[i];
         if (IdentifiersEqual(name, &local->Name)) {
@@ -1122,7 +1093,7 @@ PUBLIC int   Compiler::ResolveLocal(Token* name) {
     }
     return -1;
 }
-PUBLIC int   Compiler::AddModuleLocal(Token name) {
+int   Compiler::AddModuleLocal(Token name) {
     if (Compiler::ModuleLocals.size() == 0xFFFF) {
         Error("Too many locals in module.");
         return -1;
@@ -1134,7 +1105,7 @@ PUBLIC int   Compiler::AddModuleLocal(Token name) {
     Compiler::ModuleLocals.push_back(local);
     return ((int)Compiler::ModuleLocals.size()) - 1;
 }
-PUBLIC int   Compiler::ResolveModuleLocal(Token* name) {
+int   Compiler::ResolveModuleLocal(Token* name) {
     for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
         Local& local = Compiler::ModuleLocals[i];
         if (IdentifiersEqual(name, &local.Name)) {
@@ -1147,7 +1118,7 @@ PUBLIC int   Compiler::ResolveModuleLocal(Token* name) {
     }
     return -1;
 }
-PUBLIC Uint8 Compiler::GetArgumentList() {
+Uint8 Compiler::GetArgumentList() {
     Uint8 argumentCount = 0;
     if (!CheckToken(TOKEN_RIGHT_PAREN)) {
         do {
@@ -1165,17 +1136,17 @@ PUBLIC Uint8 Compiler::GetArgumentList() {
 }
 
 Token InstanceToken = Token { 0, NULL, 0, 0, 0 };
-PUBLIC void  Compiler::GetThis(bool canAssign) {
+void  Compiler::GetThis(bool canAssign) {
     InstanceToken = parser.Previous;
     GetVariable(false);
 }
-PUBLIC void  Compiler::GetSuper(bool canAssign) {
+void  Compiler::GetSuper(bool canAssign) {
     InstanceToken = parser.Previous;
     if (!CheckToken(TOKEN_DOT))
         Error("Expect '.' after 'super'.");
     EmitBytes(OP_GET_LOCAL, 0);
 }
-PUBLIC void  Compiler::GetDot(bool canAssign) {
+void  Compiler::GetDot(bool canAssign) {
     bool isSuper = InstanceToken.Type == TOKEN_SUPER;
     InstanceToken.Type = -1;
 
@@ -1227,7 +1198,7 @@ PUBLIC void  Compiler::GetDot(bool canAssign) {
         EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
     }
 }
-PUBLIC void  Compiler::GetElement(bool canAssign) {
+void  Compiler::GetElement(bool canAssign) {
     Token blank;
     memset(&blank, 0, sizeof(blank));
     GetExpression();
@@ -1271,11 +1242,11 @@ PUBLIC void  Compiler::GetElement(bool canAssign) {
 
 // Reading expressions
 bool negateConstant = false;
-PUBLIC void Compiler::GetGrouping(bool canAssign) {
+void Compiler::GetGrouping(bool canAssign) {
     GetExpression();
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
 }
-PUBLIC void Compiler::GetLiteral(bool canAssign) {
+void Compiler::GetLiteral(bool canAssign) {
     switch (parser.Previous.Type) {
         case TOKEN_NULL:  EmitByte(OP_NULL); break;
         case TOKEN_TRUE:  EmitByte(OP_TRUE); break;
@@ -1284,7 +1255,7 @@ PUBLIC void Compiler::GetLiteral(bool canAssign) {
         return; // Unreachable.
     }
 }
-PUBLIC void Compiler::GetInteger(bool canAssign) {
+void Compiler::GetInteger(bool canAssign) {
     int value = 0;
     char* start = parser.Previous.Start;
     if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X'))
@@ -1298,7 +1269,7 @@ PUBLIC void Compiler::GetInteger(bool canAssign) {
 
     EmitConstant(INTEGER_VAL(value));
 }
-PUBLIC void Compiler::GetDecimal(bool canAssign) {
+void Compiler::GetDecimal(bool canAssign) {
     float value = 0;
     value = (float)atof(parser.Previous.Start);
 
@@ -1308,7 +1279,7 @@ PUBLIC void Compiler::GetDecimal(bool canAssign) {
 
     EmitConstant(DECIMAL_VAL(value));
 }
-PUBLIC ObjString* Compiler::MakeString(Token token) {
+ObjString* Compiler::MakeString(Token token) {
     ObjString* string = CopyString(token.Start + 1, token.Length - 2);
 
     // Escape the string
@@ -1347,11 +1318,11 @@ PUBLIC ObjString* Compiler::MakeString(Token token) {
     return string;
 }
 
-PUBLIC void Compiler::GetString(bool canAssign) {
+void Compiler::GetString(bool canAssign) {
     ObjString* string = Compiler::MakeString(parser.Previous);
     EmitConstant(OBJECT_VAL(string));
 }
-PUBLIC void Compiler::GetArray(bool canAssign) {
+void Compiler::GetArray(bool canAssign) {
     Uint32 count = 0;
 
     while (!MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
@@ -1367,7 +1338,7 @@ PUBLIC void Compiler::GetArray(bool canAssign) {
     EmitByte(OP_NEW_ARRAY);
     EmitUint32(count);
 }
-PUBLIC void Compiler::GetMap(bool canAssign) {
+void Compiler::GetMap(bool canAssign) {
     Uint32 count = 0;
 
     while (!MatchToken(TOKEN_RIGHT_BRACE)) {
@@ -1387,7 +1358,7 @@ PUBLIC void Compiler::GetMap(bool canAssign) {
     EmitByte(OP_NEW_MAP);
     EmitUint32(count);
 }
-PUBLIC bool Compiler::IsConstant() {
+bool Compiler::IsConstant() {
     switch (PeekToken().Type) {
         case TOKEN_NULL:
         case TOKEN_TRUE:
@@ -1414,7 +1385,7 @@ PUBLIC bool Compiler::IsConstant() {
             return false;
     }
 }
-PUBLIC void Compiler::GetConstant(bool canAssign) {
+void Compiler::GetConstant(bool canAssign) {
     switch (NextToken().Type) {
         case TOKEN_NULL:
         case TOKEN_TRUE:
@@ -1450,7 +1421,7 @@ PUBLIC void Compiler::GetConstant(bool canAssign) {
             break;
     }
 }
-PUBLIC int Compiler::GetConstantValue() {
+int Compiler::GetConstantValue() {
     int position, constant_index;
     position = CodePointer();
     GetConstant(false);
@@ -1458,10 +1429,10 @@ PUBLIC int Compiler::GetConstantValue() {
     CurrentChunk()->Count = position;
     return constant_index;
 }
-PUBLIC void Compiler::GetVariable(bool canAssign) {
+void Compiler::GetVariable(bool canAssign) {
     NamedVariable(parser.Previous, canAssign);
 }
-PUBLIC void Compiler::GetLogicalAND(bool canAssign) {
+void Compiler::GetLogicalAND(bool canAssign) {
     int endJump = EmitJump(OP_JUMP_IF_FALSE);
 
     EmitByte(OP_POP);
@@ -1469,7 +1440,7 @@ PUBLIC void Compiler::GetLogicalAND(bool canAssign) {
 
     PatchJump(endJump);
 }
-PUBLIC void Compiler::GetLogicalOR(bool canAssign) {
+void Compiler::GetLogicalOR(bool canAssign) {
     int elseJump = EmitJump(OP_JUMP_IF_FALSE);
     int endJump = EmitJump(OP_JUMP);
 
@@ -1479,7 +1450,7 @@ PUBLIC void Compiler::GetLogicalOR(bool canAssign) {
     ParsePrecedence(PREC_OR);
     PatchJump(endJump);
 }
-PUBLIC void Compiler::GetConditional(bool canAssign) {
+void Compiler::GetConditional(bool canAssign) {
     int thenJump = EmitJump(OP_JUMP_IF_FALSE);
     EmitByte(OP_POP);
     ParsePrecedence(PREC_TERNARY);
@@ -1492,7 +1463,7 @@ PUBLIC void Compiler::GetConditional(bool canAssign) {
     ParsePrecedence(PREC_TERNARY);
     PatchJump(elseJump);
 }
-PUBLIC void Compiler::GetUnary(bool canAssign) {
+void Compiler::GetUnary(bool canAssign) {
     int operatorType = parser.Previous.Type;
 
     ParsePrecedence(PREC_UNARY);
@@ -1510,7 +1481,7 @@ PUBLIC void Compiler::GetUnary(bool canAssign) {
             return; // Unreachable.
     }
 }
-PUBLIC void Compiler::GetNew(bool canAssign) {
+void Compiler::GetNew(bool canAssign) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
     NamedVariable(parser.Previous, false);
 
@@ -1519,7 +1490,7 @@ PUBLIC void Compiler::GetNew(bool canAssign) {
         argCount = GetArgumentList();
     EmitBytes(OP_NEW, argCount);
 }
-PUBLIC void Compiler::GetBinary(bool canAssign) {
+void Compiler::GetBinary(bool canAssign) {
     Token operato = parser.Previous;
     int operatorType = operato.Type;
 
@@ -1554,20 +1525,20 @@ PUBLIC void Compiler::GetBinary(bool canAssign) {
             return; // Unreachable.
     }
 }
-PUBLIC void Compiler::GetHas(bool canAssign) {
+void Compiler::GetHas(bool canAssign) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect property name.");
     EmitByte(OP_HAS_PROPERTY);
     EmitStringHash(parser.Previous);
 }
-PUBLIC void Compiler::GetSuffix(bool canAssign) {
+void Compiler::GetSuffix(bool canAssign) {
 
 }
-PUBLIC void Compiler::GetCall(bool canAssign) {
+void Compiler::GetCall(bool canAssign) {
     Uint8 argCount = GetArgumentList();
     EmitByte(OP_CALL);
     EmitByte(argCount);
 }
-PUBLIC void Compiler::GetExpression() {
+void Compiler::GetExpression() {
     ParsePrecedence(PREC_ASSIGNMENT);
 }
 // Reading statements
@@ -1585,17 +1556,17 @@ stack<vector<switch_case>*> SwitchJumpListStack;
 stack<int> BreakScopeStack;
 stack<int> ContinueScopeStack;
 stack<int> SwitchScopeStack;
-PUBLIC void Compiler::GetPrintStatement() {
+void Compiler::GetPrintStatement() {
     GetExpression();
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
     EmitByte(OP_PRINT);
 }
-PUBLIC void Compiler::GetExpressionStatement() {
+void Compiler::GetExpressionStatement() {
     GetExpression();
     EmitByte(OP_POP);
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
 }
-PUBLIC void Compiler::GetContinueStatement() {
+void Compiler::GetContinueStatement() {
     if (ContinueJumpListStack.size() == 0) {
         Error("Can't continue outside of loop.");
     }
@@ -1607,7 +1578,7 @@ PUBLIC void Compiler::GetContinueStatement() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after continue.");
 }
-PUBLIC void Compiler::GetDoWhileStatement() {
+void Compiler::GetDoWhileStatement() {
     // Set the start of the loop to before the condition
     int loopStart = CodePointer();
 
@@ -1648,7 +1619,7 @@ PUBLIC void Compiler::GetDoWhileStatement() {
     // Pop jump list off break stack, patch all breaks to this code point
     EndBreakJumpList();
 }
-PUBLIC void Compiler::GetReturnStatement() {
+void Compiler::GetReturnStatement() {
     if (Type == TYPE_TOP_LEVEL) {
         Error("Cannot return from top-level code.");
     }
@@ -1666,7 +1637,7 @@ PUBLIC void Compiler::GetReturnStatement() {
         EmitByte(OP_RETURN);
     }
 }
-PUBLIC void Compiler::GetRepeatStatement() {
+void Compiler::GetRepeatStatement() {
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'repeat'.");
     GetExpression();
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -1689,7 +1660,7 @@ PUBLIC void Compiler::GetRepeatStatement() {
 
     EndBreakJumpList();
 }
-PUBLIC void Compiler::GetSwitchStatement() {
+void Compiler::GetSwitchStatement() {
     Chunk* chunk = CurrentChunk();
 
     StartBreakJumpList();
@@ -1795,7 +1766,7 @@ PUBLIC void Compiler::GetSwitchStatement() {
     // Pop jump list off break stack, patch all breaks to this code point
     EndBreakJumpList();
 }
-PUBLIC void Compiler::GetCaseStatement() {
+void Compiler::GetCaseStatement() {
     if (SwitchJumpListStack.size() == 0) {
         Error("Cannot use case label outside of switch statement.");
     }
@@ -1830,7 +1801,7 @@ PUBLIC void Compiler::GetCaseStatement() {
 
     SwitchJumpListStack.top()->push_back(case_info);
 }
-PUBLIC void Compiler::GetDefaultStatement() {
+void Compiler::GetDefaultStatement() {
     if (SwitchJumpListStack.size() == 0) {
         Error("Cannot use default label outside of switch statement.");
     }
@@ -1843,7 +1814,7 @@ PUBLIC void Compiler::GetDefaultStatement() {
 
     SwitchJumpListStack.top()->push_back(case_info);
 }
-PUBLIC void Compiler::GetWhileStatement() {
+void Compiler::GetWhileStatement() {
     // Set the start of the loop to before the condition
     int loopStart = CodePointer();
 
@@ -1882,7 +1853,7 @@ PUBLIC void Compiler::GetWhileStatement() {
     // Pop jump list off break stack, patch all breaks to this code point
     EndBreakJumpList();
 }
-PUBLIC void Compiler::GetBreakStatement() {
+void Compiler::GetBreakStatement() {
     if (BreakJumpListStack.size() == 0) {
         Error("Cannot break outside of loop or switch statement.");
     }
@@ -1894,14 +1865,14 @@ PUBLIC void Compiler::GetBreakStatement() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after break.");
 }
-PUBLIC void Compiler::GetBlockStatement() {
+void Compiler::GetBlockStatement() {
     while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
         GetDeclaration();
     }
 
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after block.");
 }
-PUBLIC void Compiler::GetWithStatement() {
+void Compiler::GetWithStatement() {
     enum {
         WITH_STATE_INIT,
         WITH_STATE_ITERATE,
@@ -2015,7 +1986,7 @@ PUBLIC void Compiler::GetWithStatement() {
     // End scope (will pop "other")
     ScopeEnd();
 }
-PUBLIC void Compiler::GetForStatement() {
+void Compiler::GetForStatement() {
     // Start new scope
     ScopeBegin();
 
@@ -2085,7 +2056,7 @@ PUBLIC void Compiler::GetForStatement() {
     // End new scope
     ScopeEnd();
 }
-PUBLIC void Compiler::GetForEachStatement() {
+void Compiler::GetForEachStatement() {
     // Start new scope
     ScopeBegin();
 
@@ -2171,7 +2142,7 @@ PUBLIC void Compiler::GetForEachStatement() {
     // End new scope
     ScopeEnd();
 }
-PUBLIC void Compiler::GetIfStatement() {
+void Compiler::GetIfStatement() {
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     GetExpression();
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -2189,7 +2160,7 @@ PUBLIC void Compiler::GetIfStatement() {
 
     PatchJump(elseJump);
 }
-PUBLIC void Compiler::GetStatement() {
+void Compiler::GetStatement() {
     if (MatchToken(TOKEN_PRINT)) {
         GetPrintStatement();
     }
@@ -2242,7 +2213,7 @@ PUBLIC void Compiler::GetStatement() {
     }
 }
 // Reading declarations
-PUBLIC int  Compiler::GetFunction(int type, string className) {
+int  Compiler::GetFunction(int type, string className) {
     int index = (int)Compiler::Functions.size();
 
     Compiler* compiler = new Compiler;
@@ -2287,10 +2258,10 @@ PUBLIC int  Compiler::GetFunction(int type, string className) {
 
     return index;
 }
-PUBLIC int  Compiler::GetFunction(int type) {
+int  Compiler::GetFunction(int type) {
     return GetFunction(type, "");
 }
-PUBLIC void Compiler::GetMethod(Token className) {
+void Compiler::GetMethod(Token className) {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect method name.");
     Token constantToken = parser.Previous;
 
@@ -2305,7 +2276,7 @@ PUBLIC void Compiler::GetMethod(Token className) {
     EmitByte(index);
     EmitStringHash(constantToken);
 }
-PUBLIC void Compiler::GetVariableDeclaration() {
+void Compiler::GetVariableDeclaration() {
     if (SwitchScopeStack.size() != 0) {
         if (SwitchScopeStack.top() == ScopeDepth)
             Error("Cannot initialize variable inside switch statement.");
@@ -2329,7 +2300,7 @@ PUBLIC void Compiler::GetVariableDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
-PUBLIC void Compiler::GetModuleVariableDeclaration() {
+void Compiler::GetModuleVariableDeclaration() {
     ConsumeToken(TOKEN_VAR, "Expected \"var\" after \"local\" declaration.");
 
     if (ScopeDepth > 0) {
@@ -2352,7 +2323,7 @@ PUBLIC void Compiler::GetModuleVariableDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
-PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
+void Compiler::GetPropertyDeclaration(Token propertyName) {
     do {
         ParseVariable("Expected property name.");
 
@@ -2375,7 +2346,7 @@ PUBLIC void Compiler::GetPropertyDeclaration(Token propertyName) {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
 }
-PUBLIC void Compiler::GetClassDeclaration() {
+void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
 
     Token className = parser.Previous;
@@ -2424,7 +2395,7 @@ PUBLIC void Compiler::GetClassDeclaration() {
 
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
-PUBLIC void Compiler::GetEnumDeclaration() {
+void Compiler::GetEnumDeclaration() {
     Token enumName;
     bool isNamed = false;
 
@@ -2487,7 +2458,7 @@ PUBLIC void Compiler::GetEnumDeclaration() {
 
     ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
 }
-PUBLIC void Compiler::GetImportDeclaration() {
+void Compiler::GetImportDeclaration() {
     bool importModules = MatchToken(TOKEN_FROM);
 
     do {
@@ -2503,7 +2474,7 @@ PUBLIC void Compiler::GetImportDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
 }
-PUBLIC void Compiler::GetUsingDeclaration() {
+void Compiler::GetUsingDeclaration() {
     ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
 
     if (ScopeDepth > 0) {
@@ -2520,7 +2491,7 @@ PUBLIC void Compiler::GetUsingDeclaration() {
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
 }
-PUBLIC void Compiler::GetEventDeclaration() {
+void Compiler::GetEventDeclaration() {
     ConsumeToken(TOKEN_IDENTIFIER, "Expected event name.");
     Token constantToken = parser.Previous;
 
@@ -2542,7 +2513,7 @@ PUBLIC void Compiler::GetEventDeclaration() {
         EmitStringHash(constantToken);
     // }
 }
-PUBLIC void Compiler::GetDeclaration() {
+void Compiler::GetDeclaration() {
     if (MatchToken(TOKEN_CLASS))
         GetClassDeclaration();
     else if (MatchToken(TOKEN_ENUM))
@@ -2563,7 +2534,7 @@ PUBLIC void Compiler::GetDeclaration() {
     if (parser.PanicMode) SynchronizeToken();
 }
 
-PUBLIC STATIC void   Compiler::MakeRules() {
+void   Compiler::MakeRules() {
     Rules = (ParseRule*)Memory::TrackedCalloc("Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
     // Single-character tokens.
     Rules[TOKEN_LEFT_PAREN] = ParseRule { &Compiler::GetGrouping, &Compiler::GetCall, NULL, PREC_CALL };
@@ -2627,11 +2598,11 @@ PUBLIC STATIC void   Compiler::MakeRules() {
     Rules[TOKEN_DECIMAL] = ParseRule { &Compiler::GetDecimal, NULL, NULL, PREC_NONE };
     Rules[TOKEN_IDENTIFIER] = ParseRule { &Compiler::GetVariable, NULL, NULL, PREC_NONE };
 }
-PUBLIC ParseRule*    Compiler::GetRule(int type) {
+ParseRule*    Compiler::GetRule(int type) {
     return &Compiler::Rules[(int)type];
 }
 
-PUBLIC void          Compiler::ParsePrecedence(Precedence precedence) {
+void          Compiler::ParsePrecedence(Precedence precedence) {
     AdvanceToken();
     ParseFn prefixRule = GetRule(parser.Previous.Type)->Prefix;
     if (prefixRule == NULL) {
@@ -2654,43 +2625,43 @@ PUBLIC void          Compiler::ParsePrecedence(Precedence precedence) {
         GetExpression();
     }
 }
-PUBLIC Uint32        Compiler::GetHash(char* string) {
+Uint32        Compiler::GetHash(char* string) {
     return Murmur::EncryptString(string);
 }
-PUBLIC Uint32        Compiler::GetHash(Token token) {
+Uint32        Compiler::GetHash(Token token) {
     return Murmur::EncryptData(token.Start, token.Length);
 }
 
-PUBLIC Chunk*        Compiler::CurrentChunk() {
+Chunk*        Compiler::CurrentChunk() {
     return &Function->Chunk;
 }
-PUBLIC int           Compiler::CodePointer() {
+int           Compiler::CodePointer() {
     return CurrentChunk()->Count;
 }
-PUBLIC void          Compiler::EmitByte(Uint8 byte) {
+void          Compiler::EmitByte(Uint8 byte) {
     CurrentChunk()->Write(byte, (int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
-PUBLIC void          Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
+void          Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
     EmitByte(byte1);
     EmitByte(byte2);
 }
-PUBLIC void          Compiler::EmitUint16(Uint16 value) {
+void          Compiler::EmitUint16(Uint16 value) {
     EmitByte(value & 0xFF);
     EmitByte(value >> 8 & 0xFF);
 }
-PUBLIC void          Compiler::EmitUint32(Uint32 value) {
+void          Compiler::EmitUint32(Uint32 value) {
     EmitByte(value & 0xFF);
     EmitByte(value >> 8 & 0xFF);
     EmitByte(value >> 16 & 0xFF);
     EmitByte(value >> 24 & 0xFF);
 }
-PUBLIC int           Compiler::GetConstantIndex(VMValue value) {
+int           Compiler::GetConstantIndex(VMValue value) {
     int index = FindConstant(value);
     if (index < 0)
         index = MakeConstant(value);
     return index;
 }
-PUBLIC int           Compiler::EmitConstant(VMValue value) {
+int           Compiler::EmitConstant(VMValue value) {
     int index = GetConstantIndex(value);
 
     EmitByte(OP_CONSTANT);
@@ -2698,7 +2669,7 @@ PUBLIC int           Compiler::EmitConstant(VMValue value) {
 
     return index;
 }
-PUBLIC void          Compiler::EmitLoop(int loopStart) {
+void          Compiler::EmitLoop(int loopStart) {
     EmitByte(OP_JUMP_BACK);
 
     int offset = CurrentChunk()->Count - loopStart + 2;
@@ -2707,7 +2678,7 @@ PUBLIC void          Compiler::EmitLoop(int loopStart) {
     EmitByte(offset & 0xFF);
     EmitByte((offset >> 8) & 0xFF);
 }
-PUBLIC int           Compiler::GetJump(int offset) {
+int           Compiler::GetJump(int offset) {
     int jump = CurrentChunk()->Count - (offset + 2);
     if (jump > UINT16_MAX) {
         Error("Too much code to jump over.");
@@ -2715,26 +2686,26 @@ PUBLIC int           Compiler::GetJump(int offset) {
 
     return jump;
 }
-PUBLIC int           Compiler::GetPosition() {
+int           Compiler::GetPosition() {
     return CurrentChunk()->Count;
 }
-PUBLIC int           Compiler::EmitJump(Uint8 instruction) {
+int           Compiler::EmitJump(Uint8 instruction) {
     return EmitJump(instruction, 0xFFFF);
 }
-PUBLIC int           Compiler::EmitJump(Uint8 instruction, int jump) {
+int           Compiler::EmitJump(Uint8 instruction, int jump) {
     EmitByte(instruction);
     EmitUint16(jump);
     return CurrentChunk()->Count - 2;
 }
-PUBLIC void          Compiler::PatchJump(int offset, int jump) {
+void          Compiler::PatchJump(int offset, int jump) {
     CurrentChunk()->Code[offset]     = jump & 0xFF;
     CurrentChunk()->Code[offset + 1] = (jump >> 8) & 0xFF;
 }
-PUBLIC void          Compiler::PatchJump(int offset) {
+void          Compiler::PatchJump(int offset) {
     int jump = GetJump(offset);
     PatchJump(offset, jump);
 }
-PUBLIC void          Compiler::EmitStringHash(const char* string) {
+void          Compiler::EmitStringHash(const char* string) {
     Uint32 hash = GetHash((char*)string);
     if (!TokenMap->Exists(hash)) {
         Token tk;
@@ -2744,12 +2715,12 @@ PUBLIC void          Compiler::EmitStringHash(const char* string) {
     }
     EmitUint32(hash);
 }
-PUBLIC void          Compiler::EmitStringHash(Token token) {
+void          Compiler::EmitStringHash(Token token) {
     if (!TokenMap->Exists(GetHash(token)))
         TokenMap->Put(GetHash(token), token);
     EmitUint32(GetHash(token));
 }
-PUBLIC void          Compiler::EmitReturn() {
+void          Compiler::EmitReturn() {
     if (Type == TYPE_CONSTRUCTOR) {
         EmitBytes(OP_GET_LOCAL, 0); // return the new instance built from the constructor
     }
@@ -2760,11 +2731,11 @@ PUBLIC void          Compiler::EmitReturn() {
 }
 
 // Advanced Jumping
-PUBLIC void          Compiler::StartBreakJumpList() {
+void          Compiler::StartBreakJumpList() {
     BreakJumpListStack.push(new vector<int>());
     BreakScopeStack.push(ScopeDepth);
 }
-PUBLIC void          Compiler::EndBreakJumpList() {
+void          Compiler::EndBreakJumpList() {
     vector<int>* top = BreakJumpListStack.top();
     for (size_t i = 0; i < top->size(); i++) {
         int offset = (*top)[i];
@@ -2774,11 +2745,11 @@ PUBLIC void          Compiler::EndBreakJumpList() {
     BreakJumpListStack.pop();
     BreakScopeStack.pop();
 }
-PUBLIC void          Compiler::StartContinueJumpList() {
+void          Compiler::StartContinueJumpList() {
     ContinueJumpListStack.push(new vector<int>());
     ContinueScopeStack.push(ScopeDepth);
 }
-PUBLIC void          Compiler::EndContinueJumpList() {
+void          Compiler::EndContinueJumpList() {
     vector<int>* top = ContinueJumpListStack.top();
     for (size_t i = 0; i < top->size(); i++) {
         int offset = (*top)[i];
@@ -2788,11 +2759,11 @@ PUBLIC void          Compiler::EndContinueJumpList() {
     ContinueJumpListStack.pop();
     ContinueScopeStack.pop();
 }
-PUBLIC void          Compiler::StartSwitchJumpList() {
+void          Compiler::StartSwitchJumpList() {
     SwitchJumpListStack.push(new vector<switch_case>());
     SwitchScopeStack.push(ScopeDepth + 1);
 }
-PUBLIC void          Compiler::EndSwitchJumpList() {
+void          Compiler::EndSwitchJumpList() {
     vector<switch_case>* top = SwitchJumpListStack.top();
     for (size_t i = 0; i < top->size(); i++) {
         if (!(*top)[i].IsDefault) {
@@ -2805,14 +2776,14 @@ PUBLIC void          Compiler::EndSwitchJumpList() {
     SwitchScopeStack.pop();
 }
 
-PUBLIC int           Compiler::FindConstant(VMValue value) {
+int           Compiler::FindConstant(VMValue value) {
     for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
         if (ValuesEqual(value, (*CurrentChunk()->Constants)[i]))
             return (int)i;
     }
     return -1;
 }
-PUBLIC int           Compiler::MakeConstant(VMValue value) {
+int           Compiler::MakeConstant(VMValue value) {
     int constant = CurrentChunk()->AddConstant(value);
     // if (constant > UINT8_MAX) {
     //     Error("Too many constants in one chunk.");
@@ -2821,7 +2792,7 @@ PUBLIC int           Compiler::MakeConstant(VMValue value) {
     return constant;
 }
 
-PUBLIC bool          Compiler::HasThis() {
+bool          Compiler::HasThis() {
     switch (Type) {
     case TYPE_CONSTRUCTOR:
     case TYPE_METHOD:
@@ -2830,18 +2801,18 @@ PUBLIC bool          Compiler::HasThis() {
         return false;
     }
 }
-PUBLIC void          Compiler::SetReceiverName(const char *name) {
+void          Compiler::SetReceiverName(const char *name) {
     Local* local = &Locals[0];
     local->Name.Start = (char*)name;
     local->Name.Length = strlen(name);
 }
-PUBLIC void          Compiler::SetReceiverName(Token name) {
+void          Compiler::SetReceiverName(Token name) {
     Local* local = &Locals[0];
     local->Name = name;
 }
 
 // Debugging functions
-PUBLIC STATIC int    Compiler::HashInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::HashInstruction(const char* name, Chunk* chunk, int offset) {
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
     printf("%-16s #%08X", name, hash);
     if (TokenMap->Exists(hash)) {
@@ -2851,22 +2822,22 @@ PUBLIC STATIC int    Compiler::HashInstruction(const char* name, Chunk* chunk, i
     printf("\n");
     return offset + 5;
 }
-PUBLIC STATIC int    Compiler::ConstantInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ConstantInstruction(const char* name, Chunk* chunk, int offset) {
     int constant = *(int*)&chunk->Code[offset + 1];
     printf("%-16s %9d '", name, constant);
     Values::PrintValue(NULL, (*chunk->Constants)[constant]);
     printf("'\n");
     return offset + 5;
 }
-PUBLIC STATIC int    Compiler::SimpleInstruction(const char* name, int offset) {
+int    Compiler::SimpleInstruction(const char* name, int offset) {
     printf("%s\n", name);
     return offset + 1;
 }
-PUBLIC STATIC int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
     printf("%-16s %9d\n", name, chunk->Code[offset + 1]);
     return offset + 2;
 }
-PUBLIC STATIC int    Compiler::LocalInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::LocalInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     if (slot > 0)
         printf("%-16s %9d\n", name, slot);
@@ -2874,7 +2845,7 @@ PUBLIC STATIC int    Compiler::LocalInstruction(const char* name, Chunk* chunk, 
         printf("%-16s %9d 'this'\n", name, slot);
     return offset + 2;
 }
-PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
     printf("%-13s %2d", name, slot);
@@ -2887,22 +2858,22 @@ PUBLIC STATIC int    Compiler::MethodInstruction(const char* name, Chunk* chunk,
     printf("\n");
     return offset + 6;
 }
-PUBLIC STATIC int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
     return Compiler::MethodInstruction(name, chunk, offset) + 1;
 }
-PUBLIC STATIC int    Compiler::JumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
+int    Compiler::JumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
     uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
     jump |= chunk->Code[offset + 2] << 8;
     printf("%-16s %9d -> %d\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
 }
-PUBLIC STATIC int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
     return Compiler::HashInstruction(name, chunk, offset) + 1;
 }
-PUBLIC STATIC int    Compiler::EnumInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::EnumInstruction(const char* name, Chunk* chunk, int offset) {
     return Compiler::HashInstruction(name, chunk, offset);
 }
-PUBLIC STATIC int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     if (slot == 0) {
         printf("%-16s %9d\n", name, slot);
@@ -2913,7 +2884,7 @@ PUBLIC STATIC int    Compiler::WithInstruction(const char* name, Chunk* chunk, i
     printf("%-16s %9d -> %d\n", name, slot, jump);
     return offset + 4;
 }
-PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
+int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
     printf("%04d ", offset);
     if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
         printf("   | ");
@@ -3069,7 +3040,7 @@ PUBLIC STATIC int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
             return chunk->Count + 1;
     }
 }
-PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
+void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
     int optArgCount = maxArity - minArity;
     if (optArgCount)
         printf("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
@@ -3089,19 +3060,19 @@ PUBLIC STATIC void   Compiler::DebugChunk(Chunk* chunk, const char* name, int mi
 }
 
 // Compiling
-PUBLIC STATIC void   Compiler::Init() {
+void   Compiler::Init() {
     Compiler::MakeRules();
 
     Compiler::ShowWarnings = false;
     Compiler::WriteDebugInfo = true;
     Compiler::WriteSourceFilename = true;
 }
-PUBLIC STATIC void   Compiler::PrepareCompiling() {
+void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
         Compiler::TokenMap = new HashMap<Token>(NULL, 8);
     }
 }
-PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int type) {
+void          Compiler::Initialize(Compiler* enclosing, int scope, int type) {
     Type = type;
     LocalCount = 0;
     ScopeDepth = scope;
@@ -3134,7 +3105,7 @@ PUBLIC void          Compiler::Initialize(Compiler* enclosing, int scope, int ty
         SetReceiverName("");
     }
 }
-PRIVATE void         Compiler::WriteBytecode(Stream* stream, const char* filename) {
+void         Compiler::WriteBytecode(Stream* stream, const char* filename) {
     Bytecode* bytecode = new Bytecode();
 
     for (size_t i = 0; i < Compiler::Functions.size(); i++)
@@ -3148,7 +3119,7 @@ PRIVATE void         Compiler::WriteBytecode(Stream* stream, const char* filenam
     if (TokenMap)
         TokenMap->Clear();
 }
-PUBLIC bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
+bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
     scanner.Line = 1;
     scanner.Start = (char*)source;
     scanner.Current = (char*)source;
@@ -3195,7 +3166,7 @@ PUBLIC bool          Compiler::Compile(const char* filename, const char* source,
 
     return !parser.HadError;
 }
-PUBLIC void          Compiler::Finish() {
+void          Compiler::Finish() {
     if (UnusedVariables) {
         WarnVariablesUnused();
         delete UnusedVariables;
@@ -3204,10 +3175,10 @@ PUBLIC void          Compiler::Finish() {
     EmitReturn();
 }
 
-PUBLIC VIRTUAL       Compiler::~Compiler() {
+Compiler::~Compiler() {
 
 }
-PUBLIC STATIC void   Compiler::FinishCompiling() {
+void   Compiler::FinishCompiling() {
     Compiler::Functions.clear();
     Compiler::ModuleLocals.clear();
 
@@ -3216,6 +3187,6 @@ PUBLIC STATIC void   Compiler::FinishCompiling() {
         TokenMap = NULL;
     }
 }
-PUBLIC STATIC void   Compiler::Dispose() {
+void   Compiler::Dispose() {
     Memory::Free(Rules);
 }

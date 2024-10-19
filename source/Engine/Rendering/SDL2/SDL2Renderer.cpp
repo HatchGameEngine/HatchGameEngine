@@ -1,17 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Math/Matrix4x4.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Includes/HashMap.h>
-
-class SDL2Renderer {
-public:
-    static float RenderScale;
-};
-#endif
-
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 
 #include <Engine/Application.h>
@@ -48,7 +34,7 @@ void FindTextureID(Texture* texture) {
 }
 
 // Initialization and disposal functions
-PUBLIC STATIC void     SDL2Renderer::Init() {
+void     SDL2Renderer::Init() {
     Log::Print(Log::LOG_INFO, "Renderer: SDL2");
 
     Uint32 flags = SDL_RENDERER_ACCELERATED;
@@ -74,14 +60,14 @@ PUBLIC STATIC void     SDL2Renderer::Init() {
     if (h > wh)
         RenderScale = h / wh;
 }
-PUBLIC STATIC Uint32   SDL2Renderer::GetWindowFlags() {
+Uint32   SDL2Renderer::GetWindowFlags() {
     return 0;
 }
-PUBLIC STATIC void     SDL2Renderer::SetVSync(bool enabled) {
+void     SDL2Renderer::SetVSync(bool enabled) {
     Graphics::VsyncEnabled = enabled;
     SDL_RenderSetVSync(Renderer, enabled);
 }
-PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
+void     SDL2Renderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.0f;
 
     Graphics::Internal.Init = SDL2Renderer::Init;
@@ -142,12 +128,12 @@ PUBLIC STATIC void     SDL2Renderer::SetGraphicsFunctions() {
 
     Graphics::Internal.MakeFrameBufferID = SDL2Renderer::MakeFrameBufferID;
 }
-PUBLIC STATIC void     SDL2Renderer::Dispose() {
+void     SDL2Renderer::Dispose() {
     SDL_DestroyRenderer(Renderer);
 }
 
 // Texture management functions
-PUBLIC STATIC Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = Texture::New(format, access, width, height);
     texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
 
@@ -161,21 +147,21 @@ PUBLIC STATIC Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access,
 
     return texture;
 }
-PUBLIC STATIC int      SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
+int      SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
     return 0;
 }
-PUBLIC STATIC int      SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
+int      SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
     SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
     return SDL_UpdateTexture(textureData, src, pixels, pitch);
 }
-PUBLIC STATIC int      SDL2Renderer::UpdateTextureYUV(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV) {
+int      SDL2Renderer::UpdateTextureYUV(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV) {
     // SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
     return 0;
 }
-PUBLIC STATIC void     SDL2Renderer::UnlockTexture(Texture* texture) {
+void     SDL2Renderer::UnlockTexture(Texture* texture) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::DisposeTexture(Texture* texture) {
+void     SDL2Renderer::DisposeTexture(Texture* texture) {
     SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
     if (!textureData)
         return;
@@ -189,7 +175,7 @@ PUBLIC STATIC void     SDL2Renderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-PUBLIC STATIC void     SDL2Renderer::SetRenderTarget(Texture* texture) {
+void     SDL2Renderer::SetRenderTarget(Texture* texture) {
     if (texture == NULL) {
         SDL_SetRenderTarget(Renderer, NULL);
     }
@@ -197,7 +183,7 @@ PUBLIC STATIC void     SDL2Renderer::SetRenderTarget(Texture* texture) {
         SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
     }
 }
-PUBLIC STATIC void     SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
+void     SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
     Viewport* vp = &Graphics::CurrentViewport;
 
     SDL_Rect r = {
@@ -209,10 +195,10 @@ PUBLIC STATIC void     SDL2Renderer::CopyScreen(void* pixels, int width, int hei
 
     SDL_RenderReadPixels(Renderer, &r, Graphics::PreferredPixelFormat, pixels, width * SDL_BYTESPERPIXEL(Graphics::PreferredPixelFormat));
 }
-PUBLIC STATIC void     SDL2Renderer::UpdateWindowSize(int width, int height) {
+void     SDL2Renderer::UpdateWindowSize(int width, int height) {
     SDL2Renderer::UpdateViewport();
 }
-PUBLIC STATIC void     SDL2Renderer::UpdateViewport() {
+void     SDL2Renderer::UpdateViewport() {
     Viewport* vp = &Graphics::CurrentViewport;
     SDL_Rect r = {
         (int)(vp->X * RenderScale),
@@ -224,7 +210,7 @@ PUBLIC STATIC void     SDL2Renderer::UpdateViewport() {
 
     SDL2Renderer::UpdateProjectionMatrix();
 }
-PUBLIC STATIC void     SDL2Renderer::UpdateClipRect() {
+void     SDL2Renderer::UpdateClipRect() {
     ClipArea clip = Graphics::CurrentClip;
     if (Graphics::CurrentClip.Enabled) {
         SDL_Rect r = {
@@ -239,20 +225,20 @@ PUBLIC STATIC void     SDL2Renderer::UpdateClipRect() {
         SDL_RenderSetClipRect(Renderer, NULL);
     }
 }
-PUBLIC STATIC void     SDL2Renderer::UpdateOrtho(float left, float top, float right, float bottom) {
+void     SDL2Renderer::UpdateOrtho(float left, float top, float right, float bottom) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
+void     SDL2Renderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::UpdateProjectionMatrix() {
+void     SDL2Renderer::UpdateProjectionMatrix() {
 
 }
-PUBLIC STATIC void     SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+void     SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
-PUBLIC STATIC void     SDL2Renderer::GetMetalSize(int* width, int* height) {
+void     SDL2Renderer::GetMetalSize(int* width, int* height) {
     // #ifdef IOS
     //     SDL2MetalFunc_GetMetalSize(width, height, Renderer);
     // #endif
@@ -260,21 +246,21 @@ PUBLIC STATIC void     SDL2Renderer::GetMetalSize(int* width, int* height) {
 }
 
 // Shader-related functions
-PUBLIC STATIC void     SDL2Renderer::UseShader(void* shader) {
+void     SDL2Renderer::UseShader(void* shader) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetUniformF(int location, int count, float* values) {
+void     SDL2Renderer::SetUniformF(int location, int count, float* values) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetUniformI(int location, int count, int* values) {
+void     SDL2Renderer::SetUniformI(int location, int count, int* values) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
+void     SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
 
 }
 
 // These guys
-PUBLIC STATIC void     SDL2Renderer::Clear() {
+void     SDL2Renderer::Clear() {
     SDL_RenderClear(Renderer);
 
     int w, h, ww, wh;
@@ -285,15 +271,15 @@ PUBLIC STATIC void     SDL2Renderer::Clear() {
     if (h > wh)
         RenderScale = h / wh;
 }
-PUBLIC STATIC void     SDL2Renderer::Present() {
+void     SDL2Renderer::Present() {
 	SDL_RenderPresent(Renderer);
 }
 
 // Draw mode setting functions
-PUBLIC STATIC void     SDL2Renderer::SetBlendColor(float r, float g, float b, float a) {
+void     SDL2Renderer::SetBlendColor(float r, float g, float b, float a) {
     SDL_SetRenderDrawColor(Renderer, r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
-PRIVATE STATIC SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA) {
+SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA) {
     SDL_BlendFactor blendFactorToSDL[] = {
         SDL_BLENDFACTOR_ZERO,
         SDL_BLENDFACTOR_ONE,
@@ -312,7 +298,7 @@ PRIVATE STATIC SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC
         blendFactorToSDL[srcA], blendFactorToSDL[srcA], SDL_BLENDOPERATION_ADD
     );
 }
-PUBLIC STATIC void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     SDL_BlendMode customBlendMode = GetCustomBlendMode(srcC, dstC, srcA, dstA);
     if (SDL_SetRenderDrawBlendMode(Renderer, customBlendMode) == 0)
         return;
@@ -329,46 +315,46 @@ PUBLIC STATIC void     SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, 
             SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_NONE);
     }
 }
-PUBLIC STATIC void     SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
+void     SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetTintMode(int mode) {
+void     SDL2Renderer::SetTintMode(int mode) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetTintEnabled(bool enabled) {
+void     SDL2Renderer::SetTintEnabled(bool enabled) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::SetLineWidth(float n) {
+void     SDL2Renderer::SetLineWidth(float n) {
 
 }
 
 // Primitive drawing functions
-PUBLIC STATIC void     SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {
+void     SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::StrokeCircle(float x, float y, float rad, float thickness) {
+void     SDL2Renderer::StrokeCircle(float x, float y, float rad, float thickness) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {
+void     SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {
+void     SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::FillCircle(float x, float y, float rad) {
+void     SDL2Renderer::FillCircle(float x, float y, float rad) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::FillEllipse(float x, float y, float w, float h) {
+void     SDL2Renderer::FillEllipse(float x, float y, float w, float h) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 
 }
-PUBLIC STATIC void     SDL2Renderer::FillRectangle(float x, float y, float w, float h) {
+void     SDL2Renderer::FillRectangle(float x, float y, float w, float h) {
 
 }
 // Texture drawing functions
-PUBLIC STATIC void     SDL2Renderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
+void     SDL2Renderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     x *= RenderScale;
     y *= RenderScale;
     w *= RenderScale;
@@ -397,7 +383,7 @@ PUBLIC STATIC void     SDL2Renderer::DrawTexture(Texture* texture, float sx, flo
     }
     SDL_RenderCopyEx(Renderer, *textureData, &src, &dst, 0.0, NULL, (SDL_RendererFlip)flip);
 }
-PUBLIC STATIC void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -411,7 +397,7 @@ PUBLIC STATIC void     SDL2Renderer::DrawSprite(ISprite* sprite, int animation, 
         x + fX * animframe.OffsetX,
         y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
-PUBLIC STATIC void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -434,6 +420,6 @@ PUBLIC STATIC void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animati
         y + fY * (sy + animframe.OffsetY), fX * sw, fY * sh);
 }
 
-PUBLIC STATIC void     SDL2Renderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+void     SDL2Renderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     frame->ID = 0;
 }

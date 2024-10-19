@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/ResourceStream.h>
-#include <Engine/Scene/SceneLayer.h>
-#include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
-
-class HatchSceneReader {
-public:
-    static Uint32 Magic;
-};
-#endif
-
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
 
@@ -39,7 +28,7 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_FLIPY_MASK 0x00002000U
 #define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
 
-PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
+bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
     Stream* r = ResourceStream::New(filename);
     if (!r) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -49,7 +38,7 @@ PUBLIC STATIC bool HatchSceneReader::Read(const char* filename, const char* pare
     return HatchSceneReader::Read(r, parentFolder);
 }
 
-PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
+bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     // Start reading
     if (r->ReadUInt32() != HatchSceneReader::Magic) {
         Log::Print(Log::LOG_ERROR, "Not a Hatch scene!");
@@ -107,7 +96,7 @@ PUBLIC STATIC bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
     return true;
 }
 
-PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
+SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     char* name = r->ReadHeaderedString();
     Uint8 drawBehavior = r->ReadByte();
     Uint8 drawGroup = r->ReadByte();
@@ -161,7 +150,7 @@ PRIVATE STATIC SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     return layer;
 }
 
-PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
+void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
     size_t streamPos = r->Position();
 
     r->ReadUInt32(); // compressed size
@@ -176,7 +165,7 @@ PRIVATE STATIC void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) 
     r->ReadCompressed(layer.Tiles, dataSize);
 }
 
-PRIVATE STATIC void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
+void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
     for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
         if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
             layer->Tiles[i] = Scene::EmptyTile;
@@ -205,7 +194,7 @@ PRIVATE STATIC void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
     }
 }
 
-PRIVATE STATIC void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer) {
+void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer) {
     for (Uint16 i = 0; i < layer.ScrollInfoCount; i++) {
         ScrollingInfo* info = &layer.ScrollInfos[i];
 
@@ -235,7 +224,7 @@ PRIVATE STATIC void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer
 
 static vector<SceneClass> SceneClasses;
 
-PRIVATE STATIC SceneClass* HatchSceneReader::FindClass(SceneHash hash) {
+SceneClass* HatchSceneReader::FindClass(SceneHash hash) {
     for (size_t i = 0; i < SceneClasses.size(); i++) {
         if (SceneClasses[i].Hash == hash)
             return &SceneClasses[i];
@@ -244,7 +233,7 @@ PRIVATE STATIC SceneClass* HatchSceneReader::FindClass(SceneHash hash) {
     return NULL;
 }
 
-PRIVATE STATIC SceneClassProperty* HatchSceneReader::FindProperty(SceneClass* scnClass, SceneHash hash) {
+SceneClassProperty* HatchSceneReader::FindProperty(SceneClass* scnClass, SceneHash hash) {
     for (size_t i = 0; i < scnClass->Properties.size(); i++) {
         if (scnClass->Properties[i].Hash == hash)
             return &scnClass->Properties[i];
@@ -253,7 +242,7 @@ PRIVATE STATIC SceneClassProperty* HatchSceneReader::FindProperty(SceneClass* sc
     return NULL;
 }
 
-PRIVATE STATIC void HatchSceneReader::HashString(char* string, SceneHash* hash) {
+void HatchSceneReader::HashString(char* string, SceneHash* hash) {
     Uint8 final[16];
 
     MD5::EncryptString(final, string);
@@ -264,7 +253,7 @@ PRIVATE STATIC void HatchSceneReader::HashString(char* string, SceneHash* hash) 
     hash->D = final[12] + (final[13] << 8) + (final[14] << 16) + (final[15] << 24);
 }
 
-PRIVATE STATIC void HatchSceneReader::ReadClasses(Stream *r) {
+void HatchSceneReader::ReadClasses(Stream *r) {
     Uint16 numClasses = r->ReadUInt16();
 
     SceneClasses.clear();
@@ -317,7 +306,7 @@ PRIVATE STATIC void HatchSceneReader::ReadClasses(Stream *r) {
     }
 }
 
-PRIVATE STATIC void HatchSceneReader::FreeClasses() {
+void HatchSceneReader::FreeClasses() {
     for (size_t i = 0; i < SceneClasses.size(); i++) {
         SceneClass* scnClass = &SceneClasses[i];
         Memory::Free(scnClass->Name);
@@ -328,7 +317,7 @@ PRIVATE STATIC void HatchSceneReader::FreeClasses() {
     SceneClasses.clear();
 }
 
-PRIVATE STATIC bool HatchSceneReader::LoadTileset(const char* parentFolder) {
+bool HatchSceneReader::LoadTileset(const char* parentFolder) {
     int curTileCount = (int)Scene::TileSpriteInfos.size();
 
     char tilesetFile[4096];
@@ -379,7 +368,7 @@ PRIVATE STATIC bool HatchSceneReader::LoadTileset(const char* parentFolder) {
     return true;
 }
 
-PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
+void HatchSceneReader::ReadEntities(Stream *r) {
     Uint16 numEntities = r->ReadUInt16();
 
     for (Uint16 i = 0; i < numEntities; i++) {
@@ -532,7 +521,7 @@ PRIVATE STATIC void HatchSceneReader::ReadEntities(Stream *r) {
     }
 }
 
-PRIVATE STATIC void HatchSceneReader::SkipEntityProperties(Stream *r, Uint8 numProps) {
+void HatchSceneReader::SkipEntityProperties(Stream *r, Uint8 numProps) {
     for (Uint8 j = 0; j < numProps; j++) {
         r->ReadUInt32();
         r->ReadUInt32();
@@ -542,7 +531,7 @@ PRIVATE STATIC void HatchSceneReader::SkipEntityProperties(Stream *r, Uint8 numP
     }
 }
 
-PRIVATE STATIC void HatchSceneReader::SkipProperty(Stream *r, Uint8 varType) {
+void HatchSceneReader::SkipProperty(Stream *r, Uint8 varType) {
     switch (varType) {
     case HSCN_VAR_INT8:
     case HSCN_VAR_UINT8:

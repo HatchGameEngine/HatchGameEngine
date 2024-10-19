@@ -1,29 +1,7 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-
-#include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
-
-class AudioPlayback {
-public:
-    Uint8*           Buffer = NULL;
-    Uint8*           UnconvertedSampleBuffer = NULL;
-    Uint32           BufferedSamples = 0;
-    SDL_AudioSpec    Format;
-    size_t           BytesPerSample = 0;
-    size_t           RequiredSamples = 0;
-    size_t           DeviceBytesPerSample = 0;
-    SDL_AudioStream* ConversionStream = NULL;
-    SoundFormat*     SoundData = NULL;
-    bool             OwnsSoundData = false;
-    Sint32           LoopIndex = -1;
-};
-#endif
-
 #include <Engine/Audio/AudioPlayback.h>
 #include <Engine/Audio/AudioManager.h>
 
-PUBLIC      AudioPlayback::AudioPlayback(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
+AudioPlayback::AudioPlayback(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
     Format = format;
     RequiredSamples = requiredSamples;
     BytesPerSample = audioBytesPerSample;
@@ -37,7 +15,7 @@ PUBLIC      AudioPlayback::AudioPlayback(SDL_AudioSpec format, size_t requiredSa
     CreateConversionStream(format);
 }
 
-PUBLIC void AudioPlayback::Change(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
+void AudioPlayback::Change(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
     bool formatChanged = format.format != Format.format || format.channels != Format.channels || format.freq != Format.freq;
 
     size_t bufSize = requiredSamples * deviceBytesPerSample;
@@ -60,7 +38,7 @@ PUBLIC void AudioPlayback::Change(SDL_AudioSpec format, size_t requiredSamples, 
     }
 }
 
-PRIVATE void AudioPlayback::CreateConversionStream(SDL_AudioSpec format) {
+void AudioPlayback::CreateConversionStream(SDL_AudioSpec format) {
     ConversionStream = SDL_NewAudioStream(Format.format, Format.channels, Format.freq, AudioManager::DeviceFormat.format, AudioManager::DeviceFormat.channels, AudioManager::DeviceFormat.freq);
     if (ConversionStream == NULL) {
         Log::Print(Log::LOG_ERROR, "Conversion stream failed to create: %s", SDL_GetError());
@@ -75,7 +53,7 @@ PRIVATE void AudioPlayback::CreateConversionStream(SDL_AudioSpec format) {
     }
 }
 
-PUBLIC void AudioPlayback::Dispose() {
+void AudioPlayback::Dispose() {
     if (Buffer) {
         Memory::Free(Buffer);
         Buffer = NULL;
@@ -98,7 +76,7 @@ PUBLIC void AudioPlayback::Dispose() {
     }
 }
 
-PUBLIC int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to) {
+int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to) {
     if (!SoundData)
         return AudioManager::REQUEST_ERROR;
 
@@ -164,13 +142,13 @@ PUBLIC int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_l
     return received_bytes;
 }
 
-PUBLIC void AudioPlayback::Seek(int samples) {
+void AudioPlayback::Seek(int samples) {
     if (!SoundData)
         return;
 
     SoundData->SeekSample(samples);
 }
 
-PUBLIC AudioPlayback::~AudioPlayback() {
+AudioPlayback::~AudioPlayback() {
     Dispose();
 }

@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Bytecode/Types.h>
-
-class HTTP {
-public:
-
-};
-#endif
-
 #include <Engine/Network/HTTP.h>
 
 #include <Engine/Bytecode/ScriptManager.h>
@@ -109,7 +98,7 @@ int       _GET_FromThread(void* op) {
 
 #endif
 
-PUBLIC STATIC bool HTTP::GET(const char* url, Uint8** outBuf, size_t* outLen, ObjBoundMethod* callback) {
+bool HTTP::GET(const char* url, Uint8** outBuf, size_t* outLen, ObjBoundMethod* callback) {
     #ifdef USING_CURL
 
     if (!curl) {

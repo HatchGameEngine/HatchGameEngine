@@ -1,43 +1,8 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/FaceInfo.h>
-#include <Engine/Rendering/VertexBuffer.h>
-#include <Engine/Rendering/PolygonRenderer.h>
-#include <Engine/ResourceTypes/IModel.h>
-#include <Engine/Math/Matrix4x4.h>
-
-class ModelRenderer {
-public:
-    PolygonRenderer* PolyRenderer;
-    VertexBuffer*    Buffer;
-
-    VertexAttribute* AttribBuffer;
-    VertexAttribute* Vertex;
-    FaceInfo*        FaceItem;
-
-    Matrix4x4*       ModelMatrix;
-    Matrix4x4*       ViewMatrix;
-    Matrix4x4*       ProjectionMatrix;
-    Matrix4x4*       NormalMatrix;
-
-    Matrix4x4        MVPMatrix;
-
-    bool             DoProjection;
-    bool             ClipFaces;
-    Armature*        ArmaturePtr;
-
-    Uint32           DrawMode;
-    Uint8            FaceCullMode;
-    Uint32           CurrentColor;
-};
-#endif
-
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Rendering/PolygonRenderer.h>
 #include <Engine/Utilities/ColorUtils.h>
 
-PRIVATE void ModelRenderer::Init() {
+void ModelRenderer::Init() {
     FaceItem = &Buffer->FaceInfoBuffer[Buffer->FaceCount];
     AttribBuffer = Vertex = &Buffer->Vertices[Buffer->VertexCount];
 
@@ -45,28 +10,28 @@ PRIVATE void ModelRenderer::Init() {
     ArmaturePtr = nullptr;
 }
 
-PUBLIC ModelRenderer::ModelRenderer(PolygonRenderer* polyRenderer) {
+ModelRenderer::ModelRenderer(PolygonRenderer* polyRenderer) {
     PolyRenderer = polyRenderer;
     Buffer = PolyRenderer->VertexBuf;
 
     Init();
 }
 
-PUBLIC ModelRenderer::ModelRenderer(VertexBuffer* buffer) {
+ModelRenderer::ModelRenderer(VertexBuffer* buffer) {
     PolyRenderer = nullptr;
     Buffer = buffer;
 
     Init();
 }
 
-PUBLIC void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
+void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
     ModelMatrix = model;
     ViewMatrix = view;
     ProjectionMatrix = projection;
     NormalMatrix = normal;
 }
 
-PRIVATE void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
+void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
     FaceItem->DrawMode = DrawMode;
     FaceItem->CullMode = FaceCullMode;
     FaceItem->NumVertices = faceVertexCount;
@@ -83,7 +48,7 @@ PRIVATE void ModelRenderer::AddFace(int faceVertexCount, Material* material) {
     Buffer->VertexCount += faceVertexCount;
 }
 
-PRIVATE int ModelRenderer::ClipFace(int faceVertexCount) {
+int ModelRenderer::ClipFace(int faceVertexCount) {
     if (!ClipFaces)
         return faceVertexCount;
 
@@ -114,7 +79,7 @@ PRIVATE int ModelRenderer::ClipFace(int faceVertexCount) {
     return faceVertexCount;
 }
 
-PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix) {
     Vector3* positionBuffer = mesh->PositionBuffer;
     Vector3* normalBuffer = mesh->NormalBuffer;
     Vector2* uvBuffer = mesh->UVBuffer;
@@ -127,7 +92,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skelet
     DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
 }
 
-PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix) {
     Vector3* positionBuffer = mesh->PositionBuffer;
     Vector3* normalBuffer = mesh->NormalBuffer;
     Vector2* uvBuffer = mesh->UVBuffer;
@@ -143,7 +108,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation
     DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
 }
 
-PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix) {
     Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
 
     Sint32* modelVertexIndexPtr = mesh->VertexIndexBuffer;
@@ -370,7 +335,7 @@ PRIVATE void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positio
     }
 }
 
-PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
+void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
     size_t numMeshes = node->Meshes.size();
     size_t numChildren = node->Children.size();
 
@@ -403,7 +368,7 @@ PRIVATE void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* 
         DrawNode(model, node->Children[i], world);
 }
 
-PRIVATE void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, Uint32 frame) {
+void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, Uint32 frame) {
     if (DoProjection)
         Graphics::CalculateMVPMatrix(&MVPMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
     else
@@ -422,7 +387,7 @@ PRIVATE void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, U
     }
 }
 
-PUBLIC void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
+void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
     Uint16 numAnims = model->AnimationCount;
     if (numAnims > 0) {
         if (animation >= numAnims)

@@ -1,16 +1,7 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
-
-class Clipper {
-public:
-};
-#endif
-
 #include <Engine/Math/Clipper.h>
 #include <Engine/Math/Vector.h>
 
-PRIVATE STATIC void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, Sint64 t) {
+void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, Sint64 t) {
     Vector4 diff = Vector::Subtract(p2, p1);
     Vector4 newPosition = Vector::Add(p1, Vector::Multiply(diff, t));
 
@@ -31,7 +22,7 @@ PRIVATE STATIC void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1,
 #undef DO_INTERP
 }
 
-PRIVATE STATIC bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, VertexAttribute* v2, PolygonClipBuffer* output) {
+bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, VertexAttribute* v2, PolygonClipBuffer* output) {
     VertexAttribute* buffer = &output->Buffer[output->NumPoints];
 
     Vector4 pos1 = v1->Position;
@@ -90,7 +81,7 @@ PRIVATE STATIC bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, Vert
     return true;
 }
 
-PRIVATE STATIC int  Clipper::ClipPolygon(Frustum frustum, PolygonClipBuffer* output, VertexAttribute* input, int vertexCount) {
+int  Clipper::ClipPolygon(Frustum frustum, PolygonClipBuffer* output, VertexAttribute* input, int vertexCount) {
     // Not even a triangle?
     if (vertexCount < 3)
         return 0;
@@ -110,7 +101,7 @@ PRIVATE STATIC int  Clipper::ClipPolygon(Frustum frustum, PolygonClipBuffer* out
     return output->NumPoints;
 }
 
-PUBLIC STATIC int  Clipper::FrustumClip(PolygonClipBuffer* output, Frustum* frustum, int num, VertexAttribute* input, int vertexCount) {
+int  Clipper::FrustumClip(PolygonClipBuffer* output, Frustum* frustum, int num, VertexAttribute* input, int vertexCount) {
     PolygonClipBuffer temp[NUM_FRUSTUM_PLANES];
 
     VertexAttribute* buffer = input;

@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/Texture.h>
-
-class Image {
-public:
-    char              Filename[256];
-    Texture*          TexturePtr = NULL;
-};
-#endif
-
 #include <Engine/ResourceTypes/Image.h>
 
 #include <Engine/Application.h>
@@ -25,23 +14,23 @@ public:
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-PUBLIC Image::Image(const char* filename) {
+Image::Image(const char* filename) {
     strncpy(Filename, filename, 255);
     TexturePtr = Image::LoadTextureFromResource(Filename);
 }
 
-PUBLIC void Image::Dispose() {
+void Image::Dispose() {
     if (TexturePtr) {
         Graphics::DisposeTexture(TexturePtr);
         TexturePtr = NULL;
     }
 }
 
-PUBLIC Image::~Image() {
+Image::~Image() {
     Dispose();
 }
 
-PUBLIC STATIC Texture* Image::LoadTextureFromResource(const char* filename) {
+Texture* Image::LoadTextureFromResource(const char* filename) {
     Texture* texture = NULL;
     Uint32*  data = NULL;
     Uint32   width = 0;

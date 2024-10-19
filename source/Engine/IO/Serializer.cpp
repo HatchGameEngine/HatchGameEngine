@@ -1,57 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-
-class Serializer {
-public:
-    std::map<Obj*, Uint32> ObjToID;
-    std::vector<Obj*>      ObjList;
-    Stream*                StreamPtr;
-
-    size_t                 StoredStreamPos;
-    size_t                 StoredChunkPos;
-    Uint32                 CurrentChunkType;
-
-    struct Chunk {
-        Uint32 Type;
-        size_t Offset;
-        size_t Size;
-    };
-    std::vector<Serializer::Chunk> ChunkList;
-    Serializer::Chunk              LastChunk;
-
-    struct String {
-        Uint32 Length;
-        char*  Chars;
-    };
-    std::vector<Serializer::String> StringList;
-
-    enum {
-        CHUNK_OBJS = MakeFourCC("OBJS"),
-        CHUNK_TEXT = MakeFourCC("TEXT")
-    };
-
-    enum {
-        VAL_TYPE_NULL,
-        VAL_TYPE_INTEGER,
-        VAL_TYPE_DECIMAL,
-        VAL_TYPE_OBJECT,
-
-        END = 0xFF
-    };
-
-    enum {
-        OBJ_TYPE_UNIMPLEMENTED,
-        OBJ_TYPE_STRING,
-        OBJ_TYPE_ARRAY,
-        OBJ_TYPE_MAP
-    };
-
-    static Uint32 Magic;
-    static Uint32 Version;
-};
-#endif
-
 #include <Engine/IO/Serializer.h>
 
 #include <Engine/Utilities/StringUtils.h>
@@ -59,7 +5,7 @@ public:
 Uint32 Serializer::Magic = 0x9D939FF0;
 Uint32 Serializer::Version = 0x00000001;
 
-PUBLIC Serializer::Serializer(Stream* stream) {
+Serializer::Serializer(Stream* stream) {
     StreamPtr = stream;
     ObjToID.clear();
     ObjList.clear();
@@ -67,7 +13,7 @@ PUBLIC Serializer::Serializer(Stream* stream) {
     StringList.clear();
 }
 
-PRIVATE void Serializer::WriteValue(VMValue val) {
+void Serializer::WriteValue(VMValue val) {
     switch (val.Type) {
         case VAL_DECIMAL:
         case VAL_LINKED_DECIMAL: {
@@ -106,7 +52,7 @@ PRIVATE void Serializer::WriteValue(VMValue val) {
     }
 }
 
-PRIVATE void Serializer::WriteObject(Obj* obj) {
+void Serializer::WriteObject(Obj* obj) {
     switch (obj->Type) {
         case OBJ_STRING: {
             WriteObjectPreamble(Serializer::OBJ_TYPE_STRING);
@@ -161,7 +107,7 @@ PRIVATE void Serializer::WriteObject(Obj* obj) {
     PatchObjectSize();
 }
 
-PRIVATE void Serializer::WriteObjectsChunk() {
+void Serializer::WriteObjectsChunk() {
     BeginChunk(Serializer::CHUNK_OBJS);
 
     StreamPtr->WriteUInt32(ObjList.size());
@@ -173,7 +119,7 @@ PRIVATE void Serializer::WriteObjectsChunk() {
     AddChunkToList();
 }
 
-PRIVATE void Serializer::WriteTextChunk() {
+void Serializer::WriteTextChunk() {
     BeginChunk(Serializer::CHUNK_TEXT);
 
     StreamPtr->WriteUInt32(StringList.size());
@@ -190,19 +136,19 @@ PRIVATE void Serializer::WriteTextChunk() {
     ChunkList.insert(ChunkList.begin(), LastChunk);
 }
 
-PRIVATE Uint32 Serializer::GetUniqueObjectID(Obj* obj) {
+Uint32 Serializer::GetUniqueObjectID(Obj* obj) {
     if (ObjToID.count(obj))
         return ObjToID[obj];
 
     return 0xFFFFFFFF;
 }
 
-PRIVATE void Serializer::BeginChunk(Uint32 type) {
+void Serializer::BeginChunk(Uint32 type) {
     CurrentChunkType = type;
     StoredChunkPos = StreamPtr->Position();
 }
 
-PRIVATE void Serializer::FinishChunk() {
+void Serializer::FinishChunk() {
     LastChunk.Type = CurrentChunkType;
     LastChunk.Offset = StoredChunkPos;
     LastChunk.Size = StreamPtr->Position() - StoredChunkPos;
@@ -211,18 +157,18 @@ PRIVATE void Serializer::FinishChunk() {
     StreamPtr->WriteByte(Serializer::END);
 }
 
-PRIVATE void Serializer::AddChunkToList() {
+void Serializer::AddChunkToList() {
     ChunkList.push_back(LastChunk);
 }
 
-PRIVATE void Serializer::WriteObjectPreamble(Uint8 type) {
+void Serializer::WriteObjectPreamble(Uint8 type) {
     StreamPtr->WriteByte(type);
     StreamPtr->WriteUInt32(0); // To be patched in later
 
     StoredStreamPos = StreamPtr->Position();
 }
 
-PRIVATE void Serializer::PatchObjectSize() {
+void Serializer::PatchObjectSize() {
     size_t curPos = StreamPtr->Position();
     size_t size = curPos - StoredStreamPos;
     StreamPtr->Seek(StoredStreamPos - 4);
@@ -230,7 +176,7 @@ PRIVATE void Serializer::PatchObjectSize() {
     StreamPtr->Seek(curPos);
 }
 
-PRIVATE void Serializer::AddUniqueString(char* chars, size_t length) {
+void Serializer::AddUniqueString(char* chars, size_t length) {
     if (StringList.size() >= 0xFFFFFFFF)
         return;
 
@@ -245,7 +191,7 @@ PRIVATE void Serializer::AddUniqueString(char* chars, size_t length) {
     StringList.push_back(str);
 }
 
-PRIVATE Uint32 Serializer::GetUniqueStringID(char* chars, size_t length) {
+Uint32 Serializer::GetUniqueStringID(char* chars, size_t length) {
     for (size_t i = 0; i < StringList.size(); i++) {
         if (StringList[i].Length == length && !memcmp(StringList[i].Chars, chars, length))
             return (Uint32)i;
@@ -254,7 +200,7 @@ PRIVATE Uint32 Serializer::GetUniqueStringID(char* chars, size_t length) {
     return 0xFFFFFFFF;
 }
 
-PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
+void Serializer::AddUniqueObject(Obj* obj) {
     if (ObjToID.count(obj) || ObjList.size() >= 0xFFFFFFFF)
         return;
 
@@ -292,7 +238,7 @@ PRIVATE void Serializer::AddUniqueObject(Obj* obj) {
     }
 }
 
-PUBLIC void Serializer::Store(VMValue val) {
+void Serializer::Store(VMValue val) {
     // Write header
     StreamPtr->WriteUInt32(Serializer::Magic);
     StreamPtr->WriteUInt32(Serializer::Version);
@@ -345,7 +291,7 @@ PUBLIC void Serializer::Store(VMValue val) {
     ObjList.clear();
 }
 
-PRIVATE void Serializer::GetObject() {
+void Serializer::GetObject() {
     Uint8 type = StreamPtr->ReadByte();
     Uint32 size = StreamPtr->ReadUInt32();
     switch (type) {
@@ -388,7 +334,7 @@ PRIVATE void Serializer::GetObject() {
     }
 }
 
-PRIVATE void Serializer::ReadObject(Obj* obj) {
+void Serializer::ReadObject(Obj* obj) {
     Uint8 type = StreamPtr->ReadByte();
     Uint32 size = StreamPtr->ReadUInt32();
     switch (type) {
@@ -428,7 +374,7 @@ PRIVATE void Serializer::ReadObject(Obj* obj) {
     }
 }
 
-PRIVATE VMValue Serializer::ReadValue() {
+VMValue Serializer::ReadValue() {
     Uint8 type = StreamPtr->ReadByte();
     switch (type) {
     case Serializer::VAL_TYPE_INTEGER:
@@ -455,7 +401,7 @@ PRIVATE VMValue Serializer::ReadValue() {
     return NULL_VAL;
 }
 
-PUBLIC bool Serializer::ReadObjectsChunk() {
+bool Serializer::ReadObjectsChunk() {
     // Read the object count
     Uint32 count = StreamPtr->ReadUInt32();
     if (!count)
@@ -479,7 +425,7 @@ PUBLIC bool Serializer::ReadObjectsChunk() {
     return StreamPtr->ReadByte() == Serializer::END;
 }
 
-PUBLIC bool Serializer::ReadTextChunk() {
+bool Serializer::ReadTextChunk() {
     // Read the count
     Uint32 count = StreamPtr->ReadUInt32();
 
@@ -499,7 +445,7 @@ PUBLIC bool Serializer::ReadTextChunk() {
     return StreamPtr->ReadByte() == Serializer::END;
 }
 
-PUBLIC VMValue Serializer::Retrieve() {
+VMValue Serializer::Retrieve() {
     Uint32 magic = StreamPtr->ReadUInt32();
     if (magic != Serializer::Magic) {
         Log::Print(Log::LOG_ERROR, "Invalid magic!");

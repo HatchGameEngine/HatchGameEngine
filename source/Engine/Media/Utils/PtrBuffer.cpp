@@ -1,22 +1,8 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <functional>
-
-class PtrBuffer {
-public:
-    Uint32 ReadPtr;
-    Uint32 WritePtr;
-    Uint32 Size;
-    void** Data;
-    void (*FreeFunc)(void*);
-};
-#endif
-
 #include <Engine/Media/Utils/PtrBuffer.h>
 
 #include <Engine/Diagnostics/Log.h>
 
-PUBLIC PtrBuffer::PtrBuffer(Uint32 size, void (*freeFunc)(void*)) {
+PtrBuffer::PtrBuffer(Uint32 size, void (*freeFunc)(void*)) {
     this->ReadPtr = 0;
     this->WritePtr = 0;
     this->Size = size;
@@ -28,15 +14,15 @@ PUBLIC PtrBuffer::PtrBuffer(Uint32 size, void (*freeFunc)(void*)) {
         exit(-1);
     }
 }
-PUBLIC PtrBuffer::~PtrBuffer() {
+PtrBuffer::~PtrBuffer() {
     Clear();
     free(this->Data);
 }
 
-PUBLIC Uint32 PtrBuffer::GetLength() {
+Uint32 PtrBuffer::GetLength() {
     return this->WritePtr - this->ReadPtr;
 }
-PUBLIC void   PtrBuffer::Clear() {
+void   PtrBuffer::Clear() {
     if (FreeFunc == NULL)
         return;
 
@@ -45,7 +31,7 @@ PUBLIC void   PtrBuffer::Clear() {
         FreeFunc(data);
     }
 }
-PUBLIC void*  PtrBuffer::Read() {
+void*  PtrBuffer::Read() {
     if (ReadPtr < WritePtr) {
         void* out = Data[ReadPtr % Size];
         Data[ReadPtr % Size] = NULL;
@@ -58,13 +44,13 @@ PUBLIC void*  PtrBuffer::Read() {
     }
     return NULL;
 }
-PUBLIC void*  PtrBuffer::Peek() {
+void*  PtrBuffer::Peek() {
     if (ReadPtr < WritePtr) {
         return Data[ReadPtr % Size];
     }
     return NULL;
 }
-PUBLIC void   PtrBuffer::Advance() {
+void   PtrBuffer::Advance() {
     if (ReadPtr < WritePtr) {
         Data[ReadPtr % Size] = NULL;
         ReadPtr++;
@@ -74,7 +60,7 @@ PUBLIC void   PtrBuffer::Advance() {
         }
     }
 }
-PUBLIC int    PtrBuffer::Write(void* ptr) {
+int    PtrBuffer::Write(void* ptr) {
     if (!ptr) {
         Log::Print(Log::LOG_ERROR, "PtrBuffer::Write: ptr == NULL");
         exit(-1);
@@ -87,7 +73,7 @@ PUBLIC int    PtrBuffer::Write(void* ptr) {
     }
     return 1;
 }
-PUBLIC void   PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*), void* userdata) {
+void   PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*), void* userdata) {
     Uint32 read_p = ReadPtr;
     Uint32 write_p = WritePtr;
     while (read_p < write_p) {
@@ -98,7 +84,7 @@ PUBLIC void   PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*), voi
         }
     }
 }
-PUBLIC void   PtrBuffer::WithEachItemInBuffer(std::function<void(void*, void*)> callback, void* userdata) {
+void   PtrBuffer::WithEachItemInBuffer(std::function<void(void*, void*)> callback, void* userdata) {
     Uint32 read_p = ReadPtr;
     Uint32 write_p = WritePtr;
     while (read_p < write_p) {
@@ -109,7 +95,7 @@ PUBLIC void   PtrBuffer::WithEachItemInBuffer(std::function<void(void*, void*)> 
         }
     }
 }
-PUBLIC int    PtrBuffer::IsFull() {
+int    PtrBuffer::IsFull() {
     int len = WritePtr - ReadPtr;
     int k = (len >= (int)Size);
     return k;

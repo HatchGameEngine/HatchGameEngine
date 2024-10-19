@@ -1,17 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Application.h>
-
-#include <Engine/IO/Stream.h>
-#include <Engine/ResourceTypes/ISprite.h>
-
-class FontFace {
-public:
-
-};
-#endif
-
 #include <Engine/FontFace.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -149,7 +135,7 @@ FT_Package*     PackBoxes(FT_GlyphBox* boxes, int boxCount, int defWidth, int de
     return package;
 }
 
-PUBLIC STATIC ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, char* filename) {
+ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, char* filename) {
     #ifdef USING_FREETYPE
 
     if (!ftInitialized) {

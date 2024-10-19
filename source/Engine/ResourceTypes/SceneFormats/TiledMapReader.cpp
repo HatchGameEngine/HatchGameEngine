@@ -1,11 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/Bytecode/ScriptManager.h>
-class TiledMapReader {
-public:
-};
-#endif
-
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
 
 #include <Engine/IO/MemoryStream.h>
@@ -104,7 +96,7 @@ int   base64_decode_block(const char* code_in, const int length_in, char* plaint
     return (int)(plainchar - (int8_t*)plaintext_out);
 }
 
-PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
+VMValue TiledMapReader::ParseProperty(XMLNode* property) {
     // If the property has no value (for example, a multiline string),
     // the value is assumed to be in the content
     if (!property->attributes.Exists("value")) {
@@ -179,7 +171,7 @@ PRIVATE STATIC VMValue TiledMapReader::ParseProperty(XMLNode* property) {
     return val;
 }
 
-PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMValue>* properties) {
+void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMValue>* properties) {
     if (!node->attributes.Exists("name"))
         return;
 
@@ -188,7 +180,7 @@ PRIVATE STATIC void TiledMapReader::ParsePropertyNode(XMLNode* node, HashMap<VMV
     properties->Put(property_name.ToString().c_str(), TiledMapReader::ParseProperty(node));
 }
 
-PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
+ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
     if (!node->attributes.Exists("points"))
         return nullptr;
 
@@ -216,7 +208,7 @@ PRIVATE STATIC ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
     return array;
 }
 
-PRIVATE STATIC Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
+Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
     char imagePath[4096];
 
     Token image_source = node->attributes.Get("source");
@@ -274,7 +266,7 @@ PRIVATE STATIC Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int fir
     return &Scene::Tilesets.back();
 }
 
-PRIVATE STATIC void TiledMapReader::ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node) {
+void TiledMapReader::ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node) {
     vector<int> tileIDs;
     vector<int> frameDurations;
 
@@ -293,7 +285,7 @@ PRIVATE STATIC void TiledMapReader::ParseTileAnimation(int tileID, int firstgid,
     tilesetPtr->AddTileAnimSequence(tileID, &Scene::TileSpriteInfos[tileID], tileIDs, frameDurations);
 }
 
-PRIVATE STATIC void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
+void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
     if (!tilesetPtr)
         return;
 
@@ -307,7 +299,7 @@ PRIVATE STATIC void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node
     }
 }
 
-PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
+void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
     int firstgid = (int)XMLParser::TokenToNumber(tileset->attributes.Get("firstgid"));
 
     XMLNode* tilesetXML = NULL;
@@ -344,7 +336,7 @@ PRIVATE STATIC void TiledMapReader::LoadTileset(XMLNode* tileset, const char* pa
         XMLParser::Free(tilesetXML);
 }
 
-PRIVATE STATIC bool TiledMapReader::ParseLayer(XMLNode* layer) {
+bool TiledMapReader::ParseLayer(XMLNode* layer) {
     int layer_width = (int)XMLParser::TokenToNumber(layer->attributes.Get("width"));
     int layer_height = (int)XMLParser::TokenToNumber(layer->attributes.Get("height"));
 
@@ -457,7 +449,7 @@ PRIVATE STATIC bool TiledMapReader::ParseLayer(XMLNode* layer) {
 
     return true;
 }
-PRIVATE STATIC bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
+bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
     for (size_t o = 0; o < objectgroup->children.size(); o++) {
         XMLNode* object = objectgroup->children[o];
         Token    object_type = object->attributes.Get("name");
@@ -522,7 +514,7 @@ PRIVATE STATIC bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
     return true;
 }
-PRIVATE STATIC bool TiledMapReader::ParseGroupable(XMLNode* node) {
+bool TiledMapReader::ParseGroupable(XMLNode* node) {
     if (XMLParser::MatchToken(node->name, "layer")) {
         if (!ParseLayer(node))
             return false;
@@ -539,7 +531,7 @@ PRIVATE STATIC bool TiledMapReader::ParseGroupable(XMLNode* node) {
 
     return true;
 }
-PRIVATE STATIC bool TiledMapReader::ParseGroup(XMLNode* group) {
+bool TiledMapReader::ParseGroup(XMLNode* group) {
     // TODO: Read and store these groups if they can be relevant.
     for (size_t i = 0; i < group->children.size(); i++) {
         if (!ParseGroupable(group->children[i])) {
@@ -550,7 +542,7 @@ PRIVATE STATIC bool TiledMapReader::ParseGroup(XMLNode* group) {
     return true;
 }
 
-PUBLIC STATIC void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
+void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
     XMLNode* tileMapXML = XMLParser::ParseFromResource(sourceF);
     if (!tileMapXML) {
         Log::Print(Log::LOG_ERROR, "Could not parse from resource \"%s\"", sourceF);

@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/ResourceTypes/ImageFormats/ImageFormat.h>
-#include <Engine/IO/Stream.h>
-
-class GIF : public ImageFormat {
-public:
-    vector<Uint32*> Frames;
-};
-#endif
-
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 
 #include <Engine/Application.h>
@@ -34,7 +23,7 @@ struct Entry {
 	Uint8  Suffix;
 };
 
-PRIVATE STATIC inline Uint32 GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int* bitCacheLength) {
+inline Uint32 GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int* bitCacheLength) {
     if (*blockLength == 0)
         *blockLength = stream->ReadByte();
 
@@ -54,7 +43,7 @@ PRIVATE STATIC inline Uint32 GIF::ReadCode(Stream* stream, int codeSize, int* bl
 
     return result;
 }
-PRIVATE STATIC inline void   GIF::WriteCode(Stream* stream, int* offset, int* partial, Uint8* buffer, uint16_t key, int key_size) {
+inline void   GIF::WriteCode(Stream* stream, int* offset, int* partial, Uint8* buffer, uint16_t key, int key_size) {
     int byte_offset, bit_offset, bits_to_write;
     byte_offset = *offset >> 3;
     bit_offset = *offset & 0x7;
@@ -72,7 +61,7 @@ PRIVATE STATIC inline void   GIF::WriteCode(Stream* stream, int* offset, int* pa
     }
     *offset = (*offset + key_size) % (0xFF * 8);
 }
-PRIVATE        inline void   GIF::WriteFrame(Stream* stream, Uint32* data) {
+inline void   GIF::WriteFrame(Stream* stream, Uint32* data) {
     int depth = 8;
     // Put Image
     Node* node;
@@ -143,19 +132,19 @@ PRIVATE        inline void   GIF::WriteFrame(Stream* stream, Uint32* data) {
     FreeTree(root, degree);
 }
 
-PRIVATE STATIC void*  GIF::NewNode(Uint16 key, int degree) {
+void*  GIF::NewNode(Uint16 key, int degree) {
     Node* node = (Node*)Memory::Calloc(1, sizeof(*node) + degree * sizeof(Node*));
     if (node) node->Key = key;
     return node;
 }
-PRIVATE STATIC void*  GIF::NewTree(int degree, int* nkeys) {
+void*  GIF::NewTree(int degree, int* nkeys) {
     Node *root = (Node*)GIF::NewNode(0, degree);
     for (*nkeys = 0; *nkeys < degree; (*nkeys)++)
         root->Children[*nkeys] = (Node*)GIF::NewNode(*nkeys, degree);
     *nkeys += 2;
     return root;
 }
-PRIVATE STATIC void   GIF::FreeTree(void* root, int degree) {
+void   GIF::FreeTree(void* root, int degree) {
     if (!root) return;
     for (int i = 0; i < degree; i++) FreeTree(((Node*)root)->Children[i], degree);
     Memory::Free(root);
@@ -172,7 +161,7 @@ Log::Print(Log::LOG_VERBOSE, "- Mark '%s' took %.3f ms to reach.", label, delta)
 Clock::Start(); \
 }
 
-PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
+GIF*   GIF::Load(const char* filename) {
     bool loadPalette = Graphics::UsePalettes;
     Entry* codeTable = (Entry*)Memory::Malloc(0x1000 * sizeof(Entry));
 
@@ -513,11 +502,11 @@ PUBLIC STATIC  GIF*   GIF::Load(const char* filename) {
         return gif;
 }
 
-PUBLIC STATIC  bool   GIF::Save(GIF* gif, const char* filename) {
+bool   GIF::Save(GIF* gif, const char* filename) {
     return gif->Save(filename);
 }
 
-PUBLIC        bool    GIF::Save(const char* filename) {
+bool    GIF::Save(const char* filename) {
     Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
     if (!stream)
         return false;
@@ -575,6 +564,6 @@ PUBLIC        bool    GIF::Save(const char* filename) {
     return true;
 }
 
-PUBLIC                GIF::~GIF() {
+GIF::~GIF() {
 
 }

@@ -1,21 +1,3 @@
-#if INTERFACE
-#include <Engine/Bytecode/Types.h>
-#include <Engine/Bytecode/CompilerEnums.h>
-
-class Bytecode {
-public:
-    static const char*         Magic;
-    static Uint32              LatestVersion;
-    static vector<const char*> FunctionNames;
-
-    vector<ObjFunction*>       Functions;
-
-    Uint8                      Version;
-    bool                       HasDebugInfo = false;
-    const char*                SourceFilename = nullptr;
-};
-#endif
-
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -26,15 +8,15 @@ const char*         Bytecode::Magic = "HTVM";
 Uint32              Bytecode::LatestVersion = BYTECODE_VERSION;
 vector<const char*> Bytecode::FunctionNames{ "<anonymous-fn>", "main" };
 
-PUBLIC              Bytecode::Bytecode() {
+Bytecode::Bytecode() {
     Version = LatestVersion;
 }
 
-PUBLIC              Bytecode::~Bytecode() {
+Bytecode::~Bytecode() {
     Memory::Free((void*)SourceFilename);
 }
 
-PUBLIC bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
+bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
     MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
     if (!stream)
         return false;
@@ -143,7 +125,7 @@ PUBLIC bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* to
     return true;
 }
 
-PUBLIC void        Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap) {
+void        Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap) {
     int hasSourceFilename = (sourceFilename != nullptr) ? 1 : 0;
     int hasDebugInfo = HasDebugInfo ? 1 : 0;
 

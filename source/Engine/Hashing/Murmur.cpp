@@ -1,27 +1,17 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class Murmur {
-public:
-
-};
-#endif
-
 #include <Engine/Hashing/Murmur.h>
 #include <Engine/Hashing/FNV1A.h>
 
-PUBLIC STATIC Uint32 Murmur::EncryptString(char* message) {
+Uint32 Murmur::EncryptString(char* message) {
     return Murmur::EncryptData(message, strlen(message), 0xDEADBEEF);
 }
-PUBLIC STATIC Uint32 Murmur::EncryptString(const char* message) {
+Uint32 Murmur::EncryptString(const char* message) {
     return Murmur::EncryptString((char*)message);
 }
 
-PUBLIC STATIC Uint32 Murmur::EncryptData(const void* data, size_t size) {
+Uint32 Murmur::EncryptData(const void* data, size_t size) {
     return Murmur::EncryptData(data, size, 0xDEADBEEF);
 }
-PUBLIC STATIC Uint32 Murmur::EncryptData(const void* key, size_t size, Uint32 hash) {
+Uint32 Murmur::EncryptData(const void* key, size_t size, Uint32 hash) {
     const unsigned int m = 0x5bd1e995;
     const int r = 24;
 	unsigned int h = hash ^ (Uint32)size;

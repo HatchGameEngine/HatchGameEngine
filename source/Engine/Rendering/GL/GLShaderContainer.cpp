@@ -1,24 +1,12 @@
-#if INTERFACE
-#include <Engine/Rendering/GL/GLShader.h>
-#include <Engine/Rendering/GL/ShaderIncludes.h>
-
-class GLShaderContainer {
-public:
-    GLShader *Base = nullptr;
-    GLShader *Textured = nullptr;
-    GLShader *PalettizedTextured = nullptr;
-};
-#endif
-
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/GLShaderContainer.h>
 #include <Engine/Rendering/3D.h>
 
-PUBLIC GLShaderContainer::GLShaderContainer() {
+GLShaderContainer::GLShaderContainer() {
 
 }
 
-PUBLIC GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn, GLShaderLinkage vsOut, GLShaderLinkage fsIn, GLShaderUniforms vsUni, GLShaderUniforms fsUni) {
+GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn, GLShaderLinkage vsOut, GLShaderLinkage fsIn, GLShaderUniforms vsUni, GLShaderUniforms fsUni) {
     std::string vs, fs;
 
     vsIn.link_position = true;
@@ -43,7 +31,7 @@ PUBLIC GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn, GLShaderLinkag
     PalettizedTextured = new GLShader(vs, fs);
 }
 
-PUBLIC GLShader* GLShaderContainer::Get(bool useTexturing, bool usePalette) {
+GLShader* GLShaderContainer::Get(bool useTexturing, bool usePalette) {
     if (useTexturing) {
         if (usePalette)
             return PalettizedTextured;
@@ -54,15 +42,15 @@ PUBLIC GLShader* GLShaderContainer::Get(bool useTexturing, bool usePalette) {
     return Base;
 }
 
-PUBLIC GLShader* GLShaderContainer::Get(bool useTexturing) {
+GLShader* GLShaderContainer::Get(bool useTexturing) {
     return Get(useTexturing, false);
 }
 
-PUBLIC GLShader* GLShaderContainer::Get() {
+GLShader* GLShaderContainer::Get() {
     return Get(false, false);
 }
 
-PUBLIC STATIC GLShaderContainer* GLShaderContainer::Make(bool use_vertex_colors) {
+GLShaderContainer* GLShaderContainer::Make(bool use_vertex_colors) {
     GLShaderLinkage vsIn = {0};
     GLShaderLinkage vsOut = {0};
     GLShaderLinkage fsIn = {0};
@@ -76,7 +64,7 @@ PUBLIC STATIC GLShaderContainer* GLShaderContainer::Make(bool use_vertex_colors)
     return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni);
 }
 
-PUBLIC STATIC GLShaderContainer* GLShaderContainer::MakeFog(int fog_type) {
+GLShaderContainer* GLShaderContainer::MakeFog(int fog_type) {
     GLShaderLinkage vsIn = {0};
     GLShaderLinkage vsOut = {0};
     GLShaderLinkage fsIn = {0};
@@ -97,7 +85,7 @@ PUBLIC STATIC GLShaderContainer* GLShaderContainer::MakeFog(int fog_type) {
     return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni);
 }
 
-PUBLIC STATIC GLShaderContainer* GLShaderContainer::MakeYUV() {
+GLShaderContainer* GLShaderContainer::MakeYUV() {
     GLShaderLinkage vsIn = {0};
     GLShaderLinkage vsOut = {0};
     GLShaderLinkage fsIn = {0};
@@ -140,7 +128,7 @@ PUBLIC STATIC GLShaderContainer* GLShaderContainer::MakeYUV() {
     return container;
 }
 
-PUBLIC GLShaderContainer::~GLShaderContainer() {
+GLShaderContainer::~GLShaderContainer() {
     if (Base)
         delete Base;
     if (Textured)

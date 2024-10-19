@@ -37,16 +37,14 @@ ifeq ($(PLATFORM),$(PLATFORM_WINDOWS))
 PROGRAM_SUFFIX := .exe
 endif
 
-ifeq ($(PLATFORM),$(PLATFORM_LINUX))
-MAKEHEADERS := ./tools/makeheaders
-else
-MAKEHEADERS := ./tools/makeheaders$(PROGRAM_SUFFIX)
-endif
-
 USING_LIBAV = 0
 USING_CURL = 0
 USING_LIBPNG = 1
 USING_ASSIMP = 1
+
+ifeq ($(PLATFORM),$(PLATFORM_MACOS))
+USING_ASSIMP = 0
+endif
 
 TARGET    = HatchGameEngine
 TARGETDIR = builds/$(OUT_FOLDER)/$(TARGET)
@@ -63,10 +61,10 @@ ifeq ($(PLATFORM),$(PLATFORM_MACOS))
 OBJ_DIRS += $(addprefix out/$(OUT_FOLDER)/, $(dir $(SRC_M:source/%.m=%.o)))
 endif
 
-OBJS     := $(addprefix out/$(OUT_FOLDER)/, $(SRC_C:source/%.c=%.o)) \
+OBJS := $(addprefix out/$(OUT_FOLDER)/, $(SRC_C:source/%.c=%.o)) \
 			$(addprefix out/$(OUT_FOLDER)/, $(SRC_CPP:source/%.cpp=%.o))
 ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-OBJ_DIRS += $(addprefix out/$(OUT_FOLDER)/, $(SRC_M:source/%.m=%.o))
+OBJS += $(addprefix out/$(OUT_FOLDER)/, $(SRC_M:source/%.m=%.o))
 endif
 
 INCLUDES  =	-Wall -Wno-deprecated -Wno-unused-variable \
@@ -90,13 +88,10 @@ ifneq ($(MSYS_VERSION),0)
 DEFINES += -DMSYS
 endif
 endif
-ifeq ($(PLATOFRM),$(PLATFORM_MACOS))
-INCLUDES += -F/Library/Frameworks/ \
-			-F/System/Library/Frameworks/ \
-			-Fmeta/mac/ \
-			-I/Library/Frameworks/SDL2.framework/Headers/ \
-			-I/System/Library/Frameworks/OpenGL.framework/Headers/
-DEFINES += -DMACOSX -DUSING_FRAMEWORK
+ifeq ($(PLATFORM),$(PLATFORM_MACOS))
+INCLUDES += -I/opt/homebrew/include
+LIBS += -lobjc
+DEFINES += -DMACOSX -DUSING_OPENGL
 endif
 ifeq ($(PLATFORM),$(PLATFORM_LINUX))
 DEFINES += -DLINUX
@@ -132,25 +127,23 @@ LIBS	 +=	-logg -lvorbis -lvorbisfile
 LIBS	 +=	-lz
 
 ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-LINKER	  =	-framework SDL2 \
-			-framework OpenGL \
-			-framework CoreFoundation \
-			-framework CoreServices \
-			-framework Foundation
-			# \
-			-framework Cocoa
+LINKER = -framework IOKit \
+	-framework OpenGL \
+	-framework CoreFoundation \
+	-framework CoreServices \
+	-framework Foundation \
+	-framework Cocoa
 endif
 
 all:
 	mkdir -p $(OBJ_DIRS)
-	$(MAKEHEADERS) source
 	$(MAKE) build
 
 clean:
 	rm -rf $(OBJS)
 
 build: $(OBJS)
-	$(CXX) $^ $(INCLUDES) $(LIBS) $(LINKER) -o "$(TARGETDIR)" -std=c++11
+	$(CXX) $^ $(INCLUDES) $(LIBS) $(LINKER) -o "$(TARGETDIR)" -std=c++17
 
 $(OBJ_DIRS):
 	mkdir -p $@
@@ -164,7 +157,6 @@ package:
 	@mkdir -p "$(TARGETDIR).app/Contents/Resources"
 	@# @rm -rf $(OBJS)
 	@mkdir -p $(OBJ_DIRS)
-	@./tools/makeheaders source
 	@make build
 	@chmod +x "$(TARGETDIR)"
 	@cp "$(TARGETDIR)" "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
@@ -226,7 +218,7 @@ package:
 	@install_name_tool -change /usr/local/Cellar/libvorbis/1.3.6/lib/libvorbis.0.dylib @executable_path/../Frameworks/_libvorbis.0.dylib "$(TARGETDIR).app/Contents/Frameworks/_libvorbisfile.3.dylib"
 
 out/$(OUT_FOLDER)/%.o: source/%.cpp
-	$(CXX) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<" -std=c++11
+	$(CXX) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<" -std=c++17
 
 out/$(OUT_FOLDER)/%.o: source/%.c
 	$(CC) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<" -std=c11

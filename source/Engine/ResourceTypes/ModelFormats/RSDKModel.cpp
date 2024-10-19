@@ -1,12 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/ResourceTypes/IModel.h>
-class RSDKModel {
-public:
-
-};
-#endif
-
 #include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
@@ -16,7 +7,7 @@ public:
 
 #define RSDK_MODEL_MAGIC 0x4D444C00 // MDL0
 
-PUBLIC STATIC bool RSDKModel::IsMagic(Stream* stream) {
+bool RSDKModel::IsMagic(Stream* stream) {
     Uint32 magic = stream->ReadUInt32BE();
 
     stream->Skip(-4);
@@ -24,7 +15,7 @@ PUBLIC STATIC bool RSDKModel::IsMagic(Stream* stream) {
     return magic == RSDK_MODEL_MAGIC;
 }
 
-PUBLIC STATIC bool RSDKModel::Convert(IModel* model, Stream* stream) {
+bool RSDKModel::Convert(IModel* model, Stream* stream) {
     if (stream->ReadUInt32BE() != RSDK_MODEL_MAGIC) {
         Log::Print(Log::LOG_ERROR, "Model not of RSDK type!");
         return false;

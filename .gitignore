@@ -20,8 +20,6 @@
 HatchGameEngine.exe
 *-Debug.exe
 *-Release.exe
-makeheaders.bin
-include/*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -38,6 +36,7 @@ mono_crash.*
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
+builds/
 [Bb]in/
 [Oo]bj/
 [Ll]og/

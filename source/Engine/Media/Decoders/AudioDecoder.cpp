@@ -1,20 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Media/Decoder.h>
-#include <Engine/Media/Includes/SWResample.h>
-
-class AudioDecoder : public Decoder {
-public:
-    SwrContext* SWR;
-    AVFrame* ScratchFrame;
-
-    int SampleRate;
-    int Channels;
-    int Bytes;
-    int IsSigned;
-};
-#endif
-
 #include <Engine/Media/Decoders/AudioDecoder.h>
 
 #include <Engine/Audio/AudioManager.h>
@@ -33,7 +16,7 @@ struct AudioPacket {
 #define KIT_AUDIO_SYNC_THRESHOLD 0.05
 
 // Lifecycle functions
-PUBLIC                       AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
+AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
     int ret;
     if (stream_index < 0) {
         Log::Print(Log::LOG_ERROR, "stream_index < 0");
@@ -128,7 +111,7 @@ PUBLIC                       AudioDecoder::AudioDecoder(MediaSource* src, int st
     // exit_0:
     return;
 }
-PUBLIC        void*          AudioDecoder::CreateAudioPacket(const char* data, size_t len, double pts) {
+void*          AudioDecoder::CreateAudioPacket(const char* data, size_t len, double pts) {
     AudioPacket* packet = (AudioPacket*)calloc(1, sizeof(AudioPacket));
     if (!packet) {
         Log::Print(Log::LOG_ERROR, "Something went horribly wrong. (Ran out of memory at AudioDecoder::CreateAudioPacket \"(AudioPacket*)calloc\")");
@@ -143,14 +126,14 @@ PUBLIC        void*          AudioDecoder::CreateAudioPacket(const char* data, s
     packet->pts = pts;
     return packet;
 }
-PUBLIC STATIC void           AudioDecoder::FreeAudioPacket(void* p) {
+void           AudioDecoder::FreeAudioPacket(void* p) {
     AudioPacket* packet = (AudioPacket*)p;
     delete packet->buffer;
     free(packet);
 }
 
 // Unique format info functions
-PUBLIC        AVSampleFormat AudioDecoder::FindAVSampleFormat(int format) {
+AVSampleFormat AudioDecoder::FindAVSampleFormat(int format) {
     switch (format) {
         case AUDIO_U8:
             return AV_SAMPLE_FMT_U8;
@@ -164,14 +147,14 @@ PUBLIC        AVSampleFormat AudioDecoder::FindAVSampleFormat(int format) {
             return AV_SAMPLE_FMT_NONE;
     }
 }
-PUBLIC        Sint64         AudioDecoder::FindAVChannelLayout(int channels) {
+Sint64         AudioDecoder::FindAVChannelLayout(int channels) {
     switch (channels) {
         case 1:  return AV_CH_LAYOUT_MONO;
         case 2:  return AV_CH_LAYOUT_STEREO;
         default: return AV_CH_LAYOUT_STEREO_DOWNMIX;
     }
 }
-PUBLIC        int            AudioDecoder::FindChannelLayout(uint64_t channel_layout) {
+int            AudioDecoder::FindChannelLayout(uint64_t channel_layout) {
     switch (channel_layout) {
         case AV_CH_LAYOUT_MONO: return 1;
         case AV_CH_LAYOUT_STEREO: return 2;
@@ -180,7 +163,7 @@ PUBLIC        int            AudioDecoder::FindChannelLayout(uint64_t channel_la
     }
     return 2;
 }
-PUBLIC        int            AudioDecoder::FindBytes(AVSampleFormat fmt) {
+int            AudioDecoder::FindBytes(AVSampleFormat fmt) {
     switch (fmt) {
         case AV_SAMPLE_FMT_U8:
         case AV_SAMPLE_FMT_U8P:
@@ -198,7 +181,7 @@ PUBLIC        int            AudioDecoder::FindBytes(AVSampleFormat fmt) {
             return 2;
     }
 }
-PUBLIC        int            AudioDecoder::FindSignedness(AVSampleFormat fmt) {
+int            AudioDecoder::FindSignedness(AVSampleFormat fmt) {
     switch (fmt) {
         case AV_SAMPLE_FMT_U8P:
         case AV_SAMPLE_FMT_U8:
@@ -207,7 +190,7 @@ PUBLIC        int            AudioDecoder::FindSignedness(AVSampleFormat fmt) {
             return 1;
     }
 }
-PUBLIC        int            AudioDecoder::FindSDLSampleFormat(AVSampleFormat fmt) {
+int            AudioDecoder::FindSDLSampleFormat(AVSampleFormat fmt) {
     switch (fmt) {
         case AV_SAMPLE_FMT_U8:
         case AV_SAMPLE_FMT_U8P:
@@ -227,7 +210,7 @@ PUBLIC        int            AudioDecoder::FindSDLSampleFormat(AVSampleFormat fm
 }
 
 // Common format info functions
-PUBLIC        int            AudioDecoder::GetOutputFormat(OutputFormat* output) {
+int            AudioDecoder::GetOutputFormat(OutputFormat* output) {
     output->Format = Format;
     output->SampleRate = SampleRate;
     output->Channels = Channels;
@@ -237,7 +220,7 @@ PUBLIC        int            AudioDecoder::GetOutputFormat(OutputFormat* output)
 }
 
 // Unique decoding functions
-PUBLIC STATIC void           AudioDecoder::ReadAudio(void* ptr) {
+void           AudioDecoder::ReadAudio(void* ptr) {
     #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 101)
     AudioDecoder* self = (AudioDecoder*)ptr;
     int          len, dst_linesize, dst_nb_samples, dst_bufsize;
@@ -291,7 +274,7 @@ PUBLIC STATIC void           AudioDecoder::ReadAudio(void* ptr) {
     }
     #endif
 }
-PUBLIC STATIC int            AudioDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
+int            AudioDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
     if (in_packet == NULL) {
         return 0;
     }
@@ -378,7 +361,7 @@ PUBLIC STATIC int            AudioDecoder::DecodeFunction(void* ptr, AVPacket* i
     #endif
     return 0;
 }
-PUBLIC STATIC void           AudioDecoder::CloseFunction(void* ptr) {
+void           AudioDecoder::CloseFunction(void* ptr) {
     AudioDecoder* self = (AudioDecoder*)ptr;
 
     if (self->ScratchFrame != NULL) {
@@ -390,14 +373,14 @@ PUBLIC STATIC void           AudioDecoder::CloseFunction(void* ptr) {
 }
 
 // Data functions
-PUBLIC        double         AudioDecoder::GetPTS() {
+double         AudioDecoder::GetPTS() {
     AudioPacket* packet = (AudioPacket*)PeekOutput();
     if (packet == NULL) {
         return -1.0;
     }
     return packet->pts;
 }
-PUBLIC        int            AudioDecoder::GetAudioDecoderData(Uint8* buf, int len) {
+int            AudioDecoder::GetAudioDecoderData(Uint8* buf, int len) {
     AudioPacket* packet = NULL;
     int ret = 0;
     int bytes_per_sample = 0;

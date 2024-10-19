@@ -1,20 +1,10 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-
-class MapImpl {
-public:
-    static ObjClass *Class;
-};
-#endif
-
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* MapImpl::Class = nullptr;
 
-PUBLIC STATIC void MapImpl::Init() {
+void MapImpl::Init() {
     const char *name = "$$MapImpl";
 
     Class = NewClass(Murmur::EncryptString(name));
@@ -29,7 +19,7 @@ PUBLIC STATIC void MapImpl::Init() {
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-PUBLIC STATIC VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
+VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
 
     ObjMap* map = GET_ARG(0, GetMap);
@@ -43,7 +33,7 @@ PUBLIC STATIC VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 th
     return OBJECT_VAL(array);
 }
 
-PUBLIC STATIC VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ObjMap* map = GET_ARG(0, GetMap);
@@ -60,7 +50,7 @@ PUBLIC STATIC VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 th
     return NULL_VAL;
 }
 
-PUBLIC STATIC VMValue MapImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
+VMValue MapImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ObjMap* map = GET_ARG(0, GetMap);

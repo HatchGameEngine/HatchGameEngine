@@ -1,16 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-
-#include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
-
-class OGG : public SoundFormat {
-private:
-    // OGG Specific
-    char           Vorbis[0x800];
-};
-#endif
-
 #include <Engine/Application.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -45,11 +32,11 @@ struct VorbisGroup {
 };
 #endif
 
-PRIVATE STATIC size_t      OGG::StaticRead(void* mem, size_t size, size_t nmemb, void* ptr) {
+size_t      OGG::StaticRead(void* mem, size_t size, size_t nmemb, void* ptr) {
 	class Stream* stream = (class Stream*)ptr;
 	return stream->ReadBytes(mem, size * nmemb);
 }
-PRIVATE STATIC Sint32      OGG::StaticSeek(void* ptr, Sint64 offset, int whence) {
+Sint32      OGG::StaticSeek(void* ptr, Sint64 offset, int whence) {
 	class Stream* stream = (class Stream*)ptr;
     if (whence == SEEK_CUR) {
 		stream->Skip((Sint64)offset);
@@ -68,17 +55,17 @@ PRIVATE STATIC Sint32      OGG::StaticSeek(void* ptr, Sint64 offset, int whence)
         return -1;
     }
 }
-PRIVATE STATIC Sint32      OGG::StaticCloseFree(void* ptr) {
+Sint32      OGG::StaticCloseFree(void* ptr) {
     return 0;
 }
-PRIVATE STATIC Sint32      OGG::StaticCloseNoFree(void* ptr) {
+Sint32      OGG::StaticCloseNoFree(void* ptr) {
     return 0;
 }
-PRIVATE STATIC long        OGG::StaticTell(void* ptr) {
+long        OGG::StaticTell(void* ptr) {
     return ((class Stream*)ptr)->Position();
 }
 
-PUBLIC STATIC SoundFormat* OGG::Load(const char* filename) {
+SoundFormat* OGG::Load(const char* filename) {
     VorbisGroup* vorbis;
 
     OGG* ogg = NULL;
@@ -268,7 +255,7 @@ OGG_Load_SUCCESS:
     return ogg;
 }
 
-PUBLIC        size_t       OGG::SeekSample(int index) {
+size_t       OGG::SeekSample(int index) {
     VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;
 #ifdef USING_LIBOGG
     ov_pcm_seek(&vorbis->File, index);
@@ -279,7 +266,7 @@ PUBLIC        size_t       OGG::SeekSample(int index) {
     SampleIndex = (size_t)index;
     return SampleIndex;
 }
-PUBLIC        int          OGG::LoadSamples(size_t count) {
+int          OGG::LoadSamples(size_t count) {
     if (SampleBuffer == NULL) {
         SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
         Samples.reserve(TotalPossibleSamples);
@@ -287,7 +274,7 @@ PUBLIC        int          OGG::LoadSamples(size_t count) {
 
     return GetSamples(SampleBuffer, count, -1);
 }
-PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
+int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 #ifdef USING_LIBOGG
     int read;
     Uint32 total = 0,
@@ -379,7 +366,7 @@ PUBLIC        int          OGG::GetSamples(Uint8* buffer, size_t count, Sint32 l
 #endif
     return 0;
 }
-PUBLIC VIRTUAL void        OGG::LoadAllSamples() {
+void        OGG::LoadAllSamples() {
     if (SampleBuffer == nullptr) {
         SampleBuffer = (Uint8*)Memory::TrackedMalloc("SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
         Samples.reserve(TotalPossibleSamples);
@@ -402,7 +389,7 @@ PUBLIC VIRTUAL void        OGG::LoadAllSamples() {
     }
 }
 
-PUBLIC        void         OGG::Dispose() {
+void         OGG::Dispose() {
 #ifdef USING_LIBOGG
 	// OGG specific clean up functions
 	VorbisGroup* vorbis = (VorbisGroup*)this->Vorbis;

@@ -1,6 +1,8 @@
 #ifndef CONTROLLERRUMBLE_H
 #define CONTROLLERRUMBLE_H
 
+#include <Engine/Includes/StandardSDL2.h>
+
 struct ControllerRumble {
     float  LargeMotorFrequency;
     float  SmallMotorFrequency;

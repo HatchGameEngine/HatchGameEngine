@@ -1,14 +1,6 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-class Huffman {
-public:
-
-};
-#endif
-
 #include <Engine/IO/Compression/Huffman.h>
 
-PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
+bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
     #define datat_t uint8_t
     datat_t* in_head = (datat_t*)in;
     datat_t* out_head = (datat_t*)out;
@@ -23,26 +15,11 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
         return false;
 
     // get tree size
-    // if (!buffer_read(buffer, &tree[0], 1, callback, userdata)) {
-    //     free(tree);
-    //     return false;
-    // }
     tree[0] = *in_head++;
-    printf("Tree Size: %X (%d)\n", tree[0], tree[0]);
 
     // read tree
-    // if (!buffer_read(buffer, &tree[1], (((size_t)tree[0])+1)*2-1, callback, userdata)) {
-    //     free(tree);
-    //     return false;
-    // }
     int len_to_read = (tree[0] + 1) * 2 - 1;
     memcpy(&tree[1], in_head, len_to_read);
-    printf("Tree Size To Read: %X (%d)\n", len_to_read, len_to_read);
-    printf("Nodes: ");
-    for (int i = 0; i < len_to_read; i++) {
-        printf("%02X ", tree[1 + i]);
-    }
-    printf("\n");
     in_head += len_to_read;
 
     uint32_t word = 0;                   // 32-bits of input bitstream
@@ -81,8 +58,6 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
                 | (wordbuf[1] <<  8)
                 | (wordbuf[2] << 16)
                 | (wordbuf[3] << 24);
-
-            printf("New Word: %08X\n", word);
         }
 
         // read the current node's offset value
@@ -95,9 +70,6 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
             // point to the "right" child
             child++;
 
-            printf("r node:  %zu (%02X)\n", node, tree[node]);
-            printf("r child: %zu (%02X)\n", child, tree[child]);
-
             // "right" child is a data node
             if (tree[node] & 0x40) {
                 // copy the child node into the output buffer and apply mask
@@ -105,8 +77,6 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
                 // iov_increment(&out);
                 *out_head++ = tree[child] & dataMask;
                 --size;
-
-                printf("found: node (%02X), child (%02X)\n", tree[node], tree[child]);
 
                 // start over at the root node
                 node = 1;
@@ -118,8 +88,6 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
         else {
             // pointed to the "left" child
 
-            printf("l node:  %zu (%02X)\n", node, tree[node]);
-            printf("l child: %zu (%02X)\n", child, tree[child]);
             // "left" child is a data node
             if (tree[node] & 0x80) {
                 // copy the child node into the output buffer and apply mask
@@ -127,8 +95,6 @@ PUBLIC STATIC bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, 
                 // iov_increment(&out);
                 *out_head++ = tree[child] & dataMask;
                 --size;
-
-                printf("found: node (%02X), child (%02X)\n", tree[node], tree[child]);
 
                 // start over at the root node
                 node = 1;

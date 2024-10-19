@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/ResourceTypes/ImageFormats/ImageFormat.h>
-#include <Engine/IO/Stream.h>
-
-class PNG : public ImageFormat {
-public:
-
-};
-#endif
-
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 
 #include <Engine/Application.h>
@@ -48,7 +37,7 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #include <Libraries/stb_image.h>
 #endif
 
-PUBLIC STATIC  PNG*   PNG::Load(const char* filename) {
+PNG*   PNG::Load(const char* filename) {
 #ifdef USING_LIBPNG
     PNG* png = new PNG;
     Stream* stream = NULL;
@@ -351,7 +340,7 @@ PNG_Load_Success:
 #endif
 	return NULL;
 }
-PUBLIC         void   PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels) {
+ void   PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels) {
     Uint32 Rmask, Gmask, Bmask, Amask;
     bool doConvert = false;
 
@@ -399,7 +388,7 @@ PUBLIC         void   PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels
         memcpy(Data, pixelData, Width * Height * sizeof(Uint32));
     }
 }
-PUBLIC         void   PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
+ void   PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
     size_t scanline_width = (((bit_depth * Width) + 15) / 8) - 1;
     Uint8 mask = (1 << bit_depth) - 1;
 
@@ -426,11 +415,11 @@ PUBLIC         void   PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth
     }
 }
 
-PUBLIC STATIC  bool   PNG::Save(PNG* png, const char* filename) {
+bool   PNG::Save(PNG* png, const char* filename) {
     return png->Save(filename);
 }
 
-PUBLIC        bool    PNG::Save(const char* filename) {
+bool    PNG::Save(const char* filename) {
     Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
     if (!stream)
         return false;
@@ -439,6 +428,6 @@ PUBLIC        bool    PNG::Save(const char* filename) {
     return true;
 }
 
-PUBLIC                PNG::~PNG() {
+PNG::~PNG() {
 
 }

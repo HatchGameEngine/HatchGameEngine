@@ -1,22 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Sprites/Animation.h>
-#include <Engine/Rendering/Texture.h>
-
-class ISprite {
-public:
-    char*             Filename = nullptr;
-
-    bool              LoadFailed = true;
-
-    vector<Texture*>  Spritesheets;
-    vector<string>    SpritesheetFilenames;
-    int               CollisionBoxCount = 0;
-
-    vector<Animation> Animations;
-};
-#endif
-
 #include <Engine/ResourceTypes/ISprite.h>
 
 #include <Engine/Application.h>
@@ -35,7 +16,7 @@ public:
 
 #include <Engine/Utilities/StringUtils.h>
 
-PUBLIC ISprite::ISprite() {
+ISprite::ISprite() {
     Spritesheets.clear();
     Spritesheets.shrink_to_fit();
     SpritesheetFilenames.clear();
@@ -43,7 +24,7 @@ PUBLIC ISprite::ISprite() {
     LoadFailed = true;
     Filename = nullptr;
 }
-PUBLIC ISprite::ISprite(const char* filename) {
+ISprite::ISprite(const char* filename) {
     Spritesheets.clear();
     Spritesheets.shrink_to_fit();
     SpritesheetFilenames.clear();
@@ -52,7 +33,7 @@ PUBLIC ISprite::ISprite(const char* filename) {
     LoadFailed = !LoadAnimation(Filename);
 }
 
-PUBLIC Texture* ISprite::AddSpriteSheet(const char* filename) {
+Texture* ISprite::AddSpriteSheet(const char* filename) {
     Texture* texture = NULL;
     Uint32*  data = NULL;
     Uint32   width = 0;
@@ -170,10 +151,10 @@ PUBLIC Texture* ISprite::AddSpriteSheet(const char* filename) {
     return texture;
 }
 
-PUBLIC void ISprite::ReserveAnimationCount(int count) {
+void ISprite::ReserveAnimationCount(int count) {
     Animations.reserve(count);
 }
-PUBLIC void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
+void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
     size_t strl = strlen(name);
 
     Animation an;
@@ -185,17 +166,17 @@ PUBLIC void ISprite::AddAnimation(const char* name, int animationSpeed, int fram
     an.Flags = 0;
     Animations.push_back(an);
 }
-PUBLIC void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
+void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
     AddAnimation(name, animationSpeed, frameToLoop);
     Animations.back().Frames.reserve(frmAlloc);
 }
-PUBLIC void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY) {
+void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY) {
     ISprite::AddFrame(duration, left, top, width, height, pivotX, pivotY, 0);
 }
-PUBLIC void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
+void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
     AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
 }
-PUBLIC void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
+void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
     AnimFrame anfrm;
     anfrm.Advance = id;
     anfrm.Duration = duration;
@@ -213,24 +194,24 @@ PUBLIC void ISprite::AddFrame(int animID, int duration, int left, int top, int w
 
     Animations[animID].Frames.push_back(anfrm);
 }
-PUBLIC void ISprite::RemoveFrames(int animID) {
+void ISprite::RemoveFrames(int animID) {
     for (size_t i = 0; i < Animations[animID].Frames.size(); i++)
         Graphics::DeleteFrameBufferID(&Animations[animID].Frames[i]);
     Animations[animID].Frames.clear();
 }
 
-PUBLIC void ISprite::ConvertToRGBA() {
+void ISprite::ConvertToRGBA() {
     for (int a = 0; a < Spritesheets.size(); a++) {
         Graphics::ConvertTextureToRGBA(Spritesheets[a]);
     }
 }
-PUBLIC void ISprite::ConvertToPalette(unsigned paletteNumber) {
+void ISprite::ConvertToPalette(unsigned paletteNumber) {
     for (int a = 0; a < Spritesheets.size(); a++) {
         Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
     }
 }
 
-PUBLIC bool ISprite::LoadAnimation(const char* filename) {
+bool ISprite::LoadAnimation(const char* filename) {
     char* str;
     int animationCount, previousAnimationCount;
 
@@ -388,17 +369,17 @@ PUBLIC bool ISprite::LoadAnimation(const char* filename) {
 
     return true;
 }
-PUBLIC int  ISprite::FindAnimation(const char* animname) {
+int  ISprite::FindAnimation(const char* animname) {
     for (Uint32 a = 0; a < Animations.size(); a++)
         if (Animations[a].Name[0] == animname[0] && !strcmp(Animations[a].Name, animname))
             return a;
 
     return -1;
 }
-PUBLIC void ISprite::LinkAnimation(vector<Animation> ani) {
+void ISprite::LinkAnimation(vector<Animation> ani) {
     Animations = ani;
 }
-PUBLIC bool ISprite::SaveAnimation(const char* filename) {
+bool ISprite::SaveAnimation(const char* filename) {
     Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -479,7 +460,7 @@ PUBLIC bool ISprite::SaveAnimation(const char* filename) {
     return true;
 }
 
-PUBLIC void ISprite::Dispose() {
+void ISprite::Dispose() {
     for (size_t a = 0; a < Animations.size(); a++) {
         for (size_t i = 0; i < Animations[a].Frames.size(); i++) {
             AnimFrame* anfrm = &Animations[a].Frames[i];
@@ -516,6 +497,6 @@ PUBLIC void ISprite::Dispose() {
     Filename = nullptr;
 }
 
-PUBLIC ISprite::~ISprite() {
+ISprite::~ISprite() {
     Dispose();
 }

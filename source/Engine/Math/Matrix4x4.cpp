@@ -1,10 +1,3 @@
-#if INTERFACE
-class Matrix4x4 {
-public:
-    float Values[16];
-};
-#endif
-
 #include <Engine/Math/Matrix4x4.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -15,12 +8,12 @@ public:
 
 #define EPSILON 0.000001
 
-PUBLIC STATIC Matrix4x4* Matrix4x4::Create() {
+Matrix4x4* Matrix4x4::Create() {
     Matrix4x4* mat4 = new Matrix4x4;
     Matrix4x4::Identity(mat4);
     return mat4;
 }
-PUBLIC STATIC void       Matrix4x4::Identity(Matrix4x4* mat4) {
+void       Matrix4x4::Identity(Matrix4x4* mat4) {
     mat4->Values[0] = 1.0f;
     mat4->Values[1] = 0.0f;
     mat4->Values[2] = 0.0f;
@@ -39,7 +32,7 @@ PUBLIC STATIC void       Matrix4x4::Identity(Matrix4x4* mat4) {
     mat4->Values[15] = 1.0f;
 }
 
-PUBLIC STATIC void       Matrix4x4::Perspective(Matrix4x4* out, float fovy, float aspect, float near, float far) {
+void       Matrix4x4::Perspective(Matrix4x4* out, float fovy, float aspect, float near, float far) {
     float f = 1.0f / tan(fovy / 2.0f);
     float nf = 1.0f / (near - far);
     out->Values[0]  = f / aspect;
@@ -59,7 +52,7 @@ PUBLIC STATIC void       Matrix4x4::Perspective(Matrix4x4* out, float fovy, floa
     out->Values[14] = 2.0f * far * near * nf;
     out->Values[15] = 0.0f;
 }
-PUBLIC STATIC void       Matrix4x4::Ortho(Matrix4x4* out, float left, float right, float bottom, float top, float near, float far) {
+void       Matrix4x4::Ortho(Matrix4x4* out, float left, float right, float bottom, float top, float near, float far) {
     float lr = 1.0f / (left - right);
     float bt = 1.0f / (bottom - top);
     float nf = 1.0f / (near - far);
@@ -81,17 +74,17 @@ PUBLIC STATIC void       Matrix4x4::Ortho(Matrix4x4* out, float left, float righ
     out->Values[15] = 1.0f;
 }
 
-PUBLIC STATIC void       Matrix4x4::Copy(Matrix4x4* out, Matrix4x4* a) {
+void       Matrix4x4::Copy(Matrix4x4* out, Matrix4x4* a) {
     memcpy(&out->Values[0], &a->Values[0], 16 * sizeof(float));
 }
-PUBLIC STATIC bool       Matrix4x4::Equals(Matrix4x4* a, Matrix4x4* b) {
+bool       Matrix4x4::Equals(Matrix4x4* a, Matrix4x4* b) {
     if (!a && !b) return true;
     if (!a || !b) return false;
 
     return memcmp(&a->Values[0], &b->Values[0], 16 * sizeof(float)) == 0;
 }
 
-PUBLIC STATIC void       Matrix4x4::Multiply(Matrix4x4* out, Matrix4x4* a, Matrix4x4* b) {
+void       Matrix4x4::Multiply(Matrix4x4* out, Matrix4x4* a, Matrix4x4* b) {
     float a00 = a->Values[0], a01 = a->Values[1], a02 = a->Values[2], a03 = a->Values[3];
     float a10 = a->Values[4], a11 = a->Values[5], a12 = a->Values[6], a13 = a->Values[7];
     float a20 = a->Values[8], a21 = a->Values[9], a22 = a->Values[10], a23 = a->Values[11];
@@ -122,7 +115,7 @@ PUBLIC STATIC void       Matrix4x4::Multiply(Matrix4x4* out, Matrix4x4* a, Matri
     out->Values[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
     out->Values[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
 }
-PUBLIC STATIC void       Matrix4x4::Multiply(Matrix4x4* mat, float* a) {
+void       Matrix4x4::Multiply(Matrix4x4* mat, float* a) {
     float a0 = a[0];
     float a1 = a[1];
     float a2 = a[2];
@@ -134,7 +127,7 @@ PUBLIC STATIC void       Matrix4x4::Multiply(Matrix4x4* mat, float* a) {
     a[3] = mat->Values[3] * a0 + mat->Values[7] * a1 + mat->Values[11] * a2 + mat->Values[15] * a3;
 }
 
-PUBLIC STATIC void       Matrix4x4::Translate(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
+void       Matrix4x4::Translate(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
     float a00, a01, a02, a03;
     float a10, a11, a12, a13;
     float a20, a21, a22, a23;
@@ -159,7 +152,7 @@ PUBLIC STATIC void       Matrix4x4::Translate(Matrix4x4* out, Matrix4x4* a, floa
         out->Values[15] = a03 * x + a13 * y + a23 * z + a->Values[15];
     }
 }
-PUBLIC STATIC void       Matrix4x4::Scale(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
+void       Matrix4x4::Scale(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
     out->Values[0]  = a->Values[0] * x;
     out->Values[1]  = a->Values[1] * x;
     out->Values[2]  = a->Values[2] * x;
@@ -177,7 +170,7 @@ PUBLIC STATIC void       Matrix4x4::Scale(Matrix4x4* out, Matrix4x4* a, float x,
     out->Values[14] = a->Values[14];
     out->Values[15] = a->Values[15];
 }
-PUBLIC STATIC void       Matrix4x4::Rotate(Matrix4x4* out, Matrix4x4* a, float rad, float x, float y, float z) {
+void       Matrix4x4::Rotate(Matrix4x4* out, Matrix4x4* a, float rad, float x, float y, float z) {
     float len = sqrt(x * x + y * y + z * z);
     float s, c, t;
     float a00, a01, a02, a03;
@@ -232,14 +225,14 @@ PUBLIC STATIC void       Matrix4x4::Rotate(Matrix4x4* out, Matrix4x4* a, float r
         out->Values[15] = a->Values[15];
     }
 }
-PUBLIC STATIC void       Matrix4x4::IdentityScale(Matrix4x4* out, float x, float y, float z) {
+void       Matrix4x4::IdentityScale(Matrix4x4* out, float x, float y, float z) {
     Matrix4x4::Identity(out);
 
     out->Values[0]  = x;
     out->Values[5]  = y;
     out->Values[10] = z;
 }
-PUBLIC STATIC void       Matrix4x4::IdentityRotationX(Matrix4x4* out, float x) {
+void       Matrix4x4::IdentityRotationX(Matrix4x4* out, float x) {
     Matrix4x4::Identity(out);
 
     float sinX = Math::Sin(x);
@@ -249,7 +242,7 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationX(Matrix4x4* out, float x) {
     out->Values[8] = -sinX;
     out->Values[9] = cosX;
 }
-PUBLIC STATIC void       Matrix4x4::IdentityRotationY(Matrix4x4* out, float y) {
+void       Matrix4x4::IdentityRotationY(Matrix4x4* out, float y) {
     Matrix4x4::Identity(out);
 
     float sinY = Math::Sin(y);
@@ -259,7 +252,7 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationY(Matrix4x4* out, float y) {
     out->Values[8]  = -sinY;
     out->Values[10] = cosY;
 }
-PUBLIC STATIC void       Matrix4x4::IdentityRotationZ(Matrix4x4* out, float z) {
+void       Matrix4x4::IdentityRotationZ(Matrix4x4* out, float z) {
     Matrix4x4::Identity(out);
 
     float sinZ = Math::Sin(z);
@@ -270,7 +263,7 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationZ(Matrix4x4* out, float z) {
     out->Values[4] = -sinZ;
     out->Values[5] = cosZ;
 }
-PUBLIC STATIC void       Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x, float y, float z) {
+void       Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x, float y, float z) {
     float sinX = Math::Sin(x);
     float cosX = Math::Cos(x);
     float sinY = Math::Sin(y);
@@ -297,7 +290,7 @@ PUBLIC STATIC void       Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x,
     out->Values[11] = 0.f;
     out->Values[15] = 1.f;
 }
-PUBLIC STATIC void       Matrix4x4::Transpose(Matrix4x4* out) {
+void       Matrix4x4::Transpose(Matrix4x4* out) {
     Matrix4x4 transposed;
 
     for (int i = 0; i < 4; i++) {
@@ -307,7 +300,7 @@ PUBLIC STATIC void       Matrix4x4::Transpose(Matrix4x4* out) {
 
     Matrix4x4::Copy(out, &transposed);
 }
-PUBLIC STATIC void       Matrix4x4::LookAt(Matrix4x4* out, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) {
+void       Matrix4x4::LookAt(Matrix4x4* out, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz) {
     float x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
     if (Math::Abs(eyex - centerx) < EPSILON &&
         Math::Abs(eyey - centery) < EPSILON &&
@@ -375,7 +368,7 @@ PUBLIC STATIC void       Matrix4x4::LookAt(Matrix4x4* out, float eyex, float eye
     return;
 }
 
-PUBLIC STATIC void       Matrix4x4::Invert(Matrix4x4* out, Matrix4x4* in) {
+void       Matrix4x4::Invert(Matrix4x4* out, Matrix4x4* in) {
     float *src = in->Values;
     float inv[16];
 
@@ -408,6 +401,6 @@ PUBLIC STATIC void       Matrix4x4::Invert(Matrix4x4* out, Matrix4x4* in) {
     }
 }
 
-PUBLIC STATIC void       Matrix4x4::Print(Matrix4x4* out) {
+void       Matrix4x4::Print(Matrix4x4* out) {
     Log::Print(Log::LOG_INFO, "\n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f \n%6.2f %6.2f %6.2f %6.2f", out->Values[0], out->Values[1], out->Values[2], out->Values[3], out->Values[4], out->Values[5], out->Values[6], out->Values[7], out->Values[8], out->Values[9], out->Values[10], out->Values[11], out->Values[12], out->Values[13], out->Values[14], out->Values[15]);
 }

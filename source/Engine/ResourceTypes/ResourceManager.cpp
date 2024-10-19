@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/HashMap.h>
-
-class ResourceManager {
-public:
-    static bool      UsingDataFolder;
-    static bool      UsingModPack;
-};
-#endif
-
 #include <Engine/ResourceTypes/ResourceManager.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -42,10 +31,10 @@ HashMap<ResourceRegistryItem>* ResourceRegistry = NULL;
 bool                 ResourceManager::UsingDataFolder = true;
 bool                 ResourceManager::UsingModPack = false;
 
-PUBLIC STATIC void   ResourceManager::PrefixResourcePath(char* out, size_t outSize, const char* path) {
+void   ResourceManager::PrefixResourcePath(char* out, size_t outSize, const char* path) {
     snprintf(out, outSize, "Resources/%s", path);
 }
-PUBLIC STATIC void   ResourceManager::PrefixParentPath(char* out, size_t outSize, const char* path) {
+void   ResourceManager::PrefixParentPath(char* out, size_t outSize, const char* path) {
 #if defined(SWITCH_ROMFS)
     snprintf(out, outSize, "romfs:/%s", path);
 #else
@@ -53,7 +42,7 @@ PUBLIC STATIC void   ResourceManager::PrefixParentPath(char* out, size_t outSize
 #endif
 }
 
-PUBLIC STATIC void   ResourceManager::Init(const char* filename) {
+void   ResourceManager::Init(const char* filename) {
     StreamNodeHead = NULL;
     ResourceRegistry = new HashMap<ResourceRegistryItem>(CRC32::EncryptData, 16);
 
@@ -80,7 +69,7 @@ PUBLIC STATIC void   ResourceManager::Init(const char* filename) {
         }
     }
 }
-PUBLIC STATIC void   ResourceManager::Load(const char* filename) {
+void   ResourceManager::Load(const char* filename) {
     if (!ResourceRegistry)
         return;
 
@@ -128,7 +117,7 @@ PUBLIC STATIC void   ResourceManager::Load(const char* filename) {
         // Log::Print(Log::LOG_VERBOSE, "%08X: Offset: %08llX Size: %08llX Comp Size: %08llX Data Flag: %08X", crc32, offset, size, compressedSize, dataFlag);
     }
 }
-PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
+bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
     Uint8* memory;
     char resourcePath[4096];
     char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
@@ -264,7 +253,7 @@ PUBLIC STATIC bool   ResourceManager::LoadResource(const char* filename, Uint8**
     *size = rwSize;
     return true;
 }
-PUBLIC STATIC bool   ResourceManager::ResourceExists(const char* filename) {
+bool   ResourceManager::ResourceExists(const char* filename) {
     char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
 
     char resourcePath[4096];
@@ -293,7 +282,7 @@ PUBLIC STATIC bool   ResourceManager::ResourceExists(const char* filename) {
     SDL_RWclose(rw);
     return true;
 }
-PUBLIC STATIC void   ResourceManager::Dispose() {
+void   ResourceManager::Dispose() {
     if (StreamNodeHead) {
         for (StreamNode *old, *streamNode = StreamNodeHead; streamNode; ) {
             old = streamNode;

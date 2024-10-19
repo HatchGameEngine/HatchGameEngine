@@ -1,10 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-class Math {
-public:
-};
-#endif
-
 int Sin1024LookupTable[0x400];
 int Cos1024LookupTable[0x400];
 int Tan1024LookupTable[0x400];
@@ -30,42 +23,42 @@ int randSeed = 0;
 #include <Engine/Math/Math.h>
 #include <time.h>
 
-PUBLIC STATIC void Math::Init() {
+void Math::Init() {
     srand((Uint32)time(NULL));
 
     Math::ClearTrigLookupTables();
     Math::CalculateTrigAngles();
 }
 // Trig functions
-PUBLIC STATIC float Math::Cos(float n) {
+float Math::Cos(float n) {
     return std::cos(n);
 }
-PUBLIC STATIC float Math::Sin(float n) {
+float Math::Sin(float n) {
     return std::sin(n);
 }
-PUBLIC STATIC float Math::Tan(float n) {
+float Math::Tan(float n) {
     return std::tan(n);
 }
-PUBLIC STATIC float Math::Asin(float x) {
+float Math::Asin(float x) {
     return std::asin(x);
 }
-PUBLIC STATIC float Math::Acos(float x) {
+float Math::Acos(float x) {
     return std::acos(x);
 }
-PUBLIC STATIC float Math::Atan(float x, float y) {
+float Math::Atan(float x, float y) {
     if (x == 0.0f && y == 0.0f) return 0.0f;
 
     return std::atan2(y, x);
 }
-PUBLIC STATIC float Math::Distance(float x1, float y1, float x2, float y2) {
+float Math::Distance(float x1, float y1, float x2, float y2) {
     x2 -= x1; x2 *= x2;
     y2 -= y1; y2 *= y2;
     return (float)sqrt(x2 + y2);
 }
-PUBLIC STATIC float Math::Hypot(float a, float b, float c) {
+float Math::Hypot(float a, float b, float c) {
     return (float)sqrt(a * a + b * b + c * c);
 }
-PUBLIC STATIC void Math::ClearTrigLookupTables() {
+void Math::ClearTrigLookupTables() {
     memset(Sin256LookupTable, 0, sizeof(Sin256LookupTable));
     memset(Cos256LookupTable, 0, sizeof(Cos256LookupTable));
     memset(Tan256LookupTable, 0, sizeof(Tan256LookupTable));
@@ -84,7 +77,7 @@ PUBLIC STATIC void Math::ClearTrigLookupTables() {
     memset(ArcTan256LookupTable, 0, sizeof(ArcTan256LookupTable));
     randSeed = 0;
 }
-PUBLIC STATIC void Math::CalculateTrigAngles() {
+void Math::CalculateTrigAngles() {
     randSeed = rand();
 
     for (int i = 0; i < 0x400; i++) {
@@ -131,69 +124,69 @@ PUBLIC STATIC void Math::CalculateTrigAngles() {
         ACos256LookupTable[i] = (int)((acosf(i / 255.0) * 128.0) / R_PI);
     }
 }
-PUBLIC STATIC int Math::Sin1024(int angle) {
+int Math::Sin1024(int angle) {
     return Sin1024LookupTable[angle & 0x3FF];
 }
-PUBLIC STATIC int Math::Cos1024(int angle) {
+int Math::Cos1024(int angle) {
     return Cos1024LookupTable[angle & 0x3FF];
 }
-PUBLIC STATIC int Math::Tan1024(int angle) {
+int Math::Tan1024(int angle) {
     return Tan1024LookupTable[angle & 0x3FF];
 }
-PUBLIC STATIC int Math::ASin1024(int angle) {
+int Math::ASin1024(int angle) {
     if (angle > 0x3FF)
         return 0;
     if (angle < 0)
         return -ASin1024LookupTable[-angle];
     return ASin1024LookupTable[angle];
 }
-PUBLIC STATIC int Math::ACos1024(int angle) {
+int Math::ACos1024(int angle) {
     if (angle > 0x3FF)
         return 0;
     if (angle < 0)
         return -ACos1024LookupTable[-angle];
     return ACos1024LookupTable[angle];
 }
-PUBLIC STATIC int Math::Sin512(int angle) {
+int Math::Sin512(int angle) {
     return Sin512LookupTable[angle & 0x1FF];
 }
-PUBLIC STATIC int Math::Cos512(int angle) {
+int Math::Cos512(int angle) {
     return Cos512LookupTable[angle & 0x1FF];
 }
-PUBLIC STATIC int Math::Tan512(int angle) {
+int Math::Tan512(int angle) {
     return Tan512LookupTable[angle & 0x1FF];
 }
-PUBLIC STATIC int Math::ASin512(int angle) {
+int Math::ASin512(int angle) {
     if (angle > 0x1FF)
         return 0;
     if (angle < 0)
         return -ASin512LookupTable[-angle];
     return ASin512LookupTable[angle];
 }
-PUBLIC STATIC int Math::ACos512(int angle) {
+int Math::ACos512(int angle) {
     if (angle > 0x1FF)
         return 0;
     if (angle < 0)
         return -ACos512LookupTable[-angle];
     return ACos512LookupTable[angle];
 }
-PUBLIC STATIC int Math::Sin256(int angle) {
+int Math::Sin256(int angle) {
     return Sin256LookupTable[angle & 0XFF];
 }
-PUBLIC STATIC int Math::Cos256(int angle) {
+int Math::Cos256(int angle) {
     return Cos256LookupTable[angle & 0XFF];
 }
-PUBLIC STATIC int Math::Tan256(int angle) {
+int Math::Tan256(int angle) {
     return Tan256LookupTable[angle & 0xFF];
 }
-PUBLIC STATIC int Math::ASin256(int angle) {
+int Math::ASin256(int angle) {
     if (angle > 0xFF)
         return 0;
     if (angle < 0)
         return -ASin256LookupTable[-angle];
     return ASin256LookupTable[angle];
 }
-PUBLIC STATIC int Math::ACos256(int angle) {
+int Math::ACos256(int angle) {
     if (angle > 0XFF)
         return 0;
     if (angle < 0)
@@ -202,7 +195,7 @@ PUBLIC STATIC int Math::ACos256(int angle) {
 }
 
 // help
-PUBLIC STATIC int   Math::CeilPOT(int n) {
+int   Math::CeilPOT(int n) {
     n--;
     n |= n >> 1;
     n |= n >> 2;
@@ -214,39 +207,39 @@ PUBLIC STATIC int   Math::CeilPOT(int n) {
 }
 
 // Deterministic functions
-PUBLIC STATIC float Math::Abs(float n) {
+float Math::Abs(float n) {
     return std::abs(n);
 }
-PUBLIC STATIC float Math::Max(float a, float b) {
+float Math::Max(float a, float b) {
     return a > b ? a : b;
 }
-PUBLIC STATIC float Math::Min(float a, float b) {
+float Math::Min(float a, float b) {
     return a < b ? a : b;
 }
-PUBLIC STATIC float Math::Clamp(float v, float a, float b) {
+float Math::Clamp(float v, float a, float b) {
     return Math::Max(a, Math::Min(v, b));
 }
-PUBLIC STATIC float Math::Sign(float a) {
+float Math::Sign(float a) {
     return a < 0.0f ? -1.0f : a > 0.0f ? 1.0f : 0.0f;
 }
 
 // Random functions (non-inclusive)
-PUBLIC STATIC float Math::Random() {
+float Math::Random() {
     return rand() / (float)RAND_MAX;
 }
-PUBLIC STATIC float Math::RandomMax(float max) {
+float Math::RandomMax(float max) {
     return Math::Random() * max;
 }
-PUBLIC STATIC float Math::RandomRange(float min, float max) {
+float Math::RandomRange(float min, float max) {
     return (Math::Random() * (max - min)) + min;
 }
-PUBLIC STATIC int Math::RSDK_GetRandSeed() {
+int Math::RSDK_GetRandSeed() {
     return randSeed;
 }
-PUBLIC STATIC void Math::RSDK_SetRandSeed(int key) {
+void Math::RSDK_SetRandSeed(int key) {
     randSeed = key;
 }
-PUBLIC STATIC int Math::RSDK_RandomInteger(int min, int max) {
+int Math::RSDK_RandomInteger(int min, int max) {
     int seed1   = 1103515245 * randSeed + 12345;
     int seed2   = 1103515245 * seed1 + 12345;
     randSeed    = 1103515245 * seed2 + 12345;
@@ -261,7 +254,7 @@ PUBLIC STATIC int Math::RSDK_RandomInteger(int min, int max) {
     else
         return max;
 }
-PUBLIC STATIC int Math::RSDK_RandomIntegerSeeded(int min, int max, int seed) {
+int Math::RSDK_RandomIntegerSeeded(int min, int max, int seed) {
     if (!randSeed)
         return 0;
 

@@ -1,31 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Media/Includes/AVCodec.h>
-#include <Engine/Media/Includes/AVFormat.h>
-#include <Engine/Media/Utils/PtrBuffer.h>
-#include <Engine/Media/Utils/Codec.h>
-#include <Engine/Media/MediaSource.h>
-
-class Decoder {
-public:
-    bool Successful;
-    int StreamIndex;
-    double ClockSync;
-    double ClockPos;
-
-    PtrBuffer* Buffer[2];
-    SDL_mutex* OutputLock;
-    AVCodecContext* CodecCtx;
-    AVFormatContext* FormatCtx;
-
-    Uint32 Format; // SDL_Format
-
-    int    (*DecodeFunc)(void*, AVPacket*);
-    void   (*CloseFunc)(void*);
-};
-#endif
-
 #include <Engine/Media/Decoder.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -43,11 +15,11 @@ enum {
 typedef void (*FreePacketCallback)(void*);
 
 // void (*)(void*)
-PUBLIC STATIC void      Decoder::FreeInVideoPacketFunc(void* packet) {
+void      Decoder::FreeInVideoPacketFunc(void* packet) {
     av_packet_free((AVPacket**)&packet);
 }
 
-PUBLIC        void      Decoder::Create(MediaSource* src, int stream_index, int outBufferLength, void (*freeOutFunc)(void*), int thread_count) {
+void      Decoder::Create(MediaSource* src, int stream_index, int outBufferLength, void (*freeOutFunc)(void*), int thread_count) {
     if (outBufferLength <= 0) {
         Log::Print(Log::LOG_ERROR, "Decoder::Create: outBufferLength <= 0");
         exit(-1);
@@ -160,7 +132,7 @@ PUBLIC        void      Decoder::Create(MediaSource* src, int stream_index, int 
     exit_0:
     return;
 }
-PUBLIC        void      Decoder::Close() {
+void      Decoder::Close() {
     if (CloseFunc)
         CloseFunc(this);
 
@@ -171,10 +143,10 @@ PUBLIC        void      Decoder::Close() {
     avcodec_close(CodecCtx);
     avcodec_free_context(&CodecCtx);
 }
-PUBLIC                  Decoder::~Decoder() {
+Decoder::~Decoder() {
     Close();
 }
-PUBLIC        int       Decoder::Run() {
+int       Decoder::Run() {
     AVPacket* in_packet;
     int is_output_full = 1;
 
@@ -201,48 +173,48 @@ PUBLIC        int       Decoder::Run() {
     return 0;
 }
 // ---- Information API ----
-PUBLIC        int       Decoder::GetCodecInfo(Codec* codec) {
+int       Decoder::GetCodecInfo(Codec* codec) {
     codec->Threads = CodecCtx->thread_count;
     strncpy(codec->Name, CodecCtx->codec->name, KIT_CODEC_NAME_MAX - 1);
     strncpy(codec->Description, CodecCtx->codec->long_name, KIT_CODEC_DESC_MAX - 1);
     return 0;
 }
-PUBLIC        int       Decoder::GetOutputFormat(OutputFormat* output) {
+int       Decoder::GetOutputFormat(OutputFormat* output) {
     output->Format = Format;
     return 0;
 }
-PUBLIC        int       Decoder::GetStreamIndex() {
+int       Decoder::GetStreamIndex() {
     return StreamIndex;
 }
 // ---- Clock handling ----
-PUBLIC        void      Decoder::SetClockSync(double sync) {
+void      Decoder::SetClockSync(double sync) {
     ClockSync = sync;
 }
-PUBLIC        void      Decoder::ChangeClockSync(double sync) {
+void      Decoder::ChangeClockSync(double sync) {
     ClockSync += sync;
 }
 // ---- Input buffer handling ----
-PUBLIC        int       Decoder::WriteInput(AVPacket* packet) {
+int       Decoder::WriteInput(AVPacket* packet) {
     return Buffer[KIT_DEC_BUF_IN]->Write(packet);
 }
-PUBLIC        AVPacket* Decoder::PeekInput() {
+AVPacket* Decoder::PeekInput() {
     return (AVPacket*)Buffer[KIT_DEC_BUF_IN]->Peek();
 }
-PUBLIC        AVPacket* Decoder::ReadInput() {
+AVPacket* Decoder::ReadInput() {
     return (AVPacket*)Buffer[KIT_DEC_BUF_IN]->Read();
 }
-PUBLIC        bool      Decoder::CanWriteInput() {
+bool      Decoder::CanWriteInput() {
     return !(Buffer[KIT_DEC_BUF_IN]->IsFull());
 }
-PUBLIC        void      Decoder::AdvanceInput() {
+void      Decoder::AdvanceInput() {
     Buffer[KIT_DEC_BUF_IN]->Advance();
 }
-PUBLIC        void      Decoder::ClearInput() {
+void      Decoder::ClearInput() {
     Buffer[KIT_DEC_BUF_IN]->Clear();
 }
 // ---- Output buffer handling ----
 // Kit_([A-z0-9_]+)Buffer([A-z0-9_]*)\((.*)\)
-PUBLIC        int       Decoder::WriteOutput(void* packet) {
+int       Decoder::WriteOutput(void* packet) {
     int ret = 1;
     if (SDL_LockMutex(OutputLock) == 0) {
         ret = Buffer[KIT_DEC_BUF_OUT]->Write(packet);
@@ -250,7 +222,7 @@ PUBLIC        int       Decoder::WriteOutput(void* packet) {
     }
     return ret;
 }
-PUBLIC        void*     Decoder::PeekOutput() {
+void*     Decoder::PeekOutput() {
     void* ret = NULL;
     if (SDL_LockMutex(OutputLock) == 0) {
         ret = Buffer[KIT_DEC_BUF_OUT]->Peek();
@@ -258,7 +230,7 @@ PUBLIC        void*     Decoder::PeekOutput() {
     }
     return ret;
 }
-PUBLIC        void*     Decoder::ReadOutput() {
+void*     Decoder::ReadOutput() {
     void* ret = NULL;
     if (SDL_LockMutex(OutputLock) == 0) {
         ret = Buffer[KIT_DEC_BUF_OUT]->Read();
@@ -266,7 +238,7 @@ PUBLIC        void*     Decoder::ReadOutput() {
     }
     return ret;
 }
-PUBLIC        bool      Decoder::CanWriteOutput() {
+bool      Decoder::CanWriteOutput() {
     bool ret = false;
     if (SDL_LockMutex(OutputLock) == 0) {
         ret = !(Buffer[KIT_DEC_BUF_OUT]->IsFull());
@@ -274,29 +246,29 @@ PUBLIC        bool      Decoder::CanWriteOutput() {
     }
     return ret;
 }
-PUBLIC        void      Decoder::AdvanceOutput() {
+void      Decoder::AdvanceOutput() {
     if (SDL_LockMutex(OutputLock) == 0) {
         Buffer[KIT_DEC_BUF_OUT]->Advance();
         SDL_UnlockMutex(OutputLock);
     }
 }
-PUBLIC        void      Decoder::ClearOutput() {
+void      Decoder::ClearOutput() {
     if (SDL_LockMutex(OutputLock) == 0) {
         Buffer[KIT_DEC_BUF_OUT]->Clear();
         SDL_UnlockMutex(OutputLock);
     }
 }
 
-PUBLIC        void      Decoder::ForEachOutput(void (*cb)(void*, void*), void* userdata) {
+void      Decoder::ForEachOutput(void (*cb)(void*, void*), void* userdata) {
     if (SDL_LockMutex(OutputLock) == 0) {
         Buffer[KIT_DEC_BUF_OUT]->ForEachItemInBuffer(cb, userdata);
         SDL_UnlockMutex(OutputLock);
     }
 }
-PUBLIC        Uint32    Decoder::GetInputLength() {
+Uint32    Decoder::GetInputLength() {
     return Buffer[KIT_DEC_BUF_IN]->GetLength();
 }
-PUBLIC        Uint32    Decoder::GetOutputLength() {
+Uint32    Decoder::GetOutputLength() {
     Uint32 len = 0;
     if (SDL_LockMutex(OutputLock) == 0) {
         len = Buffer[KIT_DEC_BUF_OUT]->GetLength();
@@ -304,16 +276,16 @@ PUBLIC        Uint32    Decoder::GetOutputLength() {
     }
     return len;
 }
-PUBLIC        void      Decoder::ClearBuffers() {
+void      Decoder::ClearBuffers() {
     ClearInput();
     ClearOutput();
     avcodec_flush_buffers(CodecCtx);
 }
 
-PUBLIC        int       Decoder::LockOutput() {
+int       Decoder::LockOutput() {
     return SDL_LockMutex(OutputLock);
 }
-PUBLIC        void      Decoder::UnlockOutput() {
+void      Decoder::UnlockOutput() {
     SDL_UnlockMutex(OutputLock);
 }
 
