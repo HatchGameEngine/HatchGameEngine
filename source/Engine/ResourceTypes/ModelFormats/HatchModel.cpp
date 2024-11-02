@@ -55,7 +55,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) 
 
         ColorUtils::Separate(material->ColorDiffuse, diffuseColor);
 
-        material->TextureDiffuse = IModel::LoadMaterialImage(diffuseTexture, parentDirectory);
+        material->TextureDiffuse = Material::LoadForModel(diffuseTexture, parentDirectory);
         if (material->TextureDiffuse)
             material->TextureDiffuseName = StringUtils::Duplicate(material->TextureDiffuse->Filename);
 
@@ -71,7 +71,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) 
 
         ColorUtils::Separate(material->ColorSpecular, specularColor);
 
-        material->TextureSpecular = IModel::LoadMaterialImage(specularTexture, parentDirectory);
+        material->TextureSpecular = Material::LoadForModel(specularTexture, parentDirectory);
         if (material->TextureSpecular)
             material->TextureSpecularName = StringUtils::Duplicate(material->TextureSpecular->Filename);
 
@@ -87,7 +87,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) 
 
         ColorUtils::Separate(material->ColorAmbient, ambientColor);
 
-        material->TextureAmbient = IModel::LoadMaterialImage(ambientTexture, parentDirectory);
+        material->TextureAmbient = Material::LoadForModel(ambientTexture, parentDirectory);
         if (material->TextureAmbient)
             material->TextureAmbientName = StringUtils::Duplicate(material->TextureAmbient->Filename);
 
@@ -103,7 +103,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) 
 
         ColorUtils::Separate(material->ColorEmissive, emissiveColor);
 
-        material->TextureEmissive = IModel::LoadMaterialImage(emissiveTexture, parentDirectory);
+        material->TextureEmissive = Material::LoadForModel(emissiveTexture, parentDirectory);
         if (material->TextureEmissive)
             material->TextureEmissiveName = StringUtils::Duplicate(material->TextureEmissive->Filename);
 

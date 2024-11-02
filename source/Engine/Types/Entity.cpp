@@ -6,8 +6,11 @@ void Entity::ApplyMotion() {
     Y += YSpeed;
 }
 void Entity::Animate() {
-    ISprite* sprite = Scene::GetSpriteResource(Sprite);
+    ResourceType* resource = Scene::GetSpriteResource(Sprite);
+    if (!resource)
+        return;
 
+    ISprite* sprite = resource->AsSprite;
     if (!sprite || CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
         return;
 
@@ -35,7 +38,11 @@ void Entity::Animate() {
                 OnAnimationFinish();
 
                 // Sprite may have changed after a call to OnAnimationFinish
-                sprite = Scene::GetSpriteResource(Sprite);
+                ResourceType* resource = Scene::GetSpriteResource(Sprite);
+                if (resource)
+                    sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
+                else
+                    sprite = nullptr;
             }
 
             // Do a basic range check, for strange loop points
@@ -60,8 +67,11 @@ void Entity::SetAnimation(int animation, int frame) {
         ResetAnimation(animation, frame);
 }
 void Entity::ResetAnimation(int animation, int frame) {
-    ISprite* sprite = Scene::GetSpriteResource(Sprite);
+    ResourceType* resource = Scene::GetSpriteResource(Sprite);
+    if (!resource)
+        return;
 
+    ISprite* sprite = resource->AsSprite;
     if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size())
         return;
 

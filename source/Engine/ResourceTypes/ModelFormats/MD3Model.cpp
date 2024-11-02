@@ -299,7 +299,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
         for (size_t i = 0; i < numMaterials; i++) {
             char* name = StringUtils::Create(MaterialNames[i]);
             Material* material = Material::Create(name);
-            material->TextureDiffuse = IModel::LoadMaterialImage(MaterialNames[i], parentDirectory);
+            material->TextureDiffuse = Material::LoadForModel(MaterialNames[i], parentDirectory);
             if (material->TextureDiffuse)
                 material->TextureDiffuseName = StringUtils::Duplicate(material->TextureDiffuse->Filename);
             model->AddUniqueMaterial(material);

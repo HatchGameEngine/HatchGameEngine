@@ -26,6 +26,7 @@
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/SceneFormats/TiledMapReader.h>
+#include <Engine/FontFace.h>
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
@@ -2289,22 +2290,270 @@ bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, siz
     return false;
 }
 
-ISprite* Scene::GetSpriteResource(int index) {
+int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::SpriteList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    resource->AsSprite = new (std::nothrow) ISprite(filename);
+    if (resource->AsSprite->LoadFailed) {
+        delete resource->AsSprite;
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    return (int)index;
+}
+int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::ImageList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    resource->AsImage = new (std::nothrow) Image(filename);
+    if (!resource->AsImage->TexturePtr) {
+        delete resource->AsImage;
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    resource->AsImage->ID = (int)index;
+
+    return (int)index;
+}
+int Scene::LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::SpriteList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    ResourceStream* stream = ResourceStream::New(filename);
+    if (!stream) {
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    resource->AsSprite = FontFace::SpriteFromFont(stream, pixel_sz, filename);
+
+    stream->Close();
+
+    if (resource->AsSprite->LoadFailed) {
+        delete resource->AsSprite;
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    return (int)index;
+}
+int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::ModelList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    ResourceStream* stream = ResourceStream::New(filename);
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    resource->AsModel = new (std::nothrow) IModel();
+
+    if (!resource->AsModel->Load(stream, filename)) {
+        delete resource->AsModel;
+        delete resource;
+        list->pop_back();
+        stream->Close();
+        return -1;
+    }
+
+    return (int)index;
+}
+int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::MusicList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    ResourceStream* stream = ResourceStream::New(filename);
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    resource->AsMusic = new (std::nothrow) ISound(filename);
+    if (resource->AsMusic->LoadFailed) {
+        delete resource->AsMusic;
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    return (int)index;
+}
+int Scene::LoadSoundResource(const char* filename, int unloadPolicy) {
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::SoundList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    resource->AsSound = new (std::nothrow) ISound(filename);
+    if (resource->AsSound->LoadFailed) {
+        delete resource->AsSound;
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    return (int)index;
+}
+int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
+#ifdef USING_FFMPEG
+    ResourceType* resource = new (std::nothrow) ResourceType();
+    resource->FilenameHash = CRC32::EncryptString(filename);
+    resource->UnloadPolicy = unloadPolicy;
+
+    size_t index = 0;
+    vector<ResourceType*>* list = &Scene::MediaList;
+    if (Scene::GetResource(list, resource, index))
+        return (int)index;
+
+    Texture* VideoTexture = NULL;
+    MediaSource* Source = NULL;
+    MediaPlayer* Player = NULL;
+
+    Stream* stream = NULL;
+    if (strncmp(filename, "file://", 7) == 0)
+        stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
+    else
+        stream = ResourceStream::New(filename);
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    Source = MediaSource::CreateSourceFromStream(stream);
+    if (!Source) {
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    Player = MediaPlayer::Create(Source,
+        Source->GetBestStream(MediaSource::STREAMTYPE_VIDEO),
+        Source->GetBestStream(MediaSource::STREAMTYPE_AUDIO),
+        Source->GetBestStream(MediaSource::STREAMTYPE_SUBTITLE),
+        Scene::Views[0].Width, Scene::Views[0].Height);
+    if (!Player) {
+        Source->Close();
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    PlayerInfo playerInfo;
+    Player->GetInfo(&playerInfo);
+    VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format, SDL_TEXTUREACCESS_STATIC, playerInfo.Video.Output.Width, playerInfo.Video.Output.Height);
+    if (!VideoTexture) {
+        Player->Close();
+        Source->Close();
+        delete resource;
+        (*list)[index] = NULL;
+        return -1;
+    }
+
+    if (Player->GetVideoStream() > -1) {
+        Log::Print(Log::LOG_WARN, "VIDEO STREAM:");
+        Log::Print(Log::LOG_INFO, "    Resolution:  %d x %d", playerInfo.Video.Output.Width, playerInfo.Video.Output.Height);
+    }
+    if (Player->GetAudioStream() > -1) {
+        Log::Print(Log::LOG_WARN, "AUDIO STREAM:");
+        Log::Print(Log::LOG_INFO, "    Sample Rate: %d", playerInfo.Audio.Output.SampleRate);
+        Log::Print(Log::LOG_INFO, "    Bit Depth:   %d-bit", playerInfo.Audio.Output.Format & 0xFF);
+        Log::Print(Log::LOG_INFO, "    Channels:    %d", playerInfo.Audio.Output.Channels);
+    }
+
+    MediaBag* newMediaBag = new (std::nothrow) MediaBag;
+    newMediaBag->Source = Source;
+    newMediaBag->Player = Player;
+    newMediaBag->VideoTexture = VideoTexture;
+
+    resource->AsMedia = newMediaBag;
+    return (int)index;
+#else
+    return -1;
+#endif
+}
+
+ResourceType* Scene::GetSpriteResource(int index) {
     if (index < 0 || index >= (int)Scene::SpriteList.size())
         return NULL;
 
     if (!Scene::SpriteList[index]) return NULL;
 
-    return Scene::SpriteList[index]->AsSprite;
+    return Scene::SpriteList[index];
+}
+ResourceType* Scene::GetImageResource(int index) {
+    if (index < 0 || index >= (int)Scene::ImageList.size())
+        return NULL;
+
+    if (!Scene::ImageList[index]) return NULL;
+
+    return Scene::ImageList[index];
 }
 
 void Scene::DisposeInScope(Uint32 scope) {
+    // Models
+    for (size_t i = 0, i_sz = Scene::ModelList.size(); i < i_sz; i++) {
+        if (!Scene::ModelList[i]) continue;
+        if (Scene::ModelList[i]->UnloadPolicy > scope) continue;
+
+        delete Scene::ModelList[i]->AsModel;
+        delete Scene::ModelList[i];
+        Scene::ModelList[i] = NULL;
+    }
     // Images
     for (size_t i = 0, i_sz = Scene::ImageList.size(); i < i_sz; i++) {
         if (!Scene::ImageList[i]) continue;
         if (Scene::ImageList[i]->UnloadPolicy > scope) continue;
+        if (Scene::ImageList[i]->AsImage->References > 1) continue;
 
-        Scene::ImageList[i]->AsImage->Dispose();
         delete Scene::ImageList[i]->AsImage;
         delete Scene::ImageList[i];
         Scene::ImageList[i] = NULL;
@@ -2317,16 +2566,6 @@ void Scene::DisposeInScope(Uint32 scope) {
         delete Scene::SpriteList[i]->AsSprite;
         delete Scene::SpriteList[i];
         Scene::SpriteList[i] = NULL;
-    }
-    // Models
-    for (size_t i = 0, i_sz = Scene::ModelList.size(); i < i_sz; i++) {
-        if (!Scene::ModelList[i]) continue;
-        if (Scene::ModelList[i]->UnloadPolicy > scope) continue;
-
-        Scene::ModelList[i]->AsModel->Dispose();
-        delete Scene::ModelList[i]->AsModel;
-        delete Scene::ModelList[i];
-        Scene::ModelList[i] = NULL;
     }
     // Sounds
     AudioManager::ClearMusic();
@@ -2489,6 +2728,38 @@ void Scene::UnloadTilesets() {
     }
     Scene::Tilesets.clear();
     Scene::TileSpriteInfos.clear();
+}
+
+bool Scene::GetTextureListSpace(size_t* out) {
+    for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
+        if (!TextureList[i]) {
+            *out = i;
+            return true;
+        }
+    }
+    return false;
+}
+size_t Scene::AddGameTexture(GameTexture* texture) {
+    size_t i = 0;
+    bool foundEmpty = GetTextureListSpace(&i);
+
+    if (foundEmpty)
+        TextureList[i] = texture;
+    else {
+        i = TextureList.size();
+        TextureList.push_back(texture);
+    }
+
+    return i;
+}
+bool Scene::FindGameTextureByID(int id, size_t& out) {
+    for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
+        if (TextureList[i] && TextureList[i]->GetID() == id) {
+            out = i;
+            return true;
+        }
+    }
+    return false;
 }
 
 // Tile Batching

@@ -9,7 +9,6 @@
 #include <Engine/ResourceTypes/ModelFormats/HatchModel.h>
 #include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
 #include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
-#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/Diagnostics/Clock.h>
 
@@ -104,50 +103,6 @@ size_t IModel::AddUniqueMaterial(Material* material) {
 
 bool IModel::HasMaterials() {
     return Materials.size() > 0;
-}
-
-Image* IModel::TryLoadMaterialImage(std::string imagePath, const char *parentDirectory) {
-    std::string filename = imagePath;
-
-    if (parentDirectory) {
-        char* concat = StringUtils::ConcatPaths(parentDirectory, filename.c_str());
-        filename = std::string(concat);
-        Memory::Free(concat);
-    }
-
-    const char *cfilename = filename.c_str();
-    if (!ResourceManager::ResourceExists(cfilename))
-        return nullptr;
-
-    Image* image = new Image(cfilename);
-    if (image->TexturePtr)
-        return image;
-
-    image->Dispose();
-
-    return nullptr;
-}
-
-Image* IModel::LoadMaterialImage(string imagePath, const char *parentDirectory) {
-    // Try possible combinations
-    Image* image = nullptr;
-
-    if ((image = TryLoadMaterialImage(imagePath, parentDirectory))) return image;
-    if ((image = TryLoadMaterialImage(imagePath + ".png", parentDirectory))) return image;
-    if ((image = TryLoadMaterialImage("Textures/" + imagePath, parentDirectory))) return image;
-    if ((image = TryLoadMaterialImage("Textures/" + imagePath + ".png", parentDirectory))) return image;
-
-    if ((image = TryLoadMaterialImage(imagePath, nullptr))) return image;
-    if ((image = TryLoadMaterialImage(imagePath + ".png", nullptr))) return image;
-    if ((image = TryLoadMaterialImage("Textures/" + imagePath, nullptr))) return image;
-    if ((image = TryLoadMaterialImage("Textures/" + imagePath + ".png", nullptr))) return image;
-
-    // Well, we tried
-    return nullptr;
-}
-
-Image* IModel::LoadMaterialImage(const char *imagePath, const char *parentDirectory) {
-    return LoadMaterialImage(std::string(imagePath), parentDirectory);
 }
 
 bool IModel::HasBones() {
@@ -437,7 +392,7 @@ void IModel::DeleteArmature(size_t index) {
 }
 
 void IModel::Dispose() {
-    // Model doesn't own its materials, so it does not delete them.
+    // Models don't own their materials, so they do not delete them.
     for (size_t i = 0; i < Meshes.size(); i++)
         delete Meshes[i];
     for (size_t i = 0; i < Animations.size(); i++)

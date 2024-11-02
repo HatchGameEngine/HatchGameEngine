@@ -1,6 +1,5 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 
-#include <Engine/FontFace.h>
 #include <Engine/Graphics.h>
 #include <Engine/Scene.h>
 #include <Engine/Audio/AudioManager.h>
@@ -633,7 +632,11 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
     if (!animator || !animator->Frames.size())
         return NULL_VAL;
 
-    ISprite* sprite = Scene::GetSpriteResource(animator->Sprite);
+    ResourceType* resource = Scene::GetSpriteResource(animator->Sprite);
+    if (!resource)
+        return NULL_VAL;
+
+    ISprite* sprite = resource->AsSprite;
     if (!sprite)
         return NULL_VAL;
 
@@ -9472,24 +9475,11 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    int result = Scene::LoadSpriteResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::SpriteList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    resource->AsSprite = new (std::nothrow) ISprite(filename);
-    if (resource->AsSprite->LoadFailed) {
-        delete resource->AsSprite;
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadImage
@@ -9502,24 +9492,11 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    int result = Scene::LoadImageResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::ImageList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    resource->AsImage = new (std::nothrow) Image(filename);
-    if (!resource->AsImage->TexturePtr) {
-        delete resource->AsImage;
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadFont
@@ -9534,27 +9511,11 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
     char*  filename = GET_ARG(0, GetString);
     int    pixel_sz = (int)GET_ARG(1, GetDecimal);
+    int    unloadPolicy = GET_ARG(2, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
-    resource->UnloadPolicy = GET_ARG(2, GetInteger);
+    int result = Scene::LoadFontResource(filename, pixel_sz, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::SpriteList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    ResourceStream* stream = ResourceStream::New(filename);
-    if (!stream) {
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-    resource->AsSprite = FontFace::SpriteFromFont(stream, pixel_sz, filename);
-    stream->Close();
-
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadModel
@@ -9567,35 +9528,11 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    int result = Scene::LoadModelResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::ModelList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    ResourceStream* stream = ResourceStream::New(filename);
-    if (!stream) {
-        Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-
-    resource->AsModel = new (std::nothrow) IModel();
-    if (!resource->AsModel->Load(stream, filename)) {
-        delete resource->AsModel;
-        delete resource;
-        list->pop_back();
-        stream->Close();
-        return INTEGER_VAL(-1);
-    }
-    stream->Close();
-
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadMusic
@@ -9608,24 +9545,11 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    int result = Scene::LoadMusicResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::MusicList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    resource->AsMusic = new (std::nothrow) ISound(filename);
-    if (resource->AsMusic->LoadFailed) {
-        delete resource->AsMusic;
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadSound
@@ -9638,31 +9562,18 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
     char*  filename = GET_ARG(0, GetString);
+    int unloadPolicy = GET_ARG(1, GetInteger);
 
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = GET_ARG(1, GetInteger);
+    int result = Scene::LoadSoundResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::SoundList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    resource->AsSound = new (std::nothrow) ISound(filename);
-    if (resource->AsSound->LoadFailed) {
-        delete resource->AsSound;
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-    return INTEGER_VAL((int)index);
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.LoadVideo
  * \desc Loads a Video resource, returning its Video index.
- * \param filename (String):
- * \param unloadPolicy (Integer):
- * \return
+ * \param filename (String): Filename of the resource.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
@@ -9670,83 +9581,9 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
     char*  filename = GET_ARG(0, GetString);
     int unloadPolicy = GET_ARG(1, GetInteger);
 
-#ifdef USING_FFMPEG
-    ResourceType* resource = new (std::nothrow) ResourceType();
-    resource->FilenameHash = CRC32::EncryptString(filename);
-    resource->UnloadPolicy = unloadPolicy;
+    int result = Scene::LoadVideoResource(filename, unloadPolicy);
 
-    size_t index = 0;
-    vector<ResourceType*>* list = &Scene::MediaList;
-    if (Scene::GetResource(list, resource, index))
-        return INTEGER_VAL((int)index);
-
-    Texture* VideoTexture = NULL;
-    MediaSource* Source = NULL;
-    MediaPlayer* Player = NULL;
-
-    Stream* stream = NULL;
-    if (strncmp(filename, "file://", 7) == 0)
-        stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-    else
-        stream = ResourceStream::New(filename);
-    if (!stream) {
-        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-
-    Source = MediaSource::CreateSourceFromStream(stream);
-    if (!Source) {
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-
-    Player = MediaPlayer::Create(Source,
-        Source->GetBestStream(MediaSource::STREAMTYPE_VIDEO),
-        Source->GetBestStream(MediaSource::STREAMTYPE_AUDIO),
-        Source->GetBestStream(MediaSource::STREAMTYPE_SUBTITLE),
-        Scene::Views[0].Width, Scene::Views[0].Height);
-    if (!Player) {
-        Source->Close();
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-
-    PlayerInfo playerInfo;
-    Player->GetInfo(&playerInfo);
-    VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format, SDL_TEXTUREACCESS_STATIC, playerInfo.Video.Output.Width, playerInfo.Video.Output.Height);
-    if (!VideoTexture) {
-        Player->Close();
-        Source->Close();
-        delete resource;
-        (*list)[index] = NULL;
-        return INTEGER_VAL(-1);
-    }
-
-    if (Player->GetVideoStream() > -1) {
-        Log::Print(Log::LOG_WARN, "VIDEO STREAM:");
-        Log::Print(Log::LOG_INFO, "    Resolution:  %d x %d", playerInfo.Video.Output.Width, playerInfo.Video.Output.Height);
-    }
-    if (Player->GetAudioStream() > -1) {
-        Log::Print(Log::LOG_WARN, "AUDIO STREAM:");
-        Log::Print(Log::LOG_INFO, "    Sample Rate: %d", playerInfo.Audio.Output.SampleRate);
-        Log::Print(Log::LOG_INFO, "    Bit Depth:   %d-bit", playerInfo.Audio.Output.Format & 0xFF);
-        Log::Print(Log::LOG_INFO, "    Channels:    %d", playerInfo.Audio.Output.Channels);
-    }
-
-    MediaBag* newMediaBag = new (std::nothrow) MediaBag;
-    newMediaBag->Source = Source;
-    newMediaBag->Player = Player;
-    newMediaBag->VideoTexture = VideoTexture;
-
-    resource->AsMedia = newMediaBag;
-    return INTEGER_VAL((int)index);
-#else
-    return INTEGER_VAL(-1);
-#endif
+    return INTEGER_VAL(result);
 }
 /***
  * Resources.FileExists
@@ -14712,39 +14549,6 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Texture
-bool GetTextureListSpace(size_t* out) {
-    for (size_t i = 0, listSz = Scene::TextureList.size(); i < listSz; i++) {
-        if (!Scene::TextureList[i]) {
-            *out = i;
-            return true;
-        }
-    }
-    return false;
-}
-size_t AddGameTexture(GameTexture* texture) {
-    size_t i = 0;
-    bool foundEmpty = GetTextureListSpace(&i);
-
-    if (foundEmpty)
-        Scene::TextureList[i] = texture;
-    else {
-        i = Scene::TextureList.size();
-        Scene::TextureList.push_back(texture);
-    }
-
-    return i;
-}
-bool FindGameTextureByID(int id, size_t* out) {
-    for (size_t i = 0, listSz = Scene::TextureList.size(); i < listSz; i++) {
-        if (!Scene::TextureList[i])
-            continue;
-        if (Scene::TextureList[i]->GetID() == id) {
-            *out = i;
-            return true;
-        }
-    }
-    return false;
-}
 /***
  * Texture.Create
  * \desc
@@ -14759,7 +14563,7 @@ VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
     int unloadPolicy = GET_ARG(2, GetInteger);
 
     GameTexture* texture = new GameTexture(width, height, unloadPolicy);
-    size_t i = AddGameTexture(texture);
+    size_t i = Scene::AddGameTexture(texture);
 
     return INTEGER_VAL((int)i);
 }
@@ -15927,9 +15731,9 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 
     size_t i = 0;
 
-    if (!FindGameTextureByID(-(view_index + 1), &i)) {
+    if (!Scene::FindGameTextureByID(-(view_index + 1), i)) {
         GameTexture* texture = new ViewTexture(view_index);
-        i = AddGameTexture(texture);
+        i = Scene::AddGameTexture(texture);
     }
 
     return INTEGER_VAL((int)i);

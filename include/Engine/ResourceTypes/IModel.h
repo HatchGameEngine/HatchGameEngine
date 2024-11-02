@@ -10,7 +10,6 @@
 
 class IModel {
 private:
-    static Image* TryLoadMaterialImage(std::string imagePath, const char *parentDirectory);
     void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 
 public:
@@ -32,8 +31,6 @@ public:
     size_t AddMaterial(Material* material);
     size_t AddUniqueMaterial(Material* material);
     bool HasMaterials();
-    static Image* LoadMaterialImage(string imagePath, const char *parentDirectory);
-    static Image* LoadMaterialImage(const char *imagePath, const char *parentDirectory);
     bool HasBones();
     void AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix);
     void Pose();

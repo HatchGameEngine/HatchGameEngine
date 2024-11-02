@@ -1112,7 +1112,13 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 thread
     if (!IsValidEntity(self))
         return NULL_VAL;
 
-    ISprite* sprite = Scene::GetSpriteResource(self->Sprite);
+    ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
+    if (!resource) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite is not set!", animation);
+        return NULL_VAL;
+    }
+
+    ISprite* sprite = resource->AsSprite;
     if (!sprite) {
         ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite is not set!", animation);
         return NULL_VAL;
@@ -1146,10 +1152,15 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thre
     if (!IsValidEntity(self))
         return NULL_VAL;
 
-    int spriteIns = self->Sprite;
-    ISprite* sprite = Scene::GetSpriteResource(spriteIns);
+    ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
+    if (!resource) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", self->Sprite);
+        return NULL_VAL;
+    }
+
+    ISprite* sprite = resource->AsSprite;
     if (!sprite) {
-        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", spriteIns);
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", self->Sprite);
         return NULL_VAL;
     }
 

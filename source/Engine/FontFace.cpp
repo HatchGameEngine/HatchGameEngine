@@ -135,7 +135,7 @@ FT_Package*     PackBoxes(FT_GlyphBox* boxes, int boxCount, int defWidth, int de
     return package;
 }
 
-ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, char* filename) {
+ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* filename) {
     #ifdef USING_FREETYPE
 
     if (!ftInitialized) {

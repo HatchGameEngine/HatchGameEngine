@@ -45,6 +45,7 @@ private:
     static void InitTileCollisions();
     static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
     static void SetTileCount(size_t tileCount);
+    static bool GetTextureListSpace(size_t* out);
 
 public:
     static int                       ShowTileCollisionFlag;
@@ -171,10 +172,20 @@ public:
     static void UnloadTileCollisions();
     static bool GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t& index, bool& foundEmpty);
     static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
-    static ISprite* GetSpriteResource(int index);
+    static int LoadSpriteResource(const char* filename, int unloadPolicy);
+    static int LoadImageResource(const char* filename, int unloadPolicy);
+    static int LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy);
+    static int LoadModelResource(const char* filename, int unloadPolicy);
+    static int LoadMusicResource(const char* filename, int unloadPolicy);
+    static int LoadSoundResource(const char* filename, int unloadPolicy);
+    static int LoadVideoResource(const char* filename, int unloadPolicy);
+    static ResourceType* GetSpriteResource(int index);
+    static ResourceType* GetImageResource(int index);
     static void DisposeInScope(Uint32 scope);
     static void Dispose();
     static void UnloadTilesets();
+    static size_t AddGameTexture(GameTexture* texture);
+    static bool FindGameTextureByID(int id, size_t& out);
     static void SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
     static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
     static int CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor);

@@ -15,11 +15,29 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-    strncpy(Filename, filename, 255);
+    AddRef();
+    Filename = StringUtils::Duplicate(filename);
     TexturePtr = Image::LoadTextureFromResource(Filename);
 }
 
+void Image::AddRef() {
+    References++;
+}
+
+bool Image::TakeRef() {
+    if (References == 0)
+        abort();
+
+    References--;
+
+    return References == 0;
+}
+
 void Image::Dispose() {
+    if (Filename) {
+        Memory::Free(Filename);
+        Filename = NULL;
+    }
     if (TexturePtr) {
         Graphics::DisposeTexture(TexturePtr);
         TexturePtr = NULL;

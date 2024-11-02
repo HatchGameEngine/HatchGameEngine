@@ -14,6 +14,8 @@ public:
     static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
     static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 
+    static Uint32 Hash_Name;
+
     static Uint32 Hash_DiffuseRed;
     static Uint32 Hash_DiffuseGreen;
     static Uint32 Hash_DiffuseBlue;

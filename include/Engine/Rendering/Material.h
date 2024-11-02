@@ -6,6 +6,10 @@
 #include <Engine/ResourceTypes/Image.h>
 
 class Material {
+private:
+    static Image* TryLoadForModel(std::string imagePath, const char *parentDirectory);
+    void ReleaseImage(Image* imagePtr);
+
 public:
     char* Name = nullptr;
     float ColorDiffuse[4];
@@ -28,6 +32,10 @@ public:
     static Material* Create(char* name);
     static void Remove(Material* material);
     static std::vector<Material*> List;
+
+    static Image* LoadForModel(string imagePath, const char *parentDirectory);
+    static Image* LoadForModel(const char *imagePath, const char *parentDirectory);
+
     Material(char* name);
     void Dispose();
     ~Material();

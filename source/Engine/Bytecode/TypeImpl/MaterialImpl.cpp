@@ -5,6 +5,8 @@
 
 ObjClass* MaterialImpl::Class = nullptr;
 
+Uint32 MaterialImpl::Hash_Name = 0;
+
 Uint32 MaterialImpl::Hash_DiffuseRed = 0;
 Uint32 MaterialImpl::Hash_DiffuseGreen = 0;
 Uint32 MaterialImpl::Hash_DiffuseBlue = 0;
@@ -38,6 +40,8 @@ void MaterialImpl::Init() {
     Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
     Class->PropertyGet = VM_PropertyGet;
     Class->PropertySet = VM_PropertySet;
+
+    Hash_Name = Murmur::EncryptString("Name");
 
     Hash_DiffuseRed = Murmur::EncryptString("DiffuseRed");
     Hash_DiffuseGreen = Murmur::EncryptString("DiffuseGreen");
@@ -97,31 +101,61 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
     } \
 }
 
+#define GET_TEXTURE(type) { \
+    if (hash == Hash_ ## type ## Texture) { \
+        Image* image = material->Texture ## type; \
+        if (image != nullptr) { \
+            *result = INTEGER_VAL(image->ID); \
+        } else { \
+            *result = NULL_VAL; \
+        } \
+        return true; \
+    } \
+}
+
 bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
     ObjMaterial* objMaterial = (ObjMaterial*)object;
     Material* material = objMaterial->MaterialPtr;
-    if (material == nullptr)
+    if (material == nullptr) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Material is no longer valid!");
         return false;
+    }
+
+    if (hash == Hash_Name) {
+        if (ScriptManager::Lock()) {
+            ObjString* string = CopyString(material->Name);
+            ScriptManager::Unlock();
+            *result = OBJECT_VAL(string);
+        }
+        else {
+            *result = NULL_VAL;
+        }
+        return true;
+    }
 
     GET_COLOR(Diffuse, Red, 0);
     GET_COLOR(Diffuse, Green, 1);
     GET_COLOR(Diffuse, Blue, 2);
     GET_COLOR(Diffuse, Alpha, 3);
+    GET_TEXTURE(Diffuse);
 
     GET_COLOR(Specular, Red, 0);
     GET_COLOR(Specular, Green, 1);
     GET_COLOR(Specular, Blue, 2);
     GET_COLOR(Specular, Alpha, 3);
+    GET_TEXTURE(Specular);
 
     GET_COLOR(Ambient, Red, 0);
     GET_COLOR(Ambient, Green, 1);
     GET_COLOR(Ambient, Blue, 2);
     GET_COLOR(Ambient, Alpha, 3);
+    GET_TEXTURE(Ambient);
 
     GET_COLOR(Emissive, Red, 0);
     GET_COLOR(Emissive, Green, 1);
     GET_COLOR(Emissive, Blue, 2);
     GET_COLOR(Emissive, Alpha, 3);
+    GET_TEXTURE(Emissive);
 
     return false;
 }
@@ -136,33 +170,79 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
     } \
 }
 
+static void DoTextureRemoval(Image** image) {
+    if (*image) {
+        if ((*image)->TakeRef())
+            abort();
+
+        (*image) = nullptr;
+    }
+}
+
+static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
+    ResourceType* resource = Scene::GetImageResource(imageID);
+    if (!resource) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Image index \"%d\" is not valid!", imageID);
+        return;
+    }
+
+    DoTextureRemoval(image);
+
+    Image* newImage = resource->AsImage;
+    newImage->AddRef();
+    (*image) = newImage;
+}
+
+#define SET_TEXTURE(type) { \
+    if (hash == Hash_ ## type ## Texture) { \
+        if (IS_NULL(value)) { \
+            DoTextureRemoval(&material->Texture ## type); \
+        } \
+        else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
+            DoTextureReplacement(AS_INTEGER(value), &material->Texture ## type, threadID); \
+        } \
+        return true; \
+    } \
+}
+
 bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
     ObjMaterial* objMaterial = (ObjMaterial*)object;
     Material* material = objMaterial->MaterialPtr;
-    if (material == nullptr)
+    if (material == nullptr) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Material is no longer valid!");
         return false;
+    }
+
+    if (hash == Hash_Name) {
+        ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Field cannot be written to!");
+        return true;
+    }
 
     SET_COLOR(Diffuse, Red, 0);
     SET_COLOR(Diffuse, Green, 1);
     SET_COLOR(Diffuse, Blue, 2);
     SET_COLOR(Diffuse, Alpha, 3);
+    SET_TEXTURE(Diffuse);
 
     SET_COLOR(Specular, Red, 0);
     SET_COLOR(Specular, Green, 1);
     SET_COLOR(Specular, Blue, 2);
     SET_COLOR(Specular, Alpha, 3);
+    SET_TEXTURE(Specular);
 
     SET_COLOR(Ambient, Red, 0);
     SET_COLOR(Ambient, Green, 1);
     SET_COLOR(Ambient, Blue, 2);
     SET_COLOR(Ambient, Alpha, 3);
+    SET_TEXTURE(Ambient);
 
     SET_COLOR(Emissive, Red, 0);
     SET_COLOR(Emissive, Green, 1);
     SET_COLOR(Emissive, Blue, 2);
     SET_COLOR(Emissive, Alpha, 3);
+    SET_TEXTURE(Emissive);
 
     return false;
 }
 
-#undef SET_COLOR
+#undef SET_TEXTURE

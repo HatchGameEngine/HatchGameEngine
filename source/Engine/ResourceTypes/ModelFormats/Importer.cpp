@@ -205,13 +205,13 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
     Material* material = Material::Create(name);
 
     if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS)
-        material->TextureDiffuse = IModel::LoadMaterialImage(texDiffuse.data, ModelImporter::ParentDirectory);
+        material->TextureDiffuse = Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
     if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) == AI_SUCCESS)
-        material->TextureSpecular = IModel::LoadMaterialImage(texSpecular.data, ModelImporter::ParentDirectory);
+        material->TextureSpecular = Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
     if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) == AI_SUCCESS)
-        material->TextureAmbient = IModel::LoadMaterialImage(texAmbient.data, ModelImporter::ParentDirectory);
+        material->TextureAmbient = Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
     if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS)
-        material->TextureEmissive = IModel::LoadMaterialImage(texEmissive.data, ModelImporter::ParentDirectory);
+        material->TextureEmissive = Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
 
     if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &colorDiffuse) == AI_SUCCESS)
         CopyColors(material->ColorDiffuse, colorDiffuse);
