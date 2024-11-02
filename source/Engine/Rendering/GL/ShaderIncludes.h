@@ -10,6 +10,7 @@ struct GLShaderLinkage {
 struct GLShaderUniforms {
     bool u_matrix;
     bool u_color;
+    bool u_materialColors;
     bool u_texture;
     bool u_palette;
     bool u_yuv;

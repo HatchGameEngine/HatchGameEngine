@@ -6,12 +6,13 @@ GLShaderContainer::GLShaderContainer() {
 
 }
 
-GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn, GLShaderLinkage vsOut, GLShaderLinkage fsIn, GLShaderUniforms vsUni, GLShaderUniforms fsUni) {
+GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn, GLShaderLinkage vsOut, GLShaderLinkage fsIn, GLShaderUniforms vsUni, GLShaderUniforms fsUni, bool useMaterial) {
     std::string vs, fs;
 
     vsIn.link_position = true;
     vsUni.u_matrix = true;
     fsUni.u_color = !fsIn.link_color;
+    fsUni.u_materialColors = useMaterial;
 
     vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
     fs = GLShaderBuilder::Fragment(fsIn, fsUni);
@@ -50,21 +51,25 @@ GLShader* GLShaderContainer::Get() {
     return Get(false, false);
 }
 
-GLShaderContainer* GLShaderContainer::Make(bool use_vertex_colors) {
+GLShaderContainer* GLShaderContainer::Make(bool useMaterial, bool useVertexColors) {
     GLShaderLinkage vsIn = {0};
     GLShaderLinkage vsOut = {0};
     GLShaderLinkage fsIn = {0};
     GLShaderUniforms vsUni = {0};
     GLShaderUniforms fsUni = {0};
 
-    vsIn.link_color = use_vertex_colors;
-    vsOut.link_color = use_vertex_colors;
-    fsIn.link_color = use_vertex_colors;
+    vsIn.link_color = useVertexColors;
+    vsOut.link_color = useVertexColors;
+    fsIn.link_color = useVertexColors;
 
-    return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni);
+    return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, useMaterial);
 }
 
-GLShaderContainer* GLShaderContainer::MakeFog(int fog_type) {
+GLShaderContainer* GLShaderContainer::Make() {
+    return Make(false, false);
+}
+
+GLShaderContainer* GLShaderContainer::MakeFog(int fogType) {
     GLShaderLinkage vsIn = {0};
     GLShaderLinkage vsOut = {0};
     GLShaderLinkage fsIn = {0};
@@ -77,12 +82,12 @@ GLShaderContainer* GLShaderContainer::MakeFog(int fog_type) {
     fsIn.link_color = true;
     fsIn.link_position = true;
 
-    if (fog_type == FogEquation_Linear)
+    if (fogType == FogEquation_Linear)
         fsUni.u_fog_linear = true;
     else
         fsUni.u_fog_exp = true;
 
-    return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni);
+    return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, true);
 }
 
 GLShaderContainer* GLShaderContainer::MakeYUV() {
@@ -98,6 +103,7 @@ GLShaderContainer* GLShaderContainer::MakeYUV() {
     fsIn.link_uv = true;
     vsUni.u_matrix = true;
     fsUni.u_color = true;
+    fsUni.u_materialColors = false;
     fsUni.u_yuv = true;
 
     std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);

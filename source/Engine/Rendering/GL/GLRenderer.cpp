@@ -115,12 +115,16 @@ struct   GL_State {
     unsigned              WindingOrder;
     GLShader*             Shader;
     Texture*              TexturePtr;
+    bool                  UseMaterial;
     bool                  UseTexture;
     bool                  UsePalette;
     bool                  DepthMask;
     unsigned              BlendMode;
     Uint32                DrawFlags;
     GLenum                PrimitiveType;
+    float                 DiffuseColor[4];
+    float                 SpecularColor[4];
+    float                 AmbientColor[4];
     float                 FogColor[4];
     float                 FogParams[4];
     unsigned              FogMode;
@@ -167,10 +171,10 @@ size_t GL_VertexIndexBufferStride;
 #endif
 
 void   GL_MakeShaders() {
-    GLRenderer::ShaderShape = GLShaderContainer::Make(false);
+    GLRenderer::ShaderShape = GLShaderContainer::Make();
     GLRenderer::ShaderYUV = GLShaderContainer::MakeYUV();
 
-    GLRenderer::ShaderShape3D = GLShaderContainer::Make(true);
+    GLRenderer::ShaderShape3D = GLShaderContainer::Make(true, true);
 
     GLRenderer::ShaderFogLinear = GLShaderContainer::MakeFog(FogEquation_Linear);
     GLRenderer::ShaderFogExp = GLShaderContainer::MakeFog(FogEquation_Exp);
@@ -724,6 +728,8 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
         GL_SetModelViewMatrix(viewMat);
     }
 
+    GLShader* shader = GLRenderer::CurrentShader;
+
     GL_SetVertexAttribPointers(state.VertexAtrribs);
 
     GL_BindTexture(state.TexturePtr);
@@ -734,6 +740,16 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     if (state.TexturePtr) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); CHECK_GL();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); CHECK_GL();
+    }
+
+    if (shader->LocDiffuseColor != -1) {
+        glUniform4f(shader->LocDiffuseColor, state.DiffuseColor[0], state.DiffuseColor[1], state.DiffuseColor[2], state.DiffuseColor[3]); CHECK_GL();
+    }
+    if (shader->LocSpecularColor != -1) {
+        glUniform4f(shader->LocSpecularColor, state.SpecularColor[0], state.SpecularColor[1], state.SpecularColor[2], state.SpecularColor[3]); CHECK_GL();
+    }
+    if (shader->LocAmbientColor != -1) {
+        glUniform4f(shader->LocAmbientColor, state.AmbientColor[0], state.AmbientColor[1], state.AmbientColor[2], state.AmbientColor[3]); CHECK_GL();
     }
 
     if (state.CullFace) {
@@ -750,8 +766,6 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     GL_SetBlendFuncByMode(state.BlendMode);
 
     if (state.DrawFlags & DrawMode_FOG) {
-        GLShader* shader = GLRenderer::CurrentShader;
-
         glUniform4f(shader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]); CHECK_GL();
 
         if (shader->LocFogLinearStart != -1) {
@@ -788,13 +802,49 @@ void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D*
         state.FogParams[3] = scene->Fog.Smoothness;
     }
 
+    state.UseMaterial = false;
     state.UseTexture = false;
     state.UsePalette = false;
 
-    if ((face.DrawFlags & DrawMode_TEXTURED) && face.UseMaterial) {
-        state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
-        state.UseTexture = state.TexturePtr != nullptr;
-        state.UsePalette = state.UseTexture && Graphics::UsePalettes && state.TexturePtr->Paletted;
+    if (face.UseMaterial) {
+        state.UseMaterial = true;
+
+        state.DiffuseColor[0] = (float)face.MaterialInfo.Diffuse[0] / 0x100;
+        state.DiffuseColor[1] = (float)face.MaterialInfo.Diffuse[1] / 0x100;
+        state.DiffuseColor[2] = (float)face.MaterialInfo.Diffuse[2] / 0x100;
+        state.DiffuseColor[3] = (float)face.MaterialInfo.Diffuse[3] / 0x100;
+
+        state.SpecularColor[0] = (float)face.MaterialInfo.Specular[0] / 0x100;
+        state.SpecularColor[1] = (float)face.MaterialInfo.Specular[1] / 0x100;
+        state.SpecularColor[2] = (float)face.MaterialInfo.Specular[2] / 0x100;
+        state.SpecularColor[3] = (float)face.MaterialInfo.Specular[3] / 0x100;
+
+        state.AmbientColor[0] = (float)face.MaterialInfo.Ambient[0] / 0x100;
+        state.AmbientColor[1] = (float)face.MaterialInfo.Ambient[1] / 0x100;
+        state.AmbientColor[2] = (float)face.MaterialInfo.Ambient[2] / 0x100;
+        state.AmbientColor[3] = (float)face.MaterialInfo.Ambient[3] / 0x100;
+
+        if (face.DrawFlags & DrawMode_TEXTURED) {
+            state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
+            state.UseTexture = state.TexturePtr != nullptr;
+            state.UsePalette = state.UseTexture && Graphics::UsePalettes && state.TexturePtr->Paletted;
+        }
+    }
+    else {
+        state.DiffuseColor[0] =
+        state.DiffuseColor[1] =
+        state.DiffuseColor[2] =
+        state.DiffuseColor[3] = 1.0f;
+
+        state.SpecularColor[0] =
+        state.SpecularColor[1] =
+        state.SpecularColor[2] =
+        state.SpecularColor[3] = 1.0f;
+
+        state.AmbientColor[0] =
+        state.AmbientColor[1] =
+        state.AmbientColor[2] =
+        state.AmbientColor[3] = 1.0f;
     }
 
     if (!state.UseTexture)

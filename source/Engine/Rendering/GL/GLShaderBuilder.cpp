@@ -8,6 +8,11 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
     if (uniforms.u_color) {
         shaderText += "uniform vec4 u_color;\n";
     }
+    if (uniforms.u_materialColors) {
+        shaderText += "uniform vec4 u_diffuseColor;\n";
+        shaderText += "uniform vec4 u_specularColor;\n";
+        shaderText += "uniform vec4 u_ambientColor;\n";
+    }
     if (uniforms.u_texture) {
         shaderText += "uniform sampler2D u_texture;\n";
     }
@@ -86,10 +91,11 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs, GLS
                 shaderText += "if (base.r == 0.0) discard;\n";
                 shaderText += "base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
             }
-            else {
-                shaderText += "if (base.a == 0.0) discard;\n";
-            }
+            shaderText += "if (base.a == 0.0) discard;\n";
             shaderText += "finalColor = base * o_color;\n";
+            if (uniforms.u_materialColors) {
+                shaderText += "finalColor *= u_diffuseColor;\n";
+            }
         }
         else {
             shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
@@ -107,6 +113,9 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs, GLS
         if (inputs.link_color) {
             shaderText += "if (o_color.a == 0.0) discard;\n";
             shaderText += "finalColor = o_color;\n";
+            if (uniforms.u_materialColors) {
+                shaderText += "finalColor *= u_diffuseColor;\n";
+            }
         }
         else {
             shaderText += "finalColor = u_color;\n";

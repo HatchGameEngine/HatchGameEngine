@@ -23,6 +23,9 @@ public:
     GLint LocTextureV;
     GLint LocPalette;
     GLint LocColor;
+    GLint LocDiffuseColor;
+    GLint LocSpecularColor;
+    GLint LocAmbientColor;
     GLint LocVaryingColor;
     GLint LocFogColor;
     GLint LocFogLinearStart;

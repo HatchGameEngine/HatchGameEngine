@@ -135,6 +135,9 @@ void  GLShader::AttachAndLink() {
     LocVaryingColor = GetAttribLocation("i_color");
 
     LocColor = GetUniformLocation("u_color");
+    LocDiffuseColor = GetUniformLocation("u_diffuseColor");
+    LocSpecularColor = GetUniformLocation("u_specularColor");
+    LocAmbientColor = GetUniformLocation("u_ambientColor");
     LocTexture = GetUniformLocation("u_texture");
     LocTextureU = GetUniformLocation("u_textureU");
     LocTextureV = GetUniformLocation("u_textureV");
