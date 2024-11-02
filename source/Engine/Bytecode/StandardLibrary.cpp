@@ -8527,6 +8527,43 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
     return INTEGER_VAL((int)model->Materials.size());
 }
 /***
+ * Model.GetMaterial
+ * \desc Gets a material from a model.
+ * \param model (Integer): The model index to check.
+ * \param material (String or Integer): The material name or ID to get.
+ * \return Returns a Material value, or <code>null</code> if the model has no materials.
+ * \ns Model
+ */
+VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(2);
+
+    IModel* model = GET_ARG(0, GetModel);
+    if (!model || model->Materials.size() == 0)
+        return INTEGER_VAL(0);
+
+    Material* material = nullptr;
+
+    if (IS_INTEGER(args[1])) {
+        int materialIndex = GET_ARG(1, GetInteger);
+        if (materialIndex < 0 || (size_t)materialIndex >= model->Materials.size()) {
+            OUT_OF_RANGE_ERROR("Material index", materialIndex, 0, (int)model->Materials.size());
+            return NULL_VAL;
+        }
+        material = model->Materials[materialIndex];
+    }
+    else {
+        char* materialName = GET_ARG(1, GetString);
+        size_t idx = model->FindMaterial(materialName);
+        if (idx == -1) {
+            THROW_ERROR("Model has no material named \"%s\".", materialName);
+            return NULL_VAL;
+        }
+        material = model->Materials[idx];
+    }
+
+    return OBJECT_VAL(material->Object);
+}
+/***
  * Model.CreateArmature
  * \desc Creates an armature from the model.
  * \param model (Integer): The model index.
@@ -17539,6 +17576,7 @@ void StandardLibrary::Link() {
     DEF_NATIVE(Model, HasMaterials);
     DEF_NATIVE(Model, HasBones);
     DEF_NATIVE(Model, GetMaterialCount);
+    DEF_NATIVE(Model, GetMaterial);
     DEF_NATIVE(Model, CreateArmature);
     DEF_NATIVE(Model, PoseArmature);
     DEF_NATIVE(Model, ResetArmature);

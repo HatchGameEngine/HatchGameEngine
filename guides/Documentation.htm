@@ -764,6 +764,7 @@
                     <li><a href="#Reference_functions_Model_HasMaterials">Model.HasMaterials</a></li>
                     <li><a href="#Reference_functions_Model_HasBones">Model.HasBones</a></li>
                     <li><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></li>
+                    <li><a href="#Reference_functions_Model_GetMaterial">Model.GetMaterial</a></li>
                     <li><a href="#Reference_functions_Model_CreateArmature">Model.CreateArmature</a></li>
                     <li><a href="#Reference_functions_Model_PoseArmature">Model.PoseArmature</a></li>
                     <li><a href="#Reference_functions_Model_ResetArmature">Model.ResetArmature</a></li>
@@ -5725,6 +5726,18 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Model_GetMaterial">
+        <h2 style="margin-bottom: 8px;">Model.GetMaterial</h2>
+        <code>Model.GetMaterial(model, material)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a material from a model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Integer): The model index to check.</li>
+        <li>material (String or Integer): The material name or ID to get.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Material value, or <code>null</code> if the model has no materials.</div>
+        </p>
         <p id="Reference_functions_Model_CreateArmature">
         <h2 style="margin-bottom: 8px;">Model.CreateArmature</h2>
         <code>Model.CreateArmature(model)</code>
@@ -6529,9 +6542,11 @@
         <div style="margin-top: 8px; font-size: 14px;">Loads a Video resource, returning its Video index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filename (String):</li>
-        <li>unloadPolicy (Integer):</li>
+        <li>filename (String): Filename of the resource.</li>
+        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the Resource.</div>
         </p>
         <p id="Reference_functions_Resources_FileExists">
         <h2 style="margin-bottom: 8px;">Resources.FileExists</h2>
@@ -10044,7 +10059,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>726 out of 785 functions have descriptions. </p>
+        <p>727 out of 786 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
