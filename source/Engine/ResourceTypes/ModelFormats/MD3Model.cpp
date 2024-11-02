@@ -254,8 +254,6 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
     Sint32 dataEndOffset = stream->ReadInt32();
 
     // Create model
-    model->Meshes = new Mesh*[surfCount];
-    model->MeshCount = surfCount;
     model->VertexCount = 0;
     model->VertexPerFace = 3;
     model->UseVertexAnimation = true;
@@ -275,13 +273,14 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
         if (mesh == nullptr) {
             for (signed j = 0; j <= i; j++) {
                 delete model->Meshes[j];
-                delete model->Meshes;
-                model->Meshes = nullptr;
             }
+
+            model->Meshes.clear();
+
             return false;
         }
 
-        model->Meshes[i] = mesh;
+        model->Meshes.push_back(mesh);
         model->VertexCount += mesh->VertexCount;
 
         if (mesh->FrameCount > maxFrameCount)
@@ -295,28 +294,24 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
     // Add materials
     size_t numMaterials = MaterialNames.size();
     if (numMaterials) {
-        model->MaterialCount = numMaterials;
-        model->Materials = new Material*[numMaterials];
-
         const char *parentDirectory = StringUtils::GetPath(path);
 
         for (size_t i = 0; i < numMaterials; i++) {
-            Material* material = new Material();
-            material->Name = StringUtils::Create(MaterialNames[i]);
+            char* name = StringUtils::Create(MaterialNames[i]);
+            Material* material = Material::Create(name);
             material->TextureDiffuse = IModel::LoadMaterialImage(MaterialNames[i], parentDirectory);
             if (material->TextureDiffuse)
                 material->TextureDiffuseName = StringUtils::Duplicate(material->TextureDiffuse->Filename);
-            model->Materials[i] = material;
+            model->AddUniqueMaterial(material);
         }
 
         MaterialNames.clear();
     }
 
-    model->AnimationCount = 1;
-    model->Animations = new ModelAnim*[1];
-    model->Animations[0] = new ModelAnim;
-    model->Animations[0]->Name = StringUtils::Duplicate("Vertex Animation");
-    model->Animations[0]->Length = maxFrameCount;
+    ModelAnim* anim = new ModelAnim;
+    anim->Name = StringUtils::Duplicate("Vertex Animation");
+    anim->Length = maxFrameCount;
+    model->Animations.push_back(anim);
 
     return true;
 }

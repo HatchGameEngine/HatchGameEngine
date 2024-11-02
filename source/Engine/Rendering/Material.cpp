@@ -2,7 +2,31 @@
 
 #include <Engine/Diagnostics/Memory.h>
 
-Material::Material() {
+#include <Engine/Utilities/StringUtils.h>
+
+#include <Engine/Bytecode/Types.h>
+
+std::vector<Material*> Material::List;
+
+Material* Material::Create(char* name) {
+    Material* material = new Material(name);
+
+    material->Object = (void *)NewMaterial(material);
+
+    List.push_back(material);
+
+    return material;
+}
+
+void Material::Remove(Material* material) {
+    auto it = std::find(List.begin(), List.end(), material);
+    if (it != List.end())
+        List.erase(it);
+}
+
+Material::Material(char* name) {
+    Name = name;
+
     for (int i = 0; i < 4; i++) {
         ColorDiffuse[i] =
         ColorSpecular[i] =

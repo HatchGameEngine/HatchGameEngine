@@ -60,6 +60,9 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
         case OBJ_STREAM:
             buffer_printf(buffer, "<stream>");
             break;
+        case OBJ_MATERIAL:
+            buffer_printf(buffer, "<material %s>", (AS_MATERIAL(value)->MaterialPtr != nullptr && AS_MATERIAL(value)->MaterialPtr->Name != nullptr) ? AS_MATERIAL(value)->MaterialPtr->Name : "(null)");
+            break;
         case OBJ_NAMESPACE:
             buffer_printf(buffer, "<namespace %s>", AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)");
             break;

@@ -9,6 +9,7 @@
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -85,11 +86,6 @@ void    ScriptManager::Init() {
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
 
-    ArrayImpl::Init();
-    MapImpl::Init();
-    FunctionImpl::Init();
-    StringImpl::Init();
-
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
     GlobalLock = SDL_CreateMutex();
@@ -114,6 +110,12 @@ void    ScriptManager::Init() {
         Threads[i].BranchLimit = VMBranchLimit;
     }
     ThreadCount = 1;
+
+    ArrayImpl::Init();
+    MapImpl::Init();
+    FunctionImpl::Init();
+    StringImpl::Init();
+    MaterialImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -564,6 +566,14 @@ void    ScriptManager::FreeValue(VMValue value) {
                     stream->StreamPtr->Close();
 
                 FREE_OBJ(stream, ObjStream);
+                break;
+            }
+            case OBJ_MATERIAL: {
+                ObjMaterial* material = AS_MATERIAL(value);
+
+                Material::Remove(material->MaterialPtr);
+
+                FREE_OBJ(material, ObjMaterial);
                 break;
             }
             default:

@@ -40,9 +40,9 @@ void HatchModel::ReadMaterialInfo(Stream* stream, Uint8 *destColors, char **texN
 }
 
 Material* HatchModel::ReadMaterial(Stream* stream, const char *parentDirectory) {
-    Material* material = new Material();
+    char* name = stream->ReadString();
 
-    material->Name = stream->ReadString();
+    Material* material = Material::Create(name);
 
     Uint8 flags = stream->ReadByte();
 
@@ -366,8 +366,6 @@ bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
     ReadColorStore(stream);
 
     // Create model
-    model->Meshes = new Mesh*[meshCount];
-    model->MeshCount = meshCount;
     model->VertexCount = 0;
     model->VertexPerFace = 3;
     model->UseVertexAnimation = true;
@@ -378,9 +376,6 @@ bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
     materialCount = stream->ReadByte();
 
     if (materialCount) {
-        model->MaterialCount = materialCount;
-        model->Materials = new Material*[materialCount];
-
         char *parentDirectory = StringUtils::GetPath(path);
 
         for (Uint8 i = 0; i < materialCount; i++) {
@@ -388,14 +383,14 @@ bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
             if (material == nullptr) {
                 for (unsigned j = 0; j <= i; j++) {
                     delete model->Materials[j];
-                    delete model->Materials;
-                    model->Materials = nullptr;
                 }
+
+                model->Materials.clear();
 
                 goto fail;
             }
 
-            model->Materials[i] = material;
+            model->AddUniqueMaterial(material);
         }
 
         Memory::Free(parentDirectory);
@@ -407,15 +402,12 @@ bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
     animCount = stream->ReadUInt16();
 
     if (animCount) {
-        model->AnimationCount = animCount;
-        model->Animations = new ModelAnim*[animCount];
-
         for (Uint16 i = 0; i < animCount; i++) {
             ModelAnim* anim = new ModelAnim;
             anim->Name = stream->ReadString();
             anim->StartFrame = stream->ReadUInt32();
             anim->Length = stream->ReadUInt32();
-            model->Animations[i] = anim;
+            model->Animations.push_back(anim);
         }
     }
 
@@ -427,14 +419,14 @@ bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
         if (mesh == nullptr) {
             for (unsigned j = 0; j <= i; j++) {
                 delete model->Meshes[j];
-                delete model->Meshes;
-                model->Meshes = nullptr;
             }
+
+            model->Meshes.clear();
 
             goto fail;
         }
 
-        model->Meshes[i] = mesh;
+        model->Meshes.push_back(mesh);
         model->VertexCount += mesh->VertexCount;
     }
 
@@ -750,7 +742,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     stream->WriteUInt32BE(HATCH_MODEL_MAGIC);
     stream->WriteByte(0);
 
-    stream->WriteUInt16(model->MeshCount);
+    stream->WriteUInt16(model->Meshes.size());
 
     Uint32 vertexDataOffsetPos = stream->Position(); stream->WriteUInt32(0x00000000);
     Uint32 normalDataOffsetPos = stream->Position(); stream->WriteUInt32(0x00000000);
@@ -776,9 +768,9 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     stream->WriteUInt32(lastPos);
     stream->Seek(lastPos);
 
-    Log::Print(Log::LOG_VERBOSE, "Mesh count: %d (%08X)", model->MeshCount, lastPos);
+    Log::Print(Log::LOG_VERBOSE, "Mesh count: %d (%08X)", model->Meshes.size(), lastPos);
 
-    for (size_t i = 0; i < model->MeshCount; i++) {
+    for (size_t i = 0; i < model->Meshes.size(); i++) {
         WriteMesh(model->Meshes[i], stream);
     }
 
@@ -788,7 +780,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     stream->WriteUInt32(lastPos);
     stream->Seek(lastPos);
 
-    size_t numMaterials = model->MaterialCount;
+    size_t numMaterials = model->Materials.size();
 
     stream->WriteByte(numMaterials);
 
@@ -812,11 +804,11 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     stream->WriteUInt32(lastPos);
     stream->Seek(lastPos);
 
-    stream->WriteByte(model->AnimationCount);
+    stream->WriteByte(model->Animations.size());
 
-    Log::Print(Log::LOG_VERBOSE, "Animation count: %d (%08X)", model->AnimationCount, lastPos);
+    Log::Print(Log::LOG_VERBOSE, "Animation count: %d (%08X)", model->Animations.size(), lastPos);
 
-    for (size_t i = 0; i < model->AnimationCount; i++) {
+    for (size_t i = 0; i < model->Animations.size(); i++) {
         ModelAnim* anim = model->Animations[i];
         stream->WriteString(anim->Name);
         stream->WriteUInt32(anim->StartFrame);

@@ -2,6 +2,7 @@
 #define ENGINE_RENDERING_MATERIAL_H
 
 #include <Engine/Includes/Standard.h>
+
 #include <Engine/ResourceTypes/Image.h>
 
 class Material {
@@ -22,8 +23,12 @@ public:
     Image* TextureSpecular = nullptr;
     Image* TextureAmbient = nullptr;
     Image* TextureEmissive = nullptr;
+    void* Object = nullptr;
 
-    Material();
+    static Material* Create(char* name);
+    static void Remove(Material* material);
+    static std::vector<Material*> List;
+    Material(char* name);
     void Dispose();
     ~Material();
 };

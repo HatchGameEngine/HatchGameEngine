@@ -99,7 +99,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32
 
     if (model->UseVertexAnimation) {
         ModelAnim* anim = nullptr;
-        if (animation < model->AnimationCount)
+        if (animation < model->Animations.size())
             anim = model->Animations[animation];
 
         model->DoVertexFrameInterpolation(mesh, anim, frame, &positionBuffer, &normalBuffer, &uvBuffer);
@@ -109,7 +109,10 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32
 }
 
 void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix) {
-    Material* material = mesh->MaterialIndex != -1 ? model->Materials[mesh->MaterialIndex] : nullptr;
+    Material* material = nullptr;
+
+    if (mesh->MaterialIndex != -1 && mesh->MaterialIndex < model->Materials.size())
+        material = model->Materials[mesh->MaterialIndex];
 
     Sint32* modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
@@ -382,13 +385,14 @@ void ModelRenderer::DrawModelInternal(IModel* model, Uint16 animation, Uint32 fr
     }
     else {
         // Just render every mesh directly
-        for (size_t i = 0; i < model->MeshCount; i++)
+        for (size_t i = 0; i < model->Meshes.size(); i++)
             DrawMesh(model, model->Meshes[i], animation, frame, MVPMatrix);
     }
 }
 
 void ModelRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
-    Uint16 numAnims = model->AnimationCount;
+    Uint16 numAnims = model->Animations.size();
+
     if (numAnims > 0) {
         if (animation >= numAnims)
             animation = numAnims - 1;

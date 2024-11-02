@@ -4213,7 +4213,7 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
  * Draw3D.ModelSkinned
  * \desc Draws a skinned model.
  * \param modelIndex (Integer): Index of loaded model.
- * \param skeleton (Integer): Skeleton of model to skin the model.
+ * \param armatureIndex (Integer): Armature index to skin the model.
  * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
  * \ns Draw3D
@@ -8369,14 +8369,14 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 #define CHECK_MODEL_ANIMATION_INDEX(animation) \
-    if (animation < 0 || animation >= (signed)model->AnimationCount) { \
-        OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->AnimationCount - 1); \
+    if (animation < 0 || animation >= (signed)model->Animations.size()) { \
+        OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->Animations.size() - 1); \
         return NULL_VAL; \
     }
 
 #define CHECK_ARMATURE_INDEX(armature) \
-    if (armature < 0 || armature >= (signed)model->ArmatureCount) { \
-        OUT_OF_RANGE_ERROR("Armature index", armature, 0, model->ArmatureCount - 1); \
+    if (armature < 0 || armature >= (signed)model->Armatures.size()) { \
+        OUT_OF_RANGE_ERROR("Armature index", armature, 0, model->Armatures.size() - 1); \
         return NULL_VAL; \
     }
 
@@ -8407,7 +8407,7 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
     IModel* model = GET_ARG(0, GetModel);
     if (!model)
         return INTEGER_VAL(0);
-    return INTEGER_VAL((int)model->AnimationCount);
+    return INTEGER_VAL((int)model->Animations.size());
 }
 /***
  * Model.GetAnimationName
@@ -8423,7 +8423,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
     IModel* model = GET_ARG(0, GetModel);
     int animation = GET_ARG(1, GetInteger);
 
-    if (!model || model->AnimationCount == 0)
+    if (!model || model->Animations.size() == 0)
         return NULL_VAL;
 
     CHECK_MODEL_ANIMATION_INDEX(animation);
@@ -8485,14 +8485,14 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
  * Model.HasMaterials
  * \desc Checks to see if the model has materials.
  * \param model (Integer): The model index to check.
- * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <linkto ref="Model.GetMaterialCount"></linkto> instead.)
  * \ns Model
  */
 VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
     if (!model)
-        return INTEGER_VAL(0);
+        return INTEGER_VAL(false);
     return INTEGER_VAL((int)model->HasMaterials());
 }
 /***
@@ -8506,8 +8506,22 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     IModel* model = GET_ARG(0, GetModel);
     if (!model)
-        return INTEGER_VAL(0);
+        return INTEGER_VAL(false);
     return INTEGER_VAL((int)model->HasBones());
+}
+/***
+ * Model.GetMaterialCount
+ * \desc Returns the amount of materials in the model.
+ * \param model (Integer): The model index to check.
+ * \return Returns an Integer value.
+ * \ns Model
+ */
+VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_ARGCOUNT(1);
+    IModel* model = GET_ARG(0, GetModel);
+    if (!model)
+        return INTEGER_VAL(0);
+    return INTEGER_VAL((int)model->Materials.size());
 }
 /***
  * Model.CreateArmature
@@ -8551,10 +8565,10 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
 
         CHECK_MODEL_ANIMATION_INDEX(animation);
 
-        model->Animate(model->ArmatureList[armature], model->Animations[animation], frame);
+        model->Animate(model->Armatures[armature], model->Animations[animation], frame);
     } else {
         // Just update the skeletons
-        model->ArmatureList[armature]->UpdateSkeletons();
+        model->Armatures[armature]->UpdateSkeletons();
     }
 
     return NULL_VAL;
@@ -8574,7 +8588,7 @@ VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
     if (!model)
         return NULL_VAL;
     CHECK_ARMATURE_INDEX(armature);
-    model->ArmatureList[armature]->Reset();
+    model->Armatures[armature]->Reset();
     return NULL_VAL;
 }
 /***
@@ -17720,6 +17734,7 @@ void StandardLibrary::Link() {
     DEF_NATIVE(Model, GetAnimationLength);
     DEF_NATIVE(Model, HasMaterials);
     DEF_NATIVE(Model, HasBones);
+    DEF_NATIVE(Model, GetMaterialCount);
     DEF_NATIVE(Model, CreateArmature);
     DEF_NATIVE(Model, PoseArmature);
     DEF_NATIVE(Model, ResetArmature);

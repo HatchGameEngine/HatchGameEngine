@@ -14,17 +14,13 @@ private:
     void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 
 public:
-    Mesh** Meshes;
-    size_t MeshCount;
+    vector<Mesh*> Meshes;
     size_t VertexCount;
     size_t VertexIndexCount;
     Uint8 VertexPerFace;
-    Material** Materials;
-    size_t MaterialCount;
-    ModelAnim** Animations;
-    size_t AnimationCount;
-    Armature** ArmatureList;
-    size_t ArmatureCount;
+    vector<Material*> Materials;
+    vector<ModelAnim*> Animations;
+    vector<Armature*> Armatures;
     bool UseVertexAnimation;
     Armature* BaseArmature;
     Matrix4x4* GlobalInverseMatrix;
@@ -32,6 +28,9 @@ public:
     IModel();
     IModel(const char* filename);
     bool Load(Stream* stream, const char* filename);
+    size_t FindMaterial(const char* name);
+    size_t AddMaterial(Material* material);
+    size_t AddUniqueMaterial(Material* material);
     bool HasMaterials();
     static Image* LoadMaterialImage(string imagePath, const char *parentDirectory);
     static Image* LoadMaterialImage(const char *imagePath, const char *parentDirectory);

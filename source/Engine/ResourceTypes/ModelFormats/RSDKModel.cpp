@@ -30,9 +30,7 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 
     // We only need one mesh for RSDK models
     Mesh* mesh = new Mesh;
-    model->Meshes = new Mesh*[1];
-    model->Meshes[0] = mesh;
-    model->MeshCount = 1;
+    model->Meshes.push_back(mesh);
     model->VertexCount = vertexCount;
 
     mesh->VertexCount = vertexCount;
@@ -79,17 +77,14 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
         }
     }
 
-    model->Materials = nullptr;
-    model->Animations = nullptr;
     model->BaseArmature = nullptr;
     model->GlobalInverseMatrix = nullptr;
     model->UseVertexAnimation = true;
 
-    model->AnimationCount = 1;
-    model->Animations = new ModelAnim*[1];
-    model->Animations[0] = new ModelAnim;
-    model->Animations[0]->Name = StringUtils::Duplicate("Vertex Animation");
-    model->Animations[0]->Length = frameCount;
+    ModelAnim* anim = new ModelAnim;
+    anim->Name = StringUtils::Duplicate("Vertex Animation");
+    anim->Length = frameCount;
+    model->Animations.push_back(anim);
 
     model->VertexIndexCount = stream->ReadInt16();
     mesh->VertexIndexCount = model->VertexIndexCount;

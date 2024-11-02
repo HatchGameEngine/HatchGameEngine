@@ -12,6 +12,7 @@ private:
     static void GrayHashMapItem(Uint32, VMValue value);
     static void GrayHashMap(void* pointer);
     static void BlackenObject(Obj* object);
+    static void CollectResources();
 
 public:
     static vector<Obj*> GrayList;

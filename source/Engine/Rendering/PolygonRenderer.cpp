@@ -312,7 +312,7 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw
 void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
     if (animation < 0 || frame < 0)
         return;
-    else if (model->AnimationCount > 0 && animation >= model->AnimationCount)
+    else if (model->Animations.size() > 0 && animation >= model->Animations.size())
         return;
 
     Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
@@ -335,7 +335,7 @@ void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
         return;
     }
 
-    if (armature >= model->ArmatureCount)
+    if (armature >= model->Armatures.size())
         return;
 
     Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
@@ -349,7 +349,7 @@ void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
     rend.CurrentColor = CurrentColor;
     rend.DoProjection = DoProjection;
     rend.ClipFaces = DoProjection;
-    rend.ArmaturePtr = model->ArmatureList[armature];
+    rend.ArmaturePtr = model->Armatures[armature];
     rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
     rend.DrawModel(model, 0, 0);
 }

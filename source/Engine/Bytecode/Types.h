@@ -2,7 +2,10 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
+
 #include <Engine/IO/Stream.h>
+
+#include <Engine/Rendering/Material.h>
 
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
@@ -21,7 +24,7 @@ typedef enum {
     VAL_DECIMAL,
     VAL_OBJECT,
     VAL_LINKED_INTEGER,
-    VAL_LINKED_DECIMAL,
+    VAL_LINKED_DECIMAL
 } ValueType;
 
 enum {
@@ -102,6 +105,8 @@ const char* GetValueTypeString(VMValue value);
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
+typedef Obj* (*ClassNewFn)(void);
+
 typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
 typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 
@@ -122,6 +127,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define IS_NAMESPACE(value)     IsObjectType(value, OBJ_NAMESPACE)
 #define IS_ENUM(value)          IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value)        IsObjectType(value, OBJ_MODULE)
+#define IS_MATERIAL(value)      IsObjectType(value, OBJ_MATERIAL)
 
 #define AS_BOUND_METHOD(value)  ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value)         ((ObjClass*)AS_OBJECT(value))
@@ -137,6 +143,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define AS_NAMESPACE(value)     ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value)          ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value)        ((ObjModule*)AS_OBJECT(value))
+#define AS_MATERIAL(value)      ((ObjMaterial*)AS_OBJECT(value))
 
 enum ObjType {
     OBJ_BOUND_METHOD,
@@ -152,10 +159,11 @@ enum ObjType {
     OBJ_STREAM,
     OBJ_NAMESPACE,
     OBJ_ENUM,
-    OBJ_MODULE
+    OBJ_MODULE,
+    OBJ_MATERIAL
 };
 
-#define MAX_OBJ_TYPE (OBJ_MODULE + 1)
+#define MAX_OBJ_TYPE (OBJ_MATERIAL + 1)
 
 typedef HashMap<VMValue> Table;
 
@@ -215,6 +223,7 @@ struct ObjClass {
     StructGetFn ElementGet;
     StructSetFn ElementSet;
     VMValue     Initializer;
+    ClassNewFn  NewFn;
     Uint8       Type;
     Uint32      ParentHash;
     ObjClass*   Parent;
@@ -259,6 +268,10 @@ struct ObjEnum {
     Uint32     Hash;
     Table*     Fields;
 };
+struct ObjMaterial {
+    Obj       Object;
+    Material* MaterialPtr;
+};
 
 ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
@@ -279,6 +292,7 @@ ObjStream*         NewStream(Stream* streamPtr, bool writable);
 ObjNamespace*      NewNamespace(Uint32 hash);
 ObjEnum*           NewEnum(Uint32 hash);
 ObjModule*         NewModule();
+ObjMaterial*       NewMaterial(Material* material);
 
 #define FREE_OBJ(obj, type) \
     assert(GarbageCollector::GarbageSize >= sizeof(type)); \

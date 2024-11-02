@@ -86,6 +86,9 @@ void GarbageCollector::Collect() {
         GrayObject(ScriptManager::ClassImplList[i]);
     }
 
+    // Mark resources
+    CollectResources();
+
     grayElapsed = Clock::GetTicks() - grayElapsed;
 
     double blackenElapsed = Clock::GetTicks();
@@ -137,6 +140,22 @@ void GarbageCollector::Collect() {
     }
 
     GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+}
+
+void GarbageCollector::CollectResources() {
+    // Mark model materials
+    for (size_t i = 0; i < Scene::ModelList.size(); i++) {
+        if (!Scene::ModelList[i])
+            continue;
+
+        IModel* model = Scene::ModelList[i]->AsModel;
+        if (!model)
+            continue;
+
+        for (size_t ii = 0; ii < model->Materials.size(); ii++) {
+            GrayObject(model->Materials[ii]->Object);
+        }
+    }
 }
 
 void GarbageCollector::FreeValue(VMValue value) {

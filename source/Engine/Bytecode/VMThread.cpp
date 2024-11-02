@@ -758,7 +758,7 @@ int     VMThread::RunInstruction() {
                 ObjClass* klass = AS_OBJECT(object)->Class;
 
                 if (ScriptManager::Lock()) {
-                    if (GetProperty((Obj*)klass, klass, hash)) {
+                    if (GetProperty(AS_OBJECT(object), klass, hash)) {
                         ScriptManager::Unlock();
                         VM_BREAK;
                     }
@@ -791,19 +791,23 @@ int     VMThread::RunInstruction() {
             ValueSetFn setter = nullptr;
 
             object = Peek(1);
+            objPtr = AS_OBJECT(object);
 
             if (IS_INSTANCE(object)) {
                 ObjInstance* instance = AS_INSTANCE(object);
                 klass = instance->Object.Class;
                 fields = instance->Fields;
                 setter = instance->PropertySet;
-                objPtr = (Obj*)instance;
             }
             else if (IS_CLASS(object)) {
                 klass = AS_CLASS(object);
                 fields = klass->Fields;
                 setter = klass->PropertySet;
-                objPtr = (Obj*)klass;
+            }
+            else if (IS_OBJECT(object) && objPtr->Class) {
+                klass = objPtr->Class;
+                fields = klass->Fields;
+                setter = klass->PropertySet;
             }
             else if (IS_NAMESPACE(object)) {
                 if (ThrowRuntimeError(false, "Cannot modify a namespace.") == ERROR_RES_CONTINUE)
@@ -2117,11 +2121,18 @@ bool   VMThread::InstantiateClass(VMValue callee, int argCount) {
             ObjClass* klass = AS_CLASS(callee);
 
             // Create the instance.
-            StackTop[-argCount - 1] = OBJECT_VAL(NewInstance(klass));
+            Obj* instance;
+            if (klass->NewFn)
+                instance = klass->NewFn();
+            else
+                instance = (Obj*)NewInstance(klass);
+            StackTop[-argCount - 1] = OBJECT_VAL(instance);
 
             // Call the initializer, if there is one.
-            if (HasInitializer(klass))
-                result = Call(AS_FUNCTION(klass->Initializer), argCount);
+            if (HasInitializer(klass)) {
+                // Handles native functions correctly!
+                result = CallForObject(klass->Initializer, argCount);
+            }
             else if (argCount != 0) {
                 ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
                 result = false;
@@ -2696,6 +2707,9 @@ VMValue VMThread::Value_TypeOf() {
                     break;
                 case OBJ_MODULE:
                     valueType = "module";
+                    break;
+                case OBJ_MATERIAL:
+                    valueType = "material";
                     break;
             }
         }

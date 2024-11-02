@@ -6,6 +6,7 @@
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -123,6 +124,7 @@ ObjClass*         NewClass(Uint32 hash) {
     klass->ElementGet = NULL;
     klass->ElementSet = NULL;
     klass->Initializer = NULL_VAL;
+    klass->NewFn = NULL;
     klass->Type = CLASS_TYPE_NORMAL;
     klass->ParentHash = 0;
     klass->Parent = NULL;
@@ -193,6 +195,13 @@ ObjModule*        NewModule() {
     module->SourceFilename = NULL;
     return module;
 }
+ObjMaterial*      NewMaterial(Material* materialPtr) {
+    ObjMaterial* material = ALLOCATE_OBJ(ObjMaterial, OBJ_MATERIAL);
+    Memory::Track(material, "NewMaterial");
+    material->Object.Class = MaterialImpl::Class;
+    material->MaterialPtr = materialPtr;
+    return material;
+}
 
 bool              ValuesEqual(VMValue a, VMValue b) {
     if (a.Type != b.Type) return false;
@@ -250,6 +259,8 @@ const char*       GetObjectTypeString(Uint32 type) {
             return "Namespace";
         case OBJ_MODULE:
             return "Module";
+        case OBJ_MATERIAL:
+            return "Material";
     }
     return "Unknown Object Type";
 }

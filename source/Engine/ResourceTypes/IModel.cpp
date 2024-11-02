@@ -15,21 +15,13 @@
 
 IModel::IModel() {
     VertexCount = 0;
-
-    Meshes = nullptr;
-    MeshCount = 0;
-
     VertexIndexCount = 0;
     VertexPerFace = 0;
 
-    Materials = nullptr;
-    MaterialCount = 0;
-
-    Animations = nullptr;
-    AnimationCount = 0;
-
-    ArmatureList = nullptr;
-    ArmatureCount = 0;
+    Meshes.clear();
+    Materials.clear();
+    Animations.clear();
+    Armatures.clear();
 
     BaseArmature = nullptr;
     GlobalInverseMatrix = nullptr;
@@ -70,8 +62,48 @@ bool IModel::Load(Stream* stream, const char* filename) {
     return false;
 }
 
+size_t IModel::FindMaterial(const char* name) {
+    if (name == nullptr)
+        return -1;
+
+    for (size_t i = 0; i < Materials.size(); i++) {
+        if (strcmp(Materials[i]->Name, name) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+size_t IModel::AddMaterial(Material* material) {
+    size_t existing = FindMaterial(material->Name);
+    if (existing != -1) {
+        Materials[existing] = material;
+        return existing;
+    }
+
+    Materials.push_back(material);
+
+    return Materials.size() - 1;
+}
+
+size_t IModel::AddUniqueMaterial(Material* material) {
+    unsigned attempts = 0;
+
+    while (FindMaterial(material->Name) != -1) {
+        std::string matName = std::string(material->Name) + "_copy";
+        if (attempts > 1)
+            matName += std::to_string(attempts);
+        Memory::Free(material->Name);
+        material->Name = StringUtils::Create(matName);
+    }
+
+    Materials.push_back(material);
+
+    return Materials.size() - 1;
+}
+
 bool IModel::HasMaterials() {
-    return MaterialCount > 0;
+    return Materials.size() > 0;
 }
 
 Image* IModel::TryLoadMaterialImage(std::string imagePath, const char *parentDirectory) {
@@ -355,19 +387,19 @@ void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
 }
 
 void IModel::Animate(Uint16 animation, Uint32 frame) {
-    if (AnimationCount > 0) {
-        if (animation >= AnimationCount)
-            animation = AnimationCount - 1;
+    if (Animations.size() > 0) {
+        if (animation >= Animations.size())
+            animation = Animations.size() - 1;
 
         Animate(nullptr, Animations[animation], frame);
     }
 }
 
 int IModel::GetAnimationIndex(const char* animationName) {
-    if (!AnimationCount)
+    if (!Animations.size())
         return -1;
 
-    for (size_t i = 0; i < AnimationCount; i++)
+    for (size_t i = 0; i < Animations.size(); i++)
         if (!strcmp(Animations[i]->Name, animationName))
             return (int)i;
 
@@ -378,72 +410,48 @@ int IModel::NewArmature() {
     if (UseVertexAnimation)
         return -1;
 
-    // Initialize
-    if (ArmatureList == nullptr) {
-        ArmatureList = (Armature**)Memory::Calloc(1, sizeof(Armature*));
-        ArmatureCount = 1;
-    }
-
     Armature* armature = BaseArmature->Copy();
 
     // Find an unoccupied index
-    for (size_t i = 0; i < ArmatureCount; i++) {
-        if (ArmatureList[i] == nullptr) {
-            ArmatureList[i] = armature;
+    for (size_t i = 0; i < Armatures.size(); i++) {
+        if (Armatures[i] == nullptr) {
+            Armatures[i] = armature;
             return i;
         }
     }
 
-    // Nope, we have to find space.
-    ArmatureList = (Armature**)Memory::Realloc(ArmatureList, sizeof(Armature*) * ++ArmatureCount);
-    ArmatureList[ArmatureCount - 1] = armature;
+    Armatures.push_back(armature);
 
     // Pose it
     armature->RootNode->Transform();
     armature->UpdateSkeletons();
 
-    return ArmatureCount - 1;
+    return Armatures.size() - 1;
 }
 
 void IModel::DeleteArmature(size_t index) {
-    if (ArmatureList == nullptr)
-        return;
-
-    delete ArmatureList[index];
-    ArmatureList[index] = nullptr;
+    if (index < Armatures.size()) {
+        delete Armatures[index];
+        Armatures[index] = nullptr;
+    }
 }
 
 void IModel::Dispose() {
-    for (size_t i = 0; i < MeshCount; i++)
+    // Model doesn't own its materials, so it does not delete them.
+    for (size_t i = 0; i < Meshes.size(); i++)
         delete Meshes[i];
-    delete[] Meshes;
-
-    for (size_t i = 0; i < MaterialCount; i++)
-        delete Materials[i];
-    delete[] Materials;
-
-    for (size_t i = 0; i < AnimationCount; i++)
+    for (size_t i = 0; i < Animations.size(); i++)
         delete Animations[i];
-    delete[] Animations;
-
-    for (size_t i = 0; i < ArmatureCount; i++)
-        delete ArmatureList[i];
-    Memory::Free(ArmatureList);
+    for (size_t i = 0; i < Armatures.size(); i++)
+        delete Armatures[i];
 
     delete BaseArmature;
     delete GlobalInverseMatrix;
 
-    Meshes = nullptr;
-    MeshCount = 0;
-
-    Materials = nullptr;
-    MaterialCount = 0;
-
-    Animations = nullptr;
-    AnimationCount = 0;
-
-    ArmatureList = nullptr;
-    ArmatureCount = 0;
+    Meshes.clear();
+    Materials.clear();
+    Animations.clear();
+    Armatures.clear();
 
     BaseArmature = nullptr;
     GlobalInverseMatrix = nullptr;

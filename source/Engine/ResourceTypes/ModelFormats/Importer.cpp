@@ -42,7 +42,7 @@ static void CopyColors(float dest[4], aiColor4D& src) {
     dest[3] = src.a;
 }
 
-static char* GetString(aiString src) {
+char* GetString(aiString src) {
     return StringUtils::Create(src.C_Str());
 }
 
@@ -175,8 +175,6 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 }
 
 Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
-    Material* material = new Material();
-
     aiString matName;
 
     aiString texDiffuse;
@@ -192,16 +190,19 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
     ai_real shininess, shininessStrength, opacity;
 
     unsigned int n = 1;
+    char* name;
 
     if (mat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
-        material->Name = GetString(matName);
+        name = GetString(matName);
     else {
         char temp[20];
 
         snprintf(temp, sizeof temp, "Material %d", i);
 
-        material->Name = StringUtils::Duplicate(temp);
+        name = StringUtils::Duplicate(temp);
     }
+
+    Material* material = Material::Create(name);
 
     if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS)
         material->TextureDiffuse = IModel::LoadMaterialImage(texDiffuse.data, ModelImporter::ParentDirectory);
@@ -381,23 +382,22 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
         return false;
 
     // Create model
-    imodel->Meshes = new Mesh*[meshCount];
-    imodel->MeshCount = meshCount;
     imodel->VertexCount = totalVertices;
     imodel->VertexPerFace = 3;
 
     // Load materials
     if (scene->HasMaterials()) {
-        imodel->MaterialCount = scene->mNumMaterials;
-        imodel->Materials = new Material*[imodel->MaterialCount];
-
-        for (size_t i = 0; i < imodel->MaterialCount; i++)
-            imodel->Materials[i] = LoadMaterial(imodel, scene->mMaterials[i], i);
+        for (size_t i = 0; i < scene->mNumMaterials; i++) {
+            Material* material = LoadMaterial(imodel, scene->mMaterials[i], i);
+            imodel->AddUniqueMaterial(material);
+        }
     }
 
     // Load meshes
-    for (size_t i = 0; i < meshCount; i++)
-        imodel->Meshes[i] = LoadMesh(imodel, ameshes[i]);
+    for (size_t i = 0; i < meshCount; i++) {
+        Mesh* mesh = LoadMesh(imodel, ameshes[i]);
+        imodel->Meshes.push_back(mesh);
+    }
 
     // Load all nodes, starting from the root
     Armature* armature = new Armature;
@@ -450,10 +450,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 
     // Load animations
     if (scene->HasAnimations()) {
-        imodel->AnimationCount = scene->mNumAnimations;
-        imodel->Animations = new ModelAnim*[imodel->AnimationCount];
-
-        for (size_t i = 0; i < imodel->AnimationCount; i++) {
+        for (size_t i = 0; i < scene->mNumAnimations; i++) {
             struct aiAnimation* aanim = scene->mAnimations[i];
 
             ModelAnim* parentAnim = new ModelAnim;
@@ -463,7 +460,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
             skAnim->ParentAnim = parentAnim;
             parentAnim->Skeletal = skAnim;
 
-            imodel->Animations[i] = parentAnim;
+            imodel->Animations.push_back(parentAnim);
         }
     }
 
