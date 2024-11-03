@@ -42,7 +42,8 @@ bool IModel::Load(Stream* stream, const char* filename) {
 
     Clock::Start();
 
-    if (HatchModel::IsMagic(stream))
+    bool isHatchModel = HatchModel::IsMagic(stream);
+    if (isHatchModel)
         success = HatchModel::Convert(this, stream, filename);
     else if (MD3Model::IsMagic(stream))
         success = MD3Model::Convert(this, stream, filename);
@@ -51,14 +52,33 @@ bool IModel::Load(Stream* stream, const char* filename) {
     else
         success = ModelImporter::Convert(this, stream, filename);
 
-    if (success) {
-        Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
-        return true;
-    }
-    else
+    if (!success) {
         Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
+        return false;
+    }
 
-    return false;
+    Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
+
+    if (Application::DevConvertModels && !isHatchModel) {
+        Log::Print(Log::LOG_VERBOSE, "Converting model \"%s\" to HatchModel...", filename);
+
+        std::string newFilename = std::string(filename);
+        size_t pos = newFilename.find_last_of('.');
+        if (pos != std::string::npos)
+            newFilename = newFilename.substr(0, pos);
+        newFilename = "./Resources/" + newFilename + ".hmdl";
+
+        filename = newFilename.c_str();
+        success = HatchModel::Save(this, filename);
+        if (success) {
+            Log::Print(Log::LOG_VERBOSE, "Saved HatchModel to \"%s\"", filename);
+        }
+        else {
+            Log::Print(Log::LOG_ERROR, "Failed to convert HatchModel!");
+        }
+    }
+
+    return true;
 }
 
 size_t IModel::FindMaterial(const char* name) {

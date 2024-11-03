@@ -55,6 +55,7 @@ public:
     static int         SoundVolume;
     static int         StartSceneNum;
     static bool        DevMenuActivated;
+    static bool        DevConvertModels;
 
     static void Init(int argc, char* args[]);
     static void SetTargetFrameRate(int targetFPS);

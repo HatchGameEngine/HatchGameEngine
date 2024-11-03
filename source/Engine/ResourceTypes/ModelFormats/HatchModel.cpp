@@ -787,13 +787,14 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     Log::Print(Log::LOG_VERBOSE, "Material count: %d (%08X)", numMaterials, lastPos);
 
     char *parentDirectory = StringUtils::GetPath(filename);
-    if (StringUtils::StartsWith(parentDirectory, "./"))
-        parentDirectory += 2;
-    if (StringUtils::StartsWith(parentDirectory, "Resources/"))
-        parentDirectory += 10;
+    char *parentDirectoryPtr = parentDirectory;
+    if (StringUtils::StartsWith(parentDirectoryPtr, "./"))
+        parentDirectoryPtr += 2;
+    if (StringUtils::StartsWith(parentDirectoryPtr, "Resources/"))
+        parentDirectoryPtr += 10;
 
     for (size_t i = 0; i < numMaterials; i++) {
-        WriteMaterial(model->Materials[i], stream, parentDirectory);
+        WriteMaterial(model->Materials[i], stream, parentDirectoryPtr);
     }
 
     Memory::Free(parentDirectory);
@@ -804,11 +805,13 @@ bool HatchModel::Save(IModel* model, const char* filename) {
     stream->WriteUInt32(lastPos);
     stream->Seek(lastPos);
 
-    stream->WriteByte(model->Animations.size());
+    size_t numAnimations = model->Animations.size();
 
-    Log::Print(Log::LOG_VERBOSE, "Animation count: %d (%08X)", model->Animations.size(), lastPos);
+    stream->WriteByte(numAnimations);
 
-    for (size_t i = 0; i < model->Animations.size(); i++) {
+    Log::Print(Log::LOG_VERBOSE, "Animation count: %d (%08X)", numAnimations, lastPos);
+
+    for (size_t i = 0; i < numAnimations; i++) {
         ModelAnim* anim = model->Animations[i];
         stream->WriteString(anim->Name);
         stream->WriteUInt32(anim->StartFrame);

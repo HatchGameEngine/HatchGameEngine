@@ -89,6 +89,7 @@ int         Application::SoundVolume = 100;
 int         Application::StartSceneNum = 0;
 
 bool        Application::DevMenuActivated = false;
+bool        Application::DevConvertModels = false;
 
 char    StartingScene[256];
 
@@ -594,6 +595,7 @@ void Application::LoadDevSettings() {
     Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
     Application::Settings->GetBool("dev", "donothing", &DoNothing);
     Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
+    Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
 }
 
 bool Application::IsWindowResizeable() {

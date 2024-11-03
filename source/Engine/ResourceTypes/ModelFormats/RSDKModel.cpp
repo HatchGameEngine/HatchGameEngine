@@ -30,6 +30,7 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 
     // We only need one mesh for RSDK models
     Mesh* mesh = new Mesh;
+    mesh->Name = StringUtils::Create("Mesh");
     model->Meshes.push_back(mesh);
     model->VertexCount = vertexCount;
 
