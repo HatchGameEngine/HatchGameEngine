@@ -3,7 +3,7 @@
 #include <Engine/IO/Compression/ZLibStream.h>
 
 #define READ_TYPE_MACRO(type) \
-    type data; \
+    type data = {}; \
     ReadBytes(&data, sizeof(data));
 
 void    Stream::Close() {
@@ -23,12 +23,15 @@ size_t  Stream::Length() {
 }
 
 size_t  Stream::ReadBytes(void* data, size_t n) {
+    if (n == 0)
+        return 0;
+
 #if DEBUG
     if (Position() + n > Length()) {
         Log::Print(Log::LOG_ERROR, "Attempted to read past stream.");
-        assert(false);
     }
 #endif
+
     return 0;
 }
 Uint8   Stream::ReadByte() {
@@ -83,8 +86,12 @@ char*   Stream::ReadLine() {
     size_t size = Position() - start;
 
     char* data = (char*)Memory::TrackedMalloc("Stream::ReadLine", size + 1);
-    Skip(-size);
-    ReadBytes(data, size);
+
+    if (size > 0) {
+        Skip(-size);
+        ReadBytes(data, size);
+    }
+
     data[size] = 0;
 
     return data;
@@ -96,8 +103,12 @@ char*   Stream::ReadString() {
     size_t size = Position() - start;
 
     char* data = (char*)Memory::TrackedMalloc("Stream::ReadString", size + 1);
-    Skip(-size);
-    ReadBytes(data, size);
+
+    if (size > 0) {
+        Skip(-size);
+        ReadBytes(data, size);
+    }
+
     data[size] = 0;
 
     return data;
@@ -109,19 +120,27 @@ Uint16* Stream::ReadUnicodeString() {
     size_t start = Position();
     while (ReadUInt16());
 
-    size_t size = Position() - start;
+    Uint16* data;
 
-    Uint16* data = (Uint16*)Memory::TrackedMalloc("Stream::ReadUnicodeString", size);
-    Skip(-size);
-    ReadBytes(data, size);
+    size_t size = Position() - start;
+    if (size == 0) {
+        data = (Uint16*)Memory::TrackedCalloc("Stream::ReadUnicodeString", 1, sizeof(Uint16));
+    }
+    else {
+        data = (Uint16*)Memory::TrackedMalloc("Stream::ReadUnicodeString", size);
+        Skip(-size);
+        ReadBytes(data, size);
+    }
 
     return data;
 }
 char*   Stream::ReadHeaderedString() {
-   Uint8 size = ReadByte();
+    Uint8 size = ReadByte();
 
     char* data = (char*)Memory::TrackedMalloc("Stream::ReadHeaderedString", size + 1);
-    ReadBytes(data, size);
+    if (size > 0) {
+        ReadBytes(data, size);
+    }
     data[size] = 0;
 
     return data;

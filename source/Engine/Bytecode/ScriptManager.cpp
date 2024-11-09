@@ -152,6 +152,8 @@ void    ScriptManager::Dispose() {
     ClassImplList.clear();
     AllNamespaces.clear();
 
+    FreeModules();
+
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
     ForceGarbageCollection();
@@ -171,8 +173,6 @@ void    ScriptManager::Dispose() {
         Log::Print(Log::LOG_VERBOSE, "Done!");
         Constants = NULL;
     }
-
-    FreeModules();
 
     if (Sources) {
         Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
@@ -247,19 +247,8 @@ void    ScriptManager::FreeFunction(ObjFunction* function) {
     FREE_OBJ(function, ObjFunction);
 }
 void    ScriptManager::FreeModule(ObjModule* module) {
-    if (module->SourceFilename != NULL)
-        FreeValue(OBJECT_VAL(module->SourceFilename));
-
-    for (size_t i = 0; i < module->Functions->size(); i++)
-        FreeFunction((*module->Functions)[i]);
-
-    for (size_t i = 0; i < module->Locals->size(); i++)
-        FreeValue((*module->Locals)[i]);
-
     delete module->Functions;
     delete module->Locals;
-
-    FREE_OBJ(module, ObjModule);
 }
 void    ScriptManager::FreeClass(ObjClass* klass) {
     // Subfunctions are already freed as a byproduct of the ModuleList,
