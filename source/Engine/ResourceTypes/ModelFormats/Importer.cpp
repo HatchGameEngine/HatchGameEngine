@@ -10,6 +10,7 @@ char*       ModelImporter::ParentDirectory;
 #ifdef USING_ASSIMP
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 
 #define LOG_FMT(s) \
@@ -68,25 +69,25 @@ static AnimBehavior ConvertPrePostState(aiAnimBehaviour state) {
     }
 }
 
-static AnimVectorKey GetVectorKey(struct aiVectorKey* vecKey) {
+static AnimVectorKey GetVectorKey(struct aiVectorKey& vecKey) {
     AnimVectorKey key;
 
-    key.Time = vecKey->mTime;
-    key.Value.X = (int)(vecKey->mValue.x * 0x10000);
-    key.Value.Y = (int)(vecKey->mValue.y * 0x10000);
-    key.Value.Z = (int)(vecKey->mValue.z * 0x10000);
+    key.Time = vecKey.mTime;
+    key.Value.X = (int)(vecKey.mValue.x * 0x10000);
+    key.Value.Y = (int)(vecKey.mValue.y * 0x10000);
+    key.Value.Z = (int)(vecKey.mValue.z * 0x10000);
 
     return key;
 }
 
-static AnimQuaternionKey GetQuatKey(struct aiQuatKey* quatKey) {
+static AnimQuaternionKey GetQuatKey(struct aiQuatKey& quatKey) {
     AnimQuaternionKey key;
 
-    key.Time = quatKey->mTime;
-    key.Value.X = (int)(quatKey->mValue.x * 0x10000);
-    key.Value.Y = (int)(quatKey->mValue.y * 0x10000);
-    key.Value.Z = (int)(quatKey->mValue.z * 0x10000);
-    key.Value.W = (int)(quatKey->mValue.w * 0x10000);
+    key.Time = quatKey.mTime;
+    key.Value.X = (int)(quatKey.mValue.x * 0x10000);
+    key.Value.Y = (int)(quatKey.mValue.y * 0x10000);
+    key.Value.Z = (int)(quatKey.mValue.z * 0x10000);
+    key.Value.W = (int)(quatKey.mValue.w * 0x10000);
 
     return key;
 }
@@ -189,7 +190,6 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
 
     ai_real shininess, shininessStrength, opacity;
 
-    unsigned int n = 1;
     char* name;
 
     if (mat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS)
@@ -213,20 +213,20 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
     if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS)
         material->TextureEmissive = Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
 
-    if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &colorDiffuse) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiffuse) == AI_SUCCESS)
         CopyColors(material->ColorDiffuse, colorDiffuse);
-    if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &colorSpecular) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_COLOR_SPECULAR, colorSpecular) == AI_SUCCESS)
         CopyColors(material->ColorSpecular, colorSpecular);
-    if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT, &colorAmbient) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_COLOR_AMBIENT, colorAmbient) == AI_SUCCESS)
         CopyColors(material->ColorAmbient, colorAmbient);
-    if (aiGetMaterialColor(mat, AI_MATKEY_COLOR_EMISSIVE, &colorEmissive) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_COLOR_EMISSIVE, colorEmissive) == AI_SUCCESS)
         CopyColors(material->ColorEmissive, colorEmissive);
 
-    if (aiGetMaterialFloatArray(mat, AI_MATKEY_SHININESS, &shininess, &n) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS)
         material->Shininess = shininess;
-    if (aiGetMaterialFloatArray(mat, AI_MATKEY_SHININESS_STRENGTH, &shininessStrength, &n) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength) == AI_SUCCESS)
         material->ShininessStrength = shininessStrength;
-    if (aiGetMaterialFloatArray(mat, AI_MATKEY_OPACITY, &opacity, &n) == AI_SUCCESS)
+    if (mat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS)
         material->Opacity = opacity;
 
     return material;
@@ -328,20 +328,24 @@ SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim
         nodeAnim->PostState = ConvertPrePostState(channel->mPostState);
         nodeAnim->PreState = ConvertPrePostState(channel->mPreState);
 
-        nodeAnim->PositionKeys.resize(channel->mNumPositionKeys);
         nodeAnim->NumPositionKeys = channel->mNumPositionKeys;
-        for (size_t j = 0; j < nodeAnim->NumPositionKeys; j++)
-            nodeAnim->PositionKeys[j] = GetVectorKey(&channel->mPositionKeys[j]);
-
-        nodeAnim->RotationKeys.resize(channel->mNumRotationKeys);
         nodeAnim->NumRotationKeys = channel->mNumRotationKeys;
-        for (size_t j = 0; j < nodeAnim->NumRotationKeys; j++)
-            nodeAnim->RotationKeys[j] = GetQuatKey(&channel->mRotationKeys[j]);
-
-        nodeAnim->ScalingKeys.resize(channel->mNumScalingKeys);
         nodeAnim->NumScalingKeys = channel->mNumScalingKeys;
-        for (size_t j = 0; j < nodeAnim->NumScalingKeys; j++)
-            nodeAnim->ScalingKeys[j] = GetVectorKey(&channel->mScalingKeys[j]);
+
+        for (size_t j = 0; j < channel->mNumPositionKeys; j++) {
+            AnimVectorKey vecKey = GetVectorKey(channel->mPositionKeys[j]);
+            nodeAnim->PositionKeys.push_back(vecKey);
+        }
+
+        for (size_t j = 0; j < channel->mNumRotationKeys; j++) {
+            AnimQuaternionKey quatKey = GetQuatKey(channel->mRotationKeys[j]);
+            nodeAnim->RotationKeys.push_back(quatKey);
+        }
+
+        for (size_t j = 0; j < channel->mNumScalingKeys; j++) {
+            AnimVectorKey vecKey = GetVectorKey(channel->mScalingKeys[j]);
+            nodeAnim->ScalingKeys.push_back(vecKey);
+        }
 
         anim->NodeLookup->Put(nodeAnim->NodeName, nodeAnim);
         anim->Channels.push_back(nodeAnim);
@@ -484,7 +488,7 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
     int flags = aiProcessPreset_TargetRealtime_Fast;
     flags |= aiProcess_ConvertToLeftHanded;
 
-    const struct aiScene* scene = importer.ReadFileFromMemory(data, size, flags);
+    const struct aiScene* scene = importer.ReadFileFromMemory(data, size, flags, StringUtils::GetExtension(path));
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         if (!scene) {
             const char* error = importer.GetErrorString();

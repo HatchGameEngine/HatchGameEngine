@@ -22,6 +22,8 @@ public:
     static bool ToNumber(int* dst, string src);
     static bool ToDecimal(double* dst, string src);
     static char* GetPath(const char* filename);
+    static const char* GetFilename(const char* filename);
+    static const char* GetExtension(const char* filename);
     static char* ConcatPaths(const char* pathA, const char* pathB);
     static char* ReplacePathSeparators(const char* path);
     static void ReplacePathSeparatorsInPlace(char* path);

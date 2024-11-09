@@ -180,6 +180,28 @@ char* StringUtils::GetPath(const char* filename) {
 
     return path;
 }
+const char* StringUtils::GetFilename(const char* filename) {
+    if (!filename)
+        return nullptr;
+
+    const char* sep = strrchr(filename, '/');
+    if (!sep)
+        sep = strrchr(filename, '\\');
+    if (!sep)
+        return filename;
+
+    return sep + 1;
+}
+const char* StringUtils::GetExtension(const char* filename) {
+    if (!filename)
+        return nullptr;
+
+    const char* dot = strrchr(filename, '.');
+    if (!dot)
+        return nullptr;
+
+    return dot + 1;
+}
 char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
     if (!pathA || !pathB)
         return nullptr;
