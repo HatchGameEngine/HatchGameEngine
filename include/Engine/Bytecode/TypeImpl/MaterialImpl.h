@@ -34,11 +34,13 @@ public:
     static Uint32 Hash_AmbientAlpha;
     static Uint32 Hash_AmbientTexture;
 
+#ifdef MATERIAL_EXPOSE_EMISSIVE
     static Uint32 Hash_EmissiveRed;
     static Uint32 Hash_EmissiveGreen;
     static Uint32 Hash_EmissiveBlue;
     static Uint32 Hash_EmissiveAlpha;
     static Uint32 Hash_EmissiveTexture;
+#endif
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_MATERIALIMPL_H */

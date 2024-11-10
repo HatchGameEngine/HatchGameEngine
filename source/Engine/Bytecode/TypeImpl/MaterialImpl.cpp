@@ -25,11 +25,13 @@ Uint32 MaterialImpl::Hash_AmbientBlue = 0;
 Uint32 MaterialImpl::Hash_AmbientAlpha = 0;
 Uint32 MaterialImpl::Hash_AmbientTexture = 0;
 
+#ifdef MATERIAL_EXPOSE_EMISSIVE
 Uint32 MaterialImpl::Hash_EmissiveRed = 0;
 Uint32 MaterialImpl::Hash_EmissiveGreen = 0;
 Uint32 MaterialImpl::Hash_EmissiveBlue = 0;
 Uint32 MaterialImpl::Hash_EmissiveAlpha = 0;
 Uint32 MaterialImpl::Hash_EmissiveTexture = 0;
+#endif
 
 void MaterialImpl::Init() {
     const char *className = "Material";
@@ -61,11 +63,13 @@ void MaterialImpl::Init() {
     Hash_AmbientAlpha = Murmur::EncryptString("AmbientAlpha");
     Hash_AmbientTexture = Murmur::EncryptString("AmbientTexture");
 
+#ifdef MATERIAL_EXPOSE_EMISSIVE
     Hash_EmissiveRed = Murmur::EncryptString("EmissiveRed");
     Hash_EmissiveGreen = Murmur::EncryptString("EmissiveGreen");
     Hash_EmissiveBlue = Murmur::EncryptString("EmissiveBlue");
     Hash_EmissiveAlpha = Murmur::EncryptString("EmissiveAlpha");
     Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
+#endif
 
     ScriptManager::ClassImplList.push_back(Class);
 
@@ -151,11 +155,13 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
     GET_COLOR(Ambient, Alpha, 3);
     GET_TEXTURE(Ambient);
 
+#ifdef MATERIAL_EXPOSE_EMISSIVE
     GET_COLOR(Emissive, Red, 0);
     GET_COLOR(Emissive, Green, 1);
     GET_COLOR(Emissive, Blue, 2);
     GET_COLOR(Emissive, Alpha, 3);
     GET_TEXTURE(Emissive);
+#endif
 
     return false;
 }
@@ -236,11 +242,13 @@ bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
     SET_COLOR(Ambient, Alpha, 3);
     SET_TEXTURE(Ambient);
 
+#ifdef MATERIAL_EXPOSE_EMISSIVE
     SET_COLOR(Emissive, Red, 0);
     SET_COLOR(Emissive, Green, 1);
     SET_COLOR(Emissive, Blue, 2);
     SET_COLOR(Emissive, Alpha, 3);
     SET_TEXTURE(Emissive);
+#endif
 
     return false;
 }
