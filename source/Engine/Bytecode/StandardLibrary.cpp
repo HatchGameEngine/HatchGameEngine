@@ -555,6 +555,8 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     int animator = GET_ARG(0, GetInteger);
+    if (animator < 0 || animator >= (int)Scene::AnimatorList.size())
+        return NULL_VAL;
     if (!Scene::AnimatorList[animator])
         return NULL_VAL;
     delete Scene::AnimatorList[animator];
