@@ -15953,30 +15953,38 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
  * View.CheckOnScreen
  * \desc Determines whether an instance is on screen.
  * \param instance (Instance): The instance to check.
- * \param rangeX (Decimal): The x range to check, or null if an update region width should be used.
- * \param rangeY (Decimal): The y range to check, or null if an update region height should be used.
- * \return Returns whether or not the instance is on screen on any view.
+ * \paramOpt rangeX (Decimal): The x range to check, or <code>null</code> if the entity's update region width should be used.
+ * \paramOpt rangeY (Decimal): The y range to check, or <code>null</code> if the entity's update region height should be used.
+ * \return Returns whether or not the instance is on screen in any view.
  * \ns View
  */
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(3);
+    CHECK_AT_LEAST_ARGCOUNT(1);
 
     ObjInstance* instance   = GET_ARG(0, GetInstance);
     Entity* self            = (Entity*)instance->EntityPtr;
-    // TODO: Check if GetDecimal can get null values
-    float rangeX            = GET_ARG(1, GetDecimal);
-    float rangeY            = GET_ARG(2, GetDecimal);
+    float rangeX            = 0.0;
+    float rangeY            = 0.0;
 
     if (!self)
         return INTEGER_VAL(false);
 
+    if (argCount >= 2 && !IS_NULL(args[1])) {
+        rangeX = GET_ARG(1, GetDecimal);
+    }
+    if (argCount >= 3 && !IS_NULL(args[2])) {
+        rangeY = GET_ARG(2, GetDecimal);
+    }
+
     if (!rangeX)
         rangeX = self->OnScreenHitboxW;
-
     if (!rangeY)
         rangeY = self->OnScreenHitboxH;
 
-    return INTEGER_VAL(Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
+    float selfX = self->X - (rangeX * 0.5);
+    float selfY = self->Y - (rangeY * 0.5);
+
+    return INTEGER_VAL(Scene::CheckPosOnScreen(selfX, selfY, rangeX, rangeY));
 }
 /***
  * View.CheckPosOnScreen
@@ -15985,7 +15993,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \param posY (Decimal): The y position to check.
  * \param rangeX (Decimal): The x range to check.
  * \param rangeY (Decimal): The y range to check.
- * \return Returns whether or not the position is on screen on any view.
+ * \return Returns whether or not the position is on screen in any view.
  * \ns View
  */
 VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
