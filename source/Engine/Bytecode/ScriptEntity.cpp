@@ -319,6 +319,14 @@ void ScriptEntity::LinkFields() {
     */
     LINK_DEC(OnScreenHitboxH);
     /***
+    * \field Visible
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity is visible or not.
+    */
+    LINK_INT(Visible);
+    /***
     * \field ViewRenderFlag
     * \type Integer
     * \default ~0
@@ -875,6 +883,7 @@ void ScriptEntity::Initialize() {
     OnScreenRegionLeft = 0.0f;
     OnScreenRegionRight = 0.0f;
     OnScreenRegionBottom = 0.0f;
+    Visible = true;
     ViewRenderFlag = 0xFFFFFFFF;
     ViewOverrideFlag = 0;
     RenderRegionW = 0.0f;

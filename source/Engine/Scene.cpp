@@ -962,7 +962,7 @@ DoCheckRender:
                     Graphics::FillRectangle(entX1, entY1, entX2 - entX1, entY2 - entY1);
                 }
 
-                if ((ent->ViewRenderFlag & viewRenderFlag) == 0)
+                if (!ent->Visible || (ent->ViewRenderFlag & viewRenderFlag) == 0)
                     continue;
                 if ((ent->ViewOverrideFlag & viewRenderFlag) == 0 && (Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;

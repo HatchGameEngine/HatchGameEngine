@@ -360,6 +360,7 @@ void Entity::CopyFields(Entity* other) {
     COPY(OnScreenRegionLeft);
     COPY(OnScreenRegionRight);
     COPY(OnScreenRegionBottom);
+    COPY(Visible);
     COPY(ViewRenderFlag);
     COPY(ViewOverrideFlag);
     COPY(RenderRegionW);

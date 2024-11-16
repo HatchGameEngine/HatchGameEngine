@@ -40,6 +40,7 @@ public:
     float OnScreenRegionLeft = 0.0f;
     float OnScreenRegionRight = 0.0f;
     float OnScreenRegionBottom = 0.0f;
+    int Visible = true;
     int ViewRenderFlag = 0xFFFFFFFF;
     int ViewOverrideFlag = 0;
     float RenderRegionW = 0.0f;
