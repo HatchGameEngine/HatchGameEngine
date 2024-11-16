@@ -1,23 +1,10 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Scene/SceneConfig.h>
-#include <Engine/TextFormats/XML/XMLParser.h>
-#include <Engine/TextFormats/XML/XMLNode.h>
-
-class SceneInfo {
-public:
-    static vector<SceneListEntry>    Entries;
-    static vector<SceneListCategory> Categories;
-};
-#endif
-
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/Utilities/StringUtils.h>
 
 vector<SceneListEntry>    SceneInfo::Entries;
 vector<SceneListCategory> SceneInfo::Categories;
 
-PUBLIC STATIC void SceneInfo::Dispose() {
+void SceneInfo::Dispose() {
     for (size_t i = 0; i < Categories.size(); i++) {
         Categories[i].Properties->WithAll([](Uint32 hash, char* string) -> void {
             Memory::Free(string);
@@ -39,22 +26,22 @@ PUBLIC STATIC void SceneInfo::Dispose() {
     Entries.shrink_to_fit();
 }
 
-PUBLIC STATIC bool SceneInfo::IsCategoryValid(int categoryID) {
+bool SceneInfo::IsCategoryValid(int categoryID) {
     return categoryID >= 0 && categoryID < (int)Categories.size();
 }
 
-PUBLIC STATIC bool SceneInfo::IsEntryValid(int entryID) {
+bool SceneInfo::IsEntryValid(int entryID) {
     return entryID >= 0 && entryID < (int)Entries.size();
 }
 
-PUBLIC STATIC bool SceneInfo::IsEntryValidInCategory(size_t categoryID, size_t entryID) {
+bool SceneInfo::IsEntryValidInCategory(size_t categoryID, size_t entryID) {
     if (!IsCategoryValid((int)categoryID))
         return false;
 
     return entryID >= Categories[categoryID].OffsetStart && entryID < Categories[categoryID].OffsetEnd;
 }
 
-PUBLIC STATIC int SceneInfo::GetCategoryID(const char* categoryName) {
+int SceneInfo::GetCategoryID(const char* categoryName) {
     for (size_t i = 0; i < Categories.size(); i++) {
         if (!strcmp(Categories[i].Name, categoryName))
             return i;
@@ -63,7 +50,7 @@ PUBLIC STATIC int SceneInfo::GetCategoryID(const char* categoryName) {
     return -1;
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryID(const char* categoryName, const char* entryName) {
+int SceneInfo::GetEntryID(const char* categoryName, const char* entryName) {
     int categoryID = GetCategoryID(categoryName);
     if (categoryID < 0)
         return -1;
@@ -72,7 +59,7 @@ PUBLIC STATIC int SceneInfo::GetEntryID(const char* categoryName, const char* en
     return GetEntryIDWithinRange(category.OffsetStart, category.OffsetEnd, entryName);
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryID(const char* categoryName, size_t entryID) {
+int SceneInfo::GetEntryID(const char* categoryName, size_t entryID) {
     int categoryID = GetCategoryID(categoryName);
     if (categoryID < 0)
         return -1;
@@ -80,7 +67,7 @@ PUBLIC STATIC int SceneInfo::GetEntryID(const char* categoryName, size_t entryID
     return GetEntryID((size_t)categoryID, (size_t)entryID);
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryID(size_t categoryID, size_t entryID) {
+int SceneInfo::GetEntryID(size_t categoryID, size_t entryID) {
     if (!SceneInfo::IsCategoryValid((int)categoryID))
         return -1;
 
@@ -92,7 +79,7 @@ PUBLIC STATIC int SceneInfo::GetEntryID(size_t categoryID, size_t entryID) {
     return (int)actualEntryID;
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryPosInCategory(const char *categoryName, const char* entryName) {
+int SceneInfo::GetEntryPosInCategory(const char *categoryName, const char* entryName) {
     int categoryID = GetCategoryID(categoryName);
     if (categoryID < 0)
         return -1;
@@ -100,7 +87,7 @@ PUBLIC STATIC int SceneInfo::GetEntryPosInCategory(const char *categoryName, con
     return GetEntryPosInCategory((size_t)categoryID, entryName);
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryPosInCategory(size_t categoryID, const char* entryName) {
+int SceneInfo::GetEntryPosInCategory(size_t categoryID, const char* entryName) {
     if (!SceneInfo::IsCategoryValid((int)categoryID))
         return -1;
 
@@ -112,7 +99,7 @@ PUBLIC STATIC int SceneInfo::GetEntryPosInCategory(size_t categoryID, const char
     return actualEntryID - (int)category.OffsetStart;
 }
 
-PUBLIC STATIC int SceneInfo::GetEntryIDWithinRange(size_t start, size_t end, const char* entryName) {
+int SceneInfo::GetEntryIDWithinRange(size_t start, size_t end, const char* entryName) {
     for (size_t i = start; i < end; i++) {
         if (!strcmp(Entries[i].Name, entryName))
             return (int)i;
@@ -121,7 +108,7 @@ PUBLIC STATIC int SceneInfo::GetEntryIDWithinRange(size_t start, size_t end, con
     return -1;
 }
 
-PUBLIC STATIC string SceneInfo::GetParentPath(int entryID) {
+string SceneInfo::GetParentPath(int entryID) {
     SceneListEntry& entry = Entries[entryID];
 
     char filePath[4096];
@@ -138,7 +125,7 @@ PUBLIC STATIC string SceneInfo::GetParentPath(int entryID) {
     return std::string(filePath);
 }
 
-PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
+string SceneInfo::GetFilename(int entryID) {
     SceneListEntry scene = Entries[entryID];
 
     std::string parentPath = GetParentPath(entryID);
@@ -175,11 +162,11 @@ PUBLIC STATIC string SceneInfo::GetFilename(int entryID) {
     return parentPath;
 }
 
-PUBLIC STATIC string SceneInfo::GetTileConfigFilename(int entryID) {
+string SceneInfo::GetTileConfigFilename(int entryID) {
     return GetParentPath(entryID) + "TileConfig.bin";
 }
 
-PUBLIC STATIC char* SceneInfo::GetEntryProperty(int entryID, char* property) {
+char* SceneInfo::GetEntryProperty(int entryID, char* property) {
     if (IsEntryValid(entryID)) {
         SceneListEntry& entry = Entries[entryID];
         if (entry.Properties->Exists(property))
@@ -187,7 +174,7 @@ PUBLIC STATIC char* SceneInfo::GetEntryProperty(int entryID, char* property) {
     }
     return nullptr;
 }
-PUBLIC STATIC char* SceneInfo::GetCategoryProperty(int categoryID, char* property) {
+char* SceneInfo::GetCategoryProperty(int categoryID, char* property) {
     if (IsCategoryValid(categoryID)) {
         SceneListCategory& category = Categories[categoryID];
         if (category.Properties->Exists(property))
@@ -196,18 +183,18 @@ PUBLIC STATIC char* SceneInfo::GetCategoryProperty(int categoryID, char* propert
     return nullptr;
 }
 
-PUBLIC STATIC bool SceneInfo::HasEntryProperty(int entryID, char* property) {
+bool SceneInfo::HasEntryProperty(int entryID, char* property) {
     if (IsEntryValid(entryID))
         return Entries[entryID].Properties->Exists(property);
     return false;
 }
-PUBLIC STATIC bool SceneInfo::HasCategoryProperty(int categoryID, char* property) {
+bool SceneInfo::HasCategoryProperty(int categoryID, char* property) {
     if (IsCategoryValid(categoryID))
         return Categories[categoryID].Properties->Exists(property);
     return false;
 }
 
-PRIVATE STATIC void SceneInfo::FillAttributesHashMap(XMLAttributes* attr, HashMap<char*>* map) {
+void SceneInfo::FillAttributesHashMap(XMLAttributes* attr, HashMap<char*>* map) {
     for (size_t i = 0; i < attr->KeyVector.size(); i++) {
         char *key = attr->KeyVector[i];
         char *value = XMLParser::TokenToString(attr->ValueMap.Get(key));
@@ -216,7 +203,7 @@ PRIVATE STATIC void SceneInfo::FillAttributesHashMap(XMLAttributes* attr, HashMa
     }
 }
 
-PUBLIC STATIC bool SceneInfo::Load(XMLNode* node) {
+bool SceneInfo::Load(XMLNode* node) {
     for (size_t i = 0; i < node->children.size(); i++) {
         XMLNode* listElement = node->children[i];
         if (XMLParser::MatchToken(listElement->name, "category")) {

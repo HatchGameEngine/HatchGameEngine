@@ -1,16 +1,3 @@
-#if INTERFACE
-#include <Engine/Types/Entity.h>
-#include <Engine/Bytecode/ScriptManager.h>
-
-class ScriptEntity : public Entity {
-public:
-    static bool DisableAutoAnimate;
-
-    ObjInstance* Instance = NULL;
-    HashMap<VMValue>* Properties;
-};
-#endif
-
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/StandardLibrary.h>
@@ -41,7 +28,7 @@ Uint32 Hash_HitboxTop = 0;
 Uint32 Hash_HitboxRight = 0;
 Uint32 Hash_HitboxBottom = 0;
 
-PUBLIC void ScriptEntity::Link(ObjInstance* instance) {
+void ScriptEntity::Link(ObjInstance* instance) {
     Instance = instance;
     Instance->EntityPtr = this;
     Properties = new HashMap<VMValue>(NULL, 4);
@@ -74,7 +61,7 @@ PUBLIC void ScriptEntity::Link(ObjInstance* instance) {
     LinkFields();
 }
 
-PUBLIC void ScriptEntity::LinkFields() {
+void ScriptEntity::LinkFields() {
     /***
     * \field X
     * \type Decimal
@@ -736,7 +723,7 @@ PUBLIC void ScriptEntity::LinkFields() {
 #undef LINK_DEC
 #undef LINK_BOOL
 
-PRIVATE bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
+bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
     // First look for a field which may shadow a method.
     VMValue result;
     if (Instance->Fields->GetIfExists(hash, &result)) {
@@ -757,14 +744,14 @@ PRIVATE bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 
     return false;
 }
-PRIVATE ObjFunction* ScriptEntity::GetCallableFunction(Uint32 hash) {
+ObjFunction* ScriptEntity::GetCallableFunction(Uint32 hash) {
     ObjClass* klass = Instance->Object.Class;
     VMValue result;
     if (klass->Methods->GetIfExists(hash, &result))
         return AS_FUNCTION(result);
     return NULL;
 }
-PUBLIC bool ScriptEntity::RunFunction(Uint32 hash) {
+bool ScriptEntity::RunFunction(Uint32 hash) {
     if (!Instance)
         return false;
 
@@ -786,7 +773,7 @@ PUBLIC bool ScriptEntity::RunFunction(Uint32 hash) {
 
     return true;
 }
-PUBLIC bool ScriptEntity::RunCreateFunction(VMValue flag) {
+bool ScriptEntity::RunCreateFunction(VMValue flag) {
     // NOTE:
     // If the function doesn't exist, this is not an error VM side,
     // treat whatever we call from C++ as a virtual-like function.
@@ -812,7 +799,7 @@ PUBLIC bool ScriptEntity::RunCreateFunction(VMValue flag) {
 
     return false;
 }
-PUBLIC bool ScriptEntity::RunInitializer() {
+bool ScriptEntity::RunInitializer() {
     if (!HasInitializer(Instance->Object.Class))
         return true;
 
@@ -829,7 +816,7 @@ PUBLIC bool ScriptEntity::RunInitializer() {
     return true;
 }
 
-PUBLIC bool ScriptEntity::ChangeClass(const char* className) {
+bool ScriptEntity::ChangeClass(const char* className) {
     if (!ScriptManager::ClassExists(className))
         return false;
 
@@ -857,7 +844,7 @@ PUBLIC bool ScriptEntity::ChangeClass(const char* className) {
     return true;
 }
 
-PUBLIC void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
+void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
     CopyFields(other);
 
     if (copyClass)
@@ -874,13 +861,13 @@ PUBLIC void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
     });
 }
 
-PUBLIC void ScriptEntity::CopyFields(ScriptEntity* other) {
+void ScriptEntity::CopyFields(ScriptEntity* other) {
     Entity::CopyFields(other);
 
     CopyVMFields(other);
 }
 
-PUBLIC void ScriptEntity::CopyVMFields(ScriptEntity* other) {
+void ScriptEntity::CopyVMFields(ScriptEntity* other) {
     Table* srcFields = Instance->Fields;
     Table* destFields = other->Instance->Fields;
 
@@ -897,7 +884,7 @@ PUBLIC void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 }
 
 // Events called from C++
-PUBLIC void ScriptEntity::Initialize() {
+void ScriptEntity::Initialize() {
     if (!Instance) return;
 
     // Set defaults
@@ -965,7 +952,7 @@ PUBLIC void ScriptEntity::Initialize() {
 
     RunInitializer();
 }
-PUBLIC void ScriptEntity::Create(VMValue flag) {
+void ScriptEntity::Create(VMValue flag) {
     if (!Instance) return;
 
     Created = true;
@@ -975,27 +962,27 @@ PUBLIC void ScriptEntity::Create(VMValue flag) {
         SetAnimation(0, 0);
     }
 }
-PUBLIC void ScriptEntity::Create() {
+void ScriptEntity::Create() {
     Create(INTEGER_VAL(0));
 }
-PUBLIC void ScriptEntity::PostCreate() {
+void ScriptEntity::PostCreate() {
     if (!Instance) return;
 
     PostCreated = true;
 
     RunFunction(Hash_PostCreate);
 }
-PUBLIC void ScriptEntity::UpdateEarly() {
+void ScriptEntity::UpdateEarly() {
     if (!Active) return;
 
     RunFunction(Hash_UpdateEarly);
 }
-PUBLIC void ScriptEntity::Update() {
+void ScriptEntity::Update() {
     if (!Active) return;
 
     RunFunction(Hash_Update);
 }
-PUBLIC void ScriptEntity::UpdateLate() {
+void ScriptEntity::UpdateLate() {
     if (!Active) return;
 
     RunFunction(Hash_UpdateLate);
@@ -1005,40 +992,40 @@ PUBLIC void ScriptEntity::UpdateLate() {
     if (AutoPhysics)
         ApplyMotion();
 }
-PUBLIC void ScriptEntity::RenderEarly() {
+void ScriptEntity::RenderEarly() {
     if (!Active) return;
 
     RunFunction(Hash_RenderEarly);
 }
-PUBLIC void ScriptEntity::Render(int CamX, int CamY) {
+void ScriptEntity::Render(int CamX, int CamY) {
     if (!Active) return;
 
     if (RunFunction(Hash_Render)) {
         // Default render
     }
 }
-PUBLIC void ScriptEntity::RenderLate() {
+void ScriptEntity::RenderLate() {
     if (!Active) return;
 
     RunFunction(Hash_RenderLate);
 }
-PUBLIC void ScriptEntity::OnAnimationFinish() {
+void ScriptEntity::OnAnimationFinish() {
     RunFunction(Hash_OnAnimationFinish);
 }
-PUBLIC void ScriptEntity::OnSceneLoad() {
+void ScriptEntity::OnSceneLoad() {
     if (!Active) return;
 
     RunFunction(Hash_OnSceneLoad);
 }
-PUBLIC void ScriptEntity::OnSceneRestart() {
+void ScriptEntity::OnSceneRestart() {
     if (!Active) return;
 
     RunFunction(Hash_OnSceneRestart);
 }
-PUBLIC void ScriptEntity::GameStart() {
+void ScriptEntity::GameStart() {
     RunFunction(Hash_GameStart);
 }
-PUBLIC void ScriptEntity::Remove() {
+void ScriptEntity::Remove() {
     if (Removed) return;
     if (!Instance) return;
 
@@ -1047,7 +1034,7 @@ PUBLIC void ScriptEntity::Remove() {
     Active = false;
     Removed = true;
 }
-PUBLIC void ScriptEntity::Dispose() {
+void ScriptEntity::Dispose() {
     Entity::Dispose();
     if (Properties) {
         delete Properties;
@@ -1085,7 +1072,7 @@ bool TestEntityCollision(Entity* other, Entity* self) {
 
     return self->CollideWithObject(other);
 }
-PUBLIC STATIC bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
     Entity* self = GetScriptEntity(object);
     if (self == nullptr)
         return false;
@@ -1113,7 +1100,7 @@ PUBLIC STATIC bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* re
 
     return false;
 }
-PUBLIC STATIC bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
     Entity* self = GetScriptEntity(object);
     if (self == nullptr)
         return false;
@@ -1148,7 +1135,7 @@ PUBLIC STATIC bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue val
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     Entity* self = GET_ENTITY(0);
     int animation = GET_ARG(1, GetInteger);
@@ -1182,7 +1169,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args,
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     Entity* self = GET_ENTITY(0);
     int animation = GET_ARG(1, GetInteger);
@@ -1215,7 +1202,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* arg
  * \desc Animates the entity.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
     if (self)
@@ -1229,7 +1216,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint
  * \return Returns an Integer value.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
     if (!self || !self->List)
@@ -1255,7 +1242,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetIDWithinClass(int argCount, VMValue* a
  * \param registry (String): The registry name.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
@@ -1283,7 +1270,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args
  * \return Returns a Boolean value.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
@@ -1301,7 +1288,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args,
  * \param registry (String): The registry name.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     Entity* self = GET_ENTITY(0);
     char*   registry = GET_ARG(1, GetString);
@@ -1320,7 +1307,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue*
  * \desc Applies gravity and velocities to the entity.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     Entity* self = GET_ENTITY(0);
     if (IsValidEntity(self))
@@ -1338,7 +1325,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, 
  * \return Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 6);
     // Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
     int   view   = GET_ARG(1, GetInteger);
@@ -1362,7 +1349,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_InView(int argCount, VMValue* args, Uint3
  * \return Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ScriptEntity* self = GET_ENTITY(0);
@@ -1409,7 +1396,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue*
  * \param hitbox (Integer): The hitbox ID.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
     ScriptEntity* self = GET_ENTITY(0);
     ISprite* sprite = GET_ARG(1, GetSprite);
@@ -1451,7 +1438,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue
  * \return Returns an array containing the hitbox top, left, right and bottom sides in that order.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 5);
     ScriptEntity* self = GET_ENTITY(0);
     ISprite* sprite = GET_ARG(1, GetSprite);
@@ -1494,7 +1481,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMVa
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
@@ -1509,7 +1496,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_CollideWithObject(int argCount, VMValue* 
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
@@ -1525,7 +1512,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount, VMVa
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     ScriptEntity* self = GET_ENTITY(0);
     ScriptEntity* other = GET_ENTITY(1);
@@ -1535,7 +1522,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, V
     return INTEGER_VAL(self->TopSolidCollideWithObject(other, flag));
 }
 
-PUBLIC STATIC VMValue ScriptEntity::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     ScriptEntity* self = GET_ENTITY(0);
     if (IsValidEntity(self))
@@ -1550,7 +1537,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_ApplyPhysics(int argCount, VMValue* args,
  * \return Returns <code>true</code> if the property exists, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     char* property = GET_ARG(1, GetString);
@@ -1565,7 +1552,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_PropertyExists(int argCount, VMValue* arg
  * \return Returns the property if it exists, and <code>null</code> if the property does not exist.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     char* property = GET_ARG(1, GetString);
@@ -1581,7 +1568,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_PropertyGet(int argCount, VMValue* args, 
  * \param visible (Boolean): Whether the entity will be visible or not on the specified view.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     ScriptEntity* self = GET_ENTITY(0);
     int viewIndex = GET_ARG(1, GetInteger);
@@ -1602,7 +1589,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetViewVisibility(int argCount, VMValue* 
  * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 3);
     ScriptEntity* self = GET_ENTITY(0);
     int viewIndex = GET_ARG(1, GetInteger);
@@ -1623,7 +1610,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* ar
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     if (!IsValidEntity(self))
@@ -1644,7 +1631,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* arg
  * \return Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     if (!IsValidEntity(self))
@@ -1662,7 +1649,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     if (!IsValidEntity(self))
@@ -1685,7 +1672,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ISound* audio = GET_ARG(1, GetSound);
@@ -1710,7 +1697,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Ui
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckAtLeastArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ISound* audio = GET_ARG(1, GetSound);
@@ -1731,7 +1718,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Ui
  * \param sound (Integer): The sound index to interrupt.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
     ScriptEntity* self = GET_ENTITY(0);
     ISound* audio = GET_ARG(1, GetSound);
@@ -1744,7 +1731,7 @@ PUBLIC STATIC VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Ui
  * \desc Stops all sounds the entity is playing.
  * \ns Instance
  */
-PUBLIC STATIC VMValue ScriptEntity::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 1);
     ScriptEntity* self = GET_ENTITY(0);
     if (IsValidEntity(self))

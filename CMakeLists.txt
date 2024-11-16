@@ -87,18 +87,6 @@ endif()
 
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  set(MAKEHEADERS_BINARY makeheaders.exe)
-else()
-  set(MAKEHEADERS_BINARY makeheaders)
-endif()
-
-add_custom_target(makeheaders ALL
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/${MAKEHEADERS_BINARY} source/
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  BYPRODUCTS "${CMAKE_SOURCE_DIR}/include/makeheaders.bin" "${CMAKE_SOURCE_DIR}/include/Engine"
-  COMMENT "Generating header files")
-
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
 
 if (REPO_DIR)
@@ -112,7 +100,6 @@ if (REPO_DIR)
 endif()
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-add_dependencies(${PROJECT_NAME} makeheaders)
 
 set(OUT_EXEC_NAME ${PROJECT_NAME})
 

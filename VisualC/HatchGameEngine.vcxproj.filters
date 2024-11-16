@@ -339,18 +339,6 @@
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\scene\ScrollingIndex.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\engine\scene\ScrollingInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\engine\scene\TileConfig.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\engine\scene\TileSpriteInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\source\engine\scene\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

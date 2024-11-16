@@ -1,16 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-
-#include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
-
-class WAV : public SoundFormat {
-private:
-    // WAV Specific
-    int DataStart = 0;
-};
-#endif
-
 #include <Engine/ResourceTypes/SoundFormats/WAV.h>
 
 #include <Engine/Application.h>
@@ -48,7 +35,7 @@ struct WAVheader {
     Uint8         OverflowBuffer[64];
 };
 
-PUBLIC STATIC SoundFormat* WAV::Load(const char* filename) {
+SoundFormat* WAV::Load(const char* filename) {
     WAV* wav = NULL;
     class Stream* stream = ResourceStream::New(filename);
     if (!stream) {
@@ -111,7 +98,7 @@ PUBLIC STATIC SoundFormat* WAV::Load(const char* filename) {
     return wav;
 }
 
-PUBLIC        int          WAV::LoadSamples(size_t count) {
+int          WAV::LoadSamples(size_t count) {
     size_t read,
         bytesForSample = 0,
         total = 0;
@@ -146,7 +133,7 @@ PUBLIC        int          WAV::LoadSamples(size_t count) {
     return (int)total;
 }
 
-PUBLIC        void         WAV::Dispose() {
+void         WAV::Dispose() {
     // WAV specific clean up functions
     // Common cleanup
     SoundFormat::Dispose();

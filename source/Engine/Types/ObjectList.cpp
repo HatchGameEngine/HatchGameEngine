@@ -1,29 +1,8 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Types/Entity.h>
-
-class ObjectList {
-public:
-    int     EntityCount = 0;
-    int     Activity = ACTIVE_NORMAL;
-    Entity* EntityFirst = nullptr;
-    Entity* EntityLast = nullptr;
-
-    char* ObjectName;
-    char* LoadFunctionName;
-    char* GlobalUpdateFunctionName;
-
-    ObjectListPerformance Performance;
-
-    Entity* (*SpawnFunction)(ObjectList*) = nullptr;
-};
-#endif
-
 #include <Engine/Types/ObjectList.h>
 
 #include <Engine/Application.h>
 
-PUBLIC         ObjectList::ObjectList(const char* name) {
+ObjectList::ObjectList(const char* name) {
     ObjectName = StringUtils::Duplicate(name);
 
     std::string loadFunctionName = std::string(name) + "_Load";
@@ -32,14 +11,14 @@ PUBLIC         ObjectList::ObjectList(const char* name) {
     LoadFunctionName = StringUtils::Create(loadFunctionName);
     GlobalUpdateFunctionName = StringUtils::Create(globalUpdateFunctionName);
 }
-PUBLIC         ObjectList::~ObjectList() {
+ObjectList::~ObjectList() {
     Memory::Free(ObjectName);
     Memory::Free(LoadFunctionName);
     Memory::Free(GlobalUpdateFunctionName);
 }
 
 // Double linked-list functions
-PUBLIC void    ObjectList::Add(Entity* obj) {
+void    ObjectList::Add(Entity* obj) {
     // Set "prev" of obj to last
     obj->PrevEntityInList = EntityLast;
     obj->NextEntityInList = NULL;
@@ -56,7 +35,7 @@ PUBLIC void    ObjectList::Add(Entity* obj) {
 
     EntityCount++;
 }
-PUBLIC bool    ObjectList::Contains(Entity* obj) {
+bool    ObjectList::Contains(Entity* obj) {
     for (Entity* search = EntityFirst; search != NULL; search = search->NextEntityInList) {
         if (search == obj)
             return true;
@@ -64,7 +43,7 @@ PUBLIC bool    ObjectList::Contains(Entity* obj) {
 
     return false;
 }
-PUBLIC void    ObjectList::Remove(Entity* obj) {
+void    ObjectList::Remove(Entity* obj) {
     if (obj == NULL) return;
 
     obj->List = NULL;
@@ -86,7 +65,7 @@ PUBLIC void    ObjectList::Remove(Entity* obj) {
 
     EntityCount--;
 }
-PUBLIC void    ObjectList::Clear() {
+void    ObjectList::Clear() {
     EntityCount = 0;
     EntityFirst = NULL;
     EntityLast = NULL;
@@ -95,14 +74,14 @@ PUBLIC void    ObjectList::Clear() {
 }
 
 // ObjectList functions
-PUBLIC Entity* ObjectList::Spawn() {
+Entity* ObjectList::Spawn() {
     return SpawnFunction(this);
 }
-PUBLIC void ObjectList::Iterate(std::function<void(Entity* e)> func) {
+void ObjectList::Iterate(std::function<void(Entity* e)> func) {
     for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList)
         func(ent);
 }
-PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first, int persistence) {
+void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first, int persistence) {
     for (Entity* ent = first, *next; ent; ent = next) {
         // Store the "next" so that when/if the current is removed,
         // it can still be used to point at the end of the loop.
@@ -112,18 +91,18 @@ PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first, int per
             Remove(ent);
     }
 }
-PUBLIC void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
+void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
     RemoveNonPersistentFromLinkedList(first, Persistence_NONE);
 }
-PUBLIC void ObjectList::ResetPerf() {
+void ObjectList::ResetPerf() {
     Performance.Clear();
 }
-PUBLIC Entity* ObjectList::GetNth(int n) {
+Entity* ObjectList::GetNth(int n) {
     Entity* ent = EntityFirst;
     for (ent = EntityFirst; ent != NULL && n > 0; ent = ent->NextEntityInList, n--);
     return ent;
 }
-PUBLIC Entity* ObjectList::GetClosest(int x, int y) {
+Entity* ObjectList::GetClosest(int x, int y) {
     if (!EntityCount)
         return NULL;
     else if (EntityCount == 1)
@@ -144,6 +123,6 @@ PUBLIC Entity* ObjectList::GetClosest(int x, int y) {
     return closest;
 }
 
-PUBLIC int     ObjectList::Count() {
+int     ObjectList::Count() {
     return EntityCount;
 }

@@ -1,42 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Application.h>
-#include <Engine/Audio/AudioChannel.h>
-#include <Engine/ResourceTypes/ISound.h>
-
-class AudioManager {
-public:
-    static SDL_AudioDeviceID    Device;
-    static SDL_AudioSpec        DeviceFormat;
-    static bool                 AudioEnabled;
-
-    static Uint8                BytesPerSample;
-    static Uint8*               MixBuffer;
-    static size_t               MixBufferSize;
-
-    static deque<AudioChannel*> MusicStack;
-    static AudioChannel*        SoundArray;
-    static int                  SoundArrayLength;
-
-    static float                MasterVolume;
-    static float                MusicVolume;
-    static float                SoundVolume;
-
-    static float                LowPassFilter;
-
-    static Uint8*               AudioQueue;
-    static size_t               AudioQueueSize;
-    static size_t               AudioQueueMaxSize;
-
-    enum {
-        REQUEST_EOF = 0,
-        REQUEST_ERROR = -1,
-        REQUEST_CONVERTING = -2,
-    };
-};
-#endif
-
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Audio/AudioPlayback.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
@@ -85,7 +46,7 @@ Sint16 mZy[2 * 2]; // 2 per channel
 float  mZxF[2 * 2]; // 2 per channel
 float  mZyF[2 * 2]; // 2 per channel
 
-PUBLIC STATIC void   AudioManager::CalculateCoeffs() {
+void   AudioManager::CalculateCoeffs() {
     double theta = 2.0 * M_PI * mNormalizedFreq; // normalized frequency has been precalculated as fc/fs
     double d = 0.5 * (1.0 / mQuality) * sin(theta);
     double beta = 0.5 * ( (1.0 - d) / (1.0 + d) );
@@ -114,7 +75,7 @@ PUBLIC STATIC void   AudioManager::CalculateCoeffs() {
     b1 = -2.0 * gamma;
     b2 = 2.0 * beta;
 }
-PUBLIC STATIC Sint16 AudioManager::ProcessSample(Sint16 inSample, int channel) {
+Sint16 AudioManager::ProcessSample(Sint16 inSample, int channel) {
     Sint16 outSample;
     int idx0 = 2 * channel;
     int idx1 = idx0 + 1;
@@ -135,7 +96,7 @@ PUBLIC STATIC Sint16 AudioManager::ProcessSample(Sint16 inSample, int channel) {
 
     return (Sint16)(inSample * (1.0 - AudioManager::LowPassFilter) + outSample * mGain * AudioManager::LowPassFilter);
 }
-PUBLIC STATIC float  AudioManager::ProcessSampleFloat(float inSample, int channel) {
+float  AudioManager::ProcessSampleFloat(float inSample, int channel) {
     float outSample;
     int idx0 = 2 * channel;
     int idx1 = idx0 + 1;
@@ -152,7 +113,7 @@ PUBLIC STATIC float  AudioManager::ProcessSampleFloat(float inSample, int channe
     return (float)(inSample * (1.0 - AudioManager::LowPassFilter) + outSample * mGain * AudioManager::LowPassFilter);
 }
 
-PUBLIC STATIC void   AudioManager::Init() {
+void   AudioManager::Init() {
     CalculateCoeffs();
 
     SoundArray = (AudioChannel*)Memory::Calloc(SoundArrayLength, sizeof(AudioChannel));
@@ -215,7 +176,7 @@ PUBLIC STATIC void   AudioManager::Init() {
     AudioQueue        = (Uint8*)Memory::Calloc(8, AudioQueueMaxSize);
 }
 
-PUBLIC STATIC void   AudioManager::ClampParams(float& pan, float& speed, float& volume) {
+void   AudioManager::ClampParams(float& pan, float& speed, float& volume) {
     if (pan < -1.0f)
         pan = -1.0f;
     else if (pan > 1.0f)
@@ -230,7 +191,7 @@ PUBLIC STATIC void   AudioManager::ClampParams(float& pan, float& speed, float& 
         volume = 0.0f;
 }
 
-PRIVATE STATIC void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback, ISound* sound) {
+void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback, ISound* sound) {
     if (!playback->SoundData) {
         playback->SoundData = new SoundFormat;
         playback->OwnsSoundData = true;
@@ -247,10 +208,10 @@ PRIVATE STATIC void   AudioManager::UpdateChannelPlayer(AudioPlayback* playback,
     playback->SoundData->SampleIndex = 0;
 }
 
-PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* music) {
+void   AudioManager::SetSound(int channel, ISound* music) {
     AudioManager::SetSound(channel, music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
 }
-PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* sound, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
+void   AudioManager::SetSound(int channel, ISound* sound, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
     AudioManager::Lock();
 
     AudioChannel* audio = &SoundArray[channel];
@@ -286,10 +247,10 @@ PUBLIC STATIC void   AudioManager::SetSound(int channel, ISound* sound, bool loo
 
     AudioManager::Unlock();
 }
-PUBLIC STATIC int    AudioManager::PlaySound(ISound* music) {
+int    AudioManager::PlaySound(ISound* music) {
     return AudioManager::PlaySound(music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
 }
-PUBLIC STATIC int    AudioManager::PlaySound(ISound* music, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
+int    AudioManager::PlaySound(ISound* music, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
     for (int i = 0; i < SoundArrayLength; i++) {
         AudioChannel* audio = &SoundArray[i];
         if (!audio->Audio || audio->Stopped) {
@@ -301,10 +262,10 @@ PUBLIC STATIC int    AudioManager::PlaySound(ISound* music, bool loop, int loopP
     return -1;
 }
 
-PUBLIC STATIC void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
+void   AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
     PushMusicAt(music, 0.0, loop, lp, pan, speed, volume, fadeInAfterFinished);
 }
-PUBLIC STATIC void   AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
+void   AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
     if (music->LoadFailed) return;
 
     AudioManager::Lock();
@@ -343,7 +304,7 @@ PUBLIC STATIC void   AudioManager::PushMusicAt(ISound* music, double at, bool lo
 
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::RemoveMusic(ISound* music) {
+void   AudioManager::RemoveMusic(ISound* music) {
     AudioManager::Lock();
     for (size_t i = 0; i < MusicStack.size(); i++) {
         if (MusicStack[i]->Audio == music) {
@@ -353,10 +314,10 @@ PUBLIC STATIC void   AudioManager::RemoveMusic(ISound* music) {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC bool   AudioManager::IsPlayingMusic() {
+bool   AudioManager::IsPlayingMusic() {
     return MusicStack.size() > 0;
 }
-PUBLIC STATIC bool   AudioManager::IsPlayingMusic(ISound* music) {
+bool   AudioManager::IsPlayingMusic(ISound* music) {
     for (size_t i = 0; i < MusicStack.size(); i++) {
         if (MusicStack[i]->Audio == music) {
             return true;
@@ -364,7 +325,7 @@ PUBLIC STATIC bool   AudioManager::IsPlayingMusic(ISound* music) {
     }
     return false;
 }
-PUBLIC STATIC void   AudioManager::ClearMusic() {
+void   AudioManager::ClearMusic() {
     AudioManager::Lock();
     for (size_t i = 0; i < MusicStack.size(); i++) {
         delete MusicStack[i];
@@ -372,7 +333,7 @@ PUBLIC STATIC void   AudioManager::ClearMusic() {
     MusicStack.clear();
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::ClearSounds() {
+void   AudioManager::ClearSounds() {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         SoundArray[i].Stopped = true;
@@ -383,7 +344,7 @@ PUBLIC STATIC void   AudioManager::ClearSounds() {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::FadeOutMusic(double seconds) {
+void   AudioManager::FadeOutMusic(double seconds) {
     AudioManager::Lock();
     if (MusicStack.size() > 0) {
         MusicStack[0]->Fading = MusicFade_Out;
@@ -392,7 +353,7 @@ PUBLIC STATIC void   AudioManager::FadeOutMusic(double seconds) {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AlterMusic(float pan, float speed, float volume) {
+void   AudioManager::AlterMusic(float pan, float speed, float volume) {
     AudioManager::Lock();
     if (MusicStack.size() > 0) {
         AudioManager::ClampParams(pan, speed, volume);
@@ -402,7 +363,7 @@ PUBLIC STATIC void   AudioManager::AlterMusic(float pan, float speed, float volu
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC double AudioManager::GetMusicPosition(ISound* music) {
+double AudioManager::GetMusicPosition(ISound* music) {
     AudioManager::Lock();
     double position = 0.0;
     for (size_t i = 0; i < MusicStack.size(); i++) {
@@ -415,14 +376,14 @@ PUBLIC STATIC double AudioManager::GetMusicPosition(ISound* music) {
     return position;
 }
 
-PUBLIC STATIC void   AudioManager::Lock() {
+void   AudioManager::Lock() {
     SDL_LockAudioDevice(Device);
 }
-PUBLIC STATIC void   AudioManager::Unlock() {
+void   AudioManager::Unlock() {
     SDL_UnlockAudioDevice(Device);
 }
 
-PUBLIC STATIC int    AudioManager::GetFreeChannel() {
+int    AudioManager::GetFreeChannel() {
     AudioManager::Lock();
     int channel = -1;
     for (int i = 0; i < SoundArrayLength; i++) {
@@ -434,7 +395,7 @@ PUBLIC STATIC int    AudioManager::GetFreeChannel() {
     AudioManager::Unlock();
     return channel;
 }
-PUBLIC STATIC void   AudioManager::AlterChannel(int channel, float pan, float speed, float volume) {
+void   AudioManager::AlterChannel(int channel, float pan, float speed, float volume) {
     AudioManager::Lock();
     if (!SoundArray[channel].Stopped && !SoundArray[channel].Paused) {
         AudioManager::ClampParams(pan, speed, volume);
@@ -444,14 +405,14 @@ PUBLIC STATIC void   AudioManager::AlterChannel(int channel, float pan, float sp
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC bool   AudioManager::AudioIsPlaying(int channel) {
+bool   AudioManager::AudioIsPlaying(int channel) {
     bool isPlaying = false;
     AudioManager::Lock();
     isPlaying = !SoundArray[channel].Stopped && !SoundArray[channel].Paused;
     AudioManager::Unlock();
     return isPlaying;
 }
-PUBLIC STATIC bool   AudioManager::AudioIsPlaying(ISound* audio) {
+bool   AudioManager::AudioIsPlaying(ISound* audio) {
     bool isPlaying = false;
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
@@ -462,12 +423,12 @@ PUBLIC STATIC bool   AudioManager::AudioIsPlaying(ISound* audio) {
     AudioManager::Unlock();
     return isPlaying;
 }
-PUBLIC STATIC void   AudioManager::AudioUnpause(int channel) {
+void   AudioManager::AudioUnpause(int channel) {
     AudioManager::Lock();
     SoundArray[channel].Paused = false;
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioUnpause(ISound* audio) {
+void   AudioManager::AudioUnpause(ISound* audio) {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         if (SoundArray[i].Audio == audio)
@@ -475,12 +436,12 @@ PUBLIC STATIC void   AudioManager::AudioUnpause(ISound* audio) {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioPause(int channel) {
+void   AudioManager::AudioPause(int channel) {
     AudioManager::Lock();
     SoundArray[channel].Paused = true;
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioPause(ISound* audio) {
+void   AudioManager::AudioPause(ISound* audio) {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         if (SoundArray[i].Audio == audio)
@@ -488,12 +449,12 @@ PUBLIC STATIC void   AudioManager::AudioPause(ISound* audio) {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioStop(int channel) {
+void   AudioManager::AudioStop(int channel) {
     AudioManager::Lock();
     SoundArray[channel].Stopped = true;
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioStop(ISound* audio) {
+void   AudioManager::AudioStop(ISound* audio) {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         if (SoundArray[i].Audio == audio)
@@ -501,26 +462,26 @@ PUBLIC STATIC void   AudioManager::AudioStop(ISound* audio) {
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioUnpauseAll() {
+void   AudioManager::AudioUnpauseAll() {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++)
         SoundArray[i].Paused = false;
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioPauseAll() {
+void   AudioManager::AudioPauseAll() {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++)
         SoundArray[i].Paused = true;
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::AudioStopAll() {
+void   AudioManager::AudioStopAll() {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++)
         SoundArray[i].Stopped = true;
     AudioManager::Unlock();
 }
 
-PUBLIC STATIC bool   AudioManager::IsOriginPlaying(void* origin, ISound* audio) {
+bool   AudioManager::IsOriginPlaying(void* origin, ISound* audio) {
     bool isPlaying = false;
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
@@ -531,7 +492,7 @@ PUBLIC STATIC bool   AudioManager::IsOriginPlaying(void* origin, ISound* audio) 
     AudioManager::Unlock();
     return isPlaying;
 }
-PUBLIC STATIC void   AudioManager::StopOriginSound(void* origin, ISound* audio) {
+void   AudioManager::StopOriginSound(void* origin, ISound* audio) {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         if (SoundArray[i].Audio == audio && SoundArray[i].Origin == origin)
@@ -539,7 +500,7 @@ PUBLIC STATIC void   AudioManager::StopOriginSound(void* origin, ISound* audio) 
     }
     AudioManager::Unlock();
 }
-PUBLIC STATIC void   AudioManager::StopAllOriginSounds(void* origin) {
+void   AudioManager::StopAllOriginSounds(void* origin) {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++) {
         if (SoundArray[i].Origin == origin)
@@ -548,7 +509,7 @@ PUBLIC STATIC void   AudioManager::StopAllOriginSounds(void* origin) {
     AudioManager::Unlock();
 }
 
-PUBLIC STATIC void   AudioManager::MixAudioLR(Uint8* dest, Uint8* src, size_t len, float volumeL, float volumeR) {
+void   AudioManager::MixAudioLR(Uint8* dest, Uint8* src, size_t len, float volumeL, float volumeR) {
 #define DEFINE_STREAM_PTR(type) type* src##type; type* dest##type
 #define PAN_STREAM_PTR(type) \
     src##type = (type*)(src); \
@@ -579,7 +540,7 @@ PUBLIC STATIC void   AudioManager::MixAudioLR(Uint8* dest, Uint8* src, size_t le
 #undef PAN_STREAM_PTR
 }
 
-PRIVATE STATIC bool  AudioManager::HandleFading(AudioChannel* audio) {
+bool  AudioManager::HandleFading(AudioChannel* audio) {
     if (audio->Fading == MusicFade_Out) {
         audio->FadeTimer -= (double)DeviceFormat.samples / DeviceFormat.freq;
         if (audio->FadeTimer < 0.0) {
@@ -599,7 +560,7 @@ PRIVATE STATIC bool  AudioManager::HandleFading(AudioChannel* audio) {
     }
     return false;
 }
-PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, float volume) {
+bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, float volume) {
     if (AudioManager::HandleFading(audio))
         return true;
 
@@ -692,7 +653,7 @@ PUBLIC STATIC bool   AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stre
     return false;
 }
 
-PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
+void   AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
     memset(stream, 0x00, len);
 
     if (AudioManager::AudioQueueSize >= (size_t)len) {
@@ -749,7 +710,7 @@ PUBLIC STATIC void   AudioManager::AudioCallback(void* data, Uint8* stream, int 
     }
 }
 
-PUBLIC STATIC void   AudioManager::Dispose() {
+void   AudioManager::Dispose() {
     Memory::Free(SoundArray);
     Memory::Free(AudioQueue);
     Memory::Free(MixBuffer);

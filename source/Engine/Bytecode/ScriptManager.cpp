@@ -1,40 +1,3 @@
-#if INTERFACE
-need_t ScriptEntity;
-
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/VMThread.h>
-#include <Engine/Bytecode/Types.h>
-#include <Engine/IO/Stream.h>
-#include <Engine/IO/MemoryStream.h>
-#include <Engine/IO/ResourceStream.h>
-#include <Engine/Types/Entity.h>
-
-#include <set>
-
-class ScriptManager {
-public:
-    static bool                        LoadAllClasses;
-
-    static HashMap<VMValue>*           Globals;
-    static HashMap<VMValue>*           Constants;
-
-    static std::set<Obj*>              FreedGlobals;
-
-    static VMThread                    Threads[8];
-    static Uint32                      ThreadCount;
-
-    static vector<ObjModule*>          ModuleList;
-
-    static HashMap<BytecodeContainer>* Sources;
-    static HashMap<ObjClass*>*         Classes;
-    static HashMap<char*>*             Tokens;
-    static vector<ObjNamespace*>       AllNamespaces;
-    static vector<ObjClass*>           ClassImplList;
-
-    static SDL_mutex*                  GlobalLock;
-};
-#endif
-
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/GarbageCollector.h>
@@ -79,7 +42,7 @@ static Uint32 VMBranchLimit = 0;
 
 // #define DEBUG_STRESS_GC
 
-PUBLIC STATIC void    ScriptManager::RequestGarbageCollection() {
+void    ScriptManager::RequestGarbageCollection() {
 #ifndef DEBUG_STRESS_GC
     if (GarbageCollector::GarbageSize > GarbageCollector::NextGC)
 #endif
@@ -92,7 +55,7 @@ PUBLIC STATIC void    ScriptManager::RequestGarbageCollection() {
         Log::Print(Log::LOG_INFO, "%04X: Freed garbage from %u to %u (%d), next GC at %d", Scene::Frame, (Uint32)startSize, (Uint32)GarbageCollector::GarbageSize, GarbageCollector::GarbageSize - startSize, GarbageCollector::NextGC);
     }
 }
-PUBLIC STATIC void    ScriptManager::ForceGarbageCollection() {
+void    ScriptManager::ForceGarbageCollection() {
     if (ScriptManager::Lock()) {
         if (ScriptManager::ThreadCount > 1) {
             ScriptManager::Unlock();
@@ -105,12 +68,12 @@ PUBLIC STATIC void    ScriptManager::ForceGarbageCollection() {
     }
 }
 
-PUBLIC STATIC void    ScriptManager::ResetStack() {
+void    ScriptManager::ResetStack() {
     Threads[0].ResetStack();
 }
 
 // #region Life Cycle
-PUBLIC STATIC void    ScriptManager::Init() {
+void    ScriptManager::Init() {
     if (Globals == NULL)
         Globals = new HashMap<VMValue>(NULL, 8);
     if (Constants == NULL)
@@ -153,7 +116,7 @@ PUBLIC STATIC void    ScriptManager::Init() {
     ThreadCount = 1;
 }
 #ifdef VM_DEBUG
-PRIVATE STATIC Uint32 ScriptManager::GetBranchLimit() {
+Uint32 ScriptManager::GetBranchLimit() {
     int branchLimit = 0;
 
     if (Application::Settings->GetInteger("dev", "branchLimit", &branchLimit) == true) {
@@ -172,12 +135,12 @@ PRIVATE STATIC Uint32 ScriptManager::GetBranchLimit() {
     return (Uint32)branchLimit;
 }
 #endif
-PUBLIC STATIC void    ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
+void    ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
     globals->ForAll(FreeGlobalValue);
     globals->Clear();
     delete globals;
 }
-PUBLIC STATIC void    ScriptManager::Dispose() {
+void    ScriptManager::Dispose() {
     // NOTE: Remove GC-able values from these tables so they may be cleaned up.
     if (Globals)
         Globals->ForAll(RemoveNonGlobalableValue);
@@ -233,7 +196,7 @@ PUBLIC STATIC void    ScriptManager::Dispose() {
 
     SDL_DestroyMutex(GlobalLock);
 }
-PRIVATE STATIC void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
+void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_CLASS:
@@ -250,7 +213,7 @@ PRIVATE STATIC void    ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMVa
         }
     }
 }
-PRIVATE STATIC void    ScriptManager::FreeNativeValue(Uint32 hash, VMValue value) {
+void    ScriptManager::FreeNativeValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         switch (OBJECT_TYPE(value)) {
             case OBJ_NATIVE:
@@ -262,7 +225,7 @@ PRIVATE STATIC void    ScriptManager::FreeNativeValue(Uint32 hash, VMValue value
         }
     }
 }
-PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
+void    ScriptManager::FreeFunction(ObjFunction* function) {
     /*
     printf("OBJ_FUNCTION: %p (%s)\n", function,
         function->Name ?
@@ -281,7 +244,7 @@ PRIVATE STATIC void    ScriptManager::FreeFunction(ObjFunction* function) {
 
     FREE_OBJ(function, ObjFunction);
 }
-PRIVATE STATIC void    ScriptManager::FreeModule(ObjModule* module) {
+void    ScriptManager::FreeModule(ObjModule* module) {
     if (module->SourceFilename != NULL)
         FreeValue(OBJECT_VAL(module->SourceFilename));
 
@@ -296,7 +259,7 @@ PRIVATE STATIC void    ScriptManager::FreeModule(ObjModule* module) {
 
     FREE_OBJ(module, ObjModule);
 }
-PRIVATE STATIC void    ScriptManager::FreeClass(ObjClass* klass) {
+void    ScriptManager::FreeClass(ObjClass* klass) {
     // Subfunctions are already freed as a byproduct of the ModuleList,
     // so just do natives.
     klass->Methods->ForAll(FreeNativeValue);
@@ -311,7 +274,7 @@ PRIVATE STATIC void    ScriptManager::FreeClass(ObjClass* klass) {
 
     FREE_OBJ(klass, ObjClass);
 }
-PRIVATE STATIC void    ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
+void    ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
     // An enumeration does not own its values, so it's not allowed
     // to free them.
     delete enumeration->Fields;
@@ -321,7 +284,7 @@ PRIVATE STATIC void    ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
 
     FREE_OBJ(enumeration, ObjEnum);
 }
-PRIVATE STATIC void    ScriptManager::FreeNamespace(ObjNamespace* ns) {
+void    ScriptManager::FreeNamespace(ObjNamespace* ns) {
     // A namespace does not own its values, so it's not allowed
     // to free them.
     delete ns->Fields;
@@ -331,14 +294,14 @@ PRIVATE STATIC void    ScriptManager::FreeNamespace(ObjNamespace* ns) {
 
     FREE_OBJ(ns, ObjNamespace);
 }
-PUBLIC STATIC void    ScriptManager::FreeString(ObjString* string) {
+void    ScriptManager::FreeString(ObjString* string) {
     if (string->Chars != NULL)
         Memory::Free(string->Chars);
     string->Chars = NULL;
 
     FREE_OBJ(string, ObjString);
 }
-PUBLIC STATIC void    ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value) {
+void    ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value) {
     if (IS_OBJECT(value)) {
         Obj* object = AS_OBJECT(value);
         if (FreedGlobals.find(object) != FreedGlobals.end())
@@ -380,7 +343,7 @@ PUBLIC STATIC void    ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value)
         }
     }
 }
-PRIVATE STATIC void   ScriptManager::FreeModules() {
+void   ScriptManager::FreeModules() {
     Log::Print(Log::LOG_VERBOSE, "Freeing %d modules...", ModuleList.size());
     for (size_t i = 0; i < ModuleList.size(); i++) {
         FreeModule(ModuleList[i]);
@@ -391,7 +354,7 @@ PRIVATE STATIC void   ScriptManager::FreeModules() {
 // #endregion
 
 // #region ValueFuncs
-PUBLIC STATIC VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPrint) {
+VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPrint) {
     if (IS_STRING(v))
         return v;
 
@@ -405,10 +368,10 @@ PUBLIC STATIC VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPri
     free(buffer);
     return v;
 }
-PUBLIC STATIC VMValue ScriptManager::CastValueAsString(VMValue v) {
+VMValue ScriptManager::CastValueAsString(VMValue v) {
     return CastValueAsString(v, false);
 }
-PUBLIC STATIC VMValue ScriptManager::CastValueAsInteger(VMValue v) {
+VMValue ScriptManager::CastValueAsInteger(VMValue v) {
     float a;
     switch (v.Type) {
         case VAL_DECIMAL:
@@ -425,7 +388,7 @@ PUBLIC STATIC VMValue ScriptManager::CastValueAsInteger(VMValue v) {
     }
     return NULL_VAL;
 }
-PUBLIC STATIC VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
+VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
     int a;
     switch (v.Type) {
         case VAL_DECIMAL:
@@ -442,7 +405,7 @@ PUBLIC STATIC VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
     }
     return NULL_VAL;
 }
-PUBLIC STATIC VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
+VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
     ObjString* a = AS_STRING(va);
     ObjString* b = AS_STRING(vb);
 
@@ -455,7 +418,7 @@ PUBLIC STATIC VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
     return OBJECT_VAL(result);
 }
 
-PUBLIC STATIC bool    ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
+bool    ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
     if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) ||
         (a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
         float a_d = AS_DECIMAL(CastValueAsDecimal(a));
@@ -477,7 +440,7 @@ PUBLIC STATIC bool    ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
 
     return ScriptManager::ValuesEqual(a, b);
 }
-PUBLIC STATIC bool    ScriptManager::ValuesEqual(VMValue a, VMValue b) {
+bool    ScriptManager::ValuesEqual(VMValue a, VMValue b) {
     if (a.Type == VAL_LINKED_INTEGER) goto SKIP_CHECK;
     if (a.Type == VAL_LINKED_DECIMAL) goto SKIP_CHECK;
     if (b.Type == VAL_LINKED_INTEGER) goto SKIP_CHECK;
@@ -500,7 +463,7 @@ PUBLIC STATIC bool    ScriptManager::ValuesEqual(VMValue a, VMValue b) {
     }
     return false;
 }
-PUBLIC STATIC bool    ScriptManager::ValueFalsey(VMValue a) {
+bool    ScriptManager::ValueFalsey(VMValue a) {
     if (a.Type == VAL_NULL) return true;
 
     switch (a.Type) {
@@ -513,7 +476,7 @@ PUBLIC STATIC bool    ScriptManager::ValueFalsey(VMValue a) {
     return false;
 }
 
-PUBLIC STATIC VMValue ScriptManager::DelinkValue(VMValue val) {
+VMValue ScriptManager::DelinkValue(VMValue val) {
     if (IS_LINKED_DECIMAL(val))
         return DECIMAL_VAL(AS_DECIMAL(val));
     if (IS_LINKED_INTEGER(val))
@@ -522,7 +485,7 @@ PUBLIC STATIC VMValue ScriptManager::DelinkValue(VMValue val) {
     return val;
 }
 
-PUBLIC STATIC bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
+bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
     VMValue result = ScriptManager::CastValueAsInteger(value);
     if (IS_NULL(result)) {
         // Conversion failed
@@ -532,7 +495,7 @@ PUBLIC STATIC bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 thr
     value = result;
     return true;
 }
-PUBLIC STATIC bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
+bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
     VMValue result = ScriptManager::CastValueAsDecimal(value);
     if (IS_NULL(result)) {
         // Conversion failed
@@ -543,7 +506,7 @@ PUBLIC STATIC bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 thr
     return true;
 }
 
-PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
+void    ScriptManager::FreeValue(VMValue value) {
     if (IS_OBJECT(value)) {
         Obj* objectPointer = AS_OBJECT(value);
         switch (OBJECT_TYPE(value)) {
@@ -611,14 +574,18 @@ PUBLIC STATIC void    ScriptManager::FreeValue(VMValue value) {
 // #endregion
 
 // #region GlobalFuncs
-PUBLIC STATIC bool    ScriptManager::Lock() {
-    return (SDL_LockMutex(GlobalLock) == 0);
+bool    ScriptManager::Lock() {
+    if (ScriptManager::ThreadCount == 1)
+        return true;
+
+    return SDL_LockMutex(GlobalLock) == 0;
 }
-PUBLIC STATIC void    ScriptManager::Unlock() {
-    SDL_UnlockMutex(GlobalLock);
+void    ScriptManager::Unlock() {
+    if (ScriptManager::ThreadCount > 1)
+        SDL_UnlockMutex(GlobalLock);
 }
 
-PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash) {
+void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash) {
     VMValue methodValue = OBJECT_VAL(function);
 
     ObjClass* klass = AS_CLASS(thread->Peek(0));
@@ -631,7 +598,7 @@ PUBLIC STATIC void    ScriptManager::DefineMethod(VMThread* thread, ObjFunction*
 
     thread->Pop();
 }
-PUBLIC STATIC void    ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
+void    ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
     if (function == NULL) return;
     if (klass == NULL) return;
     if (name == NULL) return;
@@ -639,7 +606,7 @@ PUBLIC STATIC void    ScriptManager::DefineNative(ObjClass* klass, const char* n
     if (!klass->Methods->Exists(name))
         klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
 }
-PUBLIC STATIC void    ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
+void    ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
     if (name == NULL) return;
 
     if (klass == NULL) {
@@ -649,7 +616,7 @@ PUBLIC STATIC void    ScriptManager::GlobalLinkInteger(ObjClass* klass, const ch
         klass->Methods->Put(name, INTEGER_LINK_VAL(value));
     }
 }
-PUBLIC STATIC void    ScriptManager::GlobalLinkDecimal(ObjClass* klass, const char* name, float* value) {
+void    ScriptManager::GlobalLinkDecimal(ObjClass* klass, const char* name, float* value) {
     if (name == NULL) return;
 
     if (klass == NULL) {
@@ -659,21 +626,21 @@ PUBLIC STATIC void    ScriptManager::GlobalLinkDecimal(ObjClass* klass, const ch
         klass->Methods->Put(name, DECIMAL_LINK_VAL(value));
     }
 }
-PUBLIC STATIC void    ScriptManager::GlobalConstInteger(ObjClass* klass, const char* name, int value) {
+void    ScriptManager::GlobalConstInteger(ObjClass* klass, const char* name, int value) {
     if (name == NULL) return;
     if (klass == NULL)
         Constants->Put(name, INTEGER_VAL(value));
     else
         klass->Methods->Put(name, INTEGER_VAL(value));
 }
-PUBLIC STATIC void    ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float value) {
+void    ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float value) {
     if (name == NULL) return;
     if (klass == NULL)
         Constants->Put(name, DECIMAL_VAL(value));
     else
         klass->Methods->Put(name, DECIMAL_VAL(value));
 }
-PUBLIC STATIC ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
+ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
     if (!klass->Parent && klass->ParentHash) {
         VMValue parent;
         if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) && IS_CLASS(parent))
@@ -681,7 +648,7 @@ PUBLIC STATIC ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
     }
     return klass->Parent;
 }
-PUBLIC STATIC VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
+VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
     VMValue method;
     if (klass->Methods->GetIfExists(hash, &method)) {
         return method;
@@ -694,10 +661,10 @@ PUBLIC STATIC VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash
     return NULL_VAL;
 }
 
-PUBLIC STATIC void    ScriptManager::LinkStandardLibrary() {
+void    ScriptManager::LinkStandardLibrary() {
     StandardLibrary::Link();
 }
-PUBLIC STATIC void    ScriptManager::LinkExtensions() {
+void    ScriptManager::LinkExtensions() {
 
 }
 // #endregion
@@ -713,7 +680,7 @@ PUBLIC STATIC void    ScriptManager::LinkExtensions() {
 #endif
 
 // #region ObjectFuncs
-PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
     Bytecode* bytecode = new Bytecode();
     if (!bytecode->Read(bytecodeContainer, Tokens)) {
         delete bytecode;
@@ -746,7 +713,7 @@ PUBLIC STATIC bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeConta
 
     return true;
 }
-PUBLIC STATIC bool    ScriptManager::CallFunction(char* functionName) {
+bool    ScriptManager::CallFunction(char* functionName) {
     if (!Globals->Exists(functionName))
         return false;
 
@@ -758,7 +725,7 @@ PUBLIC STATIC bool    ScriptManager::CallFunction(char* functionName) {
     Threads[0].RunEntityFunction(function, 0);
     return true;
 }
-PUBLIC STATIC Entity* ScriptManager::SpawnObject(const char* objectName) {
+Entity* ScriptManager::SpawnObject(const char* objectName) {
     ObjClass* klass = GetObjectClass(objectName);
     if (!klass) {
         Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
@@ -772,14 +739,14 @@ PUBLIC STATIC Entity* ScriptManager::SpawnObject(const char* objectName) {
 
     return object;
 }
-PUBLIC STATIC Uint32 ScriptManager::MakeFilenameHash(char *filename) {
+Uint32 ScriptManager::MakeFilenameHash(char *filename) {
     size_t length = strlen(filename);
     char* dot = strrchr(filename, '.');
     if (dot)
         length = dot - filename;
     return CombinedHash::EncryptData((const void*)filename, length);
 }
-PUBLIC STATIC BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
+BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
     if (Sources->Exists(filenameHash))
         return Sources->Get(filenameHash);
 
@@ -809,20 +776,20 @@ PUBLIC STATIC BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint3
 
     return bytecode;
 }
-PUBLIC STATIC bool    ScriptManager::ClassExists(const char* objectName) {
+bool    ScriptManager::ClassExists(const char* objectName) {
     return SourceFileMap::ClassMap->Exists(objectName);
 }
-PUBLIC STATIC bool    ScriptManager::LoadScript(char* filename) {
+bool    ScriptManager::LoadScript(char* filename) {
     if (!filename || !*filename)
         return false;
 
     Uint32 hash = MakeFilenameHash(filename);
     return LoadScript(hash);
 }
-PUBLIC STATIC bool    ScriptManager::LoadScript(const char* filename) {
+bool    ScriptManager::LoadScript(const char* filename) {
     return LoadScript((char*)filename);
 }
-PUBLIC STATIC bool    ScriptManager::LoadScript(Uint32 hash) {
+bool    ScriptManager::LoadScript(Uint32 hash) {
     if (!Sources->Exists(hash)) {
         BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(hash);
         if (!bytecode.Data)
@@ -833,7 +800,7 @@ PUBLIC STATIC bool    ScriptManager::LoadScript(Uint32 hash) {
 
     return true;
 }
-PUBLIC STATIC bool    ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
+bool    ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
     if (!objectName || !*objectName)
         return false;
 
@@ -882,7 +849,7 @@ PUBLIC STATIC bool    ScriptManager::LoadObjectClass(const char* objectName, boo
 
     return true;
 }
-PUBLIC STATIC void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
+void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
 #define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, ScriptEntity::VM_##name)
     DEF_NATIVE(InView);
     DEF_NATIVE(Animate);
@@ -912,7 +879,7 @@ PUBLIC STATIC void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
     DEF_NATIVE(StopAllSounds);
 #undef DEF_NATIVE
 }
-PUBLIC STATIC ObjClass* ScriptManager::GetObjectClass(const char* className) {
+ObjClass* ScriptManager::GetObjectClass(const char* className) {
     VMValue value = Globals->Get(className);
 
     if (IS_CLASS(value))
@@ -920,10 +887,10 @@ PUBLIC STATIC ObjClass* ScriptManager::GetObjectClass(const char* className) {
 
     return nullptr;
 }
-PUBLIC STATIC Entity* ScriptManager::ObjectSpawnFunction(ObjectList* list) {
+Entity* ScriptManager::ObjectSpawnFunction(ObjectList* list) {
     return ScriptManager::SpawnObject(list->ObjectName);
 }
-PUBLIC STATIC void    ScriptManager::LoadClasses() {
+void    ScriptManager::LoadClasses() {
     SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
         for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
             Uint32 filenameHash = (*filenameHashList)[fn];

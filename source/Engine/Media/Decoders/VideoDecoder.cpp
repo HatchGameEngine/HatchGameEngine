@@ -1,19 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Media/Decoder.h>
-#include <Engine/Media/Includes/SWScale.h>
-#include <Engine/Rendering/Texture.h>
-
-class VideoDecoder : public Decoder {
-public:
-    SwsContext* SWS;
-    AVFrame* ScratchFrame;
-
-    int Width;
-    int Height;
-};
-#endif
-
 #include <Engine/Media/Decoders/VideoDecoder.h>
 
 #include <Engine/Graphics.h>
@@ -48,7 +32,7 @@ struct VideoPacket {
 };
 
 // Lifecycle functions
-PUBLIC                       VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
+               VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
     if (stream_index < 0) {
         Log::Print(Log::LOG_ERROR, "stream_index < 0");
         return;
@@ -110,7 +94,7 @@ PUBLIC                       VideoDecoder::VideoDecoder(MediaSource* src, int st
     // exit_0:
     return;
 }
-PUBLIC        void*          VideoDecoder::CreateVideoPacket(AVFrame* frame, double pts) {
+void*          VideoDecoder::CreateVideoPacket(AVFrame* frame, double pts) {
     VideoPacket* packet = (VideoPacket*)calloc(1, sizeof(VideoPacket));
     if (!packet) {
         Log::Print(Log::LOG_ERROR, "Something went horribly wrong. (Ran out of memory at VideoDecoder::CreateVideoPacket \"(VideoPacket*)calloc\")");
@@ -120,7 +104,7 @@ PUBLIC        void*          VideoDecoder::CreateVideoPacket(AVFrame* frame, dou
     packet->pts = pts;
     return packet;
 }
-PUBLIC STATIC void           VideoDecoder::FreeVideoPacket(void* p) {
+void           VideoDecoder::FreeVideoPacket(void* p) {
     VideoPacket* packet = (VideoPacket*)p;
     av_freep(&packet->frame->data[0]);
     av_frame_free(&packet->frame);
@@ -128,7 +112,7 @@ PUBLIC STATIC void           VideoDecoder::FreeVideoPacket(void* p) {
 }
 
 // Unique format info functions
-PUBLIC        AVPixelFormat  VideoDecoder::FindAVPixelFormat(Uint32 format) {
+AVPixelFormat  VideoDecoder::FindAVPixelFormat(Uint32 format) {
     switch (format) {
         case SDL_PIXELFORMAT_YV12:   return AV_PIX_FMT_YUV420P;
         case SDL_PIXELFORMAT_YUY2:   return AV_PIX_FMT_YUYV422;
@@ -146,7 +130,7 @@ PUBLIC        AVPixelFormat  VideoDecoder::FindAVPixelFormat(Uint32 format) {
         default:                     return AV_PIX_FMT_NONE;
     }
 }
-PUBLIC        int            VideoDecoder::FindSDLPixelFormat(AVPixelFormat fmt) {
+int            VideoDecoder::FindSDLPixelFormat(AVPixelFormat fmt) {
     switch (fmt) {
         case AV_PIX_FMT_YUV420P:
             return SDL_PIXELFORMAT_YV12;
@@ -164,7 +148,7 @@ PUBLIC        int            VideoDecoder::FindSDLPixelFormat(AVPixelFormat fmt)
 }
 
 // Common format info functions
-PUBLIC        int            VideoDecoder::GetOutputFormat(OutputFormat* output) {
+int            VideoDecoder::GetOutputFormat(OutputFormat* output) {
     output->Format = Format;
     output->Width = Width;
     output->Height = Height;
@@ -172,7 +156,7 @@ PUBLIC        int            VideoDecoder::GetOutputFormat(OutputFormat* output)
 }
 
 // Unique decoding functions
-PUBLIC STATIC void           VideoDecoder::ReadVideo(void* ptr) {
+void           VideoDecoder::ReadVideo(void* ptr) {
     #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 101)
     VideoDecoder* self = (VideoDecoder*)ptr;
     AVFrame* out_frame = NULL;
@@ -213,7 +197,7 @@ PUBLIC STATIC void           VideoDecoder::ReadVideo(void* ptr) {
     }
     #endif
 }
-PUBLIC STATIC int            VideoDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
+int            VideoDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
     if (in_packet == NULL) {
         return 0;
     }
@@ -283,7 +267,7 @@ PUBLIC STATIC int            VideoDecoder::DecodeFunction(void* ptr, AVPacket* i
     #endif
     return 0;
 }
-PUBLIC STATIC void           VideoDecoder::CloseFunction(void* ptr) {
+void           VideoDecoder::CloseFunction(void* ptr) {
     VideoDecoder* self = (VideoDecoder*)ptr;
     if (self->ScratchFrame != NULL) {
         av_frame_free(&self->ScratchFrame);
@@ -294,14 +278,14 @@ PUBLIC STATIC void           VideoDecoder::CloseFunction(void* ptr) {
 }
 
 // Data functions
-PUBLIC        double         VideoDecoder::GetPTS() {
+double         VideoDecoder::GetPTS() {
     VideoPacket* packet = (VideoPacket*)PeekOutput();
     if (packet == NULL) {
         return -1.0;
     }
     return packet->pts;
 }
-PUBLIC        int            VideoDecoder::GetVideoDecoderData(Texture* texture) {
+int            VideoDecoder::GetVideoDecoderData(Texture* texture) {
     double sync_ts = 0.0;
     Uint32 limit_rounds = 0;
     VideoPacket* packet = NULL;

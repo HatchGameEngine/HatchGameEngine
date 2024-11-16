@@ -1,25 +1,6 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/Material.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Rendering/3D.h>
-
-class FaceInfo {
-public:
-    Uint32       DrawMode;
-    Uint32       NumVertices;
-    Uint32       VerticesStartIndex;
-    bool         UseMaterial;
-    FaceMaterial MaterialInfo;
-    BlendState   Blend;
-    Uint8        CullMode;
-    int          Depth;
-};
-#endif
-
 #include <Engine/Rendering/FaceInfo.h>
 
-PUBLIC void FaceInfo::SetMaterial(Material* material) {
+void FaceInfo::SetMaterial(Material* material) {
     if (!material) {
         UseMaterial = false;
         return;
@@ -39,7 +20,7 @@ PUBLIC void FaceInfo::SetMaterial(Material* material) {
     }
 }
 
-PUBLIC void FaceInfo::SetMaterial(Texture* texture) {
+void FaceInfo::SetMaterial(Texture* texture) {
     if (!texture) {
         UseMaterial = false;
         return;
@@ -55,6 +36,6 @@ PUBLIC void FaceInfo::SetMaterial(Texture* texture) {
     }
 }
 
-PUBLIC void FaceInfo::SetBlendState(BlendState blendState) {
+void FaceInfo::SetBlendState(BlendState blendState) {
     Blend = blendState;
 }

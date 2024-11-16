@@ -1,13 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/PrintBuffer.h>
-
-class Values {
-public:
-};
-#endif
-
 #include <Engine/Bytecode/Values.h>
 
 #include <Engine/Diagnostics/Log.h>
@@ -15,16 +5,16 @@ public:
 #include <Engine/Includes/PrintBuffer.h>
 
 // NOTE: This is for printing, not string conversion
-PUBLIC STATIC void Values::PrintValue(VMValue value) {
+void Values::PrintValue(VMValue value) {
     Values::PrintValue(NULL, value);
 }
-PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value) {
+void Values::PrintValue(PrintBuffer* buffer, VMValue value) {
     Values::PrintValue(buffer, value, 0, false);
 }
-PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, bool prettyPrint) {
+void Values::PrintValue(PrintBuffer* buffer, VMValue value, bool prettyPrint) {
     Values::PrintValue(buffer, value, 0, prettyPrint);
 }
-PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
+void Values::PrintValue(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
     switch (value.Type) {
         case VAL_NULL:
             buffer_printf(buffer, "null");
@@ -44,7 +34,7 @@ PUBLIC STATIC void Values::PrintValue(PrintBuffer* buffer, VMValue value, int in
             buffer_printf(buffer, "<unknown value type 0x%02X>", value.Type);
     }
 }
-PUBLIC STATIC void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
+void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
     switch (OBJECT_TYPE(value)) {
         case OBJ_CLASS:
             buffer_printf(buffer, "<class %s>", AS_CLASS(value)->Name ? AS_CLASS(value)->Name->Chars : "(null)");

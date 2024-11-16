@@ -1,15 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Rendering/Material.h>
-
-class Scanline {
-public:
-
-};
-#endif
-
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/Software/Scanline.h>
 #include <Engine/Rendering/Software/Contour.h>
@@ -38,7 +26,7 @@ public:
         y2 = (int)Graphics::CurrentRenderTarget->Height; \
     }
 
-PUBLIC STATIC void Scanline::Prepare(int y1, int y2) {
+void Scanline::Prepare(int y1, int y2) {
     int scanLineCount = y2 - y1;
     Contour* contourPtr = &SoftwareRenderer::ContourBuffer[y1];
     while (scanLineCount--) {
@@ -49,7 +37,7 @@ PUBLIC STATIC void Scanline::Prepare(int y1, int y2) {
 }
 
 // Simple
-PUBLIC STATIC void Scanline::Process(int x1, int y1, int x2, int y2) {
+void Scanline::Process(int x1, int y1, int x2, int y2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -107,7 +95,7 @@ PUBLIC STATIC void Scanline::Process(int x1, int y1, int x2, int y2) {
 }
 
 // Blended
-PUBLIC STATIC void Scanline::Process(int color1, int color2, int x1, int y1, int x2, int y2) {
+void Scanline::Process(int color1, int color2, int x1, int y1, int x2, int y2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -209,7 +197,7 @@ PUBLIC STATIC void Scanline::Process(int color1, int color2, int x1, int y1, int
 }
 
 // With depth
-PUBLIC STATIC void Scanline::ProcessDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -291,7 +279,7 @@ PUBLIC STATIC void Scanline::ProcessDepth(int x1, int y1, int z1, int x2, int y2
 }
 
 // With depth and blending
-PUBLIC STATIC void Scanline::ProcessDepth(int color1, int color2, int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessDepth(int color1, int color2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -408,7 +396,7 @@ PUBLIC STATIC void Scanline::ProcessDepth(int color1, int color2, int x1, int y1
 }
 
 // Textured affine
-PUBLIC STATIC void Scanline::ProcessUVAffine(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessUVAffine(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -516,7 +504,7 @@ PUBLIC STATIC void Scanline::ProcessUVAffine(Vector2 uv1, Vector2 uv2, int x1, i
 }
 
 // Textured affine with blending
-PUBLIC STATIC void Scanline::ProcessUVAffine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessUVAffine(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -662,7 +650,7 @@ PUBLIC STATIC void Scanline::ProcessUVAffine(int color1, int color2, Vector2 uv1
 }
 
 // Perspective correct
-PUBLIC STATIC void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;
@@ -776,7 +764,7 @@ PUBLIC STATIC void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1,
 }
 
 // Perspective correct with blending
-PUBLIC STATIC void Scanline::ProcessUV(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
+void Scanline::ProcessUV(int color1, int color2, Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
     int xStart = x1 / 0x10000;
     int xEnd   = x2 / 0x10000;
     int yStart = y1 / 0x10000;

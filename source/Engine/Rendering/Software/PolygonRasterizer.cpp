@@ -1,26 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/3D.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Rendering/Material.h>
-
-class PolygonRasterizer {
-public:
-    static bool    DepthTest;
-    static size_t  DepthBufferSize;
-    static Uint32* DepthBuffer;
-
-    static bool    UseDepthBuffer;
-
-    static bool    UseFog;
-    static float   FogStart;
-    static float   FogEnd;
-    static float   FogDensity;
-    static int     FogColor;
-    static Uint16  FogTable[0x100 + 1];
-};
-#endif
-
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/Software/PolygonRasterizer.h>
 #include <Engine/Rendering/Software/SoftwareEnums.h>
@@ -210,7 +187,7 @@ static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) 
         return
 
 // Draws a polygon
-PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -277,7 +254,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasic(Vector2* positions, Uint32 color
     }
 }
 // Draws a blended polygon
-PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* colors, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -345,7 +322,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBasicBlend(Vector2* positions, int* co
     }
 }
 // Draws a polygon with lighting
-PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -443,7 +420,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawShaded(Vector3* positions, Uint32 colo
     #undef DRAW_POLYGONSHADED_FOG
 }
 // Draws a blended polygon with lighting
-PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* colors, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -536,7 +513,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendShaded(Vector3* positions, int* c
     #undef DRAW_POLYGONBLENDSHADED
 }
 // Draws an affine texture mapped polygon
-PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -672,7 +649,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawAffine(Texture* texture, Vector3* posi
     #undef DRAW_POLYGONAFFINE
 }
 // Draws an affine texture mapped polygon with blending
-PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -890,7 +867,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendAffine(Texture* texture, Vector3*
         DRAW_PERSP_STEP(); \
     }
 #endif
-PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
+void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3* positions, Vector2* uvs, Uint32 color, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -1012,7 +989,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawPerspective(Texture* texture, Vector3*
     #undef DRAW_POLYGONPERSP
 }
 // Draws a perspective-correct texture mapped polygon with blending
-PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vector3* positions, Vector2* uvs, int* colors, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -1143,7 +1120,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendPerspective(Texture* texture, Vec
     #undef DRAW_POLYGONBLENDPERSP
 }
 // Draws a polygon with depth testing
-PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
+void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -1237,7 +1214,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawDepth(Vector3* positions, Uint32 color
     #undef DRAW_POLYGONDEPTH
 }
 // Draws a blended polygon with depth testing
-PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
+void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* colors, int count, BlendState blendState) {
     if (!Graphics::CurrentRenderTarget)
         return;
 
@@ -1340,7 +1317,7 @@ PUBLIC STATIC void PolygonRasterizer::DrawBlendDepth(Vector3* positions, int* co
     #undef DRAW_POLYGONBLENDDEPTH
 }
 
-PUBLIC STATIC void     PolygonRasterizer::SetDepthTest(bool enabled) {
+void     PolygonRasterizer::SetDepthTest(bool enabled) {
     DepthTest = enabled;
     if (!DepthTest)
         return;
@@ -1353,19 +1330,19 @@ PUBLIC STATIC void     PolygonRasterizer::SetDepthTest(bool enabled) {
 
     memset(DepthBuffer, 0xFF, dpSize * sizeof(*DepthBuffer));
 }
-PUBLIC STATIC void     PolygonRasterizer::FreeDepthBuffer(void) {
+void     PolygonRasterizer::FreeDepthBuffer(void) {
     Memory::Free(DepthBuffer);
     DepthBuffer = NULL;
 }
 
-PUBLIC STATIC void     PolygonRasterizer::SetUseDepthBuffer(bool enabled) {
+void     PolygonRasterizer::SetUseDepthBuffer(bool enabled) {
     UseDepthBuffer = enabled;
 }
 
-PUBLIC STATIC void     PolygonRasterizer::SetUseFog(bool enabled) {
+void     PolygonRasterizer::SetUseFog(bool enabled) {
     UseFog = enabled;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogEquation(FogEquation equation) {
+void     PolygonRasterizer::SetFogEquation(FogEquation equation) {
     switch (equation) {
     case FogEquation_Exp:
         FogEquationFunc = FogEquationFunc_Exp;
@@ -1375,16 +1352,16 @@ PUBLIC STATIC void     PolygonRasterizer::SetFogEquation(FogEquation equation) {
         break;
     }
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogStart(float start) {
+void     PolygonRasterizer::SetFogStart(float start) {
     FogStart = start;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogEnd(float end) {
+void     PolygonRasterizer::SetFogEnd(float end) {
     FogEnd = end;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogDensity(float density) {
+void     PolygonRasterizer::SetFogDensity(float density) {
     FogDensity = density;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogColor(float r, float g, float b) {
+void     PolygonRasterizer::SetFogColor(float r, float g, float b) {
     Uint8 colorR = (Uint32)(r * 0xFF);
     Uint8 colorG = (Uint32)(g * 0xFF);
     Uint8 colorB = (Uint32)(b * 0xFF);
@@ -1392,7 +1369,7 @@ PUBLIC STATIC void     PolygonRasterizer::SetFogColor(float r, float g, float b)
     Graphics::ConvertFromARGBtoNative(&result, 1);
     FogColor = result;
 }
-PUBLIC STATIC void     PolygonRasterizer::SetFogSmoothness(float smoothness) {
+void     PolygonRasterizer::SetFogSmoothness(float smoothness) {
     float value = Math::Clamp(1.0f - smoothness, 0.0f, 1.0f);
     if (value <= 0.0) {
         for (size_t i = 0; i <= 0x100; i++)

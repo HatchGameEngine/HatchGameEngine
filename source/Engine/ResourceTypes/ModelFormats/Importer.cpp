@@ -1,14 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/Rendering/Material.h>
-#include <Engine/ResourceTypes/IModel.h>
-class ModelImporter {
-public:
-    static vector<int> MeshIDs;
-    static char*       ParentDirectory;
-};
-#endif
-
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
@@ -102,7 +91,7 @@ static AnimQuaternionKey GetQuatKey(struct aiQuatKey* quatKey) {
     return key;
 }
 
-PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
+Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
     size_t numFaces = amesh->mNumFaces;
     size_t numVertices = amesh->mNumVertices;
 
@@ -185,7 +174,7 @@ PRIVATE STATIC Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* ames
     return mesh;
 }
 
-PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
+Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
     Material* material = new Material();
 
     aiString matName;
@@ -242,7 +231,7 @@ PRIVATE STATIC Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMa
     return material;
 }
 
-PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode) {
+ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode) {
     ModelNode* node = new ModelNode;
 
     node->Name = GetString(anode->mName);
@@ -266,7 +255,7 @@ PRIVATE STATIC ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* par
     return node;
 }
 
-PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
+Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
     Skeleton* skeleton = new Skeleton;
 
     skeleton->NumBones = amesh->mNumBones;
@@ -311,7 +300,7 @@ PRIVATE STATIC Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, st
     return skeleton;
 }
 
-PRIVATE STATIC SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
+SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
     SkeletalAnim* anim = new SkeletalAnim;
     anim->Channels.resize(aanim->mNumChannels);
     anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
@@ -360,7 +349,7 @@ PRIVATE STATIC SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel, ModelA
     return anim;
 }
 
-PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
+bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
     if (!scene->mNumMeshes)
         return false;
 
@@ -482,7 +471,7 @@ PRIVATE STATIC bool ModelImporter::DoConversion(const struct aiScene* scene, IMo
 }
 #endif
 
-PUBLIC STATIC bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
+bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 #ifdef USING_ASSIMP
     size_t size = stream->Length();
     void* data = Memory::Malloc(size);

@@ -1,12 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Math/GeometryTypes.h>
-
-class Geometry {
-public:
-};
-#endif
-
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
 
@@ -15,7 +6,7 @@ public:
 #include <Libraries/Clipper2/clipper.h>
 #include <Libraries/poly2tri/poly2tri.h>
 
-PRIVATE STATIC bool Geometry::CheckEar(vector<FVector2>& input, unsigned count, unsigned prev, unsigned curr, unsigned next) {
+bool Geometry::CheckEar(vector<FVector2>& input, unsigned count, unsigned prev, unsigned curr, unsigned next) {
     FVector2& a = input[prev];
     FVector2& b = input[curr];
     FVector2& c = input[next];
@@ -46,7 +37,7 @@ PRIVATE STATIC bool Geometry::CheckEar(vector<FVector2>& input, unsigned count, 
     return true;
 }
 
-PRIVATE STATIC int Geometry::GetPointForTriangulation(int point, unsigned count) {
+int Geometry::GetPointForTriangulation(int point, unsigned count) {
     if (point < 0)
         return point + count;
     else if (point >= count)
@@ -69,7 +60,7 @@ static void FreeP2TPoints(std::vector<p2t::Point*>& points) {
         delete points[i];
 }
 
-PUBLIC STATIC vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input, vector<Polygon2D> holes) {
+vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input, vector<Polygon2D> holes) {
     vector<FVector2> points = input.Points;
 
     unsigned count = points.size();
@@ -151,7 +142,7 @@ static Clipper2Lib::FillRule GetFillRule(unsigned fillRule) {
     }
 }
 
-PUBLIC STATIC vector<Polygon2D>* Geometry::Intersect(unsigned clipType, unsigned fillRule, vector<Polygon2D> inputSubjects, vector<Polygon2D> inputClips) {
+vector<Polygon2D>* Geometry::Intersect(unsigned clipType, unsigned fillRule, vector<Polygon2D> inputSubjects, vector<Polygon2D> inputClips) {
     Clipper2Lib::PathsD subjects;
     Clipper2Lib::PathsD clips;
 

@@ -1,26 +1,10 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/TextFormats/INI/INIStructs.h>
-#include <Engine/IO/Stream.h>
-
-#include <vector>
-
-class INI {
-public:
-    char*               Filename = nullptr;
-    vector<INISection*> Sections;
-};
-#endif
-
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Utilities/StringUtils.h>
 #include <Engine/IO/SDLStream.h>
 #include <Engine/Application.h>
 
-#define INI_IMPLEMENTATION
-
-PUBLIC STATIC INI* INI::New(const char* filename) {
+INI* INI::New(const char* filename) {
     INI* ini = new INI;
 
     ini->SetFilename(filename);
@@ -28,7 +12,7 @@ PUBLIC STATIC INI* INI::New(const char* filename) {
 
     return ini;
 }
-PUBLIC STATIC INI* INI::Load(const char* filename) {
+INI* INI::Load(const char* filename) {
     INI* ini = INI::New(filename);
 
     SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
@@ -49,7 +33,7 @@ PUBLIC STATIC INI* INI::Load(const char* filename) {
 
     return ini;
 }
-PUBLIC bool INI::Reload() {
+bool INI::Reload() {
     SDLStream* stream = SDLStream::New(Filename, SDLStream::READ_ACCESS);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", Filename);
@@ -66,7 +50,7 @@ PUBLIC bool INI::Reload() {
 
     return true;
 }
-PUBLIC bool INI::Save(const char* filename) {
+bool INI::Save(const char* filename) {
     SDLStream* stream = SDLStream::New(filename, SDLStream::WRITE_ACCESS);
     if (!stream) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -82,15 +66,15 @@ PUBLIC bool INI::Save(const char* filename) {
     stream->Close();
     return true;
 }
-PUBLIC bool INI::Save() {
+bool INI::Save() {
     return Save(Filename);
 }
-PUBLIC void INI::SetFilename(const char* filename) {
+void INI::SetFilename(const char* filename) {
     Memory::Free(Filename);
     Filename = StringUtils::Duplicate(filename);
 }
 
-PUBLIC bool INI::Read(Stream* stream) {
+bool INI::Read(Stream* stream) {
     INISection* section = nullptr;
 
     size_t length = stream->Length();
@@ -180,7 +164,7 @@ PUBLIC bool INI::Read(Stream* stream) {
 
     return true;
 }
-PUBLIC bool INI::Write(Stream* stream) {
+bool INI::Write(Stream* stream) {
     for (INISection* section: Sections) {
         if (!section->Name && section->Properties.size() == 0)
             continue;
@@ -208,7 +192,7 @@ PUBLIC bool INI::Write(Stream* stream) {
     return true;
 }
 
-PUBLIC INISection* INI::FindSection(const char* name) {
+INISection* INI::FindSection(const char* name) {
     if (name == nullptr)
         return Sections[0];
 
@@ -220,7 +204,7 @@ PUBLIC INISection* INI::FindSection(const char* name) {
     return nullptr;
 }
 
-PUBLIC bool INI::GetString(const char* sectionName, const char* key, char* dest, size_t destSize) {
+bool INI::GetString(const char* sectionName, const char* key, char* dest, size_t destSize) {
     if (!dest || !destSize)
         return false;
 
@@ -235,7 +219,7 @@ PUBLIC bool INI::GetString(const char* sectionName, const char* key, char* dest,
     StringUtils::Copy(dest, property->Value, destSize);
     return true;
 }
-PUBLIC bool INI::GetInteger(const char* sectionName, const char* key, int* dest) {
+bool INI::GetInteger(const char* sectionName, const char* key, int* dest) {
     if (!dest)
         return false;
 
@@ -249,7 +233,7 @@ PUBLIC bool INI::GetInteger(const char* sectionName, const char* key, int* dest)
 
     return StringUtils::ToNumber(dest, property->Value);
 }
-PUBLIC bool INI::GetDecimal(const char* sectionName, const char* key, double* dest) {
+bool INI::GetDecimal(const char* sectionName, const char* key, double* dest) {
     if (!dest)
         return false;
 
@@ -263,7 +247,7 @@ PUBLIC bool INI::GetDecimal(const char* sectionName, const char* key, double* de
 
     return StringUtils::ToDecimal(dest, property->Value);
 }
-PUBLIC bool INI::GetBool(const char* sectionName, const char* key, bool* dest) {
+bool INI::GetBool(const char* sectionName, const char* key, bool* dest) {
     if (!dest)
         return false;
 
@@ -279,7 +263,7 @@ PUBLIC bool INI::GetBool(const char* sectionName, const char* key, bool* dest) {
     return true;
 }
 
-PUBLIC bool INI::SetString(const char* sectionName, const char* key, const char* value) {
+bool INI::SetString(const char* sectionName, const char* key, const char* value) {
     INISection* section = FindSection(sectionName);
     if (section == nullptr)
         section = AddSection(sectionName);
@@ -293,27 +277,27 @@ PUBLIC bool INI::SetString(const char* sectionName, const char* key, const char*
     property->SetValue(value);
     return true;
 }
-PUBLIC bool INI::SetInteger(const char* section, const char* key, int value) {
+bool INI::SetInteger(const char* section, const char* key, int value) {
     char toStr[21];
     snprintf(toStr, sizeof toStr, "%d", value);
     return SetString(section, key, toStr);
 }
-PUBLIC bool INI::SetDecimal(const char* section, const char* key, double value) {
+bool INI::SetDecimal(const char* section, const char* key, double value) {
     char toStr[512];
     snprintf(toStr, sizeof toStr, "%lf", value);
     return SetString(section, key, toStr);
 }
-PUBLIC bool INI::SetBool(const char* section, const char* key, bool value) {
+bool INI::SetBool(const char* section, const char* key, bool value) {
     const char* toStr = value ? "true" : "false";
     return SetString(section, key, toStr);
 }
 
-PUBLIC INISection* INI::AddSection(const char* name) {
+INISection* INI::AddSection(const char* name) {
     INISection* sec = new INISection(name);
     Sections.push_back(sec);
     return sec;
 }
-PUBLIC bool INI::RemoveSection(const char* sectionName) {
+bool INI::RemoveSection(const char* sectionName) {
     if (sectionName == nullptr) {
         Sections[0]->Properties.clear();
         return true;
@@ -330,14 +314,14 @@ PUBLIC bool INI::RemoveSection(const char* sectionName) {
 
     return false;
 }
-PUBLIC bool INI::SectionExists(const char* sectionName) {
+bool INI::SectionExists(const char* sectionName) {
     return FindSection(sectionName) != nullptr;
 }
-PUBLIC int INI::GetSectionCount() {
+int INI::GetSectionCount() {
     return Sections.size() - 1;
 }
 
-PUBLIC char* INI::GetProperty(const char* sectionName, const char* key) {
+char* INI::GetProperty(const char* sectionName, const char* key) {
     INISection* section = FindSection(sectionName);
     if (section == nullptr)
         return nullptr;
@@ -348,21 +332,21 @@ PUBLIC char* INI::GetProperty(const char* sectionName, const char* key) {
 
     return property->Value;
 }
-PUBLIC bool INI::PropertyExists(const char* sectionName, const char* key) {
+bool INI::PropertyExists(const char* sectionName, const char* key) {
     INISection* section = FindSection(sectionName);
     if (section == nullptr)
         return false;
 
     return section->FindProperty(key) != nullptr;
 }
-PUBLIC bool INI::RemoveProperty(const char* sectionName, const char* key) {
+bool INI::RemoveProperty(const char* sectionName, const char* key) {
     INISection* section = FindSection(sectionName);
     if (section == nullptr)
         return false;
 
     return section->RemoveProperty(key);
 }
-PUBLIC int INI::GetPropertyCount(const char* sectionName) {
+int INI::GetPropertyCount(const char* sectionName) {
     INISection* section = FindSection(sectionName);
     if (section == nullptr)
         return 0;
@@ -370,7 +354,7 @@ PUBLIC int INI::GetPropertyCount(const char* sectionName) {
     return section->Properties.size();
 }
 
-PUBLIC void INI::Dispose() {
+void INI::Dispose() {
     Memory::Free(Filename);
 
     for (size_t i = 0; i < Sections.size(); i++)

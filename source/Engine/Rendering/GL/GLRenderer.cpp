@@ -1,35 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/Rendering/GL/Includes.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/Math/Matrix4x4.h>
-#include <Engine/Rendering/GL/GLShader.h>
-#include <Engine/Rendering/GL/GLShaderBuilder.h>
-#include <Engine/Rendering/GL/GLShaderContainer.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Includes/HashMap.h>
-
-class GLRenderer {
-public:
-    static SDL_GLContext      Context;
-    static GLShader*          CurrentShader;
-
-    static GLShaderContainer* ShaderShape;
-    static GLShaderContainer* ShaderShape3D;
-    static GLShaderContainer* ShaderFogLinear;
-    static GLShaderContainer* ShaderFogExp;
-    static GLShaderContainer* ShaderYUV;
-
-    static GLint              DefaultFramebuffer;
-    static GLint              DefaultRenderbuffer;
-
-    static GLuint             BufferCircleFill;
-    static GLuint             BufferCircleStroke;
-    static GLuint             BufferSquareFill;
-};
-#endif
-
 #ifdef USING_OPENGL
 
 // #define HAVE_GL_PERFSTATS
@@ -912,7 +880,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 }
 
 // Initialization and disposal functions
-PUBLIC STATIC void     GLRenderer::Init() {
+void     GLRenderer::Init() {
     Graphics::SupportsBatching = true;
     Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ABGR8888;
 
@@ -1031,7 +999,7 @@ PUBLIC STATIC void     GLRenderer::Init() {
 
     glClearColor(0.0, 0.0, 0.0, 0.0); CHECK_GL();
 }
-PUBLIC STATIC Uint32   GLRenderer::GetWindowFlags() {
+Uint32   GLRenderer::GetWindowFlags() {
     #ifdef GL_SUPPORTS_MULTISAMPLING
     if (Graphics::MultisamplingEnabled) {
         SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1); CHECK_GL();
@@ -1041,7 +1009,7 @@ PUBLIC STATIC Uint32   GLRenderer::GetWindowFlags() {
 
     return SDL_WINDOW_OPENGL;
 }
-PUBLIC STATIC void     GLRenderer::SetVSync(bool enabled) {
+void     GLRenderer::SetVSync(bool enabled) {
     if (enabled) {
         if (SDL_GL_SetSwapInterval(-1) < 0) {
             CHECK_GL();
@@ -1058,7 +1026,7 @@ PUBLIC STATIC void     GLRenderer::SetVSync(bool enabled) {
     }
     Graphics::VsyncEnabled = enabled;
 }
-PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
+void     GLRenderer::SetGraphicsFunctions() {
     Graphics::PixelOffset = 0.0f;
 
     Graphics::Internal.Init = GLRenderer::Init;
@@ -1139,7 +1107,7 @@ PUBLIC STATIC void     GLRenderer::SetGraphicsFunctions() {
 
     Graphics::Internal.SetDepthTesting = GLRenderer::SetDepthTesting;
 }
-PUBLIC STATIC void     GLRenderer::Dispose() {
+void     GLRenderer::Dispose() {
     glDeleteBuffers(1, &BufferCircleFill); CHECK_GL();
     glDeleteBuffers(1, &BufferCircleStroke); CHECK_GL();
     glDeleteBuffers(1, &BufferSquareFill); CHECK_GL();
@@ -1154,7 +1122,7 @@ PUBLIC STATIC void     GLRenderer::Dispose() {
 }
 
 // Texture management functions
-PUBLIC STATIC Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = Texture::New(format, access, width, height);
     texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(GL_TextureData));
 
@@ -1277,10 +1245,10 @@ PUBLIC STATIC Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, U
 
     return texture;
 }
-PUBLIC STATIC int      GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
+int      GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
     return 0;
 }
-PUBLIC STATIC int      GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
+int      GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
     Uint32 inputPixelsX = 0;
     Uint32 inputPixelsY = 0;
     Uint32 inputPixelsW = texture->Width;
@@ -1311,7 +1279,7 @@ PUBLIC STATIC int      GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src
         textureData->PixelDataFormat, textureData->PixelDataType, pixels); CHECK_GL();
     return 0;
 }
-PUBLIC STATIC int      GLRenderer::UpdateTextureYUV(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV) {
+int      GLRenderer::UpdateTextureYUV(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV) {
     int inputPixelsX = 0;
     int inputPixelsY = 0;
     int inputPixelsW = texture->Width;
@@ -1348,10 +1316,10 @@ PUBLIC STATIC int      GLRenderer::UpdateTextureYUV(Texture* texture, SDL_Rect* 
         textureData->PixelDataFormat, textureData->PixelDataType, pixelsV); CHECK_GL();
     return 0;
 }
-PUBLIC STATIC void     GLRenderer::UnlockTexture(Texture* texture) {
+void     GLRenderer::UnlockTexture(Texture* texture) {
 
 }
-PUBLIC STATIC void     GLRenderer::DisposeTexture(Texture* texture) {
+void     GLRenderer::DisposeTexture(Texture* texture) {
     GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
     if (!textureData)
         return;
@@ -1376,7 +1344,7 @@ PUBLIC STATIC void     GLRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-PUBLIC STATIC void     GLRenderer::SetRenderTarget(Texture* texture) {
+void     GLRenderer::SetRenderTarget(Texture* texture) {
     if (texture == NULL) {
         glBindFramebuffer(GL_FRAMEBUFFER, DefaultFramebuffer); CHECK_GL();
 
@@ -1405,7 +1373,7 @@ PUBLIC STATIC void     GLRenderer::SetRenderTarget(Texture* texture) {
         CHECK_GL();
     }
 }
-PUBLIC STATIC void     GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+void     GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     if (Graphics::CurrentRenderTarget)
@@ -1423,10 +1391,10 @@ PUBLIC STATIC void     GLRenderer::ReadFramebuffer(void* pixels, int width, int 
 
     delete[] temp;
 }
-PUBLIC STATIC void     GLRenderer::UpdateWindowSize(int width, int height) {
+void     GLRenderer::UpdateWindowSize(int width, int height) {
     GLRenderer::UpdateViewport();
 }
-PUBLIC STATIC void     GLRenderer::UpdateViewport() {
+void     GLRenderer::UpdateViewport() {
     Viewport* vp = &Graphics::CurrentViewport;
     if (Graphics::CurrentRenderTarget) {
         glViewport(vp->X * RetinaScale, vp->Y * RetinaScale, vp->Width * RetinaScale, vp->Height * RetinaScale); CHECK_GL();
@@ -1440,7 +1408,7 @@ PUBLIC STATIC void     GLRenderer::UpdateViewport() {
     // GLRenderer::UpdateOrtho(vp->Width, vp->Height);
     GLRenderer::UpdateProjectionMatrix();
 }
-PUBLIC STATIC void     GLRenderer::UpdateClipRect() {
+void     GLRenderer::UpdateClipRect() {
     ClipArea clip = Graphics::CurrentClip;
     if (Graphics::CurrentClip.Enabled) {
         Viewport view = Graphics::CurrentViewport;
@@ -1465,7 +1433,7 @@ PUBLIC STATIC void     GLRenderer::UpdateClipRect() {
         glDisable(GL_SCISSOR_TEST); CHECK_GL();
     }
 }
-PUBLIC STATIC void     GLRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
+void     GLRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
     // if (Graphics::CurrentRenderTarget)
     //     Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, left, right, bottom, top, -500.0f, 500.0f);
     // else
@@ -1473,14 +1441,14 @@ PUBLIC STATIC void     GLRenderer::UpdateOrtho(float left, float top, float righ
 
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
-PUBLIC STATIC void     GLRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
+void     GLRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
     MakePerspectiveMatrix(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
     Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix, Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
-PUBLIC STATIC void     GLRenderer::UpdateProjectionMatrix() {
+void     GLRenderer::UpdateProjectionMatrix() {
 
 }
-PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     float f = 1.0f / tanf(fov / 2.0f);
     float delta = far - near;
 
@@ -1508,7 +1476,7 @@ PUBLIC STATIC void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float f
 }
 
 // Shader-related functions
-PUBLIC STATIC void     GLRenderer::UseShader(void* shader) {
+void     GLRenderer::UseShader(void* shader) {
     if (GLRenderer::CurrentShader != (GLShader*)shader) {
         GLRenderer::CurrentShader = (GLShader*)shader;
         GLRenderer::CurrentShader->Use();
@@ -1517,7 +1485,7 @@ PUBLIC STATIC void     GLRenderer::UseShader(void* shader) {
         glUniform1i(GLRenderer::CurrentShader->LocTexture, 0); CHECK_GL();
     }
 }
-PUBLIC STATIC void     GLRenderer::SetUniformF(int location, int count, float* values) {
+void     GLRenderer::SetUniformF(int location, int count, float* values) {
     switch (count) {
         case 1: glUniform1f(location, values[0]); CHECK_GL(); break;
         case 2: glUniform2f(location, values[0], values[1]); CHECK_GL(); break;
@@ -1525,10 +1493,10 @@ PUBLIC STATIC void     GLRenderer::SetUniformF(int location, int count, float* v
         case 4: glUniform4f(location, values[0], values[1], values[2], values[3]); CHECK_GL(); break;
     }
 }
-PUBLIC STATIC void     GLRenderer::SetUniformI(int location, int count, int* values) {
+void     GLRenderer::SetUniformI(int location, int count, int* values) {
     glUniform1iv(location, count, values); CHECK_GL();
 }
-PUBLIC STATIC void     GLRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
+void     GLRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
     GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
     glActiveTexture(GL_TEXTURE0 + slot); CHECK_GL();
     glUniform1i(uniform_index, slot); CHECK_GL();
@@ -1536,12 +1504,12 @@ PUBLIC STATIC void     GLRenderer::SetUniformTexture(Texture* texture, int unifo
 }
 
 // Palette-related functions
-PUBLIC STATIC void     GLRenderer::UpdateGlobalPalette() {
+void     GLRenderer::UpdateGlobalPalette() {
 
 }
 
 // These guys
-PUBLIC STATIC void     GLRenderer::Clear() {
+void     GLRenderer::Clear() {
     if (UseDepthTesting) {
         #ifdef GL_ES
         glClearDepthf(1.0f); CHECK_GL();
@@ -1554,34 +1522,34 @@ PUBLIC STATIC void     GLRenderer::Clear() {
         glClear(GL_COLOR_BUFFER_BIT); CHECK_GL();
     }
 }
-PUBLIC STATIC void     GLRenderer::Present() {
+void     GLRenderer::Present() {
 	SDL_GL_SwapWindow(Application::Window); CHECK_GL();
 }
 
 // Draw mode setting functions
-PUBLIC STATIC void     GLRenderer::SetBlendColor(float r, float g, float b, float a) {
+void     GLRenderer::SetBlendColor(float r, float g, float b, float a) {
 
 }
-PUBLIC STATIC void     GLRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+void     GLRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     glBlendFuncSeparate(
         GL_GetBlendFactorFromHatchEnum(srcC), GL_GetBlendFactorFromHatchEnum(dstC),
         GL_GetBlendFactorFromHatchEnum(srcA), GL_GetBlendFactorFromHatchEnum(dstA)); CHECK_GL();
 }
-PUBLIC STATIC void     GLRenderer::SetTintColor(float r, float g, float b, float a) {
+void     GLRenderer::SetTintColor(float r, float g, float b, float a) {
 
 }
-PUBLIC STATIC void     GLRenderer::SetTintMode(int mode) {
+void     GLRenderer::SetTintMode(int mode) {
 
 }
-PUBLIC STATIC void     GLRenderer::SetTintEnabled(bool enabled) {
+void     GLRenderer::SetTintEnabled(bool enabled) {
 
 }
-PUBLIC STATIC void     GLRenderer::SetLineWidth(float n) {
+void     GLRenderer::SetLineWidth(float n) {
     glLineWidth(n); CHECK_GL();
 }
 
 // Primitive drawing functions
-PUBLIC STATIC void     GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+void     GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
     // Graphics::Save();
         GL_Predraw(NULL);
 
@@ -1594,7 +1562,7 @@ PUBLIC STATIC void     GLRenderer::StrokeLine(float x1, float y1, float x2, floa
         glDrawArrays(GL_LINES, 0, 2); CHECK_GL();
     // Graphics::Restore();
 }
-PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
+void     GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     Graphics::Save();
     Graphics::Translate(x, y, 0.0f);
     Graphics::Scale(rad, rad, 1.0f);
@@ -1605,7 +1573,7 @@ PUBLIC STATIC void     GLRenderer::StrokeCircle(float x, float y, float rad, flo
         glDrawArrays(GL_LINE_STRIP, 0, 361); CHECK_GL();
     Graphics::Restore();
 }
-PUBLIC STATIC void     GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
+void     GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
     Graphics::Save();
     Graphics::Translate(x + w / 2, y + h / 2, 0.0f);
     Graphics::Scale(w / 2, h / 2, 1.0f);
@@ -1616,14 +1584,14 @@ PUBLIC STATIC void     GLRenderer::StrokeEllipse(float x, float y, float w, floa
         glDrawArrays(GL_LINE_STRIP, 0, 361); CHECK_GL();
     Graphics::Restore();
 }
-PUBLIC STATIC void     GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
+void     GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
     StrokeLine(x, y, x + w, y);
     StrokeLine(x, y + h, x + w, y + h);
 
     StrokeLine(x, y, x, y + h);
     StrokeLine(x + w, y, x + w, y + h);
 }
-PUBLIC STATIC void     GLRenderer::FillCircle(float x, float y, float rad) {
+void     GLRenderer::FillCircle(float x, float y, float rad) {
     #ifdef GL_SUPPORTS_SMOOTHING
         if (Graphics::SmoothFill) {
             glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
@@ -1646,7 +1614,7 @@ PUBLIC STATIC void     GLRenderer::FillCircle(float x, float y, float rad) {
         }
     #endif
 }
-PUBLIC STATIC void     GLRenderer::FillEllipse(float x, float y, float w, float h) {
+void     GLRenderer::FillEllipse(float x, float y, float w, float h) {
     #ifdef GL_SUPPORTS_SMOOTHING
         if (Graphics::SmoothFill) {
             glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
@@ -1669,7 +1637,7 @@ PUBLIC STATIC void     GLRenderer::FillEllipse(float x, float y, float w, float 
         }
     #endif
 }
-PUBLIC STATIC void     GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
     #ifdef GL_SUPPORTS_SMOOTHING
         if (Graphics::SmoothFill) {
             glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
@@ -1692,7 +1660,7 @@ PUBLIC STATIC void     GLRenderer::FillTriangle(float x1, float y1, float x2, fl
         }
     #endif
 }
-PUBLIC STATIC void     GLRenderer::FillRectangle(float x, float y, float w, float h) {
+void     GLRenderer::FillRectangle(float x, float y, float w, float h) {
     #ifdef GL_SUPPORTS_SMOOTHING
         if (Graphics::SmoothFill) {
             glEnable(GL_POLYGON_SMOOTH); CHECK_GL();
@@ -1716,7 +1684,7 @@ PUBLIC STATIC void     GLRenderer::FillRectangle(float x, float y, float w, floa
         }
     #endif
 }
-PUBLIC STATIC Uint32   GLRenderer::CreateTexturedShapeBuffer(float* data, int vertexCount) {
+Uint32   GLRenderer::CreateTexturedShapeBuffer(float* data, int vertexCount) {
     // x, y, z, u, v
     Uint32 bufferID;
     glGenBuffers(1, &bufferID); CHECK_GL();
@@ -1724,7 +1692,7 @@ PUBLIC STATIC Uint32   GLRenderer::CreateTexturedShapeBuffer(float* data, int ve
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertexCount * 5, data, GL_STATIC_DRAW); CHECK_GL();
     return bufferID;
 }
-PUBLIC STATIC void     GLRenderer::DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount) {
+void     GLRenderer::DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount) {
     GL_Predraw(texture);
 
     // glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
@@ -1738,14 +1706,14 @@ PUBLIC STATIC void     GLRenderer::DrawTexturedShapeBuffer(Texture* texture, Uin
 }
 
 // Texture drawing functions
-PUBLIC STATIC void     GLRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
+void     GLRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     x *= RetinaScale;
     y *= RetinaScale;
     w *= RetinaScale;
     h *= RetinaScale;
     GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
 }
-PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     // /*
@@ -1768,7 +1736,7 @@ PUBLIC STATIC void     GLRenderer::DrawSprite(ISprite* sprite, int animation, in
     //     x + fX * animframe.OffsetX,
     //     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
-PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     AnimFrame animframe = sprite->Animations[animation].Frames[frame];
@@ -1791,7 +1759,7 @@ PUBLIC STATIC void     GLRenderer::DrawSpritePart(ISprite* sprite, int animation
         y + fY * (sy + animframe.OffsetY), fX * sw, fY * sh);
 }
 // 3D drawing functions
-PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     PolygonRenderer *renderer = GL_GetPolygonRenderer();
     if (renderer != nullptr) {
         renderer->ModelMatrix = modelMatrix;
@@ -1799,7 +1767,7 @@ PUBLIC STATIC void     GLRenderer::DrawPolygon3D(void* data, int vertexCount, in
         renderer->DrawPolygon3D((VertexAttribute*)data, vertexCount, vertexFlag, texture);
     }
 }
-PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     PolygonRenderer *renderer = GL_GetPolygonRenderer();
     if (renderer != nullptr) {
         renderer->ModelMatrix = modelMatrix;
@@ -1807,7 +1775,7 @@ PUBLIC STATIC void     GLRenderer::DrawSceneLayer3D(void* layer, int sx, int sy,
         renderer->DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
     }
 }
-PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     PolygonRenderer *renderer = GL_GetPolygonRenderer();
     if (renderer != nullptr) {
         renderer->ModelMatrix = modelMatrix;
@@ -1815,7 +1783,7 @@ PUBLIC STATIC void     GLRenderer::DrawModel(void* inModel, Uint16 animation, Ui
         renderer->DrawModel((IModel*)inModel, animation, frame);
     }
 }
-PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     PolygonRenderer *renderer = GL_GetPolygonRenderer();
     if (renderer != nullptr) {
         renderer->ModelMatrix = modelMatrix;
@@ -1823,7 +1791,7 @@ PUBLIC STATIC void     GLRenderer::DrawModelSkinned(void* inModel, Uint16 armatu
         renderer->DrawModelSkinned((IModel*)inModel, armature);
     }
 }
-PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return;
 
@@ -1852,18 +1820,18 @@ PUBLIC STATIC void     GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Ma
     driverData = (GL_VertexBuffer*)scene->Buffer->DriverData;
     driverData->Changed = true;
 }
-PUBLIC STATIC void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+void     GLRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
 }
-PUBLIC STATIC void     GLRenderer::UnbindVertexBuffer() {
+void     GLRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     GLRenderer::ClearScene3D(Uint32 sceneIndex) {
+void     GLRenderer::ClearScene3D(Uint32 sceneIndex) {
     Scene3D* scene = &Graphics::Scene3Ds[sceneIndex];
     GL_VertexBuffer *driverData = (GL_VertexBuffer*)scene->Buffer->DriverData;
     driverData->Changed = true;
 }
-PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -2047,7 +2015,7 @@ PUBLIC STATIC void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMod
     GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
 }
 
-PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
+void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
     VertexBuffer* vtxBuf = new VertexBuffer(maxVertices);
     vtxBuf->DriverData = Memory::TrackedCalloc("VertexBuffer::DriverData", 1, sizeof(GL_VertexBuffer));
 
@@ -2061,7 +2029,7 @@ PUBLIC STATIC void*    GLRenderer::CreateVertexBuffer(Uint32 maxVertices) {
 
     return (void*)vtxBuf;
 }
-PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
+void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
     VertexBuffer* vertexBuffer = (VertexBuffer*)vtxBuf;
     GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;
     if (driverData) {
@@ -2081,7 +2049,7 @@ PUBLIC STATIC void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
 
     delete vertexBuffer;
 }
-PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     frame->ID = 0;
 
     float fX[4], fY[4];
@@ -2124,13 +2092,13 @@ PUBLIC STATIC void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame*
     glBindBuffer(GL_ARRAY_BUFFER, frame->ID); CHECK_GL();
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); CHECK_GL();
 }
-PUBLIC STATIC void     GLRenderer::DeleteFrameBufferID(AnimFrame* frame) {
+void     GLRenderer::DeleteFrameBufferID(AnimFrame* frame) {
     if (frame->ID) {
         glDeleteBuffers(1, (GLuint*)&frame->ID); CHECK_GL();
         frame->ID = 0;
     }
 }
-PUBLIC STATIC void     GLRenderer::SetDepthTesting(bool enable) {
+void     GLRenderer::SetDepthTesting(bool enable) {
     if (UseDepthTesting) {
         if (enable) {
             glEnable(GL_DEPTH_TEST); CHECK_GL();

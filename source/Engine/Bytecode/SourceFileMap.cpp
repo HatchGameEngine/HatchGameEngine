@@ -1,18 +1,3 @@
-#if INTERFACE
-#include <Engine/Hashing/CombinedHash.h>
-#include <Engine/Includes/HashMap.h>
-class SourceFileMap {
-public:
-    static bool                      Initialized;
-    static HashMap<Uint32>*          Checksums;
-    static HashMap<vector<Uint32>*>* ClassMap;
-    static Uint32                    DirectoryChecksum;
-    static Uint32                    Magic;
-
-    static bool                      DoLogging;
-};
-#endif
-
 #include <Engine/Bytecode/SourceFileMap.h>
 
 #include <Engine/Bytecode/ScriptManager.h>
@@ -33,7 +18,7 @@ Uint32                    SourceFileMap::Magic = *(Uint32*)"HMAP";
 
 bool                      SourceFileMap::DoLogging = false;
 
-PUBLIC STATIC void SourceFileMap::CheckInit() {
+void SourceFileMap::CheckInit() {
     if (SourceFileMap::Initialized) return;
 
     if (SourceFileMap::Checksums == NULL) {
@@ -100,7 +85,7 @@ PUBLIC STATIC void SourceFileMap::CheckInit() {
 
     SourceFileMap::Initialized = true;
 }
-PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
+void SourceFileMap::CheckForUpdate() {
     SourceFileMap::CheckInit();
 
     #ifndef NO_SCRIPT_COMPILING
@@ -276,7 +261,7 @@ PUBLIC STATIC void SourceFileMap::CheckForUpdate() {
     #endif
 }
 
-PUBLIC STATIC void SourceFileMap::Dispose() {
+void SourceFileMap::Dispose() {
     if (SourceFileMap::Checksums) {
         delete SourceFileMap::Checksums;
     }

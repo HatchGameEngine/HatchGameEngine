@@ -1,6 +1,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <Engine/Includes/StandardSDL2.h>
+
 enum Keyboard {
     Key_UNKNOWN = -1,
 

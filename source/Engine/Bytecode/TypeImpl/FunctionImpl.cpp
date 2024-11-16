@@ -1,20 +1,10 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-
-class FunctionImpl {
-public:
-    static ObjClass *Class;
-};
-#endif
-
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* FunctionImpl::Class = nullptr;
 
-PUBLIC STATIC void FunctionImpl::Init() {
+void FunctionImpl::Init() {
     const char *name = "$$FunctionImpl";
 
     Class = NewClass(Murmur::EncryptString(name));
@@ -27,7 +17,7 @@ PUBLIC STATIC void FunctionImpl::Init() {
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-PUBLIC STATIC VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
     StandardLibrary::CheckArgCount(argCount, 2);
 
     ObjFunction* function = GET_ARG(0, GetFunction);

@@ -1,20 +1,10 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Bytecode/Types.h>
-
-class StringImpl {
-public:
-    static ObjClass *Class;
-};
-#endif
-
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 ObjClass* StringImpl::Class = nullptr;
 
-PUBLIC STATIC void StringImpl::Init() {
+void StringImpl::Init() {
     const char *name = "$$StringImpl";
 
     Class = NewClass(Murmur::EncryptString(name));
@@ -29,7 +19,7 @@ PUBLIC STATIC void StringImpl::Init() {
 
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
-PUBLIC STATIC bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID) {
+bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID) {
     ObjString* string = (ObjString*)object;
 
     if (!IS_INTEGER(at)) {
@@ -55,7 +45,7 @@ PUBLIC STATIC bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* r
     return true;
 }
 #if 0
-PUBLIC STATIC bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue value, Uint32 threadID) {
+bool StringImpl::VM_ElementSet(Obj* object, VMValue at, VMValue value, Uint32 threadID) {
     ObjString* string = (ObjString*)object;
 
     if (!IS_INTEGER(at)) {

@@ -1,29 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Network/WebSocketIncludes.h>
-
-#include <time.h>
-
-class WebSocketClient {
-public:
-    enum {
-        CLOSING = 0,
-        CLOSED = 1,
-        CONNECTING = 2,
-        OPEN = 3,
-    };
-
-    std::vector<uint8_t> rxbuf;
-    std::vector<uint8_t> txbuf;
-    std::vector<uint8_t> receivedData;
-
-    socket_t socket;
-    int readyState;
-    bool useMask;
-    bool isRxBad;
-};
-#endif
-
 #include <Engine/Network/WebSocketClient.h>
 
 const char* BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -239,7 +213,7 @@ size_t   socket_send_string(socket_t sockfd, const char* str, ...) {
 
 // easywsclient
 
-PUBLIC STATIC WebSocketClient* WebSocketClient::New(const char* url) {
+WebSocketClient* WebSocketClient::New(const char* url) {
     #ifdef _WIN32
         INT rc;
         WSADATA wsaData;
@@ -358,7 +332,7 @@ PUBLIC STATIC WebSocketClient* WebSocketClient::New(const char* url) {
     delete socket;
     return NULL;
 }
-PUBLIC        void             WebSocketClient::Poll(int timeout) {
+void             WebSocketClient::Poll(int timeout) {
     if (readyState == WebSocketClient::CLOSED) {
         if (timeout > 0) {
             timeval tv = { timeout / 1000, (timeout % 1000) * 1000 };
@@ -426,7 +400,7 @@ PUBLIC        void             WebSocketClient::Poll(int timeout) {
         printf("readyState = CLOSED      2\n");
     }
 }
-PUBLIC        void             WebSocketClient::Dispatch(void(*callback)(void* mem, size_t size)) {
+void             WebSocketClient::Dispatch(void(*callback)(void* mem, size_t size)) {
     // TODO: consider acquiring a lock on rxbuf...
     if (isRxBad) {
         printf("bad rx\n");
@@ -541,7 +515,7 @@ PUBLIC        void             WebSocketClient::Dispatch(void(*callback)(void* m
     }
 }
 
-PUBLIC        size_t           WebSocketClient::BytesToRead() {
+size_t           WebSocketClient::BytesToRead() {
     if (readyState == WebSocketClient::CLOSED ||
         readyState == WebSocketClient::CLOSING)
         return 0;
@@ -661,27 +635,27 @@ PUBLIC        size_t           WebSocketClient::BytesToRead() {
     }
     return 0;
 }
-PUBLIC        size_t           WebSocketClient::ReadBytes(void* data, size_t n) {
+size_t           WebSocketClient::ReadBytes(void* data, size_t n) {
     memcpy(data, receivedData.data(), n);
     receivedData.erase(receivedData.begin(), receivedData.begin() + n);
     return n;
 }
-PUBLIC        Uint32           WebSocketClient::ReadUint32() {
+Uint32           WebSocketClient::ReadUint32() {
     Uint32 data;
     ReadBytes(&data, sizeof(data));
     return data;
 }
-PUBLIC        Sint32           WebSocketClient::ReadSint32() {
+Sint32           WebSocketClient::ReadSint32() {
     Sint32 data;
     ReadBytes(&data, sizeof(data));
     return data;
 }
-PUBLIC        float            WebSocketClient::ReadFloat() {
+float            WebSocketClient::ReadFloat() {
     float data;
     ReadBytes(&data, sizeof(data));
     return data;
 }
-PUBLIC        char*            WebSocketClient::ReadString() {
+char*            WebSocketClient::ReadString() {
     char* data = (char*)receivedData.data();
     char* dataStart = data;
     char* dataEnd = data + receivedData.size();
@@ -698,7 +672,7 @@ PUBLIC        char*            WebSocketClient::ReadString() {
     return output;
 }
 
-PUBLIC        void             WebSocketClient::SendData(int type, const void* message, int64_t message_size) {
+void             WebSocketClient::SendData(int type, const void* message, int64_t message_size) {
     // TODO:
     // Masking key should (must) be derived from a high quality random
     // number generator, to mitigate attacks on non-WebSocketClient friendly
@@ -759,13 +733,13 @@ PUBLIC        void             WebSocketClient::SendData(int type, const void* m
         }
     }
 }
-PUBLIC        void             WebSocketClient::SendBinary(const void* message, int64_t message_size) {
+void             WebSocketClient::SendBinary(const void* message, int64_t message_size) {
     SendData(opcode_type::BINARY_FRAME, message, message_size);
 }
-PUBLIC        void             WebSocketClient::SendText(const char* message) {
+void             WebSocketClient::SendText(const char* message) {
     SendData(opcode_type::TEXT_FRAME, message, (int64_t)strlen(message));
 }
-PUBLIC        void             WebSocketClient::Close() {
+void             WebSocketClient::Close() {
     if (readyState == WebSocketClient::CLOSING || readyState == WebSocketClient::CLOSED)
         return;
 

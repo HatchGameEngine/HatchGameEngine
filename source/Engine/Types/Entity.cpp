@@ -1,133 +1,11 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Application.h>
-#include <Engine/Graphics.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/Scene.h>
-
-#include <Engine/Types/EntityTypes.h>
-#include <Engine/Includes/HashMap.h>
-
-need_t ObjectList;
-need_t ObjectRegistry;
-need_t DrawGroupList;
-
-class Entity {
-public:
-    float        InitialX = 0;
-    float        InitialY = 0;
-    int          Active = true;
-    int          Pauseable = true;
-    int          Interactable = true;
-    int          Persistence = Persistence_NONE;
-    int          Activity = ACTIVE_BOUNDS;
-    int          InRange = false;
-    bool         Created = false;
-    bool         PostCreated = false;
-
-    float        X = 0.0f;
-    float        Y = 0.0f;
-    float        Z = 0.0f;
-
-    float        XSpeed = 0.0f;
-    float        YSpeed = 0.0f;
-    float        GroundSpeed = 0.0f;
-    float        Gravity = 0.0f;
-    int          Ground = false;
-
-    int          WasOffScreen = false;
-    int          OnScreen = true;
-    float        OnScreenHitboxW = 0.0f;
-    float        OnScreenHitboxH = 0.0f;
-    float        OnScreenRegionTop = 0.0f;
-    float        OnScreenRegionLeft = 0.0f;
-    float        OnScreenRegionRight = 0.0f;
-    float        OnScreenRegionBottom = 0.0f;
-    int          ViewRenderFlag = 0xFFFFFFFF;
-    int          ViewOverrideFlag = 0;
-    int          Visible = true;
-    float        RenderRegionW = 0.0f;
-    float        RenderRegionH = 0.0f;
-    float        RenderRegionTop = 0.0f;
-    float        RenderRegionLeft = 0.0f;
-    float        RenderRegionRight = 0.0f;
-    float        RenderRegionBottom = 0.0f;
-
-    int          Angle = 0;
-    int          AngleMode = 0;
-    float        ScaleX = 1.0;
-    float        ScaleY = 1.0;
-    float        Rotation = 0.0;
-    float        Alpha = 1.0;
-    int          BlendMode = BlendMode_NORMAL;
-    int          AutoPhysics = false;
-
-    int          Priority = 0;
-    int          PriorityListIndex = -1;
-    int          PriorityOld = -1;
-
-    float        Depth = 0.0f;
-    float        OldDepth = 0.0f;
-    float        ZDepth = 0.0;
-
-    int          Sprite = -1;
-    int          CurrentAnimation = -1;
-    int          CurrentFrame = -1;
-    int          CurrentFrameCount = 0;
-    float        AnimationSpeedMult = 1.0;
-    int          AnimationSpeedAdd = 0;
-    int          PrevAnimation = -1;
-    int          AutoAnimate = true;
-    float        AnimationSpeed = 0.0;
-    float        AnimationTimer = 0.0;
-    int          AnimationFrameDuration = 0;
-    int          AnimationLoopIndex = 0;
-    int          RotationStyle = ROTSTYLE_NONE;
-
-    EntityHitbox Hitbox;
-    int          FlipFlag = 0;
-
-    float        SensorX = 0.0f;
-    float        SensorY = 0.0f;
-    int          SensorCollided = false;
-    int          SensorAngle = 0;
-
-    float        VelocityX = 0.0f;
-    float        VelocityY = 0.0f;
-    float        GroundVel = 0.0f;
-    float        GravityStrength = 0.0f;
-    int          OnGround = false;
-    int          Direction = 0;
-
-    int          TileCollisions = false;
-    int          CollisionLayers = 0;
-    int          CollisionPlane = 0;
-    int          CollisionMode = 0;
-    
-    int          SlotID = -1;
-
-    bool         Removed = false;
-
-    Entity*      PrevEntity = NULL;
-    Entity*      NextEntity = NULL;
-
-    ObjectList*  List = NULL;
-    Entity*      PrevEntityInList = NULL;
-    Entity*      NextEntityInList = NULL;
-
-    Entity*      PrevSceneEntity = NULL;
-    Entity*      NextSceneEntity = NULL;
-};
-#endif
-
 #include <Engine/Types/Entity.h>
 
-PUBLIC void Entity::ApplyMotion() {
+void Entity::ApplyMotion() {
     YSpeed += Gravity;
     X += XSpeed;
     Y += YSpeed;
 }
-PUBLIC void Entity::Animate() {
+void Entity::Animate() {
     ISprite* sprite = Scene::GetSpriteResource(Sprite);
 
     if (!sprite || CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size())
@@ -177,11 +55,11 @@ PUBLIC void Entity::Animate() {
     }
 #endif
 }
-PUBLIC void Entity::SetAnimation(int animation, int frame) {
+void Entity::SetAnimation(int animation, int frame) {
     if (CurrentAnimation != animation)
         ResetAnimation(animation, frame);
 }
-PUBLIC void Entity::ResetAnimation(int animation, int frame) {
+void Entity::ResetAnimation(int animation, int frame) {
     ISprite* sprite = Scene::GetSpriteResource(Sprite);
 
     if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size())
@@ -200,7 +78,7 @@ PUBLIC void Entity::ResetAnimation(int animation, int frame) {
     AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
     RotationStyle           = sprite->Animations[CurrentAnimation].Flags;
 }
-PUBLIC bool Entity::BasicCollideWithObject(Entity* other) {
+bool Entity::BasicCollideWithObject(Entity* other) {
     float otherHitboxW = other->Hitbox.Width;
     float otherHitboxH = other->Hitbox.Height;
 
@@ -213,7 +91,7 @@ PUBLIC bool Entity::BasicCollideWithObject(Entity* other) {
         other->X + other->Hitbox.GetRight()  < X + Hitbox.GetRight() &&
         other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
 }
-PUBLIC bool Entity::CollideWithObject(Entity* other) {
+bool Entity::CollideWithObject(Entity* other) {
     float sourceFlipX = (this->FlipFlag & 1) ? -1.0 : 1.0;
     float sourceFlipY = (this->FlipFlag & 2) ? -1.0 : 1.0;
     float otherFlipX = (other->FlipFlag & 1) ? -1.0 : 1.0;
@@ -234,7 +112,7 @@ PUBLIC bool Entity::CollideWithObject(Entity* other) {
         sourceX - sourceHitboxW > otherX + otherHitboxW ||
         sourceX + sourceHitboxW < otherX - otherHitboxW);
 }
-PUBLIC int  Entity::SolidCollideWithObject(Entity* other, int flag) {
+int  Entity::SolidCollideWithObject(Entity* other, int flag) {
     // NOTE: "flag" is setValues
     float initialOtherX = (other->X);
     float initialOtherY = (other->Y);
@@ -384,7 +262,7 @@ PUBLIC int  Entity::SolidCollideWithObject(Entity* other, int flag) {
     }
     return 0;
 }
-PUBLIC bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
+bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
     // NOTE: "flag" might be "UseGroundSpeed"
     float initialOtherX = (other->X);
     float initialOtherY = (other->Y);
@@ -423,7 +301,7 @@ PUBLIC bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
     return true;
 }
 
-PUBLIC void Entity::Copy(Entity* other) {
+void Entity::Copy(Entity* other) {
     // Add the other entity to this object's list
     if (other->List != List) {
         other->List->Remove(other);
@@ -446,7 +324,7 @@ PUBLIC void Entity::Copy(Entity* other) {
     CopyFields(other);
 }
 
-PUBLIC void Entity::CopyFields(Entity* other) {
+void Entity::CopyFields(Entity* other) {
 #define COPY(which) other->which = which
     COPY(InitialX);
     COPY(InitialY);
@@ -538,59 +416,59 @@ PUBLIC void Entity::CopyFields(Entity* other) {
 #undef COPY
 }
 
-PUBLIC void Entity::ApplyPhysics() {
+void Entity::ApplyPhysics() {
 
 }
 
-PUBLIC VIRTUAL void Entity::Initialize() {
+void Entity::Initialize() {
 
 }
-PUBLIC VIRTUAL void Entity::Create() {
+void Entity::Create() {
 
 }
-PUBLIC VIRTUAL void Entity::PostCreate() {
-
-}
-
-PUBLIC VIRTUAL void Entity::UpdateEarly() {
-}
-PUBLIC VIRTUAL void Entity::Update() {
-}
-PUBLIC VIRTUAL void Entity::UpdateLate() {
-}
-
-PUBLIC VIRTUAL void Entity::OnAnimationFinish() {
+void Entity::PostCreate() {
 
 }
 
-PUBLIC VIRTUAL void Entity::OnSceneLoad() {
+void Entity::UpdateEarly() {
+}
+void Entity::Update() {
+}
+void Entity::UpdateLate() {
+}
+
+void Entity::OnAnimationFinish() {
 
 }
 
-PUBLIC VIRTUAL void Entity::OnSceneRestart() {
+void Entity::OnSceneLoad() {
 
 }
 
-PUBLIC VIRTUAL void Entity::GameStart() {
+void Entity::OnSceneRestart() {
 
 }
 
-PUBLIC VIRTUAL void Entity::RenderEarly() {
+void Entity::GameStart() {
 
 }
 
-PUBLIC VIRTUAL void Entity::Render(int CamX, int CamY) {
+void Entity::RenderEarly() {
 
 }
 
-PUBLIC VIRTUAL void Entity::RenderLate() {
+void Entity::Render(int CamX, int CamY) {
 
 }
 
-PUBLIC VIRTUAL void Entity::Remove() {
+void Entity::RenderLate() {
 
 }
 
-PUBLIC VIRTUAL void Entity::Dispose() {
+void Entity::Remove() {
+
+}
+
+void Entity::Dispose() {
 
 }

@@ -1,31 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
-#include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/ResourceTypes/IModel.h>
-#include <Engine/Math/Matrix4x4.h>
-#include <Engine/Math/Clipper.h>
-#include <Engine/Rendering/Texture.h>
-#include <Engine/Rendering/Material.h>
-#include <Engine/Rendering/VertexBuffer.h>
-#include <Engine/Rendering/Software/Contour.h>
-#include <Engine/Rendering/Software/SoftwareEnums.h>
-#include <Engine/Includes/HashMap.h>
-
-class SoftwareRenderer {
-public:
-    static GraphicsFunctions BackendFunctions;
-    static Uint32            CompareColor;
-    static TileScanLine      TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static Sint32            SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static bool              UseSpriteDeform;
-    static Contour           ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-    static int               MultTable[0x10000];
-    static int               MultTableInv[0x10000];
-    static int               MultSubTable[0x10000];
-};
-#endif
-
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/Software/PolygonRasterizer.h>
 #include <Engine/Rendering/Software/SoftwareEnums.h>
@@ -112,7 +84,7 @@ int FilterInvert[0x8000];
 int FilterBlackAndWhite[0x8000];
 
 // Initialization and disposal functions
-PUBLIC STATIC void     SoftwareRenderer::Init() {
+void     SoftwareRenderer::Init() {
     SoftwareRenderer::BackendFunctions.Init();
 
     UseStencil = false;
@@ -122,10 +94,10 @@ PUBLIC STATIC void     SoftwareRenderer::Init() {
     SetDotMaskOffsetH(0);
     SetDotMaskOffsetV(0);
 }
-PUBLIC STATIC Uint32   SoftwareRenderer::GetWindowFlags() {
+Uint32   SoftwareRenderer::GetWindowFlags() {
     return Graphics::Internal.GetWindowFlags();
 }
-PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
+void     SoftwareRenderer::SetGraphicsFunctions() {
     for (int alpha = 0; alpha < 0x100; alpha++) {
         for (int color = 0; color < 0x100; color++) {
             MultTable[alpha << 8 | color] = (alpha * color) >> 8;
@@ -231,64 +203,64 @@ PUBLIC STATIC void     SoftwareRenderer::SetGraphicsFunctions() {
 
     SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
-PUBLIC STATIC void     SoftwareRenderer::Dispose() {
+void     SoftwareRenderer::Dispose() {
 
 }
 
-PUBLIC STATIC void     SoftwareRenderer::RenderStart() {
+void     SoftwareRenderer::RenderStart() {
     for (int i = 0; i < MAX_PALETTE_COUNT; i++)
         Graphics::PaletteColors[i][0] &= 0xFFFFFF;
 }
-PUBLIC STATIC void     SoftwareRenderer::RenderEnd() {
+void     SoftwareRenderer::RenderEnd() {
 
 }
 
 // Texture management functions
-PUBLIC STATIC Texture* SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+Texture* SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = NULL; // Texture::New(format, access, width, height);
 
     return texture;
 }
-PUBLIC STATIC int      SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
+int      SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
     return 0;
 }
-PUBLIC STATIC int      SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
+int      SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
     return 0;
 }
-PUBLIC STATIC void     SoftwareRenderer::UnlockTexture(Texture* texture) {
+void     SoftwareRenderer::UnlockTexture(Texture* texture) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::DisposeTexture(Texture* texture) {
+void     SoftwareRenderer::DisposeTexture(Texture* texture) {
 
 }
 
 // Viewport and view-related functions
-PUBLIC STATIC void     SoftwareRenderer::SetRenderTarget(Texture* texture) {
+void     SoftwareRenderer::SetRenderTarget(Texture* texture) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+void     SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
     if (Graphics::Internal.ReadFramebuffer)
         Graphics::Internal.ReadFramebuffer(pixels, width, height);
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdateWindowSize(int width, int height) {
+void     SoftwareRenderer::UpdateWindowSize(int width, int height) {
     Graphics::Internal.UpdateWindowSize(width, height);
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdateViewport() {
+void     SoftwareRenderer::UpdateViewport() {
     Graphics::Internal.UpdateViewport();
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdateClipRect() {
+void     SoftwareRenderer::UpdateClipRect() {
     Graphics::Internal.UpdateClipRect();
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
+void     SoftwareRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
     Graphics::Internal.UpdateOrtho(left, top, right, bottom);
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
+void     SoftwareRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
     Graphics::Internal.UpdatePerspective(fovy, aspect, nearv, farv);
 }
-PUBLIC STATIC void     SoftwareRenderer::UpdateProjectionMatrix() {
+void     SoftwareRenderer::UpdateProjectionMatrix() {
     Graphics::Internal.UpdateProjectionMatrix();
 }
-PUBLIC STATIC void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
+void     SoftwareRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect) {
     float f = 1.0f / tanf(fov / 2.0f);
     float diff = near - far;
 
@@ -343,7 +315,7 @@ bool CheckClipRegion(int clip_x1, int clip_y1, int clip_x2, int clip_y2) {
 }
 
 // Shader-related functions
-PUBLIC STATIC void     SoftwareRenderer::UseShader(void* shader) {
+void     SoftwareRenderer::UseShader(void* shader) {
     if (!shader) {
         CurrentBlendState.FilterTable = nullptr;
         return;
@@ -367,17 +339,17 @@ PUBLIC STATIC void     SoftwareRenderer::UseShader(void* shader) {
     }
     CurrentBlendState.FilterTable = &FilterCurrent[0];
 }
-PUBLIC STATIC void     SoftwareRenderer::SetUniformF(int location, int count, float* values) {
+void     SoftwareRenderer::SetUniformF(int location, int count, float* values) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::SetUniformI(int location, int count, int* values) {
+void     SoftwareRenderer::SetUniformI(int location, int count, int* values) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
+void     SoftwareRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
 
 }
 
-PUBLIC STATIC void     SoftwareRenderer::SetFilter(int filter) {
+void     SoftwareRenderer::SetFilter(int filter) {
     switch (filter) {
     case Filter_NONE:
         CurrentBlendState.FilterTable = nullptr;
@@ -392,12 +364,12 @@ PUBLIC STATIC void     SoftwareRenderer::SetFilter(int filter) {
 }
 
 // These guys
-PUBLIC STATIC void     SoftwareRenderer::Clear() {
+void     SoftwareRenderer::Clear() {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
     memset(dstPx, 0, dstStride * Graphics::CurrentRenderTarget->Height * 4);
 }
-PUBLIC STATIC void     SoftwareRenderer::Present() {
+void     SoftwareRenderer::Present() {
 
 }
 
@@ -405,14 +377,14 @@ PUBLIC STATIC void     SoftwareRenderer::Present() {
 #define GET_R(color) ((color >> 16) & 0xFF)
 #define GET_G(color) ((color >> 8) & 0xFF)
 #define GET_B(color) ((color) & 0xFF)
-PRIVATE STATIC void     SoftwareRenderer::SetColor(Uint32 color) {
+void     SoftwareRenderer::SetColor(Uint32 color) {
     ColRGB = color;
     ColR = GET_R(color);
     ColG = GET_G(color);
     ColB = GET_B(color);
     Graphics::ConvertFromARGBtoNative(&ColRGB, 1);
 }
-PUBLIC STATIC void     SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
+void     SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
     ColR = (Uint8)(r * 0xFF);
     ColG = (Uint8)(g * 0xFF);
     ColB = (Uint8)(b * 0xFF);
@@ -423,10 +395,10 @@ PUBLIC STATIC void     SoftwareRenderer::SetBlendColor(float r, float g, float b
     CLAMP_VAL(opacity, 0x00, 0xFF);
     CurrentBlendState.Opacity = opacity;
 }
-PUBLIC STATIC void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+void     SoftwareRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
     CurrentBlendState.Mode = Graphics::BlendMode;
 }
-PUBLIC STATIC void     SoftwareRenderer::SetTintColor(float r, float g, float b, float a) {
+void     SoftwareRenderer::SetTintColor(float r, float g, float b, float a) {
     int red = (int)(r * 0xFF);
     int green = (int)(g * 0xFF);
     int blue = (int)(b * 0xFF);
@@ -442,45 +414,45 @@ PUBLIC STATIC void     SoftwareRenderer::SetTintColor(float r, float g, float b,
 
     Graphics::ConvertFromARGBtoNative(&CurrentBlendState.Tint.Color, 1);
 }
-PUBLIC STATIC void     SoftwareRenderer::SetTintMode(int mode) {
+void     SoftwareRenderer::SetTintMode(int mode) {
     CurrentBlendState.Tint.Mode = mode;
 }
-PUBLIC STATIC void     SoftwareRenderer::SetTintEnabled(bool enabled) {
+void     SoftwareRenderer::SetTintEnabled(bool enabled) {
     CurrentBlendState.Tint.Enabled = enabled;
 }
 
-PUBLIC STATIC void     SoftwareRenderer::Resize(int width, int height) {
+void     SoftwareRenderer::Resize(int width, int height) {
 
 }
 
-PUBLIC STATIC void     SoftwareRenderer::SetClip(float x, float y, float width, float height) {
+void     SoftwareRenderer::SetClip(float x, float y, float width, float height) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::ClearClip() {
-
-}
-
-PUBLIC STATIC void     SoftwareRenderer::Save() {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::Translate(float x, float y, float z) {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::Rotate(float x, float y, float z) {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::Scale(float x, float y, float z) {
-
-}
-PUBLIC STATIC void     SoftwareRenderer::Restore() {
+void     SoftwareRenderer::ClearClip() {
 
 }
 
-PRIVATE STATIC Uint32  SoftwareRenderer::GetBlendColor() {
+void     SoftwareRenderer::Save() {
+
+}
+void     SoftwareRenderer::Translate(float x, float y, float z) {
+
+}
+void     SoftwareRenderer::Rotate(float x, float y, float z) {
+
+}
+void     SoftwareRenderer::Scale(float x, float y, float z) {
+
+}
+void     SoftwareRenderer::Restore() {
+
+}
+
+Uint32  SoftwareRenderer::GetBlendColor() {
     return ColorUtils::ToRGB(ColR, ColG, ColB);
 }
 
-PUBLIC STATIC int      SoftwareRenderer::ConvertBlendMode(int blendMode) {
+int      SoftwareRenderer::ConvertBlendMode(int blendMode) {
     switch (blendMode) {
         case BlendMode_NORMAL:
             return BlendFlag_TRANSPARENT;
@@ -495,10 +467,10 @@ PUBLIC STATIC int      SoftwareRenderer::ConvertBlendMode(int blendMode) {
     }
     return BlendFlag_OPAQUE;
 }
-PUBLIC STATIC BlendState SoftwareRenderer::GetBlendState() {
+BlendState SoftwareRenderer::GetBlendState() {
     return CurrentBlendState;
 }
-PUBLIC STATIC bool     SoftwareRenderer::AlterBlendState(BlendState& state) {
+bool     SoftwareRenderer::AlterBlendState(BlendState& state) {
     int blendMode = ConvertBlendMode(state.Mode);
     int opacity = state.Opacity;
 
@@ -528,17 +500,17 @@ PUBLIC STATIC bool     SoftwareRenderer::AlterBlendState(BlendState& state) {
 #define ISOLATE_G(color) (color & 0x00FF00)
 #define ISOLATE_B(color) (color & 0x0000FF)
 
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     *dst = *src;
 }
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     int* multInvTableAt = &MultTableInv[state.Opacity << 8];
     *dst = 0xFF000000U
         | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16
         | (multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8
         | (multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     Uint32 R = (multTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Uint32 G = (multTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Uint32 B = (multTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -547,7 +519,7 @@ PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src, Uint32*
     if (B > 0x0000FF) B = 0x0000FF;
     *dst = 0xFF000000U | R | G | B;
 }
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     Sint32 R = (multSubTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
     Sint32 G = (multSubTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
     Sint32 B = (multSubTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
@@ -556,11 +528,11 @@ PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src, Uint32*
     if (B < 0) B = 0;
     *dst = 0xFF000000U | R | G | B;
 }
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
-PUBLIC STATIC void SoftwareRenderer::PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelNoFiltSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = *src;
 }
@@ -575,26 +547,26 @@ static PixelFunction PixelNoFiltFunctions[] = {
 };
 
 // Tinted versions
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetOpaque(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetTransparent(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetTransparent(&col, dst, state, multTableAt, multSubTableAt);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetAdditive(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetAdditive(&col, dst, state, multTableAt, multSubTableAt);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetSubtract(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     Uint32 col = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
     PixelNoFiltSetSubtract(&col, dst, state, multTableAt, multSubTableAt);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetMatchEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) == (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelTintSetMatchNotEqual(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     if ((*dst & 0xFCFCFC) != (SoftwareRenderer::CompareColor & 0xFCFCFC))
         *dst = 0xFF000000 | CurrentTintFunction(src, dst, state.Tint.Color, state.Tint.Amount);
 }
@@ -629,7 +601,7 @@ static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 
     return CurrentBlendState.FilterTable[GET_FILTER_COLOR(*dst)];
 }
 
-PUBLIC STATIC void     SoftwareRenderer::SetTintFunction(int blendFlags) {
+void     SoftwareRenderer::SetTintFunction(int blendFlags) {
     TintFunction tintFunctions[] = {
         TintNormalSource,
         TintNormalDest,
@@ -727,16 +699,16 @@ StencilTestFunction StencilFuncTest = StencilTestAlways;
 StencilOpFunction StencilFuncPass = StencilOpKeep;
 StencilOpFunction StencilFuncFail = StencilOpKeep;
 
-PUBLIC STATIC void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
+void     SoftwareRenderer::SetStencilEnabled(bool enabled) {
     if (Scene::ViewCurrent >= 0) {
         UseStencil = enabled;
         Scene::Views[Scene::ViewCurrent].SetStencilEnabled(enabled);
     }
 }
-PUBLIC STATIC bool     SoftwareRenderer::IsStencilEnabled() {
+bool     SoftwareRenderer::IsStencilEnabled() {
     return UseStencil;
 }
-PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
+void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
     StencilTestFunction funcList[] = {
         StencilTestNever,
         StencilTestAlways,
@@ -751,26 +723,26 @@ PUBLIC STATIC void     SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
     if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual)
         StencilFuncTest = funcList[stencilTest];
 }
-PUBLIC STATIC void     SoftwareRenderer::SetStencilPassFunc(int stencilOp) {
+void     SoftwareRenderer::SetStencilPassFunc(int stencilOp) {
     if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
         StencilFuncPass = StencilOpFunctionList[stencilOp];
 }
-PUBLIC STATIC void     SoftwareRenderer::SetStencilFailFunc(int stencilOp) {
+void     SoftwareRenderer::SetStencilFailFunc(int stencilOp) {
     if (stencilOp >= StencilOp_Keep && stencilOp <= StencilOp_DecrWrap)
         StencilFuncFail = StencilOpFunctionList[stencilOp];
 }
-PUBLIC STATIC void     SoftwareRenderer::SetStencilValue(int value) {
+void     SoftwareRenderer::SetStencilValue(int value) {
     StencilValue = value;
 }
-PUBLIC STATIC void     SoftwareRenderer::SetStencilMask(int mask) {
+void     SoftwareRenderer::SetStencilMask(int mask) {
     StencilMask = mask;
 }
-PUBLIC STATIC void     SoftwareRenderer::ClearStencil() {
+void     SoftwareRenderer::ClearStencil() {
     if (UseStencil && Graphics::CurrentView)
         Graphics::CurrentView->ClearStencil();
 }
 
-PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
     View* currentView = Graphics::CurrentView;
@@ -783,11 +755,11 @@ PUBLIC STATIC void SoftwareRenderer::PixelStencil(Uint32* src, Uint32* dst, Blen
         StencilFuncFail(buffer, StencilValue);
 }
 
-PUBLIC STATIC void SoftwareRenderer::SetDotMask(int mask) {
+void SoftwareRenderer::SetDotMask(int mask) {
     SetDotMaskH(mask);
     SetDotMaskV(mask);
 }
-PUBLIC STATIC void SoftwareRenderer::SetDotMaskH(int mask) {
+void SoftwareRenderer::SetDotMaskH(int mask) {
     if (mask < 0)
         mask = 0;
     else if (mask > 255)
@@ -795,7 +767,7 @@ PUBLIC STATIC void SoftwareRenderer::SetDotMaskH(int mask) {
 
     DotMaskH = mask;
 }
-PUBLIC STATIC void SoftwareRenderer::SetDotMaskV(int mask) {
+void SoftwareRenderer::SetDotMaskV(int mask) {
     if (mask < 0)
         mask = 0;
     else if (mask > 255)
@@ -803,14 +775,14 @@ PUBLIC STATIC void SoftwareRenderer::SetDotMaskV(int mask) {
 
     DotMaskV = mask;
 }
-PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
+void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
     DotMaskOffsetH = offset;
 }
-PUBLIC STATIC void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
+void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
     DotMaskOffsetV = offset;
 }
 
-PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
     int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
@@ -822,7 +794,7 @@ PUBLIC STATIC void SoftwareRenderer::PixelDotMaskH(Uint32* src, Uint32* dst, Ble
     else
         CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
     int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
@@ -834,7 +806,7 @@ PUBLIC STATIC void SoftwareRenderer::PixelDotMaskV(Uint32* src, Uint32* dst, Ble
     else
         CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 }
-PUBLIC STATIC void SoftwareRenderer::PixelDotMaskHV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
+void SoftwareRenderer::PixelDotMaskHV(Uint32* src, Uint32* dst, BlendState& state, int* multTableAt, int* multSubTableAt) {
     size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
     int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
@@ -914,13 +886,13 @@ static int CalcVertexColor(Scene3D* scene, VertexAttribute *vertex, int normalY)
 }
 
 // Drawing 3D
-PUBLIC STATIC void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
+void     SoftwareRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::UnbindVertexBuffer() {
+void     SoftwareRenderer::UnbindVertexBuffer() {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
+void     SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -932,7 +904,7 @@ PUBLIC STATIC void     SoftwareRenderer::BindScene3D(Uint32 sceneIndex) {
     else
         polygonRenderer.ClipPolygonsByFrustum = false;
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
+void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
     if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES)
         return;
 
@@ -1373,7 +1345,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 d
 #undef ORTHO_Y
 }
 
-PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (!polygonRenderer.SetBuffers())
         return false;
 
@@ -1387,23 +1359,23 @@ PRIVATE STATIC bool     SoftwareRenderer::SetupPolygonRenderer(Matrix4x4* modelM
     return true;
 }
 
-PUBLIC STATIC void     SoftwareRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     SoftwareRenderer::DrawPolygon3D(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
         polygonRenderer.DrawPolygon3D((VertexAttribute*)data, vertexCount, vertexFlag, texture);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     SoftwareRenderer::DrawSceneLayer3D(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
         polygonRenderer.DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     SoftwareRenderer::DrawModel(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
         polygonRenderer.DrawModel((IModel*)model, animation, frame);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     SoftwareRenderer::DrawModelSkinned(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (SetupPolygonRenderer(modelMatrix, normalMatrix))
         polygonRenderer.DrawModelSkinned((IModel*)model, armature);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
+void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix) {
     if (Graphics::CurrentScene3D < 0 || vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS)
         return;
 
@@ -1429,7 +1401,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawVertexBuffer(Uint32 vertexBufferInd
     rend.DrawVertexBuffer();
 }
 
-PUBLIC STATIC PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
+PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
     if (blendFlag & BlendFlag_TINT_BIT)
         CurrentPixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
     else
@@ -1495,10 +1467,10 @@ static void DoLineStrokeBounded(int dst_x1, int dst_y1, int dst_x2, int dst_y2, 
     }
 }
 
-PUBLIC STATIC void     SoftwareRenderer::SetLineWidth(float n) {
+void     SoftwareRenderer::SetLineWidth(float n) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
     int x = 0, y = 0;
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
@@ -1543,7 +1515,7 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeLine(float x1, float y1, float x2
 
     DoLineStrokeBounded(dst_x1, dst_y1, dst_x2, dst_y2, minX, maxX, minY, maxY, pixelFunction, ColRGB, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 }
-PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
+void     SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1636,7 +1608,7 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeCircle(float x, float y, float ra
 
 #undef DRAW_POINT
 }
-PRIVATE STATIC void     SoftwareRenderer::InitContour(Contour *contourBuffer, int dst_y1, int scanLineCount) {
+void     SoftwareRenderer::InitContour(Contour *contourBuffer, int dst_y1, int scanLineCount) {
     Contour* contourPtr = &contourBuffer[dst_y1];
     while (scanLineCount--) {
         contourPtr->MinX = 0x7FFFFFFF;
@@ -1644,7 +1616,7 @@ PRIVATE STATIC void     SoftwareRenderer::InitContour(Contour *contourBuffer, in
         contourPtr++;
     }
 }
-PRIVATE STATIC void     SoftwareRenderer::RasterizeCircle(int ccx, int ccy, int dst_x1, int dst_y1, int dst_x2, int dst_y2, float rad, Contour *contourBuffer) {
+void     SoftwareRenderer::RasterizeCircle(int ccx, int ccy, int dst_x1, int dst_y1, int dst_x2, int dst_y2, float rad, Contour *contourBuffer) {
     #define SEEK_MIN(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &contourBuffer[our_y])->MinX) \
         cont->MinX = our_x < dst_x1 ? dst_x1 : our_x > (dst_x2 - 1) ? dst_x2 - 1 : our_x;
     #define SEEK_MAX(our_x, our_y) if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &contourBuffer[our_y])->MaxX) \
@@ -1677,7 +1649,7 @@ PRIVATE STATIC void     SoftwareRenderer::RasterizeCircle(int ccx, int ccy, int 
 #undef SEEK_MIN
 #undef SEEK_MAX
 }
-PRIVATE STATIC void     SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thickness) {
+void     SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thickness) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1828,10 +1800,10 @@ PRIVATE STATIC void     SoftwareRenderer::StrokeThickCircle(float x, float y, fl
         }
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
+void     SoftwareRenderer::StrokeEllipse(float x, float y, float w, float h) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
+void     SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -1899,7 +1871,7 @@ PUBLIC STATIC void     SoftwareRenderer::StrokeRectangle(float x, float y, float
     DoLineStroke(dst_x2 - 1, dst_y1 + 1, dst_x2 - 1, dst_y2 - 1, pixelFunction, col, blendState, multTableAt, multSubTableAt, dstPx, dstStride);
 }
 
-PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad) {
+void     SoftwareRenderer::FillCircle(float x, float y, float rad) {
     // just checks to see if the pixel is within a radius range, uses a bounding box constructed by the diameter
 
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
@@ -2002,10 +1974,10 @@ PUBLIC STATIC void     SoftwareRenderer::FillCircle(float x, float y, float rad)
 #undef SEEK_MIN
 #undef SEEK_MAX
 }
-PUBLIC STATIC void     SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
+void     SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
+void     SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
     Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
     Uint32  dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -2076,7 +2048,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillRectangle(float x, float y, float w
         }
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+void     SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2102,7 +2074,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangle(float x1, float y1, float 
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16;
     PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
 }
-PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
+void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2129,7 +2101,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillTriangleBlend(float x1, float y1, f
     vectors[2].X = ((int)x3 + x) << 16; vectors[2].Y = ((int)y3 + y) << 16; colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
 }
-PUBLIC STATIC void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2156,7 +2128,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuad(float x1, float y1, float x2, 
     vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16;
     PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, blendState);
 }
-PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
+void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2184,7 +2156,7 @@ PUBLIC STATIC void     SoftwareRenderer::FillQuadBlend(float x1, float y1, float
     vectors[3].X = ((int)x4 + x) << 16; vectors[3].Y = ((int)y4 + y) << 16; colors[3] = ColorUtils::Multiply(c4, GetBlendColor());
     PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, blendState);
 }
-PRIVATE STATIC void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, unsigned numPoints, float* px, float* py, int* pc, float* pu, float* pv) {
+void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, unsigned numPoints, float* px, float* py, int* pc, float* pu, float* pv) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2222,7 +2194,7 @@ PRIVATE STATIC void    SoftwareRenderer::DrawShapeTextured(Texture* texturePtr, 
 
     PolygonRasterizer::DrawBlendPerspective(texturePtr, vectors, uv, colors, numPoints, blendState);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3, float u1, float v1, float u2, float v2, float u3, float v3) {
+void     SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3, float u1, float v1, float u2, float v2, float u3, float v3) {
     float px[3];
     float py[3];
     float pu[3];
@@ -2249,7 +2221,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawTriangleTextured(Texture* texturePt
 
     DrawShapeTextured(texturePtr, 3, px, py, pc, pu, pv);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawQuadTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4) {
+void     SoftwareRenderer::DrawQuadTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4) {
     float px[4];
     float py[4];
     float pu[4];
@@ -2820,7 +2792,7 @@ void DrawSpriteImageTransformed(Texture* texture, int x, int y, int offx, int of
     #undef DRAW_FLIPXY
 }
 
-PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
+void     SoftwareRenderer::DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h) {
     View* currentView = Graphics::CurrentView;
     if (!currentView)
         return;
@@ -2848,7 +2820,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawTexture(Texture* texture, float sx,
     else
         DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, 0, blendState);
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
     if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     View* currentView = Graphics::CurrentView;
@@ -2909,7 +2881,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSprite(ISprite* sprite, int animati
             break;
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
+void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) return;
 
     View* currentView = Graphics::CurrentView;
@@ -2977,10 +2949,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSpritePart(ISprite* sprite, int ani
 }
 
 // Default Tile Display Line setup
-PUBLIC STATIC void     SoftwareRenderer::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
+void     SoftwareRenderer::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
     switch (layer->DrawBehavior) {
         case DrawBehavior_PGZ1_BG:
         case DrawBehavior_HorizontalParallax: {
@@ -3107,7 +3079,7 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneL
     }
 }
 
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
     int dst_x1 = 0;
     int dst_y1 = 0;
     int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
@@ -3578,10 +3550,10 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(Scene
         }
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
+void     SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {
 
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView) {
+void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView) {
     int dst_x1 = 0;
     int dst_y1 = 0;
     int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
@@ -3736,7 +3708,7 @@ scanlineDone:
         dst_strideY += dstStride;
     }
 }
-PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
+void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction) {
     if (layer->UsingCustomRenderFunction && useCustomFunction) {
         Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
         return;
@@ -3763,6 +3735,6 @@ PUBLIC STATIC void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View*
 	}
 }
 
-PUBLIC STATIC void     SoftwareRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+void     SoftwareRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     frame->ID = 0;
 }

@@ -1,21 +1,7 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/IO/Stream.h>
-class NetworkStream : public Stream {
-public:
-    FILE*  f;
-    size_t size;
-    enum {
-        SERVER_SOCKET = 0,
-        CLIENT_SOCKET = 1,
-    };
-};
-#endif
-
 #include <Engine/IO/NetworkStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
-PUBLIC STATIC NetworkStream* NetworkStream::New(const char* filename, Uint32 access) {
+NetworkStream* NetworkStream::New(const char* filename, Uint32 access) {
     NetworkStream* stream = new NetworkStream;
     if (!stream) {
         return NULL;
@@ -55,32 +41,32 @@ PUBLIC STATIC NetworkStream* NetworkStream::New(const char* filename, Uint32 acc
         return NULL;
 }
 
-PUBLIC        void        NetworkStream::Close() {
+void        NetworkStream::Close() {
     fclose(f);
     f = NULL;
     Stream::Close();
 }
-PUBLIC        void        NetworkStream::Seek(Sint64 offset) {
+void        NetworkStream::Seek(Sint64 offset) {
     fseek(f, offset, SEEK_SET);
 }
-PUBLIC        void        NetworkStream::SeekEnd(Sint64 offset) {
+void        NetworkStream::SeekEnd(Sint64 offset) {
     fseek(f, offset, SEEK_END);
 }
-PUBLIC        void        NetworkStream::Skip(Sint64 offset) {
+void        NetworkStream::Skip(Sint64 offset) {
     fseek(f, offset, SEEK_CUR);
 }
-PUBLIC        size_t      NetworkStream::Position() {
+size_t      NetworkStream::Position() {
     return ftell(f);
 }
-PUBLIC        size_t      NetworkStream::Length() {
+size_t      NetworkStream::Length() {
     return size;
 }
 
-PUBLIC        size_t      NetworkStream::ReadBytes(void* data, size_t n) {
+size_t      NetworkStream::ReadBytes(void* data, size_t n) {
     // if (!f) Log::Print(Log::LOG_ERROR, "Attempt to read from closed stream.")
     return fread(data, 1, n, f);
 }
 
-PUBLIC        size_t      NetworkStream::WriteBytes(void* data, size_t n) {
+size_t      NetworkStream::WriteBytes(void* data, size_t n) {
     return fwrite(data, 1, n, f);
 }

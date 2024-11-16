@@ -1,137 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Application.h>
-#include <Engine/Graphics.h>
-
-#include <Engine/ResourceTypes/ResourceType.h>
-
-#include <Engine/Includes/HashMap.h>
-#include <Engine/Math/Math.h>
-#include <Engine/Types/Tileset.h>
-#include <Engine/Types/EntityTypes.h>
-#include <Engine/Types/ObjectList.h>
-#include <Engine/Types/ObjectRegistry.h>
-#include <Engine/Types/DrawGroupList.h>
-#include <Engine/Rendering/GameTexture.h>
-#include <Engine/Scene/SceneConfig.h>
-#include <Engine/Scene/SceneLayer.h>
-#include <Engine/Scene/SceneEnums.h>
-#include <Engine/Scene/TileConfig.h>
-#include <Engine/Scene/TileSpriteInfo.h>
-#include <Engine/Scene/TileAnimation.h>
-
-#include <Engine/Scene/View.h>
-#include <Engine/Diagnostics/PerformanceTypes.h>
-
-need_t Entity;
-
-class Scene {
-public:
-    static int                       ShowTileCollisionFlag;
-    static int                       ShowObjectRegions;
-
-    static HashMap<VMValue>*         Properties;
-
-    static HashMap<ObjectList*>*     ObjectLists;
-    static HashMap<ObjectRegistry*>* ObjectRegistries;
-
-    static HashMap<ObjectList*>*     StaticObjectLists;
-
-    static int                       StaticObjectCount;
-    static Entity*                   StaticObjectFirst;
-    static Entity*                   StaticObjectLast;
-    static int                       DynamicObjectCount;
-    static Entity*                   DynamicObjectFirst;
-    static Entity*                   DynamicObjectLast;
-
-    static int                       ObjectCount;
-    static Entity*                   ObjectFirst;
-    static Entity*                   ObjectLast;
-
-    static int                       BasePriorityPerLayer;
-    static int                       PriorityPerLayer;
-    static DrawGroupList*            PriorityLists;
-
-    static vector<Tileset>           Tilesets;
-    static vector<TileSpriteInfo>    TileSpriteInfos;
-    static Uint16                    EmptyTile;
-
-    static vector<SceneLayer>        Layers;
-    static bool                      AnyLayerTileChange;
-
-    static int                       TileCount;
-    static int                       TileWidth;
-    static int                       TileHeight;
-    static int                       BaseTileCount;
-    static int                       BaseTilesetCount;
-    static bool                      TileCfgLoaded;
-    static vector<TileConfig*>       TileCfg;
-
-    static vector<ResourceType*>     SpriteList;
-    static vector<ResourceType*>     ImageList;
-    static vector<ResourceType*>     SoundList;
-    static vector<ResourceType*>     MusicList;
-    static vector<ResourceType*>     ModelList;
-    static vector<ResourceType*>     MediaList;
-    static vector<GameTexture*>      TextureList;
-    static vector<Animator*>         AnimatorList;
-
-    static int                       Frame;
-    static bool                      Paused;
-    static bool                      Loaded;
-    static int                       TileAnimationEnabled;
-
-    static View                      Views[MAX_SCENE_VIEWS];
-    static int                       ViewCurrent;
-    static int                       ViewsActive;
-
-    static int                       CurrentDrawGroup;
-
-    static int                       ObjectViewRenderFlag;
-    static int                       TileViewRenderFlag;
-
-    static Perf_ViewRender           PERF_ViewRender[MAX_SCENE_VIEWS];
-
-    static char                      NextScene[256];
-    static char                      CurrentScene[256];
-    static bool                      DoRestart;
-    static bool                      NoPersistency;
-
-    static int                       TimeEnabled;
-    static int                       TimeCounter;
-    static int                       Minutes;
-    static int                       Seconds;
-    static int                       Milliseconds;
-
-    static int                       Filter;
-
-    static int                       CurrentSceneInList;
-    static char                      CurrentFolder[256];
-    static char                      CurrentID[256];
-    static char                      CurrentResourceFolder[256];
-    static char                      CurrentCategory[256];
-    static int                       ActiveCategory;
-
-    static int                       DebugMode;
-
-    static float                     CollisionTolerance;
-    static bool                      UseCollisionOffset;
-    static float                     CollisionMaskAir;
-    static CollisionBox              CollisionOuter;
-    static CollisionBox              CollisionInner;
-    static Entity*                   CollisionEntity;
-    static CollisionSensor           Sensors[6];
-    static float                     CollisionMinimumDistance;
-    static float                     LowCollisionTolerance;
-    static float                     HighCollisionTolerance;
-    static int                       FloorAngleTolerance;
-    static int                       WallAngleTolerance;
-    static int                       RoofAngleTolerance;
-    static int                       DebugHitboxCount;
-    static DebugHitboxInfo           DebugHitboxList[DEBUG_HITBOX_COUNT];
-};
-#endif
-
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
@@ -501,7 +367,7 @@ void UpdateObject(Entity* ent) {
 }
 
 // Double linked-list functions
-PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
+void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
     // Set "prev" of obj to last
     obj->PrevEntity = (*last);
     obj->NextEntity = NULL;
@@ -527,7 +393,7 @@ PUBLIC STATIC void Scene::Add(Entity** first, Entity** last, int* count, Entity*
 
     Scene::AddToScene(obj);
 }
-PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
+void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
     if (obj == NULL) return;
     if (obj->Removed) return;
 
@@ -547,7 +413,7 @@ PUBLIC STATIC void Scene::Remove(Entity** first, Entity** last, int* count, Enti
 
     Scene::RemoveObject(obj);
 }
-PUBLIC STATIC void Scene::AddToScene(Entity* obj) {
+void Scene::AddToScene(Entity* obj) {
     obj->PrevSceneEntity = Scene::ObjectLast;
     obj->NextSceneEntity = NULL;
 
@@ -559,7 +425,7 @@ PUBLIC STATIC void Scene::AddToScene(Entity* obj) {
     Scene::ObjectLast = obj;
     Scene::ObjectCount++;
 }
-PUBLIC STATIC void Scene::RemoveFromScene(Entity* obj) {
+void Scene::RemoveFromScene(Entity* obj) {
     if (Scene::ObjectFirst == obj)
         Scene::ObjectFirst = obj->NextSceneEntity;
     if (Scene::ObjectLast == obj)
@@ -574,7 +440,7 @@ PUBLIC STATIC void Scene::RemoveFromScene(Entity* obj) {
 
     Scene::ObjectCount--;
 }
-PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
+void Scene::RemoveObject(Entity* obj) {
     // Remove from proper list
     if (obj->List)
         obj->List->Remove(obj);
@@ -602,20 +468,20 @@ PRIVATE STATIC void Scene::RemoveObject(Entity* obj) {
     // won't be in any object list or draw groups at this point.
     obj->Remove();
 }
-PUBLIC STATIC void Scene::Clear(Entity** first, Entity** last, int* count) {
+void Scene::Clear(Entity** first, Entity** last, int* count) {
     (*first) = NULL;
     (*last) = NULL;
     (*count) = 0;
 }
 
 // Object management
-PUBLIC STATIC void Scene::AddStatic(ObjectList* objectList, Entity* obj) {
+void Scene::AddStatic(ObjectList* objectList, Entity* obj) {
     Scene::Add(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount, obj);
 }
-PUBLIC STATIC void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
+void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
     Scene::Add(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, obj);
 }
-PUBLIC STATIC void Scene::DeleteRemoved(Entity* obj) {
+void Scene::DeleteRemoved(Entity* obj) {
     if (!obj->Removed)
         return;
 
@@ -623,7 +489,7 @@ PUBLIC STATIC void Scene::DeleteRemoved(Entity* obj) {
     delete obj;
 }
 
-PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
+void Scene::OnEvent(Uint32 event) {
     switch (event) {
         case SDL_APP_TERMINATING:
         case SDL_APP_LOWMEMORY:
@@ -639,7 +505,7 @@ PUBLIC STATIC void Scene::OnEvent(Uint32 event) {
 }
 
 // Scene List Functions
-PUBLIC STATIC void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
+void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
     int categoryID = SceneInfo::GetCategoryID(categoryName);
     if (categoryID < 0)
         return;
@@ -656,7 +522,7 @@ PUBLIC STATIC void Scene::SetCurrent(const char* categoryName, const char* scene
     else
         Scene::CurrentSceneInList = category.OffsetStart;
 }
-PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
+void Scene::SetInfoFromCurrentID() {
     if (!SceneInfo::IsCategoryValid(Scene::ActiveCategory))
         return;
 
@@ -677,7 +543,7 @@ PUBLIC STATIC void Scene::SetInfoFromCurrentID() {
 }
 
 // Scene Lifecycle
-PUBLIC STATIC void Scene::Init() {
+void Scene::Init() {
     Scene::NextScene[0] = '\0';
     Scene::CurrentScene[0] = '\0';
 
@@ -730,7 +596,7 @@ PUBLIC STATIC void Scene::Init() {
     if (ScriptManager::LoadAllClasses)
         ScriptManager::LoadClasses();
 }
-PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
+void Scene::InitObjectListsAndRegistries() {
     if (Scene::ObjectLists == NULL)
         Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
     if (Scene::ObjectRegistries == NULL)
@@ -739,16 +605,16 @@ PUBLIC STATIC void Scene::InitObjectListsAndRegistries() {
         Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 }
 
-PUBLIC STATIC void Scene::ResetPerf() {
+void Scene::ResetPerf() {
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
             list->ResetPerf();
         });
     }
 }
-PUBLIC STATIC void Scene::Update() {
-    DebugHitboxCount = 0;
 
+void Scene::Update() {
+    DebugHitboxCount = 0;
     // Animate tiles
     Scene::RunTileAnimations();
 
@@ -820,20 +686,20 @@ PUBLIC STATIC void Scene::Update() {
         Scene::ProcessSceneTimer();
     }
 }
-PRIVATE STATIC void Scene::RunTileAnimations() {
+void Scene::RunTileAnimations() {
     if ((Scene::TileAnimationEnabled == 1 && !Scene::Paused) || Scene::TileAnimationEnabled == 2) {
         for (Tileset& tileset : Scene::Tilesets)
             tileset.RunAnimations();
     }
 }
-PUBLIC STATIC Tileset* Scene::GetTileset(int tileID) {
+Tileset* Scene::GetTileset(int tileID) {
     for (Tileset& tileset : Scene::Tilesets) {
         if (tileID >= tileset.StartTile)
             return &tileset;
     }
     return nullptr;
 }
-PUBLIC STATIC TileAnimator* Scene::GetTileAnimator(int tileID) {
+TileAnimator* Scene::GetTileAnimator(int tileID) {
     for (Tileset& tileset : Scene::Tilesets) {
         TileAnimator* animator = tileset.GetTileAnimSequence(tileID);
         if (animator)
@@ -841,7 +707,7 @@ PUBLIC STATIC TileAnimator* Scene::GetTileAnimator(int tileID) {
     }
     return nullptr;
 }
-PUBLIC STATIC void Scene::SetViewActive(int viewIndex, bool active) {
+void Scene::SetViewActive(int viewIndex, bool active) {
     if (Scene::Views[viewIndex].Active == active)
         return;
 
@@ -853,12 +719,12 @@ PUBLIC STATIC void Scene::SetViewActive(int viewIndex, bool active) {
 
     Scene::SortViews();
 }
-PUBLIC STATIC void Scene::SetViewPriority(int viewIndex, int priority) {
+void Scene::SetViewPriority(int viewIndex, int priority) {
     Scene::Views[viewIndex].Priority = priority;
     Scene::SortViews();
 }
 
-PRIVATE STATIC void Scene::ResetViews() {
+void Scene::ResetViews() {
     Scene::ViewsActive = 0;
 
     // Deactivate extra views
@@ -870,7 +736,7 @@ PRIVATE STATIC void Scene::ResetViews() {
     Scene::SetViewActive(0, true);
 }
 
-PUBLIC STATIC void Scene::SortViews() {
+void Scene::SortViews() {
     int count = 0;
 
     for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -887,7 +753,7 @@ PUBLIC STATIC void Scene::SortViews() {
     }
 }
 
-PUBLIC STATIC void Scene::SetView(int viewIndex) {
+void Scene::SetView(int viewIndex) {
     View* currentView = &Scene::Views[viewIndex];
 
     Graphics::CurrentView = currentView;
@@ -916,7 +782,7 @@ PUBLIC STATIC void Scene::SetView(int viewIndex) {
     Scene::ViewCurrent = viewIndex;
 }
 
-PUBLIC STATIC bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY) {
+bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY) {
     if (!posX || !posY || !rangeX || !rangeY)
         return false;
 
@@ -936,7 +802,7 @@ PUBLIC STATIC bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX,
 #define PERF_START(n) if (viewPerf) viewPerf->n = Clock::GetTicks()
 #define PERF_END(n) if (viewPerf) viewPerf->n = Clock::GetTicks() - viewPerf->n
 
-PUBLIC STATIC void Scene::RenderView(int viewIndex, bool doPerf) {
+void Scene::RenderView(int viewIndex, bool doPerf) {
     View* currentView = &Scene::Views[viewIndex];
     Perf_ViewRender* viewPerf = doPerf ? &Scene::PERF_ViewRender[viewIndex] : NULL;
 
@@ -1284,7 +1150,7 @@ DoCheckRender:
     PERF_END(RenderFinishTime);
 }
 
-PUBLIC STATIC void Scene::Render() {
+void Scene::Render() {
     if (!Scene::PriorityLists)
         return;
 
@@ -1386,7 +1252,7 @@ PUBLIC STATIC void Scene::Render() {
     Scene::ViewCurrent = -1;
 }
 
-PUBLIC STATIC void Scene::AfterScene() {
+void Scene::AfterScene() {
     ScriptManager::ResetStack();
     ScriptManager::RequestGarbageCollection();
 
@@ -1409,29 +1275,29 @@ PUBLIC STATIC void Scene::AfterScene() {
     }
 }
 
-PRIVATE STATIC void Scene::Iterate(Entity* first, std::function<void(Entity* e)> func) {
+void Scene::Iterate(Entity* first, std::function<void(Entity* e)> func) {
     for (Entity* ent = first, *next; ent; ent = next) {
         next = ent->NextEntity;
         func(ent);
     }
 }
-PRIVATE STATIC void Scene::IterateAll(Entity* first, std::function<void(Entity* e)> func) {
+void Scene::IterateAll(Entity* first, std::function<void(Entity* e)> func) {
     for (Entity* ent = first, *next; ent; ent = next) {
         next = ent->NextSceneEntity;
         func(ent);
     }
 }
-PRIVATE STATIC void Scene::ResetPriorityListIndex(Entity* first) {
+void Scene::ResetPriorityListIndex(Entity* first) {
     Scene::Iterate(first, [](Entity* ent) -> void {
         ent->PriorityListIndex = -1;
     });
 }
 
-PRIVATE STATIC int Scene::GetPersistenceScopeForObjectDeletion() {
+int Scene::GetPersistenceScopeForObjectDeletion() {
     return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
 
-PUBLIC STATIC void Scene::Restart() {
+void Scene::Restart() {
     Scene::ViewCurrent = 0;
     Graphics::CurrentView = NULL;
 
@@ -1572,7 +1438,7 @@ PUBLIC STATIC void Scene::Restart() {
     ScriptManager::ResetStack();
     ScriptManager::RequestGarbageCollection();
 }
-PRIVATE STATIC void Scene::ClearPriorityLists() {
+void Scene::ClearPriorityLists() {
     if (!Scene::PriorityLists)
         return;
 
@@ -1584,14 +1450,14 @@ PRIVATE STATIC void Scene::ClearPriorityLists() {
     ResetPriorityListIndex(Scene::StaticObjectFirst);
     ResetPriorityListIndex(Scene::DynamicObjectFirst);
 }
-PRIVATE STATIC void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
+void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
     Scene::Iterate(*first, [](Entity* ent) -> void {
         // Garbage collection will take care of it later.
         Scene::RemoveObject(ent);
     });
     Scene::Clear(first, last, count);
 }
-PRIVATE STATIC void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count) {
+void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count) {
     int persistencyScope = Scene::GetPersistenceScopeForObjectDeletion();
     for (Entity* ent = *first, *next; ent; ent = next) {
         next = ent->NextEntity;
@@ -1599,7 +1465,7 @@ PRIVATE STATIC void Scene::RemoveNonPersistentObjects(Entity** first, Entity** l
             Scene::Remove(first, last, count, ent);
     }
 }
-PRIVATE STATIC void Scene::DeleteAllObjects() {
+void Scene::DeleteAllObjects() {
     // Dispose and clear Static objects
     Scene::DeleteObjects(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
 
@@ -1620,7 +1486,7 @@ PRIVATE STATIC void Scene::DeleteAllObjects() {
         });
     }
 }
-PUBLIC STATIC void Scene::LoadScene(const char* filename) {
+void Scene::LoadScene(const char* filename) {
     // Remove non-persistent objects from lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1753,7 +1619,7 @@ PUBLIC STATIC void Scene::LoadScene(const char* filename) {
     Scene::Loaded = false;
 }
 
-PUBLIC STATIC void Scene::ProcessSceneTimer() {
+void Scene::ProcessSceneTimer() {
     if (Scene::TimeEnabled) {
         Scene::TimeCounter += 100;
 
@@ -1774,13 +1640,13 @@ PUBLIC STATIC void Scene::ProcessSceneTimer() {
     }
 }
 
-PUBLIC STATIC ObjectList* Scene::NewObjectList(const char* objectName) {
+ObjectList* Scene::NewObjectList(const char* objectName) {
     ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
     if (objectList && ScriptManager::LoadObjectClass(objectName, true))
         objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
     return objectList;
 }
-PRIVATE STATIC void Scene::AddStaticClass() {
+void Scene::AddStaticClass() {
     StaticObjectList = Scene::NewObjectList("Static");
     if (!StaticObjectList->SpawnFunction)
         return;
@@ -1799,11 +1665,11 @@ PRIVATE STATIC void Scene::AddStaticClass() {
 
     StaticObject = obj;
 }
-PRIVATE STATIC void Scene::CallGameStart() {
+void Scene::CallGameStart() {
     if (StaticObject)
         StaticObject->GameStart();
 }
-PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFunction) {
+ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFunction) {
     Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
     ObjectList* objectList;
@@ -1819,10 +1685,10 @@ PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName, bool call
 
     return objectList;
 }
-PUBLIC STATIC ObjectList* Scene::GetObjectList(const char* objectName) {
+ObjectList* Scene::GetObjectList(const char* objectName) {
     return GetObjectList(objectName, true);
 }
-PUBLIC STATIC ObjectList* Scene::GetStaticObjectList(const char* objectName) {
+ObjectList* Scene::GetStaticObjectList(const char* objectName) {
     ObjectList* objectList;
 
     if (Scene::StaticObjectLists->Exists(objectName)) {
@@ -1845,7 +1711,7 @@ PUBLIC STATIC ObjectList* Scene::GetStaticObjectList(const char* objectName) {
 
     return objectList;
 }
-PRIVATE STATIC void Scene::SpawnStaticObject(const char* objectName) {
+void Scene::SpawnStaticObject(const char* objectName) {
     ObjectList* objectList = Scene::GetObjectList(objectName, false);
     if (objectList->SpawnFunction) {
         Entity* obj = objectList->Spawn();
@@ -1859,13 +1725,13 @@ PRIVATE STATIC void Scene::SpawnStaticObject(const char* objectName) {
         Scene::AddStatic(objectList, obj);
     }
 }
-PUBLIC STATIC void Scene::AddManagers() {
+void Scene::AddManagers() {
     Scene::SpawnStaticObject("WindowManager");
     Scene::SpawnStaticObject("InputManager");
     Scene::SpawnStaticObject("FadeManager");
 }
 
-PUBLIC STATIC void Scene::FreePriorityLists() {
+void Scene::FreePriorityLists() {
     if (Scene::PriorityLists) {
         for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
             Scene::PriorityLists[i].Dispose();
@@ -1875,7 +1741,7 @@ PUBLIC STATIC void Scene::FreePriorityLists() {
     Scene::PriorityLists = NULL;
     Scene::PriorityPerLayer = 0;
 }
-PUBLIC STATIC void Scene::InitPriorityLists() {
+void Scene::InitPriorityLists() {
     if (Scene::PriorityPerLayer == 0)
         Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
 
@@ -1894,7 +1760,7 @@ PUBLIC STATIC void Scene::InitPriorityLists() {
     for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--)
         Scene::PriorityLists[i].Init();
 }
-PUBLIC STATIC void Scene::SetPriorityPerLayer(int count) {
+void Scene::SetPriorityPerLayer(int count) {
     if (count < 1)
         count = 1;
     else if (count > 256)
@@ -1916,7 +1782,7 @@ PUBLIC STATIC void Scene::SetPriorityPerLayer(int count) {
     Scene::PriorityPerLayer = count;
 }
 
-PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
+void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
     int bufferPos = 0;
 
     Uint8 collisionHeights[16];
@@ -2101,7 +1967,7 @@ PRIVATE STATIC void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {
         tileDest->CollisionBottom[xD] = tile->CollisionTop[xS] ^ 15;
     }
 }
-PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
+void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
     Uint32 tileCount = 0x400;
 
     Uint8* tileData = (Uint8*)Memory::Calloc(1, tileCount * 2 * 0x26);
@@ -2135,7 +2001,7 @@ PRIVATE STATIC void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColRead
 
     Memory::Free(tileData);
 }
-PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
+void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
     if (!Scene::Tilesets.size() || tilesetID >= Scene::Tilesets.size())
         return;
 
@@ -2342,7 +2208,7 @@ PRIVATE STATIC void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColR
         }
     }
 }
-PRIVATE STATIC void Scene::InitTileCollisions() {
+void Scene::InitTileCollisions() {
     if (Scene::TileCount == 0) {
         size_t tileCount = 0x400;
 
@@ -2367,7 +2233,7 @@ PRIVATE STATIC void Scene::InitTileCollisions() {
     Scene::TileCfg.push_back(tileCfgA);
     Scene::TileCfg.push_back(tileCfgB);
 }
-PRIVATE STATIC void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles) {
+void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles) {
     for (size_t i = 0; i < numTiles; i++) {
         TileConfig* tile = &cfg[i];
         memset(tile->CollisionTop, 16, 16);
@@ -2376,7 +2242,7 @@ PRIVATE STATIC void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles)
         memset(tile->CollisionRight, 16, 16);
     }
 }
-PUBLIC STATIC bool Scene::AddTileset(char* path) {
+bool Scene::AddTileset(char* path) {
     ISprite* tileSprite = new ISprite();
     Texture* spriteSheet = tileSprite->AddSpriteSheet(path);
     if (!spriteSheet) {
@@ -2412,7 +2278,7 @@ PUBLIC STATIC bool Scene::AddTileset(char* path) {
 
     return true;
 }
-PRIVATE STATIC void Scene::SetTileCount(size_t tileCount) {
+void Scene::SetTileCount(size_t tileCount) {
     vector<TileConfig*> configFlipX;
     vector<TileConfig*> configFlipY;
     vector<TileConfig*> configFlipXY;
@@ -2459,7 +2325,7 @@ PRIVATE STATIC void Scene::SetTileCount(size_t tileCount) {
 
     Scene::TileCount = tileCount;
 }
-PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
+void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
     if (!ResourceManager::ResourceExists(filename)) {
         Log::Print(Log::LOG_WARN, "Could not find tile collision file \"%s\"!", filename);
         return;
@@ -2484,7 +2350,7 @@ PUBLIC STATIC void Scene::LoadTileCollisions(const char* filename, size_t tilese
 
     tileColReader->Close();
 }
-PUBLIC STATIC void Scene::UnloadTileCollisions() {
+void Scene::UnloadTileCollisions() {
     for (size_t i = 0; i < Scene::TileCfg.size(); i++)
         Memory::Free(Scene::TileCfg[i]);
 
@@ -2495,7 +2361,7 @@ PUBLIC STATIC void Scene::UnloadTileCollisions() {
 
 // Resource Management
 // return true if we found it in the list
-PUBLIC STATIC bool Scene::GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t& index, bool& foundEmpty) {
+bool Scene::GetResourceListSpace(vector<ResourceType*>* list, ResourceType* resource, size_t& index, bool& foundEmpty) {
     foundEmpty = false;
     index = list->size();
     for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
@@ -2515,7 +2381,7 @@ PUBLIC STATIC bool Scene::GetResourceListSpace(vector<ResourceType*>* list, Reso
     return false;
 }
 
-PUBLIC STATIC bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index) {
+bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index) {
     bool foundEmpty = false;
     if (GetResourceListSpace(list, resource, index, foundEmpty))
         return true;
@@ -2526,7 +2392,7 @@ PUBLIC STATIC bool Scene::GetResource(vector<ResourceType*>* list, ResourceType*
     return false;
 }
 
-PUBLIC STATIC ISprite* Scene::GetSpriteResource(int index) {
+ISprite* Scene::GetSpriteResource(int index) {
     if (index < 0 || index >= (int)Scene::SpriteList.size())
         return NULL;
 
@@ -2535,7 +2401,7 @@ PUBLIC STATIC ISprite* Scene::GetSpriteResource(int index) {
     return Scene::SpriteList[index]->AsSprite;
 }
 
-PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
+void Scene::DisposeInScope(Uint32 scope) {
     // Images
     for (size_t i = 0, i_sz = Scene::ImageList.size(); i < i_sz; i++) {
         if (!Scene::ImageList[i]) continue;
@@ -2622,7 +2488,7 @@ PUBLIC STATIC void Scene::DisposeInScope(Uint32 scope) {
         Scene::AnimatorList[i] = NULL;
     }
 }
-PUBLIC STATIC void Scene::Dispose() {
+void Scene::Dispose() {
     for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
         if (Scene::Views[i].DrawTarget) {
             Graphics::DisposeTexture(Scene::Views[i].DrawTarget);
@@ -2717,7 +2583,7 @@ PUBLIC STATIC void Scene::Dispose() {
     Compiler::Dispose();
 }
 
-PUBLIC STATIC void Scene::UnloadTilesets() {
+void Scene::UnloadTilesets() {
     for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
         if (Scene::Tilesets[i].Sprite)
             delete Scene::Tilesets[i].Sprite;
@@ -2729,7 +2595,7 @@ PUBLIC STATIC void Scene::UnloadTilesets() {
 }
 
 // Tile Batching
-PUBLIC STATIC void Scene::SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB) {
+void Scene::SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB) {
     Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
 
     *tile = tileID & TILE_IDENT_MASK;
@@ -2742,7 +2608,7 @@ PUBLIC STATIC void Scene::SetTile(int layer, int x, int y, int tileID, int flip_
 }
 
 // Tile Collision
-PUBLIC STATIC int  Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* angle) {
+int  Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* angle) {
     if (collisionField < 0 || collisionField >= Scene::TileCfg.size())
         return -1;
 
@@ -2845,7 +2711,7 @@ PUBLIC STATIC int  Scene::CollisionAt(int x, int y, int collisionField, int coll
     return -1;
 }
 
-PUBLIC STATIC int Scene::CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor) {
+int Scene::CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor) {
     if (checkLen < 0 || collisionField < 0 || collisionField >= Scene::TileCfg.size())
         return -1;
 
@@ -3031,7 +2897,7 @@ PUBLIC STATIC int Scene::CollisionInLine(int x, int y, int angleMode, int checkL
     return -1;
 }
 
-PUBLIC STATIC void Scene::SetupCollisionConfig(float minDistance, float lowTolerance, float highTolerance, int floorAngleTolerance, int wallAngleTolerance, int roofAngleTolerance) {
+void Scene::SetupCollisionConfig(float minDistance, float lowTolerance, float highTolerance, int floorAngleTolerance, int wallAngleTolerance, int roofAngleTolerance) {
     CollisionMinimumDistance    = minDistance;
     LowCollisionTolerance       = lowTolerance;
     HighCollisionTolerance      = highTolerance;
@@ -3040,7 +2906,7 @@ PUBLIC STATIC void Scene::SetupCollisionConfig(float minDistance, float lowToler
     RoofAngleTolerance          = roofAngleTolerance;
 }
 
-PUBLIC STATIC int Scene::AddDebugHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox) {
+int Scene::AddDebugHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox) {
     int i = 0;
     for (; i < DebugHitboxCount; ++i) {
         if (DebugHitboxList[i].hitbox.Left == hitbox->Left && DebugHitboxList[i].hitbox.Top == hitbox->Top
@@ -3081,7 +2947,7 @@ PUBLIC STATIC int Scene::AddDebugHitbox(int type, int dir, Entity* entity, Colli
     return -1;
 }
 
-PUBLIC STATIC bool Scene::CheckObjectCollisionTouch(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox) {
+bool Scene::CheckObjectCollisionTouch(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox) {
     int store = 0;
     if (!thisEntity || !otherEntity || !thisHitbox || !otherHitbox)
         return false;
@@ -3140,7 +3006,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionTouch(Entity* thisEntity, Collisio
     return collided;
 }
 
-PUBLIC STATIC bool Scene::CheckObjectCollisionCircle(Entity* thisEntity, float thisRadius, Entity* otherEntity, float otherRadius) {
+bool Scene::CheckObjectCollisionCircle(Entity* thisEntity, float thisRadius, Entity* otherEntity, float otherRadius) {
     float x = thisEntity->X - otherEntity->X;
     float y = thisEntity->Y - otherEntity->Y;
     float r = thisRadius + otherRadius;
@@ -3164,7 +3030,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionCircle(Entity* thisEntity, float t
     return x * x + y * y < r * r;
 }
 
-PUBLIC STATIC bool Scene::CheckObjectCollisionBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues) {
+bool Scene::CheckObjectCollisionBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues) {
     if (!thisEntity || !otherEntity || !thisHitbox || !otherHitbox)
         return C_NONE;
 
@@ -3357,7 +3223,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionBox(Entity* thisEntity, CollisionB
     return side;
 }
 
-PUBLIC STATIC bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues) {
+bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues) {
     int store       = 0;
     bool collided   = false;
 
@@ -3465,7 +3331,7 @@ PUBLIC STATIC bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, Colli
     return collided;
 }
 
-PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
+bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
     int layerID     = 1;
     bool collided   = false;
     int posX        = xOffset + entity->X;
@@ -3671,7 +3537,7 @@ PUBLIC STATIC bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int c
     }
 }
 
-PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
+bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
     int layerID     = 1;
     bool collided   = false;
     int posX        = xOffset + entity->X;
@@ -3889,7 +3755,7 @@ PUBLIC STATIC bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode,
     }
 }
 
-PUBLIC STATIC void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox) {
+void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox) {
     if (entity && outerBox && innerBox) {
         if (entity->TileCollisions) {
             entity->Angle &= 0xFF;
@@ -3946,7 +3812,7 @@ PUBLIC STATIC void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* ou
     }
 }
 
-PUBLIC STATIC void Scene::ProcessPathGrip() {
+void Scene::ProcessPathGrip() {
     float xVel = 0.0;
     float yVel = 0.0;
 
@@ -4422,7 +4288,7 @@ PUBLIC STATIC void Scene::ProcessPathGrip() {
     }
 }
 
-PUBLIC STATIC void Scene::ProcessAirCollision_Down() {
+void Scene::ProcessAirCollision_Down() {
     int movingDown  = 0;
     int movingUp    = 0;
     int movingLeft  = 0;
@@ -4687,7 +4553,7 @@ PUBLIC STATIC void Scene::ProcessAirCollision_Down() {
     }
 }
 
-PUBLIC STATIC void Scene::ProcessAirCollision_Up() {
+void Scene::ProcessAirCollision_Up() {
     int movingDown  = 0;
     int movingUp    = 0;
     int movingLeft  = 0;
@@ -4952,7 +4818,7 @@ PUBLIC STATIC void Scene::ProcessAirCollision_Up() {
     }
 }
 
-PUBLIC STATIC void Scene::SetPathGripSensors(CollisionSensor* sensors) {
+void Scene::SetPathGripSensors(CollisionSensor* sensors) {
     int offset = UseCollisionOffset ? COLLISION_OFFSET : 0.0;
 
     switch (CollisionEntity->CollisionMode) {
@@ -5020,7 +4886,7 @@ PUBLIC STATIC void Scene::SetPathGripSensors(CollisionSensor* sensors) {
     }
 }
 
-PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
+void Scene::FindFloorPosition(CollisionSensor* sensor) {
     int x = sensor->X;
     int y = sensor->Y;
     int temp;
@@ -5120,7 +4986,7 @@ PUBLIC STATIC void Scene::FindFloorPosition(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::FindLWallPosition(CollisionSensor* sensor) {
+void Scene::FindLWallPosition(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5190,7 +5056,7 @@ PUBLIC STATIC void Scene::FindLWallPosition(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::FindRoofPosition(CollisionSensor* sensor) {
+void Scene::FindRoofPosition(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5259,7 +5125,7 @@ PUBLIC STATIC void Scene::FindRoofPosition(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::FindRWallPosition(CollisionSensor* sensor) {
+void Scene::FindRWallPosition(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5329,7 +5195,7 @@ PUBLIC STATIC void Scene::FindRWallPosition(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::FloorCollision(CollisionSensor* sensor) {
+void Scene::FloorCollision(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5407,7 +5273,7 @@ PUBLIC STATIC void Scene::FloorCollision(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::LWallCollision(CollisionSensor* sensor) {
+void Scene::LWallCollision(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5468,7 +5334,7 @@ PUBLIC STATIC void Scene::LWallCollision(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::RoofCollision(CollisionSensor* sensor) {
+void Scene::RoofCollision(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;
@@ -5543,7 +5409,7 @@ PUBLIC STATIC void Scene::RoofCollision(CollisionSensor* sensor) {
     }
 }
 
-PUBLIC STATIC void Scene::RWallCollision(CollisionSensor* sensor) {
+void Scene::RWallCollision(CollisionSensor* sensor) {
     int posX    = sensor->X;
     int posY    = sensor->Y;
     int OGX     = sensor->X;

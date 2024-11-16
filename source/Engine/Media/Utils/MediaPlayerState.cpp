@@ -1,19 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-
-class MediaPlayerState {
-public:
-    static Uint32 InitFlags;
-    static Uint32 ThreadCount;
-    static Uint32 FontHinting;
-    static Uint32 VideoBufFrames;
-    static Uint32 AudioBufFrames;
-    static Uint32 SubtitleBufFrames;
-    static void*  LibassHandle;
-    static void*  AssSharedObjectHandle;
-};
-#endif
-
 #include <Engine/Media/Utils/MediaPlayerState.h>
 #include <Engine/Media/Includes/AVFormat.h>
 #include <Engine/Media/Includes/AVUtils.h>
@@ -39,10 +23,10 @@ const char* const font_mime[] = {
 
 #ifdef USING_LIBAV
 
-PUBLIC STATIC double MediaPlayerState::GetSystemTime() {
+double MediaPlayerState::GetSystemTime() {
     return (double)av_gettime() / 1000000.0;
 }
-PUBLIC STATIC bool   MediaPlayerState::AttachmentIsFont(void* p) {
+bool   MediaPlayerState::AttachmentIsFont(void* p) {
     AVStream* stream = (AVStream*)p;
     AVDictionaryEntry *tag = av_dict_get(stream->metadata, "mimetype", NULL, AV_DICT_MATCH_CASE);
     if (tag) {

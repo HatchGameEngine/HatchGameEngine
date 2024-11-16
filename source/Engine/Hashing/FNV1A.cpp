@@ -1,16 +1,6 @@
-#if INTERFACE
-
-#include <Engine/Includes/Standard.h>
-
-class FNV1A {
-public:
-
-};
-#endif
-
 #include <Engine/Hashing/FNV1A.h>
 
-PUBLIC STATIC Uint32 FNV1A::EncryptString(char* message) {
+Uint32 FNV1A::EncryptString(char* message) {
     Uint32 hash = 0x811C9DC5U;
 
     while (*message) {
@@ -20,14 +10,14 @@ PUBLIC STATIC Uint32 FNV1A::EncryptString(char* message) {
     }
     return hash;
 }
-PUBLIC STATIC Uint32 FNV1A::EncryptString(const char* message) {
+Uint32 FNV1A::EncryptString(const char* message) {
     return FNV1A::EncryptString((char*)message);
 }
 
-PUBLIC STATIC Uint32 FNV1A::EncryptData(const void* data, size_t size) {
+Uint32 FNV1A::EncryptData(const void* data, size_t size) {
     return FNV1A::EncryptData(data, size, 0x811C9DC5U);
 }
-PUBLIC STATIC Uint32 FNV1A::EncryptData(const void* data, size_t size, Uint32 hash) {
+Uint32 FNV1A::EncryptData(const void* data, size_t size, Uint32 hash) {
     size_t i = size;
     char* message = (char*)data;
     while (i) {

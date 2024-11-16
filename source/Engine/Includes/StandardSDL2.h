@@ -5,13 +5,8 @@
     // SDL2 includes
     #include <SDL2/SDL.h>
 #elif MACOSX
-    #if USING_FRAMEWORK
-        // SDL2 includes
-        #include <SDL2/SDL.h>
-    #else
-        // SDL2 includes
-        #include <SDL.h>
-    #endif
+    // SDL2 includes
+    #include <SDL2/SDL.h>
 #elif SWITCH
     // SDL2 includes
     #include <SDL2/SDL.h>

@@ -1,42 +1,3 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/GL/Includes.h>
-#include <Engine/Math/Matrix4x4.h>
-
-#include <Engine/IO/Stream.h>
-
-class GLShader {
-public:
-    GLuint ProgramID = 0;
-    GLuint VertexProgramID = 0;
-    GLuint FragmentProgramID = 0;
-
-    GLint  LocProjectionMatrix;
-    GLint  LocModelViewMatrix;
-    GLint  LocPosition;
-    GLint  LocTexCoord;
-    GLint  LocTexture;
-    GLint  LocTextureU;
-    GLint  LocTextureV;
-    GLint  LocPalette;
-    GLint  LocColor;
-    GLint  LocVaryingColor;
-    GLint  LocFogColor;
-    GLint  LocFogLinearStart;
-    GLint  LocFogLinearEnd;
-    GLint  LocFogDensity;
-    GLint  LocFogTable;
-
-    char   FilenameV[256];
-    char   FilenameF[256];
-
-    // Cache stuff
-    float      CachedBlendColors[4];
-    Matrix4x4* CachedProjectionMatrix = NULL;
-    Matrix4x4* CachedModelViewMatrix = NULL;
-};
-#endif
-
 #ifdef USING_OPENGL
 
 #include <Engine/Rendering/GL/GLShader.h>
@@ -46,7 +7,7 @@ public:
 #define CHECK_GL() \
     GLShader::CheckGLError(__LINE__)
 
-PUBLIC        GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
+GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
     GLint compiled = GL_FALSE;
     ProgramID = glCreateProgram(); CHECK_GL();
 
@@ -76,7 +37,7 @@ PUBLIC        GLShader::GLShader(std::string vertexShaderSource, std::string fra
 
     AttachAndLink();
 }
-PUBLIC        GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
+GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
     GLint compiled = GL_FALSE;
     ProgramID = glCreateProgram(); CHECK_GL();
 
@@ -150,7 +111,7 @@ PUBLIC        GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 
     AttachAndLink();
 }
-PRIVATE void  GLShader::AttachAndLink() {
+void  GLShader::AttachAndLink() {
     glAttachShader(ProgramID, VertexProgramID);                 CHECK_GL();
     glAttachShader(ProgramID, FragmentProgramID);               CHECK_GL();
 
@@ -189,7 +150,7 @@ PRIVATE void  GLShader::AttachAndLink() {
 }
 
 
-PUBLIC bool   GLShader::CheckShaderError(GLuint shader) {
+bool   GLShader::CheckShaderError(GLuint shader) {
     int infoLogLength = 0;
     int maxLength = infoLogLength;
 
@@ -205,7 +166,7 @@ PUBLIC bool   GLShader::CheckShaderError(GLuint shader) {
     delete[] infoLog;
     return false;
 }
-PUBLIC bool   GLShader::CheckProgramError(GLuint prog) {
+bool   GLShader::CheckProgramError(GLuint prog) {
     int infoLogLength = 0;
     int maxLength = infoLogLength;
 
@@ -222,23 +183,23 @@ PUBLIC bool   GLShader::CheckProgramError(GLuint prog) {
     return false;
 }
 
-PUBLIC GLuint GLShader::Use() {
+GLuint GLShader::Use() {
     glUseProgram(ProgramID); CHECK_GL();
 
     // glEnableVertexAttribArray(1); CHECK_GL();
     return ProgramID;
 }
 
-PUBLIC GLint  GLShader::GetAttribLocation(const GLchar* identifier) {
+GLint  GLShader::GetAttribLocation(const GLchar* identifier) {
     GLint value = glGetAttribLocation(ProgramID, identifier); CHECK_GL();
     return value;
 }
-PUBLIC GLint  GLShader::GetUniformLocation(const GLchar* identifier) {
+GLint  GLShader::GetUniformLocation(const GLchar* identifier) {
     GLint value = glGetUniformLocation(ProgramID, identifier); CHECK_GL();
     return value;
 }
 
-PUBLIC        GLShader::~GLShader() {
+GLShader::~GLShader() {
     if (CachedProjectionMatrix) {
         delete CachedProjectionMatrix;
     }
@@ -256,7 +217,7 @@ PUBLIC        GLShader::~GLShader() {
     }
 }
 
-PUBLIC STATIC bool GLShader::CheckGLError(int line) {
+bool GLShader::CheckGLError(int line) {
     const char* errstr = NULL;
     GLenum error = glGetError();
     switch (error) {

@@ -1,14 +1,6 @@
-#if INTERFACE
-#include <Engine/Includes/Standard.h>
-class RunLength {
-public:
-
-};
-#endif
-
 #include <Engine/IO/Compression/RunLength.h>
 
-PUBLIC STATIC bool RunLength::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
+bool RunLength::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
     uint8_t  byte;
     size_t   len;
     uint8_t* in_head = in;

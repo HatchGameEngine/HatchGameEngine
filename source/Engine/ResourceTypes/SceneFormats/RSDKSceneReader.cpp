@@ -1,13 +1,3 @@
-#if INTERFACE
-#include <Engine/IO/Stream.h>
-#include <Engine/Types/Entity.h>
-class RSDKSceneReader {
-public:
-    static Uint32           Magic;
-    static bool             Initialized;
-};
-#endif
-
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 
 #include <Engine/IO/MemoryStream.h>
@@ -49,7 +39,7 @@ static HashMap<const char*>* PropertyHashes = NULL;
 
 static Uint32 HACK_PlayerNameHash = 0;
 
-PUBLIC STATIC void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
+void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
     MemoryStream* memoryReader;
     ResourceStream* stageConfigReader;
     if ((stageConfigReader = ResourceStream::New(filename))) {
@@ -95,7 +85,7 @@ PUBLIC STATIC void RSDKSceneReader::StageConfig_GetColors(const char* filename) 
         stageConfigReader->Close();
     }
 }
-PUBLIC STATIC void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
+void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
     MemoryStream* memoryReader;
     ResourceStream* gameConfigReader;
     if ((gameConfigReader = ResourceStream::New(filename))) {
@@ -147,7 +137,7 @@ PUBLIC STATIC void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
         gameConfigReader->Close();
     }
 }
-PRIVATE STATIC void RSDKSceneReader::LoadObjectList() {
+void RSDKSceneReader::LoadObjectList() {
     // Object names
     Stream* r = ResourceStream::New("ObjectList.txt");
     if (!r) return;
@@ -187,7 +177,7 @@ PRIVATE STATIC void RSDKSceneReader::LoadObjectList() {
 
     r->Close();
 }
-PRIVATE STATIC void RSDKSceneReader::LoadPropertyList() {
+void RSDKSceneReader::LoadPropertyList() {
     // Property Names
     Stream* r = ResourceStream::New("PropertyList.txt");
     if (!r) return;
@@ -219,7 +209,7 @@ PRIVATE STATIC void RSDKSceneReader::LoadPropertyList() {
 
     r->Close();
 }
-PUBLIC STATIC bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
+bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
     Stream* r = ResourceStream::New(filename);
     if (!r) {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -228,7 +218,7 @@ PUBLIC STATIC bool RSDKSceneReader::Read(const char* filename, const char* paren
 
     return RSDKSceneReader::Read(r, parentFolder);
 }
-PRIVATE STATIC SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
+SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
     r->ReadByte(); // Ignored Byte
 
     char* Name = r->ReadHeaderedString();
@@ -303,7 +293,7 @@ PRIVATE STATIC SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 
     return layer;
 }
-PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots) {
+bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots) {
     Uint8 hashTemp[16];
     r->ReadBytes(hashTemp, 16);
 
@@ -471,7 +461,7 @@ PUBLIC STATIC bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** obj
 
     return true;
 }
-PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
+bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
     // Load PropertyList and ObjectList and others
     // (use regular malloc and calloc as this is technically a hack outside the scope of the engine)
     if (!RSDKSceneReader::Initialized) {
@@ -572,7 +562,7 @@ PUBLIC STATIC bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
     return true;
 }
-PRIVATE STATIC bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
+bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
     Graphics::UsePalettes = true;
 
     char filename16x16Tiles[4096];
