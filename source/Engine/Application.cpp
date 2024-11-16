@@ -194,6 +194,13 @@ void Application::Init(int argc, char* args[]) {
         Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
         #endif
     }
+    else {
+        bool fullscreen = false;
+        Application::Settings->GetBool("display", "fullscreen", &fullscreen);
+
+        if (Application::GetWindowFullscreen() != fullscreen)
+            Application::SetWindowFullscreen(fullscreen);
+    }
 
     for (int i = 1; i < argc; i++)
         Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
