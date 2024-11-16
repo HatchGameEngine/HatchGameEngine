@@ -144,7 +144,10 @@
     </PostBuildEvent>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>libvcruntime.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
