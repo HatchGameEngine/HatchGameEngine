@@ -199,17 +199,24 @@
                     <li><a href="#Reference_functions_Animator_GetDuration">Animator.GetDuration</a></li>
                     <li><a href="#Reference_functions_Animator_GetFrameCount">Animator.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Animator_GetLoopIndex">Animator.GetLoopIndex</a></li>
+                    <li><a href="#Reference_functions_Animator_GetRotationStyle">Animator.GetRotationStyle</a></li>
                     <li><a href="#Reference_functions_Animator_SetSprite">Animator.SetSprite</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentAnimation">Animator.SetCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentFrame">Animator.SetCurrentFrame</a></li>
+                    <li><a href="#Reference_functions_Animator_SetPreviousAnimation">Animator.SetPreviousAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationSpeed">Animator.SetAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationTimer">Animator.SetAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_SetDuration">Animator.SetDuration</a></li>
+                    <li><a href="#Reference_functions_Animator_SetFrameCount">Animator.SetFrameCount</a></li>
+                    <li><a href="#Reference_functions_Animator_SetLoopIndex">Animator.SetLoopIndex</a></li>
+                    <li><a href="#Reference_functions_Animator_SetRotationStyle">Animator.SetRotationStyle</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustCurrentAnimation">Animator.AdjustCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustCurrentFrame">Animator.AdjustCurrentFrame</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustAnimationSpeed">Animator.AdjustAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustAnimationTimer">Animator.AdjustAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_AdjustDuration">Animator.AdjustDuration</a></li>
+                    <li><a href="#Reference_functions_Animator_AdjustFrameCount">Animator.AdjustFrameCount</a></li>
+                    <li><a href="#Reference_functions_Animator_AdjustLoopIndex">Animator.AdjustLoopIndex</a></li>
                 </ul>
             </p>
             <p id="Reference_Application">
@@ -1973,8 +1980,15 @@
         <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
-        <code>Animator.Create()</code>
+        <code>Animator.Create(sprite, animationID, frameID, unloadPolicy)</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The index of the sprite.</li>
+        <li>animationID (Integer): The animator's changed animation ID.</li>
+        <li>frameID (Integer): The animator's changed frame ID.</li>
+        <li>unloadPolicy (Integer): When to unload the animator.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Animator.</div>
         </p>
@@ -2120,14 +2134,25 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_Animator_GetRotationStyle">
+        <h2 style="margin-bottom: 8px;">Animator.GetRotationStyle</h2>
+        <code>Animator.GetRotationStyle(animator)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop index of an animator's rotation style.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The index of the animator.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
         <p id="Reference_functions_Animator_SetSprite">
         <h2 style="margin-bottom: 8px;">Animator.SetSprite</h2>
-        <code>Animator.SetSprite(animator, animationID)</code>
+        <code>Animator.SetSprite(animator, spriteID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the sprite index of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>animationID (Integer): The animator's changed animation ID.</li>
+        <li>spriteID (Integer): The sprite ID.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetCurrentAnimation">
@@ -2137,7 +2162,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>animationID (Integer): The animator's changed animation ID.</li>
+        <li>animationID (Integer): The animation ID.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetCurrentFrame">
@@ -2147,27 +2172,37 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>frameID (Integer): The animator's changed frame ID.</li>
+        <li>frameID (Integer): The frame ID.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetPreviousAnimation">
+        <h2 style="margin-bottom: 8px;">Animator.SetPreviousAnimation</h2>
+        <code>Animator.SetPreviousAnimation(animator, prevAnimationID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the previous animation of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>prevAnimationID (Integer): The animation ID.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetAnimationSpeed">
         <h2 style="margin-bottom: 8px;">Animator.SetAnimationSpeed</h2>
-        <code>Animator.SetAnimationSpeed(animator, animationSpeed)</code>
+        <code>Animator.SetAnimationSpeed(animator, speed)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the animation speed of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>animationSpeed (Integer): The animator's changed animation speed.</li>
+        <li>speed (Integer): The animation speed.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetAnimationTimer">
         <h2 style="margin-bottom: 8px;">Animator.SetAnimationTimer</h2>
-        <code>Animator.SetAnimationTimer(animator, animationTimer)</code>
+        <code>Animator.SetAnimationTimer(animator, timer)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the animation timer of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>animationTimer (Integer): The animator's changed animation timer.</li>
+        <li>timer (Integer): The animation timer.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetDuration">
@@ -2178,6 +2213,36 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
         <li>duration (Integer): The animator's changed duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetFrameCount">
+        <h2 style="margin-bottom: 8px;">Animator.SetFrameCount</h2>
+        <code>Animator.SetFrameCount(animator, frameCount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the frame count of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>frameCount (Integer): The frame count.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetLoopIndex">
+        <h2 style="margin-bottom: 8px;">Animator.SetLoopIndex</h2>
+        <code>Animator.SetLoopIndex(animator, loopIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop index of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>loopIndex (Integer): The loop index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_SetRotationStyle">
+        <h2 style="margin-bottom: 8px;">Animator.SetRotationStyle</h2>
+        <code>Animator.SetRotationStyle(animator, rorationStyle)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the rotation style of an animator.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>rorationStyle (Integer): The rotation style.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_AdjustCurrentAnimation">
@@ -2228,6 +2293,26 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
         <li>amount (Integer): The amount to adjust the animator's duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_AdjustFrameCount">
+        <h2 style="margin-bottom: 8px;">Animator.AdjustFrameCount</h2>
+        <code>Animator.AdjustFrameCount(animator, amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the frame count of an animator by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>amount (Integer): The amount to adjust the animator's duration.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Animator_AdjustLoopIndex">
+        <h2 style="margin-bottom: 8px;">Animator.AdjustLoopIndex</h2>
+        <code>Animator.AdjustLoopIndex(animator, amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adjusts the loop index of an animator by an amount.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animator (Integer): The animator index to change.</li>
+        <li>amount (Integer): The amount to adjust the animator's loop index.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetCommandLineArguments">
@@ -10059,7 +10144,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>727 out of 786 functions have descriptions. </p>
+        <p>734 out of 793 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
