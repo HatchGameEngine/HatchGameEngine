@@ -31,6 +31,7 @@ public:
     static int Tan256(int angle);
     static int ASin256(int angle);
     static int ACos256(int angle);
+    static unsigned int ArcTanLookup(int X, int Y);
     static int CeilPOT(int n);
     static float Abs(float n);
     static float Max(float a, float b);

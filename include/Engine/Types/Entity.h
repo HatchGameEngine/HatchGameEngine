@@ -42,6 +42,7 @@ public:
     float OnScreenRegionBottom = 0.0f;
     int ViewRenderFlag = 0xFFFFFFFF;
     int ViewOverrideFlag = 0;
+    int Visible = true;
     float RenderRegionW = 0.0f;
     float RenderRegionH = 0.0f;
     float RenderRegionTop = 0.0f;
@@ -54,6 +55,7 @@ public:
     float ScaleY = 1.0;
     float Rotation = 0.0;
     float Alpha = 1.0;
+    int BlendMode = BlendMode_NORMAL;
     int AutoPhysics = false;
     int Priority = 0;
     int PriorityListIndex = -1;
@@ -67,6 +69,8 @@ public:
     int CurrentFrameCount = 0;
     float AnimationSpeedMult = 1.0;
     int AnimationSpeedAdd = 0;
+    int PrevAnimation = 0;
+    int RotationStyle = ROTSTYLE_NONE;
     int AutoAnimate = true;
     float AnimationSpeed = 0.0;
     float AnimationTimer = 0.0;

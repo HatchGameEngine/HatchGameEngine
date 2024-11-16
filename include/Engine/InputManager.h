@@ -99,6 +99,12 @@ public:
     static bool IsAnyActionHeld(unsigned playerID, unsigned device);
     static bool IsAnyActionPressed(unsigned playerID, unsigned device);
     static bool IsAnyActionReleased(unsigned playerID, unsigned device);
+    static bool IsActionHeldByAny(unsigned actionID);
+    static bool IsActionPressedByAny(unsigned actionID);
+    static bool IsActionReleasedByAny(unsigned actionID);
+    static bool IsActionHeldByAny(unsigned actionID, unsigned device);
+    static bool IsActionPressedByAny(unsigned actionID, unsigned device);
+    static bool IsActionReleasedByAny(unsigned actionID, unsigned device);
     static bool IsPlayerUsingDevice(unsigned playerID, unsigned device);
     static float GetAnalogActionInput(unsigned playerID, unsigned actionID);
     static InputBind* GetPlayerInputBind(unsigned playerID, unsigned actionID, unsigned index, bool isDefault);

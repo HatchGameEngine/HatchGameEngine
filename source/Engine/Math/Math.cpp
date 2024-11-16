@@ -202,7 +202,7 @@ int Math::ACos256(int angle) {
         return -ACos256LookupTable[-angle];
     return ACos256LookupTable[angle];
 }
-PUBLIC STATIC unsigned int Math::ArcTanLookup(int X, int Y) {
+unsigned int Math::ArcTanLookup(int X, int Y) {
     int x = abs(X);
     int y = abs(Y);
 

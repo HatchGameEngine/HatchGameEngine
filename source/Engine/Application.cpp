@@ -62,7 +62,6 @@ vector<char*>    Application::CmdLineArgs;
 
 XMLNode*         Application::GameConfig = NULL;
 
-float            Application::FPS = 60.f;
 int              TargetFPS = 60;
 bool             Application::Running = false;
 bool             Application::GameStart = false;
@@ -1482,7 +1481,9 @@ void Application::InitSettings(const char* filename) {
         Application::Settings->SetInteger("audio", "soundVolume", 0);
 
         Application::Settings->SetBool("dev", "devMenu", false);
-        Application::Settings->SetBool("dev", "writeToFile", false);
+#if WIN32 || MACOSX || LINUX || SWITCH
+        Application::Settings->SetBool("dev", "writeToFile", true);
+#endif
         Application::Settings->SetBool("dev", "viewPerformance", false);
         Application::Settings->SetBool("dev", "donothing", false);
         Application::Settings->SetInteger("dev", "fastForward", 6);
@@ -1575,7 +1576,7 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
     }
 }
 
-PRIVATE STATIC void Application::AddViewableVariable(const char* name, void* value, int type, int min, int max) {
+void Application::AddViewableVariable(const char* name, void* value, int type, int min, int max) {
     if (Application::ViewableVariableCount < VIEWABLEVARIABLE_COUNT) {
         ViewableVariable* viewVar = &Application::ViewableVariableList[Application::ViewableVariableCount++];
 
@@ -1595,7 +1596,7 @@ PRIVATE STATIC void Application::AddViewableVariable(const char* name, void* val
     }
 }
 
-PUBLIC STATIC Uint16* Application::UTF8toUTF16(const char* utf8String) {
+Uint16* Application::UTF8toUTF16(const char* utf8String) {
     size_t len = strlen(utf8String);
     Uint16* utf16String = (Uint16*)malloc((len + 1) * sizeof(Uint16));
     size_t i = 0, j = 0;
@@ -1617,7 +1618,7 @@ PUBLIC STATIC Uint16* Application::UTF8toUTF16(const char* utf8String) {
     return utf16String;
 }
 
-PUBLIC STATIC int Application::LoadDevFont(const char* fileName) {
+int Application::LoadDevFont(const char* fileName) {
     ResourceType* resource = new (std::nothrow) ResourceType();
     resource->FilenameHash = CRC32::EncryptString(fileName);
     resource->UnloadPolicy = SCOPE_GAME;
@@ -1640,7 +1641,7 @@ PUBLIC STATIC int Application::LoadDevFont(const char* fileName) {
     return (int)index;
 }
 
-PRIVATE STATIC void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
+void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
     x += Scene::Views[0].X;
     y += Scene::Views[0].Y;
 
@@ -1752,7 +1753,7 @@ PRIVATE STATIC void Application::DrawDevString(const char* string, int x, int y,
     }
 }
 
-PRIVATE STATIC void Application::OpenDevMenu() {
+void Application::OpenDevMenu() {
     DevMenu.State = Application::DevMenu_MainMenu;
     DevMenu.Selection = 0;
     DevMenu.ScrollPos = 0;
@@ -1769,7 +1770,7 @@ PRIVATE STATIC void Application::OpenDevMenu() {
     Application::DevMenuActivated = true;
 }
 
-PRIVATE STATIC void Application::CloseDevMenu() {
+void Application::CloseDevMenu() {
     Application::DevMenuActivated = false;
 
     AudioManager::AudioUnpauseAll();
@@ -1779,14 +1780,14 @@ PRIVATE STATIC void Application::CloseDevMenu() {
     AudioManager::Unlock();
 }
 
-PRIVATE STATIC void Application::SetBlendColor(int color) {
+void Application::SetBlendColor(int color) {
     Graphics::SetBlendColor(
         (color >> 16 & 0xFF) / 255.f,
         (color >> 8 & 0xFF) / 255.f,
         (color & 0xFF) / 255.f, 1.0);
 }
 
-PRIVATE STATIC void Application::DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative) {
+void Application::DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative) {
     if (screenRelative) {
         x += Scene::Views[0].X;
         y += Scene::Views[0].Y;
@@ -1798,7 +1799,7 @@ PRIVATE STATIC void Application::DrawRectangle(float x, float y, float width, fl
     Graphics::FillRectangle(x, y, width, height);
 }
 
-PRIVATE STATIC void Application::DevMenu_DrawMainMenu() {
+void Application::DevMenu_DrawMainMenu() {
     const int selectionCount = 6;
     bool isSelected[] = { false, false, false, false, false, false };
     const char* selectionNames[] = { "Resume", "Restart", "Stage Select", "Settings", "Mods", "Exit" };
@@ -1825,7 +1826,7 @@ PRIVATE STATIC void Application::DevMenu_DrawMainMenu() {
     y += 20;
 }
 
-PRIVATE STATIC void Application::DevMenu_MainMenu() {
+void Application::DevMenu_MainMenu() {
     const int selectionCount = 6;
     DevMenu_DrawMainMenu();
 
@@ -1940,7 +1941,7 @@ PRIVATE STATIC void Application::DevMenu_MainMenu() {
     }
 }
 
-PRIVATE STATIC void Application::DevMenu_CategorySelectMenu() {
+void Application::DevMenu_CategorySelectMenu() {
     const int selectionCount = 6;
     DevMenu_DrawMainMenu();
 
@@ -2080,7 +2081,7 @@ PRIVATE STATIC void Application::DevMenu_CategorySelectMenu() {
     }
 }
 
-PRIVATE STATIC void Application::DevMenu_SceneSelectMenu() {
+void Application::DevMenu_SceneSelectMenu() {
     DevMenu_DrawMainMenu();
 
     View view = Scene::Views[0];
@@ -2200,10 +2201,10 @@ PRIVATE STATIC void Application::DevMenu_SceneSelectMenu() {
     }
 }
 
-PRIVATE STATIC void Application::DevMenu_SettingsMenu() {
+void Application::DevMenu_SettingsMenu() {
 
 }
 
-PRIVATE STATIC void Application::DevMenu_ModsMenu() {
+void Application::DevMenu_ModsMenu() {
 
 }
