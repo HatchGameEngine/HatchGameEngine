@@ -249,7 +249,7 @@ SoundFormat* OGG::Load(const char* filename) {
     }
     ogg = NULL;
 
-OGG_Load_SUCCESS:
+  OGG_Load_SUCCESS:
     if (stream)
         stream->Close();
     return ogg;

@@ -772,6 +772,51 @@ bool  InputManager::IsAnyActionReleased(unsigned playerID, unsigned device) {
 
     return player.IsAnyInputReleased(device);
 }
+bool  InputManager::IsActionHeldByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputHeld(actionID)) return true;
+    }
+    return false;
+}
+bool  InputManager::IsActionPressedByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputPressed(actionID)) return true;
+    }
+    return false;
+}
+bool  InputManager::IsActionReleasedByAny(unsigned actionID) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputReleased(actionID)) return true;
+    }
+    return false;
+}
+bool  InputManager::IsActionHeldByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputHeld(actionID, device)) return true;
+    }
+
+    return false;
+}
+bool  InputManager::IsActionPressedByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputPressed(actionID, device)) return true;
+    }
+
+    return false;
+}
+bool  InputManager::IsActionReleasedByAny(unsigned actionID, unsigned device) {
+    for (unsigned playerID = 0; playerID <= Players.size() - 1; playerID++) {
+        InputPlayer& player = Players[playerID];
+        if (player.IsInputReleased(actionID, device)) return true;
+    }
+
+    return false;
+}
 bool  InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
     if (playerID >= Players.size() || device >= InputDevice_MAX)
         return false;

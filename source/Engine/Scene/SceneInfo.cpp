@@ -120,7 +120,7 @@ std::string SceneInfo::GetFilename(int categoryID, int entryID) {
 
     std::string filePath = "";
 
-    // RSDK compatibility.
+    // RSDK compatibility
     if (entry.Filetype != nullptr && strcmp(entry.Filetype, "bin") == 0) {
         filePath = "Scene";
     }

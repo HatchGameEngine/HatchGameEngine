@@ -106,7 +106,7 @@ int                       Scene::Milliseconds = 0;
 int                       Scene::Seconds = 0;
 int                       Scene::Minutes = 0;
 
-int                       Scene::Filter = 0xFF;
+int                       Scene::Filter = 0;
 
 // Scene list variables
 int                       Scene::CurrentSceneInList;
@@ -136,7 +136,7 @@ bool                      DEV_NoObjectRender = false;
 
 int ViewRenderList[MAX_SCENE_VIEWS];
 
-#define COLLISION_OFFSET 4.0
+#define COLLISION_OFFSET 4
 
 // Collision variables
 float                       Scene::CollisionTolerance = 0.0;
@@ -152,7 +152,6 @@ float                       Scene::HighCollisionTolerance = 14.0;
 int                         Scene::FloorAngleTolerance = 0x20;
 int                         Scene::WallAngleTolerance = 0x20;
 int                         Scene::RoofAngleTolerance = 0x20;
-bool                        Scene::ShowHitboxes = false;
 int                         Scene::DebugHitboxCount = 0;
 DebugHitboxInfo             Scene::DebugHitboxList[DEBUG_HITBOX_COUNT];
 
@@ -239,7 +238,7 @@ void UpdateObject(Entity* ent) {
 
     switch (ent->Activity) {
     default:
-        break;
+    case ACTIVE_DISABLED: break;
 
     case ACTIVE_NEVER:
     case ACTIVE_PAUSED:
@@ -529,6 +528,11 @@ void Scene::SetInfoFromCurrentID() {
     SceneListEntry& scene = category.Entries[Scene::CurrentSceneInList];
 
     strcpy(Scene::CurrentID, scene.ID);
+<<<<<<< HEAD
+=======
+    strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
+    Scene::Filter = scene.Filter;
+>>>>>>> axanery/dev
     strcpy(Scene::CurrentCategory, category.Name);
 
     if (scene.Folder != nullptr)
@@ -612,7 +616,9 @@ void Scene::ResetPerf() {
         });
     }
 }
+
 void Scene::Update() {
+    DebugHitboxCount = 0;
     // Animate tiles
     Scene::RunTileAnimations();
 
@@ -961,7 +967,11 @@ DoCheckRender:
                     Graphics::FillRectangle(entX1, entY1, entX2 - entX1, entY2 - entY1);
                 }
 
+<<<<<<< HEAD
                 if (!ent->Visible || (ent->ViewRenderFlag & viewRenderFlag) == 0)
+=======
+                if ((ent->ViewRenderFlag & viewRenderFlag) == 0 || !ent->Visible)
+>>>>>>> axanery/dev
                     continue;
                 if ((ent->ViewOverrideFlag & viewRenderFlag) == 0 && (Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;
@@ -1021,6 +1031,96 @@ DoCheckRender:
         }
         Graphics::TextureBlend = texBlend;
     }
+
+    if (Application::DevShowHitboxes) {
+        bool storeBlend = Graphics::TextureBlend;
+        Graphics::TextureBlend = true;
+        for (int i = 0; i < DebugHitboxCount; ++i) {
+            DebugHitboxInfo* info = &DebugHitboxList[i];
+            int x = info->x + info->hitbox.Left;
+            int y = info->y + info->hitbox.Top;
+            int w = abs((info->x + info->hitbox.Right) - x);
+            int h = abs((info->y + info->hitbox.Bottom) - y);
+
+            switch (info->type) {
+            case H_TYPE_TOUCH: {
+                int hex = info->collision ? 0x808000 : 0xFF0000;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+                break;
+            }
+
+            case H_TYPE_CIRCLE: {
+                int hex = info->collision ? 0x808000 : 0xFF0000;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillCircle(info->x, info->y, info->hitbox.Left);
+                break;
+            }
+
+            case H_TYPE_BOX: {
+                int hex = 0x0000FF;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+
+                hex = 0xFFFF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                if (info->collision & 1)
+                    Graphics::FillRectangle(x, y, w, 1);
+
+                if (info->collision & 8)
+                    Graphics::FillRectangle(x, y + h, w, 1);
+
+                if (info->collision & 2) {
+                    int sy = y;
+                    int sh = h;
+
+                    if (info->collision & 1) {
+                        sy += 1;
+                        sh -= 1;
+                    }
+
+                    if (info->collision * 8)
+                        sh -= 1;
+
+                    Graphics::FillRectangle(x, sy, 1, sh);
+                }
+
+                if (info->collision & 4) {
+                    int sy = y;
+                    int sh = h;
+
+                    if (info->collision & 1) {
+                        sy += 1;
+                        sh -= 1;
+                    }
+
+                    if (info->collision * 8)
+                        sh -= 1;
+
+                    Graphics::FillRectangle(x + w, sy, 1, sh);
+                }
+                break;
+            }
+
+            case H_TYPE_PLAT: {
+                int hex = 0x00FF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                Graphics::FillRectangle(x, y, w, h);
+
+                hex = 0xFFFF00;
+                Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f, (hex >> 8 & 0xFF) / 255.f, (hex & 0xFF) / 255.f, 0.375f);
+                if (info->collision & 1)
+                    Graphics::FillRectangle(x, y, w, 1);
+
+                if (info->collision * 8)
+                    Graphics::FillRectangle(x, y + h, w, 1);
+                break;
+            }
+            }
+        }
+        Graphics::TextureBlend = storeBlend;
+    }
+
     if (viewPerf)
         viewPerf->ObjectRenderTime = objectTimeTotal;
 
@@ -1040,6 +1140,14 @@ DoCheckRender:
     }
     Scene::CurrentDrawGroup = -1;
     PERF_END(ObjectRenderLateTime);
+
+    if (Application::DevMenuActivated && viewIndex == 0) {
+        // Poll for inputs, since the frame did not run
+        InputManager::Poll();
+
+        if (Application::DevMenu.State)
+            Application::DevMenu.State();
+    }
 
     PERF_START(RenderFinishTime);
     if (useDrawTarget && currentView->Software)
@@ -1263,6 +1371,9 @@ void Scene::Restart() {
         Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
         Scene::SetTileCount(Scene::BaseTileCount);
     }
+
+    Application::DeveloperDarkFont = Application::LoadDevFont("Sprites/UI/DarkFont.bin");
+    Application::DeveloperLightFont = Application::LoadDevFont("Sprites/UI/SmallFont.bin");
 
     // Restart tile animations
     for (Tileset& tileset : Scene::Tilesets)
@@ -3157,7 +3268,7 @@ bool Scene::CheckObjectCollisionTouch(Entity* thisEntity, CollisionBox* thisHitb
         otherHitbox->Bottom = store;
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_TOUCH, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_TOUCH, thisEntity->Direction, otherEntity, otherHitbox);
 
@@ -3175,7 +3286,7 @@ bool Scene::CheckObjectCollisionCircle(Entity* thisEntity, float thisRadius, Ent
     float y = thisEntity->Y - otherEntity->Y;
     float r = thisRadius + otherRadius;
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         bool collided = x * x + y * y < r * r;
         CollisionBox thisHitbox;
         CollisionBox otherHitbox;
@@ -3375,7 +3486,7 @@ bool Scene::CheckObjectCollisionBox(Entity* thisEntity, CollisionBox* thisHitbox
             }
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_BOX, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_BOX, thisEntity->Direction, otherEntity, otherHitbox);
 
@@ -3475,7 +3586,7 @@ bool Scene::CheckObjectCollisionPlatform(Entity* thisEntity, CollisionBox* thisH
         otherHitbox->Bottom = store;
     }
 
-    if (ShowHitboxes) {
+    if (Application::DevShowHitboxes) {
         int thisHitboxID    = AddDebugHitbox(H_TYPE_PLAT, thisEntity->Direction, thisEntity, thisHitbox);
         int otherHitboxID   = AddDebugHitbox(H_TYPE_PLAT, thisEntity->Direction, otherEntity, otherHitbox);
         if (otherEntity->TileCollisions == TILECOLLISION_UP) {
@@ -3701,7 +3812,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
     }
 }
 
-bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, float xOffset, float yOffset, float tolerance) {
+bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
     int layerID     = 1;
     bool collided   = false;
     int posX        = xOffset + entity->X;

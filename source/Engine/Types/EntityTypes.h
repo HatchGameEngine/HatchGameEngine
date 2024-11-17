@@ -10,10 +10,10 @@ enum {
 };
 
 enum {
-    HitboxSide_LEFT    = 0,
-    HitboxSide_TOP     = 1,
-    HitboxSide_RIGHT   = 2,
-    HitboxSide_BOTTOM  = 3
+    HITBOX_LEFT    = 0,
+    HITBOX_TOP     = 1,
+    HITBOX_RIGHT   = 2,
+    HITBOX_BOTTOM  = 3
 };
 
 enum {
@@ -24,7 +24,8 @@ enum {
     ACTIVE_BOUNDS  = 4, // Updates only when the object is within bounds
     ACTIVE_XBOUNDS = 5, // Updates within an x bound (not accounting for y bound)
     ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting for x bound)
-    ACTIVE_RBOUNDS = 7  // Updates within a radius (UpdateRegionW)
+    ACTIVE_RBOUNDS = 7,  // Updates within a radius (UpdateRegionW)
+    ACTIVE_DISABLED = 0xFF, // For stopping entities from even checking for an update in some cases
 };
 
 namespace CollideSide {

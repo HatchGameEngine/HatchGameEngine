@@ -196,7 +196,7 @@ public:
     static bool CheckObjectCollisionBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
     static bool CheckObjectCollisionPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
     static bool ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
-    static bool ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, float xOffset, float yOffset, float tolerance);
+    static bool ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
     static void ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
     static void ProcessPathGrip();
     static void ProcessAirCollision_Down();

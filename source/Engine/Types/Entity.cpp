@@ -78,6 +78,7 @@ void Entity::ResetAnimation(int animation, int frame) {
     if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size())
         return;
 
+    PrevAnimation           = CurrentAnimation;
     CurrentAnimation        = animation;
     AnimationTimer          = 0.0;
     CurrentFrame            = frame;
@@ -85,6 +86,7 @@ void Entity::ResetAnimation(int animation, int frame) {
     AnimationFrameDuration  = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
     AnimationSpeed          = sprite->Animations[CurrentAnimation].AnimationSpeed;
     AnimationLoopIndex      = sprite->Animations[CurrentAnimation].FrameToLoop;
+    RotationStyle           = sprite->Animations[CurrentAnimation].Flags;
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
     float otherHitboxW = other->Hitbox.Width;
@@ -363,6 +365,7 @@ void Entity::CopyFields(Entity* other) {
     COPY(Visible);
     COPY(ViewRenderFlag);
     COPY(ViewOverrideFlag);
+    COPY(Visible);
     COPY(RenderRegionW);
     COPY(RenderRegionH);
     COPY(RenderRegionTop);
@@ -392,11 +395,13 @@ void Entity::CopyFields(Entity* other) {
     COPY(CurrentFrameCount);
     COPY(AnimationSpeedMult);
     COPY(AnimationSpeedAdd);
+    COPY(PrevAnimation);
     COPY(AutoAnimate);
     COPY(AnimationSpeed);
     COPY(AnimationTimer);
     COPY(AnimationFrameDuration);
     COPY(AnimationLoopIndex);
+    COPY(RotationStyle);
 
     COPY(Hitbox);
     COPY(FlipFlag);

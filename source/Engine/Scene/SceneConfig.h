@@ -10,6 +10,7 @@ struct SceneListEntry {
     char*           Path = nullptr;
     char*           ResourceFolder = nullptr;
     char*           Filetype = nullptr;
+    int             Filter = 0;
 
     HashMap<char*>* Properties = nullptr;
 

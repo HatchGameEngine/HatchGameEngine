@@ -16,7 +16,7 @@ int Tan256LookupTable[0x100];
 int ASin256LookupTable[0x100];
 int ACos256LookupTable[0x100];
 
-int ArcTan256LookupTable[0x100 * 0x100];
+unsigned int ArcTan256LookupTable[0x100 * 0x100];
 
 int randSeed = 0;
 
@@ -123,6 +123,15 @@ void Math::CalculateTrigAngles() {
         ASin256LookupTable[i] = (int)((asinf(i / 255.0) * 128.0) / R_PI);
         ACos256LookupTable[i] = (int)((acosf(i / 255.0) * 128.0) / R_PI);
     }
+
+    for (int y = 0; y < 0x100; y++) {
+        unsigned int* arcTan = (unsigned int*)&ArcTan256LookupTable[y];
+
+        for (int x = 0; x < 0x100; x++) {
+            *arcTan = (int)(float)((float)atan2((float)y, x) * 40.743664f);
+            arcTan += 0x100;
+        }
+    }
 }
 int Math::Sin1024(int angle) {
     return Sin1024LookupTable[angle & 0x3FF];
@@ -192,6 +201,33 @@ int Math::ACos256(int angle) {
     if (angle < 0)
         return -ACos256LookupTable[-angle];
     return ACos256LookupTable[angle];
+}
+unsigned int Math::ArcTanLookup(int X, int Y) {
+    int x = abs(X);
+    int y = abs(Y);
+
+    if (x <= y) {
+        while (y > 0xFF) {
+            x >>= 4;
+            y >>= 4;
+        }
+    }
+    else {
+        while (x > 0xFF) {
+            x >>= 4;
+            y >>= 4;
+        }
+    }
+    if (X <= 0) {
+        if (Y <= 0)
+            return ArcTan256LookupTable[(x << 8) + y] + 0x80;
+        else
+            return 0x80 - ArcTan256LookupTable[(x << 8) + y];
+    }
+    else if (Y <= 0)
+        return -ArcTan256LookupTable[(x << 8) + y];
+    else
+        return ArcTan256LookupTable[(x << 8) + y];
 }
 
 // help
