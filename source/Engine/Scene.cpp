@@ -509,43 +509,37 @@ void Scene::OnEvent(Uint32 event) {
 // Scene List Functions
 void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
     int categoryID = SceneInfo::GetCategoryID(categoryName);
-    if (categoryID < 0)
+    if (!SceneInfo::CategoryHasEntries(categoryID))
         return;
 
     SceneListCategory& category = SceneInfo::Categories[categoryID];
-    if (!SceneInfo::IsEntryValid(category.OffsetStart))
-        return;
-
     Scene::ActiveCategory = categoryID;
 
-    int entryID = SceneInfo::GetEntryIDWithinRange(category.OffsetStart, category.OffsetEnd, sceneName);
+    int entryID = SceneInfo::GetEntryID(categoryID, sceneName);
     if (entryID != -1)
         Scene::CurrentSceneInList = entryID;
     else
-        Scene::CurrentSceneInList = category.OffsetStart;
+        Scene::CurrentSceneInList = 0;
 }
 void Scene::SetInfoFromCurrentID() {
-    if (!SceneInfo::IsCategoryValid(Scene::ActiveCategory))
+    if (!SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList))
         return;
 
     SceneListCategory& category = SceneInfo::Categories[Scene::ActiveCategory];
-    size_t entryID = (size_t)Scene::CurrentSceneInList;
-    if (Scene::CurrentSceneInList >= category.OffsetEnd)
-        return;
+    SceneListEntry& scene = category.Entries[Scene::CurrentSceneInList];
 
-    SceneListEntry& scene = SceneInfo::Entries[entryID];
-
-    strcpy(Scene::CurrentFolder, scene.Folder);
     strcpy(Scene::CurrentID, scene.ID);
+    strcpy(Scene::CurrentCategory, category.Name);
+
+    if (scene.Folder != nullptr)
+        strcpy(Scene::CurrentFolder, scene.Folder);
+    else
+        Scene::CurrentFolder[0] = '\0';
 
     if (scene.ResourceFolder != nullptr)
         strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
     else
         Scene::CurrentResourceFolder[0] = '\0';
-
-    strcpy(Scene::CurrentCategory, category.Name);
-
-    Scene::CurrentSceneInList = entryID;
 }
 
 // Scene Lifecycle
@@ -1502,8 +1496,8 @@ void Scene::LoadScene(const char* filename) {
         InitTileCollisions();
         SetInfoFromCurrentID();
 
-        if (SceneInfo::IsEntryValid(CurrentSceneInList)) {
-            std::string filename = SceneInfo::GetTileConfigFilename(CurrentSceneInList);
+        if (SceneInfo::IsEntryValid(ActiveCategory, CurrentSceneInList)) {
+            std::string filename = SceneInfo::GetTileConfigFilename(ActiveCategory, CurrentSceneInList);
             Scene::LoadTileCollisions(filename.c_str(), 0);
         }
     }

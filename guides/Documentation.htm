@@ -6791,7 +6791,7 @@
         <p id="Reference_functions_Scene_Change">
         <h2 style="margin-bottom: 8px;">Scene.Change</h2>
         <code>Scene.Change(category, scene)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes the current scene if the category name and scene name are valid. Note that this does not load the scene; you must use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the current scene if the category name and scene name are valid. If only one argument is provided, the global category is used. Note that this does not load the scene; you must use <code><a href="#Reference_functions_Scene_Load">Scene.Load</a></code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>category (String): Category name.</li>
@@ -8195,7 +8195,7 @@
         <li>categoryName (String): The category name.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.</div>
+        <div style="font-size: 14px;">Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes.</div>
         </p>
         <p id="Reference_functions_Serializer_WriteToStream">
         <h2 style="margin-bottom: 8px;">Serializer.WriteToStream</h2>

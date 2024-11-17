@@ -419,6 +419,10 @@ VMValue ReturnString(const char* str) {
     return NULL_VAL;
 }
 
+VMValue ReturnString(std::string str) {
+    return ReturnString(str.c_str());
+}
+
 void AddToMap(ObjMap* map, const char* key, VMValue value) {
     char* keyString = StringUtils::Duplicate(key);
     Uint32 hash = map->Keys->HashFunction(keyString, strlen(keyString));
@@ -10052,10 +10056,10 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
     // - Scene.Load(false)
     // - Scene.Load(true)
     if (!loadFromResource) {
-        if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+        if (!SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList))
             return NULL_VAL;
 
-        std::string path = SceneInfo::GetFilename(Scene::CurrentSceneInList);
+        std::string path = SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList);
 
         StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
     }
@@ -10087,10 +10091,10 @@ VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Scene
  */
 VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
-    if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+    if (!SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList))
         return NULL_VAL;
 
-    std::string path = SceneInfo::GetFilename(Scene::CurrentSceneInList);
+    std::string path = SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList);
 
     StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
 
@@ -10100,16 +10104,22 @@ VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.Change
- * \desc Changes the current scene if the category name and scene name are valid. Note that this does not load the scene; you must use <linkto ref="Scene.Load"></linkto>.
+ * \desc Changes the current scene if the category name and scene name are valid. If only one argument is provided, the global category is used. Note that this does not load the scene; you must use <linkto ref="Scene.Load"></linkto>.
  * \param category (String): Category name.
  * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
 VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
-    CHECK_ARGCOUNT(2);
-    const char *categoryName = GET_ARG(0, GetString);
-    const char *sceneName = GET_ARG(1, GetString);
-    Scene::SetCurrent(categoryName, sceneName);
+    if (argCount == 1) {
+        const char *sceneName = GET_ARG(0, GetString);
+        Scene::SetCurrent(SCENEINFO_GLOBAL_CATEGORY_NAME, sceneName);
+    }
+    else {
+        CHECK_ARGCOUNT(2);
+        const char *categoryName = GET_ARG(0, GetString);
+        const char *sceneName = GET_ARG(1, GetString);
+        Scene::SetCurrent(categoryName, sceneName);
+    }
     return NULL_VAL;
 }
 /***
@@ -10756,7 +10766,7 @@ VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    return INTEGER_VAL((int)SceneInfo::Entries.size());
+    return INTEGER_VAL(SceneInfo::NumTotalScenes);
 }
 /***
  * Scene.GetDebugMode
@@ -10968,7 +10978,7 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
  */
 VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(0);
-    if (SceneInfo::IsEntryValidInCategory(Scene::ActiveCategory, Scene::CurrentSceneInList))
+    if (SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList))
         return INTEGER_VAL(true);
     return INTEGER_VAL(false);
 }
@@ -10984,10 +10994,11 @@ VMValue Scene_IsUsingFolder(int argCount, VMValue* args, Uint32 threadID) {
 
     const char* checkFolder = GET_ARG(0, GetString);
 
-    if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+    std::string folder = SceneInfo::GetFolder(Scene::ActiveCategory, Scene::CurrentSceneInList);
+    if (folder == "")
         return INTEGER_VAL(false);
 
-    if (strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].Folder, checkFolder) == 0)
+    if (strcmp(folder.c_str(), checkFolder) == 0)
         return INTEGER_VAL(true);
 
     return INTEGER_VAL(false);
@@ -11004,10 +11015,11 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
 
     const char* checkID = GET_ARG(0, GetString);
 
-    if (!SceneInfo::IsEntryValid(Scene::CurrentSceneInList))
+    std::string id = SceneInfo::GetID(Scene::ActiveCategory, Scene::CurrentSceneInList);
+    if (id == "")
         return INTEGER_VAL(false);
 
-    if (strcmp(SceneInfo::Entries[Scene::CurrentSceneInList].ID, checkID) == 0)
+    if (strcmp(id.c_str(), checkID) == 0)
         return INTEGER_VAL(true);
 
     return INTEGER_VAL(false);
@@ -12009,16 +12021,12 @@ VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
     if (IS_INTEGER(args[1]))
         entryID = GET_ARG(1, GetInteger);
     else {
-        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        entryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetString));
         if (entryID < 0)
             return NULL_VAL;
     }
 
-    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
-    if (actualEntryID < 0)
-        return NULL_VAL;
-
-    return ReturnString(SceneInfo::GetFilename(entryID).c_str());
+    return ReturnString(SceneInfo::GetFilename(categoryID, entryID));
 }
 /***
  * SceneList.GetEntryID
@@ -12035,7 +12043,7 @@ VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
     int entryID = SceneInfo::GetEntryID(categoryName, entryName);
     if (entryID < 0)
         return INTEGER_VAL(-1);
-    return INTEGER_VAL((int)SceneInfo::Entries[entryID].CategoryPos);
+    return INTEGER_VAL(entryID);
 }
 /***
  * SceneList.GetCategoryID
@@ -12062,16 +12070,19 @@ VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(2);
 
     int categoryID = -1;
+    int entryID = GET_ARG(1, GetInteger);
+
     if (IS_INTEGER(args[0]))
         categoryID = GET_ARG(0, GetInteger);
     else {
         categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
-        if (categoryID < 0)
-            return NULL_VAL;
     }
 
-    int actualEntryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetInteger));
-    return ReturnString(SceneInfo::Entries[actualEntryID].Name);
+    if (!SceneInfo::IsEntryValid(categoryID, entryID))
+        return NULL_VAL;
+
+    std::string name = SceneInfo::GetName(categoryID, entryID);
+    return ReturnString(name);
 }
 /***
  * SceneList.GetCategoryName
@@ -12113,18 +12124,14 @@ VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID)
     if (IS_INTEGER(args[1]))
         entryID = GET_ARG(1, GetInteger);
     else {
-        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        entryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetString));
         if (entryID < 0)
             return NULL_VAL;
     }
 
     char* propertyName = GET_ARG(2, GetString);
 
-    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
-    if (actualEntryID < 0)
-        return NULL_VAL;
-
-    char* property = SceneInfo::GetEntryProperty(actualEntryID, propertyName);
+    char* property = SceneInfo::GetEntryProperty(categoryID, entryID, propertyName);
     if (property == nullptr)
         return NULL_VAL;
 
@@ -12185,16 +12192,12 @@ VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID)
     if (IS_INTEGER(args[1]))
         entryID = GET_ARG(1, GetInteger);
     else {
-        entryID = SceneInfo::GetEntryPosInCategory(categoryID, GET_ARG(1, GetString));
+        entryID = SceneInfo::GetEntryID(categoryID, GET_ARG(1, GetString));
         if (entryID < 0)
             return INTEGER_VAL(false);
     }
 
-    int actualEntryID = SceneInfo::GetEntryID(categoryID, entryID);
-    if (actualEntryID < 0)
-        return INTEGER_VAL(false);
-
-    return INTEGER_VAL(!!SceneInfo::HasEntryProperty(actualEntryID, GET_ARG(2, GetString)));
+    return INTEGER_VAL(!!SceneInfo::HasEntryProperty(categoryID, entryID, GET_ARG(2, GetString)));
 }
 /***
  * SceneList.HasCategoryProperty
@@ -12233,7 +12236,7 @@ VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID)
  * SceneList.GetSceneCount
  * \desc Gets the amount of scenes in a category.
  * \paramOpt categoryName (String): The category name.
- * \return Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes in the entire list.
+ * \return Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes.
  * \ns SceneList
  */
 VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12246,10 +12249,10 @@ VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
             categoryID = SceneInfo::GetCategoryID(GET_ARG(0, GetString));
         if (!SceneInfo::IsCategoryValid(categoryID))
             return INTEGER_VAL(0);
-        return INTEGER_VAL((int)SceneInfo::Categories[categoryID].Count);
+        return INTEGER_VAL((int)SceneInfo::Categories[categoryID].Entries.size());
     }
     else
-        return INTEGER_VAL((int)SceneInfo::Entries.size());
+        return INTEGER_VAL(SceneInfo::NumTotalScenes);
 }
 // #endregion
 

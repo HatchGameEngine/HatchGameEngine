@@ -507,6 +507,10 @@ char*    XMLParser::TokenToString(Token tok) {
     return string;
 }
 
+std::string XMLParser::TokenToStdString(Token tok) {
+    return std::string(tok.Start, tok.Length);
+}
+
 void     XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {
     size_t length = tok.Length;
     if (length >= size)

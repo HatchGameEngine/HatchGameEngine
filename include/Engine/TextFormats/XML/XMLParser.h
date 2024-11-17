@@ -17,6 +17,7 @@ public:
     static XMLNode* ParseFromStream(Stream* streamSrc);
     static XMLNode* ParseFromResource(const char* filename);
     static char* TokenToString(Token tok);
+    static std::string TokenToStdString(Token tok);
     static void CopyTokenToString(Token tok, char* buffer, size_t size);
     static XMLNode* SearchNode(XMLNode* root, const char* search);
     static void Free(XMLNode* root);

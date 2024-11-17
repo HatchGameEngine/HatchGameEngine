@@ -86,8 +86,6 @@ int         Application::MasterVolume = 100;
 int         Application::MusicVolume = 100;
 int         Application::SoundVolume = 100;
 
-int         Application::StartSceneNum = 0;
-
 bool        Application::DevMenuActivated = false;
 bool        Application::DevConvertModels = false;
 
@@ -1190,23 +1188,32 @@ void Application::Cleanup() {
 #endif
 }
 
-static void ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
+static char* ParseGameConfigText(XMLNode* parent, const char* option) {
     XMLNode* node = XMLParser::SearchNode(parent, option);
     if (!node)
-        return;
+        return nullptr;
+
+    return XMLParser::TokenToString(node->children[0]->name);
+}
+static bool ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
+    XMLNode* node = XMLParser::SearchNode(parent, option);
+    if (!node)
+        return false;
 
     char read[32];
     XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
-    StringUtils::ToNumber(&val, read);
+    return StringUtils::ToNumber(&val, read);
 }
-static void ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
+static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
     node = XMLParser::SearchNode(node, option);
     if (!node)
-        return;
+        return false;
 
     char read[5];
     XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
     val = !strcmp(read, "true");
+
+    return true;
 }
 
 void Application::LoadGameConfig() {
@@ -1355,44 +1362,72 @@ void Application::LoadGameInfo() {
 }
 
 void Application::LoadSceneInfo() {
+    XMLNode* sceneConfig = nullptr;
+
+    int startSceneNum = 0;
+
+    SceneInfo::Init();
+
+    Scene::ActiveCategory = 0;
+    Scene::CurrentSceneInList = 0;
+
+    // Open and read SceneConfig
     if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-        XMLNode* node;
+        sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
+    }
+    else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
+        sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
+    }
 
-        // Read category and starting scene number to be used by the SceneConfig
-        if (Application::GameConfig) {
-            node = Application::GameConfig->children[0];
-            if (node) {
-                ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory);
-                ParseGameConfigInt(node, "startSceneNum", Application::StartSceneNum);
-            }
-        }
-        else {
-            // TODO: Check existing scene folder and id here to reset them upon reload
-            Scene::ActiveCategory = 0;
-            Application::StartSceneNum = 0;
-        }
-
-        // Open and read SceneConfig
-        XMLNode* sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
-        if (!sceneConfig)
-            return;
-
-        // Parse Scene List
+    // Parse Scene List
+    if (sceneConfig) {
         if (SceneInfo::Load(sceneConfig->children[0])) {
-            if (SceneInfo::IsCategoryValid(Scene::ActiveCategory)) {
-                SceneListCategory& category = SceneInfo::Categories[Scene::ActiveCategory];
-                size_t listPos = category.OffsetStart + Application::StartSceneNum;
-                if (listPos < category.OffsetEnd) {
-                    Scene::CurrentSceneInList = listPos;
-                    Scene::SetInfoFromCurrentID();
+            // Read category and starting scene number to be used by the SceneConfig
+            if (Application::GameConfig) {
+                XMLNode* node = Application::GameConfig->children[0];
+                if (node) {
+                    // Parse active category
+                    if (ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
+                        // backwards compat
+                        Scene::ActiveCategory++;
+                    }
+                    else {
+                        char* text = ParseGameConfigText(node, "activeCategory");
+                        if (text) {
+                            int id = SceneInfo::GetCategoryID(SCENEINFO_GLOBAL_CATEGORY_NAME);
+                            if (id >= 0)
+                                Scene::ActiveCategory = id;
+                            Memory::Free(text);
+                        }
+                    }
+
+                    // Parse starting scene
+                    ParseGameConfigInt(node, "startSceneNum", startSceneNum); // backwards compat
+
+                    char* text = ParseGameConfigText(node, "startscene");
+                    if (text) {
+                        int id = SceneInfo::GetEntryID(Scene::ActiveCategory, text);
+                        if (id >= 0)
+                            startSceneNum = id;
+                        Memory::Free(text);
+                    }
                 }
             }
 
-            Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)",
-                SceneInfo::Categories.size(), SceneInfo::Entries.size());
-        }
+            // TODO: Check existing scene folder and id here to reset them upon reload
+            if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
+                Scene::CurrentSceneInList = startSceneNum;
+            }
 
-        StringUtils::Copy(StartingScene, SceneInfo::GetFilename(Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));
+            if (SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
+                Scene::SetInfoFromCurrentID();
+
+                StringUtils::Copy(StartingScene, SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));
+            }
+
+            Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)",
+                SceneInfo::Categories.size(), SceneInfo::NumTotalScenes);
+        }
 
         XMLParser::Free(sceneConfig);
     }

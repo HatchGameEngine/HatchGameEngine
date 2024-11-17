@@ -53,7 +53,6 @@ public:
     static int         MasterVolume;
     static int         MusicVolume;
     static int         SoundVolume;
-    static int         StartSceneNum;
     static bool        DevMenuActivated;
     static bool        DevConvertModels;
 

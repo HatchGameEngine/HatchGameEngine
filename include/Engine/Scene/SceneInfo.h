@@ -6,31 +6,35 @@
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 
+#define SCENEINFO_GLOBAL_CATEGORY_NAME "global"
+
 class SceneInfo {
 private:
+    static SceneListCategory* NewCategory(std::string name);
+    static SceneListEntry ParseEntry(XMLNode* node, size_t id);
     static void FillAttributesHashMap(XMLAttributes* attr, HashMap<char*>* map);
 
 public:
-    static vector<SceneListEntry>    Entries;
     static vector<SceneListCategory> Categories;
+    static int NumTotalScenes;
 
+    static void Init();
     static void Dispose();
     static bool IsCategoryValid(int categoryID);
-    static bool IsEntryValid(int entryID);
-    static bool IsEntryValidInCategory(size_t categoryID, size_t entryID);
+    static bool IsEntryValid(int categoryID, int entryID);
+    static bool CategoryHasEntries(int categoryID);
     static int GetCategoryID(const char* categoryName);
-    static int GetEntryID(const char* categoryName, const char* entryName);
-    static int GetEntryID(const char* categoryName, size_t entryID);
-    static int GetEntryID(size_t categoryID, size_t entryID);
-    static int GetEntryPosInCategory(const char *categoryName, const char* entryName);
-    static int GetEntryPosInCategory(size_t categoryID, const char* entryName);
-    static int GetEntryIDWithinRange(size_t start, size_t end, const char* entryName);
-    static string GetParentPath(int entryID);
-    static string GetFilename(int entryID);
-    static string GetTileConfigFilename(int entryID);
-    static char* GetEntryProperty(int entryID, char* property);
+    static int GetEntryID(const char *categoryName, const char* entryName);
+    static int GetEntryID(int categoryID, const char* entryName);
+    static std::string GetParentPath(int categoryID, int entryID);
+    static std::string GetFilename(int categoryID, int entryID);
+    static std::string GetName(int categoryID, int entryID);
+    static std::string GetFolder(int categoryID, int entryID);
+    static std::string GetID(int categoryID, int entryID);
+    static std::string GetTileConfigFilename(int categoryID, int entryID);
+    static char* GetEntryProperty(int categoryID, int entryID, char* property);
     static char* GetCategoryProperty(int categoryID, char* property);
-    static bool HasEntryProperty(int entryID, char* property);
+    static bool HasEntryProperty(int categoryID, int entryID, char* property);
     static bool HasCategoryProperty(int categoryID, char* property);
     static bool Load(XMLNode* node);
 };
