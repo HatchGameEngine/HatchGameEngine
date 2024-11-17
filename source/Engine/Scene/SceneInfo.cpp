@@ -111,18 +111,19 @@ int SceneInfo::GetEntryIDWithinRange(size_t start, size_t end, const char* entry
 string SceneInfo::GetParentPath(int entryID) {
     SceneListEntry& entry = Entries[entryID];
 
-    char filePath[4096];
-    if (!strcmp(entry.Filetype, "bin")) {
-        snprintf(filePath, sizeof(filePath), "Stages/%s/", entry.Folder);
+    std::string filePath;
+
+    if (entry.Filetype != nullptr && strcmp(entry.Filetype, "bin") == 0) {
+        filePath += "Stages/";
     }
     else {
-        if (entry.Folder == nullptr)
-            snprintf(filePath, sizeof(filePath), "Scenes/");
-        else
-            snprintf(filePath, sizeof(filePath), "Scenes/%s/", entry.Folder);
+        filePath += "Scenes/";
     }
 
-    return std::string(filePath);
+    if (entry.Folder != nullptr)
+        filePath += std::string(entry.Folder) + "/";
+
+    return filePath;
 }
 
 string SceneInfo::GetFilename(int entryID) {
@@ -130,31 +131,19 @@ string SceneInfo::GetFilename(int entryID) {
 
     std::string parentPath = GetParentPath(entryID);
 
-    const char* id = scene.ID != nullptr ? scene.ID : scene.Name;
+    std::string id = scene.ID != nullptr ? std::string(scene.ID) : std::string(scene.Name);
 
-    char filePath[4096];
-    if (!strcmp(scene.Filetype, "bin")) {
-        if (scene.Folder == nullptr) {
-            if (scene.Filetype == nullptr)
-                snprintf(filePath, sizeof(filePath), "Scene%s", id);
-            else
-                snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
-        }
-        else
-            snprintf(filePath, sizeof(filePath), "Scene%s.%s", id, scene.Filetype);
+    std::string filePath = "";
+
+    // RSDK compatibility.
+    if (scene.Filetype != nullptr && strcmp(scene.Filetype, "bin") == 0) {
+        filePath = "Scene";
     }
-    else {
-        if (scene.Folder == nullptr) {
-            if (scene.Filetype == nullptr)
-                snprintf(filePath, sizeof(filePath), "%s", id);
-            else
-                snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
-        }
-        else if (scene.Filetype == nullptr)
-            snprintf(filePath, sizeof(filePath), "%s", id);
-        else
-            snprintf(filePath, sizeof(filePath), "%s.%s", id, scene.Filetype);
-    }
+
+    filePath += id;
+
+    if (scene.Filetype != nullptr)
+        filePath += "." + std::string(scene.Filetype);
 
     parentPath += std::string(filePath);
 

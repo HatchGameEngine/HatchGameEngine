@@ -537,7 +537,12 @@ void Scene::SetInfoFromCurrentID() {
 
     strcpy(Scene::CurrentFolder, scene.Folder);
     strcpy(Scene::CurrentID, scene.ID);
-    strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
+
+    if (scene.ResourceFolder != nullptr)
+        strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
+    else
+        Scene::CurrentResourceFolder[0] = '\0';
+
     strcpy(Scene::CurrentCategory, category.Name);
 
     Scene::CurrentSceneInList = entryID;
