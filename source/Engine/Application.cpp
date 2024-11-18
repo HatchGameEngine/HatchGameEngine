@@ -2114,7 +2114,8 @@ void Application::DevMenu_CategorySelectMenu() {
     }
 
     if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
-        if ((int)SceneInfo::Categories[DevMenu.SubSelection].Count) {
+        SceneListCategory* list = &SceneInfo::Categories[DevMenu.SubSelection];
+        if ((int)list->Entries.size()) {
             DevMenu.State = DevMenu_SceneSelectMenu;
             DevMenu.ListPos = DevMenu.SubSelection;
             DevMenu.SubScrollPos = 0;
@@ -2140,18 +2141,17 @@ void Application::DevMenu_SceneSelectMenu() {
 
     int y = 93;
     SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
-    int start = list->OffsetStart;
     for (int i = 0; i < 7; i++) {
-        if (DevMenu.SubScrollPos + i < list->Count) {
-            DrawDevString(SceneInfo::Entries[start + (DevMenu.SubScrollPos + i)].Name, 160, y, 0, selectedScene[(int)i]);
+        if (DevMenu.SubScrollPos + i < list->Entries.size()) {
+            DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, 0, selectedScene[(int)i]);
             y += 15;
         }
     }
 
     if (InputManager::GetActionID("Up") != -1) {
         if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-            if (start + --DevMenu.SubSelection < list->OffsetStart)
-                DevMenu.SubSelection = list->Count - 1;
+            if (--DevMenu.SubSelection < 0)
+                DevMenu.SubSelection = list->Entries.size() - 1;
 
             if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
                 if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
@@ -2164,8 +2164,8 @@ void Application::DevMenu_SceneSelectMenu() {
             DevMenu.Timer = 1;
         }
         else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-            if (!DevMenu.Timer && start + --DevMenu.SubSelection < list->OffsetStart)
-                DevMenu.SubSelection = list->Count - 1;
+            if (!DevMenu.Timer && --DevMenu.SubSelection < 0)
+                DevMenu.SubSelection = list->Entries.size() - 1;
 
             DevMenu.Timer = (DevMenu.Timer + 1) & 7;
 
@@ -2181,7 +2181,7 @@ void Application::DevMenu_SceneSelectMenu() {
 
     if (InputManager::GetActionID("Down") != -1) {
         if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-            if (++DevMenu.SubSelection >= list->Count)
+            if (++DevMenu.SubSelection >= list->Entries.size())
                 DevMenu.SubSelection = 0;
 
             if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
@@ -2195,7 +2195,7 @@ void Application::DevMenu_SceneSelectMenu() {
             DevMenu.Timer = 1;
         }
         else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-            if (!DevMenu.Timer && ++DevMenu.SubSelection >= list->Count)
+            if (!DevMenu.Timer && ++DevMenu.SubSelection >= list->Entries.size())
                 DevMenu.SubSelection = 0;
 
             DevMenu.Timer = (DevMenu.Timer + 1) & 7;
@@ -2222,21 +2222,18 @@ void Application::DevMenu_SceneSelectMenu() {
         AudioManager::ClearMusic();
 
         const char* categoryName = list->Name;
-        const char* sceneName = SceneInfo::Entries[DevMenu.SubSelection + list->OffsetStart].Name;
+        const char* sceneName = list->Entries[DevMenu.SubSelection].Name;
 
         int categoryID = SceneInfo::GetCategoryID(categoryName);
         if (categoryID < 0)
             return;
-        SceneListCategory& category = SceneInfo::Categories[categoryID];
-        if (!SceneInfo::IsEntryValid(category.OffsetStart))
-            return;
-        int entryID = SceneInfo::GetEntryIDWithinRange(category.OffsetStart, category.OffsetEnd, sceneName);
+        int entryID = SceneInfo::GetEntryID(categoryName, sceneName);
         if (entryID < 0)
             return;
 
         Scene::SetCurrent(categoryName, sceneName);
 
-        std::string path = SceneInfo::GetFilename(Scene::CurrentSceneInList);
+        std::string path = SceneInfo::GetFilename(categoryID, DevMenu.SubSelection);
 
         StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
     }

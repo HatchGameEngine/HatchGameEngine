@@ -528,11 +528,6 @@ void Scene::SetInfoFromCurrentID() {
     SceneListEntry& scene = category.Entries[Scene::CurrentSceneInList];
 
     strcpy(Scene::CurrentID, scene.ID);
-<<<<<<< HEAD
-=======
-    strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
-    Scene::Filter = scene.Filter;
->>>>>>> axanery/dev
     strcpy(Scene::CurrentCategory, category.Name);
 
     if (scene.Folder != nullptr)
@@ -967,11 +962,7 @@ DoCheckRender:
                     Graphics::FillRectangle(entX1, entY1, entX2 - entX1, entY2 - entY1);
                 }
 
-<<<<<<< HEAD
                 if (!ent->Visible || (ent->ViewRenderFlag & viewRenderFlag) == 0)
-=======
-                if ((ent->ViewRenderFlag & viewRenderFlag) == 0 || !ent->Visible)
->>>>>>> axanery/dev
                     continue;
                 if ((ent->ViewOverrideFlag & viewRenderFlag) == 0 && (Scene::ObjectViewRenderFlag & viewRenderFlag) == 0)
                     continue;
