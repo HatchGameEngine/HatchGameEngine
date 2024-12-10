@@ -1,6 +1,6 @@
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/Utilities/StringUtils.h>
-#include <Engine/Filesystem/File.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 
 vector<SceneListCategory> SceneInfo::Categories;
 int                       SceneInfo::NumTotalScenes;
@@ -121,7 +121,7 @@ std::string SceneInfo::GetFilename(int categoryID, int entryID) {
     // RSDK compatibility
     if (entry.Filetype != nullptr && !strcmp(entry.Filetype, "bin")) {
         // v3/4 versus v5
-        filePath = File::Exists((parentPath + "128x128Tiles.bin").c_str()) ? "Act" : "Scene";
+        filePath = ResourceManager::ResourceExists((parentPath + "128x128Tiles.bin").c_str()) ? "Act" : "Scene";
     }
 
     filePath += entry.ID != nullptr ? std::string(entry.ID) : std::string(entry.Name);
@@ -238,10 +238,6 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
     else if (entry.Folder)
         entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
 
-    // Sprite folder (backwards compat)
-    if (node->attributes.Exists("spriteFolder"))
-        entry.ResourceFolder = XMLParser::TokenToString(node->attributes.Get("spriteFolder"));
-
     // Filetype
     if (node->attributes.Exists("fileExtension"))
         entry.Filetype = XMLParser::TokenToString(node->attributes.Get("fileExtension"));
@@ -252,7 +248,7 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
     if (node->attributes.Exists("id"))
         entry.ID = XMLParser::TokenToString(node->attributes.Get("id"));
     else if (entry.Filetype == "bin") {
-        // RSDK compatibility.
+        // RSDK compatibility
         char buf[16];
         snprintf(buf, sizeof(buf), "%d", ((int)id) + 1);
         entry.ID = StringUtils::Duplicate(buf);
@@ -267,7 +263,6 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
     entry.Properties->Put("folder", entry.Folder);
     entry.Properties->Put("id", entry.ID);
     entry.Properties->Put("resourceFolder", entry.ResourceFolder);
-    entry.Properties->Put("spriteFolder", entry.ResourceFolder); // backwards compat
     entry.Properties->Put("fileExtension", entry.Filetype);
 
     FillAttributesHashMap(&node->attributes, entry.Properties);
@@ -308,7 +303,7 @@ bool SceneInfo::Load(XMLNode* node) {
             for (size_t s = 0; s < listElement->children.size(); ++s) {
                 XMLNode* node = listElement->children[s];
                 if (XMLParser::MatchToken(node->name, "scene")
-                || XMLParser::MatchToken(node->name, "stage")) { // backwards compat
+                || XMLParser::MatchToken(node->name, "stage")) { // Backwards compatibility
                     SceneListEntry entry = ParseEntry(node, s);
 
                     category->Entries.push_back(entry);
