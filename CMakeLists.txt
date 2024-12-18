@@ -50,6 +50,11 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
+  if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" ON)
+  else()
+    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" OFF)
+  endif()
 endif()
 
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
@@ -193,9 +198,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   else()
     target_link_libraries(${PROJECT_NAME}
       "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
-      -static -mwindows -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
+      -static -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
       -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
       -lversion -luuid -lhid -lsetupapi -lws2_32)
+
+    if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
+      target_link_libraries(${PROJECT_NAME} -mwindows)
+    endif()
   endif()
   add_definitions(-DSDL_MAIN_HANDLED)
 else()
