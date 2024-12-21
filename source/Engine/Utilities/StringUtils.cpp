@@ -253,16 +253,21 @@ char* StringUtils::ReplacePathSeparators(const char* path) {
     return newPath;
 }
 char* StringUtils::NormalizePath(const char* path) {
-    char* newPath = StringUtils::ReplacePathSeparators(path);
-    if (newPath == nullptr)
+    if (path == nullptr)
         return nullptr;
 
-    std::filesystem::path fsPath = std::filesystem::path(std::string(newPath));
-    std::string normalized = fsPath.lexically_normal().u8string();
+    std::filesystem::path fsPath = std::filesystem::path(std::string(path));
+    std::string fsNorm = fsPath.lexically_normal().u8string();
 
-    Memory::Free(newPath);
+    char* normalizedPath = StringUtils::Create(fsNorm);
+    if (normalizedPath == nullptr)
+        return nullptr;
 
-    return StringUtils::Create(normalized);
+    char* newPath = StringUtils::ReplacePathSeparators(normalizedPath);
+
+    Memory::Free(normalizedPath);
+
+    return newPath;
 }
 void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
     if (!path)
