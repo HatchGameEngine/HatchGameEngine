@@ -120,7 +120,7 @@ void   ResourceManager::Load(const char* filename) {
 bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
     Uint8* memory;
     char resourcePath[4096];
-    char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
+    char* pathToLoad = StringUtils::NormalizePath(filename);
     ResourceRegistryItem item;
 
     if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack)
@@ -254,7 +254,7 @@ bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* 
     return true;
 }
 bool   ResourceManager::ResourceExists(const char* filename) {
-    char *pathToLoad = StringUtils::ReplacePathSeparators(filename);
+    char *pathToLoad = StringUtils::NormalizePath(filename);
 
     char resourcePath[4096];
     if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack)

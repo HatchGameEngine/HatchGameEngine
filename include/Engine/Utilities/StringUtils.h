@@ -26,6 +26,7 @@ public:
     static const char* GetExtension(const char* filename);
     static char* ConcatPaths(const char* pathA, const char* pathB);
     static char* ReplacePathSeparators(const char* path);
+    static char* NormalizePath(const char *path);
     static void ReplacePathSeparatorsInPlace(char* path);
 };
 
