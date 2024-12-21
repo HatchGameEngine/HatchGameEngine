@@ -1472,6 +1472,8 @@ void Application::InitSettings(const char* filename) {
 
     // NOTE: If no settings could be loaded, create settings with default values.
     if (!Application::Settings) {
+        StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
+
         Application::Settings = INI::New(Application::SettingsFile);
 
         Application::Settings->SetBool("display", "fullscreen", false);
