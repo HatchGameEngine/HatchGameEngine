@@ -29,11 +29,11 @@ ISprite::ISprite(const char* filename) {
     Spritesheets.shrink_to_fit();
     SpritesheetFilenames.clear();
     SpritesheetFilenames.shrink_to_fit();
-    Filename = StringUtils::Duplicate(filename);
+    Filename = StringUtils::NormalizePath(filename);
     LoadFailed = !LoadAnimation(Filename);
 }
 
-Texture* ISprite::AddSpriteSheet(const char* filename) {
+Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
     Texture* texture = NULL;
     Uint32*  data = NULL;
     Uint32   width = 0;
@@ -41,12 +41,15 @@ Texture* ISprite::AddSpriteSheet(const char* filename) {
     Uint32*  paletteColors = NULL;
     unsigned numPaletteColors = 0;
 
+    char* filename = StringUtils::NormalizePath(sheetFilename);
+
     std::string sheetPath = std::string(filename);
 
     TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
     if (textureRef != nullptr) {
         SpritesheetFilenames.push_back(sheetPath);
         Spritesheets.push_back(textureRef->TexturePtr);
+        Memory::Free(filename);
         return textureRef->TexturePtr;
     }
 
@@ -73,6 +76,7 @@ Texture* ISprite::AddSpriteSheet(const char* filename) {
         }
         else {
             Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
+            Memory::Free(filename);
             return NULL;
         }
     }
@@ -93,6 +97,7 @@ Texture* ISprite::AddSpriteSheet(const char* filename) {
         }
         else {
             Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
+            Memory::Free(filename);
             return NULL;
         }
     }
@@ -118,11 +123,13 @@ Texture* ISprite::AddSpriteSheet(const char* filename) {
         }
         else {
             Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
+            Memory::Free(filename);
             return NULL;
         }
     }
     else {
         Log::Print(Log::LOG_ERROR, "Unsupported image format for sprite!");
+        Memory::Free(filename);
         return texture;
     }
 
@@ -147,6 +154,8 @@ Texture* ISprite::AddSpriteSheet(const char* filename) {
     Graphics::AddSpriteSheet(sheetPath, texture);
     Spritesheets.push_back(texture);
     SpritesheetFilenames.push_back(sheetPath);
+
+    Memory::Free(filename);
 
     return texture;
 }

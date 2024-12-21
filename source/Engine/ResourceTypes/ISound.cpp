@@ -18,7 +18,7 @@ ISound::ISound(const char* filename, bool streamFromFile) {
 void ISound::Load(const char* filename, bool streamFromFile) {
     LoadFailed = true;
     StreamFromFile = streamFromFile;
-    strcpy(Filename, filename);
+    Filename = StringUtils::NormalizePath(filename);
 
     double ticks = Clock::GetTicks();
 
@@ -81,5 +81,10 @@ void ISound::Dispose() {
         SoundData->Dispose();
         delete SoundData;
         SoundData = nullptr;
+    }
+
+    if (Filename) {
+        Memory::Free(Filename);
+        Filename = nullptr;
     }
 }

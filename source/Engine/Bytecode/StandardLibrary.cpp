@@ -39,7 +39,6 @@
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
-
 #ifdef USING_FREETYPE
 #include <ft2build.h>
 #include FT_FREETYPE_H

@@ -16,7 +16,7 @@ public:
 
     ISprite();
     ISprite(const char* filename);
-    Texture* AddSpriteSheet(const char* filename);
+    Texture* AddSpriteSheet(const char* sheetFilename);
     void ReserveAnimationCount(int count);
     void AddAnimation(const char* name, int animationSpeed, int frameToLoop);
     void AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc);

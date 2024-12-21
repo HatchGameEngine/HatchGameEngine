@@ -6,6 +6,7 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Utilities/StringUtils.h>
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/SDLStream.h>

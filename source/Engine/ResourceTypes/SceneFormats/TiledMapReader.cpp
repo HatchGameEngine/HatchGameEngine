@@ -7,7 +7,7 @@
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/IO/Compression/ZLibStream.h>
-#include <Engine/IO/ResourceStream.h>
+#include <Engine/Utilities/StringUtils.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileAnimation.h>

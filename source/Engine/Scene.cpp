@@ -1380,7 +1380,7 @@ void Scene::DeleteAllObjects() {
         });
     }
 }
-void Scene::LoadScene(const char* filename) {
+void Scene::LoadScene(const char* sceneFilename) {
     // Remove non-persistent objects from lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1437,6 +1437,8 @@ void Scene::LoadScene(const char* filename) {
     MemoryPools::RunGC(MemoryPools::MEMPOOL_STRING);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
 #endif
+
+    char* filename = StringUtils::NormalizePath(sceneFilename);
 
     char pathParent[4096];
     StringUtils::Copy(pathParent, filename, sizeof(pathParent));
@@ -1497,12 +1499,13 @@ void Scene::LoadScene(const char* filename) {
         SetInfoFromCurrentID();
 
         if (SceneInfo::IsEntryValid(ActiveCategory, CurrentSceneInList)) {
-            std::string filename = SceneInfo::GetTileConfigFilename(ActiveCategory, CurrentSceneInList);
-            Scene::LoadTileCollisions(filename.c_str(), 0);
+            std::string cfgFilename = SceneInfo::GetTileConfigFilename(ActiveCategory, CurrentSceneInList);
+            Scene::LoadTileCollisions(cfgFilename.c_str(), 0);
         }
     }
-    else
+    else {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+    }
 
     // Call Static's GameStart here
     if (Application::GameStart) {
@@ -1511,6 +1514,8 @@ void Scene::LoadScene(const char* filename) {
     }
 
     Scene::Loaded = false;
+
+    Memory::Free(filename);
 }
 
 void Scene::ProcessSceneTimer() {
