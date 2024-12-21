@@ -17,7 +17,6 @@ INI* INI::Load(const char* filename) {
 
     SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
     if (!stream) {
-        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
         delete ini;
         return nullptr;
     }
@@ -36,7 +35,6 @@ INI* INI::Load(const char* filename) {
 bool INI::Reload() {
     SDLStream* stream = SDLStream::New(Filename, SDLStream::READ_ACCESS);
     if (!stream) {
-        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", Filename);
         return false;
     }
 
