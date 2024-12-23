@@ -252,7 +252,7 @@ bool GLShader::CheckGLError(int line) {
             break;
     }
     Log::Print(Log::LOG_ERROR, "OpenGL error on line %d: %s", line, errstr);
-    return false;
+    return true;
 }
 #undef CHECK_GL
 
