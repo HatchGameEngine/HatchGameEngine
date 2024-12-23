@@ -72,8 +72,8 @@ struct GraphicsFunctions {
 
     void*    (*CreateVertexBuffer)(Uint32 maxVertices);
     void     (*DeleteVertexBuffer)(void* vtxBuf);
-    void     (*MakeFrameBufferID)(ISprite* sprite, AnimFrame* frame);
-    void     (*DeleteFrameBufferID)(AnimFrame* frame);
+    void     (*MakeFrameBufferID)(ISprite* sprite);
+    void     (*DeleteFrameBufferID)(ISprite* sprite);
 
     void     (*SetStencilEnabled)(bool enabled);
     bool     (*IsStencilEnabled)();

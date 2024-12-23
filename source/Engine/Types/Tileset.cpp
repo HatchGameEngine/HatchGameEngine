@@ -60,6 +60,8 @@ void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, ve
             TileWidth, TileHeight, -TileWidth / 2, -TileHeight / 2, 0);
     }
 
+    tileSprite->RefreshGraphicsID();
+
     TileAnimator animator(tileSpriteInfo, tileSprite, animID);
     animator.RestartAnimation();
 

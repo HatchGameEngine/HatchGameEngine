@@ -260,6 +260,8 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
             Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
+    tileSprite->RefreshGraphicsID();
+
     Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, firstgid, curTileCount + numEmptyTiles, (cols * rows) + 1, imagePath);
     Scene::Tilesets.push_back(sceneTileset);
 

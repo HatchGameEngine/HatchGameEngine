@@ -878,6 +878,7 @@ void Application::RunFrame(void* p) {
                         14);
                 }
             }
+            DEBUG_fontSprite->RefreshGraphicsID();
 
             Graphics::SetTextureInterpolation(original);
         }
