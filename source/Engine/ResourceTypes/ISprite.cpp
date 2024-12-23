@@ -207,9 +207,7 @@ void ISprite::RemoveFrames(int animID) {
     Animations[animID].Frames.clear();
 }
 
-void ISprite::RefreshGraphicsID()
-{
-    //Graphics::DeleteFrameBufferID(this);
+void ISprite::RefreshGraphicsID() {
     Graphics::MakeFrameBufferID(this);
 }
 
