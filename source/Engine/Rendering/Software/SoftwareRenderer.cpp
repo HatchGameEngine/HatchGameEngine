@@ -3735,6 +3735,6 @@ void     SoftwareRenderer::DrawSceneLayer(SceneLayer* layer, View* currentView, 
 	}
 }
 
-void     SoftwareRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
-    frame->ID = 0;
+void     SoftwareRenderer::MakeFrameBufferID(ISprite* sprite) {
+    sprite->ID = 0;
 }

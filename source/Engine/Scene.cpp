@@ -2173,6 +2173,8 @@ bool Scene::AddTileset(char* path) {
             Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
+    tileSprite->RefreshGraphicsID();
+
     Scene::SetTileCount(Scene::TileCount + (cols * rows));
 
     return true;

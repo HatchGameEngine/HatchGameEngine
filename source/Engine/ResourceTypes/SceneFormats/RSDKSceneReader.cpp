@@ -614,6 +614,8 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
         Scene::TileSpriteInfos.push_back(info);
     }
 
+    tileSprite->RefreshGraphicsID();
+
     Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, 0, 0, Scene::TileSpriteInfos.size(), filename16x16Tiles);
     Scene::Tilesets.push_back(sceneTileset);
 

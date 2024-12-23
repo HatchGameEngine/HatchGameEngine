@@ -198,15 +198,19 @@ void ISprite::AddFrame(int animID, int duration, int left, int top, int width, i
     anfrm.SheetNumber = 0;
     anfrm.BoxCount = 0;
 
-    // Possibly buffer the position in the renderer.
-    Graphics::MakeFrameBufferID(this, &anfrm);
+    FrameCount++;
 
     Animations[animID].Frames.push_back(anfrm);
 }
 void ISprite::RemoveFrames(int animID) {
-    for (size_t i = 0; i < Animations[animID].Frames.size(); i++)
-        Graphics::DeleteFrameBufferID(&Animations[animID].Frames[i]);
+    FrameCount -= Animations[animID].Frames.size();
     Animations[animID].Frames.clear();
+}
+
+void ISprite::RefreshGraphicsID()
+{
+    //Graphics::DeleteFrameBufferID(this);
+    Graphics::MakeFrameBufferID(this);
 }
 
 void ISprite::ConvertToRGBA() {
@@ -364,9 +368,6 @@ bool ISprite::LoadAnimation(const char* filename) {
                 }
             }
 
-            // Possibly buffer the position in the renderer.
-            Graphics::MakeFrameBufferID(this, &anfrm);
-
 #ifdef ISPRITE_DEBUG
             Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
 #endif
@@ -374,6 +375,10 @@ bool ISprite::LoadAnimation(const char* filename) {
         }
         Animations[previousAnimationCount + a] = an;
     }
+    FrameCount = frameID;
+    // Possibly buffer the position in the renderer.
+    Graphics::MakeFrameBufferID(this);
+
     reader->Close();
 
     return true;
@@ -501,6 +506,8 @@ void ISprite::Dispose() {
 
     SpritesheetFilenames.clear();
     SpritesheetFilenames.shrink_to_fit();
+
+    Graphics::DeleteFrameBufferID(this);
 
     Memory::Free(Filename);
     Filename = nullptr;

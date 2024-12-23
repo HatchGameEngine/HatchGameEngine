@@ -320,7 +320,7 @@ void   GL_Predraw(Texture* texture) {
     GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
     GL_SetModelViewMatrix(Graphics::ModelViewMatrix);
 }
-void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int flip) {
+void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int offset, int flip) {
     GL_Predraw(texture);
 
     if (!Graphics::TextureBlend) {
@@ -332,8 +332,8 @@ void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int flip) {
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, buffer); CHECK_GL();
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), 0); CHECK_GL();
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)NULL + 8); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)offset); CHECK_GL();
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)offset + 8); CHECK_GL();
 
     glDrawArrays(GL_TRIANGLE_STRIP, flip << 2, 4); CHECK_GL();
 }
@@ -1771,7 +1771,7 @@ void     GLRenderer::DrawSprite(ISprite* sprite, int animation, int frame, int x
     Graphics::Save();
         // Graphics::Rotate(0.0f, 0.0f, rotation);
         Graphics::Translate(x, y, 0.0f);
-        GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber], animframe.ID, ((int)flipY << 1) | (int)flipX);
+        GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber], sprite->ID, animframe.BufferOffset, ((int)flipY << 1) | (int)flipX);
     Graphics::Restore();
     //*/
 
@@ -2099,9 +2099,7 @@ void     GLRenderer::DeleteVertexBuffer(void* vtxBuf) {
 
     delete vertexBuffer;
 }
-void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
-    frame->ID = 0;
-
+void     GLRenderer::MakeFrameBufferID(ISprite* sprite) {
     float fX[4], fY[4];
     fX[0] = 1.0;    fY[0] = 1.0;
     fX[1] = -1.0;   fY[1] = 1.0;
@@ -2109,43 +2107,58 @@ void     GLRenderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
     fX[3] = -1.0;   fY[3] = -1.0;
 
     GL_AnimFrameVert vertices[16];
-    GL_AnimFrameVert* vert = &vertices[0];
 
-    if (frame->SheetNumber >= sprite->Spritesheets.size())
-        return;
-    if (!sprite->Spritesheets[frame->SheetNumber])
-        return;
-
-    float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
-    float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
-
-    float ffU0 = frame->X / texWidth;
-    float ffV0 = frame->Y / texHeight;
-    float ffU1 = (frame->X + frame->Width) / texWidth;
-    float ffV1 = (frame->Y + frame->Height) / texHeight;
-
-    float _fX, _fY, ffX0, ffY0, ffX1, ffY1;
-    for (int f = 0; f < 4; f++) {
-        _fX = fX[f];
-        _fY = fY[f];
-        ffX0 = _fX * frame->OffsetX;
-        ffY0 = _fY * frame->OffsetY;
-        ffX1 = _fX * (frame->OffsetX + frame->Width);
-        ffY1 = _fY * (frame->OffsetY + frame->Height);
-        vert[0] = GL_AnimFrameVert { ffX0, ffY0, ffU0, ffV0 };
-        vert[1] = GL_AnimFrameVert { ffX1, ffY0, ffU1, ffV0 };
-        vert[2] = GL_AnimFrameVert { ffX0, ffY1, ffU0, ffV1 };
-        vert[3] = GL_AnimFrameVert { ffX1, ffY1, ffU1, ffV1 };
-        vert += 4;
+    if (sprite->ID == 0) {
+        glGenBuffers(1, (GLuint*)&sprite->ID); CHECK_GL();
     }
-    glGenBuffers(1, (GLuint*)&frame->ID); CHECK_GL();
-    glBindBuffer(GL_ARRAY_BUFFER, frame->ID); CHECK_GL();
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); CHECK_GL();
+    glBindBuffer(GL_ARRAY_BUFFER, sprite->ID); CHECK_GL();
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices) * sprite->FrameCount, NULL, GL_STATIC_DRAW); CHECK_GL();
+
+    size_t fc = 0;
+    for (size_t a = 0; a < sprite->Animations.size(); ++a) {
+        for (size_t i = 0; i < sprite->Animations[a].Frames.size(); ++i) {
+            AnimFrame* frame = &sprite->Animations[a].Frames[i];
+            GL_AnimFrameVert* vert = &vertices[0];
+
+            if (frame->SheetNumber >= sprite->Spritesheets.size())
+                continue;
+            if (!sprite->Spritesheets[frame->SheetNumber])
+                continue;
+
+            float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
+            float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
+
+            float ffU0 = frame->X / texWidth;
+            float ffV0 = frame->Y / texHeight;
+            float ffU1 = (frame->X + frame->Width) / texWidth;
+            float ffV1 = (frame->Y + frame->Height) / texHeight;
+
+            float _fX, _fY, ffX0, ffY0, ffX1, ffY1;
+            for (int f = 0; f < 4; f++) {
+                _fX = fX[f];
+                _fY = fY[f];
+                ffX0 = _fX * frame->OffsetX;
+                ffY0 = _fY * frame->OffsetY;
+                ffX1 = _fX * (frame->OffsetX + frame->Width);
+                ffY1 = _fY * (frame->OffsetY + frame->Height);
+                vert[0] = GL_AnimFrameVert{ ffX0, ffY0, ffU0, ffV0 };
+                vert[1] = GL_AnimFrameVert{ ffX1, ffY0, ffU1, ffV0 };
+                vert[2] = GL_AnimFrameVert{ ffX0, ffY1, ffU0, ffV1 };
+                vert[3] = GL_AnimFrameVert{ ffX1, ffY1, ffU1, ffV1 };
+                vert += 4;
+            }
+
+            frame->BufferOffset = fc++ * sizeof(vertices);
+            glBufferSubData(GL_ARRAY_BUFFER, frame->BufferOffset, sizeof(vertices), vertices);
+        }
+    }
+
+    CHECK_GL();
 }
-void     GLRenderer::DeleteFrameBufferID(AnimFrame* frame) {
-    if (frame->ID) {
-        glDeleteBuffers(1, (GLuint*)&frame->ID); CHECK_GL();
-        frame->ID = 0;
+void     GLRenderer::DeleteFrameBufferID(ISprite* sprite) {
+    if (sprite->ID) {
+        glDeleteBuffers(1, (GLuint *)&sprite->ID); CHECK_GL();
+        sprite->ID = 0;
     }
 }
 void     GLRenderer::SetDepthTesting(bool enable) {

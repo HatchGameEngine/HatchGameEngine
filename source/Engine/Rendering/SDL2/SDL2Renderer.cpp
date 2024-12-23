@@ -420,6 +420,6 @@ void     SDL2Renderer::DrawSpritePart(ISprite* sprite, int animation, int frame,
         y + fY * (sy + animframe.OffsetY), fX * sw, fY * sh);
 }
 
-void     SDL2Renderer::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
-    frame->ID = 0;
+void     SDL2Renderer::MakeFrameBufferID(ISprite* sprite) {
+    sprite->ID = 0;
 }

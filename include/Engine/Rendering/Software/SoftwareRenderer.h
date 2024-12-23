@@ -141,7 +141,7 @@ public:
     static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
     static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);
     static void DrawSceneLayer(SceneLayer* layer, View* currentView, int layerIndex, bool useCustomFunction);
-    static void MakeFrameBufferID(ISprite* sprite, AnimFrame* frame);
+    static void MakeFrameBufferID(ISprite* sprite);
 };
 
 #endif /* ENGINE_RENDERING_SOFTWARE_SOFTWARERENDERER_H */
