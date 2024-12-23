@@ -2122,8 +2122,6 @@ void     GLRenderer::MakeFrameBufferID(ISprite* sprite) {
 
             if (frame->SheetNumber >= sprite->Spritesheets.size())
                 continue;
-            if (!sprite->Spritesheets[frame->SheetNumber])
-                continue;
 
             float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
             float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
