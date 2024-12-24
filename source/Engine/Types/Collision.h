@@ -7,17 +7,17 @@ struct EntityHitbox {
     float OffsetX = 0.0f;
     float OffsetY = 0.0f;
 
-    float GetLeft() {
-        return (-Width / 2) + OffsetX;
+    inline float GetLeft(bool flip = false) {
+        return (-Width / 2) + (flip ? -OffsetX : OffsetX);
     }
-    float GetRight() {
-        return (Width / 2) + OffsetX;
+    inline float GetRight(bool flip = false) {
+        return (Width / 2) + (flip ? -OffsetX : OffsetX);
     }
-    float GetTop() {
-        return (-Height / 2) + OffsetY;
+    inline float GetTop(bool flip = false) {
+        return (-Height / 2) + (flip ? -OffsetY : OffsetY);
     }
-    float GetBottom() {
-        return (Height / 2) + OffsetY;
+    inline float GetBottom(bool flip = false) {
+        return (Height / 2) + (flip ? -OffsetY : OffsetY);
     }
 
     void SetLeft(float left) {

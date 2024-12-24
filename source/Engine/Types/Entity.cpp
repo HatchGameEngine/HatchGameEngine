@@ -124,57 +124,62 @@ int  Entity::SolidCollideWithObject(Entity* other, int flag) {
     // NOTE: "flag" is setValues
     float initialOtherX = (other->X);
     float initialOtherY = (other->Y);
-    float sourceX = std::floor(this->X);
-    float sourceY = std::floor(this->Y);
-    float otherX = std::floor(initialOtherX);
-    float otherY = std::floor(initialOtherY);
+    int sourceX = this->X;
+    int sourceY = this->Y;
+    int otherX = initialOtherX;
+    int otherY = initialOtherY;
     float otherNewX = initialOtherX;
     int collideSideHori = 0;
     int collideSideVert = 0;
 
-    float otherHitboxW = other->Hitbox.Width * 0.5;
-    float otherHitboxH = other->Hitbox.Height * 0.5;
-    float otherHitboxWSq = (other->Hitbox.Width - 2.0) * 0.5;
-    float otherHitboxHSq = (other->Hitbox.Height - 2.0) * 0.5;
-    float sourceHitboxW = this->Hitbox.Width * 0.5;
-    float sourceHitboxH = this->Hitbox.Height * 0.5;
+    int sLeft = this->Hitbox.GetLeft(this->FlipFlag & 1);
+    int sRight = this->Hitbox.GetRight(this->FlipFlag & 1);
+    int sTop = this->Hitbox.GetTop(this->FlipFlag & 2);
+    int sBottom = this->Hitbox.GetBottom(this->FlipFlag & 2);
 
-    float sourceHitboxOffX = (this->FlipFlag & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
-    float sourceHitboxOffY = (this->FlipFlag & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
-    float otherHitboxOffX = (other->FlipFlag & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
-    float otherHitboxOffY = (other->FlipFlag & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
+    int oLeft = other->Hitbox.GetLeft(other->FlipFlag & 1);
+    int oRight = other->Hitbox.GetRight(other->FlipFlag & 1);
+    int oTop = other->Hitbox.GetTop(other->FlipFlag & 2);
+    int oBottom = other->Hitbox.GetBottom(other->FlipFlag & 2);
+
+    oTop++;
+    oBottom--;
 
     // Check squeezed vertically
-    if (sourceY + (-sourceHitboxH + sourceHitboxOffY) < initialOtherY + otherHitboxHSq &&
-        sourceY + (sourceHitboxH + sourceHitboxOffY) > initialOtherY - otherHitboxHSq) {
-        if (otherX <= sourceX) {
-            if (otherX + otherHitboxW >= sourceX - sourceHitboxW) {
-                collideSideHori = 2;
-                otherNewX = this->X + ((-sourceHitboxW + sourceHitboxOffX) - (otherHitboxW + otherHitboxOffX));
-            }
+    if (otherX <= (sRight + sLeft + 2 * sourceX) >> 1) {
+        if (otherX + oRight >= sourceX + sLeft && sourceY + sTop < otherY + oBottom
+            && sourceY + sBottom > otherY + oTop) {
+            collideSideHori = C_LEFT;
+            otherNewX = this->X + (sLeft - oRight);
         }
-        else {
-            if (otherX - otherHitboxW < sourceX + sourceHitboxW) {
-                collideSideHori = 3;
-                otherNewX = this->X + ((sourceHitboxW + sourceHitboxOffX) - (-otherHitboxW + otherHitboxOffX));
-            }
+    }
+    else {
+        if (otherX + oLeft < sourceX + sRight && sourceY + sTop < otherY + oBottom
+            && sourceY + sBottom > otherY + oTop) {
+            collideSideHori = C_RIGHT;
+            otherNewX = this->X + (sRight - oLeft);
         }
     }
 
+    oTop--;
+    oBottom++;
+
+    oLeft++;
+    oRight--;
+
     // Check squeezed horizontally
-    if (sourceX - sourceHitboxW < initialOtherX + otherHitboxWSq &&
-        sourceX + sourceHitboxW > initialOtherX - otherHitboxWSq) {
-        // if other->Y <= this->Y + this->HitboxCenterY
-        if (otherY <= sourceY) {
-            if (otherY + (otherHitboxH + otherHitboxOffY) >= sourceY + (-sourceHitboxH + sourceHitboxOffY)) {
-                collideSideVert = 1;
-                otherY = this->Y + ((-sourceHitboxH + sourceHitboxOffY) - (otherHitboxH + otherHitboxOffY));
-            }
+    if (otherY < (sTop + sBottom + 2 * sourceY) >> 1) {
+        if (otherY + oBottom >= sourceY + sTop && sourceX + sLeft < otherX + oRight
+            && sourceX + sRight > otherX + oLeft) {
+            collideSideVert = C_TOP;
+            otherY = this->Y + (sTop - oBottom);
         }
-        else {
-            if (otherY + (-otherHitboxH + otherHitboxOffY) < sourceY + (sourceHitboxH + sourceHitboxOffY)) {
-                collideSideVert = 4;
-                otherY = this->Y + ((sourceHitboxH + sourceHitboxOffY) - (-otherHitboxH + otherHitboxOffY));
+    }
+    else {
+        if (otherY + oTop < sourceY + sBottom && sourceX + sLeft < otherX + oRight) {
+            if (otherX + oLeft < sourceX + sRight) {
+                collideSideVert = C_BOTTOM;
+                otherY = this->Y + (sBottom - oTop);
             }
         }
     }
