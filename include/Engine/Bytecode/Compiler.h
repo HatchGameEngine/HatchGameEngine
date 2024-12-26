@@ -61,8 +61,7 @@ public:
     bool CheckToken(int expectedType);
     void ConsumeToken(int type, const char* message);
     void SynchronizeToken();
-    bool ReportError(int line, bool fatal, const char* string, ...);
-    bool ReportErrorPos(int line, int pos, bool fatal, const char* string, ...);
+    bool ReportError(int line, int pos, bool fatal, const char* string, ...);
     void ErrorAt(Token* token, const char* message, bool fatal);
     void Error(const char* message);
     void ErrorAtCurrent(const char* message);

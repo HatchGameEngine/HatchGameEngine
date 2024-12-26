@@ -642,26 +642,7 @@ void          Compiler::SynchronizeToken() {
 }
 
 // Error handling
-bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
-    if (!fatal && !Compiler::ShowWarnings)
-        return true;
-
-    char message[4096];
-    memset(message, 0, sizeof message);
-
-    va_list args;
-    va_start(args, string);
-    vsnprintf(message, sizeof message, string, args);
-    va_end(args);
-
-    Log::Print(fatal ? Log::LOG_ERROR : Log::LOG_WARN, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
-
-    if (fatal)
-        assert(false);
-
-    return !fatal;
-}
-bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+bool          Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
     if (!fatal && !Compiler::ShowWarnings)
         return true;
 
@@ -723,9 +704,9 @@ void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
     if (token->Type == TOKEN_EOF)
         ReportError(token->Line, fatal, " at end of file: %s", message);
     else if (token->Type == TOKEN_ERROR)
-        ReportErrorPos(token->Line, (int)token->Pos, fatal, "%s", message);
+        ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
     else
-        ReportErrorPos(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
+        ReportError(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
 
     if (fatal)
         parser.HadError = true;
