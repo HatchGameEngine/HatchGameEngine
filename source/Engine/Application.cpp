@@ -1180,6 +1180,8 @@ void Application::Cleanup() {
         Memory::Free(Application::CmdLineArgs[i]);
     Application::CmdLineArgs.clear();
 
+    Log::Close();
+
     SDL_DestroyWindow(Application::Window);
 
     SDL_Quit();

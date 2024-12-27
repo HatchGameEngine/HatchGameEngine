@@ -186,7 +186,6 @@ void SourceFileMap::CheckForUpdate() {
             compiler->Compile(scriptFilename, source, outFile);
 
             // Add this file to the list
-            // Log::Print(Log::LOG_INFO, "filename: %s (0x%08X)", filename, filenameHash);
             for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {
                 Uint32 classHash = compiler->ClassHashList[h];
                 Uint32 classExtended = compiler->ClassExtendedList[h];

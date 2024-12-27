@@ -479,7 +479,6 @@ int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_SET_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_DEFINE_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_USE_NAMESPACE),
-            VM_ADD_DISPATCH_NULL(OP_SYNC),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
         #define VM_END() dispatch_end:

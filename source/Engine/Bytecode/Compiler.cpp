@@ -26,6 +26,83 @@ bool                 Compiler::WriteSourceFilename = false;
 
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
 
+static const char* opcodeNames[] = {
+    "OP_ERROR",
+    "OP_CONSTANT",
+    "OP_DEFINE_GLOBAL",
+    "OP_GET_PROPERTY",
+    "OP_SET_PROPERTY",
+    "OP_GET_GLOBAL",
+    "OP_SET_GLOBAL",
+    "OP_GET_LOCAL",
+    "OP_SET_LOCAL",
+    "OP_PRINT_STACK",
+    "OP_INHERIT",
+    "OP_RETURN",
+    "OP_METHOD",
+    "OP_CLASS",
+    "OP_CALL",
+    "OP_SUPER",
+    "OP_INVOKE",
+    "OP_JUMP",
+    "OP_JUMP_IF_FALSE",
+    "OP_JUMP_BACK",
+    "OP_POP",
+    "OP_COPY",
+    "OP_ADD",
+    "OP_SUBTRACT",
+    "OP_MULTIPLY",
+    "OP_DIVIDE",
+    "OP_MODULO",
+    "OP_NEGATE",
+    "OP_INCREMENT",
+    "OP_DECREMENT",
+    "OP_BITSHIFT_LEFT",
+    "OP_BITSHIFT_RIGHT",
+    "OP_NULL",
+    "OP_TRUE",
+    "OP_FALSE",
+    "OP_BW_NOT",
+    "OP_BW_AND",
+    "OP_BW_OR",
+    "OP_BW_XOR",
+    "OP_LG_NOT",
+    "OP_LG_AND",
+    "OP_LG_OR",
+    "OP_EQUAL",
+    "OP_EQUAL_NOT",
+    "OP_GREATER",
+    "OP_GREATER_EQUAL",
+    "OP_LESS",
+    "OP_LESS_EQUAL",
+    "OP_PRINT",
+    "OP_ENUM_NEXT",
+    "OP_SAVE_VALUE",
+    "OP_LOAD_VALUE",
+    "OP_WITH",
+    "OP_GET_ELEMENT",
+    "OP_SET_ELEMENT",
+    "OP_NEW_ARRAY",
+    "OP_NEW_MAP",
+    "OP_SWITCH_TABLE",
+    "OP_FAILSAFE",
+    "OP_EVENT",
+    "OP_TYPEOF",
+    "OP_NEW",
+    "OP_IMPORT",
+    "OP_SWITCH",
+    "OP_POPN",
+    "OP_HAS_PROPERTY",
+    "OP_IMPORT_MODULE",
+    "OP_ADD_ENUM",
+    "OP_NEW_ENUM",
+    "OP_GET_SUPERCLASS",
+    "OP_GET_MODULE_LOCAL",
+    "OP_SET_MODULE_LOCAL",
+    "OP_DEFINE_MODULE_LOCAL",
+    "OP_USE_NAMESPACE"
+};
+
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
     // Other
@@ -2793,250 +2870,221 @@ void          Compiler::SetReceiverName(Token name) {
 }
 
 // Debugging functions
-int    Compiler::HashInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::HashInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
-    printf("%-16s #%08X", name, hash);
+    Log::PrintSimple("%-16s #%08X", opcodeNames[opcode], hash);
     if (TokenMap->Exists(hash)) {
         Token t = TokenMap->Get(hash);
-        printf(" (%.*s)", (int)t.Length, t.Start);
+        Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
     }
-    printf("\n");
+    Log::PrintSimple("\n");
     return offset + 5;
 }
-int    Compiler::ConstantInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     int constant = *(int*)&chunk->Code[offset + 1];
-    printf("%-16s %9d '", name, constant);
+    Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
     Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-    printf("'\n");
+    Log::PrintSimple("'\n");
     return offset + 5;
 }
-int    Compiler::SimpleInstruction(const char* name, int offset) {
-    printf("%s\n", name);
+int    Compiler::SimpleInstruction(uint8_t opcode, int offset) {
+    Log::PrintSimple("%s\n", opcodeNames[opcode]);
     return offset + 1;
 }
-int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
-    printf("%-16s %9d\n", name, chunk->Code[offset + 1]);
+int    Compiler::ByteInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], chunk->Code[offset + 1]);
     return offset + 2;
 }
-int    Compiler::LocalInstruction(const char* name, Chunk* chunk, int offset) {
-    uint8_t slot = chunk->Code[offset + 1];
-    if (slot > 0)
-        printf("%-16s %9d\n", name, slot);
-    else
-        printf("%-16s %9d 'this'\n", name, slot);
-    return offset + 2;
-}
-int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
-    uint8_t slot = chunk->Code[offset + 1];
-    uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
-    printf("%-13s %2d", name, slot);
-    // Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-    printf(" #%08X", hash);
-    if (TokenMap->Exists(hash)) {
-        Token t = TokenMap->Get(hash);
-        printf(" (%.*s)", (int)t.Length, t.Start);
-    }
-    printf("\n");
-    return offset + 6;
-}
-int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::MethodInstruction(name, chunk, offset) + 1;
-}
-int    Compiler::JumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
-    uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
-    jump |= chunk->Code[offset + 2] << 8;
-    printf("%-16s %9d -> %d\n", name, offset, offset + 3 + sign * jump);
+int    Compiler::ShortInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    uint16_t data = (uint16_t)(chunk->Code[offset + 1]);
+    data |= chunk->Code[offset + 2] << 8;
+    Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], data);
     return offset + 3;
 }
-int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::HashInstruction(name, chunk, offset) + 1;
-}
-int    Compiler::EnumInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::HashInstruction(name, chunk, offset);
-}
-int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
-    if (slot == 0) {
-        printf("%-16s %9d\n", name, slot);
-        return offset + 2;
+    if (slot > 0)
+        Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], slot);
+    else
+        Log::PrintSimple("%-16s %9d 'this'\n", opcodeNames[opcode], slot);
+    return offset + 2;
+}
+int    Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    uint8_t slot = chunk->Code[offset + 1];
+    uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+    Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
+    Log::PrintSimple(" #%08X", hash);
+    if (TokenMap->Exists(hash)) {
+        Token t = TokenMap->Get(hash);
+        Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
+    }
+    Log::PrintSimple("\n");
+    return offset + 6;
+}
+int    Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::MethodInstruction(opcode, chunk, offset) + 1;
+}
+int    Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
+    uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
+    jump |= chunk->Code[offset + 2] << 8;
+    Log::PrintSimple("%-16s %9d -> %d\n", opcodeNames[opcode], offset, offset + 3 + sign * jump);
+    return offset + 3;
+}
+int    Compiler::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(opcode, chunk, offset) + 1;
+}
+int    Compiler::EnumInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(opcode, chunk, offset);
+}
+int    Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    uint8_t type = chunk->Code[offset + 1];
+    uint8_t slot = 0;
+    if (type == 3) {
+        slot = chunk->Code[offset + 2];
+        offset++;
     }
     uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
     jump |= chunk->Code[offset + 3] << 8;
-    printf("%-16s %9d -> %d\n", name, slot, jump);
+    if (slot > 0)
+        Log::PrintSimple("%-16s %1d %7d -> %d\n", opcodeNames[opcode], type, slot, jump);
+    else
+        Log::PrintSimple("%-16s %1d %7d 'this' -> %d\n", opcodeNames[opcode], type, slot, jump);
     return offset + 4;
 }
 int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
-    printf("%04d ", offset);
+    Log::PrintSimple("%04d ", offset);
     if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
-        printf("   | ");
+        Log::PrintSimple("   | ");
     }
     else {
-        printf("%4d ", chunk->Lines[offset] & 0xFFFF);
+        Log::PrintSimple("%4d ", chunk->Lines[offset] & 0xFFFF);
     }
 
     uint8_t instruction = chunk->Code[offset];
     switch (instruction) {
         case OP_CONSTANT:
-            return ConstantInstruction("OP_CONSTANT", chunk, offset);
-        case OP_NULL:
-            return SimpleInstruction("OP_NULL", offset);
-        case OP_TRUE:
-            return SimpleInstruction("OP_TRUE", offset);
-        case OP_FALSE:
-            return SimpleInstruction("OP_FALSE", offset);
-        case OP_POP:
-            return SimpleInstruction("OP_POP", offset);
-        case OP_COPY:
-            return ByteInstruction("OP_COPY", chunk, offset);
-        case OP_GET_LOCAL:
-            return LocalInstruction("OP_GET_LOCAL", chunk, offset);
-        case OP_SET_LOCAL:
-            return LocalInstruction("OP_SET_LOCAL", chunk, offset);
-        case OP_GET_GLOBAL:
-            return HashInstruction("OP_GET_GLOBAL", chunk, offset);
-        case OP_DEFINE_GLOBAL:
-            return HashInstruction("OP_DEFINE_GLOBAL", chunk, offset);
-        case OP_SET_GLOBAL:
-            return HashInstruction("OP_SET_GLOBAL", chunk, offset);
-        case OP_GET_PROPERTY:
-            return HashInstruction("OP_GET_PROPERTY", chunk, offset);
-        case OP_SET_PROPERTY:
-            return HashInstruction("OP_SET_PROPERTY", chunk, offset);
-
-        case OP_INCREMENT:
-            return SimpleInstruction("OP_INCREMENT", offset);
-        case OP_DECREMENT:
-            return SimpleInstruction("OP_DECREMENT", offset);
-
-        case OP_BITSHIFT_LEFT:
-            return SimpleInstruction("OP_BITSHIFT_LEFT", offset);
-        case OP_BITSHIFT_RIGHT:
-            return SimpleInstruction("OP_BITSHIFT_RIGHT", offset);
-
-        case OP_EQUAL:
-            return SimpleInstruction("OP_EQUAL", offset);
-        case OP_EQUAL_NOT:
-            return SimpleInstruction("OP_EQUAL_NOT", offset);
-        case OP_LESS:
-            return SimpleInstruction("OP_LESS", offset);
-        case OP_LESS_EQUAL:
-            return SimpleInstruction("OP_LESS_EQUAL", offset);
-        case OP_GREATER:
-            return SimpleInstruction("OP_GREATER", offset);
-        case OP_GREATER_EQUAL:
-            return SimpleInstruction("OP_GREATER_EQUAL", offset);
-
-        case OP_ADD:
-            return SimpleInstruction("OP_ADD", offset);
-        case OP_SUBTRACT:
-            return SimpleInstruction("OP_SUBTRACT", offset);
-        case OP_MULTIPLY:
-            return SimpleInstruction("OP_MULTIPLY", offset);
-        case OP_MODULO:
-            return SimpleInstruction("OP_MODULO", offset);
-        case OP_DIVIDE:
-            return SimpleInstruction("OP_DIVIDE", offset);
-
-        case OP_BW_NOT:
-            return SimpleInstruction("OP_BW_NOT", offset);
-        case OP_BW_AND:
-            return SimpleInstruction("OP_BW_AND", offset);
-        case OP_BW_OR:
-            return SimpleInstruction("OP_BW_OR", offset);
-        case OP_BW_XOR:
-            return SimpleInstruction("OP_BW_XOR", offset);
-
-        case OP_LG_NOT:
-            return SimpleInstruction("OP_LG_NOT", offset);
-        case OP_LG_AND:
-            return SimpleInstruction("OP_LG_AND", offset);
-        case OP_LG_OR:
-            return SimpleInstruction("OP_LG_OR", offset);
-
-        case OP_GET_ELEMENT:
-            return SimpleInstruction("OP_GET_ELEMENT", offset);
-        case OP_SET_ELEMENT:
-            return SimpleInstruction("OP_SET_ELEMENT", offset);
-        case OP_NEW_ARRAY:
-            return SimpleInstruction("OP_NEW_ARRAY", offset) + 4;
-        case OP_NEW_MAP:
-            return SimpleInstruction("OP_NEW_MAP", offset) + 4;
-
-        case OP_NEGATE:
-            return SimpleInstruction("OP_NEGATE", offset);
-        case OP_PRINT:
-            return SimpleInstruction("OP_PRINT", offset);
-        case OP_TYPEOF:
-            return SimpleInstruction("OP_TYPEOF", offset);
-        case OP_JUMP:
-            return JumpInstruction("OP_JUMP", 1, chunk, offset);
-        case OP_JUMP_IF_FALSE:
-            return JumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
-        case OP_JUMP_BACK:
-            return JumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
-        case OP_CALL:
-            return ByteInstruction("OP_CALL", chunk, offset);
-        case OP_NEW:
-            return ByteInstruction("OP_NEW", chunk, offset);
-        case OP_EVENT:
-            return ByteInstruction("OP_EVENT", chunk, offset);
-        case OP_INVOKE:
-            return InvokeInstruction("OP_INVOKE", chunk, offset);
         case OP_IMPORT:
-            return ConstantInstruction("OP_IMPORT", chunk, offset);
         case OP_IMPORT_MODULE:
-            return ConstantInstruction("OP_IMPORT_MODULE", chunk, offset);
+            return ConstantInstruction(instruction, chunk, offset);
+        case OP_NULL:
+        case OP_TRUE:
+        case OP_FALSE:
+        case OP_POP:
+        case OP_INCREMENT:
+        case OP_DECREMENT:
+        case OP_BITSHIFT_LEFT:
+        case OP_BITSHIFT_RIGHT:
+        case OP_EQUAL:
+        case OP_EQUAL_NOT:
+        case OP_LESS:
+        case OP_LESS_EQUAL:
+        case OP_GREATER:
+        case OP_GREATER_EQUAL:
+        case OP_ADD:
+        case OP_SUBTRACT:
+        case OP_MULTIPLY:
+        case OP_MODULO:
+        case OP_DIVIDE:
+        case OP_BW_NOT:
+        case OP_BW_AND:
+        case OP_BW_OR:
+        case OP_BW_XOR:
+        case OP_LG_NOT:
+        case OP_LG_AND:
+        case OP_LG_OR:
+        case OP_GET_ELEMENT:
+        case OP_SET_ELEMENT:
+        case OP_NEGATE:
+        case OP_PRINT:
+        case OP_TYPEOF:
+        case OP_RETURN:
+        case OP_SAVE_VALUE:
+        case OP_LOAD_VALUE:
+        case OP_GET_SUPERCLASS:
+        case OP_DEFINE_MODULE_LOCAL:
+        case OP_ENUM_NEXT:
+            return SimpleInstruction(instruction, offset);
+        case OP_COPY:
+        case OP_CALL:
+        case OP_NEW:
+        case OP_EVENT:
+        case OP_POPN:
+            return ByteInstruction(instruction, chunk, offset);
+        case OP_GET_LOCAL:
+        case OP_SET_LOCAL:
+            return LocalInstruction(instruction, chunk, offset);
+        case OP_GET_GLOBAL:
+        case OP_DEFINE_GLOBAL:
+        case OP_SET_GLOBAL:
+        case OP_GET_PROPERTY:
+        case OP_SET_PROPERTY:
+        case OP_HAS_PROPERTY:
+        case OP_USE_NAMESPACE:
+        case OP_INHERIT:
+            return HashInstruction(instruction, chunk, offset);
+        case OP_SET_MODULE_LOCAL:
+        case OP_GET_MODULE_LOCAL:
+            return ShortInstruction(instruction, chunk, offset);
+        case OP_NEW_ARRAY:
+        case OP_NEW_MAP:
+            return SimpleInstruction(instruction, offset) + 4;
+        case OP_JUMP:
+        case OP_JUMP_IF_FALSE:
+            return JumpInstruction(instruction, 1, chunk, offset);
+        case OP_JUMP_BACK:
+            return JumpInstruction(instruction, -1, chunk, offset);
+        case OP_INVOKE:
+            return InvokeInstruction(instruction, chunk, offset);
 
         case OP_PRINT_STACK: {
             offset++;
             uint8_t constant = chunk->Code[offset++];
-            printf("%-16s %4d ", "OP_PRINT_STACK", constant);
+            Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
             Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-            printf("\n");
+            Log::PrintSimple("\n");
 
             ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
             for (int j = 0; j < function->UpvalueCount; j++) {
                 int isLocal = chunk->Code[offset++];
                 int index = chunk->Code[offset++];
-                printf("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
+                Log::PrintSimple("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
             }
 
             return offset;
         }
-
-        case OP_RETURN:
-            return SimpleInstruction("OP_RETURN", offset);
         case OP_WITH:
-            return WithInstruction("OP_WITH", chunk, offset);
+            return WithInstruction(instruction, chunk, offset);
         case OP_CLASS:
-            return ClassInstruction("OP_CLASS", chunk, offset);
+            return ClassInstruction(instruction, chunk, offset);
+        case OP_ADD_ENUM:
         case OP_NEW_ENUM:
-            return EnumInstruction("OP_NEW_ENUM", chunk, offset);
-        case OP_INHERIT:
-            return SimpleInstruction("OP_INHERIT", offset);
+            return EnumInstruction(instruction, chunk, offset);
         case OP_METHOD:
-            return MethodInstruction("OP_METHOD", chunk, offset);
+            return MethodInstruction(instruction, chunk, offset);
         default:
-            printf("\x1b[1;93mUnknown opcode %d\x1b[m\n", instruction);
+            if (instruction < OP_LAST)
+                Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
+            else
+                Log::PrintSimple("Unknown opcode %d\n", instruction);
             return chunk->Count + 1;
     }
 }
 void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
     int optArgCount = maxArity - minArity;
     if (optArgCount)
-        printf("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
+        Log::PrintSimple("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
     else
-        printf("== %s (argCount: %d) ==\n", name, maxArity);
-    printf("byte   ln\n");
+        Log::PrintSimple("== %s (argCount: %d) ==\n", name, maxArity);
+    Log::PrintSimple("byte   ln\n");
     for (int offset = 0; offset < chunk->Count;) {
         offset = DebugInstruction(chunk, offset);
     }
 
-    printf("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
+    Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
     for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
-        printf(" %2d '", (int)i);
+        Log::PrintSimple(" %2d '", (int)i);
         Values::PrintValue(NULL, (*chunk->Constants)[i]);
-        printf("'\n");
+        Log::PrintSimple("'\n");
     }
 }
 
@@ -3101,6 +3149,9 @@ void         Compiler::WriteBytecode(Stream* stream, const char* filename) {
         TokenMap->Clear();
 }
 bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
+    bool debugCompiler = false;
+    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
+
     scanner.Line = 1;
     scanner.Start = (char*)source;
     scanner.Current = (char*)source;
@@ -3109,6 +3160,10 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     parser.HadError = false;
     parser.PanicMode = false;
+
+    if (debugCompiler) {
+        Log::PrintSimple("Compiling script into file %s\n", output);
+    }
 
     Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
@@ -3128,18 +3183,19 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     Finish();
 
-    bool debugCompiler = false;
-    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
             Chunk* chunk = &Compiler::Functions[c]->Chunk;
             DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->MinArity, Compiler::Functions[c]->Arity);
-            printf("\n");
+            Log::PrintSimple("\n");
         }
     }
 
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
-    if (!stream) return false;
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s' for writing compiled script!", output);
+        return false;
+    }
 
     WriteBytecode(stream, filename);
 

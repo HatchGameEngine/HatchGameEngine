@@ -363,8 +363,6 @@ enum   OpCode {
     // Stack Operation
     OP_POP,
     OP_COPY,
-    // OP_SAVE_VALUE,
-    // OP_LOAD_VALUE,
     // Numeric Operations
     OP_ADD,
     OP_SUBTRACT,
@@ -426,7 +424,7 @@ enum   OpCode {
     OP_DEFINE_MODULE_LOCAL,
     OP_USE_NAMESPACE,
 
-    OP_SYNC = 0xFF,
+    OP_LAST
 };
 
 #endif /* ENGINE_BYTECODE_TYPES_H */
