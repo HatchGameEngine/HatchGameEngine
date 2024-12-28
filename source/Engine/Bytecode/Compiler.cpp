@@ -3253,7 +3253,7 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
                 if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
                     float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
                     float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d > b_d);
+                    out = INTEGER_VAL(a_d > b_d);
                 }
                 else {
                     int a_d = AS_INTEGER(a);
@@ -3270,7 +3270,7 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
                 if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
                     float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
                     float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d >= b_d);
+                    out = INTEGER_VAL(a_d >= b_d);
                 }
                 else {
                     int a_d = AS_INTEGER(a);
@@ -3287,7 +3287,7 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
                 if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
                     float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
                     float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d < b_d);
+                    out = INTEGER_VAL(a_d < b_d);
                 }
                 else {
                     int a_d = AS_INTEGER(a);
@@ -3304,7 +3304,7 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
                 if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
                     float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
                     float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d <= b_d);
+                    out = INTEGER_VAL(a_d <= b_d);
                 }
                 else {
                     int a_d = AS_INTEGER(a);
