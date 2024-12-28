@@ -20,6 +20,7 @@ public:
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
     static bool                 WriteSourceFilename;
+    static bool                 DoOptimizations;
     Compiler* Enclosing = nullptr;
     ObjFunction* Function = nullptr;
     int Type = 0;
@@ -187,6 +188,9 @@ public:
     bool HasThis();
     void SetReceiverName(const char *name);
     void SetReceiverName(Token name);
+    int CheckInfixOptimize(int preCount, int preConstant, ParseFn fn);
+    int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
+    static int GetTotalOpcodeSize(uint8_t op);
     static int HashInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int SimpleInstruction(uint8_t opcode, int offset);
