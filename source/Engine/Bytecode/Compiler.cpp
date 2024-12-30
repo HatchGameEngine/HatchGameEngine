@@ -3327,7 +3327,6 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
         EmitConstant(out);
         if (out.Type == VAL_INTEGER)
             preConstant = CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
-        return preConstant;
     }
 
     ///////////
@@ -3336,6 +3335,7 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
     //    i = DebugInstruction(CurrentChunk(), i);
     //printf("----------------- @ %d\n", preCount);
     ///////////
+    return preConstant;
 }
 
 int    Compiler::GetTotalOpcodeSize(uint8_t op) {
