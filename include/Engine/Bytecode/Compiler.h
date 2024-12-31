@@ -16,6 +16,7 @@ public:
     static vector<ObjFunction*> Functions;
     static vector<Local>        ModuleLocals;
     static HashMap<Token>*      TokenMap;
+    static bool                 DoLogging;
     static bool                 ShowWarnings;
     static bool                 WriteDebugInfo;
     static bool                 WriteSourceFilename;

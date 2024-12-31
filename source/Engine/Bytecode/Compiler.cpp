@@ -20,6 +20,7 @@ vector<ObjFunction*> Compiler::Functions;
 vector<Local>        Compiler::ModuleLocals;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 
+bool                 Compiler::DoLogging = false;
 bool                 Compiler::ShowWarnings = false;
 bool                 Compiler::WriteDebugInfo = false;
 bool                 Compiler::WriteSourceFilename = false;
@@ -3092,9 +3093,18 @@ void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int ma
 void   Compiler::Init() {
     Compiler::MakeRules();
 
+    Compiler::DoLogging = false;
     Compiler::ShowWarnings = false;
     Compiler::WriteDebugInfo = true;
     Compiler::WriteSourceFilename = true;
+
+    Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
+    if (Compiler::DoLogging) {
+        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
+    }
+
+    Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+    Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
 }
 void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {

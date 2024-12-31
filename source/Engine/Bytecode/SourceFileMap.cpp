@@ -16,8 +16,6 @@ HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32                    SourceFileMap::DirectoryChecksum = 0;
 Uint32                    SourceFileMap::Magic = *(Uint32*)"HMAP";
 
-bool                      SourceFileMap::DoLogging = false;
-
 void SourceFileMap::CheckInit() {
     if (SourceFileMap::Initialized) return;
 
@@ -27,8 +25,6 @@ void SourceFileMap::CheckInit() {
     if (SourceFileMap::ClassMap == NULL) {
         SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
     }
-
-    SourceFileMap::DoLogging = false;
 
     if (ResourceManager::ResourceExists("Objects/Objects.hcm")) {
         ResourceStream* stream = ResourceStream::New("Objects/Objects.hcm");
@@ -63,8 +59,7 @@ void SourceFileMap::CheckInit() {
         Log::Print(Log::LOG_ERROR, "Could not find ClassMap!");
     }
 
-    #ifndef NO_SCRIPT_COMPILING
-
+#ifndef NO_SCRIPT_COMPILING
     if (File::Exists("SourceFileMap.bin")) {
         char*  bytes;
         size_t len = File::ReadAllBytes("SourceFileMap.bin", &bytes);
@@ -72,16 +67,7 @@ void SourceFileMap::CheckInit() {
         SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - 4);
         Memory::Free(bytes);
     }
-
-    #endif
-
-    Application::Settings->GetBool("compiler", "log", &SourceFileMap::DoLogging);
-    if (SourceFileMap::DoLogging) {
-        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
-    }
-
-    Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
-    Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
+#endif
 
     SourceFileMap::Initialized = true;
 }
@@ -175,7 +161,7 @@ void SourceFileMap::CheckForUpdate() {
             if (StringUtils::StartsWith(scriptFilename, scriptFolderPath))
                 scriptFilename += scriptFolderPathLen;
 
-            if (SourceFileMap::DoLogging) {
+            if (Compiler::DoLogging) {
                 if (doRecompile)
                     Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", scriptFilename);
                 else
