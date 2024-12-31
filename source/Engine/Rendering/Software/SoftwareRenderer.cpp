@@ -2815,8 +2815,8 @@ void     SoftwareRenderer::DrawTexture(Texture* texture, float sx, float sy, flo
         sh  = textureHeight - sy;
 
     BlendState blendState = GetBlendState();
-    if (sw != textureWidth || sh != textureHeight)
-        DrawSpriteImageTransformed(texture, x, y, sx, sy, sw, sh, sx, sy, sw, sh, 0, 0, 0, blendState);
+    if (w != textureWidth || h != textureHeight)
+        DrawSpriteImageTransformed(texture, x, y, sx, sy, w, h, sx, sy, sw, sh, 0, 0, 0, blendState);
     else
         DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, 0, blendState);
 }
