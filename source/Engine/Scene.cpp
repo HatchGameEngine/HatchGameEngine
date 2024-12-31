@@ -1331,6 +1331,8 @@ void Scene::Restart() {
 
     ScriptManager::ResetStack();
     ScriptManager::RequestGarbageCollection();
+
+    Application::FirstFrame = true;
 }
 void Scene::ClearPriorityLists() {
     if (!Scene::PriorityLists)

@@ -63,6 +63,7 @@ XMLNode*    Application::GameConfig = NULL;
 int         Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float       Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool        Application::Running = false;
+bool        Application::FirstFrame = true;
 bool        Application::GameStart = false;
 
 SDL_Window* Application::Window = NULL;
@@ -503,6 +504,8 @@ void Application::Restart() {
     Application::LoadSceneInfo();
     Application::ReloadSettings();
     Application::DisposeGameConfig();
+
+    FirstFrame = true;
 }
 
 #define CLAMP_VOLUME(vol) \
@@ -806,7 +809,10 @@ void Application::PollEvents() {
         }
     }
 }
-void Application::RunFrame(void* p) {
+void Application::RunFrameCallback(void* p) {
+    RunFrame(UpdatesPerFrame);
+}
+void Application::RunFrame(int runFrames) {
     FrameTimeStart = Clock::GetTicks();
 
     // Event loop
@@ -819,6 +825,8 @@ void Application::RunFrame(void* p) {
     if (*Scene::NextScene)
         Step = true;
 
+    FirstFrame = false;
+
     MetricAfterSceneTime = Clock::GetTicks();
     Scene::AfterScene();
     MetricAfterSceneTime = Clock::GetTicks() - MetricAfterSceneTime;
@@ -826,7 +834,7 @@ void Application::RunFrame(void* p) {
     if (DoNothing) goto DO_NOTHING;
 
     // Update
-    for (int m = 0; m < UpdatesPerFrame; m++) {
+    for (int m = 0; m < runFrames; m++) {
         Scene::ResetPerf();
         MetricPollTime = 0.0;
         MetricUpdateTime = 0.0;
@@ -842,7 +850,7 @@ void Application::RunFrame(void* p) {
             MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
         }
         Step = false;
-        if (UpdatesPerFrame != 1 && (*Scene::NextScene || Scene::DoRestart))
+        if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart))
             break;
     }
 
@@ -1126,56 +1134,70 @@ void Application::Run(int argc, char* args[]) {
     Graphics::Clear();
     Graphics::Present();
 
-    #ifdef IOS
-        // Initialize the Game Center for scoring and matchmaking
-        // InitGameCenter();
+#ifdef IOS
+    // Initialize the Game Center for scoring and matchmaking
+    // InitGameCenter();
 
-        // Set up the game to run in the window animation callback on iOS
-        // so that Game Center and so forth works correctly.
-        SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrame, NULL);
-    #else
-        while (Running) {
-            if (BenchmarkFrameCount == 0)
-                BenchmarkTickStart = Clock::GetTicks();
+    // Set up the game to run in the window animation callback on iOS
+    // so that Game Center and so forth works correctly.
+    SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrameCallback, NULL);
+#else
+    float lastTick = Clock::GetTicks();
+    while (Running) {
+        float tickStart = Clock::GetTicks();
+        float timeTaken = tickStart - lastTick;
+        lastTick = tickStart;
 
-            Application::RunFrame(NULL);
-            Application::DelayFrame();
+        int updateFrames = UpdatesPerFrame;
 
-            BenchmarkFrameCount++;
-            if (BenchmarkFrameCount == TargetFPS) {
-                double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-                CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
-                BenchmarkFrameCount = 0;
-            }
+        // Compensate for lag
+        int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
+        if (lagFrames > 15)
+            lagFrames = 15;
 
-            if (AutomaticPerformanceSnapshots && MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
-                if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime > AutomaticPerformanceSnapshotMinInterval) {
-                    AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
-                    TakeSnapshot = true;
-                }
-            }
+        if (!FirstFrame && lagFrames > 0)
+            updateFrames += lagFrames;
 
-            if (TakeSnapshot) {
-                TakeSnapshot = false;
-                Application::GetPerformanceSnapshot();
+        if (BenchmarkFrameCount == 0)
+            BenchmarkTickStart = tickStart;
+
+        Application::RunFrame(updateFrames);
+        Application::DelayFrame();
+
+        // Do benchmarking stuff
+        BenchmarkFrameCount++;
+        if (BenchmarkFrameCount == TargetFPS) {
+            double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
+            CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
+            BenchmarkFrameCount = 0;
+        }
+
+        if (AutomaticPerformanceSnapshots && MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
+            if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime > AutomaticPerformanceSnapshotMinInterval) {
+                AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
+                TakeSnapshot = true;
             }
         }
 
-        Scene::Dispose();
-
-        if (DEBUG_fontSprite) {
-            DEBUG_fontSprite->Dispose();
-            delete DEBUG_fontSprite;
-            DEBUG_fontSprite = NULL;
+        if (TakeSnapshot) {
+            TakeSnapshot = false;
+            Application::GetPerformanceSnapshot();
         }
+    }
 
-        Application::Cleanup();
+    Scene::Dispose();
 
-        Memory::PrintLeak();
-    #endif
+    Application::Cleanup();
+#endif
 }
 
 void Application::Cleanup() {
+    if (DEBUG_fontSprite) {
+        DEBUG_fontSprite->Dispose();
+        delete DEBUG_fontSprite;
+        DEBUG_fontSprite = NULL;
+    }
+
     ResourceManager::Dispose();
     AudioManager::Dispose();
     InputManager::Dispose();
@@ -1185,6 +1207,8 @@ void Application::Cleanup() {
     for (size_t i = 0; i < Application::CmdLineArgs.size(); i++)
         Memory::Free(Application::CmdLineArgs[i]);
     Application::CmdLineArgs.clear();
+
+    Memory::PrintLeak();
 
     Log::Close();
 
