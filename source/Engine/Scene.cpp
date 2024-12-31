@@ -2573,13 +2573,11 @@ void Scene::DisposeInScope(Uint32 scope) {
         Scene::SpriteList[i] = NULL;
     }
     // Sounds
-    AudioManager::ClearMusic();
-    AudioManager::ClearSounds();
-
-    AudioManager::Lock();
     for (size_t i = 0, i_sz = Scene::SoundList.size(); i < i_sz; i++) {
         if (!Scene::SoundList[i]) continue;
         if (Scene::SoundList[i]->UnloadPolicy > scope) continue;
+
+        AudioManager::AudioRemove(Scene::SoundList[i]->AsSound);
 
         Scene::SoundList[i]->AsSound->Dispose();
         delete Scene::SoundList[i]->AsSound;
@@ -2591,7 +2589,7 @@ void Scene::DisposeInScope(Uint32 scope) {
         if (!Scene::MusicList[i]) continue;
         if (Scene::MusicList[i]->UnloadPolicy > scope) continue;
 
-        // AudioManager::RemoveMusic(Scene::MusicList[i]->AsMusic);
+        AudioManager::RemoveMusic(Scene::MusicList[i]->AsMusic);
 
         Scene::MusicList[i]->AsMusic->Dispose();
         delete Scene::MusicList[i]->AsMusic;
@@ -2599,6 +2597,7 @@ void Scene::DisposeInScope(Uint32 scope) {
         Scene::MusicList[i] = NULL;
     }
     // Media
+    AudioManager::Lock();
     for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
         if (!Scene::MediaList[i]) continue;
         if (Scene::MediaList[i]->UnloadPolicy > scope) continue;

@@ -462,6 +462,19 @@ void   AudioManager::AudioStop(ISound* audio) {
     }
     AudioManager::Unlock();
 }
+void   AudioManager::AudioRemove(ISound* audio) {
+    AudioManager::Lock();
+    for (int i = 0; i < SoundArrayLength; i++) {
+        if (SoundArray[i].Audio == audio) {
+            SoundArray[i].Stopped = true;
+            if (SoundArray[i].Playback) {
+                delete SoundArray[i].Playback;
+                SoundArray[i].Playback = NULL;
+            }
+        }
+    }
+    AudioManager::Unlock();
+}
 void   AudioManager::AudioUnpauseAll() {
     AudioManager::Lock();
     for (int i = 0; i < SoundArrayLength; i++)
