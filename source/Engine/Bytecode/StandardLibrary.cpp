@@ -8954,9 +8954,9 @@ VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(3);
-    float panning = GET_ARG(1, GetDecimal);
-    float speed = GET_ARG(2, GetDecimal);
-    float volume = GET_ARG(3, GetDecimal);
+    float panning = GET_ARG(0, GetDecimal);
+    float speed = GET_ARG(1, GetDecimal);
+    float volume = GET_ARG(2, GetDecimal);
 
     AudioManager::AlterMusic(panning, speed, volume);
     return NULL_VAL;
