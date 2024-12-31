@@ -11,6 +11,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
 else()
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=nocona")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -march=nocona")
 endif()
 
 # Set up CMake modules path
@@ -44,9 +45,13 @@ option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" ON)
+  option(DEVELOPER_MODE "Developer mode" ON)
 else()
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" OFF)
+  option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
+
+option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
@@ -88,6 +93,14 @@ endif()
 
 if(ENABLE_VM_DEBUGGING)
   add_definitions(-DVM_DEBUG)
+endif()
+
+if(DEVELOPER_MODE)
+  add_definitions(-DDEVELOPER_MODE)
+endif()
+
+if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
+  add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
 endif()
 
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )

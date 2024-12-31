@@ -89,6 +89,8 @@ int         Application::SoundVolume = 100;
 bool        Application::DevMenuActivated = false;
 bool        Application::DevConvertModels = false;
 
+bool        Application::AllowCmdLineSceneLoad = false;
+
 char    StartingScene[256];
 
 bool    DevMenu = false;
@@ -206,9 +208,11 @@ void Application::Init(int argc, char* args[]) {
     // Initialize subsystems
     Math::Init();
     Graphics::Init();
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
     if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch"))
         ResourceManager::Init(args[1]);
     else
+#endif
         ResourceManager::Init(NULL);
     AudioManager::Init();
     InputManager::Init();
@@ -596,11 +600,13 @@ void Application::LoadKeyBinds() {
 }
 
 void Application::LoadDevSettings() {
+#ifdef DEVELOPER_MODE
     Application::Settings->GetBool("dev", "devMenu", &DevMenu);
     Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
     Application::Settings->GetBool("dev", "donothing", &DoNothing);
     Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
     Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
+#endif
 }
 
 bool Application::IsWindowResizeable() {
@@ -1092,7 +1098,7 @@ void Application::Run(int argc, char* args[]) {
 
     Scene::Init();
 
-    if (argc > 1) {
+    if (argc > 1 && AllowCmdLineSceneLoad) {
         char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
         if (pathStart == NULL)
             pathStart = StringUtils::StrCaseStr(args[1], "\\Resources\\");
@@ -1241,6 +1247,7 @@ void Application::LoadGameConfig() {
         ParseGameConfigInt(node, "framerate", targetFPS);
         Application::SetTargetFrameRate(targetFPS);
 
+        ParseGameConfigBool(node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
         ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
         ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
         ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
