@@ -119,16 +119,16 @@ endif()
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 
-set(OUT_EXEC_NAME ${PROJECT_NAME})
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 
 # Change executable name
 if(EXECUTABLE_NAME)
   set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
 endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}-${CMAKE_BUILD_TYPE}")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  set(WIN_RES_FILE meta/win/icon.rc)
+  set(WIN_RES_FILE meta/win/HatchGameEngine.rc)
 
   if(RESOURCE_FILE)
     set(WIN_RES_FILE ${RESOURCE_FILE})
