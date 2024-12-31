@@ -1149,14 +1149,15 @@ void Application::Run(int argc, char* args[]) {
         lastTick = tickStart;
 
         int updateFrames = UpdatesPerFrame;
+        if (updateFrames == 1) {
+            // Compensate for lag
+            int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
+            if (lagFrames > 15)
+                lagFrames = 15;
 
-        // Compensate for lag
-        int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
-        if (lagFrames > 15)
-            lagFrames = 15;
-
-        if (!FirstFrame && lagFrames > 0)
-            updateFrames += lagFrames;
+            if (!FirstFrame && lagFrames > 0)
+                updateFrames += lagFrames;
+        }
 
         if (BenchmarkFrameCount == 0)
             BenchmarkTickStart = tickStart;
