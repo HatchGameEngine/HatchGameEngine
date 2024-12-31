@@ -2643,6 +2643,9 @@ VMValue VMThread::Values_LogicalNOT() {
 }
 VMValue VMThread::Values_BitwiseNOT() {
     VMValue a = Pop();
+
+    CHECK_IS_NUM(a, "bitwise NOT", INTEGER_VAL(0));
+
     if (a.Type == VAL_DECIMAL) {
         return DECIMAL_VAL((float)(~(int)AS_DECIMAL(a)));
     }
