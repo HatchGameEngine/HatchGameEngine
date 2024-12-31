@@ -3654,6 +3654,7 @@ void   Compiler::Init() {
     Compiler::ShowWarnings = false;
     Compiler::WriteDebugInfo = true;
     Compiler::WriteSourceFilename = true;
+    Compiler::DoOptimizations = true;
 
     Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
     if (Compiler::DoLogging) {
@@ -3662,6 +3663,7 @@ void   Compiler::Init() {
 
     Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
     Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
+    Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
 }
 void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
