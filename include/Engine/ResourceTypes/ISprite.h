@@ -13,10 +13,12 @@ public:
     vector<string> SpritesheetFilenames;
     int CollisionBoxCount = 0;
     vector<Animation> Animations;
+    int ID = 0;
+    int FrameCount = 0;
 
     ISprite();
     ISprite(const char* filename);
-    Texture* AddSpriteSheet(const char* filename);
+    Texture* AddSpriteSheet(const char* sheetFilename);
     void ReserveAnimationCount(int count);
     void AddAnimation(const char* name, int animationSpeed, int frameToLoop);
     void AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc);
@@ -24,6 +26,7 @@ public:
     void AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id);
     void AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id);
     void RemoveFrames(int animID);
+    void RefreshGraphicsID();
     void ConvertToRGBA();
     void ConvertToPalette(unsigned paletteNumber);
     bool LoadAnimation(const char* filename);

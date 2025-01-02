@@ -19,7 +19,8 @@ private:
     static void LoadKeyBinds();
     static void LoadDevSettings();
     static void PollEvents();
-    static void RunFrame(void* p);
+    static void RunFrame(int runFrames);
+    static void RunFrameCallback(void* p);
     static void DelayFrame();
     static void LoadGameConfig();
     static void DisposeGameConfig();
@@ -51,6 +52,7 @@ public:
     static int              TargetFPS;
     static float            CurrentFPS;
     static bool             Running;
+    static bool             FirstFrame;
     static bool             GameStart;
     static SDL_Window*      Window;
     static char             WindowTitle[256];
@@ -79,6 +81,7 @@ public:
     static int              ReservedSlotIDs;
     static bool             DevShowHitboxes;
     static bool             DevConvertModels;
+    static bool             AllowCmdLineSceneLoad;
 
     static void Init(int argc, char* args[]);
     static void SetTargetFrameRate(int targetFPS);

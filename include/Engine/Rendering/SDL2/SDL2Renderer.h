@@ -59,7 +59,7 @@ public:
     static void DrawTexture(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h);
     static void DrawSprite(ISprite* sprite, int animation, int frame, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID);
     static void DrawSpritePart(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, int x, int y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, unsigned paletteID);
-    static void MakeFrameBufferID(ISprite* sprite, AnimFrame* frame);
+    static void MakeFrameBufferID(ISprite* sprite);
 };
 
 #endif /* ENGINE_RENDERING_SDL2_SDL2RENDERER_H */

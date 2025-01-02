@@ -18,6 +18,7 @@
 #include <map>
 #include <deque>
 #include <stack>
+#include <filesystem>
 #include <csetjmp>
 
 #if WIN32

@@ -16,7 +16,7 @@
 #define ALLOCATE(type, size) \
     (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
 
-#define GROW_CAPACITY(val) ((val) < 8 ? 8 : val * 2)
+#define GROW_CAPACITY(val) ((val) < 8 ? 8 : val << 1)
 
 static Obj*       AllocateObject(size_t size, ObjType type) {
     // Only do this when allocating more memory

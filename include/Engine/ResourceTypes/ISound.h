@@ -12,7 +12,7 @@ public:
     SDL_AudioSpec Format;
     int BytesPerSample;
     SoundFormat* SoundData = NULL;
-    char Filename[256];
+    char* Filename = NULL;
     bool LoadFailed = false;
     bool StreamFromFile = false;
 

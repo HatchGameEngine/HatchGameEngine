@@ -249,6 +249,8 @@ ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* fil
         sprite->SaveAnimation(testFilename);
     }
 
+    sprite->RefreshGraphicsID();
+
     Memory::Free(fontFileMemory);
     Memory::Free(pixelData);
     FT_Done_Face(face);

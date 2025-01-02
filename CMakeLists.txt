@@ -11,6 +11,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
 else()
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -march=nocona")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-Ofast -march=nocona")
 endif()
 
 # Set up CMake modules path
@@ -44,12 +45,21 @@ option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" ON)
+  option(DEVELOPER_MODE "Developer mode" ON)
 else()
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" OFF)
+  option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
+
+option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
+  if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" ON)
+  else()
+    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" OFF)
+  endif()
 endif()
 
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
@@ -85,6 +95,14 @@ if(ENABLE_VM_DEBUGGING)
   add_definitions(-DVM_DEBUG)
 endif()
 
+if(DEVELOPER_MODE)
+  add_definitions(-DDEVELOPER_MODE)
+endif()
+
+if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
+  add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
+endif()
+
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
 
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
@@ -101,16 +119,16 @@ endif()
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 
-set(OUT_EXEC_NAME ${PROJECT_NAME})
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 
 # Change executable name
 if(EXECUTABLE_NAME)
   set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
 endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}-${CMAKE_BUILD_TYPE}")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  set(WIN_RES_FILE meta/win/icon.rc)
+  set(WIN_RES_FILE meta/win/HatchGameEngine.rc)
 
   if(RESOURCE_FILE)
     set(WIN_RES_FILE ${RESOURCE_FILE})
@@ -193,9 +211,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   else()
     target_link_libraries(${PROJECT_NAME}
       "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
-      -static -mwindows -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
+      -static -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
       -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
       -lversion -luuid -lhid -lsetupapi -lws2_32)
+
+    if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
+      target_link_libraries(${PROJECT_NAME} -mwindows)
+    endif()
   endif()
   add_definitions(-DSDL_MAIN_HANDLED)
 else()

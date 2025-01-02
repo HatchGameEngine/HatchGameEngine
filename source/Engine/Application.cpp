@@ -67,6 +67,7 @@ bool             Application::Running = false;
 bool             Application::GameStart = false;
 int              Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float            Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
+bool             Application::FirstFrame = true;
 
 SDL_Window*      Application::Window = NULL;
 char             Application::WindowTitle[256];
@@ -99,6 +100,8 @@ int              Application::DeveloperDarkFont = -1;
 int              Application::DeveloperLightFont = -1;
 
 int              Application::ReservedSlotIDs = 0;
+
+bool             Application::AllowCmdLineSceneLoad = false;
 
 bool             Application::DevShowHitboxes = false;
 
@@ -223,9 +226,11 @@ void Application::Init(int argc, char* args[]) {
     // Initialize subsystems
     Math::Init();
     Graphics::Init();
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
     if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch"))
         ResourceManager::Init(args[1]);
     else
+#endif
         ResourceManager::Init(NULL);
     AudioManager::Init();
     InputManager::Init();
@@ -521,6 +526,8 @@ void Application::Restart() {
     Application::LoadSceneInfo();
     Application::ReloadSettings();
     Application::DisposeGameConfig();
+
+    FirstFrame = true;
 }
 
 #define CLAMP_VOLUME(vol) \
@@ -619,11 +626,13 @@ void Application::LoadKeyBinds() {
 }
 
 void Application::LoadDevSettings() {
+#ifdef DEVELOPER_MODE
     Application::Settings->GetBool("dev", "devMenu", &DevMode);
     Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
     Application::Settings->GetBool("dev", "donothing", &DoNothing);
     Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
     Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
+#endif
 }
 
 bool Application::IsWindowResizeable() {
@@ -836,7 +845,10 @@ void Application::PollEvents() {
         }
     }
 }
-void Application::RunFrame(void* p) {
+void Application::RunFrameCallback(void* p) {
+    RunFrame(UpdatesPerFrame);
+}
+void Application::RunFrame(int runFrames) {
     FrameTimeStart = Clock::GetTicks();
 
     // Event loop
@@ -849,6 +861,8 @@ void Application::RunFrame(void* p) {
     if (*Scene::NextScene)
         Step = true;
 
+    FirstFrame = false;
+
     MetricAfterSceneTime = Clock::GetTicks();
     Scene::AfterScene();
     MetricAfterSceneTime = Clock::GetTicks() - MetricAfterSceneTime;
@@ -856,7 +870,7 @@ void Application::RunFrame(void* p) {
     if (DoNothing) goto DO_NOTHING;
 
     // Update
-    for (int m = 0; m < UpdatesPerFrame; m++) {
+    for (int m = 0; m < runFrames; m++) {
         Scene::ResetPerf();
         MetricPollTime = 0.0;
         MetricUpdateTime = 0.0;
@@ -872,7 +886,7 @@ void Application::RunFrame(void* p) {
             MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
         }
         Step = false;
-        if (UpdatesPerFrame != 1 && (*Scene::NextScene || Scene::DoRestart))
+        if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart))
             break;
     }
 
@@ -914,6 +928,7 @@ void Application::RunFrame(void* p) {
                         14);
                 }
             }
+            DEBUG_fontSprite->RefreshGraphicsID();
 
             Graphics::SetTextureInterpolation(original);
         }
@@ -1127,7 +1142,7 @@ void Application::Run(int argc, char* args[]) {
 
     Scene::Init();
 
-    if (argc > 1) {
+    if (argc > 1 && AllowCmdLineSceneLoad) {
         char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
         if (pathStart == NULL)
             pathStart = StringUtils::StrCaseStr(args[1], "\\Resources\\");
@@ -1155,56 +1170,71 @@ void Application::Run(int argc, char* args[]) {
     Graphics::Clear();
     Graphics::Present();
 
-    #ifdef IOS
-        // Initialize the Game Center for scoring and matchmaking
-        // InitGameCenter();
+#ifdef IOS
+    // Initialize the Game Center for scoring and matchmaking
+    // InitGameCenter();
 
-        // Set up the game to run in the window animation callback on iOS
-        // so that Game Center and so forth works correctly.
-        SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrame, NULL);
-    #else
-        while (Running) {
-            if (BenchmarkFrameCount == 0)
-                BenchmarkTickStart = Clock::GetTicks();
+    // Set up the game to run in the window animation callback on iOS
+    // so that Game Center and so forth works correctly.
+    SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrameCallback, NULL);
+#else
+    float lastTick = Clock::GetTicks();
+    while (Running) {
+        float tickStart = Clock::GetTicks();
+        float timeTaken = tickStart - lastTick;
+        lastTick = tickStart;
 
-            Application::RunFrame(NULL);
-            Application::DelayFrame();
+        int updateFrames = UpdatesPerFrame;
+        if (updateFrames == 1) {
+            // Compensate for lag
+            int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
+            if (lagFrames > 15)
+                lagFrames = 15;
 
-            BenchmarkFrameCount++;
-            if (BenchmarkFrameCount == TargetFPS) {
-                double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-                CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
-                BenchmarkFrameCount = 0;
-            }
+            if (!FirstFrame && lagFrames > 0)
+                updateFrames += lagFrames;
+        }
 
-            if (AutomaticPerformanceSnapshots && MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
-                if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime > AutomaticPerformanceSnapshotMinInterval) {
-                    AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
-                    TakeSnapshot = true;
-                }
-            }
+        if (BenchmarkFrameCount == 0)
+            BenchmarkTickStart = tickStart;
 
-            if (TakeSnapshot) {
-                TakeSnapshot = false;
-                Application::GetPerformanceSnapshot();
+        Application::RunFrame(updateFrames);
+        Application::DelayFrame();
+
+        // Do benchmarking stuff
+        BenchmarkFrameCount++;
+        if (BenchmarkFrameCount == TargetFPS) {
+            double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
+            CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
+            BenchmarkFrameCount = 0;
+        }
+
+        if (AutomaticPerformanceSnapshots && MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
+            if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime > AutomaticPerformanceSnapshotMinInterval) {
+                AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
+                TakeSnapshot = true;
             }
         }
 
-        Scene::Dispose();
-
-        if (DEBUG_fontSprite) {
-            DEBUG_fontSprite->Dispose();
-            delete DEBUG_fontSprite;
-            DEBUG_fontSprite = NULL;
+        if (TakeSnapshot) {
+            TakeSnapshot = false;
+            Application::GetPerformanceSnapshot();
         }
+    }
 
-        Application::Cleanup();
+    Scene::Dispose();
 
-        Memory::PrintLeak();
-    #endif
+    Application::Cleanup();
+#endif
 }
 
 void Application::Cleanup() {
+    if (DEBUG_fontSprite) {
+        DEBUG_fontSprite->Dispose();
+        delete DEBUG_fontSprite;
+        DEBUG_fontSprite = NULL;
+    }
+
     ResourceManager::Dispose();
     AudioManager::Dispose();
     InputManager::Dispose();
@@ -1214,6 +1244,10 @@ void Application::Cleanup() {
     for (size_t i = 0; i < Application::CmdLineArgs.size(); i++)
         Memory::Free(Application::CmdLineArgs[i]);
     Application::CmdLineArgs.clear();
+
+    Memory::PrintLeak();
+
+    Log::Close();
 
     SDL_DestroyWindow(Application::Window);
 
@@ -1274,6 +1308,7 @@ void Application::LoadGameConfig() {
         ParseGameConfigInt(node, "framerate", targetFPS);
         Application::SetTargetFrameRate(targetFPS);
 
+        ParseGameConfigBool(node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
         ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
         ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
         ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);

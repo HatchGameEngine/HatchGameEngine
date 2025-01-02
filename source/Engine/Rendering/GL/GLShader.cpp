@@ -221,8 +221,11 @@ GLShader::~GLShader() {
 }
 
 bool GLShader::CheckGLError(int line) {
-    const char* errstr = NULL;
     GLenum error = glGetError();
+    if (error == GL_NO_ERROR) {
+        return false;
+    }
+    const char* errstr = NULL;
     switch (error) {
         case GL_NO_ERROR: errstr = "no error"; break;
         case GL_INVALID_ENUM: errstr = "invalid enumerant"; break;
@@ -248,11 +251,8 @@ bool GLShader::CheckGLError(int line) {
             errstr = "unknown error";
             break;
     }
-    if (error != GL_NO_ERROR) {
-        Log::Print(Log::LOG_ERROR, "OpenGL error on line %d: %s", line, errstr);
-        return true;
-    }
-    return false;
+    Log::Print(Log::LOG_ERROR, "OpenGL error on line %d: %s", line, errstr);
+    return true;
 }
 #undef CHECK_GL
 

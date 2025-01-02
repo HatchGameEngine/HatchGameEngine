@@ -1349,13 +1349,13 @@ void     Graphics::MakeSpritePolygonUVs(VertexAttribute data[4], int flipX, int 
     data[0].UV.Y       = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
 }
 
-void     Graphics::MakeFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+void     Graphics::MakeFrameBufferID(ISprite* sprite) {
     if (Graphics::GfxFunctions->MakeFrameBufferID)
-        Graphics::GfxFunctions->MakeFrameBufferID(sprite, frame);
+        Graphics::GfxFunctions->MakeFrameBufferID(sprite);
 }
-void     Graphics::DeleteFrameBufferID(AnimFrame* frame) {
+void     Graphics::DeleteFrameBufferID(ISprite* sprite) {
     if (Graphics::GfxFunctions->DeleteFrameBufferID)
-        Graphics::GfxFunctions->DeleteFrameBufferID(frame);
+        Graphics::GfxFunctions->DeleteFrameBufferID(sprite);
 }
 
 void     Graphics::SetDepthTesting(bool enabled) {

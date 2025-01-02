@@ -20,11 +20,90 @@ vector<ObjFunction*> Compiler::Functions;
 vector<Local>        Compiler::ModuleLocals;
 HashMap<Token>*      Compiler::TokenMap = NULL;
 
+bool                 Compiler::DoLogging = false;
 bool                 Compiler::ShowWarnings = false;
 bool                 Compiler::WriteDebugInfo = false;
 bool                 Compiler::WriteSourceFilename = false;
+bool                 Compiler::DoOptimizations = false;
 
 #define Panic(returnMe) if (parser.PanicMode) { SynchronizeToken(); return returnMe; }
+
+static const char* opcodeNames[] = {
+    "OP_ERROR",
+    "OP_CONSTANT",
+    "OP_DEFINE_GLOBAL",
+    "OP_GET_PROPERTY",
+    "OP_SET_PROPERTY",
+    "OP_GET_GLOBAL",
+    "OP_SET_GLOBAL",
+    "OP_GET_LOCAL",
+    "OP_SET_LOCAL",
+    "OP_PRINT_STACK",
+    "OP_INHERIT",
+    "OP_RETURN",
+    "OP_METHOD",
+    "OP_CLASS",
+    "OP_CALL",
+    "OP_SUPER",
+    "OP_INVOKE",
+    "OP_JUMP",
+    "OP_JUMP_IF_FALSE",
+    "OP_JUMP_BACK",
+    "OP_POP",
+    "OP_COPY",
+    "OP_ADD",
+    "OP_SUBTRACT",
+    "OP_MULTIPLY",
+    "OP_DIVIDE",
+    "OP_MODULO",
+    "OP_NEGATE",
+    "OP_INCREMENT",
+    "OP_DECREMENT",
+    "OP_BITSHIFT_LEFT",
+    "OP_BITSHIFT_RIGHT",
+    "OP_NULL",
+    "OP_TRUE",
+    "OP_FALSE",
+    "OP_BW_NOT",
+    "OP_BW_AND",
+    "OP_BW_OR",
+    "OP_BW_XOR",
+    "OP_LG_NOT",
+    "OP_LG_AND",
+    "OP_LG_OR",
+    "OP_EQUAL",
+    "OP_EQUAL_NOT",
+    "OP_GREATER",
+    "OP_GREATER_EQUAL",
+    "OP_LESS",
+    "OP_LESS_EQUAL",
+    "OP_PRINT",
+    "OP_ENUM_NEXT",
+    "OP_SAVE_VALUE",
+    "OP_LOAD_VALUE",
+    "OP_WITH",
+    "OP_GET_ELEMENT",
+    "OP_SET_ELEMENT",
+    "OP_NEW_ARRAY",
+    "OP_NEW_MAP",
+    "OP_SWITCH_TABLE",
+    "OP_FAILSAFE",
+    "OP_EVENT",
+    "OP_TYPEOF",
+    "OP_NEW",
+    "OP_IMPORT",
+    "OP_SWITCH",
+    "OP_POPN",
+    "OP_HAS_PROPERTY",
+    "OP_IMPORT_MODULE",
+    "OP_ADD_ENUM",
+    "OP_NEW_ENUM",
+    "OP_GET_SUPERCLASS",
+    "OP_GET_MODULE_LOCAL",
+    "OP_SET_MODULE_LOCAL",
+    "OP_DEFINE_MODULE_LOCAL",
+    "OP_USE_NAMESPACE"
+};
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -642,26 +721,7 @@ void          Compiler::SynchronizeToken() {
 }
 
 // Error handling
-bool          Compiler::ReportError(int line, bool fatal, const char* string, ...) {
-    if (!fatal && !Compiler::ShowWarnings)
-        return true;
-
-    char message[4096];
-    memset(message, 0, sizeof message);
-
-    va_list args;
-    va_start(args, string);
-    vsnprintf(message, sizeof message, string, args);
-    va_end(args);
-
-    Log::Print(fatal ? Log::LOG_ERROR : Log::LOG_WARN, "in file '%s' on line %d:\n    %s\n\n", scanner.SourceFilename, line, message);
-
-    if (fatal)
-        assert(false);
-
-    return !fatal;
-}
-bool          Compiler::ReportErrorPos(int line, int pos, bool fatal, const char* string, ...) {
+bool          Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
     if (!fatal && !Compiler::ShowWarnings)
         return true;
 
@@ -723,9 +783,9 @@ void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
     if (token->Type == TOKEN_EOF)
         ReportError(token->Line, fatal, " at end of file: %s", message);
     else if (token->Type == TOKEN_ERROR)
-        ReportErrorPos(token->Line, (int)token->Pos, fatal, "%s", message);
+        ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
     else
-        ReportErrorPos(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
+        ReportError(token->Line, (int)token->Pos, fatal, " at '%.*s': %s", token->Length, token->Start, message);
 
     if (fatal)
         parser.HadError = true;
@@ -2610,14 +2670,22 @@ void          Compiler::ParsePrecedence(Precedence precedence) {
         return;
     }
 
+    int preCount = CurrentChunk()->Count;
+    int preConstant = CurrentChunk()->Constants->size();
+
     bool canAssign = precedence <= PREC_ASSIGNMENT;
     (this->*prefixRule)(canAssign);
+
+    if (DoOptimizations)
+        preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 
     while (precedence <= GetRule(parser.Current.Type)->Precedence) {
         AdvanceToken();
         ParseFn infixRule = GetRule(parser.Previous.Type)->Infix;
         if (infixRule)
             (this->*infixRule)(canAssign);
+        if (DoOptimizations)
+            preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
     }
 
     if (canAssign && MatchAssignmentToken()) {
@@ -2811,251 +2879,770 @@ void          Compiler::SetReceiverName(Token name) {
     local->Name = name;
 }
 
+int   Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn)
+{
+    ///////////
+    //printf("------PrefixOptimize @ %d %d\n", preCount, preConstant);
+    //for (int i = preCount; i < CurrentChunk()->Count;)
+    //    i = DebugInstruction(CurrentChunk(), i);
+    ///////////
+
+    int checkConstant = -1;
+    VMValue out = NULL_VAL;
+
+    if (fn == &Compiler::GetInteger) {
+        //printf("GetInteger\n");
+
+        checkConstant = *(Uint32*)(CurrentChunk()->Code + (preCount + 1));
+        VMValue constant = (*CurrentChunk()->Constants)[checkConstant];
+        int i = AS_INTEGER(constant);
+        if (i == 0 || i == 1) {
+            CurrentChunk()->Count = preCount;
+            EmitByte(!i ? OP_FALSE : OP_TRUE);
+        }
+        else
+            checkConstant = -1;
+    }
+    else if (fn == &Compiler::GetUnary) {
+        //printf("GetUnary\n");
+
+        Uint8 unOp = CurrentChunk()->Code[CurrentChunk()->Count - 1];
+        if (unOp == OP_TYPEOF)
+            return preConstant;
+        Uint8 op = CurrentChunk()->Code[preCount];
+        VMValue constant;
+        switch (op) {
+        case OP_CONSTANT:
+            checkConstant = *(Uint32*)(CurrentChunk()->Code + (preCount + 1));
+            constant = (*CurrentChunk()->Constants)[checkConstant];
+            break;
+        case OP_TRUE:
+        case OP_FALSE:
+            constant = INTEGER_VAL(op == OP_TRUE ? 1 : 0);
+            break;
+        case OP_NULL:
+            constant = NULL_VAL;
+            break;
+        default:
+            return preConstant;
+        }
+
+        if (IS_NOT_NUMBER(constant) && unOp != OP_LG_NOT)
+            return preConstant;
+
+        switch (unOp) {
+        case OP_LG_NOT:
+            CurrentChunk()->Count = preCount;
+
+            switch (constant.Type) {
+            case VAL_NULL:
+                EmitByte(OP_TRUE); break;
+            case VAL_OBJECT:
+                EmitByte(OP_FALSE); break;
+            case VAL_DECIMAL:
+            case VAL_LINKED_DECIMAL:
+                EmitByte((float)(AS_DECIMAL(constant) == 0.0) ? OP_TRUE : OP_FALSE); break;
+            case VAL_INTEGER:
+            case VAL_LINKED_INTEGER:
+                EmitByte(!AS_INTEGER(constant) ? OP_TRUE : OP_FALSE); break;
+            }
+            break;
+        case OP_NEGATE:
+            CurrentChunk()->Count = preCount;
+
+            if (constant.Type == VAL_DECIMAL)
+                out = DECIMAL_VAL(-AS_DECIMAL(constant));
+            else {
+                out = INTEGER_VAL(-AS_INTEGER(constant));
+            }
+            break;
+        case OP_BW_NOT:
+            CurrentChunk()->Count = preCount;
+
+            if (constant.Type == VAL_DECIMAL)
+                out = DECIMAL_VAL((float)(~(int)AS_DECIMAL(constant)));
+            else {
+                out = INTEGER_VAL(~AS_INTEGER(constant));
+            }
+            break;
+        }
+    }
+
+    if (checkConstant >= preConstant) {
+        CurrentChunk()->Constants->pop_back();
+        //Log::PrintSimple("Constant eaten: %d\n", checkConstant);
+    }
+    if (!IS_NULL(out)) {
+        EmitConstant(out);
+        preConstant = CurrentChunk()->Constants->size();
+        if (out.Type == VAL_INTEGER)
+            preConstant = CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
+    }
+
+    ///////////
+    //printf("------AFTER : @ %d %d\n", preCount, CurrentChunk()->Constants->size());
+    //for (int i = preCount; i < CurrentChunk()->Count;)
+    //    i = DebugInstruction(CurrentChunk(), i);
+    //printf("----------------- @ %d\n", preCount);
+    ///////////
+
+    return preConstant;
+}
+
+int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
+{
+    ///////////
+    //printf("------InfixOptimize @ %d %d\n", preCount, preConstant);
+    //for (int i = preCount; i < CurrentChunk()->Count;)
+    //    i = DebugInstruction(CurrentChunk(), i);
+    ///////////
+
+    if (fn == &Compiler::GetBinary) {
+        // this is gonna be really basic for now (constant constant OP)
+        // some of the stuff that passes through here are much longer than that, but this is a very solid start
+        // that already can shrink a good amount
+
+        int off1 = preCount;
+        Uint8 op1 = CurrentChunk()->Code[off1];
+        int off2 = GetTotalOpcodeSize(op1) + off1;
+        if (off2 >= CurrentChunk()->Count)
+            return preConstant;
+        Uint8 op2 = CurrentChunk()->Code[off2];
+        int offB = GetTotalOpcodeSize(op2) + off2;
+        if (offB != CurrentChunk()->Count - 1) // CHANGE TO >= ONCE CASCADING IS ADDED
+            return preConstant;
+        Uint8 opB = CurrentChunk()->Code[offB];
+
+        VMValue a;
+        int checkConstantA = -1;
+        VMValue b;
+        int checkConstantB = -1;
+
+        switch (op1) {
+            case OP_CONSTANT:
+                checkConstantA = *(Uint32*)(CurrentChunk()->Code + (off1 + 1));
+                a = (*CurrentChunk()->Constants)[checkConstantA];
+                break;
+            case OP_TRUE:
+            case OP_FALSE:
+                a = INTEGER_VAL(op1 == OP_TRUE ? 1 : 0);
+                break;
+            case OP_NULL:
+                a = NULL_VAL;
+                break;
+            default:
+                return preConstant;
+        }
+
+        switch (op2) {
+            case OP_CONSTANT:
+                checkConstantB = *(Uint32*)(CurrentChunk()->Code + (off2 + 1));
+                b = (*CurrentChunk()->Constants)[checkConstantB];
+                break;
+            case OP_TRUE:
+            case OP_FALSE:
+                b = INTEGER_VAL(op2 == OP_TRUE ? 1 : 0);
+                break;
+            case OP_NULL:
+                b = NULL_VAL;
+                break;
+            default:
+                return preConstant;
+        }
+
+        VMValue out;
+
+        switch (opB) {
+                // Numeric Operations
+            case OP_ADD: {
+                if (IS_STRING(a) || IS_STRING(b)) {
+                    VMValue str_b = ScriptManager::CastValueAsString(b);
+                    VMValue str_a = ScriptManager::CastValueAsString(a);
+                    out = ScriptManager::Concatenate(str_a, str_b);
+                    break;
+                }
+                else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL(a_d + b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d + b_d);
+                }
+
+                break;
+            }
+            case OP_SUBTRACT: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL(a_d - b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d - b_d);
+                }
+
+                break;
+            }
+            case OP_MULTIPLY: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL(a_d * b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d * b_d);
+                }
+
+                break;
+            }
+            case OP_DIVIDE: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+
+                    if (b_d == 0)
+                        return preConstant;
+                    out = DECIMAL_VAL(a_d / b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    if (b_d == 0)
+                        return preConstant;
+
+                    out = INTEGER_VAL(a_d / b_d);
+                }
+
+                break;
+            }
+            case OP_MODULO: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL(fmod(a_d, b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d % b_d);
+                }
+
+                break;
+            }
+                // Bitwise Operations
+            case OP_BITSHIFT_LEFT: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d << b_d);
+                }
+
+                break;
+            }
+            case OP_BITSHIFT_RIGHT: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d >> b_d);
+                }
+
+                break;
+            }
+            case OP_BW_OR: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d | b_d);
+                }
+
+                break;
+            }
+            case OP_BW_AND: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d & b_d);
+                }
+
+                break;
+            }
+            case OP_BW_XOR: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d ^ b_d);
+                }
+
+                break;
+            }
+                // Equality and Comparison Operators
+            case OP_EQUAL_NOT:
+            case OP_EQUAL: {
+                bool equal = ScriptManager::ValuesSortaEqual(a, b);
+                if (opB == OP_EQUAL_NOT)
+                    equal = !equal;
+                out = INTEGER_VAL(equal ? 1 : 0);
+                break;
+            }
+            case OP_GREATER: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = INTEGER_VAL(a_d > b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d > b_d);
+                }
+
+                break;
+            }
+            case OP_GREATER_EQUAL: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = INTEGER_VAL(a_d >= b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d >= b_d);
+                }
+
+                break;
+            }
+            case OP_LESS: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = INTEGER_VAL(a_d < b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d < b_d);
+                }
+
+                break;
+            }
+            case OP_LESS_EQUAL: {
+                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                    return preConstant;
+
+                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                    out = INTEGER_VAL(a_d <= b_d);
+                }
+                else {
+                    int a_d = AS_INTEGER(a);
+                    int b_d = AS_INTEGER(b);
+                    out = INTEGER_VAL(a_d <= b_d);
+                }
+
+                break;
+            }
+        }
+
+        CurrentChunk()->Count = preCount;
+        if (checkConstantA >= preConstant)
+            CurrentChunk()->Constants->pop_back();
+        if (checkConstantB >= preConstant && checkConstantA != checkConstantB)
+            CurrentChunk()->Constants->pop_back();
+        //Log::PrintSimple("Constants eaten: %d %d\n", checkConstantA, checkConstantB);
+
+        preConstant = CurrentChunk()->Constants->size();
+        EmitConstant(out);
+        if (out.Type == VAL_INTEGER)
+            preConstant = CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
+    }
+
+    ///////////
+    //printf("------AFTER : @ %d %d\n", preCount, CurrentChunk()->Constants->size());
+    //for (int i = preCount; i < CurrentChunk()->Count;)
+    //    i = DebugInstruction(CurrentChunk(), i);
+    //printf("----------------- @ %d\n", preCount);
+    ///////////
+    return preConstant;
+}
+
+int    Compiler::GetTotalOpcodeSize(uint8_t op) {
+    switch (op) {
+        // ConstantInstruction
+        case OP_CONSTANT:
+        case OP_IMPORT:
+        case OP_IMPORT_MODULE:
+            return 5;
+        case OP_NULL:
+        case OP_TRUE:
+        case OP_FALSE:
+        case OP_POP:
+        case OP_INCREMENT:
+        case OP_DECREMENT:
+        case OP_BITSHIFT_LEFT:
+        case OP_BITSHIFT_RIGHT:
+        case OP_EQUAL:
+        case OP_EQUAL_NOT:
+        case OP_LESS:
+        case OP_LESS_EQUAL:
+        case OP_GREATER:
+        case OP_GREATER_EQUAL:
+        case OP_ADD:
+        case OP_SUBTRACT:
+        case OP_MULTIPLY:
+        case OP_MODULO:
+        case OP_DIVIDE:
+        case OP_BW_NOT:
+        case OP_BW_AND:
+        case OP_BW_OR:
+        case OP_BW_XOR:
+        case OP_LG_NOT:
+        case OP_LG_AND:
+        case OP_LG_OR:
+        case OP_GET_ELEMENT:
+        case OP_SET_ELEMENT:
+        case OP_NEGATE:
+        case OP_PRINT:
+        case OP_TYPEOF:
+        case OP_RETURN:
+        case OP_SAVE_VALUE:
+        case OP_LOAD_VALUE:
+        case OP_GET_SUPERCLASS:
+        case OP_DEFINE_MODULE_LOCAL:
+        case OP_ENUM_NEXT:
+            return 1;
+        case OP_COPY:
+        case OP_CALL:
+        case OP_NEW:
+        case OP_EVENT:
+        case OP_POPN:
+            return 2;
+        case OP_GET_LOCAL:
+        case OP_SET_LOCAL:
+            return 2;
+        case OP_GET_GLOBAL:
+        case OP_DEFINE_GLOBAL:
+        case OP_SET_GLOBAL:
+        case OP_GET_PROPERTY:
+        case OP_SET_PROPERTY:
+        case OP_HAS_PROPERTY:
+        case OP_USE_NAMESPACE:
+        case OP_INHERIT:
+            return 5;
+        case OP_SET_MODULE_LOCAL:
+        case OP_GET_MODULE_LOCAL:
+            return 3;
+        case OP_NEW_ARRAY:
+        case OP_NEW_MAP:
+            return 5;
+        case OP_JUMP:
+        case OP_JUMP_IF_FALSE:
+        case OP_JUMP_BACK:
+            return 3;
+        case OP_INVOKE:
+            return 7;
+        case OP_WITH:
+            return 4;
+        case OP_CLASS:
+            return 6;
+        case OP_ADD_ENUM:
+        case OP_NEW_ENUM:
+            return 5;
+        case OP_METHOD:
+            return 6;
+    }
+    return 1;
+}
+
+
 // Debugging functions
-int    Compiler::HashInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::HashInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
-    printf("%-16s #%08X", name, hash);
+    Log::PrintSimple("%-16s #%08X", opcodeNames[opcode], hash);
     if (TokenMap->Exists(hash)) {
         Token t = TokenMap->Get(hash);
-        printf(" (%.*s)", (int)t.Length, t.Start);
+        Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
     }
-    printf("\n");
-    return offset + 5;
+    Log::PrintSimple("\n");
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::ConstantInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     int constant = *(int*)&chunk->Code[offset + 1];
-    printf("%-16s %9d '", name, constant);
+    Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
     Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-    printf("'\n");
-    return offset + 5;
+    Log::PrintSimple("'\n");
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::SimpleInstruction(const char* name, int offset) {
-    printf("%s\n", name);
-    return offset + 1;
+int    Compiler::SimpleInstruction(uint8_t opcode, int offset) {
+    Log::PrintSimple("%s\n", opcodeNames[opcode]);
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::ByteInstruction(const char* name, Chunk* chunk, int offset) {
-    printf("%-16s %9d\n", name, chunk->Code[offset + 1]);
-    return offset + 2;
+int    Compiler::ByteInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], chunk->Code[offset + 1]);
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::LocalInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::ShortInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    uint16_t data = (uint16_t)(chunk->Code[offset + 1]);
+    data |= chunk->Code[offset + 2] << 8;
+    Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], data);
+    return offset + GetTotalOpcodeSize(opcode);
+}
+int    Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     if (slot > 0)
-        printf("%-16s %9d\n", name, slot);
+        Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], slot);
     else
-        printf("%-16s %9d 'this'\n", name, slot);
-    return offset + 2;
+        Log::PrintSimple("%-16s %9d 'this'\n", opcodeNames[opcode], slot);
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::MethodInstruction(const char* name, Chunk* chunk, int offset) {
+int    Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
     uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
-    printf("%-13s %2d", name, slot);
-    // Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-    printf(" #%08X", hash);
+    Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
+    Log::PrintSimple(" #%08X", hash);
     if (TokenMap->Exists(hash)) {
         Token t = TokenMap->Get(hash);
-        printf(" (%.*s)", (int)t.Length, t.Start);
+        Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
     }
-    printf("\n");
-    return offset + 6;
+    Log::PrintSimple("\n");
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::InvokeInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::MethodInstruction(name, chunk, offset) + 1;
+int    Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::MethodInstruction(opcode, chunk, offset);
 }
-int    Compiler::JumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
+int    Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
     uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
     jump |= chunk->Code[offset + 2] << 8;
-    printf("%-16s %9d -> %d\n", name, offset, offset + 3 + sign * jump);
-    return offset + 3;
+    Log::PrintSimple("%-16s %9d -> %d\n", opcodeNames[opcode], offset, offset + 3 + sign * jump);
+    return offset + GetTotalOpcodeSize(opcode);
 }
-int    Compiler::ClassInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::HashInstruction(name, chunk, offset) + 1;
+int    Compiler::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(opcode, chunk, offset);
 }
-int    Compiler::EnumInstruction(const char* name, Chunk* chunk, int offset) {
-    return Compiler::HashInstruction(name, chunk, offset);
+int    Compiler::EnumInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    return Compiler::HashInstruction(opcode, chunk, offset);
 }
-int    Compiler::WithInstruction(const char* name, Chunk* chunk, int offset) {
-    uint8_t slot = chunk->Code[offset + 1];
-    if (slot == 0) {
-        printf("%-16s %9d\n", name, slot);
-        return offset + 2;
+int    Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+    uint8_t type = chunk->Code[offset + 1];
+    uint8_t slot = 0;
+    if (type == 3) {
+        slot = chunk->Code[offset + 2];
+        offset++;
     }
     uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
     jump |= chunk->Code[offset + 3] << 8;
-    printf("%-16s %9d -> %d\n", name, slot, jump);
-    return offset + 4;
+    if (slot > 0)
+        Log::PrintSimple("%-16s %1d %7d -> %d\n", opcodeNames[opcode], type, slot, jump);
+    else
+        Log::PrintSimple("%-16s %1d %7d 'this' -> %d\n", opcodeNames[opcode], type, slot, jump);
+    return offset + GetTotalOpcodeSize(opcode);
 }
 int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
-    printf("%04d ", offset);
+    Log::PrintSimple("%04d ", offset);
     if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
-        printf("   | ");
+        Log::PrintSimple("   | ");
     }
     else {
-        printf("%4d ", chunk->Lines[offset] & 0xFFFF);
+        Log::PrintSimple("%4d ", chunk->Lines[offset] & 0xFFFF);
     }
 
     uint8_t instruction = chunk->Code[offset];
     switch (instruction) {
         case OP_CONSTANT:
-            return ConstantInstruction("OP_CONSTANT", chunk, offset);
-        case OP_NULL:
-            return SimpleInstruction("OP_NULL", offset);
-        case OP_TRUE:
-            return SimpleInstruction("OP_TRUE", offset);
-        case OP_FALSE:
-            return SimpleInstruction("OP_FALSE", offset);
-        case OP_POP:
-            return SimpleInstruction("OP_POP", offset);
-        case OP_COPY:
-            return ByteInstruction("OP_COPY", chunk, offset);
-        case OP_GET_LOCAL:
-            return LocalInstruction("OP_GET_LOCAL", chunk, offset);
-        case OP_SET_LOCAL:
-            return LocalInstruction("OP_SET_LOCAL", chunk, offset);
-        case OP_GET_GLOBAL:
-            return HashInstruction("OP_GET_GLOBAL", chunk, offset);
-        case OP_DEFINE_GLOBAL:
-            return HashInstruction("OP_DEFINE_GLOBAL", chunk, offset);
-        case OP_SET_GLOBAL:
-            return HashInstruction("OP_SET_GLOBAL", chunk, offset);
-        case OP_GET_PROPERTY:
-            return HashInstruction("OP_GET_PROPERTY", chunk, offset);
-        case OP_SET_PROPERTY:
-            return HashInstruction("OP_SET_PROPERTY", chunk, offset);
-
-        case OP_INCREMENT:
-            return SimpleInstruction("OP_INCREMENT", offset);
-        case OP_DECREMENT:
-            return SimpleInstruction("OP_DECREMENT", offset);
-
-        case OP_BITSHIFT_LEFT:
-            return SimpleInstruction("OP_BITSHIFT_LEFT", offset);
-        case OP_BITSHIFT_RIGHT:
-            return SimpleInstruction("OP_BITSHIFT_RIGHT", offset);
-
-        case OP_EQUAL:
-            return SimpleInstruction("OP_EQUAL", offset);
-        case OP_EQUAL_NOT:
-            return SimpleInstruction("OP_EQUAL_NOT", offset);
-        case OP_LESS:
-            return SimpleInstruction("OP_LESS", offset);
-        case OP_LESS_EQUAL:
-            return SimpleInstruction("OP_LESS_EQUAL", offset);
-        case OP_GREATER:
-            return SimpleInstruction("OP_GREATER", offset);
-        case OP_GREATER_EQUAL:
-            return SimpleInstruction("OP_GREATER_EQUAL", offset);
-
-        case OP_ADD:
-            return SimpleInstruction("OP_ADD", offset);
-        case OP_SUBTRACT:
-            return SimpleInstruction("OP_SUBTRACT", offset);
-        case OP_MULTIPLY:
-            return SimpleInstruction("OP_MULTIPLY", offset);
-        case OP_MODULO:
-            return SimpleInstruction("OP_MODULO", offset);
-        case OP_DIVIDE:
-            return SimpleInstruction("OP_DIVIDE", offset);
-
-        case OP_BW_NOT:
-            return SimpleInstruction("OP_BW_NOT", offset);
-        case OP_BW_AND:
-            return SimpleInstruction("OP_BW_AND", offset);
-        case OP_BW_OR:
-            return SimpleInstruction("OP_BW_OR", offset);
-        case OP_BW_XOR:
-            return SimpleInstruction("OP_BW_XOR", offset);
-
-        case OP_LG_NOT:
-            return SimpleInstruction("OP_LG_NOT", offset);
-        case OP_LG_AND:
-            return SimpleInstruction("OP_LG_AND", offset);
-        case OP_LG_OR:
-            return SimpleInstruction("OP_LG_OR", offset);
-
-        case OP_GET_ELEMENT:
-            return SimpleInstruction("OP_GET_ELEMENT", offset);
-        case OP_SET_ELEMENT:
-            return SimpleInstruction("OP_SET_ELEMENT", offset);
-        case OP_NEW_ARRAY:
-            return SimpleInstruction("OP_NEW_ARRAY", offset) + 4;
-        case OP_NEW_MAP:
-            return SimpleInstruction("OP_NEW_MAP", offset) + 4;
-
-        case OP_NEGATE:
-            return SimpleInstruction("OP_NEGATE", offset);
-        case OP_PRINT:
-            return SimpleInstruction("OP_PRINT", offset);
-        case OP_TYPEOF:
-            return SimpleInstruction("OP_TYPEOF", offset);
-        case OP_JUMP:
-            return JumpInstruction("OP_JUMP", 1, chunk, offset);
-        case OP_JUMP_IF_FALSE:
-            return JumpInstruction("OP_JUMP_IF_FALSE", 1, chunk, offset);
-        case OP_JUMP_BACK:
-            return JumpInstruction("OP_JUMP_BACK", -1, chunk, offset);
-        case OP_CALL:
-            return ByteInstruction("OP_CALL", chunk, offset);
-        case OP_NEW:
-            return ByteInstruction("OP_NEW", chunk, offset);
-        case OP_EVENT:
-            return ByteInstruction("OP_EVENT", chunk, offset);
-        case OP_INVOKE:
-            return InvokeInstruction("OP_INVOKE", chunk, offset);
         case OP_IMPORT:
-            return ConstantInstruction("OP_IMPORT", chunk, offset);
         case OP_IMPORT_MODULE:
-            return ConstantInstruction("OP_IMPORT_MODULE", chunk, offset);
+            return ConstantInstruction(instruction, chunk, offset);
+        case OP_NULL:
+        case OP_TRUE:
+        case OP_FALSE:
+        case OP_POP:
+        case OP_INCREMENT:
+        case OP_DECREMENT:
+        case OP_BITSHIFT_LEFT:
+        case OP_BITSHIFT_RIGHT:
+        case OP_EQUAL:
+        case OP_EQUAL_NOT:
+        case OP_LESS:
+        case OP_LESS_EQUAL:
+        case OP_GREATER:
+        case OP_GREATER_EQUAL:
+        case OP_ADD:
+        case OP_SUBTRACT:
+        case OP_MULTIPLY:
+        case OP_MODULO:
+        case OP_DIVIDE:
+        case OP_BW_NOT:
+        case OP_BW_AND:
+        case OP_BW_OR:
+        case OP_BW_XOR:
+        case OP_LG_NOT:
+        case OP_LG_AND:
+        case OP_LG_OR:
+        case OP_GET_ELEMENT:
+        case OP_SET_ELEMENT:
+        case OP_NEGATE:
+        case OP_PRINT:
+        case OP_TYPEOF:
+        case OP_RETURN:
+        case OP_SAVE_VALUE:
+        case OP_LOAD_VALUE:
+        case OP_GET_SUPERCLASS:
+        case OP_DEFINE_MODULE_LOCAL:
+        case OP_ENUM_NEXT:
+            return SimpleInstruction(instruction, offset);
+        case OP_COPY:
+        case OP_CALL:
+        case OP_NEW:
+        case OP_EVENT:
+        case OP_POPN:
+            return ByteInstruction(instruction, chunk, offset);
+        case OP_GET_LOCAL:
+        case OP_SET_LOCAL:
+            return LocalInstruction(instruction, chunk, offset);
+        case OP_GET_GLOBAL:
+        case OP_DEFINE_GLOBAL:
+        case OP_SET_GLOBAL:
+        case OP_GET_PROPERTY:
+        case OP_SET_PROPERTY:
+        case OP_HAS_PROPERTY:
+        case OP_USE_NAMESPACE:
+        case OP_INHERIT:
+            return HashInstruction(instruction, chunk, offset);
+        case OP_SET_MODULE_LOCAL:
+        case OP_GET_MODULE_LOCAL:
+            return ShortInstruction(instruction, chunk, offset);
+        case OP_NEW_ARRAY:
+        case OP_NEW_MAP:
+            return SimpleInstruction(instruction, offset) + 4;
+        case OP_JUMP:
+        case OP_JUMP_IF_FALSE:
+            return JumpInstruction(instruction, 1, chunk, offset);
+        case OP_JUMP_BACK:
+            return JumpInstruction(instruction, -1, chunk, offset);
+        case OP_INVOKE:
+            return InvokeInstruction(instruction, chunk, offset);
 
         case OP_PRINT_STACK: {
             offset++;
             uint8_t constant = chunk->Code[offset++];
-            printf("%-16s %4d ", "OP_PRINT_STACK", constant);
+            Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
             Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-            printf("\n");
+            Log::PrintSimple("\n");
 
             ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
             for (int j = 0; j < function->UpvalueCount; j++) {
                 int isLocal = chunk->Code[offset++];
                 int index = chunk->Code[offset++];
-                printf("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
+                Log::PrintSimple("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
             }
 
             return offset;
         }
-
-        case OP_RETURN:
-            return SimpleInstruction("OP_RETURN", offset);
         case OP_WITH:
-            return WithInstruction("OP_WITH", chunk, offset);
+            return WithInstruction(instruction, chunk, offset);
         case OP_CLASS:
-            return ClassInstruction("OP_CLASS", chunk, offset);
+            return ClassInstruction(instruction, chunk, offset);
+        case OP_ADD_ENUM:
         case OP_NEW_ENUM:
-            return EnumInstruction("OP_NEW_ENUM", chunk, offset);
-        case OP_INHERIT:
-            return SimpleInstruction("OP_INHERIT", offset);
+            return EnumInstruction(instruction, chunk, offset);
         case OP_METHOD:
-            return MethodInstruction("OP_METHOD", chunk, offset);
+            return MethodInstruction(instruction, chunk, offset);
         default:
-            printf("\x1b[1;93mUnknown opcode %d\x1b[m\n", instruction);
+            if (instruction < OP_LAST)
+                Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
+            else
+                Log::PrintSimple("Unknown opcode %d\n", instruction);
             return chunk->Count + 1;
     }
 }
 void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
     int optArgCount = maxArity - minArity;
     if (optArgCount)
-        printf("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
+        Log::PrintSimple("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
     else
-        printf("== %s (argCount: %d) ==\n", name, maxArity);
-    printf("byte   ln\n");
+        Log::PrintSimple("== %s (argCount: %d) ==\n", name, maxArity);
+    Log::PrintSimple("byte   ln\n");
     for (int offset = 0; offset < chunk->Count;) {
         offset = DebugInstruction(chunk, offset);
     }
 
-    printf("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
+    Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
     for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
-        printf(" %2d '", (int)i);
+        Log::PrintSimple(" %2d '", (int)i);
         Values::PrintValue(NULL, (*chunk->Constants)[i]);
-        printf("'\n");
+        Log::PrintSimple("'\n");
     }
 }
 
@@ -3063,9 +3650,20 @@ void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int ma
 void   Compiler::Init() {
     Compiler::MakeRules();
 
+    Compiler::DoLogging = false;
     Compiler::ShowWarnings = false;
     Compiler::WriteDebugInfo = true;
     Compiler::WriteSourceFilename = true;
+    Compiler::DoOptimizations = true;
+
+    Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
+    if (Compiler::DoLogging) {
+        Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
+    }
+
+    Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+    Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
+    Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
 }
 void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
@@ -3120,6 +3718,9 @@ void         Compiler::WriteBytecode(Stream* stream, const char* filename) {
         TokenMap->Clear();
 }
 bool          Compiler::Compile(const char* filename, const char* source, const char* output) {
+    bool debugCompiler = false;
+    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
+
     scanner.Line = 1;
     scanner.Start = (char*)source;
     scanner.Current = (char*)source;
@@ -3128,6 +3729,10 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     parser.HadError = false;
     parser.PanicMode = false;
+
+    if (debugCompiler) {
+        Log::PrintSimple("Compiling script into file %s\n", output);
+    }
 
     Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
@@ -3147,18 +3752,19 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     Finish();
 
-    bool debugCompiler = false;
-    Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
             Chunk* chunk = &Compiler::Functions[c]->Chunk;
             DebugChunk(chunk, Compiler::Functions[c]->Name->Chars, Compiler::Functions[c]->MinArity, Compiler::Functions[c]->Arity);
-            printf("\n");
+            Log::PrintSimple("\n");
         }
     }
 
     Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
-    if (!stream) return false;
+    if (!stream) {
+        Log::Print(Log::LOG_ERROR, "Couldn't open file '%s' for writing compiled script!", output);
+        return false;
+    }
 
     WriteBytecode(stream, filename);
 

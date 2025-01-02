@@ -84,8 +84,8 @@ public:
     static void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
     static void* CreateVertexBuffer(Uint32 maxVertices);
     static void DeleteVertexBuffer(void* vtxBuf);
-    static void MakeFrameBufferID(ISprite* sprite, AnimFrame* frame);
-    static void DeleteFrameBufferID(AnimFrame* frame);
+    static void MakeFrameBufferID(ISprite* sprite);
+    static void DeleteFrameBufferID(ISprite* sprite);
     static void SetDepthTesting(bool enable);
 };
 

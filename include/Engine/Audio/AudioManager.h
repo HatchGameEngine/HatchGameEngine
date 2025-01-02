@@ -66,6 +66,7 @@ public:
     static void AudioPause(ISound* audio);
     static void AudioStop(int channel);
     static void AudioStop(ISound* audio);
+    static void AudioRemove(ISound* audio);
     static void AudioUnpauseAll();
     static void AudioPauseAll();
     static void AudioStopAll();

@@ -1433,6 +1433,8 @@ void Scene::Restart() {
 
     ScriptManager::ResetStack();
     ScriptManager::RequestGarbageCollection();
+
+    Application::FirstFrame = true;
 }
 void Scene::ClearPriorityLists() {
     if (!Scene::PriorityLists)
@@ -1482,7 +1484,7 @@ void Scene::DeleteAllObjects() {
         });
     }
 }
-void Scene::LoadScene(const char* filename) {
+void Scene::LoadScene(const char* sceneFilename) {
     // Remove non-persistent objects from lists
     if (Scene::ObjectLists) {
         Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1539,6 +1541,8 @@ void Scene::LoadScene(const char* filename) {
     MemoryPools::RunGC(MemoryPools::MEMPOOL_STRING);
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
 #endif
+
+    char* filename = StringUtils::NormalizePath(sceneFilename);
 
     char pathParent[4096];
     StringUtils::Copy(pathParent, filename, sizeof(pathParent));
@@ -1599,12 +1603,13 @@ void Scene::LoadScene(const char* filename) {
         SetInfoFromCurrentID();
 
         if (SceneInfo::IsEntryValid(ActiveCategory, CurrentSceneInList)) {
-            std::string filename = SceneInfo::GetTileConfigFilename(ActiveCategory, CurrentSceneInList);
-            Scene::LoadTileCollisions(filename.c_str(), 0);
+            std::string cfgFilename = SceneInfo::GetTileConfigFilename(ActiveCategory, CurrentSceneInList);
+            Scene::LoadTileCollisions(cfgFilename.c_str(), 0);
         }
     }
-    else
+    else {
         Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+    }
 
     // Call Static's GameStart here
     if (Application::GameStart) {
@@ -1613,6 +1618,8 @@ void Scene::LoadScene(const char* filename) {
     }
 
     Scene::Loaded = false;
+
+    Memory::Free(filename);
 }
 
 void Scene::ProcessSceneTimer() {
@@ -2270,6 +2277,8 @@ bool Scene::AddTileset(char* path) {
             Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
 
+    tileSprite->RefreshGraphicsID();
+
     Scene::SetTileCount(Scene::TileCount + (cols * rows));
 
     return true;
@@ -2666,13 +2675,11 @@ void Scene::DisposeInScope(Uint32 scope) {
         Scene::SpriteList[i] = NULL;
     }
     // Sounds
-    AudioManager::ClearMusic();
-    AudioManager::ClearSounds();
-
-    AudioManager::Lock();
     for (size_t i = 0, i_sz = Scene::SoundList.size(); i < i_sz; i++) {
         if (!Scene::SoundList[i]) continue;
         if (Scene::SoundList[i]->UnloadPolicy > scope) continue;
+
+        AudioManager::AudioRemove(Scene::SoundList[i]->AsSound);
 
         Scene::SoundList[i]->AsSound->Dispose();
         delete Scene::SoundList[i]->AsSound;
@@ -2684,7 +2691,7 @@ void Scene::DisposeInScope(Uint32 scope) {
         if (!Scene::MusicList[i]) continue;
         if (Scene::MusicList[i]->UnloadPolicy > scope) continue;
 
-        // AudioManager::RemoveMusic(Scene::MusicList[i]->AsMusic);
+        AudioManager::RemoveMusic(Scene::MusicList[i]->AsMusic);
 
         Scene::MusicList[i]->AsMusic->Dispose();
         delete Scene::MusicList[i]->AsMusic;
@@ -2692,6 +2699,7 @@ void Scene::DisposeInScope(Uint32 scope) {
         Scene::MusicList[i] = NULL;
     }
     // Media
+    AudioManager::Lock();
     for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
         if (!Scene::MediaList[i]) continue;
         if (Scene::MediaList[i]->UnloadPolicy > scope) continue;

@@ -7,7 +7,7 @@
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/IO/Compression/ZLibStream.h>
-#include <Engine/IO/ResourceStream.h>
+#include <Engine/Utilities/StringUtils.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileAnimation.h>
@@ -259,6 +259,8 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
             (i / cols) * Scene::TileHeight,
             Scene::TileWidth, Scene::TileHeight, -Scene::TileWidth / 2, -Scene::TileHeight / 2);
     }
+
+    tileSprite->RefreshGraphicsID();
 
     Tileset sceneTileset(tileSprite, Scene::TileWidth, Scene::TileHeight, firstgid, curTileCount + numEmptyTiles, (cols * rows) + 1, imagePath);
     Scene::Tilesets.push_back(sceneTileset);

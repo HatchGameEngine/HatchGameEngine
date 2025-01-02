@@ -16,7 +16,7 @@ struct AnimFrame {
     int           OffsetY;
     int           SheetNumber;
     int           Duration;
-    int           ID;
+    int           BufferOffset;
     int           Advance;
 
     int           BoxCount;

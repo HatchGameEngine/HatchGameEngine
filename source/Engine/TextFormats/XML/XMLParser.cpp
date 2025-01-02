@@ -487,11 +487,15 @@ XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
     return XMLParser::ParseFromStream(stream);
 }
 XMLNode* XMLParser::ParseFromResource(const char* filename) {
-    ResourceStream* res = ResourceStream::New(filename);
+    char* pathToLoad = StringUtils::NormalizePath(filename);
+    ResourceStream* res = ResourceStream::New(pathToLoad);
     if (!res) {
-        Log::Print(Log::LOG_ERROR, "Could not open ResourceStream from \"%s\"", filename);
+        Log::Print(Log::LOG_ERROR, "Could not open ResourceStream from \"%s\"", pathToLoad);
+        Memory::Free(pathToLoad);
         return NULL;
     }
+
+    Memory::Free(pathToLoad);
 
     XMLNode* node = XMLParser::ParseFromStream(res);
     res->Close();

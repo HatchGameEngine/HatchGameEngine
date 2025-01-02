@@ -171,8 +171,8 @@ public:
     static void InitScene3D(Uint32 sceneIndex, Uint32 numVertices);
     static void MakeSpritePolygon(VertexAttribute data[4], float x, float y, float z, int flipX, int flipY, float scaleX, float scaleY, Texture* texture, int frameX, int frameY, int frameW, int frameH);
     static void MakeSpritePolygonUVs(VertexAttribute data[4], int flipX, int flipY, Texture* texture, int frameX, int frameY, int frameW, int frameH);
-    static void MakeFrameBufferID(ISprite* sprite, AnimFrame* frame);
-    static void DeleteFrameBufferID(AnimFrame* frame);
+    static void MakeFrameBufferID(ISprite* sprite);
+    static void DeleteFrameBufferID(ISprite* sprite);
     static void SetDepthTesting(bool enabled);
     static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
     static void ConvertFromARGBtoNative(Uint32* argb, int count);
