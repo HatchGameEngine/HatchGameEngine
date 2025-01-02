@@ -778,6 +778,9 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 bool    ScriptManager::ClassExists(const char* objectName) {
     return SourceFileMap::ClassMap->Exists(objectName);
 }
+bool    ScriptManager::IsStandardLibraryClass(const char* className) {
+    return IS_CLASS(Constants->Get(className));
+}
 bool    ScriptManager::LoadScript(char* filename) {
     if (!filename || !*filename)
         return false;
@@ -832,7 +835,7 @@ bool    ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFun
     }
 
     // Set native functions for that new object class
-    if (!Classes->Exists(objectName)) {
+    if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
         // Log::Print(Log::LOG_VERBOSE, "Setting native functions for class %s...", objectName);
         ObjClass* klass = GetObjectClass(objectName);
         if (!klass) {
