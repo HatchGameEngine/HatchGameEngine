@@ -15,19 +15,19 @@ struct SceneListEntry {
     HashMap<char*>* Properties = nullptr;
 
     void Dispose() {
-        Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 1");
+        // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 1");
         if (Properties) {
-            Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 2");
+            // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 2");
             Properties->WithAll([](Uint32 hash, char* string) -> void {
-                Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 3");
+                // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 3");
                 Memory::Free(string);
             });
-            Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 4");
+            // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 4");
             delete Properties;
-            Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 5");
+            // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 5");
             Properties = nullptr;
         }
-        Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 6");
+        // Log::Print(Log::LOG_VERBOSE, "Reaching list entry clear 6");
 
         // Name, Folder, etc. don't need to be freed because they are contained in Properties.
     }
