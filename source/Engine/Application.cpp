@@ -104,25 +104,25 @@ bool             Application::DevShowHitboxes = false;
 
 bool             Application::DevConvertModels = false;
 
-char    StartingScene[256];
+char   StartingScene[256];
 
-bool    DevMode = false;
-bool    ShowFPS = false;
-bool    TakeSnapshot = false;
-bool    DoNothing = false;
-int     UpdatesPerFastForward = 4;
+bool   DevMode = false;
+bool   ShowFPS = false;
+bool   TakeSnapshot = false;
+bool   DoNothing = false;
+int    UpdatesPerFastForward = 4;
 
-int     BenchmarkFrameCount = 0;
-double  BenchmarkTickStart = 0.0;
+int    BenchmarkFrameCount = 0;
+double BenchmarkTickStart = 0.0;
 
-double  Overdelay = 0.0;
-double  FrameTimeStart = 0.0;
-double  FrameTimeDesired = 1000.0 / Application::TargetFPS;
+double Overdelay = 0.0;
+double FrameTimeStart = 0.0;
+double FrameTimeDesired = 1000.0 / Application::TargetFPS;
 
-int     KeyBinds[(int)KeyBind::Max];
+int    KeyBinds[(int)KeyBind::Max];
 
-ISprite*    DEBUG_fontSprite = NULL;
-void        DEBUG_DrawText(char* text, float x, float y) {
+ISprite* DEBUG_fontSprite = NULL;
+void DEBUG_DrawText(char* text, float x, float y) {
     for (char* i = text; *i; i++) {
         Graphics::DrawSprite(DEBUG_fontSprite, 0, (int)*i, x, y, false, false, 1.0f, 1.0f, 0.0f);
         x += 14; // DEBUG_fontSprite->Animations[0].Frames[(int)*i].ID;
@@ -164,9 +164,8 @@ void Application::Init(int argc, char* args[]) {
     SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
     #endif
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0)
         Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
-    }
 
     Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
     Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
@@ -193,7 +192,6 @@ void Application::Init(int argc, char* args[]) {
     Application::Window = SDL_CreateWindow(NULL,
         SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
         Application::WindowWidth, Application::WindowHeight, window_flags);
-
     bool fullscreen = false;
     Application::Settings->GetBool("display", "fullscreen", &fullscreen);
     Application::SetWindowFullscreen(fullscreen);
@@ -1426,7 +1424,7 @@ void Application::LoadSceneInfo() {
                 if (node) {
                     // Parse active category
                     if (ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
-                        // backwards compat
+                        // Backwards compatbility
                         Scene::ActiveCategory++;
                     }
                     else {
@@ -1440,7 +1438,7 @@ void Application::LoadSceneInfo() {
                     }
 
                     // Parse starting scene
-                    ParseGameConfigInt(node, "startSceneNum", startSceneNum); // backwards compat
+                    ParseGameConfigInt(node, "startSceneNum", startSceneNum); // Backwards compatibility
 
                     char* text = ParseGameConfigText(node, "startscene");
                     if (text) {
@@ -1469,6 +1467,8 @@ void Application::LoadSceneInfo() {
 
         XMLParser::Free(sceneConfig);
     }
+
+
 }
 
 void Application::InitPlayerControls() {
@@ -1576,7 +1576,17 @@ void Application::InitSettings(const char* filename) {
 
     Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
     Application::Settings->GetInteger("display", "multisample", &Graphics::MultisamplingEnabled);
-    Application::Settings->GetInteger("display", "defaultMonitor", &Application::DefaultMonitor);
+    int defaultMonitor = 0;
+    Application::Settings->GetInteger("display", "defaultMonitor", &defaultMonitor);
+
+    int numDisplays = SDL_GetNumVideoDisplays();
+    if (defaultMonitor >= numDisplays) {
+        Application::Settings->SetInteger("display", "defaultMonitor", 0);
+        Application::SaveSettings(Application::SettingsFile);
+    }
+    else {
+        Application::DefaultMonitor = defaultMonitor;
+    }
 }
 void Application::SaveSettings() {
     if (Application::Settings)
@@ -1636,6 +1646,7 @@ void Application::AddViewableVariable(const char* name, void* value, int type, i
                 viewVar->Type = VIEWVAR_DISPLAY_BOOL;
                 viewVar->Size = sizeof(bool);
                 break;
+
         }
 
         viewVar->Min = min;
@@ -1820,6 +1831,8 @@ void Application::OpenDevMenu() {
 void Application::CloseDevMenu() {
     Application::DevMenuActivated = false;
 
+    Application::SaveSettings();
+
     AudioManager::AudioUnpauseAll();
     AudioManager::Lock();
     if (AudioManager::MusicStack.size() > 0)
@@ -1854,6 +1867,21 @@ void Application::DevMenu_DrawMainMenu() {
 
     View view = Scene::Views[0];
 
+    DevMenu_DrawTitleBar();
+
+    DrawRectangle(0, 82.0, 128.0, 113.0, 0x000000, 0xFF, true);
+    DrawRectangle(144.0, 82.0, view.Width - 144.0, 113.0, 0x000000, 0xFF, true);
+
+    int y = 100;
+    for (int i = 0; i < selectionCount; ++i) {
+        DrawDevString(selectionNames[i], 16.0, y, 0, isSelected[i]);
+        y += 15;
+    }
+}
+
+void Application::DevMenu_DrawTitleBar() {
+    View view = Scene::Views[0];
+
     // TODO: Should be CenterY when that exists
     int y = (((int)Scene::Views[0].Height) / 2) - 94;
     DrawRectangle(0.0, 16.0, view.Width, 54.0, 0x000000, 0xFF, true);
@@ -1861,16 +1889,6 @@ void Application::DevMenu_DrawMainMenu() {
 
     y += 15;
     DrawDevString(GameTitleShort, (int)view.Width / 2, y, 2, true);
-
-    DrawRectangle(0, 82.0, 128.0, 113.0, 0x000000, 0xFF, true);
-    DrawRectangle(144.0, 82.0, view.Width - 144.0, 113.0, 0x000000, 0xFF, true);
-
-    y = 100;
-    for (int i = 0; i < selectionCount; ++i) {
-        DrawDevString(selectionNames[i], 16.0, y, 0, isSelected[i]);
-        y += 15;
-    }
-    y += 20;
 }
 
 void Application::DevMenu_MainMenu() {
@@ -1973,7 +1991,7 @@ void Application::DevMenu_MainMenu() {
                 break;
 
             case 4:
-                DevMenu.State = Application::DevMenu_SettingsMenu;
+                DevMenu.State = Application::DevMenu_ModsMenu;
                 DevMenu.SubSelection = 0;
                 DevMenu.Timer = 1;
                 break;
@@ -2246,7 +2264,233 @@ void Application::DevMenu_SceneSelectMenu() {
 }
 
 void Application::DevMenu_SettingsMenu() {
+    DevMenu_DrawMainMenu();
 
+    int selectionCount = 4;
+    bool isSelected[] = { false, false, false, false };
+    const char* selectionNames[] = { "Video Settings", "Audio Settings", "Input Settings", "Debug Settings" };
+    isSelected[DevMenu.SubSelection] = true;
+
+    View view = Scene::Views[0];
+
+    DrawDevString("Change settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+
+    int y = 93;
+    for (int i = 0; i < 4; i++) {
+        DrawDevString(selectionNames[i], 160, y, 0, isSelected[i]);
+        y += 15;
+    }
+
+    if (InputManager::GetActionID("Up") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
+            DevMenu.SubSelection--;
+            DevMenu.Timer = 1;
+
+            if (DevMenu.SubSelection < 0)
+                DevMenu.SubSelection += selectionCount;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
+            if (DevMenu.Timer) {
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+            }
+            else {
+                DevMenu.SubSelection--;
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+
+                if (DevMenu.SubSelection < 0)
+                    DevMenu.SubSelection += selectionCount;
+            }
+        }
+    }
+
+    if (InputManager::GetActionID("Down") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
+            DevMenu.SubSelection++;
+            DevMenu.Timer = 1;
+
+            if (DevMenu.SubSelection >= selectionCount)
+                DevMenu.SubSelection -= selectionCount;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
+            if (DevMenu.Timer) {
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+            }
+            else {
+                DevMenu.SubSelection++;
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+
+                if (DevMenu.SubSelection >= selectionCount)
+                    DevMenu.SubSelection -= selectionCount;
+            }
+        }
+    }
+
+    bool confirm = false;
+    if (InputManager::GetActionID("A") != -1) {
+        confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
+    }
+
+    if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
+        switch (DevMenu.SubSelection) {
+            case 0: DevMenu.State = DevMenu_VideoMenu; break;
+            case 1: DevMenu.State = DevMenu_AudioMenu; break;
+            case 2: DevMenu.State = DevMenu_InputMenu; break;
+            case 3: DevMenu.State = DevMenu_DebugMenu; break;
+        }
+        DevMenu.SubSelection = 0;
+    }
+    else if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+        DevMenu.State = DevMenu_MainMenu;
+        DevMenu.SubSelection = 0;
+    }
+}
+
+void Application::DevMenu_VideoMenu() {
+    DevMenu_DrawTitleBar();
+
+
+}
+
+void Application::DevMenu_AudioMenu() {
+    DevMenu_DrawTitleBar();
+
+    int selectionCount = 4;
+
+    View view = Scene::Views[0];
+
+    DrawDevString("Change audio settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+
+    DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
+
+    DrawDevString("Master Volume", ((int)view.Width / 2) - 124, 93, 0, DevMenu.SubSelection == 0);
+    DrawDevString("Music Volume", ((int)view.Width / 2) - 124, 108, 0, DevMenu.SubSelection == 1);
+    DrawDevString("Sound Volume", ((int)view.Width / 2) - 124, 123, 0, DevMenu.SubSelection == 2);
+    DrawDevString("Confirm", (int)view.Width / 2, 150, 2, DevMenu.SubSelection == 3);
+
+    float y = 93.0;
+    for (int i = 0; i < 3; i++) {
+        DrawRectangle(view.Width - 190, y, 104.0, 15.0, 0x303030, 0xFF, true);
+        y += 16.0;
+    }
+
+    DrawRectangle(view.Width - 188.0, 95.0, (float)Application::MasterVolume, 11.0, 0xFFFFFF, 0xFF, true);
+    DrawRectangle(view.Width - 188.0, 111.0, (float)Application::MusicVolume, 11.0, 0xFFFFFF, 0xFF, true);
+    DrawRectangle(view.Width - 188.0, 127.0, (float)Application::SoundVolume, 11.0, 0xFFFFFF, 0xFF, true);
+
+    if (InputManager::GetActionID("Up") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
+            DevMenu.SubSelection--;
+            DevMenu.Timer = 1;
+
+            if (DevMenu.SubSelection < 0)
+                DevMenu.SubSelection += selectionCount;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
+            if (DevMenu.Timer) {
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+            }
+            else {
+                DevMenu.SubSelection--;
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+
+                if (DevMenu.SubSelection < 0)
+                    DevMenu.SubSelection += selectionCount;
+            }
+        }
+    }
+
+    if (InputManager::GetActionID("Down") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
+            DevMenu.SubSelection++;
+            DevMenu.Timer = 1;
+
+            if (DevMenu.SubSelection >= selectionCount)
+                DevMenu.SubSelection -= selectionCount;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
+            if (DevMenu.Timer) {
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+            }
+            else {
+                DevMenu.SubSelection++;
+                DevMenu.Timer = ++DevMenu.Timer & 7;
+
+                if (DevMenu.SubSelection >= selectionCount)
+                    DevMenu.SubSelection -= selectionCount;
+            }
+        }
+    }
+
+    if (InputManager::GetActionID("Left") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) || InputManager::IsActionHeldByAny(InputManager::GetActionID("Left"))) {
+            switch (DevMenu.SubSelection) {
+                case 0:
+                    if (Application::MasterVolume > 0) Application::MasterVolume--;
+                    Application::SetMasterVolume(Application::MasterVolume);
+                    Application::Settings->SetInteger("audio", "masterVolume", Application::MasterVolume);
+                    Application::SaveSettings(); // TODO: See how performant this is
+                    break;
+                case 1:
+                    if (Application::MusicVolume > 0) Application::MusicVolume--;
+                    Application::SetMusicVolume(Application::MusicVolume);
+                    Application::Settings->SetInteger("audio", "musicVolume", Application::MusicVolume);
+                    Application::SaveSettings(); // TODO: See how performant this is
+                    break;
+                case 2:
+                    if (Application::SoundVolume > 0) Application::SoundVolume--;
+                    Application::SetSoundVolume(Application::SoundVolume);
+                    Application::Settings->SetInteger("audio", "soundVolume", Application::SoundVolume);
+                    Application::SaveSettings(); // TODO: See how performant this is
+                    break;
+                default: break;
+            }
+        }
+    }
+
+    if (InputManager::GetActionID("Right") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Right")) || InputManager::IsActionHeldByAny(InputManager::GetActionID("Right"))) {
+            switch (DevMenu.SubSelection) {
+            case 0:
+                if (Application::MasterVolume < 100) Application::MasterVolume++;
+                Application::SetMasterVolume(Application::MasterVolume);
+                Application::Settings->SetInteger("audio", "masterVolume", Application::MasterVolume);
+                Application::SaveSettings(); // TODO: See how performant this is
+                break;
+            case 1:
+                if (Application::MusicVolume < 100) Application::MusicVolume++;
+                Application::SetMusicVolume(Application::MusicVolume);
+                Application::Settings->SetInteger("audio", "musicVolume", Application::MusicVolume);
+                Application::SaveSettings(); // TODO: See how performant this is
+                break;
+            case 2:
+                if (Application::SoundVolume < 100) Application::SoundVolume++;
+                Application::SetSoundVolume(Application::SoundVolume);
+                Application::Settings->SetInteger("audio", "soundVolume", Application::SoundVolume);
+                Application::SaveSettings(); // TODO: See how performant this is
+                break;
+            default: break;
+            }
+        }
+    }
+
+    bool confirm = false;
+    if (InputManager::GetActionID("A") != -1) {
+        confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
+    }
+
+    if (DevMenu.SubSelection == 3 && ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm)) {
+        DevMenu.State = DevMenu_SettingsMenu;
+        DevMenu.SubSelection = 1;
+        DevMenu.Timer = 1;
+    }
+}
+
+void Application::DevMenu_InputMenu() {
+    DevMenu_DrawTitleBar();
+}
+
+void Application::DevMenu_DebugMenu() {
+    DevMenu_DrawTitleBar();
 }
 
 void Application::DevMenu_ModsMenu() {

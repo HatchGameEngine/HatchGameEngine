@@ -32,10 +32,15 @@ private:
     static void SetBlendColor(int color);
     static void DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative);
     static void DevMenu_DrawMainMenu();
+    static void DevMenu_DrawTitleBar();
     static void DevMenu_MainMenu();
     static void DevMenu_CategorySelectMenu();
     static void DevMenu_SceneSelectMenu();
     static void DevMenu_SettingsMenu();
+    static void DevMenu_VideoMenu();
+    static void DevMenu_AudioMenu();
+    static void DevMenu_InputMenu();
+    static void DevMenu_DebugMenu();
     static void DevMenu_ModsMenu();
 
 public:
