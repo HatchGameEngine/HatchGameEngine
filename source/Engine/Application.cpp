@@ -173,7 +173,7 @@ void Application::Init(int argc, char* args[]) {
     int defaultMonitor = Application::DefaultMonitor;
 
     Uint32 window_flags = 0;
-    window_flags |= SDL_WINDOW_SHOWN;
+    window_flags |= IsPC() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN;
     window_flags |= Graphics::GetWindowFlags();
     if (allowRetina)
         window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
@@ -1133,6 +1133,8 @@ void Application::Run(int argc, char* args[]) {
 
     Graphics::Clear();
     Graphics::Present();
+
+    SDL_ShowWindow(Application::Window);
 
 #ifdef IOS
     // Initialize the Game Center for scoring and matchmaking

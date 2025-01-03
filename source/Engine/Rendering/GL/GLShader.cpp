@@ -9,14 +9,14 @@
 
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
     GLint compiled = GL_FALSE;
-    ProgramID = glCreateProgram(); CHECK_GL();
+    ProgramID = glCreateProgram();
 
     const char *vertexShaderSourceStr = vertexShaderSource.c_str();
 
-    VertexProgramID = glCreateShader(GL_VERTEX_SHADER); CHECK_GL();
-    glShaderSource(VertexProgramID, 1, &vertexShaderSourceStr, NULL); CHECK_GL();
+    VertexProgramID = glCreateShader(GL_VERTEX_SHADER); 
+    glShaderSource(VertexProgramID, 1, &vertexShaderSourceStr, NULL);
     glCompileShader(VertexProgramID); CHECK_GL();
-    glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
+    glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE) {
         Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
         CheckShaderError(VertexProgramID);
@@ -25,10 +25,10 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 
     const char *fragmentShaderSourceStr = fragmentShaderSource.c_str();
 
-    FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER); CHECK_GL();
-    glShaderSource(FragmentProgramID, 1, &fragmentShaderSourceStr, NULL); CHECK_GL();
+    FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(FragmentProgramID, 1, &fragmentShaderSourceStr, NULL);
     glCompileShader(FragmentProgramID); CHECK_GL();
-    glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
+    glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE) {
         Log::Print(Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
         CheckShaderError(FragmentProgramID);
@@ -39,7 +39,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 }
 GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
     GLint compiled = GL_FALSE;
-    ProgramID = glCreateProgram(); CHECK_GL();
+    ProgramID = glCreateProgram();
 
     size_t lenVS = streamVS->Length();
     size_t lenFS = streamFS->Length();
@@ -63,18 +63,17 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
     #endif
     sourceFSMod[1] = sourceFS;
 
-    VertexProgramID = glCreateShader(GL_VERTEX_SHADER); CHECK_GL();
+    VertexProgramID = glCreateShader(GL_VERTEX_SHADER);
 
-    glShaderSource(VertexProgramID, 1, &sourceVS, NULL); CHECK_GL();
+    glShaderSource(VertexProgramID, 1, &sourceVS, NULL);
     glCompileShader(VertexProgramID); CHECK_GL();
-    glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
+    glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE) {
         Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
         CheckShaderError(VertexProgramID);
-        CheckGLError(__LINE__);
 
-        glDeleteProgram(ProgramID); CHECK_GL();
-        glDeleteShader(VertexProgramID); CHECK_GL();
+        glDeleteProgram(ProgramID);
+        glDeleteShader(VertexProgramID);
 
         ProgramID = 0;
         VertexProgramID = 0;
@@ -84,18 +83,17 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
         return;
     }
 
-    FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER); CHECK_GL();
-    glShaderSource(FragmentProgramID, 2, sourceFSMod, NULL); CHECK_GL();
+    FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(FragmentProgramID, 2, sourceFSMod, NULL);
     glCompileShader(FragmentProgramID); CHECK_GL();
-    glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled); CHECK_GL();
+    glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE) {
         Log::Print(Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
         CheckShaderError(FragmentProgramID);
-        CheckGLError(__LINE__);
 
-        glDeleteProgram(ProgramID); CHECK_GL();
-        glDeleteShader(VertexProgramID); CHECK_GL();
-        glDeleteShader(FragmentProgramID); CHECK_GL();
+        glDeleteProgram(ProgramID);
+        glDeleteShader(VertexProgramID);
+        glDeleteShader(FragmentProgramID);
 
         ProgramID = 0;
         VertexProgramID = 0;
@@ -112,17 +110,17 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
     AttachAndLink();
 }
 void  GLShader::AttachAndLink() {
-    glAttachShader(ProgramID, VertexProgramID);                 CHECK_GL();
-    glAttachShader(ProgramID, FragmentProgramID);               CHECK_GL();
+    glAttachShader(ProgramID, VertexProgramID);                 
+    glAttachShader(ProgramID, FragmentProgramID);               
 
-    glBindAttribLocation(ProgramID, 0, "i_position");           CHECK_GL();
-    glBindAttribLocation(ProgramID, 1, "i_uv");                 CHECK_GL();
-    glBindAttribLocation(ProgramID, 2, "i_color");              CHECK_GL();
+    glBindAttribLocation(ProgramID, 0, "i_position");           
+    glBindAttribLocation(ProgramID, 1, "i_uv");                 
+    glBindAttribLocation(ProgramID, 2, "i_color");              
 
-    glLinkProgram(ProgramID);                                   CHECK_GL();
+    glLinkProgram(ProgramID); CHECK_GL();
 
     GLint isLinked = GL_FALSE;
-    glGetProgramiv(ProgramID, GL_LINK_STATUS, (int*)&isLinked); CHECK_GL();
+    glGetProgramiv(ProgramID, GL_LINK_STATUS, (int*)&isLinked);
     if (isLinked != GL_TRUE) {
         CheckProgramError(ProgramID);
     }
@@ -160,7 +158,7 @@ bool   GLShader::CheckShaderError(GLuint shader) {
     glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength); CHECK_GL();
 
     char* infoLog = new char[maxLength];
-    glGetShaderInfoLog(shader, maxLength, &infoLogLength, infoLog); CHECK_GL();
+    glGetShaderInfoLog(shader, maxLength, &infoLogLength, infoLog);
     infoLog[strlen(infoLog) - 1] = 0;
 
     if (infoLogLength > 0)
@@ -176,7 +174,7 @@ bool   GLShader::CheckProgramError(GLuint prog) {
     glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &maxLength); CHECK_GL();
 
     char* infoLog = new char[maxLength];
-    glGetProgramInfoLog(prog, maxLength, &infoLogLength, infoLog); CHECK_GL();
+    glGetProgramInfoLog(prog, maxLength, &infoLogLength, infoLog);
     infoLog[strlen(infoLog) - 1] = 0;
 
     if (infoLogLength > 0)
@@ -194,11 +192,11 @@ GLuint GLShader::Use() {
 }
 
 GLint  GLShader::GetAttribLocation(const GLchar* identifier) {
-    GLint value = glGetAttribLocation(ProgramID, identifier); CHECK_GL();
+    GLint value = glGetAttribLocation(ProgramID, identifier);
     return value;
 }
 GLint  GLShader::GetUniformLocation(const GLchar* identifier) {
-    GLint value = glGetUniformLocation(ProgramID, identifier); CHECK_GL();
+    GLint value = glGetUniformLocation(ProgramID, identifier);
     return value;
 }
 
@@ -210,13 +208,13 @@ GLShader::~GLShader() {
         delete CachedModelViewMatrix;
     }
     if (VertexProgramID) {
-        glDeleteShader(VertexProgramID); CHECK_GL();
+        glDeleteShader(VertexProgramID);
     }
     if (FragmentProgramID) {
-        glDeleteShader(FragmentProgramID); CHECK_GL();
+        glDeleteShader(FragmentProgramID);
     }
     if (ProgramID) {
-        glDeleteProgram(ProgramID); CHECK_GL();
+        glDeleteProgram(ProgramID);
     }
 }
 
