@@ -14742,13 +14742,13 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
     return obj;
 }
 /***
- * String.ToUppercase
+ * String.ToUpperCase
  * \desc Convert a String value to its uppercase representation.
  * \param string (String):
  * \return Returns a uppercase String value.
  * \ns String
  */
-VMValue String_ToUppercase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
 
@@ -14767,13 +14767,13 @@ VMValue String_ToUppercase(int argCount, VMValue* args, Uint32 threadID) {
     return obj;
 }
 /***
- * String.ToLowercase
+ * String.ToLowerCase
  * \desc Convert a String value to its lowercase representation.
  * \param string (String):
  * \return Returns a lowercase String value.
  * \ns String
  */
-VMValue String_ToLowercase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_ARGCOUNT(1);
     char* string = GET_ARG(0, GetString);
 
@@ -15828,7 +15828,7 @@ VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
     return NULL_VAL;
 }
 /***
-* View.AdjustX
+* View.AdjustZ
 * \desc Adjusts the z-axis position of the camera for the specified view by an amount.
 * \param viewIndex (Integer): Index of the view.
 * \param z (Number): Desired Z adjust amount.
@@ -18356,8 +18356,8 @@ void StandardLibrary::Link() {
     DEF_NATIVE(String, IndexOf);
     DEF_NATIVE(String, Contains);
     DEF_NATIVE(String, Substring);
-    DEF_NATIVE(String, ToUppercase);
-    DEF_NATIVE(String, ToLowercase);
+    DEF_NATIVE(String, ToUpperCase);
+    DEF_NATIVE(String, ToLowerCase);
     DEF_NATIVE(String, LastIndexOf);
     DEF_NATIVE(String, ParseInteger);
     DEF_NATIVE(String, ParseDecimal);

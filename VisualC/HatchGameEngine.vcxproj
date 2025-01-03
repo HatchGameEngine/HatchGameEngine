@@ -137,7 +137,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;USING_ASSIMP;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USING_FREETYPE;USING_ASSIMP;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
