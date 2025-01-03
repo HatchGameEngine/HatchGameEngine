@@ -76,6 +76,7 @@ public:
     static Uint32 MakeFilenameHash(char *filename);
     static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
     static bool ClassExists(const char* objectName);
+    static bool IsStandardLibraryClass(const char* className);
     static bool LoadScript(char* filename);
     static bool LoadScript(const char* filename);
     static bool LoadScript(Uint32 hash);
