@@ -42,7 +42,7 @@ ifeq ($(PLATFORM),$(PLATFORM_MACOS))
 USING_ASSIMP = 0
 endif
 
-TARGET    = SonicGalactic
+TARGET    = HatchGameEngine
 TARGETDIR = builds/$(OUT_FOLDER)/$(TARGET)
 OBJS      = main.o
 
