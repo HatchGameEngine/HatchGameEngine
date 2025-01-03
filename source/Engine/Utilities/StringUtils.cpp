@@ -257,8 +257,7 @@ char* StringUtils::NormalizePath(const char* path) {
         return nullptr;
 
     std::filesystem::path fsPath = std::filesystem::path(std::string(path));
-    std::u8string fsNormU8 = fsPath.lexically_normal().u8string();
-    std::string fsNorm(fsNormU8.begin(), fsNormU8.end());
+    std::string fsNorm = fsPath.lexically_normal().string();
 
     char* normalizedPath = StringUtils::Create(fsNorm.c_str());
     if (normalizedPath == nullptr)
