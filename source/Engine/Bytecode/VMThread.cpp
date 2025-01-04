@@ -370,12 +370,20 @@ bool   VMThread::CheckBranchLimit(CallFrame* frame) {
     return true;
 }
 
+#define IP_OPFUNC_SYNC() frame->OpcodeFunctions = frame->OpcodeFStart + frame->IPToOpcode[frame->IP - frame->IPStart];
+
 bool   VMThread::DoJump(CallFrame* frame, int offset) {
     frame->IP += offset;
+#if USING_VM_FUNCPTRS
+    IP_OPFUNC_SYNC();
+#endif
     return CheckBranchLimit(frame);
 }
 bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
     frame->IP -= offset;
+#if USING_VM_FUNCPTRS
+    IP_OPFUNC_SYNC();
+#endif
     return CheckBranchLimit(frame);
 }
 
@@ -396,15 +404,23 @@ bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
         VM_BREAK; \
     } \
 }
-
+#elif USING_VM_FUNCPTRS
+#define IP_OPFUNC_SYNC() frame->OpcodeFunctions = frame->OpcodeFStart + frame->IPToOpcode[frame->IP - frame->IPStart];
+#define JUMP(offset) { frame->IP += offset; IP_OPFUNC_SYNC(); }
+#define JUMP_BACK(offset) { frame->IP -= offset; IP_OPFUNC_SYNC(); }
 #else
 #define JUMP(offset) { frame->IP += offset; }
 #define JUMP_BACK(offset) { frame->IP -= offset; }
 #endif
 
 int     VMThread::RunInstruction() {
-    // NOTE: MSVC cannot take advantage of the dispatch table.
-    #ifdef USING_VM_DISPATCH_TABLE
+    #if USING_VM_FUNCPTRS
+        #define VM_START(ins) return RunOpcodeFunc(frame); }
+        #define VM_END() int VMThread::RunOpcodeFunc(CallFrame* frame) { frame->IP++; OpcodeFunc func = (*frame->OpcodeFunctions++); int result = (this->*func)(frame);
+        #define VM_CASE(n) int VMThread::OPFUNC_ ## n(CallFrame* frame)
+        #define VM_BREAK return INTERPRET_OK
+    #elif defined(USING_VM_DISPATCH_TABLE)
+        // NOTE: MSVC cannot take advantage of the dispatch table.
         #define VM_ADD_DISPATCH(op) &&START_ ## op
         #define VM_ADD_DISPATCH_NULL(op) NULL
         // This must follow the existing opcode order.
@@ -487,14 +503,14 @@ int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_INTEGER),
             VM_ADD_DISPATCH(OP_DECIMAL),
         };
-        #define VM_START(ins) goto *dispatch_table[(ins)];
-        #define VM_END() dispatch_end:
-        #define VM_CASE(n) START_ ## n
-        #define VM_BREAK goto dispatch_end;
+        #define VM_START(ins) goto *dispatch_table[(ins)]; {
+        #define VM_END() } dispatch_end: const int result = INTERPRET_OK;
+        #define VM_CASE(n) START_ ## n:
+        #define VM_BREAK goto dispatch_end
     #else
-        #define VM_START(ins) switch ((ins))
-        #define VM_END() ;
-        #define VM_CASE(n) case n
+        #define VM_START(ins) switch ((ins)) {
+        #define VM_END() } const int result = INTERPRET_OK;
+        #define VM_CASE(n) case n:
         #define VM_BREAK break
     #endif
 
@@ -593,9 +609,9 @@ int     VMThread::RunInstruction() {
         }
     #endif
 
-    VM_START(instruction = ReadByte(frame)) {
+    VM_START(instruction = ReadByte(frame))
         // Globals (heap)
-        VM_CASE(OP_GET_GLOBAL): {
+        VM_CASE(OP_GET_GLOBAL) {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 VMValue result;
@@ -617,7 +633,7 @@ int     VMThread::RunInstruction() {
             Push(NULL_VAL);
             VM_BREAK;
         }
-        VM_CASE(OP_SET_GLOBAL): {
+        VM_CASE(OP_SET_GLOBAL) {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 if (!ScriptManager::Globals->Exists(hash)) {
@@ -665,7 +681,7 @@ int     VMThread::RunInstruction() {
             ScriptManager::Unlock();
             VM_BREAK;
         }
-        VM_CASE(OP_DEFINE_GLOBAL): {
+        VM_CASE(OP_DEFINE_GLOBAL) {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 VMValue value = Peek(0);
@@ -740,7 +756,7 @@ int     VMThread::RunInstruction() {
         }
 
         // Object Properties (heap)
-        VM_CASE(OP_GET_PROPERTY): {
+        VM_CASE(OP_GET_PROPERTY) {
             Uint32 hash = ReadUInt32(frame);
 
             VMValue object = Peek(0);
@@ -826,7 +842,7 @@ int     VMThread::RunInstruction() {
             ScriptManager::Unlock();
             VM_BREAK;
         }
-        VM_CASE(OP_SET_PROPERTY): {
+        VM_CASE(OP_SET_PROPERTY) {
             Uint32 hash = ReadUInt32(frame);
             VMValue field;
             VMValue value;
@@ -896,7 +912,7 @@ SUCCESS_OP_SET_PROPERTY:
             ScriptManager::Unlock();
             VM_BREAK;
         }
-        VM_CASE(OP_HAS_PROPERTY): {
+        VM_CASE(OP_HAS_PROPERTY) {
             Uint32 hash = ReadUInt32(frame);
 
             VMValue object = Peek(0);
@@ -969,7 +985,7 @@ SUCCESS_OP_SET_PROPERTY:
             ScriptManager::Unlock();
             VM_BREAK;
         }
-        VM_CASE(OP_GET_ELEMENT): {
+        VM_CASE(OP_GET_ELEMENT) {
             VMValue at = Pop();
             VMValue obj = Pop();
             VMValue result;
@@ -1037,7 +1053,7 @@ SUCCESS_OP_SET_PROPERTY:
             ScriptManager::Unlock();
             VM_BREAK;
         }
-        VM_CASE(OP_SET_ELEMENT): {
+        VM_CASE(OP_SET_ELEMENT) {
             VMValue value = Peek(0);
             VMValue at = Peek(1);
             VMValue obj = Peek(2);
@@ -1111,19 +1127,19 @@ SUCCESS_OP_SET_PROPERTY:
         }
 
         // Locals
-        VM_CASE(OP_GET_LOCAL): {
+        VM_CASE(OP_GET_LOCAL) {
             Uint8 slot = ReadByte(frame);
             Push(frame->Slots[slot]);
             VM_BREAK;
         }
-        VM_CASE(OP_SET_LOCAL): {
+        VM_CASE(OP_SET_LOCAL) {
             Uint8 slot = ReadByte(frame);
             frame->Slots[slot] = Peek(0);
             VM_BREAK;
         }
 
         // Object Allocations (heap)
-        VM_CASE(OP_NEW_ARRAY): {
+        VM_CASE(OP_NEW_ARRAY) {
             Uint32 count = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 ObjArray* array = NewArray();
@@ -1136,7 +1152,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
             VM_BREAK;
         }
-        VM_CASE(OP_NEW_MAP): {
+        VM_CASE(OP_NEW_MAP) {
             Uint32 count = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 ObjMap* map = NewMap();
@@ -1156,19 +1172,19 @@ SUCCESS_OP_SET_PROPERTY:
         }
 
         // Stack constants
-        VM_CASE(OP_NULL): {
+        VM_CASE(OP_NULL) {
             Push(NULL_VAL);
             VM_BREAK;
         }
-        VM_CASE(OP_TRUE): {
+        VM_CASE(OP_TRUE) {
             Push(INTEGER_VAL(1));
             VM_BREAK;
         }
-        VM_CASE(OP_FALSE): {
+        VM_CASE(OP_FALSE) {
             Push(INTEGER_VAL(0));
             VM_BREAK;
         }
-        VM_CASE(OP_CONSTANT): {
+        VM_CASE(OP_CONSTANT) {
             Push(ReadConstant(frame));
             VM_BREAK;
         }
@@ -1182,7 +1198,7 @@ SUCCESS_OP_SET_PROPERTY:
         }
 
         // Switch statements
-        VM_CASE(OP_SWITCH_TABLE): {
+        VM_CASE(OP_SWITCH_TABLE) {
             Uint16 count = ReadUInt16(frame);
             VMValue switch_value = Pop();
 
@@ -1209,10 +1225,11 @@ SUCCESS_OP_SET_PROPERTY:
             }
 
             JUMPED:
+            IP_OPFUNC_SYNC();
             VM_BREAK;
         }
 
-        VM_CASE(OP_SWITCH): {
+        VM_CASE(OP_SWITCH) {
             enum {
                 SWITCH_CASE_TYPE_CONSTANT,
                 SWITCH_CASE_TYPE_LOCAL,
@@ -1279,35 +1296,36 @@ SUCCESS_OP_SET_PROPERTY:
             }
 
             JUMPED2:
+            IP_OPFUNC_SYNC();
             VM_BREAK;
         }
 
         // Stack Operations
-        VM_CASE(OP_POP): {
+        VM_CASE(OP_POP) {
             Pop();
             VM_BREAK;
         }
-        VM_CASE(OP_POPN): {
+        VM_CASE(OP_POPN) {
             Uint8 count = ReadByte(frame);
             for (int i = 0; i < count; i++)
                 Pop();
             VM_BREAK;
         }
-        VM_CASE(OP_COPY): {
+        VM_CASE(OP_COPY) {
             Uint8 count = ReadByte(frame);
             for (int i = 0; i < count; i++)
                 Push(Peek(count - 1));
             VM_BREAK;
         }
-        VM_CASE(OP_SAVE_VALUE): {
+        VM_CASE(OP_SAVE_VALUE) {
             RegisterValue = Pop();
             VM_BREAK;
         }
-        VM_CASE(OP_LOAD_VALUE): {
+        VM_CASE(OP_LOAD_VALUE) {
             Push(RegisterValue);
             VM_BREAK;
         }
-        VM_CASE(OP_PRINT): {
+        VM_CASE(OP_PRINT) {
             VMValue v = Peek(0);
 
             char* textBuffer = (char*)malloc(64);
@@ -1325,13 +1343,13 @@ SUCCESS_OP_SET_PROPERTY:
             Pop();
             VM_BREAK;
         }
-        VM_CASE(OP_PRINT_STACK): {
+        VM_CASE(OP_PRINT_STACK) {
             PrintStack();
             VM_BREAK;
         }
 
         // Frame stuffs & Returning
-        VM_CASE(OP_RETURN): {
+        VM_CASE(OP_RETURN) {
             InterpretResult = Pop();
 
             DO_RETURN();
@@ -1340,17 +1358,17 @@ SUCCESS_OP_SET_PROPERTY:
         }
 
         // Jumping
-        VM_CASE(OP_JUMP): {
+        VM_CASE(OP_JUMP) {
             Sint32 offset = ReadSInt16(frame);
             JUMP(offset);
             VM_BREAK;
         }
-        VM_CASE(OP_JUMP_BACK): {
+        VM_CASE(OP_JUMP_BACK) {
             Sint32 offset = ReadSInt16(frame);
             JUMP_BACK(offset);
             VM_BREAK;
         }
-        VM_CASE(OP_JUMP_IF_FALSE): {
+        VM_CASE(OP_JUMP_IF_FALSE) {
             Sint32 offset = ReadSInt16(frame);
             if (ScriptManager::ValueFalsey(Peek(0))) {
                 JUMP(offset);
@@ -1359,38 +1377,38 @@ SUCCESS_OP_SET_PROPERTY:
         }
 
         // Numeric Operations
-        VM_CASE(OP_ADD):            Push(Values_Plus());  VM_BREAK;
-        VM_CASE(OP_SUBTRACT):       Push(Values_Minus());  VM_BREAK;
-        VM_CASE(OP_MULTIPLY):       Push(Values_Multiply());  VM_BREAK;
-        VM_CASE(OP_DIVIDE):         Push(Values_Division());  VM_BREAK;
-        VM_CASE(OP_MODULO):         Push(Values_Modulo());  VM_BREAK;
-        VM_CASE(OP_NEGATE):         Push(Values_Negate());  VM_BREAK;
-        VM_CASE(OP_INCREMENT):      Push(Values_Increment()); VM_BREAK;
-        VM_CASE(OP_DECREMENT):      Push(Values_Decrement()); VM_BREAK;
+        VM_CASE(OP_ADD)            { Push(Values_Plus());  VM_BREAK; }
+        VM_CASE(OP_SUBTRACT)       { Push(Values_Minus());  VM_BREAK; }
+        VM_CASE(OP_MULTIPLY)       { Push(Values_Multiply());  VM_BREAK; }
+        VM_CASE(OP_DIVIDE)         { Push(Values_Division());  VM_BREAK; }
+        VM_CASE(OP_MODULO)         { Push(Values_Modulo());  VM_BREAK; }
+        VM_CASE(OP_NEGATE)         { Push(Values_Negate());  VM_BREAK; }
+        VM_CASE(OP_INCREMENT)      { Push(Values_Increment()); VM_BREAK; }
+        VM_CASE(OP_DECREMENT) { Push(Values_Decrement()); VM_BREAK; }
         // Bit Operations
-        VM_CASE(OP_BITSHIFT_LEFT):  Push(Values_BitwiseLeft());  VM_BREAK;
-        VM_CASE(OP_BITSHIFT_RIGHT): Push(Values_BitwiseRight());  VM_BREAK;
+        VM_CASE(OP_BITSHIFT_LEFT)  { Push(Values_BitwiseLeft());  VM_BREAK;  }
+        VM_CASE(OP_BITSHIFT_RIGHT) { Push(Values_BitwiseRight());  VM_BREAK; }
         // Bitwise Operations
-        VM_CASE(OP_BW_NOT):         Push(Values_BitwiseNOT());  VM_BREAK;
-        VM_CASE(OP_BW_AND):         Push(Values_BitwiseAnd());  VM_BREAK;
-        VM_CASE(OP_BW_OR):          Push(Values_BitwiseOr());  VM_BREAK;
-        VM_CASE(OP_BW_XOR):         Push(Values_BitwiseXor());  VM_BREAK;
+        VM_CASE(OP_BW_NOT)         { Push(Values_BitwiseNOT());  VM_BREAK; }
+        VM_CASE(OP_BW_AND)         { Push(Values_BitwiseAnd());  VM_BREAK; }
+        VM_CASE(OP_BW_OR)          { Push(Values_BitwiseOr());  VM_BREAK;  }
+        VM_CASE(OP_BW_XOR)         { Push(Values_BitwiseXor());  VM_BREAK; }
         // Logical Operations
-        VM_CASE(OP_LG_NOT):         Push(Values_LogicalNOT());  VM_BREAK;
-        VM_CASE(OP_LG_AND):         Push(Values_LogicalAND()); VM_BREAK;
-        VM_CASE(OP_LG_OR):          Push(Values_LogicalOR()); VM_BREAK;
+        VM_CASE(OP_LG_NOT)         { Push(Values_LogicalNOT());  VM_BREAK; }
+        VM_CASE(OP_LG_AND)         { Push(Values_LogicalAND()); VM_BREAK;  }
+        VM_CASE(OP_LG_OR)          { Push(Values_LogicalOR()); VM_BREAK;   }
         // Equality and Comparison Operators
-        VM_CASE(OP_EQUAL):          Push(INTEGER_VAL(ScriptManager::ValuesSortaEqual(Pop(), Pop()))); VM_BREAK;
-        VM_CASE(OP_EQUAL_NOT):      Push(INTEGER_VAL(!ScriptManager::ValuesSortaEqual(Pop(), Pop()))); VM_BREAK;
-        VM_CASE(OP_LESS):           Push(Values_LessThan()); VM_BREAK;
-        VM_CASE(OP_GREATER):        Push(Values_GreaterThan()); VM_BREAK;
-        VM_CASE(OP_LESS_EQUAL):     Push(Values_LessThanOrEqual()); VM_BREAK;
-        VM_CASE(OP_GREATER_EQUAL):  Push(Values_GreaterThanOrEqual()); VM_BREAK;
+        VM_CASE(OP_EQUAL)          { Push(INTEGER_VAL(ScriptManager::ValuesSortaEqual(Pop(), Pop()))); VM_BREAK;  }
+        VM_CASE(OP_EQUAL_NOT)      { Push(INTEGER_VAL(!ScriptManager::ValuesSortaEqual(Pop(), Pop()))); VM_BREAK; }
+        VM_CASE(OP_LESS)           { Push(Values_LessThan()); VM_BREAK;           }
+        VM_CASE(OP_GREATER)        { Push(Values_GreaterThan()); VM_BREAK;        }
+        VM_CASE(OP_LESS_EQUAL)     { Push(Values_LessThanOrEqual()); VM_BREAK;    }
+        VM_CASE(OP_GREATER_EQUAL)  { Push(Values_GreaterThanOrEqual()); VM_BREAK; }
         // typeof Operator
-        VM_CASE(OP_TYPEOF):         Push(Value_TypeOf()); VM_BREAK;
+        VM_CASE(OP_TYPEOF) { Push(Value_TypeOf()); VM_BREAK; }
 
         // Functions
-        VM_CASE(OP_WITH): {
+        VM_CASE(OP_WITH) {
             enum {
                 WITH_STATE_INIT,
                 WITH_STATE_ITERATE,
@@ -1524,7 +1542,7 @@ SUCCESS_OP_SET_PROPERTY:
                             it.entity = objectNext;
                             it.entityNext = objectNext->NextEntityInList;
 
-                            frame->IP -= offset;
+                            JUMP_BACK(offset);
 
                             // Put iterator back onto stack
                             frame->WithIteratorStackTop[-1] = it;
@@ -1540,7 +1558,7 @@ SUCCESS_OP_SET_PROPERTY:
                     else if (it.registry) {
                         ObjectRegistry* registry = (ObjectRegistry*)it.registry;
                         if (++it.index < registry->Count()) {
-                            frame->IP -= offset;
+                            JUMP_BACK(offset);
 
                             // Put iterator back onto stack
                             frame->WithIteratorStackTop[-1] = it;
@@ -1573,7 +1591,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
             VM_BREAK;
         }
-        VM_CASE(OP_CALL): {
+        VM_CASE(OP_CALL) {
             int argCount = ReadByte(frame);
             if (!CallValue(Peek(argCount), argCount)) {
                 if (ThrowRuntimeError(false, "Could not call value!") == ERROR_RES_CONTINUE)
@@ -1586,7 +1604,7 @@ SUCCESS_OP_SET_PROPERTY:
             FAIL_OP_CALL:
             VM_BREAK;
         }
-        VM_CASE(OP_INVOKE): {
+        VM_CASE(OP_INVOKE) {
             Uint32 argCount = ReadByte(frame);
             Uint32 hash = ReadUInt32(frame);
             Uint32 isSuper = ReadByte(frame);
@@ -1650,7 +1668,7 @@ SUCCESS_OP_SET_PROPERTY:
             FAIL_OP_INVOKE:
             VM_BREAK;
         }
-        VM_CASE(OP_CLASS): {
+        VM_CASE(OP_CLASS) {
             Uint32 hash = ReadUInt32(frame);
             ObjClass* klass = NewClass(hash);
             klass->Type = ReadByte(frame);
@@ -1668,13 +1686,13 @@ SUCCESS_OP_SET_PROPERTY:
             Push(OBJECT_VAL(klass));
             VM_BREAK;
         }
-        VM_CASE(OP_INHERIT): {
+        VM_CASE(OP_INHERIT) {
             ObjClass* klass = AS_CLASS(Peek(0));
             Uint32 hashSuper = ReadUInt32(frame);
             klass->ParentHash = hashSuper;
             VM_BREAK;
         }
-        VM_CASE(OP_NEW): {
+        VM_CASE(OP_NEW) {
             int argCount = ReadByte(frame);
             if (!InstantiateClass(Peek(argCount), argCount)) {
                 if (ThrowRuntimeError(false, "Could not instantiate class!") == ERROR_RES_CONTINUE)
@@ -1685,7 +1703,7 @@ SUCCESS_OP_SET_PROPERTY:
             FAIL_OP_NEW:
             VM_BREAK;
         }
-        VM_CASE(OP_EVENT): {
+        VM_CASE(OP_EVENT) {
             int index = ReadByte(frame);
             if ((unsigned)index < frame->Module->Functions->size()) {
                 VMValue method = OBJECT_VAL((*frame->Module->Functions)[index]);
@@ -1693,7 +1711,7 @@ SUCCESS_OP_SET_PROPERTY:
             }
             VM_BREAK;
         }
-        VM_CASE(OP_METHOD): {
+        VM_CASE(OP_METHOD) {
             int index = ReadByte(frame);
             Uint32 hash = ReadUInt32(frame);
             if ((unsigned)index < frame->Module->Functions->size())
@@ -1701,12 +1719,12 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
-        VM_CASE(OP_IMPORT): {
+        VM_CASE(OP_IMPORT) {
             Import(ReadConstant(frame));
             VM_BREAK;
         }
 
-        VM_CASE(OP_IMPORT_MODULE): {
+        VM_CASE(OP_IMPORT_MODULE) {
             if (!ImportModule(ReadConstant(frame))) {
                 ThrowRuntimeError(false, "Could not import module!");
             }
@@ -1714,7 +1732,7 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
-        VM_CASE(OP_NEW_ENUM): {
+        VM_CASE(OP_NEW_ENUM) {
             Uint32 hash = ReadUInt32(frame);
             ObjEnum* enumeration = NewEnum(hash);
 
@@ -1731,7 +1749,7 @@ SUCCESS_OP_SET_PROPERTY:
             Push(OBJECT_VAL(enumeration));
             VM_BREAK;
         }
-        VM_CASE(OP_ENUM_NEXT): {
+        VM_CASE(OP_ENUM_NEXT) {
             VMValue b = Peek(0);
             VMValue a = Peek(1);
 
@@ -1745,7 +1763,7 @@ SUCCESS_OP_SET_PROPERTY:
             Push(Values_Plus());
             VM_BREAK;
         }
-        VM_CASE(OP_ADD_ENUM): {
+        VM_CASE(OP_ADD_ENUM) {
             ObjEnum* enumeration = nullptr;
             VMValue object = Peek(1);
             Uint32 hash = ReadUInt32(frame);
@@ -1772,7 +1790,7 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
-        VM_CASE(OP_GET_SUPERCLASS): {
+        VM_CASE(OP_GET_SUPERCLASS) {
             ObjClass* klass = nullptr;
             VMValue object = Peek(0);
 
@@ -1812,7 +1830,7 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
-        VM_CASE(OP_GET_MODULE_LOCAL): {
+        VM_CASE(OP_GET_MODULE_LOCAL) {
             Uint16 slot = ReadUInt16(frame);
             if (slot < frame->Module->Locals->size())
                 Push((*frame->Module->Locals)[slot]);
@@ -1820,18 +1838,18 @@ SUCCESS_OP_SET_PROPERTY:
                 Push(NULL_VAL);
             VM_BREAK;
         }
-        VM_CASE(OP_SET_MODULE_LOCAL): {
+        VM_CASE(OP_SET_MODULE_LOCAL) {
             Uint16 slot = ReadUInt16(frame);
             if (slot < frame->Module->Locals->size())
                 (*frame->Module->Locals)[slot] = Peek(0);
             VM_BREAK;
         }
-        VM_CASE(OP_DEFINE_MODULE_LOCAL): {
+        VM_CASE(OP_DEFINE_MODULE_LOCAL) {
             frame->Module->Locals->push_back(Pop());
             VM_BREAK;
         }
 
-        VM_CASE(OP_USE_NAMESPACE): {
+        VM_CASE(OP_USE_NAMESPACE) {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 VMValue result;
@@ -1881,13 +1899,15 @@ SUCCESS_OP_SET_PROPERTY:
             VM_BREAK;
         }
 
-        VM_CASE(OP_FAILSAFE): {
+        VM_CASE(OP_FAILSAFE) {
             int offset = ReadUInt16(frame);
             frame->Function->Chunk.Failsafe = frame->IPStart + offset;
             // frame->IP = frame->IPStart + offset;
             VM_BREAK;
         }
-    }
+
+        VM_CASE(OP_ERROR) { VM_BREAK; }
+        VM_CASE(OP_SUPER) { VM_BREAK; }
     VM_END();
 
     #ifdef VM_DEBUG_INSTRUCTIONS
@@ -1897,8 +1917,9 @@ SUCCESS_OP_SET_PROPERTY:
         }
     #endif
 
-    return INTERPRET_OK;
+    return result;
 }
+
 void    VMThread::RunInstructionSet() {
     while (true) {
         // if (!ScriptManager::Lock()) break;
@@ -2240,6 +2261,11 @@ bool    VMThread::Call(ObjFunction* function, int argCount) {
     frame->BranchCount = 0;
 #endif
 
+#if USING_VM_FUNCPTRS
+    frame->OpcodeFunctions = function->Chunk.OpcodeFuncs;
+    frame->OpcodeFStart = frame->OpcodeFunctions;
+    frame->IPToOpcode = function->Chunk.IPToOpcode;
+#endif
     return true;
 }
 bool    VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {

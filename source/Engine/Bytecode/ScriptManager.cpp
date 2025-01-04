@@ -694,6 +694,9 @@ bool    ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 f
         module->Functions->push_back(function);
 
         function->Module = module;
+#if USING_VM_FUNCPTRS
+        function->Chunk.SetupOpfuncs();
+#endif
     }
 
     if (bytecode->SourceFilename)

@@ -2,7 +2,7 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0002
+#define BYTECODE_VERSION 0x0003
 
 const char*         Bytecode::Magic = "HTVM";
 Uint32              Bytecode::LatestVersion = BYTECODE_VERSION;
@@ -49,6 +49,7 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
     for (int i = 0; i < chunkCount; i++) {
         int length = stream->ReadInt32();
         int arity, minArity;
+        int opcodeCount = 0;
 
         if (Version < 0x0001) {
             arity = stream->ReadInt32();
@@ -59,6 +60,10 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
             minArity = stream->ReadByte();
         }
 
+        if (Version > 0x0002) {
+            opcodeCount = stream->ReadUInt32();
+        }
+
         Uint32 hash = stream->ReadUInt32();
 
         ObjFunction* function = NewFunction();
@@ -66,6 +71,7 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
         function->MinArity = minArity;
         function->NameHash = hash;
         function->Chunk.Count = length;
+        function->Chunk.OpcodeCount = opcodeCount;
         function->Chunk.OwnsMemory = false;
 
         function->Chunk.Code = stream->pointer;
@@ -150,6 +156,11 @@ void        Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<
         else {
             stream->WriteUInt32(Functions[c]->Arity);
         }
+
+        if (Version >= 0x00003) {
+            stream->WriteUInt32(chunk->OpcodeCount);
+        }
+
         stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name->Chars));
 
         stream->WriteBytes(chunk->Code, chunk->Count);

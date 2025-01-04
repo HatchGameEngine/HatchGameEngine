@@ -4015,6 +4015,15 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     Finish();
 
+    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+        Chunk* chunk = &Compiler::Functions[c]->Chunk;
+        chunk->OpcodeCount = 0;
+        for (int offset = 0; offset < chunk->Count;) {
+            offset += GetTotalOpcodeSize(chunk->Code + offset);
+            chunk->OpcodeCount++;
+        }
+    }
+
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
             Chunk* chunk = &Compiler::Functions[c]->Chunk;
