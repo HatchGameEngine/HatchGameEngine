@@ -324,7 +324,7 @@
     <ClInclude Include="..\source\Libraries\spng.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\meta\win\icon.rc" />
+    <ResourceCompile Include="..\meta\win\HatchGameEngine.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
