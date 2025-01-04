@@ -42,6 +42,7 @@ endif()
 
 # Build options
 option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
+option(ENABLE_USING_VM_FUNCPTRS "Enable function-pointer based VM" ON)
 
 if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" ON)
@@ -89,6 +90,10 @@ endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
   add_definitions(-DNO_SCRIPT_COMPILING)
+endif()
+
+if(ENABLE_USING_VM_FUNCPTRS)
+  add_definitions(-DUSING_VM_FUNCPTRS)
 endif()
 
 if(ENABLE_VM_DEBUGGING)
