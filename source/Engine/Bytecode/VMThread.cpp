@@ -284,6 +284,10 @@ Sint16  VMThread::ReadSInt16(CallFrame* frame) {
 Sint32  VMThread::ReadSInt32(CallFrame* frame) {
     return (Sint32)ReadUInt32(frame);
 }
+float   VMThread::ReadFloat(CallFrame* frame) {
+    frame->IP += sizeof(float);
+    return *(float*)(frame->IP - sizeof(float));
+}
 VMValue VMThread::ReadConstant(CallFrame* frame) {
     return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
 }
@@ -479,6 +483,9 @@ int     VMThread::RunInstruction() {
             VM_ADD_DISPATCH(OP_SET_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_DEFINE_MODULE_LOCAL),
             VM_ADD_DISPATCH(OP_USE_NAMESPACE),
+            VM_ADD_DISPATCH(OP_DEFINE_CONSTANT),
+            VM_ADD_DISPATCH(OP_INTEGER),
+            VM_ADD_DISPATCH(OP_DECIMAL),
         };
         #define VM_START(ins) goto *dispatch_table[(ins)];
         #define VM_END() dispatch_end:
@@ -574,6 +581,9 @@ int     VMThread::RunInstruction() {
                 PRINT_CASE(OP_SET_MODULE_LOCAL)
                 PRINT_CASE(OP_DEFINE_MODULE_LOCAL)
                 PRINT_CASE(OP_USE_NAMESPACE)
+                PRINT_CASE(OP_DEFINE_CONSTANT)
+                PRINT_CASE(OP_INTEGER)
+                PRINT_CASE(OP_DECIMAL)
 
                 default:
                     Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP); break;
@@ -589,8 +599,8 @@ int     VMThread::RunInstruction() {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 VMValue result;
-                if (!ScriptManager::Globals->GetIfExists(hash, &result)
-                && !ScriptManager::Constants->GetIfExists(hash, &result)) {
+                if (!ScriptManager::Constants->GetIfExists(hash, &result)
+                && !ScriptManager::Globals->GetIfExists(hash, &result)) {
                     if (ThrowRuntimeError(false, "Variable %s does not exist.", GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE)
                         goto FAIL_OP_GET_GLOBAL;
                     Push(NULL_VAL);
@@ -685,6 +695,43 @@ int     VMThread::RunInstruction() {
                 // Otherwise,
                 else {
                     ScriptManager::Globals->Put(hash, value);
+                }
+                Pop();
+                ScriptManager::Unlock();
+            }
+            VM_BREAK;
+        }
+
+        VM_CASE(OP_DEFINE_CONSTANT) : {
+            Uint32 hash = ReadUInt32(frame);
+            if (ScriptManager::Lock()) {
+                VMValue value = Peek(0);
+                // If it already exists,
+                VMValue originalValue;
+                if (ScriptManager::Constants->GetIfExists(hash, &originalValue)) {
+                    // If the value is a class and original is a class,
+                    if (IS_CLASS(value) && IS_CLASS(originalValue)) {
+                        DoClassExtension(value, originalValue, true);
+                    }
+                    // Can't do that
+                    else {
+                        ThrowRuntimeError(false, "Cannot redefine constant %s!", GetVariableOrMethodName(hash));
+                    }
+                }
+                // Otherwise, if it's a global,
+                if (ScriptManager::Globals->GetIfExists(hash, &originalValue)) {
+                    // If the value is a class and original is a class,
+                    if (IS_CLASS(value) && IS_CLASS(originalValue)) {
+                        DoClassExtension(value, originalValue, true);
+                    }
+                    // Can't do that either, we're trying to be a constant
+                    else {
+                        ThrowRuntimeError(false, "Cannot redefine constant %s!", GetVariableOrMethodName(hash));
+                    }
+                }
+                // Otherwise,
+                else {
+                    ScriptManager::Constants->Put(hash, value);
                 }
                 Pop();
                 ScriptManager::Unlock();
@@ -1123,6 +1170,14 @@ SUCCESS_OP_SET_PROPERTY:
         }
         VM_CASE(OP_CONSTANT): {
             Push(ReadConstant(frame));
+            VM_BREAK;
+        }
+        VM_CASE(OP_INTEGER) : {
+            Push(INTEGER_VAL(ReadSInt32(frame)));
+            VM_BREAK;
+        }
+        VM_CASE(OP_DECIMAL) : {
+            Push(DECIMAL_VAL(ReadFloat(frame)));
             VM_BREAK;
         }
 

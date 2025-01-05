@@ -551,14 +551,16 @@ void Scene::Init() {
 
     Compiler::Init();
 
-    SourceFileMap::CheckForUpdate();
-
     Application::GameStart = true;
 
     ScriptManager::Init();
     ScriptManager::ResetStack();
     ScriptManager::LinkStandardLibrary();
     ScriptManager::LinkExtensions();
+
+    Compiler::GetStandardConstants();
+
+    SourceFileMap::CheckForUpdate();
 
     Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
     Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);

@@ -77,6 +77,7 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
         }
 
         int constantCount = stream->ReadInt32();
+        function->Chunk.Constants->reserve(constantCount);
         for (int c = 0; c < constantCount; c++) {
             Uint8 type = stream->ReadByte();
             switch (type) {

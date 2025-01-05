@@ -65,6 +65,7 @@ public:
     Uint32 ReadUInt32(CallFrame* frame);
     Sint16 ReadSInt16(CallFrame* frame);
     Sint32 ReadSInt32(CallFrame* frame);
+    float ReadFloat(CallFrame* frame);
     VMValue ReadConstant(CallFrame* frame);
     bool ShowBranchLimitMessage(const char* errorMessage, ...);
     int RunInstruction();
