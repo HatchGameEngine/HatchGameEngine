@@ -1150,6 +1150,9 @@ void  Compiler::ClearToScope(int depth) {
 
         LocalCount--;
     }
+    while (Constants.size() > 0 && Constants.back().Depth > depth)
+        Constants.pop_back();
+
     PopMultiple(popCount);
 }
 void  Compiler::PopToScope(int depth) {
