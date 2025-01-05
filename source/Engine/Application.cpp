@@ -246,24 +246,15 @@ void Application::Init(int argc, char* args[]) {
 
     const char *platform;
     switch (Application::Platform) {
-        case Platforms::Windows:
-            platform = "Windows"; break;
-        case Platforms::MacOS:
-            platform = "MacOS"; break;
-        case Platforms::Linux:
-            platform = "Linux"; break;
-        case Platforms::Switch:
-            platform = "Nintendo Switch"; break;
-        case Platforms::PlayStation:
-            platform = "PlayStation"; break;
-        case Platforms::Xbox:
-            platform = "Xbox"; break;
-        case Platforms::Android:
-            platform = "Android"; break;
-        case Platforms::iOS:
-            platform = "iOS"; break;
-        default:
-            platform = "Unknown"; break;
+        case Platforms::Windows: platform = "Windows"; break;
+        case Platforms::MacOS: platform = "MacOS"; break;
+        case Platforms::Linux: platform = "Linux"; break;
+        case Platforms::Switch: platform = "Nintendo Switch"; break;
+        case Platforms::PlayStation: platform = "PlayStation"; break;
+        case Platforms::Xbox: platform = "Xbox"; break;
+        case Platforms::Android: platform = "Android"; break;
+        case Platforms::iOS: platform = "iOS"; break;
+        default: platform = "Unknown"; break;
     }
     Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
 
@@ -702,11 +693,7 @@ void Application::PollEvents() {
                 if (DevMode) {
                     // Quit game (dev)
                     if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-                        if (Application::DevMenuActivated)
-                            Application::CloseDevMenu();
-                        else
-                            Application::OpenDevMenu();
-                        Log::Print(Log::LOG_VERBOSE, "Dev Menu Activated: %d", Application::DevMenuActivated);
+                        Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
                         break;
                     }
                     // Restart application (dev)
@@ -716,6 +703,8 @@ void Application::PollEvents() {
                         Scene::Init();
                         if (*StartingScene)
                             Scene::LoadScene(StartingScene);
+                        if (Application::DevMenuActivated)
+                            Application::CloseDevMenu();
                         Scene::Restart();
                         Application::UpdateWindowTitle();
                         break;
@@ -756,6 +745,9 @@ void Application::PollEvents() {
                         memcpy(Scene::CurrentScene, temp, 256);
                         Scene::LoadScene(Scene::CurrentScene);
 
+                        if (Application::DevMenuActivated)
+                            Application::CloseDevMenu();
+
                         Scene::Restart();
                         Application::UpdateWindowTitle();
                         break;
@@ -766,6 +758,9 @@ void Application::PollEvents() {
                         BenchmarkFrameCount = 0;
 
                         InputManager::ControllerStopRumble();
+
+                        if (Application::DevMenuActivated)
+                            Application::CloseDevMenu();
 
                         Scene::Restart();
                         Application::UpdateWindowTitle();
