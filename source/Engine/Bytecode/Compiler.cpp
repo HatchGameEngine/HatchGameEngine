@@ -1124,7 +1124,7 @@ void  Compiler::NamedVariable(Token name, bool canAssign) {
             EmitSetOperation(setOp, arg, name);
         }
     }
-    else if (local.Constant) {
+    else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
         EmitConstant(local.ConstantVal);
     }
     else {
