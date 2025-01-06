@@ -955,7 +955,7 @@ void Compiler::WarnVariablesUnusedUnset() {
             Local& local = (*UnsetVariables)[i];
             snprintf(temp, sizeof(temp), "Variable '%.*s' can be const. (Declared on line %d)", (int)local.Name.Length, local.Name.Start, local.Name.Line);
             message += std::string(temp);
-            if (i != 0)
+            if (i != 0 || numUnused)
                 message += "\n    ";
         }
     }
@@ -3176,7 +3176,7 @@ int   Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn)
             return preConstant;
         Uint8 op = CurrentChunk()->Code[preCount];
         VMValue constant;
-        if (!GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + preCount, &constant, &checkConstant))
+        if (preCount + GetTotalOpcodeSize(CurrentChunk()->Code + preCount) != CodePointer() - 1 || !GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + preCount, &constant, &checkConstant))
             return preConstant;
 
         if (IS_NOT_NUMBER(constant) && unOp != OP_LG_NOT)
@@ -3192,10 +3192,8 @@ int   Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn)
             case VAL_OBJECT:
                 EmitByte(OP_FALSE); break;
             case VAL_DECIMAL:
-            case VAL_LINKED_DECIMAL:
                 EmitByte((float)(AS_DECIMAL(constant) == 0.0) ? OP_TRUE : OP_FALSE); break;
             case VAL_INTEGER:
-            case VAL_LINKED_INTEGER:
                 EmitByte(!AS_INTEGER(constant) ? OP_TRUE : OP_FALSE); break;
             }
             break;
