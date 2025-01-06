@@ -6596,6 +6596,57 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
         return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 }
 /***
+ * Input.IsAnyActionHeldByAny
+ * \desc Gets whether any input action is currently held by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+    if (argCount >= 1) {
+        int inputDevice = GET_ARG(0, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny(inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny());
+}
+/***
+ * Input.IsAnyActionPressedByAny
+ * \desc Gets whether any input action is currently pressed by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+    if (argCount >= 1) {
+        int inputDevice = GET_ARG(0, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny(inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny());
+}
+/***
+ * Input.IsAnyActionReleasedByAny
+ * \desc Gets whether any input action was released by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(0);
+    if (argCount >= 1) {
+        int inputDevice = GET_ARG(0, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny(inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny());
+}
+/***
  * Input.GetAnalogActionInput
  * \desc Gets the analog value of a specific action.
  * \param playerID (Integer): Index of the player to check.
@@ -17810,6 +17861,9 @@ void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsAnyActionHeld);
     DEF_NATIVE(Input, IsAnyActionPressed);
     DEF_NATIVE(Input, IsAnyActionReleased);
+    DEF_NATIVE(Input, IsAnyActionHeldByAny);
+    DEF_NATIVE(Input, IsAnyActionPressedByAny);
+    DEF_NATIVE(Input, IsAnyActionReleasedByAny);
     DEF_NATIVE(Input, GetAnalogActionInput);
     DEF_NATIVE(Input, GetActionBind);
     DEF_NATIVE(Input, SetActionBind);
