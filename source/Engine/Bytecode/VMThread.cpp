@@ -713,8 +713,8 @@ int     VMThread::RunInstruction() {
                     if (IS_CLASS(value) && IS_CLASS(originalValue)) {
                         DoClassExtension(value, originalValue, true);
                     }
-                    // Can't do that
-                    else {
+                    // Can't do that UNLESS it's the same exact value, in which case we do nothing
+                    else if (!ValuesEqual(value, originalValue)) {
                         ThrowRuntimeError(false, "Cannot redefine constant %s!", GetVariableOrMethodName(hash));
                     }
                 }
