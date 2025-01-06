@@ -1811,15 +1811,22 @@ void Compiler::GetRepeatStatement() {
     GetExpression();
 
     Token variableToken = { TOKEN_ERROR };
+    int remaining = 0;
 
     if (MatchToken(TOKEN_COMMA)) {
         ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
         variableToken = parser.Previous;
+        if (MatchToken(TOKEN_COMMA)) {
+            ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+            remaining = AddLocal(parser.Previous);
+            MarkInitialized();
+        }
     }
 
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
-    int remaining = AddHiddenLocal("$remaining", 11);
+    if (!remaining)
+        remaining = AddHiddenLocal("$remaining", 11);
     EmitByte(OP_INCREMENT); // increment remaining as we're about to decrement it, so we can cheat continue
 
     if (variableToken.Type != TOKEN_ERROR) {
