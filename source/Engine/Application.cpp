@@ -1212,6 +1212,9 @@ void Application::Cleanup() {
     Application::CmdLineArgs.clear();
 
     Memory::PrintLeak();
+    Memory::ClearTrackedMemory();
+
+    MemoryPools::Dispose();
 
     Log::Close();
 

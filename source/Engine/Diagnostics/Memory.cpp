@@ -212,6 +212,9 @@ const char* Memory::GetName(void* pointer) {
 }
 
 void   Memory::ClearTrackedMemory() {
+    for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
+        Memory::Free(TrackedMemory[i]);
+    }
     TrackedMemoryNames.clear();
     TrackedMemory.clear();
     TrackedSizes.clear();
