@@ -409,6 +409,7 @@ bool   VMThread::DoJumpBack(CallFrame* frame, int offset) {
 #define JUMP(offset) { frame->IP += offset; IP_OPFUNC_SYNC(); }
 #define JUMP_BACK(offset) { frame->IP -= offset; IP_OPFUNC_SYNC(); }
 #else
+#define IP_OPFUNC_SYNC()
 #define JUMP(offset) { frame->IP += offset; }
 #define JUMP_BACK(offset) { frame->IP -= offset; }
 #endif
