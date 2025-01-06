@@ -412,6 +412,9 @@ void              Chunk::SetupOpfuncs()
             OPCASE(OP_SET_MODULE_LOCAL);
             OPCASE(OP_DEFINE_MODULE_LOCAL);
             OPCASE(OP_USE_NAMESPACE);
+            OPCASE(OP_DEFINE_CONSTANT);
+            OPCASE(OP_INTEGER);
+            OPCASE(OP_DECIMAL);
         }
         assert((func != NULL));
         OpcodeFuncs[i] = func;

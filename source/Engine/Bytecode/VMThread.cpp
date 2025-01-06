@@ -719,7 +719,7 @@ int     VMThread::RunInstruction() {
             VM_BREAK;
         }
 
-        VM_CASE(OP_DEFINE_CONSTANT) : {
+        VM_CASE(OP_DEFINE_CONSTANT) {
             Uint32 hash = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 VMValue value = Peek(0);
@@ -1189,11 +1189,11 @@ SUCCESS_OP_SET_PROPERTY:
             Push(ReadConstant(frame));
             VM_BREAK;
         }
-        VM_CASE(OP_INTEGER) : {
+        VM_CASE(OP_INTEGER) {
             Push(INTEGER_VAL(ReadSInt32(frame)));
             VM_BREAK;
         }
-        VM_CASE(OP_DECIMAL) : {
+        VM_CASE(OP_DECIMAL) {
             Push(DECIMAL_VAL(ReadFloat(frame)));
             VM_BREAK;
         }
