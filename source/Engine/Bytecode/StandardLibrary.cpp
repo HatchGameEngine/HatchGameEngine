@@ -6464,6 +6464,78 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
         return INTEGER_VAL(!!InputManager::IsActionReleased(playerID, actionID));
 }
 /***
+ * Input.IsActionHeldByAny
+ * \desc Gets whether the input action is currently held by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    char* actionName = GET_ARG(0, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID));
+}
+/***
+ * Input.IsActionPressedByAny
+ * \desc Gets whether the input action is currently pressed by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    char* actionName = GET_ARG(0, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID));
+}
+/***
+ * Input.IsActionReleasedByAny
+ * \desc Gets whether the input action was released by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+    char* actionName = GET_ARG(0, GetString);
+    int actionID = InputManager::GetActionID(actionName);
+    if (actionID == -1) {
+        THROW_ERROR("Invalid input action \"%s\"!", actionName);
+        return NULL_VAL;
+    }
+    if (argCount >= 2) {
+        int inputDevice = GET_ARG(1, GetInteger);
+        CHECK_INPUT_DEVICE(inputDevice);
+        return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID, inputDevice));
+    }
+    else
+        return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID));
+}
+/***
  * Input.IsAnyActionHeld
  * \desc Gets whether any input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
@@ -17732,6 +17804,9 @@ void StandardLibrary::Link() {
     DEF_NATIVE(Input, IsActionHeld);
     DEF_NATIVE(Input, IsActionPressed);
     DEF_NATIVE(Input, IsActionReleased);
+    DEF_NATIVE(Input, IsActionHeldByAny);
+    DEF_NATIVE(Input, IsActionPressedByAny);
+    DEF_NATIVE(Input, IsActionReleasedByAny);
     DEF_NATIVE(Input, IsAnyActionHeld);
     DEF_NATIVE(Input, IsAnyActionPressed);
     DEF_NATIVE(Input, IsAnyActionReleased);
