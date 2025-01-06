@@ -1806,27 +1806,67 @@ void Compiler::GetReturnStatement() {
     }
 }
 void Compiler::GetRepeatStatement() {
+    ScopeBegin();
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'repeat'.");
     GetExpression();
+
+    Token variableToken = { TOKEN_ERROR };
+
+    if (MatchToken(TOKEN_COMMA)) {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+        variableToken = parser.Previous;
+    }
+
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    int remaining = AddHiddenLocal("$remaining", 11);
+    EmitByte(OP_INCREMENT); // increment remaining as we're about to decrement it, so we can cheat continue
+
+    if (variableToken.Type != TOKEN_ERROR) {
+        EmitConstant(INTEGER_VAL(-1));
+        AddLocal(variableToken);
+        MarkInitialized();
+        Locals[LocalCount - 1].Constant = true; // trick the compiler into ensuring it doesn't get modified
+    }
 
     int loopStart = CurrentChunk()->Count;
 
-    int exitJump = EmitJump(OP_JUMP_IF_FALSE);
+    if (variableToken.Type != TOKEN_ERROR) {
+        // decrement it and set it back, but keep it on the stack
+        EmitBytes(OP_GET_LOCAL, remaining);
+        EmitByte(OP_DECREMENT);
+    }
+    else
+        EmitByte(OP_DECREMENT);
 
     StartBreakJumpList();
+    StartContinueJumpList();
 
-    EmitByte(OP_DECREMENT);
+    int exitJump = EmitJump(OP_JUMP_IF_FALSE);
+
+    if (variableToken.Type != TOKEN_ERROR) {
+        // save, pop the decrement off the stack, and increment our int
+        EmitBytes(OP_SET_LOCAL, remaining);
+        EmitByte(OP_POP);
+        EmitByte(OP_INCREMENT);
+    }
 
     // Repeat Code Body
     GetStatement();
 
+    EndContinueJumpList();
+
     EmitLoop(loopStart);
 
     PatchJump(exitJump);
-    EmitByte(OP_POP);
+    
+    // if we jumped from ending we have a loose end we have to remove
+    if (variableToken.Type != TOKEN_ERROR)
+        EmitByte(OP_POP);
 
     EndBreakJumpList();
+
+    ScopeEnd();
 }
 void Compiler::GetSwitchStatement() {
     Chunk* chunk = CurrentChunk();
