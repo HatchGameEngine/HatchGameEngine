@@ -691,10 +691,13 @@ void Scene::RunTileAnimations() {
     }
 }
 Tileset* Scene::GetTileset(int tileID) {
-    for (Tileset& tileset : Scene::Tilesets) {
-        if (tileID >= tileset.StartTile)
-            return &tileset;
+    // TODO: Optimize this.
+    for (size_t i = Scene::Tilesets.size(); i > 0; i--) {
+        Tileset* tileset = &Scene::Tilesets[i - 1];
+        if (tileID >= tileset->StartTile)
+            return tileset;
     }
+
     return nullptr;
 }
 TileAnimator* Scene::GetTileAnimator(int tileID) {

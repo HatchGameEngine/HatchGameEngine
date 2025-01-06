@@ -33,6 +33,23 @@ ISprite::ISprite(const char* filename) {
     LoadFailed = !LoadAnimation(Filename);
 }
 
+size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
+    char* filename = StringUtils::NormalizePath(sheetFilename);
+
+    std::string sheetPath = std::string(filename);
+
+    Memory::Free(filename);
+
+    for (size_t i = 0; i < SpritesheetFilenames.size(); i++) {
+        if (SpritesheetFilenames[i] == sheetPath)
+            return i;
+    }
+
+    AddSpriteSheet(sheetFilename);
+
+    return Spritesheets.size() - 1;
+}
+
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
     Texture* texture = NULL;
     Uint32*  data = NULL;
@@ -186,6 +203,9 @@ void ISprite::AddFrame(int duration, int left, int top, int width, int height, i
     AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
 }
 void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
+    AddFrame(animID, duration, left, top, width, height, pivotX, pivotY, id, 0);
+}
+void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id, int sheetNumber) {
     AnimFrame anfrm;
     anfrm.Advance = id;
     anfrm.Duration = duration;
@@ -195,7 +215,7 @@ void ISprite::AddFrame(int animID, int duration, int left, int top, int width, i
     anfrm.Height = height;
     anfrm.OffsetX = pivotX;
     anfrm.OffsetY = pivotY;
-    anfrm.SheetNumber = 0;
+    anfrm.SheetNumber = sheetNumber;
     anfrm.BoxCount = 0;
 
     FrameCount++;

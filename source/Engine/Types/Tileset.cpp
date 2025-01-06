@@ -1,4 +1,5 @@
 #include <Engine/Types/Tileset.h>
+#include <Engine/Scene.h>
 #include <Engine/Utilities/StringUtils.h>
 
 Tileset::Tileset(ISprite* sprite, int tileWidth, int tileHeight, size_t firstgid, size_t startTile, size_t tileCount, char* filename) {
@@ -37,10 +38,19 @@ void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, ve
     if (!tileSprite)
         return;
 
-    if (tileSprite->Animations.size() == 1)
-        tileSprite->AddAnimation("TileAnimation", 1, 0);
+    size_t animID = 0;
 
-    size_t animID = tileSprite->Animations.size() - 1;
+    // Find the animation that corresponds to the tile ID that's being animated
+    char nameBuf[16];
+    snprintf(nameBuf, sizeof(nameBuf), "%d", tileID);
+    int foundAnimID = tileSprite->FindAnimation(nameBuf);
+    if (foundAnimID != -1) {
+        animID = (int)foundAnimID;
+    }
+    else {
+        tileSprite->AddAnimation(nameBuf, 1, 0);
+        animID = tileSprite->Animations.size() - 1;
+    }
 
     tileSprite->RemoveFrames(animID);
 
@@ -53,11 +63,26 @@ void Tileset::AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, ve
         return;
 
     for (size_t i = 0; i < tileIDs.size(); i++) {
+        Tileset* tileset = this;
         int otherTileID = tileIDs[i];
+        size_t sheetID = 0;
+
+        if (otherTileID >= StartTile + TileCount) {
+            Tileset* otherTileset = Scene::GetTileset(otherTileID);
+            ISprite* otherTileSprite = otherTileset->Sprite;
+            if (otherTileSprite && otherTileSprite->Spritesheets.size() > 0) {
+                tileset = otherTileset;
+                otherTileID -= otherTileset->StartTile;
+                sheetID = tileSprite->FindOrAddSpriteSheet(otherTileSprite->SpritesheetFilenames[0].c_str());
+            }
+        }
+
         tileSprite->AddFrame(animID, durations[i],
-            (otherTileID % NumCols) * TileWidth,
-            (otherTileID / NumCols) * TileHeight,
-            TileWidth, TileHeight, -TileWidth / 2, -TileHeight / 2, 0);
+            (otherTileID % tileset->NumCols) * tileset->TileWidth,
+            (otherTileID / tileset->NumCols) * tileset->TileHeight,
+            tileset->TileWidth, tileset->TileHeight,
+            -tileset->TileWidth / 2, -tileset->TileHeight / 2,
+            0, (int)sheetID);
     }
 
     tileSprite->RefreshGraphicsID();

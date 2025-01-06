@@ -10869,7 +10869,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
     if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
-        Animation* animation = animator->CurrentAnimation;
+        Animation* animation = animator->GetCurrentAnimation();
         for (int i = 0; i < animation->Frames.size(); i++) {
             int x = animation->Frames[i].X / tileset->TileWidth;
             int y = animation->Frames[i].Y / tileset->TileHeight;
@@ -10903,7 +10903,7 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
     if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
-        Animation* animation = animator->CurrentAnimation;
+        Animation* animation = animator->GetCurrentAnimation();
         for (int i = 0; i < animation->Frames.size(); i++)
             array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
         ScriptManager::Unlock();
