@@ -24,7 +24,8 @@ typedef enum {
     VAL_DECIMAL,
     VAL_OBJECT,
     VAL_LINKED_INTEGER,
-    VAL_LINKED_DECIMAL
+    VAL_LINKED_DECIMAL, 
+    VAL_ERROR
 } ValueType;
 
 enum {
@@ -423,6 +424,10 @@ enum   OpCode {
     OP_SET_MODULE_LOCAL,
     OP_DEFINE_MODULE_LOCAL,
     OP_USE_NAMESPACE,
+    // New constant opcodes
+    OP_DEFINE_CONSTANT,
+    OP_INTEGER,
+    OP_DECIMAL,
 
     OP_LAST
 };

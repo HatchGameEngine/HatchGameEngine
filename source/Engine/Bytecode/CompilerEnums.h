@@ -1,6 +1,7 @@
 #ifndef ENGINE_COMPILER_ENUMS
 #define ENGINE_COMPILER_ENUMS
 
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Token.h>
 
 class Parser {
@@ -44,9 +45,12 @@ class Compiler;
 typedef void (Compiler::*ParseFn)(bool canAssign);
 
 struct Local {
-    Token Name;
-    int   Depth;
-    bool  Resolved;
+    Token   Name;
+    int     Depth = -1;
+    bool    Resolved = false;
+    bool    WasSet = false;
+    bool    Constant = false;
+    VMValue ConstantVal = VMValue{ VAL_ERROR };
 };
 
 struct ParseRule {
