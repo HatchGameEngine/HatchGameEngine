@@ -2398,8 +2398,11 @@ int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
         delete resource;
         list->pop_back();
         stream->Close();
+        (*list)[index] = NULL;
         return -1;
     }
+
+    stream->Close();
 
     return (int)index;
 }
@@ -2425,9 +2428,12 @@ int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
     if (resource->AsMusic->LoadFailed) {
         delete resource->AsMusic;
         delete resource;
+        stream->Close();
         (*list)[index] = NULL;
         return -1;
     }
+
+    stream->Close();
 
     return (int)index;
 }
@@ -2481,6 +2487,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
     Source = MediaSource::CreateSourceFromStream(stream);
     if (!Source) {
         delete resource;
+        stream->Close();
         (*list)[index] = NULL;
         return -1;
     }
