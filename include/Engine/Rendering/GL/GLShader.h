@@ -10,7 +10,7 @@
 #define GL_DO_ERROR_CHECKING 
 #endif
 
-#if GL_DO_ERROR_CHECKING
+#ifdef GL_DO_ERROR_CHECKING
 #define CHECK_GL() GLShader::CheckGLError(__LINE__)
 #else
 #define CHECK_GL()
