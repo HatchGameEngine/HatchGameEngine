@@ -277,6 +277,8 @@ void              Chunk::Init() {
     Capacity = 0;
     Code = NULL;
     Lines = NULL;
+    OpcodeFuncs = NULL;
+    IPToOpcode = NULL;
     Constants = new vector<VMValue>();
 }
 void              Chunk::Alloc() {
@@ -317,6 +319,7 @@ void              Chunk::Free() {
         Memory::Free(OpcodeFuncs);
         Memory::Free(IPToOpcode);
         OpcodeFuncs = NULL;
+        IPToOpcode = NULL;
         OpcodeCount = 0;
     }
 #endif
