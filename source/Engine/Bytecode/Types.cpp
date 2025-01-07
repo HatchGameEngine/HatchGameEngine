@@ -329,7 +329,11 @@ void              Chunk::Free() {
 void              Chunk::SetupOpfuncs()
 {
     if (!OpcodeCount) {
-        // try to get it manually thru iterating it
+        // try to get it manually thru iterating it (for version <= 2 bytecode)
+        for (int offset = 0; offset < Count;) {
+            offset += Compiler::GetTotalOpcodeSize(Code + offset);
+            OpcodeCount++;
+        }
     }
 
     OpcodeFuncs = (OpcodeFunc*)Memory::TrackedMalloc("Chunk::OpcodeFuncs", sizeof(OpcodeFunc) * OpcodeCount);
