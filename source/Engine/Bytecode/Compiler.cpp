@@ -3124,7 +3124,10 @@ void          Compiler::EndSwitchJumpList() {
 
 int           Compiler::FindConstant(VMValue value) {
     for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
-        if (ValuesEqual(value, (*CurrentChunk()->Constants)[i]))
+        VMValue constant = (*CurrentChunk()->Constants)[i];
+        if (IS_STRING(constant) && IS_STRING(value) && ScriptManager::ValuesSortaEqual(constant, value))
+            return (int)i;
+        if (ValuesEqual(value, constant))
             return (int)i;
     }
     return -1;
@@ -4015,6 +4018,15 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     Finish();
 
+    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+        Chunk* chunk = &Compiler::Functions[c]->Chunk;
+        chunk->OpcodeCount = 0;
+        for (int offset = 0; offset < chunk->Count;) {
+            offset += GetTotalOpcodeSize(chunk->Code + offset);
+            chunk->OpcodeCount++;
+        }
+    }
+
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
             Chunk* chunk = &Compiler::Functions[c]->Chunk;
@@ -4032,6 +4044,11 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
     WriteBytecode(stream, filename);
 
     stream->Close();
+
+    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+        ObjFunction* func = Compiler::Functions[c];
+        func->Chunk.Free();
+    }
 
     return !parser.HadError;
 }

@@ -46,6 +46,12 @@ struct VMValue {
     } as;
 };
 
+#ifdef USING_VM_FUNCPTRS
+class VMThread;
+struct CallFrame;
+typedef int (VMThread::* OpcodeFunc)(CallFrame* frame);
+#endif
+
 struct Chunk {
     int              Count;
     int              Capacity;
@@ -55,9 +61,18 @@ struct Chunk {
     vector<VMValue>* Constants;
     bool             OwnsMemory;
 
+    int              OpcodeCount;
+#if USING_VM_FUNCPTRS
+    OpcodeFunc*      OpcodeFuncs;
+    int*             IPToOpcode;
+#endif
+
     void Init();
     void Alloc();
     void Free();
+#if USING_VM_FUNCPTRS
+    void SetupOpfuncs();
+#endif
     void Write(Uint8 byte, int line);
     int  AddConstant(VMValue value);
 };
@@ -328,6 +343,12 @@ struct CallFrame {
 
 #ifdef VM_DEBUG
     Uint32 BranchCount;
+#endif
+
+#ifdef USING_VM_FUNCPTRS
+    OpcodeFunc* OpcodeFStart;
+    int*        IPToOpcode;
+    OpcodeFunc* OpcodeFunctions;
 #endif
 
     VMValue   WithReceiverStack[16];
