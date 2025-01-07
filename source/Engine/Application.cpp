@@ -1406,8 +1406,6 @@ void Application::LoadSceneInfo() {
 
     int startSceneNum = 0;
 
-    SceneInfo::Init();
-
     Scene::ActiveCategory = 0;
     Scene::CurrentSceneInList = 0;
 
@@ -1427,14 +1425,10 @@ void Application::LoadSceneInfo() {
                 XMLNode* node = Application::GameConfig->children[0];
                 if (node) {
                     // Parse active category
-                    if (ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
-                        // backwards compat
-                        Scene::ActiveCategory++;
-                    }
-                    else {
+                    if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) { // backwards compat
                         char* text = ParseGameConfigText(node, "activeCategory");
                         if (text) {
-                            int id = SceneInfo::GetCategoryID(SCENEINFO_GLOBAL_CATEGORY_NAME);
+                            int id = SceneInfo::GetCategoryID(text);
                             if (id >= 0)
                                 Scene::ActiveCategory = id;
                             Memory::Free(text);
@@ -1459,7 +1453,7 @@ void Application::LoadSceneInfo() {
                 Scene::CurrentSceneInList = startSceneNum;
             }
 
-            if (SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
+            if (StartingScene[0] == '\0' && SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
                 Scene::SetInfoFromCurrentID();
 
                 StringUtils::Copy(StartingScene, SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));

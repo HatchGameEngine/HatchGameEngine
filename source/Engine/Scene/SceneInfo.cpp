@@ -4,18 +4,22 @@
 vector<SceneListCategory> SceneInfo::Categories;
 int                       SceneInfo::NumTotalScenes;
 
-void SceneInfo::Init() {
-    SceneInfo::NewCategory(std::string(SCENEINFO_GLOBAL_CATEGORY_NAME));
-}
-
 void SceneInfo::Dispose() {
     for (size_t i = 0; i < Categories.size(); i++)
         Categories[i].Dispose();
     Categories.clear();
 
     NumTotalScenes = 0;
+}
 
-    SceneInfo::Init();
+int SceneInfo::InitGlobalCategory() {
+    size_t gid;
+
+    NewCategory(std::string(SCENEINFO_GLOBAL_CATEGORY_NAME));
+
+    gid = Categories.size() - 1;
+
+    return (int)gid;
 }
 
 SceneListCategory* SceneInfo::NewCategory(std::string name) {
@@ -69,9 +73,7 @@ int SceneInfo::GetEntryID(const char *categoryName, const char* entryName) {
 }
 
 int SceneInfo::GetEntryID(int categoryID, const char* entryName) {
-    if (!entryName)
-        return -1;
-    if (!SceneInfo::IsCategoryValid(categoryID))
+    if (!entryName || !IsCategoryValid(categoryID))
         return -1;
 
     SceneListCategory& category = Categories[categoryID];
@@ -268,12 +270,12 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
     entry.Properties->Put("folder", entry.Folder);
     entry.Properties->Put("id", entry.ID);
     entry.Properties->Put("resourceFolder", entry.ResourceFolder);
-    entry.Properties->Put("spriteFolder", entry.ResourceFolder); // backwards compat
+    entry.Properties->Put("spriteFolder", StringUtils::Duplicate(entry.ResourceFolder)); // backwards compat
     entry.Properties->Put("fileExtension", entry.Filetype);
 
     FillAttributesHashMap(&node->attributes, entry.Properties);
 
-    return std::move(entry);
+    return entry;
 }
 
 bool SceneInfo::Load(XMLNode* node) {
@@ -321,7 +323,12 @@ bool SceneInfo::Load(XMLNode* node) {
         else if (XMLParser::MatchToken(listElement->name, "scene")) {
             SceneListEntry entry = ParseEntry(listElement, numGlobalScenes);
 
-            Categories[0].Entries.push_back(entry);
+            int globalID = GetCategoryID(SCENEINFO_GLOBAL_CATEGORY_NAME);
+            if (globalID == -1) {
+                globalID = InitGlobalCategory();
+            }
+
+            Categories[globalID].Entries.push_back(entry);
 
             NumTotalScenes++;
 
