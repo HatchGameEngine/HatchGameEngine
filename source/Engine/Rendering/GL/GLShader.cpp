@@ -4,9 +4,6 @@
 
 #include <Engine/Diagnostics/Log.h>
 
-#define CHECK_GL() \
-    GLShader::CheckGLError(__LINE__)
-
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
     GLint compiled = GL_FALSE;
     ProgramID = glCreateProgram();

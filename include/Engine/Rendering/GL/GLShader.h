@@ -6,6 +6,16 @@
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/IO/Stream.h>
 
+#ifdef DEBUG
+#define GL_DO_ERROR_CHECKING 
+#endif
+
+#if GL_DO_ERROR_CHECKING
+#define CHECK_GL() GLShader::CheckGLError(__LINE__)
+#else
+#define CHECK_GL()
+#endif
+
 class GLShader {
 private:
     void AttachAndLink();

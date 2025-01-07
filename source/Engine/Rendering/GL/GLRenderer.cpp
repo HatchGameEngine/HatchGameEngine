@@ -77,6 +77,7 @@ struct   GL_TextureData {
     GLenum PixelDataFormat;
     GLenum PixelDataType;
     int    Slot;
+    bool   Accessed;
 };
 struct   GL_VertexBufferEntry {
     float X, Y, Z;
@@ -144,6 +145,10 @@ GLenum GL_VertexIndexBufferFormat;
 size_t GL_VertexIndexBufferMaxElements;
 size_t GL_VertexIndexBufferStride;
 
+GLenum GL_ActiveTexture;
+GLenum GL_ActiveCullMode;
+bool GL_ClippingEnabled;
+
 #ifdef HAVE_GL_PERFSTATS
 #define PERF_START(p) (p).Time = Clock::GetTicks()
 #define PERF_STATE_CHANGE(p) (p).StateChanges++
@@ -160,7 +165,6 @@ size_t GL_VertexIndexBufferStride;
 #define GL_SUPPORTS_SMOOTHING
 #define GL_SUPPORTS_RENDERBUFFER
 #define GL_MONOCHROME_PIXELFORMAT GL_RED
-#define CHECK_GL() GLShader::CheckGLError(__LINE__)
 
 #if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
 #define GL_ES
@@ -213,7 +217,30 @@ void   GL_MakeShapeBuffers() {
     // Reset buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-void   GL_BindTexture(Texture* texture) {
+void   GL_SetTextureWrap(GL_TextureData* textureData, GLenum wrapS, GLenum wrapT = 0, GLenum binding = GL_TEXTURE_BINDING_2D) {
+    if (!wrapT)
+        wrapT = wrapS;
+
+    GLint bound;
+    glGetIntegerv(binding, &bound);
+    glBindTexture(textureData->TextureTarget, textureData->TextureID);
+
+    glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, wrapS);
+    glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, wrapT);
+
+    if (textureData->YUV) {
+        glBindTexture(textureData->TextureTarget, textureData->TextureU);
+        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, wrapT);
+
+        glBindTexture(textureData->TextureTarget, textureData->TextureV);
+        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, wrapS);
+        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, wrapT);
+    }
+
+    glBindTexture(textureData->TextureTarget, bound);
+}
+void   GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
     // Do texture (re-)binding if necessary
     if (GL_LastTexture != texture) {
         GL_TextureData* textureData = nullptr;
@@ -221,11 +248,17 @@ void   GL_BindTexture(Texture* texture) {
             textureData = (GL_TextureData*)texture->DriverData;
 
         if (textureData) {
-            GLint active;
-            glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
-            if (active != GL_TEXTURE0)
-                glActiveTexture(GL_TEXTURE0);
+            if (GL_ActiveTexture != GL_TEXTURE0)
+                glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
+
+            if (!textureData->Accessed) {
+                if (wrapS && wrapS != GL_REPEAT) { // GL_REPEAT is the default
+                    GL_SetTextureWrap(textureData, wrapS, wrapT);
+                }
+
+                textureData->Accessed = true;
+            }
         }
         else {
             glBindTexture(GL_TEXTURE_2D, 0);
@@ -234,7 +267,7 @@ void   GL_BindTexture(Texture* texture) {
     GL_LastTexture = texture;
 }
 void   GL_PreparePaletteShader() {
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_ActiveTexture = GL_TEXTURE1);
     glUniform1i(GLRenderer::CurrentShader->LocPalette, 1);
 
     if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
@@ -245,7 +278,7 @@ void   GL_PreparePaletteShader() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 }
 void   GL_SetTexture(Texture* texture) {
     // Use appropriate shader if changed
@@ -254,15 +287,15 @@ void   GL_SetTexture(Texture* texture) {
         if (textureData && textureData->YUV) {
             GLRenderer::UseShader(GLRenderer::ShaderYUV->Textured);
 
-            glActiveTexture(GL_TEXTURE0);
+            glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
             glUniform1i(GLRenderer::CurrentShader->LocTexture, 0);
             glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
 
-            glActiveTexture(GL_TEXTURE1);
+            glActiveTexture(GL_ActiveTexture = GL_TEXTURE1);
             glUniform1i(GLRenderer::CurrentShader->LocTextureU, 1);
             glBindTexture(GL_TEXTURE_2D, textureData->TextureU);
 
-            glActiveTexture(GL_TEXTURE2);
+            glActiveTexture(GL_ActiveTexture = GL_TEXTURE2);
             glUniform1i(GLRenderer::CurrentShader->LocTextureV, 2);
             glBindTexture(GL_TEXTURE_2D, textureData->TextureV);
         }
@@ -276,6 +309,7 @@ void   GL_SetTexture(Texture* texture) {
         }
 
         GLint active;
+
         glGetVertexAttribiv(GLRenderer::CurrentShader->LocTexCoord, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
         if (!active)
             glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
@@ -685,30 +719,36 @@ void GL_UpdateVertexBuffer(Scene3D* scene, VertexBuffer* vertexBuffer, Uint32 dr
         verticesStartIndex += vertexCount;
     }
 }
-void GL_SetVertexAttribPointers(void* vertexAtrribs) {
+void GL_SetVertexAttribPointers(void* vertexAtrribs, bool checkActive) {
     GLShader* shader = GLRenderer::CurrentShader;
 
     size_t stride = sizeof(GL_VertexBufferEntry);
 
     GLint active;
-    glGetVertexAttribiv(shader->LocPosition, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
-    if (!active)
-        glEnableVertexAttribArray(shader->LocPosition);
+    if (checkActive) {
+        glGetVertexAttribiv(shader->LocPosition, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
+        if (!active)
+            glEnableVertexAttribArray(shader->LocPosition);
+    }
     glVertexAttribPointer(shader->LocPosition, 3, GL_FLOAT, GL_FALSE, stride, vertexAtrribs);
 
     // ShaderShape3D doesn't use o_uv, so the entire attribute just gets optimized out.
     // This case is handled to prevent a GL_INVALID_VALUE error.
     if (shader->LocTexCoord != -1) {
-        glGetVertexAttribiv(shader->LocTexCoord, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
-        if (!active)
-            glEnableVertexAttribArray(shader->LocTexCoord);
+        if (checkActive) {
+            glGetVertexAttribiv(shader->LocTexCoord, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
+            if (!active)
+                glEnableVertexAttribArray(shader->LocTexCoord);
+        }
         glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 3);
     }
 
     // All shaders used for 3D rendering use o_color, so this is safe to do
-    glGetVertexAttribiv(shader->LocVaryingColor, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
-    if (!active)
-        glEnableVertexAttribArray(shader->LocVaryingColor);
+    if (checkActive) {
+        glGetVertexAttribiv(shader->LocVaryingColor, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &active);
+        if (!active)
+            glEnableVertexAttribArray(shader->LocVaryingColor);
+    }
 
     glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 5);
 
@@ -736,6 +776,7 @@ void GL_BuildFogTable() {
     }
 }
 #define SETSTATE_COMPARE_LAST(prop) (!lastState || memcmp(&state.prop, &lastState->prop, sizeof(state.prop)))
+#define SETSTATE_COMPARE_LAST_VAL(prop) (!lastState || state.prop != lastState->prop)
 void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMat, Matrix4x4* viewMat, GL_State* lastState = NULL) {
     bool changeShader = false;
     if (GLRenderer::CurrentShader != state.Shader) {
@@ -747,23 +788,13 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
 
     GLShader* shader = GLRenderer::CurrentShader;
 
-    if (SETSTATE_COMPARE_LAST(VertexAtrribs))
-        GL_SetVertexAttribPointers(state.VertexAtrribs);
-
-    GL_BindTexture(state.TexturePtr);
+    if (SETSTATE_COMPARE_LAST_VAL(VertexAtrribs))
+        GL_SetVertexAttribPointers(state.VertexAtrribs, false);
+    
+    GL_BindTexture(state.TexturePtr, GL_REPEAT);
 
     if (state.UsePalette)
         GL_PreparePaletteShader();
-
-    if (state.TexturePtr && SETSTATE_COMPARE_LAST(TexturePtr)) {
-        GLint param;
-        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, &param);
-        if (param != GL_REPEAT)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, &param);
-        if (param != GL_REPEAT)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    }
 
     if (shader->LocDiffuseColor != -1 && (changeShader || SETSTATE_COMPARE_LAST(DiffuseColor))) {
         glUniform4f(shader->LocDiffuseColor, state.DiffuseColor[0], state.DiffuseColor[1], state.DiffuseColor[2], state.DiffuseColor[3]);
@@ -775,35 +806,37 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
         glUniform4f(shader->LocAmbientColor, state.AmbientColor[0], state.AmbientColor[1], state.AmbientColor[2], state.AmbientColor[3]);
     }
 
-    if (SETSTATE_COMPARE_LAST(CullFace)) {
+    if (SETSTATE_COMPARE_LAST_VAL(CullFace)) {
         if (state.CullFace)
             glEnable(GL_CULL_FACE);
         else
             glDisable(GL_CULL_FACE);
     }
 
-    if (SETSTATE_COMPARE_LAST(CullMode))
-        glCullFace(state.CullMode);
-    if (SETSTATE_COMPARE_LAST(WindingOrder))
+    // this one's a little bit SILLY
+    // i don't know why but it is
+    if (GL_ActiveCullMode != state.CullMode)
+        glCullFace(GL_ActiveCullMode = state.CullMode);
+    if (SETSTATE_COMPARE_LAST_VAL(WindingOrder))
         glFrontFace(state.WindingOrder);
 
-    if (SETSTATE_COMPARE_LAST(DepthMask))
+    if (SETSTATE_COMPARE_LAST_VAL(DepthMask))
         glDepthMask(state.DepthMask);
 
-    if (SETSTATE_COMPARE_LAST(BlendMode))
+    if (SETSTATE_COMPARE_LAST_VAL(BlendMode))
         GL_SetBlendFuncByMode(state.BlendMode);
 
     if (state.DrawFlags & DrawMode_FOG) {
         if (changeShader || SETSTATE_COMPARE_LAST(FogColor))
             glUniform4f(shader->LocFogColor, state.FogColor[0], state.FogColor[1], state.FogColor[2], state.FogColor[3]);
 
-        if (shader->LocFogLinearStart != -1 && (changeShader || SETSTATE_COMPARE_LAST(FogParams[0]))) {
+        if (shader->LocFogLinearStart != -1 && (changeShader || SETSTATE_COMPARE_LAST_VAL(FogParams[0]))) {
             glUniform1f(shader->LocFogLinearStart, state.FogParams[0]);
         }
-        if (shader->LocFogLinearEnd != -1 && (changeShader || SETSTATE_COMPARE_LAST(FogParams[1]))) {
+        if (shader->LocFogLinearEnd != -1 && (changeShader || SETSTATE_COMPARE_LAST_VAL(FogParams[1]))) {
             glUniform1f(shader->LocFogLinearEnd, state.FogParams[1]);
         }
-        if (shader->LocFogDensity != -1 && (changeShader || SETSTATE_COMPARE_LAST(FogParams[2]))) {
+        if (shader->LocFogDensity != -1 && (changeShader || SETSTATE_COMPARE_LAST_VAL(FogParams[2]))) {
             glUniform1f(shader->LocFogDensity, state.FogParams[2]);
         }
 
@@ -819,6 +852,7 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
     }
 }
 #undef SETSTATE_COMPARE_LAST
+#undef SETSTATE_COMPARE_LAST_VAL
 void GL_UpdateStateFromFace(GL_State& state, GL_VertexBufferFace& face, Scene3D* scene, GLenum cullWindingOrder) {
     bool fogEnabled = face.DrawFlags & DrawMode_FOG;
     if (fogEnabled) {
@@ -940,9 +974,7 @@ void GL_DrawBatchedScene3D(GL_VertexBuffer *driverData, vector<Uint32>* vertexIn
                 buf[i] = (*vertexIndices)[i];
         }
         else {
-            Uint32* buf = (Uint32*)driverData->VertexIndexBuffer;
-            for (size_t i = 0; i < numIndices; i++)
-                buf[i] = (*vertexIndices)[i];
+            memcpy(driverData->VertexIndexBuffer, vertexIndices->data(), sizeof(Uint32) * numIndices);
         }
     }
 
@@ -970,7 +1002,7 @@ void     GLRenderer::Init() {
     Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
@@ -1214,6 +1246,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
     textureData->PixelDataFormat = GL_RGBA;
     textureData->PixelDataType = GL_UNSIGNED_BYTE;
 
+    textureData->Accessed = false;
+
     // Set format
     switch (texture->Format) {
         case SDL_PIXELFORMAT_YV12:
@@ -1294,8 +1328,6 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
         textureFilter = GL_LINEAR;
     glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
     glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
-    glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     if (texture->Format == SDL_PIXELFORMAT_YV12 || texture->Format == SDL_PIXELFORMAT_IYUV) {
         textureData->YUV = true;
@@ -1306,15 +1338,11 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
         glBindTexture(textureData->TextureTarget, textureData->TextureU);
         glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
         glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
-        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(textureData->TextureTarget, 0, textureData->TextureStorageFormat, (width + 1) / 2, (height + 1) / 2, 0, textureData->PixelDataFormat, textureData->PixelDataType, NULL); CHECK_GL();
 
         glBindTexture(textureData->TextureTarget, textureData->TextureV);
         glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
         glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
-        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexImage2D(textureData->TextureTarget, 0, textureData->TextureStorageFormat, (width + 1) / 2, (height + 1) / 2, 0, textureData->PixelDataFormat, textureData->PixelDataType, NULL); CHECK_GL();
     }
 
@@ -1494,7 +1522,9 @@ void     GLRenderer::UpdateClipRect() {
     if (Graphics::CurrentClip.Enabled) {
         Viewport view = Graphics::CurrentViewport;
 
-        glEnable(GL_SCISSOR_TEST);
+        if (!GL_ClippingEnabled)
+            glEnable(GL_SCISSOR_TEST);
+
         if (Graphics::CurrentRenderTarget) {
             glScissor((view.X + clip.X) * RetinaScale, (view.Y + clip.Y) * RetinaScale, (clip.Width) * RetinaScale, (clip.Height) * RetinaScale);
         }
@@ -1509,9 +1539,12 @@ void     GLRenderer::UpdateClipRect() {
 
             glScissor((view.X + clip.X) * scaleW, h * RetinaScale - (view.Y + clip.Y + clip.Height) * scaleH, (clip.Width) * scaleW, (clip.Height) * scaleH);
         }
+
+        GL_ClippingEnabled = true;
     }
-    else {
+    else if (GL_ClippingEnabled) {
         glDisable(GL_SCISSOR_TEST);
+        GL_ClippingEnabled = false;
     }
 }
 void     GLRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
@@ -1559,13 +1592,28 @@ void     GLRenderer::MakePerspectiveMatrix(Matrix4x4* out, float fov, float near
 // Shader-related functions
 void     GLRenderer::UseShader(void* shader) {
     if (GLRenderer::CurrentShader != (GLShader*)shader) {
+        if (GLRenderer::CurrentShader) {
+            if (GLRenderer::CurrentShader->LocPosition != -1)
+                glDisableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
+            if (GLRenderer::CurrentShader->LocTexCoord != -1)
+                glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+            if (GLRenderer::CurrentShader->LocVaryingColor != -1)
+                glDisableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor);
+        }
+
         GLRenderer::CurrentShader = (GLShader*)shader;
+
         GLRenderer::CurrentShader->Use();
 
-        GLint active;
-        glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
-        if (active != GL_TEXTURE0)
-            glActiveTexture(GL_TEXTURE0);
+        if (GLRenderer::CurrentShader->LocPosition != -1)
+            glEnableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
+        if (GLRenderer::CurrentShader->LocTexCoord != -1)
+            glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+        if (GLRenderer::CurrentShader->LocVaryingColor != -1)
+            glEnableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor);
+
+        if (GL_ActiveTexture != GL_TEXTURE0)
+            glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
         glUniform1i(GLRenderer::CurrentShader->LocTexture, 0);
     }
 }
@@ -1582,7 +1630,7 @@ void     GLRenderer::SetUniformI(int location, int count, int* values) {
 }
 void     GLRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {
     GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-    glActiveTexture(GL_TEXTURE0 + slot);
+    glActiveTexture(GL_ActiveTexture = GL_TEXTURE0 + slot);
     glUniform1i(uniform_index, slot);
     glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
 }
@@ -1996,7 +2044,7 @@ void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
         size_t numBatches = driverData->VertexIndexList.size();
         for (size_t i = 0; i < numBatches; i++) {
-            GL_SetVertexAttribPointers((*driverData->Entries)[i]);
+            GL_SetVertexAttribPointers((*driverData->Entries)[i], false);
             GL_DrawBatchedScene3D(driverData, driverData->VertexIndexList[i], state.PrimitiveType, remakeVtxIdxBuf);
             PERF_DRAW_CALL(perf);
         }
@@ -2028,8 +2076,14 @@ void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
             if (useBatching) {
                 if (stateChanged) {
-                    GL_SetState(lastState, driverData, &projMat, &viewMat, lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
-                    PERF_STATE_CHANGE(perf);
+                    // the most common state change is ONLY a texture change. check
+                    lastStateCMP.TexturePtr = lastState.TexturePtr;
+                    if (memcmp(&lastState, &lastStateCMP, sizeof(GL_State))) {
+                        GL_SetState(lastState, driverData, &projMat, &viewMat, lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
+                        PERF_STATE_CHANGE(perf);
+                    }
+                    else // literally just a texture change, rebind it
+                        GL_BindTexture(lastState.TexturePtr, GL_REPEAT);
 
                     // Draw the current batch, then start the next
                     if (batch.ShouldDraw) {
@@ -2049,9 +2103,11 @@ void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
             else {
                 // Just draw the face right away if not batching
                 if (stateChanged) {
-                    GL_SetState(state, driverData, &projMat, &viewMat, &lastState);
+                    GL_SetState(lastState, driverData, &projMat, &viewMat, lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
                     PERF_STATE_CHANGE(perf);
                 }
+                didDraw = true;
+
                 glDrawArrays(state.PrimitiveType, face.VertexIndex, face.NumVertices); CHECK_GL();
                 PERF_DRAW_CALL(perf);
             }
