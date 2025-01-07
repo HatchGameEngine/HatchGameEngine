@@ -2125,9 +2125,19 @@ void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
         // Draw the last remaining batch
         if (batch.ShouldDraw) {
-            GL_SetState(state, driverData, &projMat, &viewMat, &lastState);
+            if (GL_ActiveCullMode != lastState.CullMode)
+                glCullFace(GL_ActiveCullMode = lastState.CullMode);
+
+            lastStateCMP.CullMode = lastState.CullMode;
+            lastStateCMP.TexturePtr = lastState.TexturePtr;
+            if (memcmp(&lastState, &lastStateCMP, sizeof(GL_State))) {
+                GL_SetState(lastState, driverData, &projMat, &viewMat, lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
+                PERF_STATE_CHANGE(perf);
+            }
+            else // literally just a texture change, rebind it
+                GL_BindTexture(lastState.TexturePtr, GL_REPEAT);
+
             GL_DrawBatchedScene3D(driverData, &batch.VertexIndices, state.PrimitiveType, true);
-            PERF_STATE_CHANGE(perf);
             PERF_DRAW_CALL(perf);
         }
     }
