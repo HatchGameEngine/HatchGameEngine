@@ -813,10 +813,6 @@ void GL_SetState(GL_State& state, GL_VertexBuffer *driverData, Matrix4x4* projMa
             glDisable(GL_CULL_FACE);
     }
 
-    // this one's a little bit SILLY
-    // i don't know why but it is
-    if (GL_ActiveCullMode != state.CullMode)
-        glCullFace(GL_ActiveCullMode = state.CullMode);
     if (SETSTATE_COMPARE_LAST_VAL(WindingOrder))
         glFrontFace(state.WindingOrder);
 
@@ -2076,7 +2072,11 @@ void     GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
             if (useBatching) {
                 if (stateChanged) {
-                    // the most common state change is ONLY a texture change. check
+                    // the most common state change is ONLY a texture change. check it and cull mode, save a round trip
+                    if (GL_ActiveCullMode != lastState.CullMode)
+                        glCullFace(GL_ActiveCullMode = lastState.CullMode);
+
+                    lastStateCMP.CullMode = lastState.CullMode;
                     lastStateCMP.TexturePtr = lastState.TexturePtr;
                     if (memcmp(&lastState, &lastStateCMP, sizeof(GL_State))) {
                         GL_SetState(lastState, driverData, &projMat, &viewMat, lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
