@@ -351,38 +351,38 @@ bool InputPlayer::CheckIfInputPressed(unsigned actionID, unsigned device) {
 }
 
 bool InputPlayer::IsInputHeld(unsigned actionID, unsigned device) {
-    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
+    if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller)
         return false;
 
     Uint8 state = Status[device].State[actionID];
     return state == INPUT_STATE_PRESSED || state == INPUT_STATE_HELD;
 }
 bool InputPlayer::IsInputPressed(unsigned actionID, unsigned device) {
-    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
+    if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller)
         return false;
 
     return Status[device].State[actionID] == INPUT_STATE_PRESSED;
 }
 bool InputPlayer::IsInputReleased(unsigned actionID, unsigned device) {
-    if (actionID >= InputManager::Actions.size() || device >= InputDevice_Controller)
+    if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller)
         return false;
 
     return Status[device].State[actionID] == INPUT_STATE_RELEASED;
 }
 bool InputPlayer::IsAnyInputHeld(unsigned device) {
-    if (device >= InputDevice_Controller)
+    if (device > InputDevice_Controller)
         return false;
 
     return Status[device].NumHeld != 0;
 }
 bool InputPlayer::IsAnyInputPressed(unsigned device) {
-    if (device >= InputDevice_Controller)
+    if (device > InputDevice_Controller)
         return false;
 
     return Status[device].NumPressed != 0;
 }
 bool InputPlayer::IsAnyInputReleased(unsigned device) {
-    if (device >= InputDevice_Controller)
+    if (device > InputDevice_Controller)
         return false;
 
     return Status[device].NumReleased != 0;

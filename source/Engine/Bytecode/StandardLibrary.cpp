@@ -6355,7 +6355,7 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
@@ -6447,7 +6447,7 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int inputBindType = GET_ARG(2, GetInteger);
-    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
@@ -6652,7 +6652,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int inputBindType = GET_ARG(2, GetInteger);
-    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
