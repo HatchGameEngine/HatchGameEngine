@@ -5393,7 +5393,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
 
         if (!IS_ARRAY(vtxVal)) {
             THROW_ERROR("Expected value at index %d of %s to be of type %s instead of %s.", i, arrName, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
-            return {};
+            input.clear();
+            break;
         }
 
         ObjArray* vtx = AS_ARRAY(vtxVal);
@@ -5409,7 +5410,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
             x = (float)(AS_INTEGER(xVal));
         else {
             THROW_ERROR("Expected X value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 0, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
-            return {};
+            input.clear();
+            break;
         }
 
         // Get Y
@@ -5419,7 +5421,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
             y = (float)(AS_INTEGER(yVal));
         else {
             THROW_ERROR("Expected Y value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 1, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
-            return {};
+            input.clear();
+            break;
         }
 
         FVector2 vec(x, y);
