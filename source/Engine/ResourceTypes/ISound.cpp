@@ -32,7 +32,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
         Format = SoundData->InputFormat;
 
-        Log::Print(Log::LOG_VERBOSE, "OGG load took %.3f ms", Clock::GetTicks() - ticks);
+        Log::Print(Log::LOG_VERBOSE, "OGG load took %.3f ms (%s)", Clock::GetTicks() - ticks, Filename);
     }
     // .WAV format
     else if (StringUtils::StrCaseStr(Filename, ".wav")) {
@@ -44,7 +44,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
         Format = SoundData->InputFormat;
 
-        Log::Print(Log::LOG_VERBOSE, "WAV load took %.3f ms", Clock::GetTicks() - ticks);
+        Log::Print(Log::LOG_VERBOSE, "WAV load took %.3f ms (%s)", Clock::GetTicks() - ticks, Filename);
     }
     // Unsupported format
     else {
