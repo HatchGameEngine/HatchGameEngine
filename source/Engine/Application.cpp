@@ -1734,7 +1734,6 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
     if (!font || !string)
         return;
 
-    // To hold the indices of the sprite for each character
     std::vector<int> spriteString;
 
     // Decode UTF-8 string and populate spriteString
@@ -1785,7 +1784,6 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
             spriteString.push_back(-1);
         }
 
-        // Move the pointer to the next UTF-8 character
         ptr += bytes;
     }
     
@@ -1806,31 +1804,55 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
                 }
                 break;
 
-            case 2: // ALIGN_CENTER
+            case 1: { // ALIGN_RIGHT
+                int totalWidth = 0;
                 for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
                     if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
-                        x += font->Animations[0].Frames[spriteString[pos]].Width / 2 + 1;
+                        totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
                     }
                     else {
-                        x += 4;
+                        totalWidth += 8;
                     }
                 }
+                x -= totalWidth;
 
-                for (int pos = (int)spriteString.size() - 1; pos >= 0; --pos) {
+                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
+                    if (spriteString[pos] != -1) {
+                        AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
+                        Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
+                        x += frame.Width + 1;
+                    }
+                    else {
+                        x += 8;
+                    }
+                }
+                break;
+            }
+
+            case 2: { // ALIGN_CENTER
+                int totalWidth = 0;
+                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
+                    if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
+                        totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
+                    }
+                    else {
+                        totalWidth += 8;
+                    }
+                }
+                x -= totalWidth / 2;
+
+                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
                     if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
                         AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
-                        Graphics::DrawSprite(font, 0, spriteString[pos], x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
-                        x -= frame.Width;
+                        Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
+                        x += frame.Width;
                     }
                     else {
-                        x -= 8;
+                        x += 8;
                     }
                 }
                 break;
-
-            case 1: // ALIGN_RIGHT
-                offset = 8;
-                break;
+            }
         }
     }
 }
@@ -2065,7 +2087,7 @@ void Application::DevMenu_CategorySelectMenu() {
     if (InputManager::GetActionID("Up") != -1) {
         if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
             if (--DevMenu.SubSelection < 0)
-                DevMenu.SubSelection += (int)SceneInfo::Categories.size() - 1;
+                DevMenu.SubSelection += (int)SceneInfo::Categories.size();
 
             if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
                 if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
@@ -2091,7 +2113,7 @@ void Application::DevMenu_CategorySelectMenu() {
             }
             else {
                 if (--DevMenu.SubSelection < 0)
-                    DevMenu.SubSelection += (int)SceneInfo::Categories.size() - 1;
+                    DevMenu.SubSelection += (int)SceneInfo::Categories.size();
 
                 DevMenu.Timer = (DevMenu.Timer + 1) & 7;
 
