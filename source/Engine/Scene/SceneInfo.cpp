@@ -254,7 +254,7 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
     // ID
     if (node->attributes.Exists("id"))
         entry.ID = XMLParser::TokenToString(node->attributes.Get("id"));
-    else if (entry.Filetype == "bin") {
+    else if (strcmp(entry.Filetype, "bin") == 0) {
         // RSDK compatibility.
         char buf[16];
         snprintf(buf, sizeof(buf), "%d", ((int)id) + 1);
