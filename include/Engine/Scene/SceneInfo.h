@@ -6,7 +6,7 @@
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 
-#define SCENEINFO_GLOBAL_CATEGORY_NAME "global"
+#define SCENEINFO_GLOBAL_CATEGORY_NAME "Global"
 
 class SceneInfo {
 private:
