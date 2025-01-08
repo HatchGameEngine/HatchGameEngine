@@ -1363,8 +1363,8 @@ void Scene::Restart() {
         Scene::SetTileCount(Scene::BaseTileCount);
     }
 
-    Application::DeveloperDarkFont = Application::LoadDevFont("Sprites/Fonts/DarkFont.bin");
-    Application::DeveloperLightFont = Application::LoadDevFont("Sprites/Fonts/SmallFont.bin");
+    Application::DeveloperDarkFont = Application::LoadDevFont("Sprites/Fonts/DevFontDark.bin");
+    Application::DeveloperLightFont = Application::LoadDevFont("Sprites/Fonts/DevFont.bin");
 
     // Restart tile animations
     for (Tileset& tileset : Scene::Tilesets)

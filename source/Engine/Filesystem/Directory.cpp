@@ -16,7 +16,7 @@ bool CompareFunction(char* i, char* j) {
     return strcmp(i, j) < 0;
 }
 
-bool          Directory::Exists(const char* path) {
+bool Directory::Exists(const char* path) {
     #if WIN32
         DWORD ftyp = GetFileAttributesA(path);
         if (ftyp == INVALID_FILE_ATTRIBUTES) return false;  // Something is wrong with your path
@@ -30,7 +30,7 @@ bool          Directory::Exists(const char* path) {
     #endif
     return false;
 }
-bool          Directory::Create(const char* path) {
+bool Directory::Create(const char* path) {
     #if WIN32
         return CreateDirectoryA(path, NULL);
     #else
@@ -38,7 +38,7 @@ bool          Directory::Create(const char* path) {
     #endif
 }
 
-bool          Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
+bool Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
     #if WIN32
         return _getcwd(out, sz) != NULL;
     #else
@@ -46,7 +46,7 @@ bool          Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
     #endif
 }
 
-void          Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
+void Directory::GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
         snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
@@ -123,7 +123,7 @@ vector<char*> Directory::GetFiles(const char* path, const char* searchPattern, b
     return files;
 }
 
-void          Directory::GetDirectories(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
+void Directory::GetDirectories(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs) {
     #if WIN32
         char winPath[MAX_PATH_SIZE];
         snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");

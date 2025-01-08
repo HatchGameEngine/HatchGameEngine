@@ -1443,9 +1443,6 @@ void Application::LoadSceneInfo() {
     if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
         sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
     }
-    else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
-        sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
-    }
 
     // Parse Scene List
     if (sceneConfig) {
@@ -1499,8 +1496,6 @@ void Application::LoadSceneInfo() {
 
         XMLParser::Free(sceneConfig);
     }
-
-
 }
 
 void Application::InitPlayerControls() {
@@ -2073,7 +2068,7 @@ void Application::DevMenu_CategorySelectMenu() {
     if (InputManager::GetActionID("Up") != -1) {
         if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
             if (--DevMenu.SubSelection < 0)
-                DevMenu.SubSelection += (int)SceneInfo::Categories.size();
+                DevMenu.SubSelection += (int)SceneInfo::Categories.size() - 1;
 
             if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
                 if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
@@ -2099,7 +2094,7 @@ void Application::DevMenu_CategorySelectMenu() {
             }
             else {
                 if (--DevMenu.SubSelection < 0)
-                    DevMenu.SubSelection += (int)SceneInfo::Categories.size();
+                    DevMenu.SubSelection += (int)SceneInfo::Categories.size() - 1;
 
                 DevMenu.Timer = (DevMenu.Timer + 1) & 7;
 
@@ -2526,5 +2521,84 @@ void Application::DevMenu_DebugMenu() {
 }
 
 void Application::DevMenu_ModsMenu() {
+    DevMenu_DrawMainMenu();
 
+    View view = Scene::Views[0];
+
+    int selectedMod[] = { false, false, false, false, false, false, false, };
+
+    selectedMod[DevMenu.SubSelection - DevMenu.SubScrollPos] = true;
+
+    DrawDevString("Select Mod...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+
+    int y = 93;
+    ModInfo* mod = &ResourceManager::Mods[DevMenu.ListPos];
+    for (int i = 0; i < 7; i++) {
+        if (DevMenu.SubScrollPos + i < ResourceManager::Mods.size()) {
+            DrawDevString(ResourceManager::Mods[DevMenu.SubScrollPos + i].Name.c_str(), 160, y, 0, selectedMod[(int)i]);
+            y += 15;
+        }
+    }
+
+    if (InputManager::GetActionID("Up") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
+            if (--DevMenu.SubSelection < 0)
+                DevMenu.SubSelection = ResourceManager::Mods.size() - 1;
+
+            if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+                if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+                    DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+            }
+            else {
+                DevMenu.SubScrollPos = DevMenu.SubSelection;
+            }
+
+            DevMenu.Timer = 1;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
+            if (!DevMenu.Timer && --DevMenu.SubSelection < 0)
+                DevMenu.SubSelection = ResourceManager::Mods.size() - 1;
+
+            DevMenu.Timer = (DevMenu.Timer + 1) & 7;
+
+            if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+                if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+                    DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+            }
+            else {
+                DevMenu.SubScrollPos = DevMenu.SubSelection;
+            }
+        }
+    }
+
+    if (InputManager::GetActionID("Down") != -1) {
+        if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
+            if (++DevMenu.SubSelection >= ResourceManager::Mods.size())
+                DevMenu.SubSelection = 0;
+
+            if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+                if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+                    DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+            }
+            else {
+                DevMenu.SubScrollPos = DevMenu.SubSelection;
+            }
+
+            DevMenu.Timer = 1;
+        }
+        else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
+            if (!DevMenu.Timer && ++DevMenu.SubSelection >= ResourceManager::Mods.size())
+                DevMenu.SubSelection = 0;
+
+            DevMenu.Timer = (DevMenu.Timer + 1) & 7;
+
+            if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+                if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+                    DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+            }
+            else {
+                DevMenu.SubScrollPos = DevMenu.SubSelection;
+            }
+        }
+    }
 }
