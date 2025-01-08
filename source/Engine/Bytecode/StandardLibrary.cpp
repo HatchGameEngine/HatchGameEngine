@@ -15333,11 +15333,11 @@ VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 
     if (!resource)
         return NULL_VAL;
-    delete resource;
 
-    if (!resource->AsMedia)
-        return NULL_VAL;
-    delete resource->AsMedia;
+    if (resource->AsMedia)
+        delete resource->AsMedia;
+
+    delete resource;
 
     return NULL_VAL;
 }
