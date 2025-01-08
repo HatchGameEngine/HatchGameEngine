@@ -15,8 +15,6 @@ void SceneInfo::Dispose() {
     Categories.clear();
 
     NumTotalScenes = 0;
-
-    SceneInfo::Init();
 }
 
 SceneListCategory* SceneInfo::NewCategory(std::string name) {
