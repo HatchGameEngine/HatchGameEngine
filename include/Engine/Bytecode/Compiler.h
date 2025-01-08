@@ -6,7 +6,7 @@
 
 class Compiler {
 private:
-    void WarnVariablesUnused();
+    void WarnVariablesUnusedUnset();
     void WriteBytecode(Stream* stream, const char* filename);
 
 public:
@@ -15,6 +15,8 @@ public:
     static ParseRule*           Rules;
     static vector<ObjFunction*> Functions;
     static vector<Local>        ModuleLocals;
+    static vector<Local>        ModuleConstants;
+    static HashMap<VMValue>*    StandardConstants;
     static HashMap<Token>*      TokenMap;
     static bool                 DoLogging;
     static bool                 ShowWarnings;
@@ -26,11 +28,13 @@ public:
     int Type = 0;
     string ClassName;
     Local Locals[0x100];
+    vector<Local> Constants;
     int LocalCount = 0;
     int ScopeDepth = 0;
     vector<Uint32> ClassHashList;
     vector<Uint32> ClassExtendedList;
     vector<Local>* UnusedVariables = nullptr;
+    vector<Local>* UnsetVariables = nullptr;
 
     Token MakeToken(int type);
     Token MakeTokenRaw(int type, const char* message);
@@ -69,14 +73,14 @@ public:
     void ErrorAtCurrent(const char* message);
     void Warning(const char* message);
     void WarningInFunction(const char* format, ...);
-    void ParseVariable(const char* errorMessage);
+    int ParseVariable(const char* errorMessage, bool constant);
     bool IdentifiersEqual(Token* a, Token* b);
     void MarkInitialized();
-    void DefineVariableToken(Token global);
-    void DeclareVariable(Token* name);
-    int ParseModuleVariable(const char* errorMessage);
+    void DefineVariableToken(Token global, bool constant);
+    int DeclareVariable(Token* name, bool constant);
+    int ParseModuleVariable(const char* errorMessage, bool constant);
     void DefineModuleVariable(int local);
-    int DeclareModuleVariable(Token* name);
+    int DeclareModuleVariable(Token* name, bool constant);
     void EmitSetOperation(Uint8 setOp, int arg, Token name);
     void EmitGetOperation(Uint8 getOp, int arg, Token name);
     void EmitAssignmentToken(Token assignmentToken);
@@ -95,9 +99,9 @@ public:
     void RenameLocal(Local* local, const char* name, size_t len);
     void RenameLocal(Local* local, const char* name);
     void RenameLocal(Local* local, Token name);
-    int ResolveLocal(Token* name);
+    int ResolveLocal(Token* name, Local* result = NULL);
     int AddModuleLocal(Token name);
-    int ResolveModuleLocal(Token* name);
+    int ResolveModuleLocal(Token* name, Local* result = NULL);
     Uint8 GetArgumentList();
     void GetThis(bool canAssign);
     void GetSuper(bool canAssign);
@@ -145,7 +149,7 @@ public:
     int GetFunction(int type, string className);
     int GetFunction(int type);
     void GetMethod(Token className);
-    void GetVariableDeclaration();
+    void GetVariableDeclaration(bool constant);
     void GetModuleVariableDeclaration();
     void GetPropertyDeclaration(Token propertyName);
     void GetClassDeclaration();
@@ -165,8 +169,11 @@ public:
     void EmitBytes(Uint8 byte1, Uint8 byte2);
     void EmitUint16(Uint16 value);
     void EmitUint32(Uint32 value);
+    void EmitSint32(Sint32 value);
+    void EmitFloat(float value);
     int GetConstantIndex(VMValue value);
     int EmitConstant(VMValue value);
+    static bool GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value = NULL, int* index = NULL);
     void EmitLoop(int loopStart);
     int GetJump(int offset);
     int GetPosition();
@@ -190,10 +197,10 @@ public:
     void SetReceiverName(Token name);
     int CheckInfixOptimize(int preCount, int preConstant, ParseFn fn);
     int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
-    static int GetTotalOpcodeSize(uint8_t op);
+    static int GetTotalOpcodeSize(uint8_t* op);
     static int HashInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset);
-    static int SimpleInstruction(uint8_t opcode, int offset);
+    static int SimpleInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int ByteInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int ShortInstruction(uint8_t opcode, Chunk* chunk, int offset);
     static int LocalInstruction(uint8_t opcode, Chunk* chunk, int offset);
@@ -206,6 +213,7 @@ public:
     static int DebugInstruction(Chunk* chunk, int offset);
     static void DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity);
     static void Init();
+    static void GetStandardConstants();
     static void PrepareCompiling();
     void Initialize(Compiler* enclosing, int scope, int type);
     bool Compile(const char* filename, const char* source, const char* output);

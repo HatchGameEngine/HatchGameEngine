@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -276,6 +277,8 @@ void              Chunk::Init() {
     Capacity = 0;
     Code = NULL;
     Lines = NULL;
+    OpcodeFuncs = NULL;
+    IPToOpcode = NULL;
     Constants = new vector<VMValue>();
 }
 void              Chunk::Alloc() {
@@ -310,7 +313,122 @@ void              Chunk::Free() {
         Constants->shrink_to_fit();
         delete Constants;
     }
+
+#if USING_VM_FUNCPTRS
+    if (OpcodeFuncs) {
+        Memory::Free(OpcodeFuncs);
+        Memory::Free(IPToOpcode);
+        OpcodeFuncs = NULL;
+        IPToOpcode = NULL;
+        OpcodeCount = 0;
+    }
+#endif
 }
+#if USING_VM_FUNCPTRS
+#define OPCASE(op) case op: func = &VMThread::OPFUNC_ ## op; break
+void              Chunk::SetupOpfuncs()
+{
+    if (!OpcodeCount) {
+        // try to get it manually thru iterating it (for version <= 2 bytecode)
+        for (int offset = 0; offset < Count;) {
+            offset += Compiler::GetTotalOpcodeSize(Code + offset);
+            OpcodeCount++;
+        }
+    }
+
+    OpcodeFuncs = (OpcodeFunc*)Memory::TrackedMalloc("Chunk::OpcodeFuncs", sizeof(OpcodeFunc) * OpcodeCount);
+    IPToOpcode = (int*)Memory::TrackedMalloc("Chunk::IPToOpcode", sizeof(int) * Count);
+    int offset = 0;
+    for (int i = 0; i < OpcodeCount; i++) {
+        Uint8 op = *(Code + offset);
+        IPToOpcode[offset] = i;
+        offset += Compiler::GetTotalOpcodeSize(Code + offset);
+        OpcodeFunc func = NULL;
+        switch (op) {
+            OPCASE(OP_ERROR);
+            OPCASE(OP_CONSTANT);
+            OPCASE(OP_DEFINE_GLOBAL);
+            OPCASE(OP_GET_PROPERTY);
+            OPCASE(OP_SET_PROPERTY);
+            OPCASE(OP_GET_GLOBAL);
+            OPCASE(OP_SET_GLOBAL);
+            OPCASE(OP_GET_LOCAL);
+            OPCASE(OP_SET_LOCAL);
+            OPCASE(OP_PRINT_STACK);
+            OPCASE(OP_INHERIT);
+            OPCASE(OP_RETURN);
+            OPCASE(OP_METHOD);
+            OPCASE(OP_CLASS);
+            OPCASE(OP_CALL);
+            OPCASE(OP_SUPER);
+            OPCASE(OP_INVOKE);
+            OPCASE(OP_JUMP);
+            OPCASE(OP_JUMP_IF_FALSE);
+            OPCASE(OP_JUMP_BACK);
+            OPCASE(OP_POP);
+            OPCASE(OP_COPY);
+            OPCASE(OP_ADD);
+            OPCASE(OP_SUBTRACT);
+            OPCASE(OP_MULTIPLY);
+            OPCASE(OP_DIVIDE);
+            OPCASE(OP_MODULO);
+            OPCASE(OP_NEGATE);
+            OPCASE(OP_INCREMENT);
+            OPCASE(OP_DECREMENT);
+            OPCASE(OP_BITSHIFT_LEFT);
+            OPCASE(OP_BITSHIFT_RIGHT);
+            OPCASE(OP_NULL);
+            OPCASE(OP_TRUE);
+            OPCASE(OP_FALSE);
+            OPCASE(OP_BW_NOT);
+            OPCASE(OP_BW_AND);
+            OPCASE(OP_BW_OR);
+            OPCASE(OP_BW_XOR);
+            OPCASE(OP_LG_NOT);
+            OPCASE(OP_LG_AND);
+            OPCASE(OP_LG_OR);
+            OPCASE(OP_EQUAL);
+            OPCASE(OP_EQUAL_NOT);
+            OPCASE(OP_GREATER);
+            OPCASE(OP_GREATER_EQUAL);
+            OPCASE(OP_LESS);
+            OPCASE(OP_LESS_EQUAL);
+            OPCASE(OP_PRINT);
+            OPCASE(OP_ENUM_NEXT);
+            OPCASE(OP_SAVE_VALUE);
+            OPCASE(OP_LOAD_VALUE);
+            OPCASE(OP_WITH);
+            OPCASE(OP_GET_ELEMENT);
+            OPCASE(OP_SET_ELEMENT);
+            OPCASE(OP_NEW_ARRAY);
+            OPCASE(OP_NEW_MAP);
+            OPCASE(OP_SWITCH_TABLE);
+            OPCASE(OP_FAILSAFE);
+            OPCASE(OP_EVENT);
+            OPCASE(OP_TYPEOF);
+            OPCASE(OP_NEW);
+            OPCASE(OP_IMPORT);
+            OPCASE(OP_SWITCH);
+            OPCASE(OP_POPN);
+            OPCASE(OP_HAS_PROPERTY);
+            OPCASE(OP_IMPORT_MODULE);
+            OPCASE(OP_ADD_ENUM);
+            OPCASE(OP_NEW_ENUM);
+            OPCASE(OP_GET_SUPERCLASS);
+            OPCASE(OP_GET_MODULE_LOCAL);
+            OPCASE(OP_SET_MODULE_LOCAL);
+            OPCASE(OP_DEFINE_MODULE_LOCAL);
+            OPCASE(OP_USE_NAMESPACE);
+            OPCASE(OP_DEFINE_CONSTANT);
+            OPCASE(OP_INTEGER);
+            OPCASE(OP_DECIMAL);
+        }
+        assert((func != NULL));
+        OpcodeFuncs[i] = func;
+    }
+}
+#undef OPCASE
+#endif
 void              Chunk::Write(Uint8 byte, int line) {
     if (Capacity < Count + 1) {
         int oldCapacity = Capacity;

@@ -5790,7 +5790,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
 
         if (!IS_ARRAY(vtxVal)) {
             THROW_ERROR("Expected value at index %d of %s to be of type %s instead of %s.", i, arrName, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(vtxVal));
-            return {};
+            input.clear();
+            break;
         }
 
         ObjArray* vtx = AS_ARRAY(vtxVal);
@@ -5806,7 +5807,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
             x = (float)(AS_INTEGER(xVal));
         else {
             THROW_ERROR("Expected X value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 0, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(xVal));
-            return {};
+            input.clear();
+            break;
         }
 
         // Get Y
@@ -5816,7 +5818,8 @@ static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, i
             y = (float)(AS_INTEGER(yVal));
         else {
             THROW_ERROR("Expected Y value (index %d) at vertex index %d of %s to be of type %s instead of %s.", 1, i, arrName, GetTypeString(VAL_DECIMAL), GetValueTypeString(yVal));
-            return {};
+            input.clear();
+            break;
         }
 
         FVector2 vec(x, y);
@@ -6872,7 +6875,7 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(2);
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
-    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(2, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
@@ -6964,7 +6967,7 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int inputBindType = GET_ARG(2, GetInteger);
-    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
@@ -7169,7 +7172,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
     int playerID = GET_ARG(0, GetInteger);
     char* actionName = GET_ARG(1, GetString);
     int inputBindType = GET_ARG(2, GetInteger);
-    int bindIndex = GET_ARG_OPT(4, GetInteger, 0);
+    int bindIndex = GET_ARG_OPT(3, GetInteger, 0);
 
     CHECK_INPUT_PLAYER_INDEX(playerID);
 
@@ -11083,7 +11086,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
     if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
-        Animation* animation = animator->CurrentAnimation;
+        Animation* animation = animator->GetCurrentAnimation();
         for (int i = 0; i < animation->Frames.size(); i++) {
             int x = animation->Frames[i].X / tileset->TileWidth;
             int y = animation->Frames[i].Y / tileset->TileHeight;
@@ -11117,7 +11120,7 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
     if (ScriptManager::Lock()) {
         ObjArray* array = NewArray();
         ISprite* tileSprite = animator->Sprite;
-        Animation* animation = animator->CurrentAnimation;
+        Animation* animation = animator->GetCurrentAnimation();
         for (int i = 0; i < animation->Frames.size(); i++)
             array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
         ScriptManager::Unlock();

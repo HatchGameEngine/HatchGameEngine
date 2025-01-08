@@ -6,10 +6,8 @@
 
 struct TileAnimator {
     TileSpriteInfo* TileInfo = nullptr;
-    vector<Animation>* Animations = nullptr;
     ISprite* Sprite = nullptr;
 
-    Animation* CurrentAnimation = nullptr;
     int AnimationIndex = -1;
     int FrameIndex = -1;
     int FrameCount = 0;
@@ -24,24 +22,27 @@ struct TileAnimator {
     TileAnimator(TileSpriteInfo* tileSpriteInfo, ISprite* sprite, int animationID) {
         TileInfo = tileSpriteInfo;
         Sprite = sprite;
-        Animations = &sprite->Animations;
         SetAnimation(animationID, 0);
     }
 
     void SetAnimation(int animation, int frame) {
-        if (animation < 0 || (size_t)animation >= Animations->size())
+        if (animation < 0 || (size_t)animation >= Sprite->Animations.size())
             return;
-        if (frame < 0 || (size_t)frame >= (*Animations)[animation].Frames.size())
+        if (frame < 0 || (size_t)frame >= Sprite->Animations[animation].Frames.size())
             return;
 
+        Animation* animationPtr = &Sprite->Animations[animation];
         AnimationIndex = animation;
-        CurrentAnimation = &((*Animations)[AnimationIndex]);
         FrameIndex = frame;
-        FrameDuration = CurrentAnimation->Frames[FrameIndex].Duration;
-        FrameCount = (int)CurrentAnimation->Frames.size();
-        LoopIndex = CurrentAnimation->FrameToLoop;
-        Speed = CurrentAnimation->AnimationSpeed;
+        FrameDuration = animationPtr->Frames[FrameIndex].Duration;
+        FrameCount = (int)animationPtr->Frames.size();
+        LoopIndex = animationPtr->FrameToLoop;
+        Speed = animationPtr->AnimationSpeed;
         Timer = 0.0;
+    }
+
+    Animation* GetCurrentAnimation() {
+        return &Sprite->Animations[AnimationIndex];
     }
 
     void RestartAnimation() {
@@ -67,7 +68,7 @@ struct TileAnimator {
 
             UpdateTile();
 
-            FrameDuration = CurrentAnimation->Frames[FrameIndex].Duration;
+            FrameDuration = Sprite->Animations[AnimationIndex].Frames[FrameIndex].Duration;
         }
     }
 };

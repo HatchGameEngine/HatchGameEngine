@@ -15,10 +15,12 @@
 
 Parser               Compiler::parser;
 Scanner              Compiler::scanner;
-ParseRule*           Compiler::Rules = NULL;
+ParseRule* Compiler::Rules = NULL;
 vector<ObjFunction*> Compiler::Functions;
 vector<Local>        Compiler::ModuleLocals;
-HashMap<Token>*      Compiler::TokenMap = NULL;
+vector<Local>        Compiler::ModuleConstants;
+HashMap<VMValue>* Compiler::StandardConstants = NULL;
+HashMap<Token>* Compiler::TokenMap = NULL;
 
 bool                 Compiler::DoLogging = false;
 bool                 Compiler::ShowWarnings = false;
@@ -102,7 +104,10 @@ static const char* opcodeNames[] = {
     "OP_GET_MODULE_LOCAL",
     "OP_SET_MODULE_LOCAL",
     "OP_DEFINE_MODULE_LOCAL",
-    "OP_USE_NAMESPACE"
+    "OP_USE_NAMESPACE",
+    "OP_DEFINE_CONSTANT",
+    "OP_INTEGER",
+    "OP_DECIMAL"
 };
 
 // Order these by C/C++ precedence operators
@@ -182,6 +187,7 @@ enum TokenTYPE {
     TOKEN_VAR,
     TOKEN_STATIC,
     TOKEN_LOCAL,
+    TOKEN_CONST,
 
     // Keywords.
     TOKEN_DO,
@@ -300,53 +306,52 @@ void  Compiler::SkipWhitespace() {
     while (true) {
         char c = PeekChar();
         switch (c) {
-            case ' ':
-            case '\r':
-            case '\t':
-                AdvanceChar(); // char in 'c'
-                break;
+        case ' ':
+        case '\r':
+        case '\t':
+            AdvanceChar(); // char in 'c'
+            break;
 
-            case '\n':
-                scanner.Line++;
-                AdvanceChar(); // char in 'c'
-                scanner.LinePos = scanner.Current;
-                break;
+        case '\n':
+            scanner.Line++;
+            AdvanceChar(); // char in 'c'
+            scanner.LinePos = scanner.Current;
+            break;
 
-            case '/':
-                if (PeekNextChar() == '/') {
-                    AdvanceChar(); // char in 'c'
-                    AdvanceChar(); // '/'
-                    while (PeekChar() != '\n' && !IsEOF()) AdvanceChar();
-                }
-                else if (PeekNextChar() == '*') {
-                    AdvanceChar(); // char in 'c'
-                    AdvanceChar(); // '*'
-                    do {
-                        if (PeekChar() == '\n') {
-                            scanner.Line++;
-                            AdvanceChar();
-                            scanner.LinePos = scanner.Current;
-                        }
-                        else if (PeekChar() == '*') {
-                            AdvanceChar(); // '*'
-                            if (PeekChar() == '/') {
-                                break;
-                            }
-                        }
-                        else {
-                            AdvanceChar();
+        case '/':
+            if (PeekNextChar() == '/') {
+                AdvanceChar(); // char in 'c'
+                AdvanceChar(); // '/'
+                while (PeekChar() != '\n' && !IsEOF()) AdvanceChar();
+            }
+            else if (PeekNextChar() == '*') {
+                AdvanceChar(); // char in 'c'
+                AdvanceChar(); // '*'
+                do {
+                    if (PeekChar() == '\n') {
+                        scanner.Line++;
+                        AdvanceChar();
+                        scanner.LinePos = scanner.Current;
+                    }
+                    else if (PeekChar() == '*') {
+                        AdvanceChar(); // '*'
+                        if (PeekChar() == '/') {
+                            break;
                         }
                     }
-                    while (!IsEOF());
+                    else {
+                        AdvanceChar();
+                    }
+                } while (!IsEOF());
 
-                    if (!IsEOF()) AdvanceChar();
-                }
-                else
-                    return;
-                break;
-
-            default:
+                if (!IsEOF()) AdvanceChar();
+            }
+            else
                 return;
+            break;
+
+        default:
+            return;
         }
     }
 }
@@ -361,149 +366,163 @@ int           Compiler::CheckKeyword(int start, int length, const char* rest, in
 }
 int   Compiler::GetKeywordType() {
     switch (*scanner.Start) {
-        case 'a':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'n': return CheckKeyword(2, 1, "d", TOKEN_AND);
-                    case 's': return CheckKeyword(2, 0, NULL, TOKEN_AS);
-                }
+    case 'a':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'n': return CheckKeyword(2, 1, "d", TOKEN_AND);
+            case 's': return CheckKeyword(2, 0, NULL, TOKEN_AS);
             }
-            break;
-        case 'b':
-            return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
-        case 'c':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'a': return CheckKeyword(2, 2, "se", TOKEN_CASE);
-                    case 'l': return CheckKeyword(2, 3, "ass", TOKEN_CLASS);
-                    case 'o': return CheckKeyword(2, 6, "ntinue", TOKEN_CONTINUE);
-                }
-            }
-            break;
-        case 'd':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'e': return CheckKeyword(2, 5, "fault", TOKEN_DEFAULT);
-                    case 'o': return CheckKeyword(2, 0, NULL, TOKEN_DO);
-                }
-            }
-            break;
-        case 'e':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'l': return CheckKeyword(2, 2, "se", TOKEN_ELSE);
-                    case 'n': return CheckKeyword(2, 2, "um", TOKEN_ENUM);
-                    case 'v': return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
-                }
-            }
-            break;
-        case 'f':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'a': return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
-                    case 'o':
-                        if (scanner.Current - scanner.Start > 2) {
-                            switch (*(scanner.Start + 2)) {
-                                case 'r':
-                                    if (scanner.Current - scanner.Start > 3) {
-                                        switch (*(scanner.Start + 3)) {
-                                            case 'e': return CheckKeyword(4, 3, "ach", TOKEN_FOREACH);
-                                        }
-                                    }
-                                    return CheckKeyword(3, 0, NULL, TOKEN_FOR);
+        }
+        break;
+    case 'b':
+        return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
+    case 'c':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'a': return CheckKeyword(2, 2, "se", TOKEN_CASE);
+            case 'l': return CheckKeyword(2, 3, "ass", TOKEN_CLASS);
+            case 'o': {
+                if (scanner.Current - scanner.Start > 2) {
+                    switch (*(scanner.Start + 2)) {
+                    case 'n':
+                        if (scanner.Current - scanner.Start > 3) {
+                            switch (*(scanner.Start + 3)) {
+                            case 't':
+                                return CheckKeyword(4, 4, "inue", TOKEN_CONTINUE);
+                            case 's':
+                                return CheckKeyword(4, 1, "t", TOKEN_CONST);
                             }
                         }
-                        break;
-                    case 'r': return CheckKeyword(2, 2, "om", TOKEN_FROM);
+                    }
                 }
             }
-            break;
-        case 'h':
-            return CheckKeyword(1, 2, "as", TOKEN_HAS);
-        case 'i':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'f': return CheckKeyword(2, 0, NULL, TOKEN_IF);
-                    case 'n': return CheckKeyword(2, 0, NULL, TOKEN_IN);
-                    case 'm': return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
-                }
             }
-            break;
-        case 'l':
-            return CheckKeyword(1, 4, "ocal", TOKEN_LOCAL);
-        case 'n':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'a': return CheckKeyword(2, 7, "mespace", TOKEN_NAMESPACE);
-                    case 'u': return CheckKeyword(2, 2, "ll", TOKEN_NULL);
-                    case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
-                }
+        }
+        break;
+    case 'd':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'e': return CheckKeyword(2, 5, "fault", TOKEN_DEFAULT);
+            case 'o': return CheckKeyword(2, 0, NULL, TOKEN_DO);
             }
-            break;
-        case 'o':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'r': return CheckKeyword(2, 0, NULL, TOKEN_OR);
-                }
+        }
+        break;
+    case 'e':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'l': return CheckKeyword(2, 2, "se", TOKEN_ELSE);
+            case 'n': return CheckKeyword(2, 2, "um", TOKEN_ENUM);
+            case 'v': return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
             }
-            break;
-        case 'p':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'r': return CheckKeyword(2, 3, "int", TOKEN_PRINT);
-                }
-            }
-            break;
-        case 'r':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'e':
-                        if (scanner.Current - scanner.Start > 2) {
-                            switch (*(scanner.Start + 2)) {
-                                case 't': return CheckKeyword(3, 3, "urn", TOKEN_RETURN);
-                                case 'p': return CheckKeyword(3, 3, "eat", TOKEN_REPEAT);
+        }
+        break;
+    case 'f':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'a': return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
+            case 'o':
+                if (scanner.Current - scanner.Start > 2) {
+                    switch (*(scanner.Start + 2)) {
+                    case 'r':
+                        if (scanner.Current - scanner.Start > 3) {
+                            switch (*(scanner.Start + 3)) {
+                            case 'e': return CheckKeyword(4, 3, "ach", TOKEN_FOREACH);
                             }
                         }
-                        break;
+                        return CheckKeyword(3, 0, NULL, TOKEN_FOR);
+                    }
                 }
+                break;
+            case 'r': return CheckKeyword(2, 2, "om", TOKEN_FROM);
             }
-            break;
-        case 's':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 't': return CheckKeyword(2, 4, "atic", TOKEN_STATIC);
-                    case 'u':
-                        if (scanner.Current - scanner.Start > 2) {
-                            switch (*(scanner.Start + 2)) {
-                                case 'p': return CheckKeyword(3, 2, "er", TOKEN_SUPER);
-                            }
-                        }
-                        break;
-                    case 'w': return CheckKeyword(2, 4, "itch", TOKEN_SWITCH);
+        }
+        break;
+    case 'h':
+        return CheckKeyword(1, 2, "as", TOKEN_HAS);
+    case 'i':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'f': return CheckKeyword(2, 0, NULL, TOKEN_IF);
+            case 'n': return CheckKeyword(2, 0, NULL, TOKEN_IN);
+            case 'm': return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
+            }
+        }
+        break;
+    case 'l':
+        return CheckKeyword(1, 4, "ocal", TOKEN_LOCAL);
+    case 'n':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'a': return CheckKeyword(2, 7, "mespace", TOKEN_NAMESPACE);
+            case 'u': return CheckKeyword(2, 2, "ll", TOKEN_NULL);
+            case 'e': return CheckKeyword(2, 1, "w", TOKEN_NEW);
+            }
+        }
+        break;
+    case 'o':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'r': return CheckKeyword(2, 0, NULL, TOKEN_OR);
+            }
+        }
+        break;
+    case 'p':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'r': return CheckKeyword(2, 3, "int", TOKEN_PRINT);
+            }
+        }
+        break;
+    case 'r':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'e':
+                if (scanner.Current - scanner.Start > 2) {
+                    switch (*(scanner.Start + 2)) {
+                    case 't': return CheckKeyword(3, 3, "urn", TOKEN_RETURN);
+                    case 'p': return CheckKeyword(3, 3, "eat", TOKEN_REPEAT);
+                    }
                 }
+                break;
             }
-            break;
-        case 't':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'h': return CheckKeyword(2, 2, "is", TOKEN_THIS);
-                    case 'r': return CheckKeyword(2, 2, "ue", TOKEN_TRUE);
-                    case 'y': return CheckKeyword(2, 4, "peof", TOKEN_TYPEOF);
+        }
+        break;
+    case 's':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 't': return CheckKeyword(2, 4, "atic", TOKEN_STATIC);
+            case 'u':
+                if (scanner.Current - scanner.Start > 2) {
+                    switch (*(scanner.Start + 2)) {
+                    case 'p': return CheckKeyword(3, 2, "er", TOKEN_SUPER);
+                    }
                 }
+                break;
+            case 'w': return CheckKeyword(2, 4, "itch", TOKEN_SWITCH);
             }
-            break;
-        case 'u':
-            return CheckKeyword(1, 4, "sing", TOKEN_USING);
-        case 'v':
-            return CheckKeyword(1, 2, "ar", TOKEN_VAR);
-        case 'w':
-            if (scanner.Current - scanner.Start > 1) {
-                switch (*(scanner.Start + 1)) {
-                    case 'i': return CheckKeyword(2, 2, "th", TOKEN_WITH);
-                    case 'h': return CheckKeyword(2, 3, "ile", TOKEN_WHILE);
-                }
+        }
+        break;
+    case 't':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'h': return CheckKeyword(2, 2, "is", TOKEN_THIS);
+            case 'r': return CheckKeyword(2, 2, "ue", TOKEN_TRUE);
+            case 'y': return CheckKeyword(2, 4, "peof", TOKEN_TYPEOF);
             }
-            break;
+        }
+        break;
+    case 'u':
+        return CheckKeyword(1, 4, "sing", TOKEN_USING);
+    case 'v':
+        return CheckKeyword(1, 2, "ar", TOKEN_VAR);
+    case 'w':
+        if (scanner.Current - scanner.Start > 1) {
+            switch (*(scanner.Start + 1)) {
+            case 'i': return CheckKeyword(2, 2, "th", TOKEN_WITH);
+            case 'h': return CheckKeyword(2, 3, "ile", TOKEN_WHILE);
+            }
+        }
+        break;
     }
 
     return TOKEN_IDENTIFIER;
@@ -514,13 +533,13 @@ Token         Compiler::StringToken() {
         bool lineBreak = false;
         switch (PeekChar()) {
             // Line Break
-            case '\n':
-                lineBreak = true;
-                break;
+        case '\n':
+            lineBreak = true;
+            break;
             // Escaped
-            case '\\':
-                AdvanceChar();
-                break;
+        case '\\':
+            AdvanceChar();
+            break;
         }
 
         AdvanceChar();
@@ -580,34 +599,34 @@ Token Compiler::ScanToken() {
     if (IsIdentifierStart(c)) return IdentifierToken();
 
     switch (c) {
-        case '(': return MakeToken(TOKEN_LEFT_PAREN);
-        case ')': return MakeToken(TOKEN_RIGHT_PAREN);
-        case '{': return MakeToken(TOKEN_LEFT_BRACE);
-        case '}': return MakeToken(TOKEN_RIGHT_BRACE);
-        case '[': return MakeToken(TOKEN_LEFT_SQUARE_BRACE);
-        case ']': return MakeToken(TOKEN_RIGHT_SQUARE_BRACE);
-        case ';': return MakeToken(TOKEN_SEMICOLON);
-        case ',': return MakeToken(TOKEN_COMMA);
-        case '.': return MakeToken(TOKEN_DOT);
-        case ':': return MakeToken(TOKEN_COLON);
-        case '?': return MakeToken(TOKEN_TERNARY);
-        case '~': return MakeToken(TOKEN_BITWISE_NOT);
+    case '(': return MakeToken(TOKEN_LEFT_PAREN);
+    case ')': return MakeToken(TOKEN_RIGHT_PAREN);
+    case '{': return MakeToken(TOKEN_LEFT_BRACE);
+    case '}': return MakeToken(TOKEN_RIGHT_BRACE);
+    case '[': return MakeToken(TOKEN_LEFT_SQUARE_BRACE);
+    case ']': return MakeToken(TOKEN_RIGHT_SQUARE_BRACE);
+    case ';': return MakeToken(TOKEN_SEMICOLON);
+    case ',': return MakeToken(TOKEN_COMMA);
+    case '.': return MakeToken(TOKEN_DOT);
+    case ':': return MakeToken(TOKEN_COLON);
+    case '?': return MakeToken(TOKEN_TERNARY);
+    case '~': return MakeToken(TOKEN_BITWISE_NOT);
         // Two-char punctuations
-        case '!': return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS : TOKEN_LOGICAL_NOT);
-        case '=': return MakeToken(MatchChar('=') ? TOKEN_EQUALS : TOKEN_ASSIGNMENT);
+    case '!': return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS : TOKEN_LOGICAL_NOT);
+    case '=': return MakeToken(MatchChar('=') ? TOKEN_EQUALS : TOKEN_ASSIGNMENT);
 
-        case '*': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MULTIPLY : TOKEN_MULTIPLY);
-        case '/': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_DIVISION : TOKEN_DIVISION);
-        case '%': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MODULO : TOKEN_MODULO);
-        case '+': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_PLUS : MatchChar('+') ? TOKEN_INCREMENT : TOKEN_PLUS);
-        case '-': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MINUS : MatchChar('-') ? TOKEN_DECREMENT : TOKEN_MINUS);
-        case '<': return MakeToken(MatchChar('<') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_LEFT : TOKEN_BITWISE_LEFT : MatchChar('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-        case '>': return MakeToken(MatchChar('>') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_RIGHT : TOKEN_BITWISE_RIGHT : MatchChar('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
-        case '&': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_AND : MatchChar('&') ? TOKEN_LOGICAL_AND : TOKEN_BITWISE_AND);
-        case '|': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_OR : MatchChar('|') ? TOKEN_LOGICAL_OR  : TOKEN_BITWISE_OR);
-        case '^': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_XOR : TOKEN_BITWISE_XOR);
+    case '*': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MULTIPLY : TOKEN_MULTIPLY);
+    case '/': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_DIVISION : TOKEN_DIVISION);
+    case '%': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MODULO : TOKEN_MODULO);
+    case '+': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_PLUS : MatchChar('+') ? TOKEN_INCREMENT : TOKEN_PLUS);
+    case '-': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MINUS : MatchChar('-') ? TOKEN_DECREMENT : TOKEN_MINUS);
+    case '<': return MakeToken(MatchChar('<') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_LEFT : TOKEN_BITWISE_LEFT : MatchChar('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+    case '>': return MakeToken(MatchChar('>') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_RIGHT : TOKEN_BITWISE_RIGHT : MatchChar('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+    case '&': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_AND : MatchChar('&') ? TOKEN_LOGICAL_AND : TOKEN_BITWISE_AND);
+    case '|': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_OR : MatchChar('|') ? TOKEN_LOGICAL_OR : TOKEN_BITWISE_OR);
+    case '^': return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_XOR : TOKEN_BITWISE_XOR);
         // String
-        case '"': return StringToken();
+    case '"': return StringToken();
     }
 
     return ErrorToken("Unexpected character.");
@@ -654,27 +673,27 @@ bool          Compiler::MatchToken(int expectedType) {
 }
 bool          Compiler::MatchAssignmentToken() {
     switch (parser.Current.Type) {
-        case TOKEN_ASSIGNMENT:
-        case TOKEN_ASSIGNMENT_MULTIPLY:
-        case TOKEN_ASSIGNMENT_DIVISION:
-        case TOKEN_ASSIGNMENT_MODULO:
-        case TOKEN_ASSIGNMENT_PLUS:
-        case TOKEN_ASSIGNMENT_MINUS:
-        case TOKEN_ASSIGNMENT_BITWISE_LEFT:
-        case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
-        case TOKEN_ASSIGNMENT_BITWISE_AND:
-        case TOKEN_ASSIGNMENT_BITWISE_XOR:
-        case TOKEN_ASSIGNMENT_BITWISE_OR:
-            AdvanceToken();
-            return true;
+    case TOKEN_ASSIGNMENT:
+    case TOKEN_ASSIGNMENT_MULTIPLY:
+    case TOKEN_ASSIGNMENT_DIVISION:
+    case TOKEN_ASSIGNMENT_MODULO:
+    case TOKEN_ASSIGNMENT_PLUS:
+    case TOKEN_ASSIGNMENT_MINUS:
+    case TOKEN_ASSIGNMENT_BITWISE_LEFT:
+    case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
+    case TOKEN_ASSIGNMENT_BITWISE_AND:
+    case TOKEN_ASSIGNMENT_BITWISE_XOR:
+    case TOKEN_ASSIGNMENT_BITWISE_OR:
+        AdvanceToken();
+        return true;
 
-        case TOKEN_INCREMENT:
-        case TOKEN_DECREMENT:
-            AdvanceToken();
-            return true;
+    case TOKEN_INCREMENT:
+    case TOKEN_DECREMENT:
+        AdvanceToken();
+        return true;
 
-        default:
-            break;
+    default:
+        break;
     }
     return false;
 }
@@ -697,23 +716,23 @@ void          Compiler::SynchronizeToken() {
         if (PrevToken().Type == TOKEN_SEMICOLON) return;
 
         switch (PeekToken().Type) {
-            case TOKEN_IF:
-            case TOKEN_WHILE:
-            case TOKEN_DO:
-            case TOKEN_FOR:
-            case TOKEN_SWITCH:
-            case TOKEN_CASE:
-            case TOKEN_DEFAULT:
-            case TOKEN_RETURN:
-            case TOKEN_BREAK:
-            case TOKEN_CONTINUE:
-            case TOKEN_IMPORT:
-            case TOKEN_VAR:
-            case TOKEN_EVENT:
-            case TOKEN_PRINT:
-                return;
-            default:
-                break;
+        case TOKEN_IF:
+        case TOKEN_WHILE:
+        case TOKEN_DO:
+        case TOKEN_FOR:
+        case TOKEN_SWITCH:
+        case TOKEN_CASE:
+        case TOKEN_DEFAULT:
+        case TOKEN_RETURN:
+        case TOKEN_BREAK:
+        case TOKEN_CONTINUE:
+        case TOKEN_IMPORT:
+        case TOKEN_VAR:
+        case TOKEN_EVENT:
+        case TOKEN_PRINT:
+            return;
+        default:
+            break;
         }
 
         AdvanceToken();
@@ -733,43 +752,43 @@ bool          Compiler::ReportError(int line, int pos, bool fatal, const char* s
     vsnprintf(message, sizeof message, string, args);
     va_end(args);
 
-	char* textBuffer = (char*)malloc(512);
+    char* textBuffer = (char*)malloc(512);
 
-	PrintBuffer buffer;
-	buffer.Buffer = &textBuffer;
-	buffer.WriteIndex = 0;
-	buffer.BufferSize = 512;
+    PrintBuffer buffer;
+    buffer.Buffer = &textBuffer;
+    buffer.WriteIndex = 0;
+    buffer.BufferSize = 512;
 
-	buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
+    buffer_printf(&buffer, "In file '%s' on line %d, position %d:\n    %s\n\n", scanner.SourceFilename, line, pos, message);
 
-	if (!fatal) {
+    if (!fatal) {
         Log::Print(Log::LOG_WARN, textBuffer);
         free(textBuffer);
         return true;
     }
 
-	Log::Print(Log::LOG_ERROR, textBuffer);
+    Log::Print(Log::LOG_ERROR, textBuffer);
 
-	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit" },
-	};
+    const SDL_MessageBoxButtonData buttonsFatal[] = {
+        { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit" },
+    };
 
-	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR, NULL,
-		"Syntax Error",
-		textBuffer,
-		SDL_arraysize(buttonsFatal),
-		buttonsFatal,
-		NULL,
-	};
+    const SDL_MessageBoxData messageBoxData = {
+        SDL_MESSAGEBOX_ERROR, NULL,
+        "Syntax Error",
+        textBuffer,
+        SDL_arraysize(buttonsFatal),
+        buttonsFatal,
+        NULL,
+    };
 
     int buttonClicked;
-	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
+    SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
 
-	free(textBuffer);
+    free(textBuffer);
 
-	Application::Cleanup();
-	exit(-1);
+    Application::Cleanup();
+    exit(-1);
 
     return false;
 }
@@ -834,9 +853,9 @@ void          Compiler::WarningInFunction(const char* format, ...) {
     free(textBuffer);
 }
 
-void  Compiler::ParseVariable(const char* errorMessage) {
+int   Compiler::ParseVariable(const char* errorMessage, bool constant) {
     ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
-    DeclareVariable(&parser.Previous);
+    return DeclareVariable(&parser.Previous, constant);
 }
 bool  Compiler::IdentifiersEqual(Token* a, Token* b) {
     if (a->Length != b->Length) return false;
@@ -846,16 +865,17 @@ void  Compiler::MarkInitialized() {
     if (ScopeDepth == 0) return;
     Locals[LocalCount - 1].Depth = ScopeDepth;
 }
-void  Compiler::DefineVariableToken(Token global) {
+void  Compiler::DefineVariableToken(Token global, bool constant) {
     if (ScopeDepth > 0) {
-        MarkInitialized();
+        if (!constant)
+            MarkInitialized();
         return;
     }
-    EmitByte(OP_DEFINE_GLOBAL);
+    EmitByte(constant ? OP_DEFINE_CONSTANT : OP_DEFINE_GLOBAL);
     EmitStringHash(global);
 }
-void  Compiler::DeclareVariable(Token* name) {
-    if (ScopeDepth == 0) return;
+int  Compiler::DeclareVariable(Token* name, bool constant) {
+    if (ScopeDepth == 0) return -1;
 
     for (int i = LocalCount - 1; i >= 0; i--) {
         Local* local = &Locals[i];
@@ -867,17 +887,30 @@ void  Compiler::DeclareVariable(Token* name) {
             Error("Variable with this name already declared in this scope.");
     }
 
-    AddLocal(*name);
+    for (int i = Constants.size() - 1; i >= 0; i--) {
+        Local* local = &Constants[i];
+
+        if (local->Depth < ScopeDepth)
+            break;
+
+        if (IdentifiersEqual(name, &local->Name))
+            Error("Constant with this name already declared in this scope.");
+    }
+
+    if (!constant)
+        return AddLocal(*name);
+    Constants.push_back({ *name, ScopeDepth, false, false, true });
+    return ((int)Constants.size()) - 1;
 }
-int   Compiler::ParseModuleVariable(const char* errorMessage) {
+int   Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
     ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
-    return DeclareModuleVariable(&parser.Previous);
+    return DeclareModuleVariable(&parser.Previous, constant);
 }
 void  Compiler::DefineModuleVariable(int local) {
     EmitByte(OP_DEFINE_MODULE_LOCAL);
     Compiler::ModuleLocals[local].Depth = 0;
 }
-int   Compiler::DeclareModuleVariable(Token* name) {
+int   Compiler::DeclareModuleVariable(Token* name, bool constant) {
     for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
         Local& local = Compiler::ModuleLocals[i];
 
@@ -885,112 +918,134 @@ int   Compiler::DeclareModuleVariable(Token* name) {
             Error("Local with this name already declared in this module.");
     }
 
-    return AddModuleLocal(*name);
+    for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
+        Local& local = Compiler::ModuleConstants[i];
+
+        if (IdentifiersEqual(name, &local.Name))
+            Error("Local with this name already declared in this module.");
+    }
+
+    if (!constant)
+        return AddModuleLocal(*name);
+
+    Compiler::ModuleConstants.push_back({ *name, 0, false, false, true });
+    return ((int)Compiler::ModuleConstants.size()) - 1;
 }
-void Compiler::WarnVariablesUnused() {
+void Compiler::WarnVariablesUnusedUnset() {
     if (!Compiler::ShowWarnings)
         return;
 
     size_t numUnused = UnusedVariables->size();
-    if (numUnused == 0)
-        return;
-
     std::string message;
     char temp[4096];
-
-    for (int i = numUnused - 1; i >= 0; i--) {
-        Local& local = (*UnusedVariables)[i];
-        snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", (int)local.Name.Length, local.Name.Start, local.Name.Line);
-        message += std::string(temp);
-        if (i != 0)
-            message += "\n    ";
+    if (numUnused) {
+        for (int i = numUnused - 1; i >= 0; i--) {
+            Local& local = (*UnusedVariables)[i];
+            snprintf(temp, sizeof(temp), "Variable '%.*s' is unused. (Declared on line %d)", (int)local.Name.Length, local.Name.Start, local.Name.Line);
+            message += std::string(temp);
+            if (i != 0)
+                message += "\n    ";
+        }
     }
 
-    WarningInFunction("%s", message.c_str());
+    size_t numUnset = UnsetVariables->size();
+
+    if (numUnset) {
+        for (int i = numUnset - 1; i >= 0; i--) {
+            Local& local = (*UnsetVariables)[i];
+            snprintf(temp, sizeof(temp), "Variable '%.*s' can be const. (Declared on line %d)", (int)local.Name.Length, local.Name.Start, local.Name.Line);
+            message += std::string(temp);
+            if (i != 0 || numUnused)
+                message += "\n    ";
+        }
+    }
+
+    if (numUnset + numUnused != 0)
+        WarningInFunction("%s", message.c_str());
 }
 
 void  Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
     switch (setOp) {
-        case OP_SET_GLOBAL:
-        case OP_SET_PROPERTY:
-            EmitByte(setOp);
-            EmitStringHash(name);
-            break;
-        case OP_SET_LOCAL:
-            EmitBytes(setOp, (Uint8)arg);
-            break;
-        case OP_SET_ELEMENT:
-            EmitByte(setOp);
-            break;
-        case OP_SET_MODULE_LOCAL:
-            EmitByte(setOp);
-            EmitUint16((Uint16)arg);
-            break;
-        default:
-            break;
+    case OP_SET_GLOBAL:
+    case OP_SET_PROPERTY:
+        EmitByte(setOp);
+        EmitStringHash(name);
+        break;
+    case OP_SET_LOCAL:
+        EmitBytes(setOp, (Uint8)arg);
+        break;
+    case OP_SET_ELEMENT:
+        EmitByte(setOp);
+        break;
+    case OP_SET_MODULE_LOCAL:
+        EmitByte(setOp);
+        EmitUint16((Uint16)arg);
+        break;
+    default:
+        break;
     }
 }
 void  Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
     switch (getOp) {
-        case OP_GET_GLOBAL:
-        case OP_GET_PROPERTY:
-            EmitByte(getOp);
-            EmitStringHash(name);
-            break;
-        case OP_GET_LOCAL:
-            EmitBytes(getOp, (Uint8)arg);
-            break;
-        case OP_GET_ELEMENT:
-            EmitByte(getOp);
-            break;
-        case OP_GET_MODULE_LOCAL:
-            EmitByte(getOp);
-            EmitUint16((Uint16)arg);
-        default:
-            break;
+    case OP_GET_GLOBAL:
+    case OP_GET_PROPERTY:
+        EmitByte(getOp);
+        EmitStringHash(name);
+        break;
+    case OP_GET_LOCAL:
+        EmitBytes(getOp, (Uint8)arg);
+        break;
+    case OP_GET_ELEMENT:
+        EmitByte(getOp);
+        break;
+    case OP_GET_MODULE_LOCAL:
+        EmitByte(getOp);
+        EmitUint16((Uint16)arg);
+    default:
+        break;
     }
 }
 void  Compiler::EmitAssignmentToken(Token assignmentToken) {
     switch (assignmentToken.Type) {
-        case TOKEN_ASSIGNMENT_PLUS:
-            EmitByte(OP_ADD);
-            break;
-        case TOKEN_ASSIGNMENT_MINUS:
-            EmitByte(OP_SUBTRACT);
-            break;
-        case TOKEN_ASSIGNMENT_MODULO:
-            EmitByte(OP_MODULO);
-            break;
-        case TOKEN_ASSIGNMENT_DIVISION:
-            EmitByte(OP_DIVIDE);
-            break;
-        case TOKEN_ASSIGNMENT_MULTIPLY:
-            EmitByte(OP_MULTIPLY);
-            break;
-        case TOKEN_ASSIGNMENT_BITWISE_OR:
-            EmitByte(OP_BW_OR);
-            break;
-        case TOKEN_ASSIGNMENT_BITWISE_AND:
-            EmitByte(OP_BW_AND);
-            break;
-        case TOKEN_ASSIGNMENT_BITWISE_XOR:
-            EmitByte(OP_BW_XOR);
-            break;
-        case TOKEN_ASSIGNMENT_BITWISE_LEFT:
-            EmitByte(OP_BITSHIFT_LEFT);
-            break;
-        case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
-            EmitByte(OP_BITSHIFT_RIGHT);
-            break;
+    case TOKEN_ASSIGNMENT_PLUS:
+        EmitByte(OP_ADD);
+        break;
+    case TOKEN_ASSIGNMENT_MINUS:
+        EmitByte(OP_SUBTRACT);
+        break;
+    case TOKEN_ASSIGNMENT_MODULO:
+        EmitByte(OP_MODULO);
+        break;
+    case TOKEN_ASSIGNMENT_DIVISION:
+        EmitByte(OP_DIVIDE);
+        break;
+    case TOKEN_ASSIGNMENT_MULTIPLY:
+        EmitByte(OP_MULTIPLY);
+        break;
+    case TOKEN_ASSIGNMENT_BITWISE_OR:
+        EmitByte(OP_BW_OR);
+        break;
+    case TOKEN_ASSIGNMENT_BITWISE_AND:
+        EmitByte(OP_BW_AND);
+        break;
+    case TOKEN_ASSIGNMENT_BITWISE_XOR:
+        EmitByte(OP_BW_XOR);
+        break;
+    case TOKEN_ASSIGNMENT_BITWISE_LEFT:
+        EmitByte(OP_BITSHIFT_LEFT);
+        break;
+    case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
+        EmitByte(OP_BITSHIFT_RIGHT);
+        break;
 
-        case TOKEN_INCREMENT:
-            EmitByte(OP_INCREMENT);
-            break;
-        case TOKEN_DECREMENT:
-            EmitByte(OP_DECREMENT);
-            break;
-        default:
-            break;
+    case TOKEN_INCREMENT:
+        EmitByte(OP_INCREMENT);
+        break;
+    case TOKEN_DECREMENT:
+        EmitByte(OP_DECREMENT);
+        break;
+    default:
+        break;
     }
 }
 void  Compiler::EmitCopy(Uint8 count) {
@@ -998,7 +1053,7 @@ void  Compiler::EmitCopy(Uint8 count) {
     EmitByte(count);
 }
 
-void  Compiler::EmitCall(const char *name, int argCount, bool isSuper) {
+void  Compiler::EmitCall(const char* name, int argCount, bool isSuper) {
     EmitBytes(OP_INVOKE, argCount);
     EmitStringHash(name);
     EmitByte(isSuper ? 1 : 0);
@@ -1011,7 +1066,9 @@ void  Compiler::EmitCall(Token name, int argCount, bool isSuper) {
 
 void  Compiler::NamedVariable(Token name, bool canAssign) {
     Uint8 getOp, setOp;
-    int arg = ResolveLocal(&name);
+    Local local;
+    local.Constant = false;
+    int arg = ResolveLocal(&name, &local);
 
     // Determine whether local or global
     if (arg != -1) {
@@ -1019,10 +1076,15 @@ void  Compiler::NamedVariable(Token name, bool canAssign) {
         setOp = OP_SET_LOCAL;
     }
     else {
-        arg = ResolveModuleLocal(&name);
+        arg = ResolveModuleLocal(&name, &local);
+        VMValue value;
         if (arg != -1) {
             getOp = OP_GET_MODULE_LOCAL;
             setOp = OP_SET_MODULE_LOCAL;
+        }
+        else if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+            EmitConstant(value);
+            return;
         }
         else {
             getOp = OP_GET_GLOBAL;
@@ -1031,6 +1093,13 @@ void  Compiler::NamedVariable(Token name, bool canAssign) {
     }
 
     if (canAssign && MatchAssignmentToken()) {
+        if (local.Constant)
+            ErrorAt(&name, "Attempted to assign to constant!", true);
+        else if (getOp == OP_GET_LOCAL)
+            Locals[arg].WasSet = true;
+        else if (getOp == OP_GET_MODULE_LOCAL)
+            ModuleLocals[arg].WasSet = true;
+
         Token assignmentToken = parser.Previous;
         if (assignmentToken.Type == TOKEN_INCREMENT ||
             assignmentToken.Type == TOKEN_DECREMENT) {
@@ -1055,6 +1124,9 @@ void  Compiler::NamedVariable(Token name, bool canAssign) {
             EmitSetOperation(setOp, arg, name);
         }
     }
+    else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
+        EmitConstant(local.ConstantVal);
+    }
     else {
         EmitGetOperation(getOp, arg, name);
     }
@@ -1071,11 +1143,16 @@ void  Compiler::ClearToScope(int depth) {
     while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
         if (!Locals[LocalCount - 1].Resolved)
             UnusedVariables->push_back(Locals[LocalCount - 1]);
+        else if (Locals[LocalCount - 1].ConstantVal.Type != VAL_ERROR && !Locals[LocalCount - 1].WasSet)
+            UnsetVariables->push_back(Locals[LocalCount - 1]);
 
         popCount++; // pop locals
 
         LocalCount--;
     }
+    while (Constants.size() > 0 && Constants.back().Depth > depth)
+        Constants.pop_back();
+
     PopMultiple(popCount);
 }
 void  Compiler::PopToScope(int depth) {
@@ -1110,6 +1187,8 @@ int   Compiler::AddLocal(Token name) {
     local->Name = name;
     local->Depth = -1;
     local->Resolved = false;
+    local->Constant = false;
+    local->ConstantVal = VMValue{ VAL_ERROR };
     return LocalCount - 1;
 }
 int   Compiler::AddLocal(const char* name, size_t len) {
@@ -1120,6 +1199,8 @@ int   Compiler::AddLocal(const char* name, size_t len) {
     Local* local = &Locals[LocalCount++];
     local->Depth = -1;
     local->Resolved = false;
+    local->Constant = false;
+    local->ConstantVal = VMValue{ VAL_ERROR };;
     RenameLocal(local, name, len);
     return LocalCount - 1;
 }
@@ -1140,7 +1221,7 @@ void  Compiler::RenameLocal(Local* local, const char* name) {
 void  Compiler::RenameLocal(Local* local, Token name) {
     local->Name = name;
 }
-int   Compiler::ResolveLocal(Token* name) {
+int   Compiler::ResolveLocal(Token* name, Local* result) {
     for (int i = LocalCount - 1; i >= 0; i--) {
         Local* local = &Locals[i];
         if (IdentifiersEqual(name, &local->Name)) {
@@ -1148,9 +1229,22 @@ int   Compiler::ResolveLocal(Token* name) {
                 Error("Cannot read local variable in its own initializer.");
             }
             local->Resolved = true;
+            if (result)
+                *result = *local;
             return i;
         }
     }
+
+    for (int i = Constants.size() - 1; i >= 0; i--) {
+        Local* local = &Constants[i];
+        if (IdentifiersEqual(name, &local->Name)) {
+            local->Resolved = true;
+            if (result)
+                *result = *local;
+            return i;
+        }
+    }
+
     return -1;
 }
 int   Compiler::AddModuleLocal(Token name) {
@@ -1162,10 +1256,12 @@ int   Compiler::AddModuleLocal(Token name) {
     local.Name = name;
     local.Depth = -1;
     local.Resolved = false;
+    local.Constant = false;
+    local.ConstantVal = VMValue{ VAL_ERROR };
     Compiler::ModuleLocals.push_back(local);
     return ((int)Compiler::ModuleLocals.size()) - 1;
 }
-int   Compiler::ResolveModuleLocal(Token* name) {
+int   Compiler::ResolveModuleLocal(Token* name, Local* result) {
     for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
         Local& local = Compiler::ModuleLocals[i];
         if (IdentifiersEqual(name, &local.Name)) {
@@ -1173,9 +1269,22 @@ int   Compiler::ResolveModuleLocal(Token* name) {
                 Error("Cannot read local variable in its own initializer.");
             }
             local.Resolved = true;
+            if (result)
+                *result = local;
             return i;
         }
     }
+
+    for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
+        Local& local = Compiler::ModuleConstants[i];
+        if (IdentifiersEqual(name, &local.Name)) {
+            local.Resolved = true;
+            if (result)
+                *result = local;
+            return i;
+        }
+    }
+
     return -1;
 }
 Uint8 Compiler::GetArgumentList() {
@@ -1187,15 +1296,14 @@ Uint8 Compiler::GetArgumentList() {
                 Error("Cannot have more than 255 arguments.");
             }
             argumentCount++;
-        }
-        while (MatchToken(TOKEN_COMMA));
+        } while (MatchToken(TOKEN_COMMA));
     }
 
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
     return argumentCount;
 }
 
-Token InstanceToken = Token { 0, NULL, 0, 0, 0 };
+Token InstanceToken = Token{ 0, NULL, 0, 0, 0 };
 void  Compiler::GetThis(bool canAssign) {
     InstanceToken = parser.Previous;
     GetVariable(false);
@@ -1308,9 +1416,9 @@ void Compiler::GetGrouping(bool canAssign) {
 }
 void Compiler::GetLiteral(bool canAssign) {
     switch (parser.Previous.Type) {
-        case TOKEN_NULL:  EmitByte(OP_NULL); break;
-        case TOKEN_TRUE:  EmitByte(OP_TRUE); break;
-        case TOKEN_FALSE: EmitByte(OP_FALSE); break;
+    case TOKEN_NULL:  EmitByte(OP_NULL); break;
+    case TOKEN_TRUE:  EmitByte(OP_TRUE); break;
+    case TOKEN_FALSE: EmitByte(OP_FALSE); break;
     default:
         return; // Unreachable.
     }
@@ -1350,21 +1458,21 @@ ObjString* Compiler::MakeString(Token token) {
         if (*src == '\\') {
             src++;
             switch (*src) {
-                case 'n':
-                    *dst++ = '\n';
-                    break;
-                case '"':
-                    *dst++ = '"';
-                    break;
-                case '\'':
-                    *dst++ = '\'';
-                    break;
-                case '\\':
-                    *dst++ = '\\';
-                    break;
-                default:
-                    Error("Unknown escape character");
-                    break;
+            case 'n':
+                *dst++ = '\n';
+                break;
+            case '"':
+                *dst++ = '"';
+                break;
+            case '\'':
+                *dst++ = '\'';
+                break;
+            case '\\':
+                *dst++ = '\\';
+                break;
+            default:
+                Error("Unknown escape character");
+                break;
             }
             string->Length++;
         }
@@ -1420,65 +1528,65 @@ void Compiler::GetMap(bool canAssign) {
 }
 bool Compiler::IsConstant() {
     switch (PeekToken().Type) {
-        case TOKEN_NULL:
-        case TOKEN_TRUE:
-        case TOKEN_FALSE:
-            return true;
-        case TOKEN_STRING:
-            return true;
+    case TOKEN_NULL:
+    case TOKEN_TRUE:
+    case TOKEN_FALSE:
+        return true;
+    case TOKEN_STRING:
+        return true;
+    case TOKEN_NUMBER:
+        return true;
+    case TOKEN_DECIMAL:
+        return true;
+    case TOKEN_MINUS: {
+        switch (PeekNextToken().Type) {
         case TOKEN_NUMBER:
             return true;
         case TOKEN_DECIMAL:
             return true;
-        case TOKEN_MINUS: {
-            switch (PeekNextToken().Type) {
-                case TOKEN_NUMBER:
-                    return true;
-                case TOKEN_DECIMAL:
-                    return true;
-                default:
-                    return false;
-            }
-            break;
-        }
         default:
             return false;
+        }
+        break;
+    }
+    default:
+        return false;
     }
 }
 void Compiler::GetConstant(bool canAssign) {
     switch (NextToken().Type) {
-        case TOKEN_NULL:
-        case TOKEN_TRUE:
-        case TOKEN_FALSE:
-            GetLiteral(canAssign);
-            break;
-        case TOKEN_STRING:
-            GetString(canAssign);
-            break;
+    case TOKEN_NULL:
+    case TOKEN_TRUE:
+    case TOKEN_FALSE:
+        GetLiteral(canAssign);
+        break;
+    case TOKEN_STRING:
+        GetString(canAssign);
+        break;
+    case TOKEN_NUMBER:
+        GetInteger(canAssign);
+        break;
+    case TOKEN_DECIMAL:
+        GetDecimal(canAssign);
+        break;
+    case TOKEN_MINUS: {
+        negateConstant = true;
+        switch (NextToken().Type) {
         case TOKEN_NUMBER:
             GetInteger(canAssign);
             break;
         case TOKEN_DECIMAL:
             GetDecimal(canAssign);
             break;
-        case TOKEN_MINUS: {
-            negateConstant = true;
-            switch (NextToken().Type) {
-                case TOKEN_NUMBER:
-                    GetInteger(canAssign);
-                    break;
-                case TOKEN_DECIMAL:
-                    GetDecimal(canAssign);
-                    break;
-                default:
-                    Error("Invalid value after negative sign!");
-                    break;
-            }
+        default:
+            Error("Invalid value after negative sign!");
             break;
         }
-        default:
-            Error("Invalid value!");
-            break;
+        break;
+    }
+    default:
+        Error("Invalid value!");
+        break;
     }
 }
 int Compiler::GetConstantValue() {
@@ -1529,16 +1637,16 @@ void Compiler::GetUnary(bool canAssign) {
     ParsePrecedence(PREC_UNARY);
 
     switch (operatorType) {
-        case TOKEN_MINUS:       EmitByte(OP_NEGATE); break;
-        case TOKEN_BITWISE_NOT: EmitByte(OP_BW_NOT); break;
-        case TOKEN_LOGICAL_NOT: EmitByte(OP_LG_NOT); break;
-        case TOKEN_TYPEOF:      EmitByte(OP_TYPEOF); break;
+    case TOKEN_MINUS:       EmitByte(OP_NEGATE); break;
+    case TOKEN_BITWISE_NOT: EmitByte(OP_BW_NOT); break;
+    case TOKEN_LOGICAL_NOT: EmitByte(OP_LG_NOT); break;
+    case TOKEN_TYPEOF:      EmitByte(OP_TYPEOF); break;
 
         // TODO: replace these with prefix version of OP
         // case TOKEN_INCREMENT:   EmitByte(OP_INCREMENT); break;
         // case TOKEN_DECREMENT:   EmitByte(OP_DECREMENT); break;
-        default:
-            return; // Unreachable.
+    default:
+        return; // Unreachable.
     }
 }
 void Compiler::GetNew(bool canAssign) {
@@ -1559,30 +1667,30 @@ void Compiler::GetBinary(bool canAssign) {
 
     switch (operatorType) {
         // Numeric Operations
-        case TOKEN_PLUS:                EmitByte(OP_ADD); break;
-        case TOKEN_MINUS:               EmitByte(OP_SUBTRACT); break;
-        case TOKEN_MULTIPLY:            EmitByte(OP_MULTIPLY); break;
-        case TOKEN_DIVISION:            EmitByte(OP_DIVIDE); break;
-        case TOKEN_MODULO:              EmitByte(OP_MODULO); break;
+    case TOKEN_PLUS:                EmitByte(OP_ADD); break;
+    case TOKEN_MINUS:               EmitByte(OP_SUBTRACT); break;
+    case TOKEN_MULTIPLY:            EmitByte(OP_MULTIPLY); break;
+    case TOKEN_DIVISION:            EmitByte(OP_DIVIDE); break;
+    case TOKEN_MODULO:              EmitByte(OP_MODULO); break;
         // Bitwise Operations
-        case TOKEN_BITWISE_LEFT:        EmitByte(OP_BITSHIFT_LEFT); break;
-        case TOKEN_BITWISE_RIGHT:       EmitByte(OP_BITSHIFT_RIGHT); break;
-        case TOKEN_BITWISE_OR:          EmitByte(OP_BW_OR); break;
-        case TOKEN_BITWISE_AND:         EmitByte(OP_BW_AND); break;
-        case TOKEN_BITWISE_XOR:         EmitByte(OP_BW_XOR); break;
+    case TOKEN_BITWISE_LEFT:        EmitByte(OP_BITSHIFT_LEFT); break;
+    case TOKEN_BITWISE_RIGHT:       EmitByte(OP_BITSHIFT_RIGHT); break;
+    case TOKEN_BITWISE_OR:          EmitByte(OP_BW_OR); break;
+    case TOKEN_BITWISE_AND:         EmitByte(OP_BW_AND); break;
+    case TOKEN_BITWISE_XOR:         EmitByte(OP_BW_XOR); break;
         // Logical Operations
-        case TOKEN_LOGICAL_AND:         EmitByte(OP_LG_AND); break;
-        case TOKEN_LOGICAL_OR:          EmitByte(OP_LG_OR); break;
+    case TOKEN_LOGICAL_AND:         EmitByte(OP_LG_AND); break;
+    case TOKEN_LOGICAL_OR:          EmitByte(OP_LG_OR); break;
         // Equality and Comparison Operators
-        case TOKEN_NOT_EQUALS:          EmitByte(OP_EQUAL_NOT); break;
-        case TOKEN_EQUALS:              EmitByte(OP_EQUAL); break;
-        case TOKEN_GREATER:             EmitByte(OP_GREATER); break;
-        case TOKEN_GREATER_EQUAL:       EmitByte(OP_GREATER_EQUAL); break;
-        case TOKEN_LESS:                EmitByte(OP_LESS); break;
-        case TOKEN_LESS_EQUAL:          EmitByte(OP_LESS_EQUAL); break;
-        default:
-            ErrorAt(&operato, "Unknown binary operator.", true);
-            return; // Unreachable.
+    case TOKEN_NOT_EQUALS:          EmitByte(OP_EQUAL_NOT); break;
+    case TOKEN_EQUALS:              EmitByte(OP_EQUAL); break;
+    case TOKEN_GREATER:             EmitByte(OP_GREATER); break;
+    case TOKEN_GREATER_EQUAL:       EmitByte(OP_GREATER_EQUAL); break;
+    case TOKEN_LESS:                EmitByte(OP_LESS); break;
+    case TOKEN_LESS_EQUAL:          EmitByte(OP_LESS_EQUAL); break;
+    default:
+        ErrorAt(&operato, "Unknown binary operator.", true);
+        return; // Unreachable.
     }
 }
 void Compiler::GetHas(bool canAssign) {
@@ -1608,7 +1716,7 @@ struct switch_case {
     Uint32 JumpPosition;
     Uint32 CodeLength;
     Uint8* CodeBlock;
-    int*   LineBlock;
+    int* LineBlock;
 };
 stack<vector<int>*> BreakJumpListStack;
 stack<vector<int>*> ContinueJumpListStack;
@@ -1698,27 +1806,74 @@ void Compiler::GetReturnStatement() {
     }
 }
 void Compiler::GetRepeatStatement() {
+    ScopeBegin();
     ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'repeat'.");
     GetExpression();
+
+    Token variableToken = { TOKEN_ERROR };
+    int remaining = 0;
+
+    if (MatchToken(TOKEN_COMMA)) {
+        ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+        variableToken = parser.Previous;
+        if (MatchToken(TOKEN_COMMA)) {
+            ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+            remaining = AddLocal(parser.Previous);
+            MarkInitialized();
+        }
+    }
+
     ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+    if (!remaining)
+        remaining = AddHiddenLocal("$remaining", 11);
+    EmitByte(OP_INCREMENT); // increment remaining as we're about to decrement it, so we can cheat continue
+
+    if (variableToken.Type != TOKEN_ERROR) {
+        EmitConstant(INTEGER_VAL(-1));
+        AddLocal(variableToken);
+        MarkInitialized();
+        Locals[LocalCount - 1].Constant = true; // trick the compiler into ensuring it doesn't get modified
+    }
 
     int loopStart = CurrentChunk()->Count;
 
-    int exitJump = EmitJump(OP_JUMP_IF_FALSE);
+    if (variableToken.Type != TOKEN_ERROR) {
+        // decrement it and set it back, but keep it on the stack
+        EmitBytes(OP_GET_LOCAL, remaining);
+        EmitByte(OP_DECREMENT);
+    }
+    else
+        EmitByte(OP_DECREMENT);
 
     StartBreakJumpList();
+    StartContinueJumpList();
 
-    EmitByte(OP_DECREMENT);
+    int exitJump = EmitJump(OP_JUMP_IF_FALSE);
+
+    if (variableToken.Type != TOKEN_ERROR) {
+        // save, pop the decrement off the stack, and increment our int
+        EmitBytes(OP_SET_LOCAL, remaining);
+        EmitByte(OP_POP);
+        EmitByte(OP_INCREMENT);
+    }
 
     // Repeat Code Body
     GetStatement();
 
+    EndContinueJumpList();
+
     EmitLoop(loopStart);
 
     PatchJump(exitJump);
-    EmitByte(OP_POP);
+    
+    // if we jumped from ending we have a loose end we have to remove
+    if (variableToken.Type != TOKEN_ERROR)
+        EmitByte(OP_POP);
 
     EndBreakJumpList();
+
+    ScopeEnd();
 }
 void Compiler::GetSwitchStatement() {
     Chunk* chunk = CurrentChunk();
@@ -1735,7 +1890,7 @@ void Compiler::GetSwitchStatement() {
     int code_block_start = CodePointer();
     int code_block_length = code_block_start;
     Uint8* code_block_copy = NULL;
-    int*   line_block_copy = NULL;
+    int* line_block_copy = NULL;
 
     StartSwitchJumpList();
     ScopeBegin();
@@ -1836,7 +1991,7 @@ void Compiler::GetCaseStatement() {
     int code_block_start = CodePointer();
     int code_block_length = code_block_start;
     Uint8* code_block_copy = NULL;
-    int*   line_block_copy = NULL;
+    int* line_block_copy = NULL;
 
     GetExpression();
 
@@ -2054,7 +2209,7 @@ void Compiler::GetForStatement() {
 
     // Initializer (happens only once)
     if (MatchToken(TOKEN_VAR)) {
-        GetVariableDeclaration();
+        GetVariableDeclaration(false);
     }
     else if (MatchToken(TOKEN_SEMICOLON)) {
         // No initializer.
@@ -2290,8 +2445,8 @@ int  Compiler::GetFunction(int type, string className) {
             if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE))
                 isOptional = true;
 
-            compiler->ParseVariable("Expect parameter name.");
-            compiler->DefineVariableToken(parser.Previous);
+            compiler->ParseVariable("Expect parameter name.", false);
+            compiler->DefineVariableToken(parser.Previous, false);
 
             compiler->Function->Arity++;
             if (compiler->Function->Arity > 255) {
@@ -2302,8 +2457,7 @@ int  Compiler::GetFunction(int type, string className) {
                 compiler->Function->MinArity++;
             else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE))
                 break;
-        }
-        while (compiler->MatchToken(TOKEN_COMMA));
+        } while (compiler->MatchToken(TOKEN_COMMA));
     }
 
     compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
@@ -2336,56 +2490,97 @@ void Compiler::GetMethod(Token className) {
     EmitByte(index);
     EmitStringHash(constantToken);
 }
-void Compiler::GetVariableDeclaration() {
+void Compiler::GetVariableDeclaration(bool constant) {
     if (SwitchScopeStack.size() != 0) {
         if (SwitchScopeStack.top() == ScopeDepth)
             Error("Cannot initialize variable inside switch statement.");
     }
 
     do {
-        ParseVariable("Expected variable name.");
+        int variable = ParseVariable("Expected variable name.", constant);
 
         Token token = parser.Previous;
 
+        int pre = CodePointer();
         if (MatchToken(TOKEN_ASSIGNMENT)) {
             GetExpression();
         }
         else {
+            if (constant) // don't play nice
+                ErrorAtCurrent("\"const\" variables must have an explicit constant declaration.");
+
             EmitByte(OP_NULL);
         }
 
-        DefineVariableToken(token);
-    }
-    while (MatchToken(TOKEN_COMMA));
+        VMValue value;
+        Local* locals = constant ? Constants.data() : Locals;
+        if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() && GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+            if (variable != -1) {
+                locals[variable].ConstantVal = value;
+                locals[variable].Constant = constant;
+                if (constant)
+                    CurrentChunk()->Count = pre;
+            }
+        }
+        else if (constant)
+            ErrorAtCurrent("\"const\" variables must be set to a constant.");
+
+        DefineVariableToken(token, constant);
+        if (constant && variable == -1) {
+            // treat it like a module constant
+            ModuleConstants.push_back({ token, 0, false, false, true, value });
+        }
+    } while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
 void Compiler::GetModuleVariableDeclaration() {
-    ConsumeToken(TOKEN_VAR, "Expected \"var\" after \"local\" declaration.");
-
     if (ScopeDepth > 0) {
         Error("Cannot use local declaration outside of top-level code.");
     }
 
-    do {
-        int local = ParseModuleVariable("Expected variable name.");
+    if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
+        bool constant = parser.Current.Type == TOKEN_CONST;
+        vector<Local>* vec = constant ? &ModuleConstants : &ModuleLocals;
+        AdvanceToken();
 
-        if (MatchToken(TOKEN_ASSIGNMENT)) {
-            GetExpression();
-        }
-        else {
-            EmitByte(OP_NULL);
-        }
+        Token token = parser.Current;
+        do {
+            int local = ParseModuleVariable("Expected variable name.", constant);
 
-        DefineModuleVariable(local);
+            int pre = CodePointer();
+            if (MatchToken(TOKEN_ASSIGNMENT)) {
+                GetExpression();
+            }
+            else {
+                if (constant) // don't play nice
+                    ErrorAtCurrent("\"const\" variables must have an explicit constant declaration.");
+
+                EmitByte(OP_NULL);
+            }
+
+            VMValue value;
+            if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() && GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+                vec->at(local).ConstantVal = value;
+                if (constant)
+                    CurrentChunk()->Count = pre;
+            }
+            else if (constant)
+                ErrorAt(&token, "\"const\" variables must be set to a constant.", true);
+
+            if (!constant)
+                DefineModuleVariable(local);
+        } while (MatchToken(TOKEN_COMMA));
+
+        ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
     }
-    while (MatchToken(TOKEN_COMMA));
+    else
+        ErrorAtCurrent("Expected \"var\" or \"const\" after \"local\" declaration.");
 
-    ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
 void Compiler::GetPropertyDeclaration(Token propertyName) {
     do {
-        ParseVariable("Expected property name.");
+        ParseVariable("Expected property name.", false);
 
         NamedVariable(propertyName, false);
 
@@ -2401,8 +2596,7 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
         EmitSetOperation(OP_SET_PROPERTY, -1, token);
 
         EmitByte(OP_POP);
-    }
-    while (MatchToken(TOKEN_COMMA));
+    } while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
 }
@@ -2410,7 +2604,7 @@ void Compiler::GetClassDeclaration() {
     ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
 
     Token className = parser.Previous;
-    DeclareVariable(&className);
+    DeclareVariable(&className, false);
 
     EmitByte(OP_CLASS);
     EmitStringHash(className);
@@ -2435,7 +2629,7 @@ void Compiler::GetClassDeclaration() {
         EmitStringHash(superName);
     }
 
-    DefineVariableToken(className);
+    DefineVariableToken(className, false);
 
     ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
 
@@ -2461,12 +2655,12 @@ void Compiler::GetEnumDeclaration() {
 
     if (MatchToken(TOKEN_IDENTIFIER)) {
         enumName = parser.Previous;
-        DeclareVariable(&enumName);
+        DeclareVariable(&enumName, false);
 
         EmitByte(OP_NEW_ENUM);
         EmitStringHash(enumName);
 
-        DefineVariableToken(enumName);
+        DefineVariableToken(enumName, true);
 
         isNamed = true;
     }
@@ -2475,11 +2669,13 @@ void Compiler::GetEnumDeclaration() {
 
     while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
         bool didStart = false;
+
+        VMValue current = INTEGER_VAL(0);
         do {
             if (CheckToken(TOKEN_RIGHT_BRACE))
                 break;
 
-            ParseVariable("Expected constant name.");
+            int variable = ParseVariable("Expected constant name.", true);
 
             Token token = parser.Previous;
 
@@ -2488,12 +2684,23 @@ void Compiler::GetEnumDeclaration() {
                 NamedVariable(enumName, false);
 
             if (MatchToken(TOKEN_ASSIGNMENT)) {
+                int pre = CodePointer();
                 GetExpression();
+                if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) != CodePointer() || !GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &current))
+                    ErrorAt(&token, "Manual enum value must be constant.", true);
                 EmitCopy(1);
                 EmitByte(OP_SAVE_VALUE);
             }
             else {
                 if (didStart) {
+                    if (IS_NOT_NUMBER(current)) {
+                        Warning("Current enum base is a non-number, this enum value will be null!");
+                        current = NULL_VAL;
+                    }
+                    else if (IS_DECIMAL(current))
+                        current.as.Decimal += 1;
+                    else if (IS_INTEGER(current))
+                        current.as.Integer++;
                     EmitByte(OP_LOAD_VALUE);
                     EmitConstant(INTEGER_VAL(1));
                     EmitByte(OP_ENUM_NEXT);
@@ -2511,8 +2718,13 @@ void Compiler::GetEnumDeclaration() {
                 EmitByte(OP_ADD_ENUM);
                 EmitStringHash(token);
             }
-            else
-                DefineVariableToken(token);
+            else {
+                DefineVariableToken(token, true);
+                if (variable == -1) {
+                    // treat it as a module constant 
+                    ModuleConstants.push_back({ token, 0, false, false, true, current });
+                }
+            }
         } while (MatchToken(TOKEN_COMMA));
     }
 
@@ -2529,8 +2741,7 @@ void Compiler::GetImportDeclaration() {
 
         EmitByte(importModules ? OP_IMPORT_MODULE : OP_IMPORT);
         EmitUint32(GetConstantIndex(value));
-    }
-    while (MatchToken(TOKEN_COMMA));
+    } while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
 }
@@ -2546,8 +2757,7 @@ void Compiler::GetUsingDeclaration() {
         Token nsName = parser.Previous;
         EmitByte(OP_USE_NAMESPACE);
         EmitStringHash(nsName);
-    }
-    while (MatchToken(TOKEN_COMMA));
+    } while (MatchToken(TOKEN_COMMA));
 
     ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
 }
@@ -2569,8 +2779,8 @@ void Compiler::GetEventDeclaration() {
     EmitByte(index);
 
     // if (ScopeDepth == 0) {
-        EmitByte(OP_DEFINE_GLOBAL);
-        EmitStringHash(constantToken);
+    EmitByte(OP_DEFINE_GLOBAL);
+    EmitStringHash(constantToken);
     // }
 }
 void Compiler::GetDeclaration() {
@@ -2581,7 +2791,9 @@ void Compiler::GetDeclaration() {
     else if (MatchToken(TOKEN_IMPORT))
         GetImportDeclaration();
     else if (MatchToken(TOKEN_VAR))
-        GetVariableDeclaration();
+        GetVariableDeclaration(false);
+    else if (MatchToken(TOKEN_CONST))
+        GetVariableDeclaration(true);
     else if (MatchToken(TOKEN_LOCAL))
         GetModuleVariableDeclaration();
     else if (MatchToken(TOKEN_USING))
@@ -2597,68 +2809,68 @@ void Compiler::GetDeclaration() {
 void   Compiler::MakeRules() {
     Rules = (ParseRule*)Memory::TrackedCalloc("Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
     // Single-character tokens.
-    Rules[TOKEN_LEFT_PAREN] = ParseRule { &Compiler::GetGrouping, &Compiler::GetCall, NULL, PREC_CALL };
-    Rules[TOKEN_RIGHT_PAREN] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_LEFT_BRACE] = ParseRule { &Compiler::GetMap, NULL, NULL, PREC_CALL };
-    Rules[TOKEN_RIGHT_BRACE] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_LEFT_SQUARE_BRACE] = ParseRule { &Compiler::GetArray, &Compiler::GetElement, NULL, PREC_CALL };
-    Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_COMMA] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_DOT] = ParseRule { NULL, &Compiler::GetDot, NULL, PREC_CALL };
-    Rules[TOKEN_SEMICOLON] = ParseRule { NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_LEFT_PAREN] = ParseRule{ &Compiler::GetGrouping, &Compiler::GetCall, NULL, PREC_CALL };
+    Rules[TOKEN_RIGHT_PAREN] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_LEFT_BRACE] = ParseRule{ &Compiler::GetMap, NULL, NULL, PREC_CALL };
+    Rules[TOKEN_RIGHT_BRACE] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_LEFT_SQUARE_BRACE] = ParseRule{ &Compiler::GetArray, &Compiler::GetElement, NULL, PREC_CALL };
+    Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_COMMA] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_DOT] = ParseRule{ NULL, &Compiler::GetDot, NULL, PREC_CALL };
+    Rules[TOKEN_SEMICOLON] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
     // Operators
-    Rules[TOKEN_MINUS] = ParseRule { &Compiler::GetUnary, &Compiler::GetBinary, NULL, PREC_TERM };
-    Rules[TOKEN_PLUS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_TERM };
-    Rules[TOKEN_DECREMENT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_CALL }; // &Compiler::GetSuffix
-    Rules[TOKEN_INCREMENT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_CALL }; // &Compiler::GetSuffix
-    Rules[TOKEN_DIVISION] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
-    Rules[TOKEN_MULTIPLY] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
-    Rules[TOKEN_MODULO] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
-    Rules[TOKEN_BITWISE_XOR] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_XOR };
-    Rules[TOKEN_BITWISE_AND] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_AND };
-    Rules[TOKEN_BITWISE_OR] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_OR };
-    Rules[TOKEN_BITWISE_LEFT] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT };
-    Rules[TOKEN_BITWISE_RIGHT] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT };
-    Rules[TOKEN_BITWISE_NOT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
-    Rules[TOKEN_TERNARY] = ParseRule { NULL, &Compiler::GetConditional, NULL, PREC_TERNARY };
-    Rules[TOKEN_COLON] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_LOGICAL_AND] = ParseRule { NULL, &Compiler::GetLogicalAND, NULL, PREC_AND };
-    Rules[TOKEN_LOGICAL_OR] = ParseRule { NULL, &Compiler::GetLogicalOR, NULL, PREC_OR };
-    Rules[TOKEN_LOGICAL_NOT] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
-    Rules[TOKEN_TYPEOF] = ParseRule { &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
-    Rules[TOKEN_NEW] = ParseRule { &Compiler::GetNew, NULL, NULL, PREC_UNARY };
-    Rules[TOKEN_NOT_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
-    Rules[TOKEN_EQUALS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
-    Rules[TOKEN_HAS] = ParseRule { NULL, &Compiler::GetHas, NULL, PREC_EQUALITY };
-    Rules[TOKEN_GREATER] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
-    Rules[TOKEN_GREATER_EQUAL] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
-    Rules[TOKEN_LESS] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
-    Rules[TOKEN_LESS_EQUAL] = ParseRule { NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
+    Rules[TOKEN_MINUS] = ParseRule{ &Compiler::GetUnary, &Compiler::GetBinary, NULL, PREC_TERM };
+    Rules[TOKEN_PLUS] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_TERM };
+    Rules[TOKEN_DECREMENT] = ParseRule{ &Compiler::GetUnary, NULL, NULL, PREC_CALL }; // &Compiler::GetSuffix
+    Rules[TOKEN_INCREMENT] = ParseRule{ &Compiler::GetUnary, NULL, NULL, PREC_CALL }; // &Compiler::GetSuffix
+    Rules[TOKEN_DIVISION] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
+    Rules[TOKEN_MULTIPLY] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
+    Rules[TOKEN_MODULO] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_FACTOR };
+    Rules[TOKEN_BITWISE_XOR] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_XOR };
+    Rules[TOKEN_BITWISE_AND] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_AND };
+    Rules[TOKEN_BITWISE_OR] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_OR };
+    Rules[TOKEN_BITWISE_LEFT] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT };
+    Rules[TOKEN_BITWISE_RIGHT] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT };
+    Rules[TOKEN_BITWISE_NOT] = ParseRule{ &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_TERNARY] = ParseRule{ NULL, &Compiler::GetConditional, NULL, PREC_TERNARY };
+    Rules[TOKEN_COLON] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_LOGICAL_AND] = ParseRule{ NULL, &Compiler::GetLogicalAND, NULL, PREC_AND };
+    Rules[TOKEN_LOGICAL_OR] = ParseRule{ NULL, &Compiler::GetLogicalOR, NULL, PREC_OR };
+    Rules[TOKEN_LOGICAL_NOT] = ParseRule{ &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_TYPEOF] = ParseRule{ &Compiler::GetUnary, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_NEW] = ParseRule{ &Compiler::GetNew, NULL, NULL, PREC_UNARY };
+    Rules[TOKEN_NOT_EQUALS] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
+    Rules[TOKEN_EQUALS] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY };
+    Rules[TOKEN_HAS] = ParseRule{ NULL, &Compiler::GetHas, NULL, PREC_EQUALITY };
+    Rules[TOKEN_GREATER] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
+    Rules[TOKEN_GREATER_EQUAL] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
+    Rules[TOKEN_LESS] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
+    Rules[TOKEN_LESS_EQUAL] = ParseRule{ NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON };
     //
-    Rules[TOKEN_ASSIGNMENT] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_MODULO] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_PLUS] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_MINUS] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_BITWISE_AND] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] = ParseRule { NULL, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_ASSIGNMENT_BITWISE_OR] = ParseRule { NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_MODULO] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_PLUS] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_MINUS] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_BITWISE_AND] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_ASSIGNMENT_BITWISE_OR] = ParseRule{ NULL, NULL, NULL, PREC_NONE };
     // Keywords
-    Rules[TOKEN_THIS] = ParseRule { &Compiler::GetThis, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_SUPER] = ParseRule { &Compiler::GetSuper, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_THIS] = ParseRule{ &Compiler::GetThis, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_SUPER] = ParseRule{ &Compiler::GetSuper, NULL, NULL, PREC_NONE };
     // Constants or whatever
-    Rules[TOKEN_NULL] = ParseRule { &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_TRUE] = ParseRule { &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_FALSE] = ParseRule { &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_STRING] = ParseRule { &Compiler::GetString, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_NUMBER] = ParseRule { &Compiler::GetInteger, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_DECIMAL] = ParseRule { &Compiler::GetDecimal, NULL, NULL, PREC_NONE };
-    Rules[TOKEN_IDENTIFIER] = ParseRule { &Compiler::GetVariable, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_NULL] = ParseRule{ &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_TRUE] = ParseRule{ &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_FALSE] = ParseRule{ &Compiler::GetLiteral, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_STRING] = ParseRule{ &Compiler::GetString, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_NUMBER] = ParseRule{ &Compiler::GetInteger, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_DECIMAL] = ParseRule{ &Compiler::GetDecimal, NULL, NULL, PREC_NONE };
+    Rules[TOKEN_IDENTIFIER] = ParseRule{ &Compiler::GetVariable, NULL, NULL, PREC_NONE };
 }
-ParseRule*    Compiler::GetRule(int type) {
+ParseRule* Compiler::GetRule(int type) {
     return &Compiler::Rules[(int)type];
 }
 
@@ -2700,7 +2912,7 @@ Uint32        Compiler::GetHash(Token token) {
     return Murmur::EncryptData(token.Start, token.Length);
 }
 
-Chunk*        Compiler::CurrentChunk() {
+Chunk* Compiler::CurrentChunk() {
     return &Function->Chunk;
 }
 int           Compiler::CodePointer() {
@@ -2723,6 +2935,17 @@ void          Compiler::EmitUint32(Uint32 value) {
     EmitByte(value >> 16 & 0xFF);
     EmitByte(value >> 24 & 0xFF);
 }
+void          Compiler::EmitSint32(Sint32 value) {
+    EmitUint32((Uint32)value);
+}
+void          Compiler::EmitFloat(float value) {
+    Uint8* bytes = (Uint8*)(&value);
+    EmitByte(*bytes++);
+    EmitByte(*bytes++);
+    EmitByte(*bytes++);
+    EmitByte(*bytes);
+}
+
 int           Compiler::GetConstantIndex(VMValue value) {
     int index = FindConstant(value);
     if (index < 0)
@@ -2730,6 +2953,28 @@ int           Compiler::GetConstantIndex(VMValue value) {
     return index;
 }
 int           Compiler::EmitConstant(VMValue value) {
+    if (value.Type == VAL_INTEGER) {
+        int i = AS_INTEGER(value);
+        if (DoOptimizations && (i == 0 || i == 1)) {
+            EmitByte(!i ? OP_FALSE : OP_TRUE);
+        }
+        else {
+            EmitByte(OP_INTEGER);
+            EmitSint32(value.as.Integer);
+        }
+        return -1;
+    }
+    else if (value.Type == VAL_DECIMAL) {
+        EmitByte(OP_DECIMAL);
+        EmitFloat(value.as.Decimal);
+        return -1;
+    }
+    else if (value.Type == VAL_NULL) {
+        EmitByte(OP_NULL);
+        return -1;
+    }
+
+    // anything else gets added to the const table
     int index = GetConstantIndex(value);
 
     EmitByte(OP_CONSTANT);
@@ -2737,6 +2982,39 @@ int           Compiler::EmitConstant(VMValue value) {
 
     return index;
 }
+bool         Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int* index)
+{
+    if (index)
+        *index = -1;
+    switch (*code) {
+    case OP_CONSTANT:
+        if (value)
+            *value = (*chunk->Constants)[*(Uint32*)(code + 1)];
+        if (index)
+            *index = *(Uint32*)(code + 1);
+        return true;
+    case OP_FALSE:
+    case OP_TRUE:
+        if (value)
+            *value = INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
+        return true;
+    case OP_NULL:
+        if (value)
+            *value = NULL_VAL;
+        return true;
+    case OP_INTEGER:
+        if (value)
+            *value = INTEGER_VAL(*(Sint32*)(code + 1));
+        return true;
+    case OP_DECIMAL:
+        if (value)
+            *value = DECIMAL_VAL(*(float*)(code + 1));
+        return true;
+    }
+
+    return false;
+}
+
 void          Compiler::EmitLoop(int loopStart) {
     EmitByte(OP_JUMP_BACK);
 
@@ -2766,7 +3044,7 @@ int           Compiler::EmitJump(Uint8 instruction, int jump) {
     return CurrentChunk()->Count - 2;
 }
 void          Compiler::PatchJump(int offset, int jump) {
-    CurrentChunk()->Code[offset]     = jump & 0xFF;
+    CurrentChunk()->Code[offset] = jump & 0xFF;
     CurrentChunk()->Code[offset + 1] = (jump >> 8) & 0xFF;
 }
 void          Compiler::PatchJump(int offset) {
@@ -2846,7 +3124,10 @@ void          Compiler::EndSwitchJumpList() {
 
 int           Compiler::FindConstant(VMValue value) {
     for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
-        if (ValuesEqual(value, (*CurrentChunk()->Constants)[i]))
+        VMValue constant = (*CurrentChunk()->Constants)[i];
+        if (IS_STRING(constant) && IS_STRING(value) && ScriptManager::ValuesSortaEqual(constant, value))
+            return (int)i;
+        if (ValuesEqual(value, constant))
             return (int)i;
     }
     return -1;
@@ -2869,7 +3150,7 @@ bool          Compiler::HasThis() {
         return false;
     }
 }
-void          Compiler::SetReceiverName(const char *name) {
+void          Compiler::SetReceiverName(const char* name) {
     Local* local = &Locals[0];
     local->Name.Start = (char*)name;
     local->Name.Length = strlen(name);
@@ -2890,42 +3171,16 @@ int   Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn)
     int checkConstant = -1;
     VMValue out = NULL_VAL;
 
-    if (fn == &Compiler::GetInteger) {
-        //printf("GetInteger\n");
-
-        checkConstant = *(Uint32*)(CurrentChunk()->Code + (preCount + 1));
-        VMValue constant = (*CurrentChunk()->Constants)[checkConstant];
-        int i = AS_INTEGER(constant);
-        if (i == 0 || i == 1) {
-            CurrentChunk()->Count = preCount;
-            EmitByte(!i ? OP_FALSE : OP_TRUE);
-        }
-        else
-            checkConstant = -1;
-    }
-    else if (fn == &Compiler::GetUnary) {
+    if (fn == &Compiler::GetUnary) {
         //printf("GetUnary\n");
 
-        Uint8 unOp = CurrentChunk()->Code[CurrentChunk()->Count - 1];
+        Uint8 unOp = CurrentChunk()->Code[CodePointer() - 1];
         if (unOp == OP_TYPEOF)
             return preConstant;
         Uint8 op = CurrentChunk()->Code[preCount];
         VMValue constant;
-        switch (op) {
-        case OP_CONSTANT:
-            checkConstant = *(Uint32*)(CurrentChunk()->Code + (preCount + 1));
-            constant = (*CurrentChunk()->Constants)[checkConstant];
-            break;
-        case OP_TRUE:
-        case OP_FALSE:
-            constant = INTEGER_VAL(op == OP_TRUE ? 1 : 0);
-            break;
-        case OP_NULL:
-            constant = NULL_VAL;
-            break;
-        default:
+        if (preCount + GetTotalOpcodeSize(CurrentChunk()->Code + preCount) != CodePointer() - 1 || !GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + preCount, &constant, &checkConstant))
             return preConstant;
-        }
 
         if (IS_NOT_NUMBER(constant) && unOp != OP_LG_NOT)
             return preConstant;
@@ -2940,10 +3195,8 @@ int   Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn)
             case VAL_OBJECT:
                 EmitByte(OP_FALSE); break;
             case VAL_DECIMAL:
-            case VAL_LINKED_DECIMAL:
                 EmitByte((float)(AS_DECIMAL(constant) == 0.0) ? OP_TRUE : OP_FALSE); break;
             case VAL_INTEGER:
-            case VAL_LINKED_INTEGER:
                 EmitByte(!AS_INTEGER(constant) ? OP_TRUE : OP_FALSE); break;
             }
             break;
@@ -3004,12 +3257,12 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
 
         int off1 = preCount;
         Uint8 op1 = CurrentChunk()->Code[off1];
-        int off2 = GetTotalOpcodeSize(op1) + off1;
-        if (off2 >= CurrentChunk()->Count)
+        int off2 = GetTotalOpcodeSize(CurrentChunk()->Code + off1) + off1;
+        if (off2 >= CodePointer())
             return preConstant;
         Uint8 op2 = CurrentChunk()->Code[off2];
-        int offB = GetTotalOpcodeSize(op2) + off2;
-        if (offB != CurrentChunk()->Count - 1) // CHANGE TO >= ONCE CASCADING IS ADDED
+        int offB = GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
+        if (offB != CodePointer() - 1) // CHANGE TO >= ONCE CASCADING IS ADDED
             return preConstant;
         Uint8 opB = CurrentChunk()->Code[offB];
 
@@ -3018,302 +3271,276 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
         VMValue b;
         int checkConstantB = -1;
 
-        switch (op1) {
-            case OP_CONSTANT:
-                checkConstantA = *(Uint32*)(CurrentChunk()->Code + (off1 + 1));
-                a = (*CurrentChunk()->Constants)[checkConstantA];
-                break;
-            case OP_TRUE:
-            case OP_FALSE:
-                a = INTEGER_VAL(op1 == OP_TRUE ? 1 : 0);
-                break;
-            case OP_NULL:
-                a = NULL_VAL;
-                break;
-            default:
-                return preConstant;
-        }
+        if (!GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + off1, &a, &checkConstantA))
+            return preConstant;
 
-        switch (op2) {
-            case OP_CONSTANT:
-                checkConstantB = *(Uint32*)(CurrentChunk()->Code + (off2 + 1));
-                b = (*CurrentChunk()->Constants)[checkConstantB];
-                break;
-            case OP_TRUE:
-            case OP_FALSE:
-                b = INTEGER_VAL(op2 == OP_TRUE ? 1 : 0);
-                break;
-            case OP_NULL:
-                b = NULL_VAL;
-                break;
-            default:
-                return preConstant;
-        }
+        if (!GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + off2, &b, &checkConstantB))
+            return preConstant;
 
         VMValue out;
 
         switch (opB) {
-                // Numeric Operations
-            case OP_ADD: {
-                if (IS_STRING(a) || IS_STRING(b)) {
-                    VMValue str_b = ScriptManager::CastValueAsString(b);
-                    VMValue str_a = ScriptManager::CastValueAsString(a);
-                    out = ScriptManager::Concatenate(str_a, str_b);
-                    break;
-                }
-                else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+            // Numeric Operations
+        case OP_ADD: {
+            if (IS_STRING(a) || IS_STRING(b)) {
+                VMValue str_b = ScriptManager::CastValueAsString(b);
+                VMValue str_a = ScriptManager::CastValueAsString(a);
+                out = ScriptManager::Concatenate(str_a, str_b);
+                break;
+            }
+            else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL(a_d + b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d + b_d);
+            }
+
+            break;
+        }
+        case OP_SUBTRACT: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL(a_d - b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d - b_d);
+            }
+
+            break;
+        }
+        case OP_MULTIPLY: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL(a_d * b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d * b_d);
+            }
+
+            break;
+        }
+        case OP_DIVIDE: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+
+                if (b_d == 0)
+                    return preConstant;
+                out = DECIMAL_VAL(a_d / b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                if (b_d == 0)
                     return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d + b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d + b_d);
-                }
-
-                break;
+                out = INTEGER_VAL(a_d / b_d);
             }
-            case OP_SUBTRACT: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d - b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d - b_d);
-                }
+            break;
+        }
+        case OP_MODULO: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL(fmod(a_d, b_d));
             }
-            case OP_MULTIPLY: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(a_d * b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d * b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d % b_d);
             }
-            case OP_DIVIDE: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+            break;
+        }
+                      // Bitwise Operations
+        case OP_BITSHIFT_LEFT: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                    if (b_d == 0)
-                        return preConstant;
-                    out = DECIMAL_VAL(a_d / b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    if (b_d == 0)
-                        return preConstant;
-
-                    out = INTEGER_VAL(a_d / b_d);
-                }
-
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
             }
-            case OP_MODULO: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL(fmod(a_d, b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d % b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d << b_d);
             }
-                // Bitwise Operations
-            case OP_BITSHIFT_LEFT: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d << b_d);
-                }
+            break;
+        }
+        case OP_BITSHIFT_RIGHT: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
             }
-            case OP_BITSHIFT_RIGHT: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d >> b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d >> b_d);
             }
-            case OP_BW_OR: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d | b_d);
-                }
+            break;
+        }
+        case OP_BW_OR: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
             }
-            case OP_BW_AND: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d & b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d | b_d);
             }
-            case OP_BW_XOR: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d ^ b_d);
-                }
+            break;
+        }
+        case OP_BW_AND: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
             }
-                // Equality and Comparison Operators
-            case OP_EQUAL_NOT:
-            case OP_EQUAL: {
-                bool equal = ScriptManager::ValuesSortaEqual(a, b);
-                if (opB == OP_EQUAL_NOT)
-                    equal = !equal;
-                out = INTEGER_VAL(equal ? 1 : 0);
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d & b_d);
             }
-            case OP_GREATER: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = INTEGER_VAL(a_d > b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d > b_d);
-                }
+            break;
+        }
+        case OP_BW_XOR: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
             }
-            case OP_GREATER_EQUAL: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = INTEGER_VAL(a_d >= b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d >= b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d ^ b_d);
             }
-            case OP_LESS: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
 
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = INTEGER_VAL(a_d < b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d < b_d);
-                }
+            break;
+        }
+                      // Equality and Comparison Operators
+        case OP_EQUAL_NOT:
+        case OP_EQUAL: {
+            bool equal = ScriptManager::ValuesSortaEqual(a, b);
+            if (opB == OP_EQUAL_NOT)
+                equal = !equal;
+            out = INTEGER_VAL(equal ? 1 : 0);
+            break;
+        }
+        case OP_GREATER: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
 
-                break;
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = INTEGER_VAL(a_d > b_d);
             }
-            case OP_LESS_EQUAL: {
-                if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
-                    return preConstant;
-
-                if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-                    float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-                    float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-                    out = INTEGER_VAL(a_d <= b_d);
-                }
-                else {
-                    int a_d = AS_INTEGER(a);
-                    int b_d = AS_INTEGER(b);
-                    out = INTEGER_VAL(a_d <= b_d);
-                }
-
-                break;
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d > b_d);
             }
+
+            break;
+        }
+        case OP_GREATER_EQUAL: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = INTEGER_VAL(a_d >= b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d >= b_d);
+            }
+
+            break;
+        }
+        case OP_LESS: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = INTEGER_VAL(a_d < b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d < b_d);
+            }
+
+            break;
+        }
+        case OP_LESS_EQUAL: {
+            if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b))
+                return preConstant;
+
+            if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+                float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+                float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+                out = INTEGER_VAL(a_d <= b_d);
+            }
+            else {
+                int a_d = AS_INTEGER(a);
+                int b_d = AS_INTEGER(b);
+                out = INTEGER_VAL(a_d <= b_d);
+            }
+
+            break;
+        }
         }
 
         CurrentChunk()->Count = preCount;
@@ -3338,90 +3565,95 @@ int    Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn)
     return preConstant;
 }
 
-int    Compiler::GetTotalOpcodeSize(uint8_t op) {
-    switch (op) {
+int    Compiler::GetTotalOpcodeSize(uint8_t* op) {
+    switch (*op) {
         // ConstantInstruction
-        case OP_CONSTANT:
-        case OP_IMPORT:
-        case OP_IMPORT_MODULE:
+    case OP_CONSTANT:
+    case OP_INTEGER:
+    case OP_DECIMAL:
+    case OP_IMPORT:
+    case OP_IMPORT_MODULE:
+        return 5;
+    case OP_NULL:
+    case OP_TRUE:
+    case OP_FALSE:
+    case OP_POP:
+    case OP_INCREMENT:
+    case OP_DECREMENT:
+    case OP_BITSHIFT_LEFT:
+    case OP_BITSHIFT_RIGHT:
+    case OP_EQUAL:
+    case OP_EQUAL_NOT:
+    case OP_LESS:
+    case OP_LESS_EQUAL:
+    case OP_GREATER:
+    case OP_GREATER_EQUAL:
+    case OP_ADD:
+    case OP_SUBTRACT:
+    case OP_MULTIPLY:
+    case OP_MODULO:
+    case OP_DIVIDE:
+    case OP_BW_NOT:
+    case OP_BW_AND:
+    case OP_BW_OR:
+    case OP_BW_XOR:
+    case OP_LG_NOT:
+    case OP_LG_AND:
+    case OP_LG_OR:
+    case OP_GET_ELEMENT:
+    case OP_SET_ELEMENT:
+    case OP_NEGATE:
+    case OP_PRINT:
+    case OP_TYPEOF:
+    case OP_RETURN:
+    case OP_SAVE_VALUE:
+    case OP_LOAD_VALUE:
+    case OP_GET_SUPERCLASS:
+    case OP_DEFINE_MODULE_LOCAL:
+    case OP_ENUM_NEXT:
+        return 1;
+    case OP_COPY:
+    case OP_CALL:
+    case OP_NEW:
+    case OP_EVENT:
+    case OP_POPN:
+        return 2;
+    case OP_GET_LOCAL:
+    case OP_SET_LOCAL:
+        return 2;
+    case OP_GET_GLOBAL:
+    case OP_DEFINE_GLOBAL:
+    case OP_DEFINE_CONSTANT:
+    case OP_SET_GLOBAL:
+    case OP_GET_PROPERTY:
+    case OP_SET_PROPERTY:
+    case OP_HAS_PROPERTY:
+    case OP_USE_NAMESPACE:
+    case OP_INHERIT:
+        return 5;
+    case OP_SET_MODULE_LOCAL:
+    case OP_GET_MODULE_LOCAL:
+        return 3;
+    case OP_NEW_ARRAY:
+    case OP_NEW_MAP:
+        return 5;
+    case OP_JUMP:
+    case OP_JUMP_IF_FALSE:
+    case OP_JUMP_BACK:
+        return 3;
+    case OP_INVOKE:
+        return 7;
+    case OP_WITH:
+        if (*(op + 1) == 3)
             return 5;
-        case OP_NULL:
-        case OP_TRUE:
-        case OP_FALSE:
-        case OP_POP:
-        case OP_INCREMENT:
-        case OP_DECREMENT:
-        case OP_BITSHIFT_LEFT:
-        case OP_BITSHIFT_RIGHT:
-        case OP_EQUAL:
-        case OP_EQUAL_NOT:
-        case OP_LESS:
-        case OP_LESS_EQUAL:
-        case OP_GREATER:
-        case OP_GREATER_EQUAL:
-        case OP_ADD:
-        case OP_SUBTRACT:
-        case OP_MULTIPLY:
-        case OP_MODULO:
-        case OP_DIVIDE:
-        case OP_BW_NOT:
-        case OP_BW_AND:
-        case OP_BW_OR:
-        case OP_BW_XOR:
-        case OP_LG_NOT:
-        case OP_LG_AND:
-        case OP_LG_OR:
-        case OP_GET_ELEMENT:
-        case OP_SET_ELEMENT:
-        case OP_NEGATE:
-        case OP_PRINT:
-        case OP_TYPEOF:
-        case OP_RETURN:
-        case OP_SAVE_VALUE:
-        case OP_LOAD_VALUE:
-        case OP_GET_SUPERCLASS:
-        case OP_DEFINE_MODULE_LOCAL:
-        case OP_ENUM_NEXT:
-            return 1;
-        case OP_COPY:
-        case OP_CALL:
-        case OP_NEW:
-        case OP_EVENT:
-        case OP_POPN:
-            return 2;
-        case OP_GET_LOCAL:
-        case OP_SET_LOCAL:
-            return 2;
-        case OP_GET_GLOBAL:
-        case OP_DEFINE_GLOBAL:
-        case OP_SET_GLOBAL:
-        case OP_GET_PROPERTY:
-        case OP_SET_PROPERTY:
-        case OP_HAS_PROPERTY:
-        case OP_USE_NAMESPACE:
-        case OP_INHERIT:
-            return 5;
-        case OP_SET_MODULE_LOCAL:
-        case OP_GET_MODULE_LOCAL:
-            return 3;
-        case OP_NEW_ARRAY:
-        case OP_NEW_MAP:
-            return 5;
-        case OP_JUMP:
-        case OP_JUMP_IF_FALSE:
-        case OP_JUMP_BACK:
-            return 3;
-        case OP_INVOKE:
-            return 7;
-        case OP_WITH:
-            return 4;
-        case OP_CLASS:
-            return 6;
-        case OP_ADD_ENUM:
-        case OP_NEW_ENUM:
-            return 5;
-        case OP_METHOD:
-            return 6;
+        return 4;
+    case OP_CLASS:
+        return 6;
+    case OP_ADD_ENUM:
+    case OP_NEW_ENUM:
+        return 5;
+    case OP_METHOD:
+        return 6;
     }
     return 1;
 }
@@ -3436,28 +3668,39 @@ int    Compiler::HashInstruction(uint8_t opcode, Chunk* chunk, int offset) {
         Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
     }
     Log::PrintSimple("\n");
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-    int constant = *(int*)&chunk->Code[offset + 1];
-    Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
-    Values::PrintValue(NULL, (*chunk->Constants)[constant]);
+    int constant;
+    VMValue value;
+    if (GetEmittedConstant(chunk, chunk->Code + offset, &value, &constant)) {
+        if (constant != -1)
+            Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
+        else
+            Log::PrintSimple("%-16s           '", opcodeNames[opcode]);
+    }
+    else {
+        constant = *(int*)&chunk->Code[offset + 1];
+        value = (*chunk->Constants)[constant];
+        Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
+    }
+    Values::PrintValue(NULL, value);
     Log::PrintSimple("'\n");
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int    Compiler::SimpleInstruction(uint8_t opcode, int offset) {
+int    Compiler::SimpleInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     Log::PrintSimple("%s\n", opcodeNames[opcode]);
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::ByteInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], chunk->Code[offset + 1]);
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::ShortInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint16_t data = (uint16_t)(chunk->Code[offset + 1]);
     data |= chunk->Code[offset + 2] << 8;
     Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], data);
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
@@ -3465,7 +3708,7 @@ int    Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
         Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], slot);
     else
         Log::PrintSimple("%-16s %9d 'this'\n", opcodeNames[opcode], slot);
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     uint8_t slot = chunk->Code[offset + 1];
@@ -3477,7 +3720,7 @@ int    Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
         Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
     }
     Log::PrintSimple("\n");
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     return Compiler::MethodInstruction(opcode, chunk, offset);
@@ -3486,7 +3729,7 @@ int    Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int off
     uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
     jump |= chunk->Code[offset + 2] << 8;
     Log::PrintSimple("%-16s %9d -> %d\n", opcodeNames[opcode], offset, offset + 3 + sign * jump);
-    return offset + GetTotalOpcodeSize(opcode);
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
     return Compiler::HashInstruction(opcode, chunk, offset);
@@ -3507,7 +3750,9 @@ int    Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
         Log::PrintSimple("%-16s %1d %7d -> %d\n", opcodeNames[opcode], type, slot, jump);
     else
         Log::PrintSimple("%-16s %1d %7d 'this' -> %d\n", opcodeNames[opcode], type, slot, jump);
-    return offset + GetTotalOpcodeSize(opcode);
+    if (type == 3)
+        offset--;
+    return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
     Log::PrintSimple("%04d ", offset);
@@ -3520,111 +3765,114 @@ int    Compiler::DebugInstruction(Chunk* chunk, int offset) {
 
     uint8_t instruction = chunk->Code[offset];
     switch (instruction) {
-        case OP_CONSTANT:
-        case OP_IMPORT:
-        case OP_IMPORT_MODULE:
-            return ConstantInstruction(instruction, chunk, offset);
-        case OP_NULL:
-        case OP_TRUE:
-        case OP_FALSE:
-        case OP_POP:
-        case OP_INCREMENT:
-        case OP_DECREMENT:
-        case OP_BITSHIFT_LEFT:
-        case OP_BITSHIFT_RIGHT:
-        case OP_EQUAL:
-        case OP_EQUAL_NOT:
-        case OP_LESS:
-        case OP_LESS_EQUAL:
-        case OP_GREATER:
-        case OP_GREATER_EQUAL:
-        case OP_ADD:
-        case OP_SUBTRACT:
-        case OP_MULTIPLY:
-        case OP_MODULO:
-        case OP_DIVIDE:
-        case OP_BW_NOT:
-        case OP_BW_AND:
-        case OP_BW_OR:
-        case OP_BW_XOR:
-        case OP_LG_NOT:
-        case OP_LG_AND:
-        case OP_LG_OR:
-        case OP_GET_ELEMENT:
-        case OP_SET_ELEMENT:
-        case OP_NEGATE:
-        case OP_PRINT:
-        case OP_TYPEOF:
-        case OP_RETURN:
-        case OP_SAVE_VALUE:
-        case OP_LOAD_VALUE:
-        case OP_GET_SUPERCLASS:
-        case OP_DEFINE_MODULE_LOCAL:
-        case OP_ENUM_NEXT:
-            return SimpleInstruction(instruction, offset);
-        case OP_COPY:
-        case OP_CALL:
-        case OP_NEW:
-        case OP_EVENT:
-        case OP_POPN:
-            return ByteInstruction(instruction, chunk, offset);
-        case OP_GET_LOCAL:
-        case OP_SET_LOCAL:
-            return LocalInstruction(instruction, chunk, offset);
-        case OP_GET_GLOBAL:
-        case OP_DEFINE_GLOBAL:
-        case OP_SET_GLOBAL:
-        case OP_GET_PROPERTY:
-        case OP_SET_PROPERTY:
-        case OP_HAS_PROPERTY:
-        case OP_USE_NAMESPACE:
-        case OP_INHERIT:
-            return HashInstruction(instruction, chunk, offset);
-        case OP_SET_MODULE_LOCAL:
-        case OP_GET_MODULE_LOCAL:
-            return ShortInstruction(instruction, chunk, offset);
-        case OP_NEW_ARRAY:
-        case OP_NEW_MAP:
-            return SimpleInstruction(instruction, offset) + 4;
-        case OP_JUMP:
-        case OP_JUMP_IF_FALSE:
-            return JumpInstruction(instruction, 1, chunk, offset);
-        case OP_JUMP_BACK:
-            return JumpInstruction(instruction, -1, chunk, offset);
-        case OP_INVOKE:
-            return InvokeInstruction(instruction, chunk, offset);
+    case OP_CONSTANT:
+    case OP_INTEGER:
+    case OP_DECIMAL:
+    case OP_IMPORT:
+    case OP_IMPORT_MODULE:
+        return ConstantInstruction(instruction, chunk, offset);
+    case OP_NULL:
+    case OP_TRUE:
+    case OP_FALSE:
+    case OP_POP:
+    case OP_INCREMENT:
+    case OP_DECREMENT:
+    case OP_BITSHIFT_LEFT:
+    case OP_BITSHIFT_RIGHT:
+    case OP_EQUAL:
+    case OP_EQUAL_NOT:
+    case OP_LESS:
+    case OP_LESS_EQUAL:
+    case OP_GREATER:
+    case OP_GREATER_EQUAL:
+    case OP_ADD:
+    case OP_SUBTRACT:
+    case OP_MULTIPLY:
+    case OP_MODULO:
+    case OP_DIVIDE:
+    case OP_BW_NOT:
+    case OP_BW_AND:
+    case OP_BW_OR:
+    case OP_BW_XOR:
+    case OP_LG_NOT:
+    case OP_LG_AND:
+    case OP_LG_OR:
+    case OP_GET_ELEMENT:
+    case OP_SET_ELEMENT:
+    case OP_NEGATE:
+    case OP_PRINT:
+    case OP_TYPEOF:
+    case OP_RETURN:
+    case OP_SAVE_VALUE:
+    case OP_LOAD_VALUE:
+    case OP_GET_SUPERCLASS:
+    case OP_DEFINE_MODULE_LOCAL:
+    case OP_ENUM_NEXT:
+        return SimpleInstruction(instruction, chunk, offset);
+    case OP_COPY:
+    case OP_CALL:
+    case OP_NEW:
+    case OP_EVENT:
+    case OP_POPN:
+        return ByteInstruction(instruction, chunk, offset);
+    case OP_GET_LOCAL:
+    case OP_SET_LOCAL:
+        return LocalInstruction(instruction, chunk, offset);
+    case OP_GET_GLOBAL:
+    case OP_DEFINE_GLOBAL:
+    case OP_DEFINE_CONSTANT:
+    case OP_SET_GLOBAL:
+    case OP_GET_PROPERTY:
+    case OP_SET_PROPERTY:
+    case OP_HAS_PROPERTY:
+    case OP_USE_NAMESPACE:
+    case OP_INHERIT:
+        return HashInstruction(instruction, chunk, offset);
+    case OP_SET_MODULE_LOCAL:
+    case OP_GET_MODULE_LOCAL:
+        return ShortInstruction(instruction, chunk, offset);
+    case OP_NEW_ARRAY:
+    case OP_NEW_MAP:
+        return SimpleInstruction(instruction, chunk, offset);
+    case OP_JUMP:
+    case OP_JUMP_IF_FALSE:
+        return JumpInstruction(instruction, 1, chunk, offset);
+    case OP_JUMP_BACK:
+        return JumpInstruction(instruction, -1, chunk, offset);
+    case OP_INVOKE:
+        return InvokeInstruction(instruction, chunk, offset);
 
-        case OP_PRINT_STACK: {
-            offset++;
-            uint8_t constant = chunk->Code[offset++];
-            Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
-            Values::PrintValue(NULL, (*chunk->Constants)[constant]);
-            Log::PrintSimple("\n");
+    case OP_PRINT_STACK: {
+        offset++;
+        uint8_t constant = chunk->Code[offset++];
+        Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
+        Values::PrintValue(NULL, (*chunk->Constants)[constant]);
+        Log::PrintSimple("\n");
 
-            ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
-            for (int j = 0; j < function->UpvalueCount; j++) {
-                int isLocal = chunk->Code[offset++];
-                int index = chunk->Code[offset++];
-                Log::PrintSimple("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
-            }
-
-            return offset;
+        ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
+        for (int j = 0; j < function->UpvalueCount; j++) {
+            int isLocal = chunk->Code[offset++];
+            int index = chunk->Code[offset++];
+            Log::PrintSimple("%04d   |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
         }
-        case OP_WITH:
-            return WithInstruction(instruction, chunk, offset);
-        case OP_CLASS:
-            return ClassInstruction(instruction, chunk, offset);
-        case OP_ADD_ENUM:
-        case OP_NEW_ENUM:
-            return EnumInstruction(instruction, chunk, offset);
-        case OP_METHOD:
-            return MethodInstruction(instruction, chunk, offset);
-        default:
-            if (instruction < OP_LAST)
-                Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
-            else
-                Log::PrintSimple("Unknown opcode %d\n", instruction);
-            return chunk->Count + 1;
+
+        return offset;
+    }
+    case OP_WITH:
+        return WithInstruction(instruction, chunk, offset);
+    case OP_CLASS:
+        return ClassInstruction(instruction, chunk, offset);
+    case OP_ADD_ENUM:
+    case OP_NEW_ENUM:
+        return EnumInstruction(instruction, chunk, offset);
+    case OP_METHOD:
+        return MethodInstruction(instruction, chunk, offset);
+    default:
+        if (instruction < OP_LAST)
+            Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
+        else
+            Log::PrintSimple("Unknown opcode %d\n", instruction);
+        return chunk->Count + 1;
     }
 }
 void   Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
@@ -3652,8 +3900,13 @@ void   Compiler::Init() {
 
     Compiler::DoLogging = false;
     Compiler::ShowWarnings = false;
+#if DEVELOPER_MODE
     Compiler::WriteDebugInfo = true;
     Compiler::WriteSourceFilename = true;
+#else
+    Compiler::WriteDebugInfo = false;
+    Compiler::WriteSourceFilename = false;
+#endif
     Compiler::DoOptimizations = true;
 
     Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
@@ -3664,6 +3917,18 @@ void   Compiler::Init() {
     Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
     Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
     Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
+}
+void   Compiler::GetStandardConstants()
+{
+    if (Compiler::StandardConstants == NULL) {
+        Compiler::StandardConstants = new HashMap<VMValue>(NULL, ScriptManager::Constants->Capacity);
+    }
+    Compiler::StandardConstants->Clear();
+
+    ScriptManager::Constants->ForAll([](Uint32 hash, VMValue val) {
+        if (IS_NUMBER(val) || OBJECT_TYPE(val) == OBJ_STRING)
+            Compiler::StandardConstants->Put(hash, val);
+        });
 }
 void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {
@@ -3677,17 +3942,18 @@ void          Compiler::Initialize(Compiler* enclosing, int scope, int type) {
     Enclosing = enclosing;
     Function = NewFunction();
     UnusedVariables = new vector<Local>();
+    UnsetVariables = new vector<Local>();
     Compiler::Functions.push_back(Function);
 
     switch (type) {
-        case TYPE_CONSTRUCTOR:
-        case TYPE_METHOD:
-        case TYPE_FUNCTION:
-            Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
-            break;
-        case TYPE_TOP_LEVEL:
-            Function->Name = CopyString("main", 4);
-            break;
+    case TYPE_CONSTRUCTOR:
+    case TYPE_METHOD:
+    case TYPE_FUNCTION:
+        Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
+        break;
+    case TYPE_TOP_LEVEL:
+        Function->Name = CopyString("main", 4);
+        break;
     }
 
     Local* local = &Locals[LocalCount++];
@@ -3743,14 +4009,23 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     ConsumeToken(TOKEN_EOF, "Expected end of file.");
 
-    if (UnusedVariables) {
-        for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
-            if (!Compiler::ModuleLocals[i].Resolved)
-                UnusedVariables->insert(UnusedVariables->begin(), Compiler::ModuleLocals[i]);
-        }
+    for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
+        if (UnusedVariables && !Compiler::ModuleLocals[i].Resolved)
+            UnusedVariables->insert(UnusedVariables->begin(), Compiler::ModuleLocals[i]);
+        else if (UnsetVariables && Compiler::ModuleLocals[i].ConstantVal.Type != VAL_ERROR && !Compiler::ModuleLocals[i].WasSet)
+            UnsetVariables->insert(UnsetVariables->begin(), Compiler::ModuleLocals[i]);
     }
 
     Finish();
+
+    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+        Chunk* chunk = &Compiler::Functions[c]->Chunk;
+        chunk->OpcodeCount = 0;
+        for (int offset = 0; offset < chunk->Count;) {
+            offset += GetTotalOpcodeSize(chunk->Code + offset);
+            chunk->OpcodeCount++;
+        }
+    }
 
     if (debugCompiler) {
         for (size_t c = 0; c < Compiler::Functions.size(); c++) {
@@ -3770,12 +4045,20 @@ bool          Compiler::Compile(const char* filename, const char* source, const 
 
     stream->Close();
 
+    for (size_t c = 0; c < Compiler::Functions.size(); c++) {
+        ObjFunction* func = Compiler::Functions[c];
+        func->Chunk.Free();
+    }
+
     return !parser.HadError;
 }
 void          Compiler::Finish() {
-    if (UnusedVariables) {
-        WarnVariablesUnused();
-        delete UnusedVariables;
+    if (UnusedVariables || UnsetVariables) {
+        WarnVariablesUnusedUnset();
+        if (UnusedVariables)
+            delete UnusedVariables;
+        if (UnsetVariables)
+            delete UnsetVariables;
     }
 
     EmitReturn();
@@ -3787,6 +4070,7 @@ Compiler::~Compiler() {
 void   Compiler::FinishCompiling() {
     Compiler::Functions.clear();
     Compiler::ModuleLocals.clear();
+    Compiler::ModuleConstants.clear();
 
     if (TokenMap) {
         delete TokenMap;
@@ -3794,5 +4078,9 @@ void   Compiler::FinishCompiling() {
     }
 }
 void   Compiler::Dispose() {
+    if (StandardConstants) {
+        delete StandardConstants;
+        StandardConstants = NULL;
+    }
     Memory::Free(Rules);
 }

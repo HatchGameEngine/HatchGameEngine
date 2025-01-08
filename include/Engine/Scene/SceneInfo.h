@@ -18,7 +18,7 @@ public:
     static vector<SceneListCategory> Categories;
     static int NumTotalScenes;
 
-    static void Init();
+    static int InitGlobalCategory();
     static void Dispose();
     static bool IsCategoryValid(int categoryID);
     static bool IsEntryValid(int categoryID, int entryID);

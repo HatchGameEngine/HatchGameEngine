@@ -550,14 +550,16 @@ void Scene::Init() {
 
     Compiler::Init();
 
-    SourceFileMap::CheckForUpdate();
-
     Application::GameStart = true;
 
     ScriptManager::Init();
     ScriptManager::ResetStack();
     ScriptManager::LinkStandardLibrary();
     ScriptManager::LinkExtensions();
+
+    Compiler::GetStandardConstants();
+
+    SourceFileMap::CheckForUpdate();
 
     Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
     Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
@@ -692,10 +694,13 @@ void Scene::RunTileAnimations() {
     }
 }
 Tileset* Scene::GetTileset(int tileID) {
-    for (Tileset& tileset : Scene::Tilesets) {
-        if (tileID >= tileset.StartTile)
-            return &tileset;
+    // TODO: Optimize this.
+    for (size_t i = Scene::Tilesets.size(); i > 0; i--) {
+        Tileset* tileset = &Scene::Tilesets[i - 1];
+        if (tileID >= tileset->StartTile)
+            return tileset;
     }
+
     return nullptr;
 }
 TileAnimator* Scene::GetTileAnimator(int tileID) {
@@ -2495,8 +2500,11 @@ int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
         delete resource;
         list->pop_back();
         stream->Close();
+        (*list)[index] = NULL;
         return -1;
     }
+
+    stream->Close();
 
     return (int)index;
 }
@@ -2522,9 +2530,12 @@ int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
     if (resource->AsMusic->LoadFailed) {
         delete resource->AsMusic;
         delete resource;
+        stream->Close();
         (*list)[index] = NULL;
         return -1;
     }
+
+    stream->Close();
 
     return (int)index;
 }
@@ -2578,6 +2589,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
     Source = MediaSource::CreateSourceFromStream(stream);
     if (!Source) {
         delete resource;
+        stream->Close();
         (*list)[index] = NULL;
         return -1;
     }
