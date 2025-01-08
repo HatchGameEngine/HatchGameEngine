@@ -372,8 +372,8 @@ void   GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int offset, int f
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)offset);
-    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (char*)offset + 8);
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (void*)(uintptr_t)offset);
+    glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, sizeof(GL_AnimFrameVert), (void*)((uintptr_t)offset + 8));
 
     glDrawArrays(GL_TRIANGLE_STRIP, flip << 2, 4); CHECK_GL();
 }
