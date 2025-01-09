@@ -3625,7 +3625,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 
             int charOffsetIndex = 0;
             switch (align) {
-                case 0: // ALIGN_LEFT
+                case ALIGN_LEFT:
                     if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
                         for (; startFrame < endFrame; ++startFrame) {
                             int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[startFrame]));
@@ -3654,10 +3654,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
                     }
                     break;
 
-                case 1: // ALIGN_RIGHT
-                    break;
-
-                case 2: // ALIGN_CENTER
+                case ALIGN_CENTER:
                     --endFrame;
                     if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
                         charOffsetIndex = endFrame;
@@ -3668,7 +3665,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
                                 Graphics::DrawSprite(sprite,
                                     animation,
                                     curChar,
-                                    x  - (frame.Width / 2) + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+                                    x - (frame.Width / 2) + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
                                     y + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
                                     false, false, 1.0f, 1.0f, 0.0f);
                                 x = (x - frame.Width) - spacing;
@@ -3683,6 +3680,44 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
                                 AnimFrame frame = sprite->Animations[animation].Frames[curChar];
                                 Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
                                 x = (x - frame.Width) - spacing;
+                            }
+                        }
+                    }
+                    break;
+
+                case ALIGN_RIGHT:
+                    int totalWidth = 0;
+                    for (int pos = startFrame; pos < endFrame; ++pos) {
+                        int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[pos]));
+                        if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                            totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
+                        }
+                    }
+                    x -= totalWidth;
+
+                    if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+                        for (; startFrame < endFrame; ++startFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[startFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite,
+                                    animation,
+                                    curChar,
+                                    x + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+                                    y + AS_DECIMAL(ScriptManager::CastValueAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+                                    false, false, 1.0f, 1.0f, 0.0f);
+                                x += spacing + frame.Width;
+                                ++charOffsetIndex;
+                            }
+                        }
+                    }
+                    else {
+                        for (; startFrame < endFrame; ++startFrame) {
+                            int curChar = AS_INTEGER(ScriptManager::CastValueAsInteger((*string->Values)[startFrame]));
+                            if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+                                AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+                                Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+                                x += spacing + frame.Width;
                             }
                         }
                     }
@@ -17655,6 +17690,22 @@ void StandardLibrary::Link() {
     * \desc Increases the stencil buffer value, letting it wrap around.
     */
     DEF_ENUM(StencilOp_DecrWrap);
+
+    /***
+    * \enum ALIGN_LEFT
+    * \desc Left alignment for text drawing.
+    */
+    DEF_ENUM(ALIGN_LEFT);
+    /***
+    * \enum ALIGN_CENTER
+    * \desc Center alignment for text drawing.
+    */
+    DEF_ENUM(ALIGN_CENTER);
+    /***
+    * \enum ALIGN_RIGHT
+    * \desc Right alignment for text drawing.
+    */
+    DEF_ENUM(ALIGN_RIGHT);
 
     /***
     * \enum BlendFactor_ZERO

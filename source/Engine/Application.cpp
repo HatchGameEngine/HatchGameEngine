@@ -1791,7 +1791,7 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
         int offset = 0;
         switch (align) {
             default:
-            case 0: // ALIGN_LEFT
+            case ALIGN_LEFT:
                 for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
                     if (spriteString[pos] != -1) {
                         AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
@@ -1804,32 +1804,7 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
                 }
                 break;
 
-            case 1: { // ALIGN_RIGHT
-                int totalWidth = 0;
-                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-                    if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
-                        totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
-                    }
-                    else {
-                        totalWidth += 8;
-                    }
-                }
-                x -= totalWidth;
-
-                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-                    if (spriteString[pos] != -1) {
-                        AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
-                        Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
-                        x += frame.Width + 1;
-                    }
-                    else {
-                        x += 8;
-                    }
-                }
-                break;
-            }
-
-            case 2: { // ALIGN_CENTER
+            case ALIGN_CENTER: {
                 int totalWidth = 0;
                 for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
                     if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
@@ -1846,6 +1821,31 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
                         AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
                         Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
                         x += frame.Width;
+                    }
+                    else {
+                        x += 8;
+                    }
+                }
+                break;
+            }
+
+            case ALIGN_RIGHT: {
+                int totalWidth = 0;
+                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
+                    if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
+                        totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
+                    }
+                    else {
+                        totalWidth += 8;
+                    }
+                }
+                x -= totalWidth;
+
+                for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
+                    if (spriteString[pos] != -1) {
+                        AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
+                        Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
+                        x += frame.Width + 1;
                     }
                     else {
                         x += 8;
@@ -1920,7 +1920,7 @@ void Application::DevMenu_DrawMainMenu() {
 
     int y = 100;
     for (int i = 0; i < selectionCount; ++i) {
-        DrawDevString(selectionNames[i], 16.0, y, 0, isSelected[i]);
+        DrawDevString(selectionNames[i], 16.0, y, ALIGN_LEFT, isSelected[i]);
         y += 15;
     }
 }
@@ -1931,10 +1931,10 @@ void Application::DevMenu_DrawTitleBar() {
     // TODO: Should be CenterY when that exists
     int y = (((int)Scene::Views[0].Height) / 2) - 94;
     DrawRectangle(0.0, 16.0, view.Width, 54.0, 0x000000, 0xFF, true);
-    DrawDevString("Hatch Engine Developer Menu", (int)view.Width / 2, y, 2, true);
+    DrawDevString("Hatch Engine Developer Menu", (int)view.Width / 2, y, ALIGN_CENTER, true);
 
     y += 15;
-    DrawDevString(GameTitleShort, (int)view.Width / 2, y, 2, true);
+    DrawDevString(GameTitleShort, (int)view.Width / 2, y, ALIGN_CENTER, true);
 }
 
 void Application::DevMenu_MainMenu() {
@@ -1944,9 +1944,9 @@ void Application::DevMenu_MainMenu() {
     View view = Scene::Views[0];
 
     if (DevMenu.ModsChanged)
-        DrawDevString("Application must restart upon resume.", (int)view.Width / 2, (((int)Scene::Views[0].Height) / 2) - 64, 2, true);
+        DrawDevString("Application must restart upon resume.", (int)view.Width / 2, (((int)Scene::Views[0].Height) / 2) - 64, ALIGN_CENTER, true);
     else
-        DrawDevString(GameVersion, (int)view.Width / 2, (((int)Scene::Views[0].Height) / 2) - 64, 2, true);
+        DrawDevString(GameVersion, (int)view.Width / 2, (((int)Scene::Views[0].Height) / 2) - 64, ALIGN_CENTER, true);
 
     const char* tooltip;
     switch (DevMenu.Selection) {
@@ -1958,7 +1958,7 @@ void Application::DevMenu_MainMenu() {
         case 5: tooltip = "Close the appliation."; break;
     }
 
-    DrawDevString(tooltip, 160, 93, 0, true);
+    DrawDevString(tooltip, 160, 93, ALIGN_LEFT, true);
 
     if (InputManager::GetActionID("Up") != -1) {
         if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
@@ -2057,7 +2057,7 @@ void Application::DevMenu_CategorySelectMenu() {
     DevMenu_DrawMainMenu();
 
     if (!ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-        DrawDevString("No SceneConfig is loaded!", 160, 93, 0, true);
+        DrawDevString("No SceneConfig is loaded!", 160, 93, ALIGN_LEFT, true);
         if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
             DevMenu.State = DevMenu_MainMenu;
             DevMenu.SubSelection = 0;
@@ -2074,12 +2074,12 @@ void Application::DevMenu_CategorySelectMenu() {
     }
     selectedCategory[DevMenu.SubSelection] = true;
 
-    DrawDevString("Select Scene Category...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+    DrawDevString("Select Scene Category...", (int)view.Width / 2, (int)view.Height / 2 - 64, ALIGN_CENTER, true);
 
     int y = 93;
     for (size_t i = 0; i < 7; i++) {
         if (DevMenu.SubScrollPos + i < SceneInfo::Categories.size()) {
-            DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + (int)i].Name, 160, y, 0, selectedCategory[(int)i]);
+            DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + (int)i].Name, 160, y, ALIGN_LEFT, selectedCategory[(int)i]);
             y += 15;
         }
     }
@@ -2201,13 +2201,13 @@ void Application::DevMenu_SceneSelectMenu() {
 
     selectedScene[DevMenu.SubSelection - DevMenu.SubScrollPos] = true;
 
-    DrawDevString("Select Scene...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+    DrawDevString("Select Scene...", (int)view.Width / 2, (int)view.Height / 2 - 64, ALIGN_CENTER, true);
 
     int y = 93;
     SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
     for (int i = 0; i < 7; i++) {
         if (DevMenu.SubScrollPos + i < list->Entries.size()) {
-            DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, 0, selectedScene[(int)i]);
+            DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, selectedScene[(int)i]);
             y += 15;
         }
     }
@@ -2319,11 +2319,11 @@ void Application::DevMenu_SettingsMenu() {
 
     View view = Scene::Views[0];
 
-    DrawDevString("Change settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+    DrawDevString("Change settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, ALIGN_CENTER, true);
 
     int y = 93;
     for (int i = 0; i < 4; i++) {
-        DrawDevString(selectionNames[i], 160, y, 0, isSelected[i]);
+        DrawDevString(selectionNames[i], 160, y, ALIGN_LEFT, isSelected[i]);
         y += 15;
     }
 
@@ -2404,14 +2404,14 @@ void Application::DevMenu_AudioMenu() {
 
     View view = Scene::Views[0];
 
-    DrawDevString("Change audio settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+    DrawDevString("Change audio settings...", (int)view.Width / 2, (int)view.Height / 2 - 64, ALIGN_CENTER, true);
 
     DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
 
-    DrawDevString("Master Volume", ((int)view.Width / 2) - 124, 93, 0, DevMenu.SubSelection == 0);
-    DrawDevString("Music Volume", ((int)view.Width / 2) - 124, 108, 0, DevMenu.SubSelection == 1);
-    DrawDevString("Sound Volume", ((int)view.Width / 2) - 124, 123, 0, DevMenu.SubSelection == 2);
-    DrawDevString("Confirm", (int)view.Width / 2, 150, 2, DevMenu.SubSelection == 3);
+    DrawDevString("Master Volume", ((int)view.Width / 2) - 124, 93, ALIGN_LEFT, DevMenu.SubSelection == 0);
+    DrawDevString("Music Volume", ((int)view.Width / 2) - 124, 108, ALIGN_LEFT, DevMenu.SubSelection == 1);
+    DrawDevString("Sound Volume", ((int)view.Width / 2) - 124, 123, ALIGN_LEFT, DevMenu.SubSelection == 2);
+    DrawDevString("Confirm", (int)view.Width / 2, 150, ALIGN_CENTER, DevMenu.SubSelection == 3);
 
     float y = 93.0;
     for (int i = 0; i < 3; i++) {
@@ -2548,13 +2548,13 @@ void Application::DevMenu_ModsMenu() {
 
     selectedMod[DevMenu.SubSelection - DevMenu.SubScrollPos] = true;
 
-    DrawDevString("Select Mod...", (int)view.Width / 2, (int)view.Height / 2 - 64, 2, true);
+    DrawDevString("Select Mod...", (int)view.Width / 2, (int)view.Height / 2 - 64, ALIGN_CENTER, true);
 
     int y = 93;
     ModInfo* mod = &ResourceManager::Mods[DevMenu.ListPos];
     for (int i = 0; i < 7; i++) {
         if (DevMenu.SubScrollPos + i < ResourceManager::Mods.size()) {
-            DrawDevString(ResourceManager::Mods[DevMenu.SubScrollPos + i].Name.c_str(), 160, y, 0, selectedMod[(int)i]);
+            DrawDevString(ResourceManager::Mods[DevMenu.SubScrollPos + i].Name.c_str(), 160, y, ALIGN_LEFT, selectedMod[(int)i]);
             y += 15;
         }
     }
