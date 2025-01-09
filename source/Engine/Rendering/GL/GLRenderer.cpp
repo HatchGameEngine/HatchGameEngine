@@ -1026,7 +1026,7 @@ void     GLRenderer::Init() {
     #ifdef USING_GLEW
     glewExperimental = GL_TRUE;
     GLenum res = glewInit();
-    if (res != GLEW_OK) {
+    if (res != GLEW_OK && res != GLEW_ERROR_NO_GLX_DISPLAY) {
         Log::Print(Log::LOG_ERROR, "Could not create GLEW context: %s", glewGetErrorString(res));
         exit(-1);
     }
