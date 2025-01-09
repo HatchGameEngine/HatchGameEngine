@@ -14,7 +14,7 @@ public:
     GameTexture(Uint32 width, Uint32 height, int unloadPolicy);
     virtual Texture* GetTexture();
     virtual int GetID();
-    ~GameTexture();
+    virtual ~GameTexture();
 };
 
 #endif /* ENGINE_RENDERING_GAMETEXTURE_H */

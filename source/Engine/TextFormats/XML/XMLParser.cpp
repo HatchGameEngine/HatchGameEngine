@@ -375,6 +375,11 @@ void     GetInstruction() {
 bool     XMLParser::MatchToken(Token tok, const char* string) {
     if (tok.Length == 0)
         return false;
+
+    size_t len = strlen(string);
+    if (tok.Length != len)
+        return false;
+
     return memcmp(string, tok.Start, tok.Length) == 0;
 }
 float    XMLParser::TokenToNumber(Token tok) {
