@@ -1177,6 +1177,28 @@ void Application::RunFrame(int runFrames) {
 		}
 	}
 
+#ifdef USING_FFMPEG
+	AudioManager::Lock();
+	Uint8 audio_buffer[0x8000]; // <-- Should be larger than AudioManager::AudioQueueMaxSize
+	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
+	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
+		if (!Scene::MediaList[i]) {
+			continue;
+		}
+
+		MediaBag* media = Scene::MediaList[i]->AsMedia;
+		int queued = (int)AudioManager::AudioQueueSize;
+		if (queued < needed) {
+			int ready_bytes = media->Player->GetAudioData(audio_buffer, needed - queued);
+			if (ready_bytes > 0) {
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize, audio_buffer, ready_bytes);
+				AudioManager::AudioQueueSize += ready_bytes;
+			}
+		}
+	}
+	AudioManager::Unlock();
+#endif
+
 	// Rendering
 	MetricClearTime = Clock::GetTicks();
 	Graphics::Clear();

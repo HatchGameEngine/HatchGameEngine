@@ -8266,7 +8266,10 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	obj->Create(flag);
-	obj->PostCreate();
+	if (!Scene::Initializing) {
+		obj->PostCreate();
+		Scene::NeedEntitySort = true;
+	}
 
 	return OBJECT_VAL(instance);
 }
