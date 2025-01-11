@@ -34,8 +34,8 @@ private:
 	static void IterateAll(Entity* first, std::function<void(Entity* e)> func);
 	static void ResetPriorityListIndex(Entity* first);
 	static Entity* SortEntityList(Entity* head);
-    static bool SplitEntityList(Entity* head, Entity** left, Entity** right);
-    static Entity* MergeEntityList(Entity* left, Entity* right);
+	static bool SplitEntityList(Entity* head, Entity** left, Entity** right);
+	static Entity* MergeEntityList(Entity* left, Entity* right);
 	static int GetPersistenceScopeForObjectDeletion();
 	static void ClearPriorityLists();
 	static void DeleteObjects(Entity** first, Entity** last, int* count);
@@ -95,7 +95,7 @@ public:
 	static bool Paused;
 	static bool Loaded;
 	static bool Initializing;
-    static bool NeedEntitySort;
+	static bool NeedEntitySort;
 	static int TileAnimationEnabled;
 	static View Views[MAX_SCENE_VIEWS];
 	static int ViewCurrent;
@@ -144,7 +144,7 @@ public:
 	static void AddToScene(Entity* obj);
 	static void RemoveFromScene(Entity* obj);
 	static void Clear(Entity** first, Entity** last, int* count);
-	static void AddStatic(ObjectList* objectList, Entity* obj);
+	static bool AddStatic(ObjectList* objectList, Entity* obj);
 	static void AddDynamic(ObjectList* objectList, Entity* obj);
 	static void DeleteRemoved(Entity* obj);
 	static void OnEvent(Uint32 event);
