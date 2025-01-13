@@ -33,6 +33,7 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
     if (Version > BYTECODE_VERSION) {
         Log::Print(Log::LOG_ERROR, "Unsupported bytecode version 0x%02X!", Version);
+        stream->Close();
         return false;
     }
 
@@ -129,6 +130,7 @@ bool        Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
     if (hasSourceFilename)
         SourceFilename = stream->ReadString();
 
+    stream->Close();
     return true;
 }
 
