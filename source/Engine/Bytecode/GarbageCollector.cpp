@@ -49,6 +49,9 @@ void GarbageCollector::Collect() {
     // Mark constants
     GrayHashMap(ScriptManager::Constants);
 
+    // Mark strings
+    GrayObjectHashMap(ScriptManager::Strings);
+
     // Mark static objects
     for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
         next = ent->NextEntity;
@@ -192,6 +195,13 @@ void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
 void GarbageCollector::GrayHashMap(void* pointer) {
     if (!pointer) return;
     ((HashMap<VMValue>*)pointer)->ForAll(GrayHashMapItem);
+}
+void GarbageCollector::GrayHashMapObjItem(Uint32, Obj* value) {
+    GrayObject((void*)value);
+}
+void GarbageCollector::GrayObjectHashMap(void* pointer) {
+    if (!pointer) return;
+    ((HashMap<Obj*>*)pointer)->ForAll(GrayHashMapObjItem);
 }
 
 void GarbageCollector::BlackenObject(Obj* object) {

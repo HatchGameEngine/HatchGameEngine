@@ -11,6 +11,8 @@ private:
     static void GrayObject(void* obj);
     static void GrayHashMapItem(Uint32, VMValue value);
     static void GrayHashMap(void* pointer);
+    static void GrayHashMapObjItem(Uint32, Obj* value);
+    static void GrayObjectHashMap(void* pointer);
     static void BlackenObject(Obj* object);
     static void CollectResources();
 

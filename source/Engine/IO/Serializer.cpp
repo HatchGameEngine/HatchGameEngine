@@ -1,6 +1,7 @@
 #include <Engine/IO/Serializer.h>
 
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Bytecode/ScriptManager.h>
 
 Uint32 Serializer::Magic = 0x9D939FF0;
 Uint32 Serializer::Version = 0x00000001;
@@ -306,8 +307,10 @@ void Serializer::GetObject() {
             return;
         }
         Uint32 length = StringList[stringID].Length;
-        ObjString* string = AllocString(length);
-        memcpy(string->Chars, StringList[stringID].Chars, length);
+        char* chars = (char*)Memory::Malloc(length + 1);
+        memcpy(chars, StringList[stringID].Chars, length);
+        chars[length] = '\0';
+        ObjString* string = ScriptManager::GetString(chars, length);
         ObjList.push_back((Obj*)string);
         return;
     }

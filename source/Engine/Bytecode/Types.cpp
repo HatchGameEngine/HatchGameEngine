@@ -32,7 +32,7 @@ static Obj*       AllocateObject(size_t size, ObjType type) {
 
     return object;
 }
-static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
+ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     Memory::Track(string, "NewString");
     string->Object.Class = StringImpl::Class;
@@ -42,15 +42,18 @@ static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
     return string;
 }
 
+Uint32            CalcStringHash(const char* chars, size_t length) {
+    return FNV1A::EncryptData(chars, length);
+}
 ObjString*        TakeString(char* chars, size_t length) {
-    Uint32 hash = FNV1A::EncryptData(chars, length);
+    Uint32 hash = CalcStringHash(chars, length);
     return AllocateString(chars, length, hash);
 }
 ObjString*        TakeString(char* chars) {
     return TakeString(chars, strlen(chars));
 }
 ObjString*        CopyString(const char* chars, size_t length) {
-    Uint32 hash = FNV1A::EncryptData(chars, length);
+    Uint32 hash = CalcStringHash(chars, length);
 
     char* heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
@@ -67,12 +70,6 @@ ObjString*        CopyString(ObjString* string) {
     heapChars[string->Length] = '\0';
 
     return AllocateString(heapChars, string->Length, string->Hash);
-}
-ObjString*        AllocString(size_t length) {
-    char* heapChars = ALLOCATE(char, length + 1);
-    heapChars[length] = '\0';
-
-    return AllocateString(heapChars, length, 0x00000000);
 }
 
 ObjFunction*      NewFunction() {

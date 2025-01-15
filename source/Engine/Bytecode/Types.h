@@ -289,12 +289,13 @@ struct ObjMaterial {
     Material* MaterialPtr;
 };
 
+ObjString*         AllocateString(char* chars, size_t length, Uint32 hash);
+Uint32             CalcStringHash(const char* chars, size_t length);
 ObjString*         TakeString(char* chars, size_t length);
 ObjString*         TakeString(char* chars);
 ObjString*         CopyString(const char* chars, size_t length);
 ObjString*         CopyString(const char* chars);
 ObjString*         CopyString(ObjString* string);
-ObjString*         AllocString(size_t length);
 ObjFunction*       NewFunction();
 ObjNative*         NewNative(NativeFn function);
 ObjUpvalue*        NewUpvalue(VMValue* slot);

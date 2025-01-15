@@ -5341,9 +5341,12 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
     if (ScriptManager::Lock()) {
         size_t size = stream->Length();
-        ObjString* text = AllocString(size);
-        stream->ReadBytes(text->Chars, size);
+        ObjString* text = nullptr;
+        char* chars = (char*)Memory::Malloc(size + 1);
+        stream->ReadBytes(chars, size);
         stream->Close();
+        chars[size] = '\0';
+        text = ScriptManager::GetString(chars, size);
         ScriptManager::Unlock();
         return OBJECT_VAL(text);
     }
@@ -9749,9 +9752,12 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
     if (ScriptManager::Lock()) {
         size_t size = stream->Length();
-        ObjString* text = AllocString(size);
-        stream->ReadBytes(text->Chars, size);
+        ObjString* text = nullptr;
+        char* chars = (char*)Memory::Malloc(size + 1);
+        stream->ReadBytes(chars, size);
         stream->Close();
+        chars[size] = '\0';
+        text = ScriptManager::GetString(chars, size);
         ScriptManager::Unlock();
         return OBJECT_VAL(text);
     }

@@ -34,6 +34,7 @@ vector<ObjModule*>          ScriptManager::ModuleList;
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>*         ScriptManager::Classes = NULL;
 HashMap<char*>*             ScriptManager::Tokens = NULL;
+HashMap<ObjString*>*        ScriptManager::Strings = NULL;
 vector<ObjNamespace*>       ScriptManager::AllNamespaces;
 vector<ObjClass*>           ScriptManager::ClassImplList;
 
@@ -85,6 +86,8 @@ void    ScriptManager::Init() {
         Classes = new HashMap<ObjClass*>(NULL, 8);
     if (Tokens == NULL)
         Tokens = new HashMap<char*>(NULL, 64);
+    if (Strings == NULL)
+        Strings = new HashMap<ObjString*>(FNV1A::EncryptData, 128);
 
     memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
 
@@ -153,6 +156,12 @@ void    ScriptManager::Dispose() {
     AllNamespaces.clear();
 
     FreeModules();
+
+    if (Strings) {
+        Strings->Clear();
+        delete Strings;
+        Strings = NULL;
+    }
 
     Threads[0].FrameCount = 0;
     Threads[0].ResetStack();
@@ -396,16 +405,38 @@ VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
     }
     return NULL_VAL;
 }
+ObjString* ScriptManager::GetString(char* chars, size_t length, Uint32 hash) {
+    ObjString* str = nullptr;
+
+    if (ScriptManager::Strings->GetIfExists(hash, &str)) {
+        Memory::Free(chars);
+        return str;
+    }
+
+    str = AllocateString(chars, length, hash);
+
+    ScriptManager::Strings->Put(hash, str);
+
+    return str;
+}
+ObjString* ScriptManager::GetString(char* chars, size_t length) {
+    Uint32 hash = CalcStringHash(chars, length);
+
+    return GetString(chars, length, hash);
+}
 VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
     ObjString* a = AS_STRING(va);
     ObjString* b = AS_STRING(vb);
 
     size_t length = a->Length + b->Length;
-    ObjString* result = AllocString(length);
+    char* chars = (char*)Memory::Malloc(length + 1);
 
-    memcpy(result->Chars, a->Chars, a->Length);
-    memcpy(result->Chars + a->Length, b->Chars, b->Length);
-    result->Chars[length] = 0;
+    memcpy(chars, a->Chars, a->Length);
+    memcpy(chars + a->Length, b->Chars, b->Length);
+    chars[length] = '\0';
+
+    ObjString* result = ScriptManager::GetString(chars, length);
+
     return OBJECT_VAL(result);
 }
 

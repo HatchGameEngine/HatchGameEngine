@@ -406,9 +406,12 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
                     case 0x7: val = INTEGER_VAL((int)r->ReadUInt32()); break;
                     // String
                     case 0x8: {
-                        ObjString* str = AllocString(r->ReadUInt16());
-                        for (size_t c = 0; c < str->Length; c++)
-                            str->Chars[c] = (char)(Uint8)r->ReadUInt16();
+                        size_t length = r->ReadUInt16();
+                        char* chars = (char*)Memory::Malloc(length + 1);
+                        for (size_t c = 0; c < length; c++)
+                            chars[c] = (char)r->ReadUInt16();
+                        chars[length] = '\0';
+                        ObjString* str = ScriptManager::GetString(chars, length);
                         val = OBJECT_VAL(str);
                         break;
                     }

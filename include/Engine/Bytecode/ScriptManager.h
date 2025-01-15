@@ -34,6 +34,7 @@ public:
     static HashMap<BytecodeContainer>* Sources;
     static HashMap<ObjClass*>*         Classes;
     static HashMap<char*>*             Tokens;
+    static HashMap<ObjString*>*        Strings;
     static vector<ObjNamespace*>       AllNamespaces;
     static vector<ObjClass*>           ClassImplList;
     static SDL_mutex*                  GlobalLock;
@@ -51,6 +52,8 @@ public:
     static VMValue CastValueAsInteger(VMValue v);
     static VMValue CastValueAsDecimal(VMValue v);
     static VMValue Concatenate(VMValue va, VMValue vb);
+    static ObjString* GetString(char* chars, size_t length, Uint32 hash);
+    static ObjString* GetString(char* chars, size_t length);
     static bool ValuesSortaEqual(VMValue a, VMValue b);
     static bool ValuesEqual(VMValue a, VMValue b);
     static bool ValueFalsey(VMValue a);
