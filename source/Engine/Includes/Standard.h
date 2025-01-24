@@ -78,6 +78,8 @@ enum class KeyBind {
 
 #define MAX_TARGET_FRAMERATE 240
 
+#define MATRIX_STACK_SIZE 256
+
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256
 #define MAX_DEFORM_LINES 0x400

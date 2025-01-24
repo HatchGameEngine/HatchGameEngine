@@ -38,7 +38,8 @@ public:
     static vector<VertexBuffer*> VertexBuffers;
     static Scene3D              Scene3Ds[MAX_3D_SCENES];
     static stack<GraphicsState> StateStack;
-    static stack<Matrix4x4*>    MatrixStack;
+    static Matrix4x4            MatrixStack[MATRIX_STACK_SIZE];
+    static size_t               MatrixStackID;
     static Matrix4x4*           ModelViewMatrix;
     static Viewport             CurrentViewport;
     static Viewport             BackupViewport;
