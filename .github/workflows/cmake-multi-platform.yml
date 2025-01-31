@@ -61,7 +61,7 @@ jobs:
 
     - name: Upload Linux build
       if: startsWith(matrix.os, 'ubuntu')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HatchGameEngine-Linux-${{ matrix.build_type }}-${{ github.sha }}-${{ matrix.c_compiler }}
         path: build/HatchGameEngine-${{ matrix.build_type }}
@@ -69,7 +69,7 @@ jobs:
 
     - name: Upload Windows build
       if: startsWith(matrix.os, 'windows')
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: HatchGameEngine-Windows-${{ matrix.build_type }}-${{ github.sha }}
         path: build/${{ matrix.build_type }}/HatchGameEngine-${{ matrix.build_type }}.exe
