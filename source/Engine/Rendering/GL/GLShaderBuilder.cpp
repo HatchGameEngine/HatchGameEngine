@@ -1,3 +1,5 @@
+#ifdef USING_OPENGL
+
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 
 void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
@@ -182,3 +184,5 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& unif
 string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
     return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms));
 }
+
+#endif /* USING_OPENGL */
