@@ -2,7 +2,7 @@ name: CMake (Linux and Windows)
 
 on:
   push:
-    branches: [ "master", "dev", "dev-no-makeheaders", "workflow-test" ]
+    branches: [ "master", "dev" ]
   pull_request:
     branches: [ "master", "dev" ]
 
