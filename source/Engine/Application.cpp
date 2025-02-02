@@ -485,6 +485,12 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::Restart() {
+    if (DEBUG_fontSprite) {
+        DEBUG_fontSprite->Dispose();
+        delete DEBUG_fontSprite;
+        DEBUG_fontSprite = NULL;
+    }
+
     // Reset FPS timer
     BenchmarkFrameCount = 0;
 

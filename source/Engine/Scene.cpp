@@ -1151,7 +1151,7 @@ void Scene::Render() {
 
     Graphics::CurrentView = NULL;
 
-    Scene::ViewCurrent = -1;
+    Scene::ViewCurrent = 0;
 }
 
 void Scene::AfterScene() {
