@@ -800,7 +800,7 @@ void          Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
     }
 
     if (token->Type == TOKEN_EOF)
-        ReportError(token->Line, fatal, " at end of file: %s", message);
+        ReportError(token->Line, (int)token->Pos, fatal, " at end of file: %s", message);
     else if (token->Type == TOKEN_ERROR)
         ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
     else

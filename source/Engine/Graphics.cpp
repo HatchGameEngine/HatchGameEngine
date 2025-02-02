@@ -32,7 +32,8 @@ vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D              Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
-stack<Matrix4x4*>    Graphics::MatrixStack;
+Matrix4x4            Graphics::MatrixStack[MATRIX_STACK_SIZE];
+size_t               Graphics::MatrixStackID;
 
 Matrix4x4*           Graphics::ModelViewMatrix;
 
@@ -87,8 +88,11 @@ const char*          Graphics::Renderer = "default";
 void     Graphics::Init() {
     Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
 
-    Graphics::ModelViewMatrix = Matrix4x4::Create();
-    Graphics::MatrixStack.push(Graphics::ModelViewMatrix);
+    for (size_t i = 0; i < MATRIX_STACK_SIZE; i++) {
+        Matrix4x4::Identity(&Graphics::MatrixStack[i]);
+    }
+    Graphics::ModelViewMatrix = &Graphics::MatrixStack[0];
+    Graphics::MatrixStackID = 1;
 
     Graphics::CurrentClip.Enabled = false;
     Graphics::BackupClip.Enabled = false;
@@ -229,10 +233,6 @@ void     Graphics::Dispose() {
     Graphics::GfxFunctions->Dispose();
 
     delete Graphics::TextureMap;
-    while (Graphics::MatrixStack.size()) {
-        delete Graphics::MatrixStack.top();
-        Graphics::MatrixStack.pop();
-    }
 
     if (Graphics::FramebufferPixels)
         Memory::Free(Graphics::FramebufferPixels);
@@ -243,7 +243,7 @@ Point    Graphics::ProjectToScreen(float x, float y, float z) {
     float vec4[4];
     Matrix4x4* matrix;
 
-    matrix = Graphics::MatrixStack.top();
+    matrix = &Graphics::MatrixStack[MatrixStackID - 1];
 
     vec4[0] = x; vec4[1] = y; vec4[2] = z; vec4[3] = 1.0f;
     Matrix4x4::Multiply(matrix, &vec4[0]);
@@ -647,16 +647,16 @@ void     Graphics::ClearClip() {
 }
 
 void     Graphics::Save() {
-    Matrix4x4* top = MatrixStack.top();
-    Matrix4x4* push = Matrix4x4::Create();
-    Matrix4x4::Copy(push, top);
-
-    if (MatrixStack.size() == 256) {
+    if (MatrixStackID >= MATRIX_STACK_SIZE) {
         Log::Print(Log::LOG_ERROR, "Draw.Save stack too big!");
         exit(-1);
     }
 
-    MatrixStack.push(push);
+    Matrix4x4* top = &MatrixStack[MatrixStackID - 1];
+    Matrix4x4* push = &MatrixStack[MatrixStackID];
+    Matrix4x4::Copy(push, top);
+    MatrixStackID++;
+
     ModelViewMatrix = push;
 }
 void     Graphics::Translate(float x, float y, float z) {
@@ -671,12 +671,9 @@ void     Graphics::Scale(float x, float y, float z) {
     Matrix4x4::Scale(ModelViewMatrix, ModelViewMatrix, x, y, z);
 }
 void     Graphics::Restore() {
-    if (MatrixStack.size() == 1) return;
-
-    delete MatrixStack.top();
-    MatrixStack.pop();
-
-    ModelViewMatrix = MatrixStack.top();
+    if (MatrixStackID == 1) return;
+    MatrixStackID--;
+    ModelViewMatrix = &MatrixStack[MatrixStackID - 1];
 }
 
 BlendState Graphics::GetBlendState() {

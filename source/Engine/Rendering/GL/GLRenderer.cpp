@@ -948,14 +948,14 @@ void GL_DrawBatchedScene3D(GL_VertexBuffer *driverData, vector<Uint32>* vertexIn
     size_t capacity = numIndices * GL_VertexIndexBufferStride;
     if (driverData->VertexIndexBuffer == nullptr) {
         driverData->VertexIndexBuffer = (void*)Memory::Malloc(capacity);
+        driverData->VertexIndexBufferCapacity = capacity;
         remakeVtxIdxBuf = true;
     }
     else if (capacity > driverData->VertexIndexBufferCapacity) {
         driverData->VertexIndexBuffer = (void*)Memory::Realloc(driverData->VertexIndexBuffer, capacity);
+        driverData->VertexIndexBufferCapacity = capacity;
         remakeVtxIdxBuf = true;
     }
-
-    driverData->VertexIndexBufferCapacity = capacity;
 
     // This can take enough time to matter with buffers that have a lot of vertices, so this is only done when needed.
     if (remakeVtxIdxBuf) {

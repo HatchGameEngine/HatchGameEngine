@@ -5388,6 +5388,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 // #region Geometry
 static vector<FVector2> GetPolygonPoints(ObjArray *array, const char *arrName, int threadID) {
     vector<FVector2> input;
+    input.reserve(array->Values->size());
 
     for (unsigned i = 0; i < array->Values->size(); i++) {
         VMValue vtxVal = (*array->Values)[i];

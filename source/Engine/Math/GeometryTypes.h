@@ -33,8 +33,7 @@ struct Polygon2D {
         MaxY = 0.0;
     }
 
-    Polygon2D(vector<FVector2> input) {
-        Points = input;
+    Polygon2D(vector<FVector2> input) : Points(std::move(input)) {
         CalcBounds();
     }
 

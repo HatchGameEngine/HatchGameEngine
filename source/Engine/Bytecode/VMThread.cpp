@@ -1144,6 +1144,7 @@ SUCCESS_OP_SET_PROPERTY:
             Uint32 count = ReadUInt32(frame);
             if (ScriptManager::Lock()) {
                 ObjArray* array = NewArray();
+                array->Values->reserve(count);
                 for (int i = count - 1; i >= 0; i--)
                     array->Values->push_back(Peek(i));
                 for (int i = count - 1; i >= 0; i--)
