@@ -277,8 +277,10 @@ void              Chunk::Init() {
     Capacity = 0;
     Code = NULL;
     Lines = NULL;
+#if USING_VM_FUNCPTRS
     OpcodeFuncs = NULL;
     IPToOpcode = NULL;
+#endif
     Constants = new vector<VMValue>();
 }
 void              Chunk::Alloc() {

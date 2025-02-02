@@ -370,7 +370,11 @@ bool   VMThread::CheckBranchLimit(CallFrame* frame) {
     return true;
 }
 
+#if USING_VM_FUNCPTRS
 #define IP_OPFUNC_SYNC() frame->OpcodeFunctions = frame->OpcodeFStart + frame->IPToOpcode[frame->IP - frame->IPStart];
+#else
+#define IP_OPFUNC_SYNC()
+#endif
 
 bool   VMThread::DoJump(CallFrame* frame, int offset) {
     frame->IP += offset;
