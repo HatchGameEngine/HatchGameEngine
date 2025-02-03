@@ -139,10 +139,10 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     }
 
     // Read scroll data
-    HatchSceneReader::ReadScrollData(r, layer);
+    HatchSceneReader::ReadScrollData(r, &layer);
 
     // Read and convert tile data
-    HatchSceneReader::ReadTileData(r, layer);
+    HatchSceneReader::ReadTileData(r, &layer);
     HatchSceneReader::ConvertTileData(&layer);
 
     memcpy(layer.TilesBackup, layer.Tiles, layer.DataSize);
@@ -150,7 +150,7 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
     return layer;
 }
 
-void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
+void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
     size_t streamPos = r->Position();
 
     r->ReadUInt32(); // compressed size
@@ -158,11 +158,11 @@ void HatchSceneReader::ReadTileData(Stream* r, SceneLayer layer) {
 
     r->Seek(streamPos);
 
-    Uint32 dataSize = layer.DataSize;
+    Uint32 dataSize = layer->DataSize;
     if (layerUncompSize > dataSize)
         Log::Print(Log::LOG_WARN, "Layer has more stored tile data (%u) than allocated (%u)\n", layerUncompSize, dataSize);
 
-    r->ReadCompressed(layer.Tiles, dataSize);
+    r->ReadCompressed(layer->Tiles, dataSize);
 }
 
 void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
@@ -194,9 +194,9 @@ void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
     }
 }
 
-void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer) {
-    for (Uint16 i = 0; i < layer.ScrollInfoCount; i++) {
-        ScrollingInfo* info = &layer.ScrollInfos[i];
+void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
+    for (Uint16 i = 0; i < layer->ScrollInfoCount; i++) {
+        ScrollingInfo* info = &layer->ScrollInfos[i];
 
         info->RelativeParallax = r->ReadInt16();
         info->ConstantParallax = r->ReadInt16();
@@ -215,11 +215,11 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer layer) {
 
     r->Seek(streamPos);
 
-    Uint32 dataSize = layer.ScrollIndexCount * 16;
+    Uint32 dataSize = layer->ScrollIndexCount * 16;
     if (layerUncompSize > dataSize)
         Log::Print(Log::LOG_WARN, "Layer has more stored scroll indexes (%u) than allocated (%u)\n", layerUncompSize, dataSize);
 
-    r->ReadCompressed(layer.ScrollIndexes, dataSize);
+    r->ReadCompressed(layer->ScrollIndexes, dataSize);
 }
 
 static vector<SceneClass> SceneClasses;

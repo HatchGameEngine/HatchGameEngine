@@ -2827,7 +2827,7 @@ int  Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* 
     }
 
     for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
 
@@ -2946,7 +2946,7 @@ int Scene::CollisionInLine(int x, int y, int angleMode, int checkLen, int collis
 
     sensor->Collided = false;
     for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
 
@@ -3533,7 +3533,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 
         case CMODE_FLOOR:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3580,7 +3580,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 
         case CMODE_LWALL:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3627,7 +3627,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 
         case CMODE_ROOF:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3674,7 +3674,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 
         case CMODE_RWALL:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3739,7 +3739,7 @@ bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, f
 
         case CMODE_FLOOR:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3789,7 +3789,7 @@ bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, f
 
         case CMODE_LWALL:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3839,7 +3839,7 @@ bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, f
 
         case CMODE_ROOF:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -3889,7 +3889,7 @@ bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, f
 
         case CMODE_RWALL:
             for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-                SceneLayer layer = Layers[l];
+                SceneLayer& layer = Layers[l];
 
                 if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
                     continue;
@@ -5094,8 +5094,8 @@ void Scene::FindFloorPosition(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
-        
+        SceneLayer& layer = Layers[l];
+
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
 
@@ -5189,7 +5189,7 @@ void Scene::FindLWallPosition(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5259,7 +5259,7 @@ void Scene::FindRoofPosition(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5328,7 +5328,7 @@ void Scene::FindRWallPosition(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5399,7 +5399,7 @@ void Scene::FloorCollision(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5474,7 +5474,7 @@ void Scene::LWallCollision(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5537,8 +5537,8 @@ void Scene::RoofCollision(CollisionSensor* sensor) {
     float collidePos    = -1.0;
 
     int layerID = 1;
-        for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+    for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
@@ -5610,7 +5610,7 @@ void Scene::RWallCollision(CollisionSensor* sensor) {
 
     int layerID = 1;
     for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-        SceneLayer layer = Layers[l];
+        SceneLayer& layer = Layers[l];
 
         if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE))
             continue;
