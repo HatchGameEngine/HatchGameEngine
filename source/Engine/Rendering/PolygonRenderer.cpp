@@ -137,6 +137,11 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int 
     vertexBuffer->FaceCount++;
 }
 void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
+    static vector<AnimFrame> animFrames;
+    static vector<Texture*> textureSources;
+    animFrames.reserve(Scene::TileSpriteInfos.size());
+    textureSources.reserve(Scene::TileSpriteInfos.size());
+
     int vertexCountPerFace = 4;
     int tileWidth = Scene::TileWidth;
     int tileHeight = Scene::TileHeight;
@@ -152,12 +157,8 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw
     int arrayVertexCount = vertexBuffer->VertexCount;
     int arrayFaceCount = vertexBuffer->FaceCount;
 
-    vector<AnimFrame> animFrames;
-    vector<Texture*> textureSources;
-    animFrames.resize(Scene::TileSpriteInfos.size());
-    textureSources.resize(Scene::TileSpriteInfos.size());
     for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-        TileSpriteInfo info = Scene::TileSpriteInfos[i];
+        TileSpriteInfo& info = Scene::TileSpriteInfos[i];
         animFrames[i] = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
         textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
     }
@@ -189,7 +190,7 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw
             // |  |
             // 3--2
             VertexAttribute data[4];
-            AnimFrame frameStr = animFrames[tileID];
+            AnimFrame& frameStr = animFrames[tileID];
             Texture* texture = textureSources[tileID];
 
             Sint64 textureWidth = FP16_TO(texture->Width);
