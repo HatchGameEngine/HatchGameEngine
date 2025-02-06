@@ -19,7 +19,7 @@ Uint32 Murmur::EncryptData(const void* key, size_t size, Uint32 hash) {
 	const unsigned char* data = (const unsigned char*)key;
 
 	while (size >= 4) {
-		unsigned int k = *(unsigned int *)data;
+		unsigned int k = FROM_LE32(*(unsigned int *)data);
 
 		k *= m;
 		k ^= k >> r;
