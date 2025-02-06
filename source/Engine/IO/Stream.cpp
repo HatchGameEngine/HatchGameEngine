@@ -40,43 +40,47 @@ Uint8   Stream::ReadByte() {
 }
 Uint16  Stream::ReadUInt16() {
     READ_TYPE_MACRO(Uint16);
-    return data;
+    return FROM_LE16(data);
 }
 Uint16  Stream::ReadUInt16BE() {
-    return (Uint16)(ReadByte() << 8 | ReadByte());
+    READ_TYPE_MACRO(Uint16);
+    return FROM_BE16(data);
 }
 Uint32  Stream::ReadUInt32() {
     READ_TYPE_MACRO(Uint32);
-    return data;
+    return FROM_LE32(data);
 }
 Uint32  Stream::ReadUInt32BE() {
-    return (Uint32)(ReadByte() << 24 | ReadByte() << 16 | ReadByte() << 8 | ReadByte());
+    READ_TYPE_MACRO(Uint32);
+    return FROM_BE32(data);
 }
 Uint64  Stream::ReadUInt64() {
     READ_TYPE_MACRO(Uint64);
-    return data;
+    return FROM_LE64(data);
 }
 Sint16  Stream::ReadInt16() {
     READ_TYPE_MACRO(Sint16);
-    return data;
+    return FROM_LE16(data);
 }
 Sint16  Stream::ReadInt16BE() {
-    return (Sint16)(ReadByte() << 8 | ReadByte());
+    READ_TYPE_MACRO(Sint16);
+    return FROM_BE16(data);
 }
 Sint32  Stream::ReadInt32() {
     READ_TYPE_MACRO(Sint32);
-    return data;
+    return FROM_LE32(data);
 }
 Sint32  Stream::ReadInt32BE() {
-    return (Sint32)(ReadByte() << 24 | ReadByte() << 16 | ReadByte() << 8 | ReadByte());
+    READ_TYPE_MACRO(Sint32);
+    return FROM_BE32(data);
 }
 Sint64  Stream::ReadInt64() {
     READ_TYPE_MACRO(Sint64);
-    return data;
+    return FROM_LE64(data);
 }
 float   Stream::ReadFloat() {
     READ_TYPE_MACRO(float);
-    return data;
+    return FROM_LE32F(data);
 }
 char*   Stream::ReadLine() {
     Uint8 byte = 0;
@@ -177,40 +181,45 @@ void    Stream::WriteByte(Uint8 data) {
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteUInt16(Uint16 data) {
+    data = TO_LE16(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteUInt16BE(Uint16 data) {
-    WriteByte(data >> 8 & 0xFF);
-    WriteByte(data & 0xFF);
+    data = TO_BE16(data);
+    WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteUInt32(Uint32 data) {
+    data = TO_LE32(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteUInt32BE(Uint32 data) {
-    WriteByte(data >> 24 & 0xFF);
-    WriteByte(data >> 16 & 0xFF);
-    WriteByte(data >> 8 & 0xFF);
-    WriteByte(data & 0xFF);
+    data = TO_BE32(data);
+    WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteUInt64(Uint64 data) {
+    data = TO_LE64(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteInt16(Sint16 data) {
+    data = TO_LE16(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteInt16BE(Sint16 data) {
     WriteUInt16BE((Uint16)data);
 }
  void    Stream::WriteInt32(Sint32 data) {
+    data = TO_LE32(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteInt32BE(Sint32 data) {
     WriteUInt32BE((Sint32)data);
 }
 void    Stream::WriteInt64(Sint64 data) {
+    data = TO_LE64(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteFloat(float data) {
+    data = TO_LE32F(data);
     WriteBytes(&data, sizeof(data));
 }
 void    Stream::WriteString(const char* string) {
