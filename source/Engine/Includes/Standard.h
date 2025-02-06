@@ -21,6 +21,8 @@
 #include <filesystem>
 #include <csetjmp>
 
+#include <Engine/Includes/Endian.h>
+
 #if WIN32
     #define snprintf _snprintf
     #undef __useHeader
