@@ -11,9 +11,8 @@
 	(a) = (((a) << (s)) | (((a) & 0xffffffff) >> (32 - (s)))); \
 	(a) += (b);
 
-// Fails if not little-endian
 #define SET(n) \
-	(*(Uint32*)&ptr[(n) * 4])
+	TO_LE32(*(Uint32*)&ptr[(n) * 4])
 #define GET(n) \
 	SET(n)
 
