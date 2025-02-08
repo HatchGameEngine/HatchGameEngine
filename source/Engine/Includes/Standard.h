@@ -105,8 +105,4 @@ typedef int64_t Sint64;
 #define NEW_STRUCT_MACRO(n) n
 #endif
 
-constexpr uint32_t MakeFourCC(const char *val) {
-    return (val[0] << 24) | (val[1] << 16) | (val[2] << 8) | val[3];
-}
-
 #endif // STANDARDLIBS_H

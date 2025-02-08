@@ -14,7 +14,7 @@ bool                      SourceFileMap::Initialized = false;
 HashMap<Uint32>*          SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32                    SourceFileMap::DirectoryChecksum = 0;
-Uint32                    SourceFileMap::Magic = *(Uint32*)"HMAP";
+Uint32                    SourceFileMap::Magic = MAGIC_LE32("HMAP");
 
 void SourceFileMap::CheckInit() {
     if (SourceFileMap::Initialized) return;
