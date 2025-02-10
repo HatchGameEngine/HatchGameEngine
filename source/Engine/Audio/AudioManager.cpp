@@ -124,7 +124,7 @@ void   AudioManager::Init() {
     memset(&Want, 0, sizeof(Want));
 
     Want.freq = 44100;
-    Want.format = AUDIO_S16;
+    Want.format = AUDIO_S16SYS;
     Want.samples = 0x800;
     Want.channels = 2;
     Want.callback = AudioManager::AudioCallback;

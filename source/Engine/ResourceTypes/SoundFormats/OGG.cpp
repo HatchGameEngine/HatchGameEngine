@@ -127,7 +127,7 @@ SoundFormat* OGG::Load(const char* filename) {
     vorbis->Info = ov_info(&vorbis->File, -1);
 
     memset(&ogg->InputFormat, 0, sizeof(SDL_AudioSpec));
-    ogg->InputFormat.format    = AUDIO_S16;
+    ogg->InputFormat.format    = AUDIO_S16SYS;
     ogg->InputFormat.channels  = vorbis->Info->channels;
     ogg->InputFormat.freq      = (int)vorbis->Info->rate;
     ogg->InputFormat.samples   = 4096;
@@ -228,7 +228,7 @@ SoundFormat* OGG::Load(const char* filename) {
         auto info = stb_vorbis_get_info(vorbis->VorbisSTB);
 
         memset(&ogg->InputFormat, 0, sizeof(SDL_AudioSpec));
-        ogg->InputFormat.format = AUDIO_S16;
+        ogg->InputFormat.format = AUDIO_S16SYS;
         ogg->InputFormat.channels = info.channels;
         ogg->InputFormat.freq = (int)info.sample_rate;
         ogg->InputFormat.samples = 4096;
