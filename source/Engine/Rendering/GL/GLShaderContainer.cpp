@@ -1,3 +1,5 @@
+#ifdef USING_OPENGL
+
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/GLShaderContainer.h>
 #include <Engine/Rendering/3D.h>
@@ -142,3 +144,5 @@ GLShaderContainer::~GLShaderContainer() {
     if (PalettizedTextured)
         delete PalettizedTextured;
 }
+
+#endif /* USING_OPENGL */

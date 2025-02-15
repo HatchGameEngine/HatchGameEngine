@@ -3080,6 +3080,15 @@ void     SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, V
 }
 
 void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+    static vector<Uint32> srcStrides;
+    static vector<Uint32*> tileSources;
+    static vector<Uint8> isPalettedSources;
+    static vector<unsigned> paletteIDs;
+    srcStrides.reserve(Scene::TileSpriteInfos.size());
+    tileSources.reserve(Scene::TileSpriteInfos.size());
+    isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+    paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
     int dst_x1 = 0;
     int dst_y1 = 0;
     int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
@@ -3142,17 +3151,9 @@ void     SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, 
     int viewWidth = (int)currentView->Width;
     int maxTileDraw = ((int)currentView->Stride / Scene::TileWidth) - 1;
 
-    vector<Uint32> srcStrides;
-    vector<Uint32*> tileSources;
-    vector<Uint8> isPalettedSources;
-    vector<unsigned> paletteIDs;
-    srcStrides.resize(Scene::TileSpriteInfos.size());
-    tileSources.resize(Scene::TileSpriteInfos.size());
-    isPalettedSources.resize(Scene::TileSpriteInfos.size());
-    paletteIDs.resize(Scene::TileSpriteInfos.size());
     for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-        TileSpriteInfo info = Scene::TileSpriteInfos[i];
-        AnimFrame frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+        TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+        AnimFrame& frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
         Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
         srcStrides[i] = srcStride = texture->Width;
         tileSources[i] = (&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]);
@@ -3554,6 +3555,15 @@ void     SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, Vi
 
 }
 void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView) {
+    static vector<Uint32> srcStrides;
+    static vector<Uint32*> tileSources;
+    static vector<Uint8> isPalettedSources;
+    static vector<unsigned> paletteIDs;
+    srcStrides.reserve(Scene::TileSpriteInfos.size());
+    tileSources.reserve(Scene::TileSpriteInfos.size());
+    isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+    paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
     int dst_x1 = 0;
     int dst_y1 = 0;
     int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
@@ -3588,26 +3598,15 @@ void     SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer,
     int layerWidthTileMask = layer->WidthMask;
     int layerHeightTileMask = layer->HeightMask;
     int tile, sourceTileCellX, sourceTileCellY;
-    TileSpriteInfo info;
-    AnimFrame frameStr;
-    Texture* texture;
 
     Uint32 color;
     Uint32* index;
     int dst_strideY = dst_y1 * dstStride;
 
-    vector<Uint32> srcStrides;
-    vector<Uint32*> tileSources;
-    vector<Uint8> isPalettedSources;
-    vector<unsigned> paletteIDs;
-    srcStrides.resize(Scene::TileSpriteInfos.size());
-    tileSources.resize(Scene::TileSpriteInfos.size());
-    isPalettedSources.resize(Scene::TileSpriteInfos.size());
-    paletteIDs.resize(Scene::TileSpriteInfos.size());
     for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-        info = Scene::TileSpriteInfos[i];
-        frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-        texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+        TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+        AnimFrame& frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+        Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
         srcStrides[i] = srcStride = texture->Width;
         tileSources[i] = (&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]);
         isPalettedSources[i] = Graphics::UsePalettes && texture->Paletted;

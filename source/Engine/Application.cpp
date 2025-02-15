@@ -485,6 +485,12 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::Restart() {
+    if (DEBUG_fontSprite) {
+        DEBUG_fontSprite->Dispose();
+        delete DEBUG_fontSprite;
+        DEBUG_fontSprite = NULL;
+    }
+
     // Reset FPS timer
     BenchmarkFrameCount = 0;
 
@@ -698,7 +704,7 @@ void Application::PollEvents() {
                     // Show layer info (dev)
                     else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
                         for (size_t li = 0; li < Scene::Layers.size(); li++) {
-                            SceneLayer layer = Scene::Layers[li];
+                            SceneLayer& layer = Scene::Layers[li];
                             Log::Print(Log::LOG_IMPORTANT, "%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)", li,
                                 layer.Name,
                                 layer.Visible,
