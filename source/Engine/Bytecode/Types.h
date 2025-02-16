@@ -356,7 +356,7 @@ struct CallFrame {
     WithIter  WithIteratorStack[16];
     WithIter* WithIteratorStackTop = WithIteratorStack;
 };
-enum   OpCode {
+enum   OpCode : uint8_t {
     OP_ERROR = 0,
     OP_CONSTANT,
     // Classes and Instances
