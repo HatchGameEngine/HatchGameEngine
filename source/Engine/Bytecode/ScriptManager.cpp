@@ -877,6 +877,7 @@ void   ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
     DEF_NATIVE(AddToDrawGroup);
     DEF_NATIVE(IsInDrawGroup);
     DEF_NATIVE(RemoveFromDrawGroup);
+    DEF_NATIVE(SetUpdatePriority);
     DEF_NATIVE(GetIDWithinClass);
     DEF_NATIVE(PlaySound);
     DEF_NATIVE(LoopSound);

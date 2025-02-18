@@ -49,18 +49,8 @@ void GarbageCollector::Collect() {
     // Mark constants
     GrayHashMap(ScriptManager::Constants);
 
-    // Mark static objects
-    for (Entity* ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-
-        ScriptEntity* bobj = (ScriptEntity*)ent;
-        GrayObject(bobj->Instance);
-        GrayHashMap(bobj->Properties);
-    }
-    // Mark dynamic objects
-    for (Entity* ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-        next = ent->NextEntity;
-
+    // Mark objects
+    for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
         ScriptEntity* bobj = (ScriptEntity*)ent;
         GrayObject(bobj->Instance);
         GrayHashMap(bobj->Properties);

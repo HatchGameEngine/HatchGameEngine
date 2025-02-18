@@ -477,10 +477,12 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
             obj->InitialX = obj->X;
             obj->InitialY = obj->Y;
             obj->List = objectList;
-            Scene::AddStatic(objectList, obj);
 
             if (object->attributes.Exists("id"))
                 obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id"));
+
+            if (!Scene::AddStatic(objectList, obj))
+                continue;
 
             if (object->attributes.Exists("width") &&
                 object->attributes.Exists("height")) {

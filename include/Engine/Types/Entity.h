@@ -21,9 +21,11 @@ public:
     int Interactable = true;
     int Persistence = Persistence_NONE;
     int Activity = ACTIVE_BOUNDS;
+    int UpdatePriority = 0;
     int InRange = false;
     bool Created = false;
     bool PostCreated = false;
+    bool Dynamic = false;
     float X = 0.0f;
     float Y = 0.0f;
     float Z = 0.0f;

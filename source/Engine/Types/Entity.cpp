@@ -316,8 +316,9 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 
 void Entity::Copy(Entity* other) {
     // Add the other entity to this object's list
-    if (other->List != List) {
-        other->List->Remove(other);
+    if (List != NULL && other->List != List) {
+        if (other->List != NULL)
+            other->List->Remove(other);
         other->List = List;
         other->List->Add(other);
     }
