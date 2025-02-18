@@ -43,8 +43,8 @@ public:
     }; 
     std::vector<Serializer::String> StringList;
     enum {
-        CHUNK_OBJS = MakeFourCC("OBJS"),
-        CHUNK_TEXT = MakeFourCC("TEXT")
+        CHUNK_OBJS = MAGIC_BE32("OBJS"),
+        CHUNK_TEXT = MAGIC_BE32("TEXT")
     }; 
     enum {
         VAL_TYPE_NULL, 

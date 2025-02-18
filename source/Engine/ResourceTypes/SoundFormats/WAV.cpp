@@ -5,34 +5,13 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/ResourceStream.h>
 
-struct RIFF_Header {
-    Uint32        Magic;
-    Uint32        ChunkSize;
-    Uint32        Format;
-};
-struct fmt_Header {
-    Uint32        Magic;
-    Uint32        Size;
-    Uint32        AudioFormat;
-};
 struct WAVheader {
-    /* RIFF Chunk Descriptor */
-    Uint8         RIFF[4];        // RIFF Header Magic header
-    Uint32        ChunkSize;      // RIFF Chunk Size
-    Uint8         WAVE[4];        // WAVE Header
-    /* "fmt" sub-chunk */
-    Uint8         FMT[4];
     Uint32        FMTSize;        // Size of the fmt chunk
     Uint16        AudioFormat;    // Audio format 1=PCM,6=mulaw,7=alaw,     257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
     Uint16        Channels;
     Uint32        Frequency;
-    Uint32        BytesPerSecond;
-    Uint16        BlockAlign;
     Uint16        BitsPerSample;
-    /* "data" sub-chunk */
-    Uint8         DATA[4]; // "data"  string
     Uint32        DATASize;  // Sampled data length
-    Uint8         OverflowBuffer[64];
 };
 
 SoundFormat* WAV::Load(const char* filename) {
@@ -51,13 +30,18 @@ SoundFormat* WAV::Load(const char* filename) {
     wav->StreamPtr = stream;
 
     WAVheader header;
-    // RIFF Header
-    stream->ReadBytes(&header, 0xC);
+    stream->Seek(0x10);
     // fmt Header
-    stream->ReadBytes(&header.FMT, 0x8);
-    stream->ReadBytes(&header.AudioFormat, header.FMTSize);
+    header.FMTSize = stream->ReadUInt32();
+    header.AudioFormat = stream->ReadUInt16();
+    header.Channels = stream->ReadUInt16();
+    header.Frequency = stream->ReadUInt32();
+    stream->Skip(0x6);
+    header.BitsPerSample = stream->ReadUInt16();
     // data Header
-    stream->ReadBytes(&header.DATA, 0x08); // DATA
+    // 0xC [RIFF chunk] + (FMTSize + 8 [sizeof(FMT)+sizeof(FMTSize)]) + 4 [sizeof(DATA)]
+    stream->Seek(0xC + (header.FMTSize + 8) + 4);
+    header.DATASize = stream->ReadUInt32();
 
     memset(&wav->InputFormat, 0, sizeof(SDL_AudioSpec));
     wav->InputFormat.format    = (header.BitsPerSample & 0xFF);

@@ -272,11 +272,11 @@ Uint8   VMThread::ReadByte(CallFrame* frame) {
 }
 Uint16  VMThread::ReadUInt16(CallFrame* frame) {
     frame->IP += sizeof(Uint16);
-    return *(Uint16*)(frame->IP - sizeof(Uint16));
+    return FROM_LE16(*(Uint16*)(frame->IP - sizeof(Uint16)));
 }
 Uint32  VMThread::ReadUInt32(CallFrame* frame) {
     frame->IP += sizeof(Uint32);
-    return *(Uint32*)(frame->IP - sizeof(Uint32));
+    return FROM_LE32(*(Uint32*)(frame->IP - sizeof(Uint32)));
 }
 Sint16  VMThread::ReadSInt16(CallFrame* frame) {
     return (Sint16)ReadUInt16(frame);
@@ -286,7 +286,7 @@ Sint32  VMThread::ReadSInt32(CallFrame* frame) {
 }
 float   VMThread::ReadFloat(CallFrame* frame) {
     frame->IP += sizeof(float);
-    return *(float*)(frame->IP - sizeof(float));
+    return FROM_LE32F(*(float*)(frame->IP - sizeof(float)));
 }
 VMValue VMThread::ReadConstant(CallFrame* frame) {
     return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];

@@ -161,21 +161,22 @@ bool   ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* 
         Uint8 keyA[16];
         Uint8 keyB[16];
         Uint32 filenameHash = CRC32::EncryptString(pathToLoad);
-        Uint32 sizeHash = CRC32::EncryptData(&item.Size, sizeof(item.Size));
+        Uint64 leSize = TO_LE64(item.Size);
+        Uint32 sizeHash = CRC32::EncryptData(&leSize, sizeof(leSize));
 
         // Populate Key A
         Uint32* keyA32 = (Uint32*)&keyA[0];
-        keyA32[0] = filenameHash;
-        keyA32[1] = filenameHash;
-        keyA32[2] = filenameHash;
-        keyA32[3] = filenameHash;
+        keyA32[0] = TO_LE32(filenameHash);
+        keyA32[1] = TO_LE32(filenameHash);
+        keyA32[2] = TO_LE32(filenameHash);
+        keyA32[3] = TO_LE32(filenameHash);
 
         // Populate Key B
         Uint32* keyB32 = (Uint32*)&keyB[0];
-        keyB32[0] = sizeHash;
-        keyB32[1] = sizeHash;
-        keyB32[2] = sizeHash;
-        keyB32[3] = sizeHash;
+        keyB32[0] = TO_LE32(sizeHash);
+        keyB32[1] = TO_LE32(sizeHash);
+        keyB32[2] = TO_LE32(sizeHash);
+        keyB32[3] = TO_LE32(sizeHash);
 
         int swapNibbles = 0;
         int indexKeyA = 0;

@@ -420,6 +420,14 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
         scenelayer.Opacity = XMLParser::TokenToNumber(layer->attributes.Get("opacity"));
     }
 
+#if HATCH_BIG_ENDIAN
+    // Compressed tmx layer data is an array of 32bit integers stored as little endian,
+    // so we need to convert them first.
+    for (size_t i = 0, iSz = layer_size_in_bytes / 4; i < iSz; i++) {
+        tile_buffer[i] = FROM_LE32(tile_buffer[i]);
+    }
+#endif
+
     // NOTE: This makes all tiles Full Solid by default,
     //   so that they can be altered by an object later.
     int what_u_need = TILE_FLIPX_MASK | TILE_FLIPY_MASK | TILE_IDENT_MASK;

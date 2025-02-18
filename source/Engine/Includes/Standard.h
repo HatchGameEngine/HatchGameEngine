@@ -21,6 +21,8 @@
 #include <filesystem>
 #include <csetjmp>
 
+#include <Engine/Includes/Endian.h>
+
 #if WIN32
     #define snprintf _snprintf
     #undef __useHeader
@@ -102,9 +104,5 @@ typedef int64_t Sint64;
 #else
 #define NEW_STRUCT_MACRO(n) n
 #endif
-
-constexpr uint32_t MakeFourCC(const char *val) {
-    return (val[0] << 24) | (val[1] << 16) | (val[2] << 8) | val[3];
-}
 
 #endif // STANDARDLIBS_H
