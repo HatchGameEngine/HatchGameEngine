@@ -210,7 +210,7 @@ void SourceFileMap::CheckForUpdate() {
         stream = FileStream::New("SourceFileMap.bin", FileStream::WRITE_ACCESS);
         if (stream) {
             Uint8* data = SourceFileMap::Checksums->GetBytes(true);
-            stream->WriteBytes(data, SourceFileMap::Checksums->Count * (sizeof(Uint32) + sizeof(Uint32)));
+            stream->WriteBytes(data, SourceFileMap::Checksums->Count() * (sizeof(Uint32) + sizeof(Uint32)));
             Memory::Free(data);
 
             stream->WriteUInt32(SourceFileMap::DirectoryChecksum);
@@ -227,7 +227,7 @@ void SourceFileMap::CheckForUpdate() {
             stream->WriteByte(0x02); // Version
             stream->WriteByte(0x03); // Version
 
-            stream->WriteUInt32((Uint32)SourceFileMap::ClassMap->Count); // Count
+            stream->WriteUInt32((Uint32)SourceFileMap::ClassMap->Count()); // Count
             SourceFileMap::ClassMap->WithAll([stream](Uint32 hash, vector<Uint32>* list) -> void {
                 stream->WriteUInt32(hash); // ClassHash
                 stream->WriteUInt32((Uint32)list->size()); // Count

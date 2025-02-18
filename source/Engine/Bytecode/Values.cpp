@@ -113,28 +113,26 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
                 buffer_printf(buffer, "\n");
 
             bool first = false;
-            for (int i = 0; i < map->Values->Capacity; i++) {
-                if (map->Values->Data[i].Used) {
-                    if (!first) {
-                        first = true;
-                    }
-                    else {
-                        buffer_printf(buffer, ",");
-                        if (prettyPrint)
-                            buffer_printf(buffer, "\n");
-                    }
-
-                    for (int k = 0; k < indent + 1 && prettyPrint; k++)
-                        buffer_printf(buffer, "    ");
-
-                    hash = map->Values->Data[i].Key;
-                    value = map->Values->Data[i].Data;
-                    if (map->Keys && map->Keys->Exists(hash))
-                        buffer_printf(buffer, "\"%s\": ", map->Keys->Get(hash));
-                    else
-                        buffer_printf(buffer, "0x%08X: ", hash);
-                    PrintValue(buffer, value, indent + 1);
+            for (size_t i = 0; i < map->Values->Count(); i++) {
+                if (!first) {
+                    first = true;
                 }
+                else {
+                    buffer_printf(buffer, ",");
+                    if (prettyPrint)
+                        buffer_printf(buffer, "\n");
+                }
+
+                for (int k = 0; k < indent + 1 && prettyPrint; k++)
+                    buffer_printf(buffer, "    ");
+
+                hash = map->Values->Keys[i];
+                value = map->Values->Data[hash];
+                if (map->Keys && map->Keys->Exists(hash))
+                    buffer_printf(buffer, "\"%s\": ", map->Keys->Get(hash));
+                else
+                    buffer_printf(buffer, "0x%08X: ", hash);
+                PrintValue(buffer, value, indent + 1);
             }
             if (prettyPrint)
                 buffer_printf(buffer, "\n");

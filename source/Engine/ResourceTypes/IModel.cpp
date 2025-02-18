@@ -10,6 +10,7 @@
 #include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
 #include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Clock.h>
 
 IModel::IModel() {

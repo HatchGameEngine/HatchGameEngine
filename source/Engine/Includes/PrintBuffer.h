@@ -1,6 +1,8 @@
 #ifndef ENGINE_PRINTBUFFER_H
 #define ENGINE_PRINTBUFFER_H
 
+#include <Engine/Diagnostics/Log.h>
+
 struct PrintBuffer {
     char** Buffer;
     int WriteIndex;

@@ -915,7 +915,7 @@ Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, 
 
     D3D_CreateTexture(texture);
 
-    texture->ID = Graphics::TextureMap->Count + 1;
+    texture->ID = Graphics::TextureMap->Count() + 1;
     Graphics::TextureMap->Put(texture->ID, texture);
 
     return texture;

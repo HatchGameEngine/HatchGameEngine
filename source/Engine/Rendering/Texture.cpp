@@ -1,7 +1,7 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Utilities/ColorUtils.h>
-#include <Engine/Includes/ChainedHashMap.h>
+#include <Engine/Includes/HashMap.h>
 
 Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
     Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
@@ -49,7 +49,7 @@ void            Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) 
     Uint32 *pixels = (Uint32*)Pixels;
     int nearestColor;
 
-    ChainedHashMap<int>* colorsHash = new ChainedHashMap<int>(NULL, 256);
+    HashMap<int>* colorsHash = new HashMap<int>(NULL, 256);
 
     for (size_t i = 0; i < Width * Height; i++) {
         Uint32 color = pixels[i];

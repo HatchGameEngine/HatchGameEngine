@@ -1,5 +1,6 @@
 #include <Engine/Audio/AudioPlayback.h>
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Diagnostics/Log.h>
 
 AudioPlayback::AudioPlayback(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample) {
     Format = format;

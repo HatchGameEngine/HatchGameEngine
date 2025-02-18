@@ -3918,17 +3918,17 @@ void   Compiler::Init() {
     Application::Settings->GetBool("compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
     Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
 }
-void   Compiler::GetStandardConstants()
-{
+void   Compiler::GetStandardConstants() {
     if (Compiler::StandardConstants == NULL) {
-        Compiler::StandardConstants = new HashMap<VMValue>(NULL, ScriptManager::Constants->Capacity);
+        Compiler::StandardConstants = new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
     }
     Compiler::StandardConstants->Clear();
 
     ScriptManager::Constants->ForAll([](Uint32 hash, VMValue val) {
-        if (IS_NUMBER(val) || OBJECT_TYPE(val) == OBJ_STRING)
+        if (IS_NUMBER(val) || OBJECT_TYPE(val) == OBJ_STRING) {
             Compiler::StandardConstants->Put(hash, val);
-        });
+        }
+    });
 }
 void   Compiler::PrepareCompiling() {
     if (Compiler::TokenMap == NULL) {

@@ -3,6 +3,7 @@
 #include <Engine/Rendering/3D.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Log.h>
 
 vector<int> ModelImporter::MeshIDs;
 char*       ModelImporter::ParentDirectory;
