@@ -1,155 +1,266 @@
-# recursive wildcard
-rwc = $(foreach d, $(wildcard $1*), $(call rwc,$d/,$2) $(filter $(subst *,%,$2),$d))
+#######################################################################
+##                         Thoth Game Engine                         ##
+##                                                                   ##
+##               Copyright (C) 2019-2024 ARQADIUM LLC.               ##
+##                        All rights reserved                        ##
+#######################################################################
 
-PLATFORM_UNKNOWN = 0
-PLATFORM_WINDOWS = 1
-PLATFORM_MACOS = 2
-PLATFORM_LINUX = 3
+include meta/prologue.mk
 
-PLATFORM = $(PLATFORM_UNKNOWN)
-OUT_FOLDER =
+# name of project. used in output binary naming
+PROJECT := hatch
 
-ifeq ($(OS),Windows_NT)
-	PLATFORM = $(PLATFORM_WINDOWS)
-	OUT_FOLDER = windows
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		PLATFORM = $(PLATFORM_LINUX)
-		OUT_FOLDER = linux
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		PLATFORM = $(PLATFORM_MACOS)
-		OUT_FOLDER = macos
-	endif
-endif
+# put a ‘1’ for the desired target types to compile
+EXEFILE := 1
+SOFILE  :=
+AFILE   :=
 
-ifeq ($(PLATFORM),0)
-	$(error Unknown platform)
-endif
+# space-separated path list for #includes
+# <system> includes
+INCLUDES := include source
+# "local" includes
+INCLUDEL := include source
 
-PROGRAM_SUFFIX :=
-ifeq ($(PLATFORM),$(PLATFORM_WINDOWS))
-PROGRAM_SUFFIX := .exe
-endif
+# space-separated library name list for linking
+# libraries
+LIBS      := assimp ogg vorbis vorbisfile SDL2
+LIBDIRS   :=
+FWORKS    := Cocoa CoreFoundation CoreServices Foundation OpenGL
+FWORKDIRS :=
 
-USING_LIBAV = 0
-USING_CURL = 0
-USING_LIBPNG = 1
-USING_ASSIMP = 1
+CFILES := \
+	source/Libraries/miniz.c \
+	source/Libraries/spng.c \
+	source/Libraries/stb_vorbis.c
+CPPFILES := \
+	source/Engine/Application.cpp \
+	source/Engine/Audio/AudioManager.cpp \
+	source/Engine/Audio/AudioPlayback.cpp \
+	source/Engine/Bytecode/Bytecode.cpp \
+	source/Engine/Bytecode/Compiler.cpp \
+	source/Engine/Bytecode/GarbageCollector.cpp \
+	source/Engine/Bytecode/ScriptEntity.cpp \
+	source/Engine/Bytecode/ScriptManager.cpp \
+	source/Engine/Bytecode/SourceFileMap.cpp \
+	source/Engine/Bytecode/StandardLibrary.cpp \
+	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/Types.cpp \
+	source/Engine/Bytecode/VMThread.cpp \
+	source/Engine/Bytecode/Values.cpp \
+	source/Engine/Diagnostics/Clock.cpp \
+	source/Engine/Diagnostics/Log.cpp \
+	source/Engine/Diagnostics/Memory.cpp \
+	source/Engine/Diagnostics/MemoryPools.cpp \
+	source/Engine/Diagnostics/PerformanceMeasure.cpp \
+	source/Engine/Diagnostics/RemoteDebug.cpp \
+	source/Engine/Extensions/Discord.cpp \
+	source/Engine/Filesystem/Directory.cpp \
+	source/Engine/Filesystem/File.cpp \
+	source/Engine/FontFace.cpp \
+	source/Engine/Graphics.cpp \
+	source/Engine/Hashing/CRC32.cpp \
+	source/Engine/Hashing/CombinedHash.cpp \
+	source/Engine/Hashing/FNV1A.cpp \
+	source/Engine/Hashing/MD5.cpp \
+	source/Engine/Hashing/Murmur.cpp \
+	source/Engine/IO/Compression/Huffman.cpp \
+	source/Engine/IO/Compression/LZ11.cpp \
+	source/Engine/IO/Compression/LZSS.cpp \
+	source/Engine/IO/Compression/RunLength.cpp \
+	source/Engine/IO/Compression/ZLibStream.cpp \
+	source/Engine/IO/FileStream.cpp \
+	source/Engine/IO/MemoryStream.cpp \
+	source/Engine/IO/NetworkStream.cpp \
+	source/Engine/IO/ResourceStream.cpp \
+	source/Engine/IO/SDLStream.cpp \
+	source/Engine/IO/Serializer.cpp \
+	source/Engine/IO/Stream.cpp \
+	source/Engine/Input/Controller.cpp \
+	source/Engine/Input/InputAction.cpp \
+	source/Engine/Input/InputPlayer.cpp \
+	source/Engine/InputManager.cpp \
+	source/Engine/Main.cpp \
+	source/Engine/Math/Clipper.cpp \
+	source/Engine/Math/Ease.cpp \
+	source/Engine/Math/Geometry.cpp \
+	source/Engine/Math/Math.cpp \
+	source/Engine/Math/Matrix4x4.cpp \
+	source/Engine/Math/Random.cpp \
+	source/Engine/Math/Vector.cpp \
+	source/Engine/Media/Decoder.cpp \
+	source/Engine/Media/Decoders/AudioDecoder.cpp \
+	source/Engine/Media/Decoders/VideoDecoder.cpp \
+	source/Engine/Media/MediaPlayer.cpp \
+	source/Engine/Media/MediaSource.cpp \
+	source/Engine/Media/Utils/MediaPlayerState.cpp \
+	source/Engine/Media/Utils/PtrBuffer.cpp \
+	source/Engine/Media/Utils/RingBuffer.cpp \
+	source/Engine/Network/AndroidWifiP2P.cpp \
+	source/Engine/Network/HTTP.cpp \
+	source/Engine/Network/WebSocketClient.cpp \
+	source/Engine/Rendering/D3D/D3DRenderer.cpp \
+	source/Engine/Rendering/FaceInfo.cpp \
+	source/Engine/Rendering/GL/GLRenderer.cpp \
+	source/Engine/Rendering/GL/GLShader.cpp \
+	source/Engine/Rendering/GL/GLShaderBuilder.cpp \
+	source/Engine/Rendering/GL/GLShaderContainer.cpp \
+	source/Engine/Rendering/GameTexture.cpp \
+	source/Engine/Rendering/Material.cpp \
+	source/Engine/Rendering/ModelRenderer.cpp \
+	source/Engine/Rendering/PolygonRenderer.cpp \
+	source/Engine/Rendering/SDL2/SDL2Renderer.cpp \
+	source/Engine/Rendering/Shader.cpp \
+	source/Engine/Rendering/Software/PolygonRasterizer.cpp \
+	source/Engine/Rendering/Software/Scanline.cpp \
+	source/Engine/Rendering/Software/SoftwareRenderer.cpp \
+	source/Engine/Rendering/Texture.cpp \
+	source/Engine/Rendering/TextureReference.cpp \
+	source/Engine/Rendering/VertexBuffer.cpp \
+	source/Engine/Rendering/ViewTexture.cpp \
+	source/Engine/ResourceTypes/IModel.cpp \
+	source/Engine/ResourceTypes/ISound.cpp \
+	source/Engine/ResourceTypes/ISprite.cpp \
+	source/Engine/ResourceTypes/Image.cpp \
+	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
+	source/Engine/ResourceTypes/ImageFormats/ImageFormat.cpp \
+	source/Engine/ResourceTypes/ImageFormats/JPEG.cpp \
+	source/Engine/ResourceTypes/ImageFormats/PNG.cpp \
+	source/Engine/ResourceTypes/ModelFormats/HatchModel.cpp \
+	source/Engine/ResourceTypes/ModelFormats/Importer.cpp \
+	source/Engine/ResourceTypes/ModelFormats/MD3Model.cpp \
+	source/Engine/ResourceTypes/ModelFormats/RSDKModel.cpp \
+	source/Engine/ResourceTypes/ResourceManager.cpp \
+	source/Engine/ResourceTypes/SceneFormats/HatchSceneReader.cpp \
+	source/Engine/ResourceTypes/SceneFormats/RSDKSceneReader.cpp \
+	source/Engine/ResourceTypes/SceneFormats/TiledMapReader.cpp \
+	source/Engine/ResourceTypes/SoundFormats/OGG.cpp \
+	source/Engine/ResourceTypes/SoundFormats/SoundFormat.cpp \
+	source/Engine/ResourceTypes/SoundFormats/WAV.cpp \
+	source/Engine/Scene.cpp \
+	source/Engine/Scene/SceneInfo.cpp \
+	source/Engine/Scene/SceneLayer.cpp \
+	source/Engine/Scene/View.cpp \
+	source/Engine/TextFormats/INI/INI.cpp \
+	source/Engine/TextFormats/XML/XMLParser.cpp \
+	source/Engine/Types/DrawGroupList.cpp \
+	source/Engine/Types/Entity.cpp \
+	source/Engine/Types/ObjectList.cpp \
+	source/Engine/Types/ObjectRegistry.cpp \
+	source/Engine/Types/Tileset.cpp \
+	source/Engine/Utilities/ColorUtils.cpp \
+	source/Engine/Utilities/StringUtils.cpp \
+	source/Libraries/Clipper2/clipper.engine.cpp \
+	source/Libraries/Clipper2/clipper.offset.cpp \
+	source/Libraries/Clipper2/clipper.rectclip.cpp \
+	source/Libraries/poly2tri/common/shapes.cpp \
+	source/Libraries/poly2tri/sweep/advancing_front.cpp \
+	source/Libraries/poly2tri/sweep/cdt.cpp \
+	source/Libraries/poly2tri/sweep/sweep.cpp \
+	source/Libraries/poly2tri/sweep/sweep_context.cpp
+MFILES := \
+	source/Engine/Platforms/MacOS/Filesystem.m
+PRVHFILES := \
+	source/Engine/Audio/AudioChannel.h \
+	source/Engine/Audio/AudioIncludes.h \
+	source/Engine/Bytecode/CompilerEnums.h \
+	source/Engine/Bytecode/Types.h \
+	source/Engine/Diagnostics/MemoryPools.h \
+	source/Engine/Diagnostics/PerformanceTypes.h \
+	source/Engine/IO/Compression/CompressionEnums.h \
+	source/Engine/Includes/BijectiveMap.h \
+	source/Engine/Includes/ChainedHashMap.h \
+	source/Engine/Includes/DateTime.h \
+	source/Engine/Includes/Endian.h \
+	source/Engine/Includes/HashMap.h \
+	source/Engine/Includes/PrintBuffer.h \
+	source/Engine/Includes/Standard.h \
+	source/Engine/Includes/StandardSDL2.h \
+	source/Engine/Includes/Token.h \
+	source/Engine/Includes/Version.h \
+	source/Engine/Input/ControllerRumble.h \
+	source/Engine/Input/Input.h \
+	source/Engine/Math/FixedPoint.h \
+	source/Engine/Math/GeometryTypes.h \
+	source/Engine/Math/VectorTypes.h \
+	source/Engine/Media/Includes/AVCodec.h \
+	source/Engine/Media/Includes/AVFormat.h \
+	source/Engine/Media/Includes/AVUtils.h \
+	source/Engine/Media/Includes/SWResample.h \
+	source/Engine/Media/Includes/SWScale.h \
+	source/Engine/Media/Utils/Codec.h \
+	source/Engine/Network/WebSocketIncludes.h \
+	source/Engine/Platforms/MacOS/Filesystem.h \
+	source/Engine/Platforms/iOS/MediaPlayer.h \
+	source/Engine/Rendering/3D.h \
+	source/Engine/Rendering/Enums.h \
+	source/Engine/Rendering/GL/Includes.h \
+	source/Engine/Rendering/GL/ShaderIncludes.h \
+	source/Engine/Rendering/GraphicsFunctions.h \
+	source/Engine/Rendering/Mesh.h \
+	source/Engine/Rendering/Metal/Includes.h \
+	source/Engine/Rendering/Metal/MetalFuncs.h \
+	source/Engine/Rendering/SDL2/SDL2MetalFunc.h \
+	source/Engine/Rendering/Scene3D.h \
+	source/Engine/Rendering/Software/Contour.h \
+	source/Engine/Rendering/Software/SoftwareEnums.h \
+	source/Engine/ResourceTypes/ResourceType.h \
+	source/Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h \
+	source/Engine/Scene/SceneConfig.h \
+	source/Engine/Scene/SceneEnums.h \
+	source/Engine/Scene/TileAnimation.h \
+	source/Engine/Sprites/Animation.h \
+	source/Engine/TextFormats/INI/INIStructs.h \
+	source/Engine/TextFormats/JSON/jsmn.h \
+	source/Engine/TextFormats/XML/XMLNode.h \
+	source/Engine/Types/Collision.h \
+	source/Engine/Types/EntityTypes.h \
+	source/Libraries/Clipper2/clipper.core.h \
+	source/Libraries/Clipper2/clipper.engine.h \
+	source/Libraries/Clipper2/clipper.export.h \
+	source/Libraries/Clipper2/clipper.h \
+	source/Libraries/Clipper2/clipper.minkowski.h \
+	source/Libraries/Clipper2/clipper.offset.h \
+	source/Libraries/Clipper2/clipper.rectclip.h \
+	source/Libraries/Clipper2/clipper.version.h \
+	source/Libraries/miniz.h \
+	source/Libraries/nanoprintf.h \
+	source/Libraries/poly2tri/common/dll_symbol.h \
+	source/Libraries/poly2tri/common/shapes.h \
+	source/Libraries/poly2tri/common/utils.h \
+	source/Libraries/poly2tri/poly2tri.h \
+	source/Libraries/poly2tri/sweep/advancing_front.h \
+	source/Libraries/poly2tri/sweep/cdt.h \
+	source/Libraries/poly2tri/sweep/sweep.h \
+	source/Libraries/poly2tri/sweep/sweep_context.h \
+	source/Libraries/spng.h \
+	source/Libraries/stb_image.h \
+	source/Libraries/stb_vorbis.h
 
-ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-USING_ASSIMP = 0
-endif
+DEFINES := \
+	_THREAD_SAFE \
+	GL_SILENCE_DEPRECATION \
+	MACOSX \
+	TARGET_NAME=\"$(PROJECT)\" \
+	USING_ASSIMP \
+	USING_OPENGL
 
-TARGET    = HatchGameEngine
-TARGETDIR = builds/$(OUT_FOLDER)/$(TARGET)
-OBJS      = main.o
+CFLAGS := -std=c11
+CXXFLAGS := \
+	-std=c++17 \
+	-Wno-pedantic \
+	-Wno-unused-but-set-variable \
+	-Wno-unused-function \
+	-Wno-unused-label \
+	-Wno-unused-lambda-capture \
+	-Wno-unused-value \
+	-Wno-unused-variable
 
-SRC_C   = $(call rwc, source/, *.c)
-SRC_CPP = $(call rwc, source/, *.cpp)
-SRC_M   = $(call rwc, source/, *.m)
+# the linker has to care about this too, unfortunately
+LDFLAGS := -std=c++17
 
-OBJ_DIRS := $(sort \
-			$(addprefix out/$(OUT_FOLDER)/, $(dir $(SRC_C:source/%.c=%.o))) \
-			$(addprefix out/$(OUT_FOLDER)/, $(dir $(SRC_CPP:source/%.cpp=%.o))))
-ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-OBJ_DIRS += $(addprefix out/$(OUT_FOLDER)/, $(dir $(SRC_M:source/%.m=%.o)))
-endif
-
-OBJS := $(addprefix out/$(OUT_FOLDER)/, $(SRC_C:source/%.c=%.o)) \
-			$(addprefix out/$(OUT_FOLDER)/, $(SRC_CPP:source/%.cpp=%.o))
-ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-OBJS += $(addprefix out/$(OUT_FOLDER)/, $(SRC_M:source/%.m=%.o))
-endif
-
-INCLUDES := -Wall -Wno-deprecated -Wno-unused-variable \
-	-Iinclude/ \
-	-Isource/
-LIBS    := $(shell sdl2-config --libs) -lassimp
-DEFINES := -DTARGET_NAME=\"$(TARGET)\" \
-	-DUSING_VM_DISPATCH_TABLE \
-	$(shell sdl2-config --cflags) \
-	-DUSING_ASSIMP
-
-ifeq ($(PLATFORM),$(PLATFORM_WINDOWS))
-INCLUDES += -Imeta/win/include
-LIBS += -lwsock32 -lws2_32
-DEFINES += -DWIN32
-ifneq ($(MSYS_VERSION),0)
-DEFINES += -DMSYS
-endif
-endif
-ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-INCLUDES += -I/opt/homebrew/include
-LIBS += -lobjc
-DEFINES += -DMACOSX -DUSING_OPENGL
-endif
-ifeq ($(PLATFORM),$(PLATFORM_LINUX))
-DEFINES += -DLINUX
-endif
-
-# Compiler Optimzations
-ifeq ($(USING_COMPILER_OPTS), 1)
-DEFINES	 +=	-Ofast
-DEFINES	 +=	-DUSING_COMPILER_OPTS
-endif
-
-# OGG Audio
-#LIBS	 +=	-logg -lvorbis -lvorbisfile
-# zlib Compression
-#LIBS	 +=	-lz
-
-ifeq ($(PLATFORM),$(PLATFORM_MACOS))
-LINKER = -framework IOKit \
-	-framework OpenGL \
-	-framework CoreFoundation \
-	-framework CoreServices \
-	-framework Foundation \
-	-framework Cocoa
-endif
-
-all:
-	mkdir -p $(OBJ_DIRS)
-	$(MAKE) build
-
-clean:
-	rm -rf $(OBJS)
-
-build: $(OBJS)
-	$(CXX) $^ $(INCLUDES) $(LIBS) $(LINKER) -o "$(TARGETDIR)" -std=c++17
-
-$(OBJ_DIRS):
-	mkdir -p $@
-
-pkg:
-	rm -rf "$(TARGETDIR).app"
-	mkdir "$(TARGETDIR).app"
-	mkdir "$(TARGETDIR).app/Contents"
-	mkdir "$(TARGETDIR).app/Contents/Frameworks"
-	mkdir "$(TARGETDIR).app/Contents/MacOS"
-	mkdir "$(TARGETDIR).app/Contents/Resources"
-	mv "$(TARGETDIR)" "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
-	test -f source/Data.hatch && cp -a source/Data.hatch "$(TARGETDIR).app/Contents/Resources/Data.hatch" || true
-	test -f source/config.ini && cp -a source/config.ini "$(TARGETDIR).app/Contents/Resources/config.ini" || true
-	test -f meta/mac/icon.icns && cp -a meta/mac/icon.icns "$(TARGETDIR).app/Contents/Resources/icon.icns" || true
-# Making PkgInfo
-	echo "APPL????" > "$(TARGETDIR).app/Contents/PkgInfo"
-# Making Info.plist
-	cp -a meta/mac/Info.plist "$(TARGETDIR).app/Contents/Info.plist"
-	cp -aL $(shell brew --prefix)/lib/libassimp.dylib "$(TARGETDIR).app/Contents/Frameworks/_libassimp.dylib"
-	cp -aL $(shell brew --prefix)/lib/libSDL2.dylib "$(TARGETDIR).app/Contents/Frameworks/_libSDL2.dylib"
-	codesign --force -s - "$(TARGETDIR).app/Contents/Frameworks/_libassimp.dylib"
-	install_name_tool -change '/opt/homebrew/opt/assimp/lib/libassimp.5.dylib' @executable_path/../Frameworks/_libassimp.dylib "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
-	codesign --force -s - "$(TARGETDIR).app/Contents/Frameworks/_libSDL2.dylib"
-	install_name_tool -change '/opt/homebrew/opt/sdl2/lib/libSDL2-2.0.0.dylib' @executable_path/../Frameworks/_libSDL2.dylib "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
-	codesign --force -s - "$(TARGETDIR).app/Contents/MacOS/$(TARGET)"
-
-out/$(OUT_FOLDER)/%.o: source/%.cpp
-	$(CXX) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<" -std=c++17
-
-out/$(OUT_FOLDER)/%.o: source/%.c
-	$(CC) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<" -std=c11
-
-out/$(OUT_FOLDER)/%.o: source/%.m
-	$(CC) -c -g $(INCLUDES) $(DEFINES) -o "$@" "$<"
+# this defines all our usual targets
+include meta/epilogue.mk
