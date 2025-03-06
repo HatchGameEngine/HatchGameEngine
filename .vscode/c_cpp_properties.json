@@ -1,6 +1,6 @@
 {
 	"configurations": [
-		{
+		{m
 			"name": "Mac",
 			"includePath": [
 				"${workspaceFolder}/include",
@@ -11,7 +11,7 @@
 			],
 			"defines": [
 				"MACOSX",
-				"TARGET_NAME=\"HatchGameEngine\"",
+				"TARGET_NAME=\"hatch\"",
 				"USING_OPENGL",
 				"USING_LIBPNG",
 				"USING_LIBPNG_HEADER=<libpng16/png.h>",
@@ -38,7 +38,7 @@
 			],
 			"defines": [
 				"LINUX",
-				"TARGET_NAME=HatchGameEngine",
+				"TARGET_NAME=hatch",
 				"USING_LIBPNG",
 				"USING_LIBPNG_HEADER=<libpng16/png.h>",
 				"DEBUG",
