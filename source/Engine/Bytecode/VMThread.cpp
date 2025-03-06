@@ -2094,10 +2094,10 @@ bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool che
     return false;
 }
 bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields) {
-    return HasProperty(object, klass, checkFields, klass->PropertyGet);
+    return HasProperty(object, klass, hash, checkFields, klass->PropertyGet);
 }
 bool   VMThread::HasProperty(Obj* object, ObjClass* klass, Uint32 hash) {
-    return HasProperty(object, klass, true);
+    return HasProperty(object, klass, hash, true, klass->PropertyGet);
 }
 bool   VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
     switch (field.Type) {
