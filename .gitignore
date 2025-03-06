@@ -16,6 +16,8 @@
 *.xcscmblueprint
 *.xccheckout
 *.xcodeproj/*
+*.o
+/hatch
 
 HatchGameEngine.exe
 *-Debug.exe
