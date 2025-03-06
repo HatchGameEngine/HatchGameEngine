@@ -1,6 +1,7 @@
 #!/usr/bin/make
 # -*- coding: utf-8 -*-
-## Copyright (C) 2024-2025 Aquefir Consulting LLC
+## Written by Alexander Nicholi <//nich.fi/>
+## Copyright (C) 2024-2025 Aquefir Consulting LLC <//aquefir.co/>
 ## Released under BSD-2-Clause.
 ## This Makefile provides the bodies of a variety of recipes normally
 ## used in building native executables and libraries. These include:

@@ -1,6 +1,7 @@
 #!/usr/bin/make
 # -*- coding: utf-8 -*-
-## Copyright (C) 2024 Aquefir Consulting LLC
+## Written by Alexander Nicholi <//nich.fi/>
+## Copyright (C) 2024-2025 Aquefir Consulting LLC <//aquefir.co/>
 ## Released under BSD-2-Clause.
 ## This Makefile prologue provides multi-platform build normalisation.
 ## It is to be included at the top of the project's main Makefile.
