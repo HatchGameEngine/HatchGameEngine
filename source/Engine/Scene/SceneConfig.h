@@ -3,26 +3,22 @@
 
 #include <Engine/Includes/HashMap.h>
 
-struct SceneListEntry
-{
-	char * Name           = nullptr;
-	char * Folder         = nullptr;
-	char * ID             = nullptr;
-	char * Path           = nullptr;
-	char * ResourceFolder = nullptr;
-	char * Filetype       = nullptr;
+struct SceneListEntry {
+	char* Name = nullptr;
+	char* Folder = nullptr;
+	char* ID = nullptr;
+	char* Path = nullptr;
+	char* ResourceFolder = nullptr;
+	char* Filetype = nullptr;
 
-	HashMap<char *> * Properties = nullptr;
+	HashMap<char*>* Properties = nullptr;
 
-	void Dispose( )
-	{
-		if( Properties )
-		{
+	void Dispose() {
+		if (Properties) {
 			Properties->WithAll(
-				[]( Uint32 hash,
-					char * string ) -> void {
-					Memory::Free( string );
-				} );
+				[](Uint32 hash, char* string) -> void {
+					Memory::Free(string);
+				});
 
 			delete Properties;
 
@@ -34,29 +30,24 @@ struct SceneListEntry
 	}
 };
 
-struct SceneListCategory
-{
-	char * Name = nullptr;
+struct SceneListCategory {
+	char* Name = nullptr;
 
 	vector<SceneListEntry> Entries;
 
-	HashMap<char *> * Properties = nullptr;
+	HashMap<char*>* Properties = nullptr;
 
-	void Dispose( )
-	{
-		for( size_t i = 0; i < Entries.size( ); i++ )
-		{
-			Entries[i].Dispose( );
+	void Dispose() {
+		for (size_t i = 0; i < Entries.size(); i++) {
+			Entries[i].Dispose();
 		}
-		Entries.clear( );
+		Entries.clear();
 
-		if( Properties )
-		{
+		if (Properties) {
 			Properties->WithAll(
-				[]( Uint32 hash,
-					char * string ) -> void {
-					Memory::Free( string );
-				} );
+				[](Uint32 hash, char* string) -> void {
+					Memory::Free(string);
+				});
 
 			delete Properties;
 

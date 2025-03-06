@@ -1,8 +1,7 @@
 #ifndef CONTOUR_H
 #define CONTOUR_H
 
-struct Contour
-{
+struct Contour {
 	int MapLeft;
 	int MinX;
 	int MinR;

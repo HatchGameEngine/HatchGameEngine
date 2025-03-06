@@ -5,68 +5,62 @@
 
 bool ScriptEntity::DisableAutoAnimate = false;
 
-#define LINK_INT( VAR ) \
-	Instance->Fields->Put( #VAR, INTEGER_LINK_VAL( &VAR ) )
-#define LINK_DEC( VAR ) \
-	Instance->Fields->Put( #VAR, DECIMAL_LINK_VAL( &VAR ) )
-#define LINK_BOOL( VAR ) \
-	Instance->Fields->Put( #VAR, INTEGER_LINK_VAL( &VAR ) )
+#define LINK_INT(VAR) \
+	Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
+#define LINK_DEC(VAR) \
+	Instance->Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
+#define LINK_BOOL(VAR) \
+	Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 
-bool SavedHashes              = false;
-Uint32 Hash_Create            = 0;
-Uint32 Hash_PostCreate        = 0;
-Uint32 Hash_Update            = 0;
-Uint32 Hash_UpdateLate        = 0;
-Uint32 Hash_UpdateEarly       = 0;
-Uint32 Hash_RenderEarly       = 0;
-Uint32 Hash_Render            = 0;
-Uint32 Hash_RenderLate        = 0;
+bool SavedHashes = false;
+Uint32 Hash_Create = 0;
+Uint32 Hash_PostCreate = 0;
+Uint32 Hash_Update = 0;
+Uint32 Hash_UpdateLate = 0;
+Uint32 Hash_UpdateEarly = 0;
+Uint32 Hash_RenderEarly = 0;
+Uint32 Hash_Render = 0;
+Uint32 Hash_RenderLate = 0;
 Uint32 Hash_OnAnimationFinish = 0;
-Uint32 Hash_OnSceneLoad       = 0;
-Uint32 Hash_OnSceneRestart    = 0;
-Uint32 Hash_GameStart         = 0;
-Uint32 Hash_Dispose           = 0;
-Uint32 Hash_HitboxLeft        = 0;
-Uint32 Hash_HitboxTop         = 0;
-Uint32 Hash_HitboxRight       = 0;
-Uint32 Hash_HitboxBottom      = 0;
+Uint32 Hash_OnSceneLoad = 0;
+Uint32 Hash_OnSceneRestart = 0;
+Uint32 Hash_GameStart = 0;
+Uint32 Hash_Dispose = 0;
+Uint32 Hash_HitboxLeft = 0;
+Uint32 Hash_HitboxTop = 0;
+Uint32 Hash_HitboxRight = 0;
+Uint32 Hash_HitboxBottom = 0;
 
-void ScriptEntity::Link( ObjInstance * instance )
-{
-	Instance            = instance;
+void ScriptEntity::Link(ObjInstance* instance) {
+	Instance = instance;
 	Instance->EntityPtr = this;
-	Properties          = new HashMap<VMValue>( NULL, 4 );
+	Properties = new HashMap<VMValue>(NULL, 4);
 
-	if( !SavedHashes )
-	{
-		Hash_Create = Murmur::EncryptString( "Create" );
-		Hash_PostCreate =
-			Murmur::EncryptString( "PostCreate" );
-		Hash_Update = Murmur::EncryptString( "Update" );
-		Hash_UpdateLate =
-			Murmur::EncryptString( "UpdateLate" );
+	if (!SavedHashes) {
+		Hash_Create = Murmur::EncryptString("Create");
+		Hash_PostCreate = Murmur::EncryptString("PostCreate");
+		Hash_Update = Murmur::EncryptString("Update");
+		Hash_UpdateLate = Murmur::EncryptString("UpdateLate");
 		Hash_UpdateEarly =
-			Murmur::EncryptString( "UpdateEarly" );
+			Murmur::EncryptString("UpdateEarly");
 		Hash_RenderEarly =
-			Murmur::EncryptString( "RenderEarly" );
-		Hash_Render = Murmur::EncryptString( "Render" );
-		Hash_RenderLate =
-			Murmur::EncryptString( "RenderLate" );
+			Murmur::EncryptString("RenderEarly");
+		Hash_Render = Murmur::EncryptString("Render");
+		Hash_RenderLate = Murmur::EncryptString("RenderLate");
 		Hash_OnAnimationFinish =
-			Murmur::EncryptString( "OnAnimationFinish" );
+			Murmur::EncryptString("OnAnimationFinish");
 		Hash_OnSceneLoad =
-			Murmur::EncryptString( "OnSceneLoad" );
+			Murmur::EncryptString("OnSceneLoad");
 		Hash_OnSceneRestart =
-			Murmur::EncryptString( "OnSceneRestart" );
-		Hash_GameStart = Murmur::EncryptString( "GameStart" );
-		Hash_Dispose   = Murmur::EncryptString( "Dispose" );
-		Hash_HitboxLeft =
-			Murmur::EncryptString( "HitboxLeft" );
-		Hash_HitboxTop = Murmur::EncryptString( "HitboxTop" );
+			Murmur::EncryptString("OnSceneRestart");
+		Hash_GameStart = Murmur::EncryptString("GameStart");
+		Hash_Dispose = Murmur::EncryptString("Dispose");
+		Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
+		Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
 		Hash_HitboxRight =
-			Murmur::EncryptString( "HitboxRight" );
+			Murmur::EncryptString("HitboxRight");
 		Hash_HitboxBottom =
-			Murmur::EncryptString( "HitboxBottom" );
+			Murmur::EncryptString("HitboxBottom");
 
 		SavedHashes = true;
 	}
@@ -74,32 +68,31 @@ void ScriptEntity::Link( ObjInstance * instance )
 	instance->PropertyGet = VM_Getter;
 	instance->PropertySet = VM_Setter;
 
-	LinkFields( );
+	LinkFields();
 }
 
-void ScriptEntity::LinkFields( )
-{
+void ScriptEntity::LinkFields() {
 	/***
 	 * \field X
 	 * \type Decimal
 	 * \ns Instance
 	 * \desc The X position of the entity.
 	 */
-	LINK_DEC( X );
+	LINK_DEC(X);
 	/***
 	 * \field Y
 	 * \type Decimal
 	 * \ns Instance
 	 * \desc The Y position of the entity.
 	 */
-	LINK_DEC( Y );
+	LINK_DEC(Y);
 	/***
 	 * \field Z
 	 * \type Decimal
 	 * \ns Instance
 	 * \desc The Z position of the entity.
 	 */
-	LINK_DEC( Z );
+	LINK_DEC(Z);
 	/***
 	 * \field XSpeed
 	 * \type Decimal
@@ -107,7 +100,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The horizontal velocity of the entity.
 	 */
-	LINK_DEC( XSpeed );
+	LINK_DEC(XSpeed);
 	/***
 	 * \field YSpeed
 	 * \type Decimal
@@ -115,7 +108,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The vertical velocity of the entity.
 	 */
-	LINK_DEC( YSpeed );
+	LINK_DEC(YSpeed);
 	/***
 	 * \field GroundSpeed
 	 * \type Decimal
@@ -123,7 +116,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The speed of the entity on the ground.
 	 */
-	LINK_DEC( GroundSpeed );
+	LINK_DEC(GroundSpeed);
 	/***
 	 * \field Gravity
 	 * \type Decimal
@@ -131,7 +124,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The gravity of the entity.
 	 */
-	LINK_DEC( Gravity );
+	LINK_DEC(Gravity);
 	/***
 	 * \field AutoPhysics
 	 * \type Boolean
@@ -140,7 +133,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Whether <linkto ref="instance.ApplyMotion"></linkto>
 	 * is automatically called for this entity.
 	 */
-	LINK_INT( AutoPhysics );
+	LINK_INT(AutoPhysics);
 	/***
 	 * \field Angle
 	 * \type Integer
@@ -149,7 +142,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The angle of the entity on the ground, within the
 	 * range of <code>0x00</code> - <code>0xFF</code>.
 	 */
-	LINK_INT( Angle );
+	LINK_INT(Angle);
 	/***
 	 * \field AngleMode
 	 * \type Integer
@@ -158,7 +151,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The angle mode of the entity on the ground, within the
 	 * range of <code>0</code> - <code>3</code>.
 	 */
-	LINK_INT( AngleMode );
+	LINK_INT(AngleMode);
 	/***
 	 * \field Ground
 	 * \type Boolean
@@ -166,7 +159,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Whether the entity is on the ground.
 	 */
-	LINK_INT( Ground );
+	LINK_INT(Ground);
 
 	/***
 	 * \field ScaleX
@@ -177,7 +170,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="instance.Render"></linkto> for scaling a sprite
 	 * horizontally.
 	 */
-	LINK_DEC( ScaleX );
+	LINK_DEC(ScaleX);
 	/***
 	 * \field ScaleY
 	 * \type Decimal
@@ -187,7 +180,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="instance.Render"></linkto> for scaling a sprite
 	 * vertically.
 	 */
-	LINK_DEC( ScaleY );
+	LINK_DEC(ScaleY);
 	/***
 	 * \field Rotation
 	 * \type Decimal (radians)
@@ -196,7 +189,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc A field that may be used in <linkto
 	 * ref="instance.Render"></linkto> for rotating a sprite.
 	 */
-	LINK_DEC( Rotation );
+	LINK_DEC(Rotation);
 	/***
 	 * \field Alpha
 	 * \type Decimal
@@ -206,7 +199,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="instance.Render"></linkto> for changing the opacity of
 	 * a sprite.
 	 */
-	LINK_DEC( Alpha );
+	LINK_DEC(Alpha);
 	/***
 	 * \field Priority
 	 * \type Integer
@@ -215,7 +208,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The priority, or draw group, where this entity is
 	 * located.
 	 */
-	LINK_INT( Priority );
+	LINK_INT(Priority);
 	/***
 	 * \field Depth
 	 * \type Decimal
@@ -224,7 +217,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The depth of the entity. Used for sorting entity draw
 	 * order.
 	 */
-	LINK_DEC( Depth );
+	LINK_DEC(Depth);
 
 	/***
 	 * \field Sprite
@@ -233,7 +226,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The sprite index of the entity.
 	 */
-	LINK_INT( Sprite );
+	LINK_INT(Sprite);
 	/***
 	 * \field CurrentAnimation
 	 * \type Integer
@@ -241,7 +234,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The current sprite  animation index of the entity.
 	 */
-	LINK_INT( CurrentAnimation );
+	LINK_INT(CurrentAnimation);
 	/***
 	 * \field CurrentFrame
 	 * \type Integer
@@ -250,7 +243,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The current frame index of the entity's current
 	 * animation.
 	 */
-	LINK_INT( CurrentFrame );
+	LINK_INT(CurrentFrame);
 	/***
 	 * \field CurrentFrameCount
 	 * \type Integer
@@ -258,7 +251,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The frame count of the entity's current animation.
 	 */
-	LINK_INT( CurrentFrameCount );
+	LINK_INT(CurrentFrameCount);
 	/***
 	 * \field AnimationSpeed
 	 * \type Decimal
@@ -266,7 +259,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The animation speed of the entity's animation.
 	 */
-	LINK_DEC( AnimationSpeed );
+	LINK_DEC(AnimationSpeed);
 	/***
 	 * \field AnimationTimer
 	 * \type Decimal
@@ -274,7 +267,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The animation timer of the entity's animation.
 	 */
-	LINK_DEC( AnimationTimer );
+	LINK_DEC(AnimationTimer);
 	/***
 	 * \field AnimationFrameDuration
 	 * \type Integer
@@ -282,7 +275,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The duration of the entity's current animation frame.
 	 */
-	LINK_INT( AnimationFrameDuration );
+	LINK_INT(AnimationFrameDuration);
 	/***
 	 * \field AnimationLoopIndex
 	 * \type Integer
@@ -290,7 +283,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The loop index of entity's current animation.
 	 */
-	LINK_INT( AnimationLoopIndex );
+	LINK_INT(AnimationLoopIndex);
 	/***
 	 * \field AnimationSpeedMult
 	 * \type Decimal
@@ -298,7 +291,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The animation speed multiplier of the entity.
 	 */
-	LINK_DEC( AnimationSpeedMult );
+	LINK_DEC(AnimationSpeedMult);
 	/***
 	 * \field AnimationSpeedAdd
 	 * \type Integer
@@ -309,7 +302,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="instance.AnimationSpeedMult"></linkto> when the entity
 	 * is being animated.
 	 */
-	LINK_INT( AnimationSpeedAdd );
+	LINK_INT(AnimationSpeedAdd);
 	/***
 	 * \field AutoAnimate
 	 * \type Boolean
@@ -318,7 +311,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Whether <linkto ref="instance.Animate"></linkto> is
 	 * automatically called for this entity.
 	 */
-	LINK_INT( AutoAnimate );
+	LINK_INT(AutoAnimate);
 
 	/***
 	 * \field OnScreen
@@ -327,7 +320,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc See <linkto ref="instance.InRange"></linkto>.
 	 */
-	LINK_INT( OnScreen );
+	LINK_INT(OnScreen);
 	/***
 	 * \field WasOffScreen
 	 * \type Boolean
@@ -335,7 +328,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Indicates if the entity was previously off-screen.
 	 */
-	LINK_INT( WasOffScreen );
+	LINK_INT(WasOffScreen);
 	/***
 	 * \field OnScreenHitboxW
 	 * \type Decimal
@@ -344,7 +337,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Alias for <linkto
 	 * ref="instance.UpdateRegionW"></linkto>.
 	 */
-	LINK_DEC( OnScreenHitboxW );
+	LINK_DEC(OnScreenHitboxW);
 	/***
 	 * \field OnScreenHitboxH
 	 * \type Decimal
@@ -353,7 +346,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Alias for <linkto
 	 * ref="instance.UpdateRegionH"></linkto>.
 	 */
-	LINK_DEC( OnScreenHitboxH );
+	LINK_DEC(OnScreenHitboxH);
 	/***
 	 * \field Visible
 	 * \type Boolean
@@ -361,7 +354,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Whether the entity is visible or not.
 	 */
-	LINK_INT( Visible );
+	LINK_INT(Visible);
 	/***
 	 * \field ViewRenderFlag
 	 * \type Integer
@@ -370,7 +363,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc A bitfield that indicates in which views the entity
 	 * renders. By default, this is on for every view.
 	 */
-	LINK_INT( ViewRenderFlag );
+	LINK_INT(ViewRenderFlag);
 	/***
 	 * \field ViewOverrideFlag
 	 * \type Integer
@@ -381,7 +374,7 @@ void ScriptEntity::LinkFields( )
 	 * view's entity rendering toggle set by <linkto
 	 * ref="Scene.SetObjectViewRender"></linkto>.
 	 */
-	LINK_INT( ViewOverrideFlag );
+	LINK_INT(ViewOverrideFlag);
 
 	/***
 	 * \field UpdateRegionW
@@ -392,8 +385,8 @@ void ScriptEntity::LinkFields( )
 	 * update. If this is set to <code>0.0</code>, the entity will
 	 * update regardless of the camera's horizontal position.
 	 */
-	Instance->Fields->Put( "UpdateRegionW",
-		DECIMAL_LINK_VAL( &OnScreenHitboxW ) );
+	Instance->Fields->Put(
+		"UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
 	/***
 	 * \field UpdateRegionH
 	 * \type Decimal
@@ -403,8 +396,8 @@ void ScriptEntity::LinkFields( )
 	 * update. If this is set to <code>0.0</code>, the entity will
 	 * update regardless of the camera's vertical position.
 	 */
-	Instance->Fields->Put( "UpdateRegionH",
-		DECIMAL_LINK_VAL( &OnScreenHitboxH ) );
+	Instance->Fields->Put(
+		"UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
 	/***
 	 * \field UpdateRegionTop
 	 * \type Decimal
@@ -414,8 +407,8 @@ void ScriptEntity::LinkFields( )
 	 * If set to <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
 	 */
-	Instance->Fields->Put( "UpdateRegionTop",
-		DECIMAL_LINK_VAL( &OnScreenRegionTop ) );
+	Instance->Fields->Put("UpdateRegionTop",
+		DECIMAL_LINK_VAL(&OnScreenRegionTop));
 	/***
 	 * \field UpdateRegionLeft
 	 * \type Decimal
@@ -425,8 +418,8 @@ void ScriptEntity::LinkFields( )
 	 * If set to <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
 	 */
-	Instance->Fields->Put( "UpdateRegionLeft",
-		DECIMAL_LINK_VAL( &OnScreenRegionLeft ) );
+	Instance->Fields->Put("UpdateRegionLeft",
+		DECIMAL_LINK_VAL(&OnScreenRegionLeft));
 	/***
 	 * \field UpdateRegionRight
 	 * \type Decimal
@@ -436,8 +429,8 @@ void ScriptEntity::LinkFields( )
 	 * If set to <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
 	 */
-	Instance->Fields->Put( "UpdateRegionRight",
-		DECIMAL_LINK_VAL( &OnScreenRegionRight ) );
+	Instance->Fields->Put("UpdateRegionRight",
+		DECIMAL_LINK_VAL(&OnScreenRegionRight));
 	/***
 	 * \field UpdateRegionBottom
 	 * \type Decimal
@@ -448,8 +441,8 @@ void ScriptEntity::LinkFields( )
 	 * <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto>
 	 * instead.
 	 */
-	Instance->Fields->Put( "UpdateRegionBottom",
-		DECIMAL_LINK_VAL( &OnScreenRegionBottom ) );
+	Instance->Fields->Put("UpdateRegionBottom",
+		DECIMAL_LINK_VAL(&OnScreenRegionBottom));
 	/***
 	 * \field RenderRegionW
 	 * \type Decimal
@@ -459,7 +452,7 @@ void ScriptEntity::LinkFields( )
 	 * render. If set to <code>0.0</code>, the entity will render
 	 * regardless of the camera's horizontal position.
 	 */
-	LINK_DEC( RenderRegionW );
+	LINK_DEC(RenderRegionW);
 	/***
 	 * \field RenderRegionH
 	 * \type Decimal
@@ -469,7 +462,7 @@ void ScriptEntity::LinkFields( )
 	 * render. If set to <code>0.0</code>, the entity will render
 	 * regardless of the camera's vertical position.
 	 */
-	LINK_DEC( RenderRegionH );
+	LINK_DEC(RenderRegionH);
 	/***
 	 * \field RenderRegionTop
 	 * \type Decimal
@@ -479,7 +472,7 @@ void ScriptEntity::LinkFields( )
 	 * If set to <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
 	 */
-	LINK_DEC( RenderRegionTop );
+	LINK_DEC(RenderRegionTop);
 	/***
 	 * \field RenderRegionLeft
 	 * \type Decimal
@@ -491,7 +484,7 @@ void ScriptEntity::LinkFields( )
 	 * <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
 	 */
-	LINK_DEC( RenderRegionLeft );
+	LINK_DEC(RenderRegionLeft);
 	/***
 	 * \field RenderRegionRight
 	 * \type Decimal
@@ -503,7 +496,7 @@ void ScriptEntity::LinkFields( )
 	 * <code>0.0</code>, the entity will use its <linkto
 	 * ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
 	 */
-	LINK_DEC( RenderRegionRight );
+	LINK_DEC(RenderRegionRight);
 	/***
 	 * \field RenderRegionBottom
 	 * \type Decimal
@@ -514,7 +507,7 @@ void ScriptEntity::LinkFields( )
 	 * <linkto ref="instance.RenderRegionH">RenderRegionH</linkto>
 	 * instead.
 	 */
-	LINK_DEC( RenderRegionBottom );
+	LINK_DEC(RenderRegionBottom);
 
 	/***
 	 * \field HitboxW
@@ -524,7 +517,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The width of the hitbox.
 	 */
 	Instance->Fields->Put(
-		"HitboxW", DECIMAL_LINK_VAL( &Hitbox.Width ) );
+		"HitboxW", DECIMAL_LINK_VAL(&Hitbox.Width));
 	/***
 	 * \field HitboxH
 	 * \type Decimal
@@ -533,7 +526,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The height of the hitbox.
 	 */
 	Instance->Fields->Put(
-		"HitboxH", DECIMAL_LINK_VAL( &Hitbox.Height ) );
+		"HitboxH", DECIMAL_LINK_VAL(&Hitbox.Height));
 	/***
 	 * \field HitboxOffX
 	 * \type Decimal
@@ -542,7 +535,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The horizontal offset of the hitbox.
 	 */
 	Instance->Fields->Put(
-		"HitboxOffX", DECIMAL_LINK_VAL( &Hitbox.OffsetX ) );
+		"HitboxOffX", DECIMAL_LINK_VAL(&Hitbox.OffsetX));
 	/***
 	 * \field HitboxOffY
 	 * \type Decimal
@@ -551,7 +544,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc The vertical offset of the hitbox.
 	 */
 	Instance->Fields->Put(
-		"HitboxOffY", DECIMAL_LINK_VAL( &Hitbox.OffsetY ) );
+		"HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
 
 	/***
 	 * \field HitboxLeft
@@ -594,7 +587,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Bitfield that indicates whether the entity is X/Y
 	 * flipped.
 	 */
-	LINK_INT( FlipFlag );
+	LINK_INT(FlipFlag);
 
 	/***
 	 * \field VelocityX
@@ -603,7 +596,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Similar to <linkto ref="instance.XSpeed"></linkto>.
 	 */
-	LINK_DEC( VelocityX );
+	LINK_DEC(VelocityX);
 	/***
 	 * \field VelocityX
 	 * \type Decimal
@@ -611,7 +604,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Similar to <linkto ref="instance.YSpeed"></linkto>.
 	 */
-	LINK_DEC( VelocityY );
+	LINK_DEC(VelocityY);
 	/***
 	 * \field GroundVel
 	 * \type Decimal
@@ -620,7 +613,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Similar to <linkto
 	 * ref="instance.GroundSpeed"></linkto>.
 	 */
-	LINK_DEC( GroundVel );
+	LINK_DEC(GroundVel);
 	/***
 	 * \field Direction
 	 * \type Integer
@@ -628,7 +621,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Similar to <linkto ref="instance.FlipFlag"></linkto>.
 	 */
-	LINK_INT( Direction );
+	LINK_INT(Direction);
 	/***
 	 * \field OnGround
 	 * \type Boolean
@@ -636,7 +629,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Similar to <linkto ref="instance.Ground"></linkto>.
 	 */
-	LINK_INT( OnGround );
+	LINK_INT(OnGround);
 
 	/***
 	 * \field SlotID
@@ -647,7 +640,7 @@ void ScriptEntity::LinkFields( )
 	 * field contains the slot ID in which it was placed. If not,
 	 * this field contains the default value of <code>-1</code>.
 	 */
-	LINK_INT( SlotID );
+	LINK_INT(SlotID);
 
 	/***
 	 * \field ZDepth
@@ -655,7 +648,7 @@ void ScriptEntity::LinkFields( )
 	 * \default 0.0
 	 * \ns Instance
 	 */
-	LINK_DEC( ZDepth );
+	LINK_DEC(ZDepth);
 
 	/***
 	 * \field CollisionLayers
@@ -665,28 +658,28 @@ void ScriptEntity::LinkFields( )
 	 * \desc A bitfield containing which layers an entity is able
 	 * to collide with.
 	 */
-	LINK_INT( CollisionLayers );
+	LINK_INT(CollisionLayers);
 	/***
 	 * \field CollisionPlane
 	 * \type Integer
 	 * \default 0
 	 * \ns Instance
 	 */
-	LINK_INT( CollisionPlane );
+	LINK_INT(CollisionPlane);
 	/***
 	 * \field CollisionMode
 	 * \type Integer
 	 * \default 0
 	 * \ns Instance
 	 */
-	LINK_INT( CollisionMode );
+	LINK_INT(CollisionMode);
 	/***
 	 * \field TileCollisions
 	 * \type Integer
 	 * \default 0
 	 * \ns Instance
 	 */
-	LINK_INT( TileCollisions );
+	LINK_INT(TileCollisions);
 
 	/***
 	 * \field Activity
@@ -695,7 +688,7 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc The active status for this entity.
 	 */
-	LINK_INT( Activity );
+	LINK_INT(Activity);
 	/***
 	 * \field InRange
 	 * \type Boolean
@@ -704,7 +697,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Whether this entity is within active range; see
 	 * <linkto ref="instance.Activity"></linkto>.
 	 */
-	LINK_INT( InRange );
+	LINK_INT(InRange);
 
 	/***
 	 * \field SensorX
@@ -715,7 +708,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="TileCollision.Line"></linkto>, this value will contain
 	 * the horizontal position of where the entity collided.
 	 */
-	LINK_DEC( SensorX );
+	LINK_DEC(SensorX);
 	/***
 	 * \field SensorY
 	 * \type Decimal
@@ -725,7 +718,7 @@ void ScriptEntity::LinkFields( )
 	 * ref="TileCollision.Line"></linkto>, this value will contain
 	 * the vertical position of where the entity collided.
 	 */
-	LINK_DEC( SensorY );
+	LINK_DEC(SensorY);
 	/***
 	 * \field SensorAngle
 	 * \type Boolean
@@ -736,7 +729,7 @@ void ScriptEntity::LinkFields( )
 	 * <code>true</code> if the entity collided with a tile,
 	 * <code>false</code> otherwise.
 	 */
-	LINK_INT( SensorCollided );
+	LINK_INT(SensorCollided);
 	/***
 	 * \field SensorAngle
 	 * \type Integer
@@ -747,7 +740,7 @@ void ScriptEntity::LinkFields( )
 	 * the angle of the tile within the range of <code>0x00</code>
 	 * - <code>0xFF</code>.
 	 */
-	LINK_INT( SensorAngle );
+	LINK_INT(SensorAngle);
 
 	/***
 	 * \field Active
@@ -757,7 +750,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Whether the entity is active. If set to false, the
 	 * entity is removed at the end of the frame.
 	 */
-	LINK_BOOL( Active );
+	LINK_BOOL(Active);
 	/***
 	 * \field Pauseable
 	 * \type Boolean
@@ -766,7 +759,7 @@ void ScriptEntity::LinkFields( )
 	 * \desc Whether the entity stops updating when the scene is
 	 * paused.
 	 */
-	LINK_BOOL( Pauseable );
+	LINK_BOOL(Pauseable);
 	/***
 	 * \field Persistent
 	 * \type Boolean
@@ -776,7 +769,7 @@ void ScriptEntity::LinkFields( )
 	 * instead.
 	 */
 	Instance->Fields->Put(
-		"Persistent", INTEGER_LINK_VAL( &Persistence ) );
+		"Persistent", INTEGER_LINK_VAL(&Persistence));
 	/***
 	 * \field Interactable
 	 * \type Boolean
@@ -786,7 +779,7 @@ void ScriptEntity::LinkFields( )
 	 * <code>false</code>, the entity will not be included in
 	 * <code>with</code> iterations.
 	 */
-	LINK_BOOL( Interactable );
+	LINK_BOOL(Interactable);
 	/***
 	 * \field Persistence
 	 * \type Integer
@@ -794,143 +787,141 @@ void ScriptEntity::LinkFields( )
 	 * \ns Instance
 	 * \desc Whether the entity persists between scenes.
 	 */
-	LINK_INT( Persistence );
+	LINK_INT(Persistence);
 }
 
 #undef LINK_INT
 #undef LINK_DEC
 #undef LINK_BOOL
 
-bool ScriptEntity::GetCallableValue( Uint32 hash, VMValue & value )
-{
+bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 	// First look for a field which may shadow a method.
 	VMValue result;
-	if( Instance->Fields->GetIfExists( hash, &result ) )
-	{
+	if (Instance->Fields->GetIfExists(hash, &result)) {
 		value = result;
 		return true;
 	}
 
-	ObjClass * klass = Instance->Object.Class;
-	if( klass->Methods->GetIfExists( hash, &result ) )
-	{
+	ObjClass* klass = Instance->Object.Class;
+	if (klass->Methods->GetIfExists(hash, &result)) {
 		value = result;
 		return true;
 	}
-	else
-	{
-		value = ScriptManager::GetClassMethod( klass, hash );
-		if( !IS_NULL( value ) )
+	else {
+		value = ScriptManager::GetClassMethod(klass, hash);
+		if (!IS_NULL(value)) {
 			return true;
+		}
 	}
 
 	return false;
 }
-ObjFunction * ScriptEntity::GetCallableFunction( Uint32 hash )
-{
-	ObjClass * klass = Instance->Object.Class;
+ObjFunction* ScriptEntity::GetCallableFunction(Uint32 hash) {
+	ObjClass* klass = Instance->Object.Class;
 	VMValue result;
-	if( klass->Methods->GetIfExists( hash, &result ) )
-		return AS_FUNCTION( result );
+	if (klass->Methods->GetIfExists(hash, &result)) {
+		return AS_FUNCTION(result);
+	}
 	return NULL;
 }
-bool ScriptEntity::RunFunction( Uint32 hash )
-{
-	if( !Instance )
+bool ScriptEntity::RunFunction(Uint32 hash) {
+	if (!Instance) {
 		return false;
+	}
 
 	// NOTE:
 	// If the function doesn't exist, this is not an error VM side,
 	// treat whatever we call from C++ as a virtual-like function.
 	VMValue value;
-	if( !ScriptEntity::GetCallableValue( hash, value ) )
+	if (!ScriptEntity::GetCallableValue(hash, value)) {
 		return true;
+	}
 
-	VMThread * thread = ScriptManager::Threads + 0;
+	VMThread* thread = ScriptManager::Threads + 0;
 
-	VMValue * stackTop = thread->StackTop;
+	VMValue* stackTop = thread->StackTop;
 
-	thread->Push( OBJECT_VAL( Instance ) );
-	thread->InvokeForEntity( value, 0 );
+	thread->Push(OBJECT_VAL(Instance));
+	thread->InvokeForEntity(value, 0);
 
 	thread->StackTop = stackTop;
 
 	return true;
 }
-bool ScriptEntity::RunCreateFunction( VMValue flag )
-{
+bool ScriptEntity::RunCreateFunction(VMValue flag) {
 	// NOTE:
 	// If the function doesn't exist, this is not an error VM side,
 	// treat whatever we call from C++ as a virtual-like function.
-	ObjFunction * func =
-		ScriptEntity::GetCallableFunction( Hash_Create );
-	if( !func )
+	ObjFunction* func =
+		ScriptEntity::GetCallableFunction(Hash_Create);
+	if (!func) {
 		return true;
-
-	VMThread * thread = ScriptManager::Threads + 0;
-
-	VMValue * stackTop = thread->StackTop;
-
-	thread->Push( OBJECT_VAL( Instance ) );
-
-	if( func->Arity == 0 )
-	{
-		thread->RunEntityFunction( func, 0 );
 	}
-	else
-	{
-		thread->Push( flag );
-		thread->RunEntityFunction( func, 1 );
+
+	VMThread* thread = ScriptManager::Threads + 0;
+
+	VMValue* stackTop = thread->StackTop;
+
+	thread->Push(OBJECT_VAL(Instance));
+
+	if (func->Arity == 0) {
+		thread->RunEntityFunction(func, 0);
+	}
+	else {
+		thread->Push(flag);
+		thread->RunEntityFunction(func, 1);
 	}
 
 	thread->StackTop = stackTop;
 
 	return false;
 }
-bool ScriptEntity::RunInitializer( )
-{
-	if( !HasInitializer( Instance->Object.Class ) )
+bool ScriptEntity::RunInitializer() {
+	if (!HasInitializer(Instance->Object.Class)) {
 		return true;
+	}
 
-	VMThread * thread = ScriptManager::Threads + 0;
+	VMThread* thread = ScriptManager::Threads + 0;
 
-	VMValue * stackTop = thread->StackTop;
+	VMValue* stackTop = thread->StackTop;
 
-	thread->Push( OBJECT_VAL( Instance ) ); // Pushes this instance
-	                                        // into the stack so
-	                                        // that 'this' can work
-	thread->CallInitializer( Instance->Object.Class->Initializer );
-	thread->Pop( ); // Pops it
+	thread->Push(OBJECT_VAL(Instance)); // Pushes this instance
+	                                    // into the stack so
+	                                    // that 'this' can work
+	thread->CallInitializer(Instance->Object.Class->Initializer);
+	thread->Pop(); // Pops it
 
 	thread->StackTop = stackTop;
 
 	return true;
 }
 
-bool ScriptEntity::ChangeClass( const char * className )
-{
-	if( !ScriptManager::ClassExists( className ) )
+bool ScriptEntity::ChangeClass(const char* className) {
+	if (!ScriptManager::ClassExists(className)) {
 		return false;
+	}
 
-	if( !ScriptManager::Classes->Exists( className ) &&
-		!ScriptManager::LoadObjectClass( className, true ) )
+	if (!ScriptManager::Classes->Exists(className) &&
+		!ScriptManager::LoadObjectClass(className, true)) {
 		return false;
+	}
 
-	ObjClass * newClass =
-		ScriptManager::GetObjectClass( className );
-	if( !newClass )
+	ObjClass* newClass = ScriptManager::GetObjectClass(className);
+	if (!newClass) {
 		return false;
+	}
 
-	ObjectList * objectList = Scene::GetObjectList( className );
-	if( !objectList )
+	ObjectList* objectList = Scene::GetObjectList(className);
+	if (!objectList) {
 		return false;
+	}
 
 	// Remove from the old list
-	List->Remove( this );
+	List->Remove(this);
 
 	// Add to the new list
 	List = objectList;
-	List->Add( this );
+	List->Add(this);
 
 	// Change the script-side class proper
 	Instance->Object.Class = newClass;
@@ -938,351 +929,351 @@ bool ScriptEntity::ChangeClass( const char * className )
 	return true;
 }
 
-void ScriptEntity::Copy( ScriptEntity * other, bool copyClass )
-{
-	CopyFields( other );
+void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
+	CopyFields(other);
 
-	if( copyClass )
-		other->ChangeClass( List->ObjectName );
+	if (copyClass) {
+		other->ChangeClass(List->ObjectName);
+	}
 
 	// Copy properties
-	HashMap<VMValue> * srcProperties  = Properties;
-	HashMap<VMValue> * destProperties = other->Properties;
+	HashMap<VMValue>* srcProperties = Properties;
+	HashMap<VMValue>* destProperties = other->Properties;
 
-	destProperties->Clear( );
+	destProperties->Clear();
 
 	srcProperties->WithAll(
-		[destProperties]( Uint32 key, VMValue value ) -> void {
-			destProperties->Put( key, value );
-		} );
+		[destProperties](Uint32 key, VMValue value) -> void {
+			destProperties->Put(key, value);
+		});
 }
 
-void ScriptEntity::CopyFields( ScriptEntity * other )
-{
-	Entity::CopyFields( other );
+void ScriptEntity::CopyFields(ScriptEntity* other) {
+	Entity::CopyFields(other);
 
-	CopyVMFields( other );
+	CopyVMFields(other);
 }
 
-void ScriptEntity::CopyVMFields( ScriptEntity * other )
-{
-	Table * srcFields  = Instance->Fields;
-	Table * destFields = other->Instance->Fields;
+void ScriptEntity::CopyVMFields(ScriptEntity* other) {
+	Table* srcFields = Instance->Fields;
+	Table* destFields = other->Instance->Fields;
 
-	destFields->Clear( );
+	destFields->Clear();
 
 	srcFields->WithAll(
-		[destFields]( Uint32 key, VMValue value ) -> void {
+		[destFields](Uint32 key, VMValue value) -> void {
 			// Don't copy linked fields, because they point
 		        // to this entity's built-in fields
-			if( value.Type != VAL_LINKED_INTEGER &&
-				value.Type != VAL_LINKED_DECIMAL )
-				destFields->Put( key, value );
-		} );
+			if (value.Type != VAL_LINKED_INTEGER &&
+				value.Type != VAL_LINKED_DECIMAL) {
+				destFields->Put(key, value);
+			}
+		});
 
 	// Link the built-in fields again, since they have been removed
-	other->LinkFields( );
+	other->LinkFields();
 }
 
 // Events called from C++
-void ScriptEntity::Initialize( )
-{
-	if( !Instance )
+void ScriptEntity::Initialize() {
+	if (!Instance) {
 		return;
+	}
 
 	// Set defaults
-	Active    = true;
+	Active = true;
 	Pauseable = true;
-	Activity  = ACTIVE_BOUNDS;
-	InRange   = false;
+	Activity = ACTIVE_BOUNDS;
+	InRange = false;
 
-	XSpeed      = 0.0f;
-	YSpeed      = 0.0f;
+	XSpeed = 0.0f;
+	YSpeed = 0.0f;
 	GroundSpeed = 0.0f;
-	Gravity     = 0.0f;
-	Ground      = false;
+	Gravity = 0.0f;
+	Ground = false;
 
-	WasOffScreen         = false;
-	OnScreen             = true;
-	OnScreenHitboxW      = 0.0f;
-	OnScreenHitboxH      = 0.0f;
-	OnScreenRegionTop    = 0.0f;
-	OnScreenRegionLeft   = 0.0f;
-	OnScreenRegionRight  = 0.0f;
+	WasOffScreen = false;
+	OnScreen = true;
+	OnScreenHitboxW = 0.0f;
+	OnScreenHitboxH = 0.0f;
+	OnScreenRegionTop = 0.0f;
+	OnScreenRegionLeft = 0.0f;
+	OnScreenRegionRight = 0.0f;
 	OnScreenRegionBottom = 0.0f;
-	Visible              = true;
-	ViewRenderFlag       = 0xFFFFFFFF;
-	ViewOverrideFlag     = 0;
-	RenderRegionW        = 0.0f;
-	RenderRegionH        = 0.0f;
-	RenderRegionTop      = 0.0f;
-	RenderRegionLeft     = 0.0f;
-	RenderRegionRight    = 0.0f;
-	RenderRegionBottom   = 0.0f;
+	Visible = true;
+	ViewRenderFlag = 0xFFFFFFFF;
+	ViewOverrideFlag = 0;
+	RenderRegionW = 0.0f;
+	RenderRegionH = 0.0f;
+	RenderRegionTop = 0.0f;
+	RenderRegionLeft = 0.0f;
+	RenderRegionRight = 0.0f;
+	RenderRegionBottom = 0.0f;
 
-	Angle       = 0;
-	AngleMode   = 0;
-	Rotation    = 0.0;
+	Angle = 0;
+	AngleMode = 0;
+	Rotation = 0.0;
 	AutoPhysics = false;
 
-	Priority          = 0;
+	Priority = 0;
 	PriorityListIndex = -1;
-	PriorityOld       = -1;
+	PriorityOld = -1;
 
-	Sprite             = -1;
-	CurrentAnimation   = -1;
-	CurrentFrame       = -1;
-	CurrentFrameCount  = 0;
+	Sprite = -1;
+	CurrentAnimation = -1;
+	CurrentFrame = -1;
+	CurrentFrameCount = 0;
 	AnimationSpeedMult = 1.0;
-	AnimationSpeedAdd  = 0;
+	AnimationSpeedAdd = 0;
 	AutoAnimate = ScriptEntity::DisableAutoAnimate ? false : true;
-	AnimationSpeed         = 0;
-	AnimationTimer         = 0.0;
+	AnimationSpeed = 0;
+	AnimationTimer = 0.0;
 	AnimationFrameDuration = 0;
-	AnimationLoopIndex     = 0;
+	AnimationLoopIndex = 0;
 
-	Hitbox.Clear( );
+	Hitbox.Clear();
 	FlipFlag = 0;
 
-	VelocityX       = 0.0f;
-	VelocityY       = 0.0f;
-	GroundVel       = 0.0f;
+	VelocityX = 0.0f;
+	VelocityY = 0.0f;
+	GroundVel = 0.0f;
 	GravityStrength = 0.0f;
-	OnGround        = false;
-	Direction       = 0;
+	OnGround = false;
+	Direction = 0;
 
-	Persistence  = Persistence_NONE;
+	Persistence = Persistence_NONE;
 	Interactable = true;
 
-	RunInitializer( );
+	RunInitializer();
 }
-void ScriptEntity::Create( VMValue flag )
-{
-	if( !Instance )
+void ScriptEntity::Create(VMValue flag) {
+	if (!Instance) {
 		return;
+	}
 
 	Created = true;
 
-	RunCreateFunction( flag );
-	if( Sprite >= 0 && CurrentAnimation < 0 )
-	{
-		SetAnimation( 0, 0 );
+	RunCreateFunction(flag);
+	if (Sprite >= 0 && CurrentAnimation < 0) {
+		SetAnimation(0, 0);
 	}
 }
-void ScriptEntity::Create( ) { Create( INTEGER_VAL( 0 ) ); }
-void ScriptEntity::PostCreate( )
-{
-	if( !Instance )
+void ScriptEntity::Create() {
+	Create(INTEGER_VAL(0));
+}
+void ScriptEntity::PostCreate() {
+	if (!Instance) {
 		return;
+	}
 
 	PostCreated = true;
 
-	RunFunction( Hash_PostCreate );
+	RunFunction(Hash_PostCreate);
 }
-void ScriptEntity::UpdateEarly( )
-{
-	if( !Active )
+void ScriptEntity::UpdateEarly() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_UpdateEarly );
+	RunFunction(Hash_UpdateEarly);
 }
-void ScriptEntity::Update( )
-{
-	if( !Active )
+void ScriptEntity::Update() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_Update );
+	RunFunction(Hash_Update);
 }
-void ScriptEntity::UpdateLate( )
-{
-	if( !Active )
+void ScriptEntity::UpdateLate() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_UpdateLate );
+	RunFunction(Hash_UpdateLate);
 
-	if( AutoAnimate )
-		Animate( );
-	if( AutoPhysics )
-		ApplyMotion( );
+	if (AutoAnimate) {
+		Animate();
+	}
+	if (AutoPhysics) {
+		ApplyMotion();
+	}
 }
-void ScriptEntity::RenderEarly( )
-{
-	if( !Active )
+void ScriptEntity::RenderEarly() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_RenderEarly );
+	RunFunction(Hash_RenderEarly);
 }
-void ScriptEntity::Render( int CamX, int CamY )
-{
-	if( !Active )
+void ScriptEntity::Render(int CamX, int CamY) {
+	if (!Active) {
 		return;
+	}
 
-	if( RunFunction( Hash_Render ) )
-	{
+	if (RunFunction(Hash_Render)) {
 		// Default render
 	}
 }
-void ScriptEntity::RenderLate( )
-{
-	if( !Active )
+void ScriptEntity::RenderLate() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_RenderLate );
+	RunFunction(Hash_RenderLate);
 }
-void ScriptEntity::OnAnimationFinish( )
-{
-	RunFunction( Hash_OnAnimationFinish );
+void ScriptEntity::OnAnimationFinish() {
+	RunFunction(Hash_OnAnimationFinish);
 }
-void ScriptEntity::OnSceneLoad( )
-{
-	if( !Active )
+void ScriptEntity::OnSceneLoad() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_OnSceneLoad );
+	RunFunction(Hash_OnSceneLoad);
 }
-void ScriptEntity::OnSceneRestart( )
-{
-	if( !Active )
+void ScriptEntity::OnSceneRestart() {
+	if (!Active) {
 		return;
+	}
 
-	RunFunction( Hash_OnSceneRestart );
+	RunFunction(Hash_OnSceneRestart);
 }
-void ScriptEntity::GameStart( ) { RunFunction( Hash_GameStart ); }
-void ScriptEntity::Remove( )
-{
-	if( Removed )
+void ScriptEntity::GameStart() {
+	RunFunction(Hash_GameStart);
+}
+void ScriptEntity::Remove() {
+	if (Removed) {
 		return;
-	if( !Instance )
+	}
+	if (!Instance) {
 		return;
+	}
 
-	RunFunction( Hash_Dispose );
+	RunFunction(Hash_Dispose);
 
-	Active  = false;
+	Active = false;
 	Removed = true;
 }
-void ScriptEntity::Dispose( )
-{
-	Entity::Dispose( );
-	if( Properties )
-	{
+void ScriptEntity::Dispose() {
+	Entity::Dispose();
+	if (Properties) {
 		delete Properties;
 	}
-	if( Instance )
-	{
+	if (Instance) {
 		Instance = NULL;
 	}
 }
 
 // Events/methods called from VM
-#define GET_ARG( argIndex, argFunction ) \
-	( StandardLibrary::argFunction( args, argIndex, threadID ) )
-#define GET_ARG_OPT( argIndex, argFunction, argDefault ) \
-	( argIndex < argCount \
-			? GET_ARG( argIndex, \
-				  StandardLibrary::argFunction ) \
-			: argDefault )
-#define GET_ENTITY( argIndex ) \
-	( GetScriptEntity( args, argIndex, threadID ) )
-ScriptEntity * GetScriptEntity( Obj * object )
-{
-	ObjInstance * entity = (ObjInstance *)object;
-	if( !entity->EntityPtr )
+#define GET_ARG(argIndex, argFunction) \
+	(StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG_OPT(argIndex, argFunction, argDefault) \
+	(argIndex < argCount ? GET_ARG(argIndex, \
+				       StandardLibrary::argFunction) \
+			     : argDefault)
+#define GET_ENTITY(argIndex) \
+	(GetScriptEntity(args, argIndex, threadID))
+ScriptEntity* GetScriptEntity(Obj* object) {
+	ObjInstance* entity = (ObjInstance*)object;
+	if (!entity->EntityPtr) {
 		return nullptr;
-	return (ScriptEntity *)entity->EntityPtr;
+	}
+	return (ScriptEntity*)entity->EntityPtr;
 }
-ScriptEntity * GetScriptEntity(
-	VMValue * args, int index, Uint32 threadID )
-{
-	ObjInstance * entity = GET_ARG( index, GetInstance );
-	if( !entity->EntityPtr )
+ScriptEntity*
+GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
+	ObjInstance* entity = GET_ARG(index, GetInstance);
+	if (!entity->EntityPtr) {
 		return nullptr;
-	return (ScriptEntity *)entity->EntityPtr;
+	}
+	return (ScriptEntity*)entity->EntityPtr;
 }
-bool IsValidEntity( Entity * self )
-{
-	if( !self || !self->Active || self->Removed )
+bool IsValidEntity(Entity* self) {
+	if (!self || !self->Active || self->Removed) {
 		return false;
+	}
 
 	return true;
 }
-bool TestEntityCollision( Entity * other, Entity * self )
-{
-	if( !IsValidEntity( other ) )
+bool TestEntityCollision(Entity* other, Entity* self) {
+	if (!IsValidEntity(other)) {
 		return false;
+	}
 
-	return self->CollideWithObject( other );
+	return self->CollideWithObject(other);
 }
-bool ScriptEntity::VM_Getter(
-	Obj * object, Uint32 hash, VMValue * result, Uint32 threadID )
-{
-	Entity * self = GetScriptEntity( object );
-	if( self == nullptr )
+bool ScriptEntity::VM_Getter(Obj* object,
+	Uint32 hash,
+	VMValue* result,
+	Uint32 threadID) {
+	Entity* self = GetScriptEntity(object);
+	if (self == nullptr) {
 		return false;
+	}
 
-	if( hash == Hash_HitboxLeft )
-	{
-		if( result )
+	if (hash == Hash_HitboxLeft) {
+		if (result) {
+			*result = DECIMAL_VAL(self->Hitbox.GetLeft());
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxTop) {
+		if (result) {
+			*result = DECIMAL_VAL(self->Hitbox.GetTop());
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxRight) {
+		if (result) {
+			*result = DECIMAL_VAL(self->Hitbox.GetRight());
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxBottom) {
+		if (result) {
 			*result =
-				DECIMAL_VAL( self->Hitbox.GetLeft( ) );
-		return true;
-	}
-	else if( hash == Hash_HitboxTop )
-	{
-		if( result )
-			*result =
-				DECIMAL_VAL( self->Hitbox.GetTop( ) );
-		return true;
-	}
-	else if( hash == Hash_HitboxRight )
-	{
-		if( result )
-			*result = DECIMAL_VAL(
-				self->Hitbox.GetRight( ) );
-		return true;
-	}
-	else if( hash == Hash_HitboxBottom )
-	{
-		if( result )
-			*result = DECIMAL_VAL(
-				self->Hitbox.GetBottom( ) );
+				DECIMAL_VAL(self->Hitbox.GetBottom());
+		}
 		return true;
 	}
 
 	return false;
 }
-bool ScriptEntity::VM_Setter(
-	Obj * object, Uint32 hash, VMValue value, Uint32 threadID )
-{
-	Entity * self = GetScriptEntity( object );
-	if( self == nullptr )
+bool ScriptEntity::VM_Setter(Obj* object,
+	Uint32 hash,
+	VMValue value,
+	Uint32 threadID) {
+	Entity* self = GetScriptEntity(object);
+	if (self == nullptr) {
 		return false;
+	}
 
-	if( hash == Hash_HitboxLeft )
-	{
-		if( ScriptManager::DoDecimalConversion(
-			    value, threadID ) )
-			self->Hitbox.SetLeft( AS_DECIMAL( value ) );
+	if (hash == Hash_HitboxLeft) {
+		if (ScriptManager::DoDecimalConversion(
+			    value, threadID)) {
+			self->Hitbox.SetLeft(AS_DECIMAL(value));
+		}
 		return true;
 	}
-	else if( hash == Hash_HitboxTop )
-	{
-		if( ScriptManager::DoDecimalConversion(
-			    value, threadID ) )
-			self->Hitbox.SetTop( AS_DECIMAL( value ) );
+	else if (hash == Hash_HitboxTop) {
+		if (ScriptManager::DoDecimalConversion(
+			    value, threadID)) {
+			self->Hitbox.SetTop(AS_DECIMAL(value));
+		}
 		return true;
 	}
-	else if( hash == Hash_HitboxRight )
-	{
-		if( ScriptManager::DoDecimalConversion(
-			    value, threadID ) )
-			self->Hitbox.SetRight( AS_DECIMAL( value ) );
+	else if (hash == Hash_HitboxRight) {
+		if (ScriptManager::DoDecimalConversion(
+			    value, threadID)) {
+			self->Hitbox.SetRight(AS_DECIMAL(value));
+		}
 		return true;
 	}
-	else if( hash == Hash_HitboxBottom )
-	{
-		if( ScriptManager::DoDecimalConversion(
-			    value, threadID ) )
-			self->Hitbox.SetBottom( AS_DECIMAL( value ) );
+	else if (hash == Hash_HitboxBottom) {
+		if (ScriptManager::DoDecimalConversion(
+			    value, threadID)) {
+			self->Hitbox.SetBottom(AS_DECIMAL(value));
+		}
 		return true;
 	}
 
@@ -1296,56 +1287,53 @@ bool ScriptEntity::VM_Setter(
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetAnimation(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	Entity * self = GET_ENTITY( 0 );
-	int animation = GET_ARG( 1, GetInteger );
-	int frame     = GET_ARG( 2, GetInteger );
+VMValue ScriptEntity::VM_SetAnimation(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	Entity* self = GET_ENTITY(0);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
 
-	if( !IsValidEntity( self ) )
-		return NULL_VAL;
-
-	ResourceType * resource =
-		Scene::GetSpriteResource( self->Sprite );
-	if( !resource )
-	{
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is not set!", animation );
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
 	}
 
-	ISprite * sprite = resource->AsSprite;
-	if( !sprite )
-	{
+	ResourceType* resource =
+		Scene::GetSpriteResource(self->Sprite);
+	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is not set!", animation );
+			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
-	if( !( animation >= 0 &&
-		    (size_t)animation < sprite->Animations.size( ) ) )
-	{
+	ISprite* sprite = resource->AsSprite;
+	if (!sprite) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Sprite is not set!", animation);
+		return NULL_VAL;
+	}
+
+	if (!(animation >= 0 &&
+		    (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Animation %d is not in bounds of sprite.",
-			animation );
+			animation);
 		return NULL_VAL;
 	}
-	if( !( frame >= 0 &&
+	if (!(frame >= 0 &&
 		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size( ) ) )
-	{
+					    .Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Frame %d is not in bounds of animation %d.",
 			frame,
-			animation );
+			animation);
 		return NULL_VAL;
 	}
 
-	self->SetAnimation( animation, frame );
+	self->SetAnimation(animation, frame);
 	return NULL_VAL;
 }
 /***
@@ -1355,60 +1343,57 @@ VMValue ScriptEntity::VM_SetAnimation(
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ResetAnimation(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	Entity * self = GET_ENTITY( 0 );
-	int animation = GET_ARG( 1, GetInteger );
-	int frame     = GET_ARG( 2, GetInteger );
+VMValue ScriptEntity::VM_ResetAnimation(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	Entity* self = GET_ENTITY(0);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
 
-	if( !IsValidEntity( self ) )
-		return NULL_VAL;
-
-	ResourceType * resource =
-		Scene::GetSpriteResource( self->Sprite );
-	if( !resource )
-	{
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Sprite %d does not exist!",
-			self->Sprite );
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
 	}
 
-	ISprite * sprite = resource->AsSprite;
-	if( !sprite )
-	{
+	ResourceType* resource =
+		Scene::GetSpriteResource(self->Sprite);
+	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Sprite %d does not exist!",
-			self->Sprite );
+			self->Sprite);
 		return NULL_VAL;
 	}
 
-	if( !( animation >= 0 &&
-		    (Uint32)animation < sprite->Animations.size( ) ) )
-	{
+	ISprite* sprite = resource->AsSprite;
+	if (!sprite) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false,
+			"Sprite %d does not exist!",
+			self->Sprite);
+		return NULL_VAL;
+	}
+
+	if (!(animation >= 0 &&
+		    (Uint32)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Animation %d is not in bounds of sprite.",
-			animation );
+			animation);
 		return NULL_VAL;
 	}
-	if( !( frame >= 0 &&
+	if (!(frame >= 0 &&
 		    (Uint32)frame < sprite->Animations[animation]
-					    .Frames.size( ) ) )
-	{
+					    .Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Frame %d is not in bounds of animation %d.",
 			frame,
-			animation );
+			animation);
 		return NULL_VAL;
 	}
 
-	self->ResetAnimation( animation, frame );
+	self->ResetAnimation(animation, frame);
 	return NULL_VAL;
 }
 /***
@@ -1416,13 +1401,14 @@ VMValue ScriptEntity::VM_ResetAnimation(
  * \desc Animates the entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_Animate(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 1 );
-	Entity * self = GET_ENTITY( 0 );
-	if( self )
-		self->Animate( );
+VMValue ScriptEntity::VM_Animate(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	Entity* self = GET_ENTITY(0);
+	if (self) {
+		self->Animate();
+	}
 	return NULL_VAL;
 }
 
@@ -1433,27 +1419,28 @@ VMValue ScriptEntity::VM_Animate(
  * \return Returns an Integer value.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_GetIDWithinClass(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 1 );
-	Entity * self = GET_ENTITY( 0 );
-	if( !self || !self->List )
+VMValue ScriptEntity::VM_GetIDWithinClass(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	Entity* self = GET_ENTITY(0);
+	if (!self || !self->List) {
 		return NULL_VAL;
+	}
 
-	Entity * other = self->List->EntityFirst;
-	int num        = 0;
+	Entity* other = self->List->EntityFirst;
+	int num = 0;
 
-	while( other )
-	{
-		if( self == other )
+	while (other) {
+		if (self == other) {
 			break;
+		}
 
 		num++;
 		other = other->NextEntityInList;
 	}
 
-	return INTEGER_VAL( num );
+	return INTEGER_VAL(num);
 }
 
 /***
@@ -1462,30 +1449,28 @@ VMValue ScriptEntity::VM_GetIDWithinClass(
  * \param registry (String): The registry name.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_AddToRegistry(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	Entity * self   = GET_ENTITY( 0 );
-	char * registry = GET_ARG( 1, GetString );
+VMValue ScriptEntity::VM_AddToRegistry(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	Entity* self = GET_ENTITY(0);
+	char* registry = GET_ARG(1, GetString);
 
-	if( !IsValidEntity( self ) )
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
-
-	ObjectRegistry * objectRegistry;
-	if( !Scene::ObjectRegistries->Exists( registry ) )
-	{
-		objectRegistry = new ObjectRegistry( );
-		Scene::ObjectRegistries->Put(
-			registry, objectRegistry );
 	}
-	else
-	{
+
+	ObjectRegistry* objectRegistry;
+	if (!Scene::ObjectRegistries->Exists(registry)) {
+		objectRegistry = new ObjectRegistry();
+		Scene::ObjectRegistries->Put(registry, objectRegistry);
+	}
+	else {
 		objectRegistry =
-			Scene::ObjectRegistries->Get( registry );
+			Scene::ObjectRegistries->Get(registry);
 	}
 
-	objectRegistry->Add( self );
+	objectRegistry->Add(self);
 
 	return NULL_VAL;
 }
@@ -1496,21 +1481,22 @@ VMValue ScriptEntity::VM_AddToRegistry(
  * \return Returns a Boolean value.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_IsInRegistry(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	Entity * self   = GET_ENTITY( 0 );
-	char * registry = GET_ARG( 1, GetString );
+VMValue ScriptEntity::VM_IsInRegistry(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	Entity* self = GET_ENTITY(0);
+	char* registry = GET_ARG(1, GetString);
 
-	if( !IsValidEntity( self ) ||
-		!Scene::ObjectRegistries->Exists( registry ) )
+	if (!IsValidEntity(self) ||
+		!Scene::ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
+	}
 
-	ObjectRegistry * objectRegistry =
-		Scene::ObjectRegistries->Get( registry );
+	ObjectRegistry* objectRegistry =
+		Scene::ObjectRegistries->Get(registry);
 
-	return INTEGER_VAL( objectRegistry->Contains( self ) );
+	return INTEGER_VAL(objectRegistry->Contains(self));
 }
 /***
  * \method RemoveFromRegistry
@@ -1518,21 +1504,22 @@ VMValue ScriptEntity::VM_IsInRegistry(
  * \param registry (String): The registry name.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_RemoveFromRegistry(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	Entity * self   = GET_ENTITY( 0 );
-	char * registry = GET_ARG( 1, GetString );
+VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	Entity* self = GET_ENTITY(0);
+	char* registry = GET_ARG(1, GetString);
 
-	if( !IsValidEntity( self ) ||
-		!Scene::ObjectRegistries->Exists( registry ) )
+	if (!IsValidEntity(self) ||
+		!Scene::ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
+	}
 
-	ObjectRegistry * objectRegistry =
-		Scene::ObjectRegistries->Get( registry );
+	ObjectRegistry* objectRegistry =
+		Scene::ObjectRegistries->Get(registry);
 
-	objectRegistry->Remove( self );
+	objectRegistry->Remove(self);
 
 	return NULL_VAL;
 }
@@ -1541,13 +1528,14 @@ VMValue ScriptEntity::VM_RemoveFromRegistry(
  * \desc Applies gravity and velocities to the entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ApplyMotion(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 1 );
-	Entity * self = GET_ENTITY( 0 );
-	if( IsValidEntity( self ) )
-		self->ApplyMotion( );
+VMValue ScriptEntity::VM_ApplyMotion(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	Entity* self = GET_ENTITY(0);
+	if (IsValidEntity(self)) {
+		self->ApplyMotion();
+	}
 	return NULL_VAL;
 }
 /***
@@ -1564,24 +1552,24 @@ VMValue ScriptEntity::VM_ApplyMotion(
  * otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_InView(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 6 );
+VMValue
+ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 6);
 	// Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
-	int view = GET_ARG( 1, GetInteger );
-	float x  = GET_ARG( 2, GetDecimal );
-	float y  = GET_ARG( 3, GetDecimal );
-	float w  = GET_ARG( 4, GetDecimal );
-	float h  = GET_ARG( 5, GetDecimal );
+	int view = GET_ARG(1, GetInteger);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float w = GET_ARG(4, GetDecimal);
+	float h = GET_ARG(5, GetDecimal);
 
-	if( x + w >= Scene::Views[view].X &&
+	if (x + w >= Scene::Views[view].X &&
 		y + h >= Scene::Views[view].Y &&
 		x < Scene::Views[view].X + Scene::Views[view].Width &&
-		y < Scene::Views[view].Y + Scene::Views[view].Height )
-		return INTEGER_VAL( true );
+		y < Scene::Views[view].Y + Scene::Views[view].Height) {
+		return INTEGER_VAL(true);
+	}
 
-	return INTEGER_VAL( false );
+	return INTEGER_VAL(false);
 }
 /***
  * \method CollidedWithObject
@@ -1592,47 +1580,52 @@ VMValue ScriptEntity::VM_InView(
  * <code>null</code> if it did not collide with any entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_CollidedWithObject(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
+VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
 
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( !IsValidEntity( self ) )
-		return NULL_VAL;
-
-	if( IS_INSTANCE( args[1] ) )
-	{
-		ScriptEntity * other = GET_ENTITY( 1 );
-		if( TestEntityCollision( other, self ) )
-			return OBJECT_VAL( other->Instance );
+	ScriptEntity* self = GET_ENTITY(0);
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
 	}
 
-	if( !Scene::ObjectLists )
+	if (IS_INSTANCE(args[1])) {
+		ScriptEntity* other = GET_ENTITY(1);
+		if (TestEntityCollision(other, self)) {
+			return OBJECT_VAL(other->Instance);
+		}
 		return NULL_VAL;
-	if( !Scene::ObjectRegistries )
-		return NULL_VAL;
+	}
 
-	char * object = GET_ARG( 1, GetString );
-	if( !Scene::ObjectRegistries->Exists( object ) )
-	{
-		if( !Scene::ObjectLists->Exists( object ) )
+	if (!Scene::ObjectLists) {
+		return NULL_VAL;
+	}
+	if (!Scene::ObjectRegistries) {
+		return NULL_VAL;
+	}
+
+	char* object = GET_ARG(1, GetString);
+	if (!Scene::ObjectRegistries->Exists(object)) {
+		if (!Scene::ObjectLists->Exists(object)) {
 			return NULL_VAL;
+		}
 	}
 
-	if( self->Hitbox.Width == 0.0f || self->Hitbox.Height == 0.0f )
+	if (self->Hitbox.Width == 0.0f ||
+		self->Hitbox.Height == 0.0f) {
 		return NULL_VAL;
+	}
 
-	ScriptEntity * other    = NULL;
-	ObjectList * objectList = Scene::ObjectLists->Get( object );
+	ScriptEntity* other = NULL;
+	ObjectList* objectList = Scene::ObjectLists->Get(object);
 
-	other = (ScriptEntity *)objectList->EntityFirst;
-	for( Entity * next; other; other = (ScriptEntity *)next )
-	{
+	other = (ScriptEntity*)objectList->EntityFirst;
+	for (Entity* next; other; other = (ScriptEntity*)next) {
 		next = other->NextEntityInList;
-		if( TestEntityCollision( other, self ) )
-			return OBJECT_VAL( other->Instance );
+		if (TestEntityCollision(other, self)) {
+			return OBJECT_VAL(other->Instance);
+		}
 	}
 
 	return NULL_VAL;
@@ -1647,52 +1640,49 @@ VMValue ScriptEntity::VM_CollidedWithObject(
  * \param hitbox (Integer): The hitbox ID.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_GetHitboxFromSprite(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 5 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	ISprite * sprite    = GET_ARG( 1, GetSprite );
-	int animation       = GET_ARG( 2, GetInteger );
-	int frame           = GET_ARG( 3, GetInteger );
-	int hitbox          = GET_ARG( 4, GetInteger );
+VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 5);
+	ScriptEntity* self = GET_ENTITY(0);
+	ISprite* sprite = GET_ARG(1, GetSprite);
+	int animation = GET_ARG(2, GetInteger);
+	int frame = GET_ARG(3, GetInteger);
+	int hitbox = GET_ARG(4, GetInteger);
 
-	if( !IsValidEntity( self ) || !sprite )
+	if (!IsValidEntity(self) || !sprite) {
 		return NULL_VAL;
+	}
 
-	if( !( animation > -1 &&
-		    (size_t)animation < sprite->Animations.size( ) ) )
-	{
+	if (!(animation > -1 &&
+		    (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Animation %d is not in bounds of sprite.",
-			animation );
+			animation);
 		return NULL_VAL;
 	}
-	if( !( frame > -1 &&
+	if (!(frame > -1 &&
 		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size( ) ) )
-	{
+					    .Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Frame %d is not in bounds of animation %d.",
 			frame,
-			animation );
+			animation);
 		return NULL_VAL;
 	}
 
 	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
-	if( !( hitbox > -1 && hitbox < frameO.BoxCount ) )
-	{
+	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
 		// ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 		// "Hitbox %d is not in bounds of frame %d.", hitbox,
 		// frame);
-		self->Hitbox.Clear( );
+		self->Hitbox.Clear();
 	}
-	else
-	{
-		self->Hitbox.Set( frameO.Boxes[hitbox] );
+	else {
+		self->Hitbox.Set(frameO.Boxes[hitbox]);
 	}
 
 	return NULL_VAL;
@@ -1709,44 +1699,42 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(
  * bottom sides in that order.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ReturnHitboxFromSprite(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 5 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	ISprite * sprite    = GET_ARG( 1, GetSprite );
-	int animation       = GET_ARG( 2, GetInteger );
-	int frame           = GET_ARG( 3, GetInteger );
-	int hitbox          = GET_ARG( 4, GetInteger );
+VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 5);
+	ScriptEntity* self = GET_ENTITY(0);
+	ISprite* sprite = GET_ARG(1, GetSprite);
+	int animation = GET_ARG(2, GetInteger);
+	int frame = GET_ARG(3, GetInteger);
+	int hitbox = GET_ARG(4, GetInteger);
 
-	if( !IsValidEntity( self ) || !sprite )
+	if (!IsValidEntity(self) || !sprite) {
 		return NULL_VAL;
+	}
 
-	if( !( animation > -1 &&
-		    (size_t)animation < sprite->Animations.size( ) ) )
-	{
+	if (!(animation > -1 &&
+		    (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Animation %d is not in bounds of sprite.",
-			animation );
+			animation);
 		return NULL_VAL;
 	}
-	if( !( frame > -1 &&
+	if (!(frame > -1 &&
 		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size( ) ) )
-	{
+					    .Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Frame %d is not in bounds of animation %d.",
 			frame,
-			animation );
+			animation);
 		return NULL_VAL;
 	}
 
 	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
-	if( !( hitbox > -1 && hitbox < frameO.BoxCount ) )
-	{
+	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
 		// ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 		// "Hitbox %d is not in bounds of frame %d.", hitbox,
 		// frame);
@@ -1754,12 +1742,12 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(
 	}
 
 	CollisionBox box = frameO.Boxes[hitbox];
-	ObjArray * array = NewArray( );
-	array->Values->push_back( DECIMAL_VAL( (float)box.Left ) );
-	array->Values->push_back( DECIMAL_VAL( (float)box.Top ) );
-	array->Values->push_back( DECIMAL_VAL( (float)box.Right ) );
-	array->Values->push_back( DECIMAL_VAL( (float)box.Bottom ) );
-	return OBJECT_VAL( array );
+	ObjArray* array = NewArray();
+	array->Values->push_back(DECIMAL_VAL((float)box.Left));
+	array->Values->push_back(DECIMAL_VAL((float)box.Top));
+	array->Values->push_back(DECIMAL_VAL((float)box.Right));
+	array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+	return OBJECT_VAL(array);
 }
 
 /***
@@ -1770,15 +1758,16 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(
  * <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_CollideWithObject(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self  = GET_ENTITY( 0 );
-	ScriptEntity * other = GET_ENTITY( 1 );
-	if( !IsValidEntity( self ) || !IsValidEntity( other ) )
+VMValue ScriptEntity::VM_CollideWithObject(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	ScriptEntity* other = GET_ENTITY(1);
+	if (!IsValidEntity(self) || !IsValidEntity(other)) {
 		return NULL_VAL;
-	return INTEGER_VAL( self->CollideWithObject( other ) );
+	}
+	return INTEGER_VAL(self->CollideWithObject(other));
 }
 /***
  * \method SolidCollideWithObject
@@ -1788,17 +1777,17 @@ VMValue ScriptEntity::VM_CollideWithObject(
  * <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SolidCollideWithObject(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	ScriptEntity * self  = GET_ENTITY( 0 );
-	ScriptEntity * other = GET_ENTITY( 1 );
-	int flag             = GET_ARG( 2, GetInteger );
-	if( !IsValidEntity( self ) || !IsValidEntity( other ) )
+VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptEntity* self = GET_ENTITY(0);
+	ScriptEntity* other = GET_ENTITY(1);
+	int flag = GET_ARG(2, GetInteger);
+	if (!IsValidEntity(self) || !IsValidEntity(other)) {
 		return NULL_VAL;
-	return INTEGER_VAL(
-		self->SolidCollideWithObject( other, flag ) );
+	}
+	return INTEGER_VAL(self->SolidCollideWithObject(other, flag));
 }
 /***
  * \method TopSolidCollideWithObject
@@ -1808,26 +1797,28 @@ VMValue ScriptEntity::VM_SolidCollideWithObject(
  * <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_TopSolidCollideWithObject(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	ScriptEntity * self  = GET_ENTITY( 0 );
-	ScriptEntity * other = GET_ENTITY( 1 );
-	int flag             = GET_ARG( 2, GetInteger );
-	if( !IsValidEntity( self ) || !IsValidEntity( other ) )
+VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptEntity* self = GET_ENTITY(0);
+	ScriptEntity* other = GET_ENTITY(1);
+	int flag = GET_ARG(2, GetInteger);
+	if (!IsValidEntity(self) || !IsValidEntity(other)) {
 		return NULL_VAL;
+	}
 	return INTEGER_VAL(
-		self->TopSolidCollideWithObject( other, flag ) );
+		self->TopSolidCollideWithObject(other, flag));
 }
 
-VMValue ScriptEntity::VM_ApplyPhysics(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 1 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( IsValidEntity( self ) )
-		self->ApplyPhysics( );
+VMValue ScriptEntity::VM_ApplyPhysics(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (IsValidEntity(self)) {
+		self->ApplyPhysics();
+	}
 	return NULL_VAL;
 }
 
@@ -1839,15 +1830,16 @@ VMValue ScriptEntity::VM_ApplyPhysics(
  * <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PropertyExists(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	char * property     = GET_ARG( 1, GetString );
-	if( self && self->Properties->Exists( property ) )
-		return INTEGER_VAL( 1 );
-	return INTEGER_VAL( 0 );
+VMValue ScriptEntity::VM_PropertyExists(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	char* property = GET_ARG(1, GetString);
+	if (self && self->Properties->Exists(property)) {
+		return INTEGER_VAL(1);
+	}
+	return INTEGER_VAL(0);
 }
 /***
  * \method PropertyGet
@@ -1857,15 +1849,16 @@ VMValue ScriptEntity::VM_PropertyExists(
  * the property does not exist.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PropertyGet(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	char * property     = GET_ARG( 1, GetString );
-	if( !self || !self->Properties->Exists( property ) )
+VMValue ScriptEntity::VM_PropertyGet(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	char* property = GET_ARG(1, GetString);
+	if (!self || !self->Properties->Exists(property)) {
 		return NULL_VAL;
-	return self->Properties->Get( property );
+	}
+	return self->Properties->Get(property);
 }
 
 /***
@@ -1876,20 +1869,21 @@ VMValue ScriptEntity::VM_PropertyGet(
  * on the specified view.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetViewVisibility(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	int viewIndex       = GET_ARG( 1, GetInteger );
-	bool visible        = GET_ARG( 2, GetInteger );
-	if( IsValidEntity( self ) )
-	{
+VMValue ScriptEntity::VM_SetViewVisibility(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptEntity* self = GET_ENTITY(0);
+	int viewIndex = GET_ARG(1, GetInteger);
+	bool visible = GET_ARG(2, GetInteger);
+	if (IsValidEntity(self)) {
 		int flag = 1 << viewIndex;
-		if( visible )
+		if (visible) {
 			self->ViewRenderFlag |= flag;
-		else
+		}
+		else {
 			self->ViewRenderFlag &= ~flag;
+		}
 	}
 	return NULL_VAL;
 }
@@ -1902,20 +1896,21 @@ VMValue ScriptEntity::VM_SetViewVisibility(
  * or not on the specified view.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetViewOverride(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 3 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	int viewIndex       = GET_ARG( 1, GetInteger );
-	bool override       = GET_ARG( 2, GetInteger );
-	if( IsValidEntity( self ) )
-	{
+VMValue ScriptEntity::VM_SetViewOverride(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptEntity* self = GET_ENTITY(0);
+	int viewIndex = GET_ARG(1, GetInteger);
+	bool override = GET_ARG(2, GetInteger);
+	if (IsValidEntity(self)) {
 		int flag = 1 << viewIndex;
-		if( override )
+		if (override) {
 			self->ViewOverrideFlag |= flag;
-		else
+		}
+		else {
 			self->ViewOverrideFlag &= ~flag;
+		}
 	}
 	return NULL_VAL;
 }
@@ -1926,25 +1921,27 @@ VMValue ScriptEntity::VM_SetViewOverride(
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_AddToDrawGroup(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( !IsValidEntity( self ) )
+VMValue ScriptEntity::VM_AddToDrawGroup(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
-	int drawGroup = GET_ARG( 1, GetInteger );
-	if( drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer )
-	{
-		if( !Scene::PriorityLists[drawGroup].Contains( self ) )
-			Scene::PriorityLists[drawGroup].Add( self );
 	}
-	else
+	int drawGroup = GET_ARG(1, GetInteger);
+	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
+		if (!Scene::PriorityLists[drawGroup].Contains(self)) {
+			Scene::PriorityLists[drawGroup].Add(self);
+		}
+	}
+	else {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1 );
+			Scene::PriorityPerLayer - 1);
+	}
 	return NULL_VAL;
 }
 /***
@@ -1955,24 +1952,27 @@ VMValue ScriptEntity::VM_AddToDrawGroup(
  * draw group, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_IsInDrawGroup(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( !IsValidEntity( self ) )
-		return INTEGER_VAL( false );
-	int drawGroup = GET_ARG( 1, GetInteger );
-	if( drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer )
+VMValue ScriptEntity::VM_IsInDrawGroup(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (!IsValidEntity(self)) {
+		return INTEGER_VAL(false);
+	}
+	int drawGroup = GET_ARG(1, GetInteger);
+	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
 		return INTEGER_VAL(
-			!!( Scene::PriorityLists[drawGroup].Contains(
-				self ) ) );
-	else
+			!!(Scene::PriorityLists[drawGroup].Contains(
+				self)));
+	}
+	else {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1 );
+			Scene::PriorityPerLayer - 1);
+	}
 	return NULL_VAL;
 }
 /***
@@ -1981,22 +1981,25 @@ VMValue ScriptEntity::VM_IsInDrawGroup(
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_RemoveFromDrawGroup(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( !IsValidEntity( self ) )
+VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
-	int drawGroup = GET_ARG( 1, GetInteger );
-	if( drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer )
-		Scene::PriorityLists[drawGroup].Remove( self );
-	else
+	}
+	int drawGroup = GET_ARG(1, GetInteger);
+	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
+		Scene::PriorityLists[drawGroup].Remove(self);
+	}
+	else {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1 );
+			Scene::PriorityPerLayer - 1);
+	}
 	return NULL_VAL;
 }
 
@@ -2016,28 +2019,27 @@ VMValue ScriptEntity::VM_RemoveFromDrawGroup(
  * <code>-1</code> if no channel was available.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PlaySound(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckAtLeastArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	ISound * audio      = GET_ARG( 1, GetSound );
-	float panning       = GET_ARG_OPT( 2, GetDecimal, 0.0f );
-	float speed         = GET_ARG_OPT( 3, GetDecimal, 1.0f );
-	float volume        = GET_ARG_OPT( 4, GetDecimal, 1.0f );
-	int channel         = -1;
-	if( IsValidEntity( self ) )
-	{
-		AudioManager::StopOriginSound( (void *)self, audio );
-		channel = AudioManager::PlaySound( audio,
+VMValue ScriptEntity::VM_PlaySound(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	ISound* audio = GET_ARG(1, GetSound);
+	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
+	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
+	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
+	int channel = -1;
+	if (IsValidEntity(self)) {
+		AudioManager::StopOriginSound((void*)self, audio);
+		channel = AudioManager::PlaySound(audio,
 			false,
 			0,
 			panning,
 			speed,
 			volume,
-			(void *)self );
+			(void*)self);
 	}
-	return INTEGER_VAL( channel );
+	return INTEGER_VAL(channel);
 }
 /***
  * \method LoopSound
@@ -2056,29 +2058,28 @@ VMValue ScriptEntity::VM_PlaySound(
  * <code>-1</code> if no channel was available.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_LoopSound(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckAtLeastArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	ISound * audio      = GET_ARG( 1, GetSound );
-	int loopPoint       = GET_ARG_OPT( 2, GetInteger, 0 );
-	float panning       = GET_ARG_OPT( 3, GetDecimal, 0.0f );
-	float speed         = GET_ARG_OPT( 4, GetDecimal, 1.0f );
-	float volume        = GET_ARG_OPT( 5, GetDecimal, 1.0f );
-	int channel         = -1;
-	if( IsValidEntity( self ) )
-	{
-		AudioManager::StopOriginSound( (void *)self, audio );
-		channel = AudioManager::PlaySound( audio,
+VMValue ScriptEntity::VM_LoopSound(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	ISound* audio = GET_ARG(1, GetSound);
+	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
+	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
+	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
+	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
+	int channel = -1;
+	if (IsValidEntity(self)) {
+		AudioManager::StopOriginSound((void*)self, audio);
+		channel = AudioManager::PlaySound(audio,
 			true,
 			loopPoint,
 			panning,
 			speed,
 			volume,
-			(void *)self );
+			(void*)self);
 	}
-	return INTEGER_VAL( channel );
+	return INTEGER_VAL(channel);
 }
 /***
  * \method StopSound
@@ -2086,14 +2087,15 @@ VMValue ScriptEntity::VM_LoopSound(
  * \param sound (Integer): The sound index to interrupt.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_StopSound(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 2 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	ISound * audio      = GET_ARG( 1, GetSound );
-	if( IsValidEntity( self ) )
-		AudioManager::StopOriginSound( (void *)self, audio );
+VMValue ScriptEntity::VM_StopSound(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	ISound* audio = GET_ARG(1, GetSound);
+	if (IsValidEntity(self)) {
+		AudioManager::StopOriginSound((void*)self, audio);
+	}
 	return NULL_VAL;
 }
 /***
@@ -2101,12 +2103,13 @@ VMValue ScriptEntity::VM_StopSound(
  * \desc Stops all sounds the entity is playing.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_StopAllSounds(
-	int argCount, VMValue * args, Uint32 threadID )
-{
-	StandardLibrary::CheckArgCount( argCount, 1 );
-	ScriptEntity * self = GET_ENTITY( 0 );
-	if( IsValidEntity( self ) )
-		AudioManager::StopAllOriginSounds( (void *)self );
+VMValue ScriptEntity::VM_StopAllSounds(int argCount,
+	VMValue* args,
+	Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (IsValidEntity(self)) {
+		AudioManager::StopAllOriginSounds((void*)self);
+	}
 	return NULL_VAL;
 }

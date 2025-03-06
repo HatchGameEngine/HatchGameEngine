@@ -3,8 +3,7 @@
 
 #include <Engine/Includes/StandardSDL2.h>
 
-enum Keyboard
-{
+enum Keyboard {
 	Key_UNKNOWN = -1,
 
 	Key_A,
@@ -122,8 +121,7 @@ enum Keyboard
 	NUM_KEYBOARD_KEYS
 };
 
-enum class ControllerType
-{
+enum class ControllerType {
 	Unknown,
 	Xbox360,
 	XboxOne,
@@ -141,8 +139,7 @@ enum class ControllerType
 	NvidiaShield
 };
 
-enum class ControllerButton
-{
+enum class ControllerButton {
 	A,
 	B,
 	X,
@@ -169,8 +166,7 @@ enum class ControllerButton
 	Max
 };
 
-enum class ControllerAxis
-{
+enum class ControllerAxis {
 	LeftX,
 	LeftY,
 	RightX,
@@ -184,8 +180,7 @@ enum class ControllerAxis
 #define NUM_TOUCH_STATES 8
 #define DEFAULT_DIGITAL_AXIS_THRESHOLD 0.5
 
-enum InputDevice
-{
+enum InputDevice {
 	InputDevice_Keyboard,
 	InputDevice_Controller,
 	InputDevice_MAX
@@ -208,117 +203,101 @@ enum InputDevice
 #define INPUT_BIND_CONTROLLER_AXIS 2
 #define NUM_INPUT_BIND_TYPES 3
 
-class InputBind
-{
+class InputBind {
        public:
 	Uint8 Type;
 
-	InputBind( ) { Type = INPUT_BIND_KEYBOARD; }
+	InputBind() { Type = INPUT_BIND_KEYBOARD; }
 
-	InputBind( Uint8 type ) { Type = type; }
+	InputBind(Uint8 type) { Type = type; }
 
-	virtual void Clear( ) {}
+	virtual void Clear() {}
 
-	virtual bool IsDefined( ) const = 0;
+	virtual bool IsDefined() const = 0;
 
-	virtual InputBind * Clone( ) const = 0;
+	virtual InputBind* Clone() const = 0;
 
-	virtual ~InputBind( ) = default;
+	virtual ~InputBind() = default;
 };
 
-class KeyboardBind : public InputBind
-{
+class KeyboardBind : public InputBind {
        public:
 	int Key;
 	Uint16 Modifiers;
 
-	KeyboardBind( ) : InputBind( INPUT_BIND_KEYBOARD )
-	{
-		Clear( );
-	}
+	KeyboardBind() : InputBind(INPUT_BIND_KEYBOARD) { Clear(); }
 
-	KeyboardBind( int key ) : KeyboardBind( ) { Key = key; }
+	KeyboardBind(int key) : KeyboardBind() { Key = key; }
 
-	void Clear( )
-	{
-		Key       = Key_UNKNOWN;
+	void Clear() {
+		Key = Key_UNKNOWN;
 		Modifiers = 0;
 	}
 
-	bool IsDefined( ) const { return Key != Key_UNKNOWN; }
+	bool IsDefined() const { return Key != Key_UNKNOWN; }
 
-	InputBind * Clone( ) const
-	{
-		KeyboardBind * clone = new KeyboardBind( Key );
-		clone->Modifiers     = Modifiers;
-		return static_cast<InputBind *>( clone );
+	InputBind* Clone() const {
+		KeyboardBind* clone = new KeyboardBind(Key);
+		clone->Modifiers = Modifiers;
+		return static_cast<InputBind*>(clone);
 	}
 };
 
-class ControllerButtonBind : public InputBind
-{
+class ControllerButtonBind : public InputBind {
        public:
 	int Button;
 
-	ControllerButtonBind( )
-		: InputBind( INPUT_BIND_CONTROLLER_BUTTON )
-	{
-		Clear( );
+	ControllerButtonBind()
+		: InputBind(INPUT_BIND_CONTROLLER_BUTTON) {
+		Clear();
 	}
 
-	ControllerButtonBind( int button ) : ControllerButtonBind( )
-	{
+	ControllerButtonBind(int button) : ControllerButtonBind() {
 		Button = button;
 	}
 
-	void Clear( ) { Button = -1; }
+	void Clear() { Button = -1; }
 
-	bool IsDefined( ) const { return Button != -1; }
+	bool IsDefined() const { return Button != -1; }
 
-	InputBind * Clone( ) const
-	{
-		ControllerButtonBind * clone =
-			new ControllerButtonBind( Button );
-		return static_cast<InputBind *>( clone );
+	InputBind* Clone() const {
+		ControllerButtonBind* clone =
+			new ControllerButtonBind(Button);
+		return static_cast<InputBind*>(clone);
 	}
 };
 
-class ControllerAxisBind : public InputBind
-{
+class ControllerAxisBind : public InputBind {
        public:
 	int Axis;
 	double AxisDeadzone;
 	double AxisDigitalThreshold;
 	bool IsAxisNegative;
 
-	ControllerAxisBind( ) : InputBind( INPUT_BIND_CONTROLLER_AXIS )
-	{
-		Clear( );
+	ControllerAxisBind() : InputBind(INPUT_BIND_CONTROLLER_AXIS) {
+		Clear();
 	}
 
-	ControllerAxisBind( int axis ) : ControllerAxisBind( )
-	{
+	ControllerAxisBind(int axis) : ControllerAxisBind() {
 		Axis = axis;
 	}
 
-	void Clear( )
-	{
-		Axis                 = -1;
-		AxisDeadzone         = 0.0;
+	void Clear() {
+		Axis = -1;
+		AxisDeadzone = 0.0;
 		AxisDigitalThreshold = DEFAULT_DIGITAL_AXIS_THRESHOLD;
-		IsAxisNegative       = false;
+		IsAxisNegative = false;
 	}
 
-	bool IsDefined( ) const { return Axis != -1; }
+	bool IsDefined() const { return Axis != -1; }
 
-	InputBind * Clone( ) const
-	{
-		ControllerAxisBind * clone =
-			new ControllerAxisBind( Axis );
-		clone->AxisDeadzone         = AxisDeadzone;
+	InputBind* Clone() const {
+		ControllerAxisBind* clone =
+			new ControllerAxisBind(Axis);
+		clone->AxisDeadzone = AxisDeadzone;
 		clone->AxisDigitalThreshold = AxisDigitalThreshold;
-		clone->IsAxisNegative       = IsAxisNegative;
-		return static_cast<InputBind *>( clone );
+		clone->IsAxisNegative = IsAxisNegative;
+		return static_cast<InputBind*>(clone);
 	}
 };
 
@@ -327,52 +306,46 @@ class ControllerAxisBind : public InputBind
 #define INPUT_STATE_HELD 2
 #define INPUT_STATE_RELEASED 3
 
-struct PlayerInputStatus
-{
+struct PlayerInputStatus {
 	vector<Uint8> State;
 
 	Uint8 NumHeld;
 	Uint8 NumPressed;
 	Uint8 NumReleased;
 
-	void SetNumActions( size_t num )
-	{
-		size_t oldNum = State.size( );
+	void SetNumActions(size_t num) {
+		size_t oldNum = State.size();
 
-		State.resize( num );
+		State.resize(num);
 
-		for( size_t i = oldNum; i < num; i++ )
-		{
+		for (size_t i = oldNum; i < num; i++) {
 			State[i] = INPUT_STATE_UNPUSHED;
 		}
 	}
 
-	void Reset( )
-	{
+	void Reset() {
 		NumHeld = NumPressed = NumReleased = 0;
 
-		for( size_t i = 0; i < State.size( ); i++ )
-		{
+		for (size_t i = 0; i < State.size(); i++) {
 			State[i] = INPUT_STATE_UNPUSHED;
 		}
 	}
 };
 
-struct PlayerInputConfig
-{
-	std::vector<InputBind *> Binds;
+struct PlayerInputConfig {
+	std::vector<InputBind*> Binds;
 
-	PlayerInputConfig( ) { Binds.clear( ); }
+	PlayerInputConfig() { Binds.clear(); }
 
-	void Clear( )
-	{
-		for( size_t i = 0; i < Binds.size( ); i++ )
+	void Clear() {
+		for (size_t i = 0; i < Binds.size(); i++) {
 			delete Binds[i];
+		}
 
-		Binds.clear( );
+		Binds.clear();
 	}
 
-	~PlayerInputConfig( ) { Clear( ); }
+	~PlayerInputConfig() { Clear(); }
 };
 
 #endif /* INPUT_H */

@@ -1,29 +1,24 @@
 #ifndef HATCH_SCENE_TYPES_H
 #define HATCH_SCENE_TYPES_H
 
-struct SceneHash
-{
+struct SceneHash {
 	Uint32 A, B, C, D;
 
-	bool operator==( const SceneHash & b )
-	{
+	bool operator==(const SceneHash& b) {
 		return A == b.A && B == b.B && C == b.C && D == b.D;
 	}
-	bool operator!=( const SceneHash & b )
-	{
+	bool operator!=(const SceneHash& b) {
 		return A != b.A || B != b.B || C != b.C || D != b.D;
 	}
 };
 
-struct SceneClassProperty
-{
-	char * Name;
+struct SceneClassProperty {
+	char* Name;
 	SceneHash Hash;
 	Uint8 Type;
 };
 
-enum SceneClassVariable
-{
+enum SceneClassVariable {
 	HSCN_VAR_UINT8,
 	HSCN_VAR_UINT16,
 	HSCN_VAR_UINT32,
@@ -38,9 +33,8 @@ enum SceneClassVariable
 	HSCN_VAR_COLOR
 };
 
-struct SceneClass
-{
-	char * Name;
+struct SceneClass {
+	char* Name;
 	SceneHash Hash;
 	vector<SceneClassProperty> Properties;
 };

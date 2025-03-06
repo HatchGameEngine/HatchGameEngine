@@ -1,18 +1,19 @@
 #include <Engine/Rendering/TextureReference.h>
 
-TextureReference::TextureReference( Texture * ptr )
-{
+TextureReference::TextureReference(Texture* ptr) {
 	TexturePtr = ptr;
 	References = 0;
-	AddRef( );
+	AddRef();
 }
 
-void TextureReference::AddRef( ) { References++; }
+void TextureReference::AddRef() {
+	References++;
+}
 
-bool TextureReference::TakeRef( )
-{
-	if( References == 0 )
-		abort( );
+bool TextureReference::TakeRef() {
+	if (References == 0) {
+		abort();
+	}
 
 	References--;
 

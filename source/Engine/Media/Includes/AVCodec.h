@@ -7,10 +7,6 @@ struct AVCodecContext;
 struct AVFormatContext;
 struct AVPacket;
 struct AVFrame;
-struct AVPixelFormat
-{
-};
-struct AVSampleFormat
-{
-};
+struct AVPixelFormat {};
+struct AVSampleFormat {};
 #endif

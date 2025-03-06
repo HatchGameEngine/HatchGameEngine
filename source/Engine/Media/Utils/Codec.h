@@ -4,8 +4,7 @@
 #define KIT_CODEC_NAME_MAX 8
 #define KIT_CODEC_DESC_MAX 48
 
-struct Codec
-{
+struct Codec {
 	Uint32 Threads; ///< Currently enabled threads (For all
 	                ///< decoders)
 	char Name[KIT_CODEC_NAME_MAX]; ///< Codec short name, eg. "ogg"
@@ -14,8 +13,7 @@ struct Codec
 	                                      ///< descriptive name
 };
 
-struct OutputFormat
-{
+struct OutputFormat {
 	Uint32 Format; ///< SDL Format (SDL_PixelFormat if
 	               ///< video/subtitle, SDL_AudioFormat if audio)
 	int IsSigned; ///< Signedness, 1 = signed, 0 = unsigned (if
@@ -27,14 +25,12 @@ struct OutputFormat
 	int Height; ///< Height in pixels (if video)
 };
 
-struct PlayerStreamInfo
-{
+struct PlayerStreamInfo {
 	struct Codec Codec; ///< Decoder codec information
 	struct OutputFormat Output; ///< Information about the output
 	                            ///< format
 };
-struct PlayerInfo
-{
+struct PlayerInfo {
 	PlayerStreamInfo Video; ///< Video stream data
 	PlayerStreamInfo Audio; ///< Audio stream data
 	PlayerStreamInfo Subtitle; ///< Subtitle stream data

@@ -47,8 +47,7 @@ using deque = std::deque<T>;
 
 using string = std::string;
 
-enum class Platforms
-{
+enum class Platforms {
 	Windows,
 	MacOS,
 	Linux,
@@ -60,8 +59,7 @@ enum class Platforms
 	Unknown
 };
 
-enum class KeyBind
-{
+enum class KeyBind {
 	Fullscreen,
 	DevRestartApp,
 	DevRestartScene,
@@ -102,9 +100,9 @@ typedef int32_t Sint32;
 typedef int64_t Sint64;
 
 #ifdef IOS
-#define NEW_STRUCT_MACRO( n ) ( n )
+#define NEW_STRUCT_MACRO(n) (n)
 #else
-#define NEW_STRUCT_MACRO( n ) n
+#define NEW_STRUCT_MACRO(n) n
 #endif
 
 #endif // STANDARDLIBS_H

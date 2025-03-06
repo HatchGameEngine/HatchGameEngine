@@ -4,40 +4,33 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Includes/Token.h>
 
-class XMLAttributes
-{
+class XMLAttributes {
        public:
-	vector<char *> KeyVector;
+	vector<char*> KeyVector;
 	HashMap<Token> ValueMap;
 
-	void Put( char * key, Token value )
-	{
-		Uint32 hash =
-			ValueMap.HashFunction( key, strlen( key ) );
-		ValueMap.Put( hash, value );
-		KeyVector.push_back( key );
+	void Put(char* key, Token value) {
+		Uint32 hash = ValueMap.HashFunction(key, strlen(key));
+		ValueMap.Put(hash, value);
+		KeyVector.push_back(key);
 	}
-	Token Get( const char * key ) { return ValueMap.Get( key ); }
-	bool Exists( const char * key )
-	{
-		return ValueMap.Exists( key );
+	Token Get(const char* key) { return ValueMap.Get(key); }
+	bool Exists(const char* key) { return ValueMap.Exists(key); }
+	void Dispose() {
+		for (size_t i = 0; i < KeyVector.size(); i++) {
+			Memory::Free(KeyVector[i]);
+		}
+		KeyVector.clear();
 	}
-	void Dispose( )
-	{
-		for( size_t i = 0; i < KeyVector.size( ); i++ )
-			Memory::Free( KeyVector[i] );
-		KeyVector.clear( );
-	}
-	~XMLAttributes( ) { Dispose( ); }
+	~XMLAttributes() { Dispose(); }
 };
 
-struct XMLNode
-{
+struct XMLNode {
 	Token name;
 	XMLAttributes attributes;
-	vector<XMLNode *> children;
-	XMLNode * parent;
-	Stream * base_stream;
+	vector<XMLNode*> children;
+	XMLNode* parent;
+	Stream* base_stream;
 };
 
 #endif /* XMLNODE_H */

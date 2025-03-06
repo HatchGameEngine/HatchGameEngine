@@ -1,15 +1,13 @@
 #ifndef GL_SHADERINCLUDES_H
 #define GL_SHADERINCLUDES_H
 
-struct GLShaderLinkage
-{
+struct GLShaderLinkage {
 	bool link_position;
 	bool link_uv;
 	bool link_color;
 };
 
-struct GLShaderUniforms
-{
+struct GLShaderUniforms {
 	bool u_matrix;
 	bool u_color;
 	bool u_materialColors;

@@ -4,8 +4,7 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Token.h>
 
-class Parser
-{
+class Parser {
        public:
 	Token Current;
 	Token Previous;
@@ -13,19 +12,17 @@ class Parser
 	bool PanicMode;
 };
 
-class Scanner
-{
+class Scanner {
        public:
 	int Line;
-	char * Start;
-	char * Current;
-	char * LinePos;
-	char * SourceFilename;
-	char * SourceStart;
+	char* Start;
+	char* Current;
+	char* LinePos;
+	char* SourceFilename;
+	char* SourceStart;
 };
 
-enum Precedence
-{
+enum Precedence {
 	PREC_NONE,
 	PREC_ASSIGNMENT, // =
 	PREC_TERNARY,
@@ -45,20 +42,18 @@ enum Precedence
 };
 
 class Compiler;
-typedef void ( Compiler::*ParseFn )( bool canAssign );
+typedef void (Compiler::*ParseFn)(bool canAssign);
 
-struct Local
-{
+struct Local {
 	Token Name;
-	int Depth           = -1;
-	bool Resolved       = false;
-	bool WasSet         = false;
-	bool Constant       = false;
-	VMValue ConstantVal = VMValue{ VAL_ERROR };
+	int Depth = -1;
+	bool Resolved = false;
+	bool WasSet = false;
+	bool Constant = false;
+	VMValue ConstantVal = VMValue{VAL_ERROR};
 };
 
-struct ParseRule
-{
+struct ParseRule {
 	ParseFn Prefix;
 	ParseFn Infix;
 	ParseFn Suffix;

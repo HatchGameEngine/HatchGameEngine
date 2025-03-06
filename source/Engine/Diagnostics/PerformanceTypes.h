@@ -1,8 +1,7 @@
 #ifndef ENGINE_DIAGNOSTICS_PERFORMANCETYPES
 #define ENGINE_DIAGNOSTICS_PERFORMANCETYPES
 
-struct Perf_Application
-{
+struct Perf_Application {
 	double EventTime;
 	double AfterSceneTime;
 	double PollTime;
@@ -13,8 +12,7 @@ struct Perf_Application
 	double PresentTime;
 	double FrameTime;
 };
-struct Perf_ViewRender
-{
+struct Perf_ViewRender {
 	double RenderSetupTime;
 	bool RecreatedDrawTarget;
 	double ProjectionSetupTime;

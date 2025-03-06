@@ -2,7 +2,7 @@
 #define INCLUDES_WS_H
 
 #ifdef _WIN32
-#if defined( _MSC_VER ) && !defined( _CRT_SECURE_NO_WARNINGS )
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS // _CRT_SECURE_NO_WARNINGS for sscanf
                                 // errors in MSVC2013 Express
 #endif
@@ -29,7 +29,7 @@ typedef SOCKET socket_t;
 #define snprintf _snprintf_s
 #endif
 #include <stdint.h>
-#define socketerrno WSAGetLastError( )
+#define socketerrno WSAGetLastError()
 #define SOCKET_EAGAIN_EINPROGRESS WSAEINPROGRESS
 #define SOCKET_EWOULDBLOCK WSAEWOULDBLOCK
 #else
@@ -46,12 +46,12 @@ typedef int socket_t;
 #define _SOCKET_T_DEFINED
 #endif
 #ifndef INVALID_SOCKET
-#define INVALID_SOCKET ( -1 )
+#define INVALID_SOCKET (-1)
 #endif
 #ifndef SOCKET_ERROR
-#define SOCKET_ERROR ( -1 )
+#define SOCKET_ERROR (-1)
 #endif
-#define closesocket( s ) close( s )
+#define closesocket(s) close(s)
 #include <errno.h>
 #define socketerrno errno
 #define SOCKET_EAGAIN_EINPROGRESS EAGAIN

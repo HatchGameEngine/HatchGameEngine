@@ -2,15 +2,15 @@
 BasedOnStyle: LLVM
 AccessModifierOffset: -1
 AlignAfterOpenBracket: DontAlign
-AlignConsecutiveAssignments: true
+AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: DontAlign
 AlignOperands: DontAlign
 AlignTrailingComments: false
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
+AllowShortFunctionsOnASingleLine: InlineOnly
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
@@ -20,15 +20,15 @@ AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
 BraceWrapping:
-   AfterClass: true
-   AfterControlStatement: true
-   AfterEnum: true
-   AfterFunction: true
-   AfterNamespace: true
-   AfterObjCDeclaration: true
-   AfterStruct: true
-   AfterUnion: true
-   BeforeCatch: true
+   AfterClass: false
+   AfterControlStatement: false
+   AfterEnum: false
+   AfterFunction: false
+   AfterNamespace: false
+   AfterObjCDeclaration: false
+   AfterStruct: false
+   AfterUnion: false
+   BeforeCatch: false
    BeforeElse: true
    IndentBraces: false
 BreakBeforeBinaryOperators: None
@@ -47,6 +47,7 @@ ExperimentalAutoDetectBinPacking: false
 IndentCaseLabels: false
 IndentWidth: 8
 IndentWrappedFunctionNames: false
+InsertBraces: true
 KeepEmptyLinesAtTheStartOfBlocks: true
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
@@ -56,19 +57,19 @@ PenaltyBreakFirstLessLess: 71
 PenaltyBreakString: 1000
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 60
-PointerAlignment: Middle
+PointerAlignment: Left
 ReflowComments: true
 SortIncludes: true
 SpaceAfterCStyleCast: false
 SpaceAfterTemplateKeyword: false
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: false
-SpaceInEmptyParentheses: true
+SpaceBeforeParens: true
+SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
 SpacesInContainerLiterals: true
 SpacesInCStyleCastParentheses: false
-SpacesInParentheses: true
+SpacesInParentheses: false
 SpacesInSquareBrackets: false
 TabWidth: 8
 UseTab: AlignWithSpaces

@@ -8,30 +8,29 @@
 #include <NotificationCenter/NotificationCenter.h>
 #endif
 
-int MacOS_GetApplicationSupportDirectory( char * buffer, int maxSize )
-{
-	@autoreleasepool
-	{
+int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
+	@autoreleasepool {
 #if MACOSX_AAAAAAAA
-		NSBundle * bundle = [NSBundle mainBundle];
-		const char * baseType =
+		NSBundle* bundle = [NSBundle mainBundle];
+		const char* baseType =
 			[[bundle bundlePath] fileSystemRepresentation];
 
-		NSArray * paths = NSSearchPathForDirectoriesInDomains(
+		NSArray* paths = NSSearchPathForDirectoriesInDomains(
 			NSApplicationSupportDirectory,
 			NSUserDomainMask,
-			YES );
-		NSString * applicationSupportDirectory =
+			YES);
+		NSString* applicationSupportDirectory =
 			[paths firstObject];
 		/* NSLog(@"applicationSupportDirectory: '%@'",
 		 * applicationSupportDirectory); */
 
-		strncpy( buffer,
+		strncpy(buffer,
 			[applicationSupportDirectory UTF8String],
-			maxSize );
-		if( baseType )
+			maxSize);
+		if (baseType) {
 			return !!StringUtils::StrCaseStr(
-				baseType, ".app" );
+				baseType, ".app");
+		}
 
 #endif
 		return 0;

@@ -32,39 +32,34 @@
  */
 #include "cdt.h"
 
-namespace p2t
-{
+namespace p2t {
 
-CDT::CDT( const std::vector<Point *> & polyline )
-{
-	sweep_context_ = new SweepContext( polyline );
-	sweep_         = new Sweep;
+CDT::CDT(const std::vector<Point*>& polyline) {
+	sweep_context_ = new SweepContext(polyline);
+	sweep_ = new Sweep;
 }
 
-void CDT::AddHole( const std::vector<Point *> & polyline )
-{
-	sweep_context_->AddHole( polyline );
+void CDT::AddHole(const std::vector<Point*>& polyline) {
+	sweep_context_->AddHole(polyline);
 }
 
-void CDT::AddPoint( Point * point )
-{
-	sweep_context_->AddPoint( point );
+void CDT::AddPoint(Point* point) {
+	sweep_context_->AddPoint(point);
 }
 
-void CDT::Triangulate( ) { sweep_->Triangulate( *sweep_context_ ); }
-
-std::vector<p2t::Triangle *> CDT::GetTriangles( )
-{
-	return sweep_context_->GetTriangles( );
+void CDT::Triangulate() {
+	sweep_->Triangulate(*sweep_context_);
 }
 
-std::list<p2t::Triangle *> CDT::GetMap( )
-{
-	return sweep_context_->GetMap( );
+std::vector<p2t::Triangle*> CDT::GetTriangles() {
+	return sweep_context_->GetTriangles();
 }
 
-CDT::~CDT( )
-{
+std::list<p2t::Triangle*> CDT::GetMap() {
+	return sweep_context_->GetMap();
+}
+
+CDT::~CDT() {
 	delete sweep_context_;
 	delete sweep_;
 }

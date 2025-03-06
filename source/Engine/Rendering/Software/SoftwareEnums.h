@@ -3,8 +3,7 @@
 
 #include <Engine/Rendering/Enums.h>
 
-enum BlendFlags
-{
+enum BlendFlags {
 	BlendFlag_OPAQUE = 0,
 	BlendFlag_TRANSPARENT,
 	BlendFlag_ADDITIVE,
@@ -12,8 +11,8 @@ enum BlendFlags
 	BlendFlag_MATCH_EQUAL,
 	BlendFlag_MATCH_NOT_EQUAL,
 
-	BlendFlag_MODE_MASK  = 7, // 0b111
-	BlendFlag_TINT_BIT   = 8,
+	BlendFlag_MODE_MASK = 7, // 0b111
+	BlendFlag_TINT_BIT = 8,
 	BlendFlag_FILTER_BIT = 16
 };
 
