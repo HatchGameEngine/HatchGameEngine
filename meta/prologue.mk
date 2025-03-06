@@ -1273,7 +1273,7 @@ SYNDEFS.WINNT32  := WINDOWS IA32 WINNT LILENDIAN PTRSZ_32 HAVE_I64 \
 SYNDEFS.WINNT64  := WINDOWS AMD64 WINNT LILENDIAN PTRSZ_64 HAVE_I64 \
 	HAVE_I32 HAVE_FP FP_SOFT LONGSZ_32
 
-FMTFLAGS := -style=file:etc/clang-format.yml
+FMTFLAGS := -style=file:meta/clang-format.yml
 
 # Make builds deterministic when using LLVM or GNU C/C++ compilers.
 # These are the environment variables necessary; see CFLAGS and

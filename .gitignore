@@ -18,6 +18,7 @@
 *.xcodeproj/*
 *.o
 /hatch
+*.fmt
 
 HatchGameEngine.exe
 *-Debug.exe

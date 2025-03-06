@@ -1,9 +1,13 @@
 #ifndef ENGINE_IO_COMPRESSION_COMPRESSIONENUMS_H
 #define ENGINE_IO_COMPRESSION_COMPRESSIONENUMS_H
 
-namespace CompressionMode { enum {
-    COMPRESS,
-    DECOMPRESS,
-}; };
+namespace CompressionMode
+{
+enum
+{
+	COMPRESS,
+	DECOMPRESS,
+};
+};
 
 #endif /* ENGINE_IO_COMPRESSION_COMPRESSIONENUMS_H */
