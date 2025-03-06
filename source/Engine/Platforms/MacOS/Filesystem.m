@@ -1,6 +1,6 @@
-// #ifdef __OBJC__
+#ifdef __OBJC__
 #include "Filesystem.h"
-// #endif
+#endif
 
 #if MACOSX_AAAAAAAA
 #include <ApplicationServices/ApplicationServices.h>
@@ -16,7 +16,7 @@ int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
 
             NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
             NSString *applicationSupportDirectory = [paths firstObject];
-            // NSLog(@"applicationSupportDirectory: '%@'", applicationSupportDirectory);
+            /* NSLog(@"applicationSupportDirectory: '%@'", applicationSupportDirectory); */
 
             strncpy(buffer, [applicationSupportDirectory UTF8String], maxSize);
             if (baseType)
