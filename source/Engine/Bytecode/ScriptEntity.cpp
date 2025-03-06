@@ -73,720 +73,646 @@ void ScriptEntity::Link(ObjInstance* instance) {
 
 void ScriptEntity::LinkFields() {
 	/***
-	 * \field X
-	 * \type Decimal
-	 * \ns Instance
-	 * \desc The X position of the entity.
-	 */
+    * \field X
+    * \type Decimal
+    * \ns Instance
+    * \desc The X position of the entity.
+    */
 	LINK_DEC(X);
 	/***
-	 * \field Y
-	 * \type Decimal
-	 * \ns Instance
-	 * \desc The Y position of the entity.
-	 */
+    * \field Y
+    * \type Decimal
+    * \ns Instance
+    * \desc The Y position of the entity.
+    */
 	LINK_DEC(Y);
 	/***
-	 * \field Z
-	 * \type Decimal
-	 * \ns Instance
-	 * \desc The Z position of the entity.
-	 */
+    * \field Z
+    * \type Decimal
+    * \ns Instance
+    * \desc The Z position of the entity.
+    */
 	LINK_DEC(Z);
 	/***
-	 * \field XSpeed
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The horizontal velocity of the entity.
-	 */
+    * \field XSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal velocity of the entity.
+    */
 	LINK_DEC(XSpeed);
 	/***
-	 * \field YSpeed
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The vertical velocity of the entity.
-	 */
+    * \field YSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical velocity of the entity.
+    */
 	LINK_DEC(YSpeed);
 	/***
-	 * \field GroundSpeed
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The speed of the entity on the ground.
-	 */
+    * \field GroundSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The speed of the entity on the ground.
+    */
 	LINK_DEC(GroundSpeed);
 	/***
-	 * \field Gravity
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The gravity of the entity.
-	 */
+    * \field Gravity
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The gravity of the entity.
+    */
 	LINK_DEC(Gravity);
 	/***
-	 * \field AutoPhysics
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc Whether <linkto ref="instance.ApplyMotion"></linkto>
-	 * is automatically called for this entity.
-	 */
+    * \field AutoPhysics
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether <linkto ref="instance.ApplyMotion"></linkto> is automatically called for this entity.
+    */
 	LINK_INT(AutoPhysics);
 	/***
-	 * \field Angle
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc The angle of the entity on the ground, within the
-	 * range of <code>0x00</code> - <code>0xFF</code>.
-	 */
+    * \field Angle
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The angle of the entity on the ground, within the range of <code>0x00</code> - <code>0xFF</code>.
+    */
 	LINK_INT(Angle);
 	/***
-	 * \field AngleMode
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc The angle mode of the entity on the ground, within the
-	 * range of <code>0</code> - <code>3</code>.
-	 */
+    * \field AngleMode
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The angle mode of the entity on the ground, within the range of <code>0</code> - <code>3</code>.
+    */
 	LINK_INT(AngleMode);
 	/***
-	 * \field Ground
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc Whether the entity is on the ground.
-	 */
+    * \field Ground
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether the entity is on the ground.
+    */
 	LINK_INT(Ground);
 
 	/***
-	 * \field ScaleX
-	 * \type Decimal
-	 * \default 1.0
-	 * \ns Instance
-	 * \desc A field that may be used in <linkto
-	 * ref="instance.Render"></linkto> for scaling a sprite
-	 * horizontally.
-	 */
+    * \field ScaleX
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for scaling a sprite horizontally.
+    */
 	LINK_DEC(ScaleX);
 	/***
-	 * \field ScaleY
-	 * \type Decimal
-	 * \default 1.0
-	 * \ns Instance
-	 * \desc A field that may be used in <linkto
-	 * ref="instance.Render"></linkto> for scaling a sprite
-	 * vertically.
-	 */
+    * \field ScaleY
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for scaling a sprite vertically.
+    */
 	LINK_DEC(ScaleY);
 	/***
-	 * \field Rotation
-	 * \type Decimal (radians)
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc A field that may be used in <linkto
-	 * ref="instance.Render"></linkto> for rotating a sprite.
-	 */
+    * \field Rotation
+    * \type Decimal (radians)
+    * \default 0.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for rotating a sprite.
+    */
 	LINK_DEC(Rotation);
 	/***
-	 * \field Alpha
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc A field that may be used in <linkto
-	 * ref="instance.Render"></linkto> for changing the opacity of
-	 * a sprite.
-	 */
+    * \field Alpha
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc A field that may be used in <linkto ref="instance.Render"></linkto> for changing the opacity of a sprite.
+    */
 	LINK_DEC(Alpha);
 	/***
-	 * \field Priority
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc The priority, or draw group, where this entity is
-	 * located.
-	 */
+    * \field Priority
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The priority, or draw group, where this entity is located.
+    */
 	LINK_INT(Priority);
 	/***
-	 * \field Depth
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The depth of the entity. Used for sorting entity draw
-	 * order.
-	 */
+    * \field Depth
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The depth of the entity. Used for sorting entity draw order.
+    */
 	LINK_DEC(Depth);
 
 	/***
-	 * \field Sprite
-	 * \type Integer (Resource)
-	 * \default -1
-	 * \ns Instance
-	 * \desc The sprite index of the entity.
-	 */
+    * \field Sprite
+    * \type Integer (Resource)
+    * \default -1
+    * \ns Instance
+    * \desc The sprite index of the entity.
+    */
 	LINK_INT(Sprite);
 	/***
-	 * \field CurrentAnimation
-	 * \type Integer
-	 * \default -1
-	 * \ns Instance
-	 * \desc The current sprite  animation index of the entity.
-	 */
+    * \field CurrentAnimation
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The current sprite  animation index of the entity.
+    */
 	LINK_INT(CurrentAnimation);
 	/***
-	 * \field CurrentFrame
-	 * \type Integer
-	 * \default -1
-	 * \ns Instance
-	 * \desc The current frame index of the entity's current
-	 * animation.
-	 */
+    * \field CurrentFrame
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The current frame index of the entity's current animation.
+    */
 	LINK_INT(CurrentFrame);
 	/***
-	 * \field CurrentFrameCount
-	 * \type Integer
-	 * \default -1
-	 * \ns Instance
-	 * \desc The frame count of the entity's current animation.
-	 */
+    * \field CurrentFrameCount
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The frame count of the entity's current animation.
+    */
 	LINK_INT(CurrentFrameCount);
 	/***
-	 * \field AnimationSpeed
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The animation speed of the entity's animation.
-	 */
+    * \field AnimationSpeed
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The animation speed of the entity's animation.
+    */
 	LINK_DEC(AnimationSpeed);
 	/***
-	 * \field AnimationTimer
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The animation timer of the entity's animation.
-	 */
+    * \field AnimationTimer
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The animation timer of the entity's animation.
+    */
 	LINK_DEC(AnimationTimer);
 	/***
-	 * \field AnimationFrameDuration
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc The duration of the entity's current animation frame.
-	 */
+    * \field AnimationFrameDuration
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The duration of the entity's current animation frame.
+    */
 	LINK_INT(AnimationFrameDuration);
 	/***
-	 * \field AnimationLoopIndex
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc The loop index of entity's current animation.
-	 */
+    * \field AnimationLoopIndex
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc The loop index of entity's current animation.
+    */
 	LINK_INT(AnimationLoopIndex);
 	/***
-	 * \field AnimationSpeedMult
-	 * \type Decimal
-	 * \default 1.0
-	 * \ns Instance
-	 * \desc The animation speed multiplier of the entity.
-	 */
+    * \field AnimationSpeedMult
+    * \type Decimal
+    * \default 1.0
+    * \ns Instance
+    * \desc The animation speed multiplier of the entity.
+    */
 	LINK_DEC(AnimationSpeedMult);
 	/***
-	 * \field AnimationSpeedAdd
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc This value is added to the result of <linkto
-	 * ref="instance.AnimationSpeed"></linkto> * <linkto
-	 * ref="instance.AnimationSpeedMult"></linkto> when the entity
-	 * is being animated.
-	 */
+    * \field AnimationSpeedAdd
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc This value is added to the result of <linkto ref="instance.AnimationSpeed"></linkto> * <linkto ref="instance.AnimationSpeedMult"></linkto> when the entity is being animated.
+    */
 	LINK_INT(AnimationSpeedAdd);
 	/***
-	 * \field AutoAnimate
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc Whether <linkto ref="instance.Animate"></linkto> is
-	 * automatically called for this entity.
-	 */
+    * \field AutoAnimate
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether <linkto ref="instance.Animate"></linkto> is automatically called for this entity.
+    */
 	LINK_INT(AutoAnimate);
 
 	/***
-	 * \field OnScreen
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc See <linkto ref="instance.InRange"></linkto>.
-	 */
+    * \field OnScreen
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc See <linkto ref="instance.InRange"></linkto>.
+    */
 	LINK_INT(OnScreen);
 	/***
-	 * \field WasOffScreen
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc Indicates if the entity was previously off-screen.
-	 */
+    * \field WasOffScreen
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Indicates if the entity was previously off-screen.
+    */
 	LINK_INT(WasOffScreen);
 	/***
-	 * \field OnScreenHitboxW
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc Alias for <linkto
-	 * ref="instance.UpdateRegionW"></linkto>.
-	 */
+    * \field OnScreenHitboxW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Alias for <linkto ref="instance.UpdateRegionW"></linkto>.
+    */
 	LINK_DEC(OnScreenHitboxW);
 	/***
-	 * \field OnScreenHitboxH
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc Alias for <linkto
-	 * ref="instance.UpdateRegionH"></linkto>.
-	 */
+    * \field OnScreenHitboxH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Alias for <linkto ref="instance.UpdateRegionH"></linkto>.
+    */
 	LINK_DEC(OnScreenHitboxH);
 	/***
-	 * \field Visible
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc Whether the entity is visible or not.
-	 */
+    * \field Visible
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity is visible or not.
+    */
 	LINK_INT(Visible);
 	/***
-	 * \field ViewRenderFlag
-	 * \type Integer
-	 * \default ~0
-	 * \ns Instance
-	 * \desc A bitfield that indicates in which views the entity
-	 * renders. By default, this is on for every view.
-	 */
+    * \field ViewRenderFlag
+    * \type Integer
+    * \default ~0
+    * \ns Instance
+    * \desc A bitfield that indicates in which views the entity renders. By default, this is on for every view.
+    */
 	LINK_INT(ViewRenderFlag);
 	/***
-	 * \field ViewOverrideFlag
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc A bitfield similar to <linkto
-	 * ref="instance.ViewRenderFlag"></linkto>. Bypasses each
-	 * view's entity rendering toggle set by <linkto
-	 * ref="Scene.SetObjectViewRender"></linkto>.
-	 */
+    * \field ViewOverrideFlag
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc A bitfield similar to <linkto ref="instance.ViewRenderFlag"></linkto>. Bypasses each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
+    */
 	LINK_INT(ViewOverrideFlag);
 
 	/***
-	 * \field UpdateRegionW
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The horizontal on-screen range where the entity can
-	 * update. If this is set to <code>0.0</code>, the entity will
-	 * update regardless of the camera's horizontal position.
-	 */
+    * \field UpdateRegionW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.
+    */
 	Instance->Fields->Put(
 		"UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
 	/***
-	 * \field UpdateRegionH
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The vertical on-screen range where the entity can
-	 * update. If this is set to <code>0.0</code>, the entity will
-	 * update regardless of the camera's vertical position.
-	 */
+    * \field UpdateRegionH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.
+    */
 	Instance->Fields->Put(
 		"UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
 	/***
-	 * \field UpdateRegionTop
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The top on-screen range where the entity can update.
-	 * If set to <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
-	 */
+    * \field UpdateRegionTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
+    */
 	Instance->Fields->Put("UpdateRegionTop",
 		DECIMAL_LINK_VAL(&OnScreenRegionTop));
 	/***
-	 * \field UpdateRegionLeft
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The left on-screen range where the entity can update.
-	 * If set to <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
-	 */
+    * \field UpdateRegionLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
+    */
 	Instance->Fields->Put("UpdateRegionLeft",
 		DECIMAL_LINK_VAL(&OnScreenRegionLeft));
 	/***
-	 * \field UpdateRegionRight
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The left on-screen range where the entity can update.
-	 * If set to <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
-	 */
+    * \field UpdateRegionRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
+    */
 	Instance->Fields->Put("UpdateRegionRight",
 		DECIMAL_LINK_VAL(&OnScreenRegionRight));
 	/***
-	 * \field UpdateRegionBottom
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The bottom on-screen range where the entity can
-	 * update. If set to <code>0.0</code>, the entity will use its
-	 * <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto>
-	 * instead.
-	 */
+    * \field UpdateRegionBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
+    */
 	Instance->Fields->Put("UpdateRegionBottom",
 		DECIMAL_LINK_VAL(&OnScreenRegionBottom));
 	/***
-	 * \field RenderRegionW
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The horizontal on-screen range where the entity can
-	 * render. If set to <code>0.0</code>, the entity will render
-	 * regardless of the camera's horizontal position.
-	 */
+    * \field RenderRegionW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's horizontal position.
+    */
 	LINK_DEC(RenderRegionW);
 	/***
-	 * \field RenderRegionH
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The vertical on-screen range where the entity can
-	 * render. If set to <code>0.0</code>, the entity will render
-	 * regardless of the camera's vertical position.
-	 */
+    * \field RenderRegionH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.
+    */
 	LINK_DEC(RenderRegionH);
 	/***
-	 * \field RenderRegionTop
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The top on-screen range where the entity can render.
-	 * If set to <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
-	 */
+    * \field RenderRegionTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
+    */
 	LINK_DEC(RenderRegionTop);
 	/***
-	 * \field RenderRegionLeft
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The left on-screen range where the entity can render.
-	 * If this and <linkto
-	 * ref="instance.RenderRegionRight"></linkto> are set to
-	 * <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
-	 */
+    * \field RenderRegionLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can render. If this and <linkto ref="instance.RenderRegionRight"></linkto> are set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
+    */
 	LINK_DEC(RenderRegionLeft);
 	/***
-	 * \field RenderRegionRight
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The left on-screen range where the entity can render.
-	 * If this and <linkto
-	 * ref="instance.RenderRegionLeft"></linkto> are set to
-	 * <code>0.0</code>, the entity will use its <linkto
-	 * ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
-	 */
+    * \field RenderRegionRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left on-screen range where the entity can render. If this and <linkto ref="instance.RenderRegionLeft"></linkto> are set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionW">RenderRegionW</linkto> instead.
+    */
 	LINK_DEC(RenderRegionRight);
 	/***
-	 * \field RenderRegionBottom
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The bottom on-screen range where the entity can
-	 * render. If set to <code>0.0</code>, the entity will use its
-	 * <linkto ref="instance.RenderRegionH">RenderRegionH</linkto>
-	 * instead.
-	 */
+    * \field RenderRegionBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.RenderRegionH">RenderRegionH</linkto> instead.
+    */
 	LINK_DEC(RenderRegionBottom);
 
 	/***
-	 * \field HitboxW
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The width of the hitbox.
-	 */
+    * \field HitboxW
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The width of the hitbox.
+    */
 	Instance->Fields->Put(
 		"HitboxW", DECIMAL_LINK_VAL(&Hitbox.Width));
 	/***
-	 * \field HitboxH
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The height of the hitbox.
-	 */
+    * \field HitboxH
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The height of the hitbox.
+    */
 	Instance->Fields->Put(
 		"HitboxH", DECIMAL_LINK_VAL(&Hitbox.Height));
 	/***
-	 * \field HitboxOffX
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The horizontal offset of the hitbox.
-	 */
+    * \field HitboxOffX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The horizontal offset of the hitbox.
+    */
 	Instance->Fields->Put(
 		"HitboxOffX", DECIMAL_LINK_VAL(&Hitbox.OffsetX));
 	/***
-	 * \field HitboxOffY
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The vertical offset of the hitbox.
-	 */
+    * \field HitboxOffY
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The vertical offset of the hitbox.
+    */
 	Instance->Fields->Put(
 		"HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
 
 	/***
-	 * \field HitboxLeft
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The left extent of the hitbox.
-	 */
+    * \field HitboxLeft
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The left extent of the hitbox.
+    */
 	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 	/***
-	 * \field HitboxTop
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The top extent of the hitbox.
-	 */
+    * \field HitboxTop
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The top extent of the hitbox.
+    */
 	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 	/***
-	 * \field HitboxRight
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The right extent of the hitbox.
-	 */
+    * \field HitboxRight
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The right extent of the hitbox.
+    */
 	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 	/***
-	 * \field HitboxBottom
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc The bottom extent of the hitbox.
-	 */
+    * \field HitboxBottom
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc The bottom extent of the hitbox.
+    */
 	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 
 	/***
-	 * \field FlipFlag
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc Bitfield that indicates whether the entity is X/Y
-	 * flipped.
-	 */
+    * \field FlipFlag
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc Bitfield that indicates whether the entity is X/Y flipped.
+    */
 	LINK_INT(FlipFlag);
 
 	/***
-	 * \field VelocityX
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc Similar to <linkto ref="instance.XSpeed"></linkto>.
-	 */
+    * \field VelocityX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.XSpeed"></linkto>.
+    */
 	LINK_DEC(VelocityX);
 	/***
-	 * \field VelocityX
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc Similar to <linkto ref="instance.YSpeed"></linkto>.
-	 */
+    * \field VelocityX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.YSpeed"></linkto>.
+    */
 	LINK_DEC(VelocityY);
 	/***
-	 * \field GroundVel
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc Similar to <linkto
-	 * ref="instance.GroundSpeed"></linkto>.
-	 */
+    * \field GroundVel
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.GroundSpeed"></linkto>.
+    */
 	LINK_DEC(GroundVel);
 	/***
-	 * \field Direction
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc Similar to <linkto ref="instance.FlipFlag"></linkto>.
-	 */
+    * \field Direction
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.FlipFlag"></linkto>.
+    */
 	LINK_INT(Direction);
 	/***
-	 * \field OnGround
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc Similar to <linkto ref="instance.Ground"></linkto>.
-	 */
+    * \field OnGround
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Similar to <linkto ref="instance.Ground"></linkto>.
+    */
 	LINK_INT(OnGround);
 
 	/***
-	 * \field SlotID
-	 * \type Integer
-	 * \default -1
-	 * \ns Instance
-	 * \desc If this entity was spawned from a scene file, this
-	 * field contains the slot ID in which it was placed. If not,
-	 * this field contains the default value of <code>-1</code>.
-	 */
+    * \field SlotID
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc If this entity was spawned from a scene file, this field contains the slot ID in which it was placed. If not, this field contains the default value of <code>-1</code>.
+    */
 	LINK_INT(SlotID);
 
 	/***
-	 * \field ZDepth
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 */
+    * \field ZDepth
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    */
 	LINK_DEC(ZDepth);
 
 	/***
-	 * \field CollisionLayers
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc A bitfield containing which layers an entity is able
-	 * to collide with.
-	 */
+    * \field CollisionLayers
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc A bitfield containing which layers an entity is able to collide with.
+    */
 	LINK_INT(CollisionLayers);
 	/***
-	 * \field CollisionPlane
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 */
+    * \field CollisionPlane
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
 	LINK_INT(CollisionPlane);
 	/***
-	 * \field CollisionMode
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 */
+    * \field CollisionMode
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
 	LINK_INT(CollisionMode);
 	/***
-	 * \field TileCollisions
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 */
+    * \field TileCollisions
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    */
 	LINK_INT(TileCollisions);
 
 	/***
-	 * \field Activity
-	 * \type Enumeration
-	 * \default ACTIVE_BOUNDS
-	 * \ns Instance
-	 * \desc The active status for this entity.
-	 */
+    * \field Activity
+    * \type Enumeration
+    * \default ACTIVE_BOUNDS
+    * \ns Instance
+    * \desc The active status for this entity.
+    */
 	LINK_INT(Activity);
 	/***
-	 * \field InRange
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc Whether this entity is within active range; see
-	 * <linkto ref="instance.Activity"></linkto>.
-	 */
+    * \field InRange
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc Whether this entity is within active range; see <linkto ref="instance.Activity"></linkto>.
+    */
 	LINK_INT(InRange);
 
 	/***
-	 * \field SensorX
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc After a successful call to <linkto
-	 * ref="TileCollision.Line"></linkto>, this value will contain
-	 * the horizontal position of where the entity collided.
-	 */
+    * \field SensorX
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the horizontal position of where the entity collided.
+    */
 	LINK_DEC(SensorX);
 	/***
-	 * \field SensorY
-	 * \type Decimal
-	 * \default 0.0
-	 * \ns Instance
-	 * \desc After a successful call to <linkto
-	 * ref="TileCollision.Line"></linkto>, this value will contain
-	 * the vertical position of where the entity collided.
-	 */
+    * \field SensorY
+    * \type Decimal
+    * \default 0.0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the vertical position of where the entity collided.
+    */
 	LINK_DEC(SensorY);
 	/***
-	 * \field SensorAngle
-	 * \type Boolean
-	 * \default 0
-	 * \ns Instance
-	 * \desc After a successful call to <linkto
-	 * ref="TileCollision.Line"></linkto>, this value will be
-	 * <code>true</code> if the entity collided with a tile,
-	 * <code>false</code> otherwise.
-	 */
+    * \field SensorAngle
+    * \type Boolean
+    * \default 0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will be <code>true</code> if the entity collided with a tile, <code>false</code> otherwise.
+    */
 	LINK_INT(SensorCollided);
 	/***
-	 * \field SensorAngle
-	 * \type Integer
-	 * \default 0
-	 * \ns Instance
-	 * \desc After a successful call to <linkto
-	 * ref="TileCollision.Line"></linkto>, this value will contain
-	 * the angle of the tile within the range of <code>0x00</code>
-	 * - <code>0xFF</code>.
-	 */
+    * \field SensorAngle
+    * \type Integer
+    * \default 0
+    * \ns Instance
+    * \desc After a successful call to <linkto ref="TileCollision.Line"></linkto>, this value will contain the angle of the tile within the range of <code>0x00</code> - <code>0xFF</code>.
+    */
 	LINK_INT(SensorAngle);
 
 	/***
-	 * \field Active
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc Whether the entity is active. If set to false, the
-	 * entity is removed at the end of the frame.
-	 */
+    * \field Active
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity is active. If set to false, the entity is removed at the end of the frame.
+    */
 	LINK_BOOL(Active);
 	/***
-	 * \field Pauseable
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc Whether the entity stops updating when the scene is
-	 * paused.
-	 */
+    * \field Pauseable
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity stops updating when the scene is paused.
+    */
 	LINK_BOOL(Pauseable);
 	/***
-	 * \field Persistent
-	 * \type Boolean
-	 * \default false
-	 * \ns Instance
-	 * \desc See <linkto ref="instance.Persistence"></linkto>
-	 * instead.
-	 */
+    * \field Persistent
+    * \type Boolean
+    * \default false
+    * \ns Instance
+    * \desc See <linkto ref="instance.Persistence"></linkto> instead.
+    */
 	Instance->Fields->Put(
 		"Persistent", INTEGER_LINK_VAL(&Persistence));
 	/***
-	 * \field Interactable
-	 * \type Boolean
-	 * \default true
-	 * \ns Instance
-	 * \desc Whether the entity can be interacted with. If set to
-	 * <code>false</code>, the entity will not be included in
-	 * <code>with</code> iterations.
-	 */
+    * \field Interactable
+    * \type Boolean
+    * \default true
+    * \ns Instance
+    * \desc Whether the entity can be interacted with. If set to <code>false</code>, the entity will not be included in <code>with</code> iterations.
+    */
 	LINK_BOOL(Interactable);
 	/***
-	 * \field Persistence
-	 * \type Integer
-	 * \default Persistence_NONE
-	 * \ns Instance
-	 * \desc Whether the entity persists between scenes.
-	 */
+    * \field Persistence
+    * \type Integer
+    * \default Persistence_NONE
+    * \ns Instance
+    * \desc Whether the entity persists between scenes.
+    */
 	LINK_INT(Persistence);
 }
 
@@ -885,9 +811,8 @@ bool ScriptEntity::RunInitializer() {
 
 	VMValue* stackTop = thread->StackTop;
 
-	thread->Push(OBJECT_VAL(Instance)); // Pushes this instance
-	                                    // into the stack so
-	                                    // that 'this' can work
+	thread->Push(OBJECT_VAL(
+		Instance)); // Pushes this instance into the stack so that 'this' can work
 	thread->CallInitializer(Instance->Object.Class->Initializer);
 	thread->Pop(); // Pops it
 
@@ -962,8 +887,7 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 	srcFields->WithAll(
 		[destFields](Uint32 key, VMValue value) -> void {
-			// Don't copy linked fields, because they point
-		        // to this entity's built-in fields
+			// Don't copy linked fields, because they point to this entity's built-in fields
 			if (value.Type != VAL_LINKED_INTEGER &&
 				value.Type != VAL_LINKED_DECIMAL) {
 				destFields->Put(key, value);
@@ -1281,8 +1205,7 @@ bool ScriptEntity::VM_Setter(Obj* object,
 }
 /***
  * \method SetAnimation
- * \desc Changes the current animation of the entity, if the animation
- * index differs from the entity's current animation index.
+ * \desc Changes the current animation of the entity, if the animation index differs from the entity's current animation index.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
  * \ns Instance
@@ -1414,8 +1337,7 @@ VMValue ScriptEntity::VM_Animate(int argCount,
 
 /***
  * \method GetIDWithinClass
- * \desc Gets the ordered ID of the entity amongst other entities of
- * the same type.
+ * \desc Gets the ordered ID of the entity amongst other entities of the same type.
  * \return Returns an Integer value.
  * \ns Instance
  */
@@ -1540,16 +1462,13 @@ VMValue ScriptEntity::VM_ApplyMotion(int argCount,
 }
 /***
  * \method InView
- * \desc Checks if the specified positions and ranges are within the
- * specified view.
+ * \desc Checks if the specified positions and ranges are within the specified view.
  * \param viewIndex (Integer): The view index.
  * \param x (Decimal): The X position.
  * \param y (Decimal): The Y position.
  * \param w (Decimal): The width.
  * \param h (Decimal): The height.
- * \return Returns <code>true</code> if the specified positions and
- * ranges are within the specified view, <code>false</code> if
- * otherwise.
+ * \return Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue
@@ -1573,11 +1492,9 @@ ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method CollidedWithObject
- * \desc Checks if the entity collided with another entity, or any
- * entity of the specified class name.
+ * \desc Checks if the entity collided with another entity, or any entity of the specified class name.
  * \param other (Instance/String): The entity or class to collide with.
- * \return Returns the entity that was collided with, or
- * <code>null</code> if it did not collide with any entity.
+ * \return Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
@@ -1632,8 +1549,7 @@ VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
 }
 /***
  * \method GetHitboxFromSprite
- * \desc Updates the entity's hitbox with the hitbox in the specified
- * sprite's animation, frame and hitbox ID.
+ * \desc Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.
  * \param sprite (Sprite): The sprite.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
@@ -1676,9 +1592,7 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
 	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
 	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-		// ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-		// "Hitbox %d is not in bounds of frame %d.", hitbox,
-		// frame);
+		// ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
 		self->Hitbox.Clear();
 	}
 	else {
@@ -1689,14 +1603,12 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
 }
 /***
  * \method ReturnHitboxFromSprite
- * \desc Gets the hitbox in the specified sprite's animation, frame and
- * hitbox ID.
+ * \desc Gets the hitbox in the specified sprite's animation, frame and hitbox ID.
  * \param sprite (Sprite): The sprite.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
  * \param hitbox (Integer): The hitbox ID.
- * \return Returns an array containing the hitbox top, left, right and
- * bottom sides in that order.
+ * \return Returns an array containing the hitbox top, left, right and bottom sides in that order.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
@@ -1735,9 +1647,7 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
 	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
 	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-		// ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-		// "Hitbox %d is not in bounds of frame %d.", hitbox,
-		// frame);
+		// ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
 		return NULL_VAL;
 	}
 
@@ -1754,8 +1664,7 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
  * \method CollideWithObject
  * \desc Does collision with another entity.
  * \param other (Instance): The other entity to check collision for.
- * \return Returns <code>true</code> if the entity collided,
- * <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_CollideWithObject(int argCount,
@@ -1773,8 +1682,7 @@ VMValue ScriptEntity::VM_CollideWithObject(int argCount,
  * \method SolidCollideWithObject
  * \desc Does solid collision with another entity.
  * \param other (Instance): The other entity to check collision for.
- * \return Returns <code>true</code> if the entity collided,
- * <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount,
@@ -1793,8 +1701,7 @@ VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount,
  * \method TopSolidCollideWithObject
  * \desc Does solid collision with another entity's top.
  * \param other (Instance): The other entity to check collision for.
- * \return Returns <code>true</code> if the entity collided,
- * <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount,
@@ -1826,8 +1733,7 @@ VMValue ScriptEntity::VM_ApplyPhysics(int argCount,
  * \method PropertyExists
  * \desc Checks if a property exists in the entity.
  * \param property (String): The property name.
- * \return Returns <code>true</code> if the property exists,
- * <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the property exists, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_PropertyExists(int argCount,
@@ -1845,8 +1751,7 @@ VMValue ScriptEntity::VM_PropertyExists(int argCount,
  * \method PropertyGet
  * \desc Gets a property exists from the entity.
  * \param property (String): The property name.
- * \return Returns the property if it exists, and <code>null</code> if
- * the property does not exist.
+ * \return Returns the property if it exists, and <code>null</code> if the property does not exist.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_PropertyGet(int argCount,
@@ -1865,8 +1770,7 @@ VMValue ScriptEntity::VM_PropertyGet(int argCount,
  * \method SetViewVisibility
  * \desc Sets whether the entity is visible on a specific view.
  * \param viewIndex (Integer): The view index.
- * \param visible (Boolean): Whether the entity will be visible or not
- * on the specified view.
+ * \param visible (Boolean): Whether the entity will be visible or not on the specified view.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_SetViewVisibility(int argCount,
@@ -1889,11 +1793,9 @@ VMValue ScriptEntity::VM_SetViewVisibility(int argCount,
 }
 /***
  * \method SetViewOverride
- * \desc Toggles the bypass for each view's entity rendering toggle set
- * by <linkto ref="Scene.SetObjectViewRender"></linkto>.
+ * \desc Toggles the bypass for each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
  * \param viewIndex (Integer): The view index.
- * \param visible (Boolean): Whether the entity will always be visible
- * or not on the specified view.
+ * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_SetViewOverride(int argCount,
@@ -1948,8 +1850,7 @@ VMValue ScriptEntity::VM_AddToDrawGroup(int argCount,
  * \method IsInDrawGroup
  * \desc Checks if the entity is in the specified draw group.
  * \param drawGroup (Integer): The draw group.
- * \return Returns <code>true</code> if the entity is in the specified
- * draw group, <code>false</code> if otherwise.
+ * \return Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_IsInDrawGroup(int argCount,
@@ -2007,16 +1908,10 @@ VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount,
  * \method PlaySound
  * \desc Plays a sound once from the entity.
  * \param sound (Integer): The sound index to play.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0
- * makes it sound in left ear only, 1.0 makes it sound in right ear,
- * and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0
- * makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the
- * default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is
- * muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or
- * <code>-1</code> if no channel was available.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_PlaySound(int argCount,
@@ -2046,16 +1941,10 @@ VMValue ScriptEntity::VM_PlaySound(int argCount,
  * \desc Plays a sound from the entity, looping back when it ends.
  * \param sound (Integer): The sound index to play.
  * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0
- * makes it sound in left ear only, 1.0 makes it sound in right ear,
- * and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0
- * makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the
- * default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is
- * muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or
- * <code>-1</code> if no channel was available.
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
 VMValue ScriptEntity::VM_LoopSound(int argCount,
