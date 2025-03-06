@@ -1,8 +1,14 @@
 #!/usr/bin/make
 # -*- coding: utf-8 -*-
+##
+## INBOUND, an agnostic software building system
+##
 ## Written by Alexander Nicholi <//nich.fi/>
 ## Copyright (C) 2024-2025 Aquefir Consulting LLC <//aquefir.co/>
 ## Released under BSD-2-Clause.
+##
+## Epilogue file, to be included at the end of your Makefile
+##
 ## This Makefile provides the bodies of a variety of recipes normally
 ## used in building native executables and libraries. These include:
 ## debug, release, and sanity check tunings. Using the conventional
@@ -11,6 +17,10 @@
 ## miscellaneous helpers, it will fill out all of the typical details
 ## for these targets automatically, just by including it in a project's
 ## main Makefile.
+##
+## This epilogue should have come with a companion prologue file. If it
+## didn't, please obtain the latest version as a full package at
+## <//kb.xion.mt/Inbound>. Thank you!
 ##
 
 # INB_DEBUGLOG : debug.log is where all program output is redirected to

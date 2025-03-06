@@ -1,10 +1,31 @@
 #!/usr/bin/make
 # -*- coding: utf-8 -*-
+##
+## INBOUND, an agnostic software building system
+##
 ## Written by Alexander Nicholi <//nich.fi/>
 ## Copyright (C) 2024-2025 Aquefir Consulting LLC <//aquefir.co/>
 ## Released under BSD-2-Clause.
+##
+## Prologue file, to be included at the beginning of your Makefile
+##
 ## This Makefile prologue provides multi-platform build normalisation.
-## It is to be included at the top of the project's main Makefile.
+## It explicates paths for toolchain executables, libraries, utility
+## programs, and platform-specific errata for an exaustive matrix of
+## compilation hosts and targets. It also provides 'synthetic
+## definitions', or syndefs for short, that expose platform-specific
+## details in a portable way to C code in projects using Inbound. It
+## also provides a similar mechanism for 'configuration options', or
+## cfgopts, which allow the user building the project to modify the
+## compilation in a fully declarative way.
+##
+## Inbound was originally the v2.0 rewrite of the Slick Makefiles, a
+## proof-of-concept created to show that meta-build tools such as CMake,
+## SCons and Autotools were not necessary to target the full plethora of
+## platforms out there in the world today. Like Slick, so too does the
+## Inbound fulfill this promise. It's just plain Make.
+##
+## For more information, visit <//kb.xion.mt/Inbound>.
 ##
 
 # Check Make version; we need at least GNU Make 3.82. Fortunately,
