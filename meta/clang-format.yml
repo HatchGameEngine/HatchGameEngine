@@ -1,6 +1,6 @@
 ---
 BasedOnStyle: LLVM
-AccessModifierOffset: -1
+AccessModifierOffset: -8
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
@@ -33,7 +33,9 @@ ContinuationIndentWidth: 8
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 DisableFormat: false
+EmptyLineBeforeAccessModifier: LogicalBlock
 ExperimentalAutoDetectBinPacking: false
+IndentAccessModifiers: false
 IndentCaseLabels: false
 IndentWidth: 8
 IndentWrappedFunctionNames: false
