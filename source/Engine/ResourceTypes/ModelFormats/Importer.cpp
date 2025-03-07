@@ -103,8 +103,8 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 	mesh->FrameCount = 1;
 
 	mesh->VertexIndexCount = numFaces * 3;
-	mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc(
-		(mesh->VertexIndexCount + 1) * sizeof(Sint32));
+	mesh->VertexIndexBuffer =
+		(Sint32*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint32));
 
 	mesh->MaterialIndex = (int)amesh->mMaterialIndex;
 
@@ -114,25 +114,21 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 	Uint32* color = nullptr;
 
 	mesh->VertexFlag = VertexType_Position;
-	mesh->PositionBuffer = vert = (Vector3*)Memory::Malloc(
-		numVertices * sizeof(Vector3));
+	mesh->PositionBuffer = vert = (Vector3*)Memory::Malloc(numVertices * sizeof(Vector3));
 
 	if (amesh->HasNormals()) {
 		mesh->VertexFlag |= VertexType_Normal;
-		mesh->NormalBuffer = norm = (Vector3*)Memory::Malloc(
-			numVertices * sizeof(Vector3));
+		mesh->NormalBuffer = norm = (Vector3*)Memory::Malloc(numVertices * sizeof(Vector3));
 	}
 
 	if (amesh->HasTextureCoords(0)) {
 		mesh->VertexFlag |= VertexType_UV;
-		mesh->UVBuffer = uv = (Vector2*)Memory::Malloc(
-			numVertices * sizeof(Vector2));
+		mesh->UVBuffer = uv = (Vector2*)Memory::Malloc(numVertices * sizeof(Vector2));
 	}
 
 	if (amesh->HasVertexColors(0)) {
 		mesh->VertexFlag |= VertexType_Color;
-		mesh->ColorBuffer = color = (Uint32*)Memory::Malloc(
-			numVertices * sizeof(Uint32));
+		mesh->ColorBuffer = color = (Uint32*)Memory::Malloc(numVertices * sizeof(Uint32));
 		for (int i = 0; i < numVertices; i++) {
 			mesh->ColorBuffer[i] = 0xFFFFFFFF;
 		}
@@ -146,21 +142,16 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 		vert++;
 
 		if (mesh->VertexFlag & VertexType_Normal) {
-			norm->X =
-				(int)(amesh->mNormals[v].x * 0x10000);
-			norm->Y =
-				(int)(amesh->mNormals[v].y * 0x10000);
-			norm->Z =
-				(int)(amesh->mNormals[v].z * 0x10000);
+			norm->X = (int)(amesh->mNormals[v].x * 0x10000);
+			norm->Y = (int)(amesh->mNormals[v].y * 0x10000);
+			norm->Z = (int)(amesh->mNormals[v].z * 0x10000);
 
 			norm++;
 		}
 
 		if (mesh->VertexFlag & VertexType_UV) {
-			uv->X = (int)(amesh->mTextureCoords[0][v].x *
-				0x10000);
-			uv->Y = (int)(amesh->mTextureCoords[0][v].y *
-				0x10000);
+			uv->X = (int)(amesh->mTextureCoords[0][v].x * 0x10000);
+			uv->Y = (int)(amesh->mTextureCoords[0][v].y * 0x10000);
 			uv++;
 		}
 
@@ -187,9 +178,7 @@ Mesh* ModelImporter::LoadMesh(IModel* imodel, struct aiMesh* amesh) {
 	return mesh;
 }
 
-Material* ModelImporter::LoadMaterial(IModel* imodel,
-	struct aiMaterial* mat,
-	unsigned i) {
+Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i) {
 	aiString matName;
 
 	aiString texDiffuse;
@@ -219,53 +208,40 @@ Material* ModelImporter::LoadMaterial(IModel* imodel,
 
 	Material* material = Material::Create(name);
 
-	if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) ==
-		AI_SUCCESS) {
+	if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS) {
 		material->TextureDiffuse =
-			Material::LoadForModel(texDiffuse.data,
-				ModelImporter::ParentDirectory);
+			Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
 	}
-	if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) ==
-		AI_SUCCESS) {
+	if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) == AI_SUCCESS) {
 		material->TextureSpecular =
-			Material::LoadForModel(texSpecular.data,
-				ModelImporter::ParentDirectory);
+			Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
 	}
-	if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) ==
-		AI_SUCCESS) {
+	if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) == AI_SUCCESS) {
 		material->TextureAmbient =
-			Material::LoadForModel(texAmbient.data,
-				ModelImporter::ParentDirectory);
+			Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
 	}
-	if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) ==
-		AI_SUCCESS) {
+	if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS) {
 		material->TextureEmissive =
-			Material::LoadForModel(texEmissive.data,
-				ModelImporter::ParentDirectory);
+			Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
 	}
 
-	if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiffuse) ==
-		AI_SUCCESS) {
+	if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiffuse) == AI_SUCCESS) {
 		CopyColors(material->ColorDiffuse, colorDiffuse);
 	}
-	if (mat->Get(AI_MATKEY_COLOR_SPECULAR, colorSpecular) ==
-		AI_SUCCESS) {
+	if (mat->Get(AI_MATKEY_COLOR_SPECULAR, colorSpecular) == AI_SUCCESS) {
 		CopyColors(material->ColorSpecular, colorSpecular);
 	}
-	if (mat->Get(AI_MATKEY_COLOR_AMBIENT, colorAmbient) ==
-		AI_SUCCESS) {
+	if (mat->Get(AI_MATKEY_COLOR_AMBIENT, colorAmbient) == AI_SUCCESS) {
 		CopyColors(material->ColorAmbient, colorAmbient);
 	}
-	if (mat->Get(AI_MATKEY_COLOR_EMISSIVE, colorEmissive) ==
-		AI_SUCCESS) {
+	if (mat->Get(AI_MATKEY_COLOR_EMISSIVE, colorEmissive) == AI_SUCCESS) {
 		CopyColors(material->ColorEmissive, colorEmissive);
 	}
 
 	if (mat->Get(AI_MATKEY_SHININESS, shininess) == AI_SUCCESS) {
 		material->Shininess = shininess;
 	}
-	if (mat->Get(AI_MATKEY_SHININESS_STRENGTH,
-		    shininessStrength) == AI_SUCCESS) {
+	if (mat->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength) == AI_SUCCESS) {
 		material->ShininessStrength = shininessStrength;
 	}
 	if (mat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS) {
@@ -275,9 +251,7 @@ Material* ModelImporter::LoadMaterial(IModel* imodel,
 	return material;
 }
 
-ModelNode* ModelImporter::LoadNode(IModel* imodel,
-	ModelNode* parent,
-	const struct aiNode* anode) {
+ModelNode* ModelImporter::LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode) {
 	ModelNode* node = new ModelNode;
 
 	node->Name = GetString(anode->mName);
@@ -290,8 +264,7 @@ ModelNode* ModelImporter::LoadNode(IModel* imodel,
 
 	node->Children.resize(anode->mNumChildren);
 	for (size_t i = 0; i < anode->mNumChildren; i++) {
-		node->Children[i] =
-			LoadNode(imodel, node, anode->mChildren[i]);
+		node->Children[i] = LoadNode(imodel, node, anode->mChildren[i]);
 	}
 
 	for (size_t i = 0; i < anode->mNumMeshes; i++) {
@@ -304,16 +277,13 @@ ModelNode* ModelImporter::LoadNode(IModel* imodel,
 	return node;
 }
 
-Skeleton* ModelImporter::LoadBones(IModel* imodel,
-	Mesh* mesh,
-	struct aiMesh* amesh) {
+Skeleton* ModelImporter::LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh) {
 	Skeleton* skeleton = new Skeleton;
 
 	skeleton->NumBones = amesh->mNumBones;
 	skeleton->NumVertices = mesh->VertexCount;
 	skeleton->Bones = new MeshBone*[skeleton->NumBones];
-	skeleton->VertexWeights = (Uint32*)Memory::Calloc(
-		skeleton->NumVertices, sizeof(Uint32));
+	skeleton->VertexWeights = (Uint32*)Memory::Calloc(skeleton->NumVertices, sizeof(Uint32));
 	skeleton->PositionBuffer = mesh->PositionBuffer;
 	skeleton->NormalBuffer = mesh->NormalBuffer;
 	skeleton->GlobalInverseMatrix = imodel->GlobalInverseMatrix;
@@ -323,12 +293,10 @@ Skeleton* ModelImporter::LoadBones(IModel* imodel,
 
 		MeshBone* bone = new MeshBone;
 		bone->Name = GetString(abone->mName);
-		bone->InverseBindMatrix =
-			CopyMatrix(abone->mOffsetMatrix);
+		bone->InverseBindMatrix = CopyMatrix(abone->mOffsetMatrix);
 
 		for (size_t w = 0; w < abone->mNumWeights; w++) {
-			struct aiVertexWeight& aweight =
-				abone->mWeights[w];
+			struct aiVertexWeight& aweight = abone->mWeights[w];
 			Uint32 vertexID = aweight.mVertexId;
 			Uint32 weight = aweight.mWeight * 0x10000;
 			if (weight != 0) {
@@ -343,9 +311,7 @@ Skeleton* ModelImporter::LoadBones(IModel* imodel,
 
 		// FIXME: Blender's Collada exporter prefixes the
 		// Armature name, so this won't work as-is.
-		ModelNode* node =
-			imodel->BaseArmature->RootNode->Search(
-				bone->Name);
+		ModelNode* node = imodel->BaseArmature->RootNode->Search(bone->Name);
 		if (node) {
 			bone->GlobalTransform = node->GlobalTransform;
 		}
@@ -361,13 +327,11 @@ Skeleton* ModelImporter::LoadBones(IModel* imodel,
 	return skeleton;
 }
 
-SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel,
-	ModelAnim* parentAnim,
-	struct aiAnimation* aanim) {
+SkeletalAnim*
+ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
 	SkeletalAnim* anim = new SkeletalAnim;
 	anim->Channels.resize(aanim->mNumChannels);
-	anim->NodeLookup =
-		new HashMap<NodeAnim*>(NULL, 256); // Might be enough
+	anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
 
 	double baseDuration = ceil(aanim->mDuration + 1.0);
 	double ticksPerSecond = aanim->mTicksPerSecond;
@@ -389,32 +353,25 @@ SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel,
 		NodeAnim* nodeAnim = new NodeAnim;
 
 		nodeAnim->NodeName = GetString(channel->mNodeName);
-		nodeAnim->PostState =
-			ConvertPrePostState(channel->mPostState);
-		nodeAnim->PreState =
-			ConvertPrePostState(channel->mPreState);
+		nodeAnim->PostState = ConvertPrePostState(channel->mPostState);
+		nodeAnim->PreState = ConvertPrePostState(channel->mPreState);
 
 		nodeAnim->NumPositionKeys = channel->mNumPositionKeys;
 		nodeAnim->NumRotationKeys = channel->mNumRotationKeys;
 		nodeAnim->NumScalingKeys = channel->mNumScalingKeys;
 
-		for (size_t j = 0; j < channel->mNumPositionKeys;
-			j++) {
-			AnimVectorKey vecKey = GetVectorKey(
-				channel->mPositionKeys[j]);
+		for (size_t j = 0; j < channel->mNumPositionKeys; j++) {
+			AnimVectorKey vecKey = GetVectorKey(channel->mPositionKeys[j]);
 			nodeAnim->PositionKeys.push_back(vecKey);
 		}
 
-		for (size_t j = 0; j < channel->mNumRotationKeys;
-			j++) {
-			AnimQuaternionKey quatKey =
-				GetQuatKey(channel->mRotationKeys[j]);
+		for (size_t j = 0; j < channel->mNumRotationKeys; j++) {
+			AnimQuaternionKey quatKey = GetQuatKey(channel->mRotationKeys[j]);
 			nodeAnim->RotationKeys.push_back(quatKey);
 		}
 
 		for (size_t j = 0; j < channel->mNumScalingKeys; j++) {
-			AnimVectorKey vecKey =
-				GetVectorKey(channel->mScalingKeys[j]);
+			AnimVectorKey vecKey = GetVectorKey(channel->mScalingKeys[j]);
 			nodeAnim->ScalingKeys.push_back(vecKey);
 		}
 
@@ -425,8 +382,7 @@ SkeletalAnim* ModelImporter::LoadAnimation(IModel* imodel,
 	return anim;
 }
 
-bool ModelImporter::DoConversion(const struct aiScene* scene,
-	IModel* imodel) {
+bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 	if (!scene->mNumMeshes) {
 		return false;
 	}
@@ -466,8 +422,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 	// Load materials
 	if (scene->HasMaterials()) {
 		for (size_t i = 0; i < scene->mNumMaterials; i++) {
-			Material* material = LoadMaterial(
-				imodel, scene->mMaterials[i], i);
+			Material* material = LoadMaterial(imodel, scene->mMaterials[i], i);
 			imodel->AddUniqueMaterial(material);
 		}
 	}
@@ -480,16 +435,14 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 
 	// Load all nodes, starting from the root
 	Armature* armature = new Armature;
-	armature->RootNode =
-		LoadNode(imodel, nullptr, scene->mRootNode);
+	armature->RootNode = LoadNode(imodel, nullptr, scene->mRootNode);
 
 	imodel->BaseArmature = armature;
 	imodel->GlobalInverseMatrix = Matrix4x4::Create();
 
 	// Invert the root node's matrix, making a global inverse
 	// matrix
-	Matrix4x4::Invert(imodel->GlobalInverseMatrix,
-		armature->RootNode->TransformMatrix);
+	Matrix4x4::Invert(imodel->GlobalInverseMatrix, armature->RootNode->TransformMatrix);
 
 	// Load bones
 	vector<Skeleton*> skeletons;
@@ -500,8 +453,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 		// There may be less skeletons than meshes, which is
 		// normal.
 		if (ameshes[i]->HasBones()) {
-			Skeleton* skeleton =
-				LoadBones(imodel, mesh, ameshes[i]);
+			Skeleton* skeleton = LoadBones(imodel, mesh, ameshes[i]);
 
 			// To figure out which skeleton number the mesh
 			// uses in an armature, we directly store it in
@@ -518,8 +470,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 	armature->NumSkeletons = skeletons.size();
 
 	if (armature->NumSkeletons) {
-		armature->Skeletons =
-			new Skeleton*[armature->NumSkeletons];
+		armature->Skeletons = new Skeleton*[armature->NumSkeletons];
 
 		for (size_t i = 0; i < armature->NumSkeletons; i++) {
 			armature->Skeletons[i] = skeletons[i];
@@ -539,14 +490,12 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 	// Load animations
 	if (scene->HasAnimations()) {
 		for (size_t i = 0; i < scene->mNumAnimations; i++) {
-			struct aiAnimation* aanim =
-				scene->mAnimations[i];
+			struct aiAnimation* aanim = scene->mAnimations[i];
 
 			ModelAnim* parentAnim = new ModelAnim;
 			parentAnim->Name = GetString(aanim->mName);
 
-			SkeletalAnim* skAnim = LoadAnimation(
-				imodel, parentAnim, aanim);
+			SkeletalAnim* skAnim = LoadAnimation(imodel, parentAnim, aanim);
 			skAnim->ParentAnim = parentAnim;
 			parentAnim->Skeletal = skAnim;
 
@@ -558,9 +507,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene,
 }
 #endif
 
-bool ModelImporter::Convert(IModel* model,
-	Stream* stream,
-	const char* path) {
+bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 #ifdef USING_ASSIMP
 	size_t size = stream->Length();
 	void* data = Memory::Malloc(size);
@@ -568,9 +515,7 @@ bool ModelImporter::Convert(IModel* model,
 		stream->ReadBytes(data, size);
 	}
 	else {
-		Log::Print(Log::LOG_ERROR,
-			"Out of memory importing model %s!",
-			path);
+		Log::Print(Log::LOG_ERROR, "Out of memory importing model %s!", path);
 		return false;
 	}
 
@@ -579,29 +524,23 @@ bool ModelImporter::Convert(IModel* model,
 	int flags = aiProcessPreset_TargetRealtime_Fast;
 	flags |= aiProcess_ConvertToLeftHanded;
 
-	const struct aiScene* scene = importer.ReadFileFromMemory(
-		data, size, flags, StringUtils::GetExtension(path));
-	if (!scene || !scene->mRootNode ||
-		scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
+	const struct aiScene* scene =
+		importer.ReadFileFromMemory(data, size, flags, StringUtils::GetExtension(path));
+	if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
 		if (!scene) {
 			const char* error = importer.GetErrorString();
 			if (error[0]) {
-				LogError("Couldn't import %s: %s",
-					path,
-					error);
+				LogError("Couldn't import %s: %s", path, error);
 			}
 			else { // No error?
 				LogError("Couldn't import %s", path);
 			}
 		}
 		else if (!scene->mRootNode) {
-			LogError("Couldn't import %s: No root node",
-				path);
+			LogError("Couldn't import %s: No root node", path);
 		}
 		else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-			LogError(
-				"Couldn't import %s: Scene is incomplete",
-				path);
+			LogError("Couldn't import %s: Scene is incomplete", path);
 		}
 
 		Memory::Free(data);

@@ -64,8 +64,7 @@ void PtrBuffer::Advance() {
 }
 int PtrBuffer::Write(void* ptr) {
 	if (!ptr) {
-		Log::Print(Log::LOG_ERROR,
-			"PtrBuffer::Write: ptr == NULL");
+		Log::Print(Log::LOG_ERROR, "PtrBuffer::Write: ptr == NULL");
 		exit(-1);
 	}
 
@@ -76,8 +75,7 @@ int PtrBuffer::Write(void* ptr) {
 	}
 	return 1;
 }
-void PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*),
-	void* userdata) {
+void PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*), void* userdata) {
 	Uint32 read_p = ReadPtr;
 	Uint32 write_p = WritePtr;
 	while (read_p < write_p) {
@@ -88,9 +86,7 @@ void PtrBuffer::ForEachItemInBuffer(void (*callback)(void*, void*),
 		}
 	}
 }
-void PtrBuffer::WithEachItemInBuffer(
-	std::function<void(void*, void*)> callback,
-	void* userdata) {
+void PtrBuffer::WithEachItemInBuffer(std::function<void(void*, void*)> callback, void* userdata) {
 	Uint32 read_p = ReadPtr;
 	Uint32 write_p = WritePtr;
 	while (read_p < write_p) {

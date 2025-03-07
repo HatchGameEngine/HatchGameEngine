@@ -9,16 +9,14 @@ struct ChainedHashMapElement : HashMapElement<T> {
 };
 template<typename T>
 class ChainedHashMap {
-       public:
+public:
 	int Count = 0;
 	int Capacity = 0;
 	ChainedHashMapElement<T>* Data = NULL;
 
 	Uint32 (*HashFunction)(const void*, size_t) = NULL;
 
-	ChainedHashMap<T>(
-		Uint32 (*hashFunc)(const void*, size_t) = NULL,
-		int capacity = 16) {
+	ChainedHashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = NULL, int capacity = 16) {
 		HashFunction = hashFunc;
 		if (HashFunction == NULL) {
 			HashFunction = Murmur::EncryptData;
@@ -28,10 +26,8 @@ class ChainedHashMap {
 		Capacity = capacity;
 		CapacityMask = Capacity - 1;
 
-		Data = (ChainedHashMapElement<T>*)
-			Memory::TrackedCalloc("ChainedHashMap::Data",
-				Capacity,
-				sizeof(ChainedHashMapElement<T>));
+		Data = (ChainedHashMapElement<T>*)Memory::TrackedCalloc(
+			"ChainedHashMap::Data", Capacity, sizeof(ChainedHashMapElement<T>));
 		if (!Data) {
 			Log::Print(Log::LOG_ERROR,
 				"Could not allocate memory for ChainedHashMap data!");
@@ -72,9 +68,7 @@ class ChainedHashMap {
 
 				ChainedHashMapElement<T> newElem;
 				element->List->push_back(newElem);
-				element = &((*element->List)
-						[element->List->size() -
-							1]);
+				element = &((*element->List)[element->List->size() - 1]);
 				element->Used = true;
 			}
 		} while (element == nullptr);
@@ -99,11 +93,9 @@ class ChainedHashMap {
 				return element->Data;
 			}
 
-			for (size_t i = 0; i < element->List->size();
-				i++) {
+			for (size_t i = 0; i < element->List->size(); i++) {
 				if ((*element->List)[i].Key == hash) {
-					return (*element->List)[i]
-						.Data;
+					return (*element->List)[i].Data;
 				}
 			}
 		}
@@ -125,8 +117,7 @@ class ChainedHashMap {
 				return true;
 			}
 
-			for (size_t i = 0; i < element->List->size();
-				i++) {
+			for (size_t i = 0; i < element->List->size(); i++) {
 				if ((*element->List)[i].Key == hash) {
 					return true;
 				}
@@ -148,11 +139,9 @@ class ChainedHashMap {
 				return true;
 			}
 
-			for (size_t i = 0; i < element->List->size();
-				i++) {
+			for (size_t i = 0; i < element->List->size(); i++) {
 				if ((*element->List)[i].Key == hash) {
-					*result = (*element->List)[i]
-							  .Data;
+					*result = (*element->List)[i].Data;
 					return true;
 				}
 			}
@@ -175,13 +164,9 @@ class ChainedHashMap {
 				return true;
 			}
 
-			for (size_t i = 0; i < element->List->size();
-				i++) {
+			for (size_t i = 0; i < element->List->size(); i++) {
 				if ((*element->List)[i].Key == hash) {
-					element->List->erase(
-						element->List
-							->begin() +
-						i);
+					element->List->erase(element->List->begin() + i);
 					return true;
 				}
 			}
@@ -207,11 +192,8 @@ class ChainedHashMap {
 		for (int i = 0; i < Capacity; i++) {
 			if (Data[i].Used) {
 				forFunc(Data[i].Key, Data[i].Data);
-				for (size_t i = 0;
-					i < Data[i].List->size();
-					i++) {
-					forFunc(Data[i].List[i].Key,
-						Data[i].List[i].Data);
+				for (size_t i = 0; i < Data[i].List->size(); i++) {
+					forFunc(Data[i].List[i].Key, Data[i].List[i].Data);
 				}
 			}
 		}
@@ -220,11 +202,8 @@ class ChainedHashMap {
 		for (int i = 0; i < Capacity; i++) {
 			if (Data[i].Used) {
 				forFunc(Data[i].Key, Data[i].Data);
-				for (size_t i = 0;
-					i < Data[i].List->size();
-					i++) {
-					forFunc(Data[i].List[i].Key,
-						Data[i].List[i].Data);
+				for (size_t i = 0; i < Data[i].List->size(); i++) {
+					forFunc(Data[i].List[i].Key, Data[i].List[i].Data);
 				}
 			}
 		}
@@ -241,13 +220,8 @@ class ChainedHashMap {
 			nextKey = 0;
 			if (element != nullptr) {
 				forFunc(element->Key, element->Data);
-				for (size_t i = 0;
-					i < element->List->size();
-					i++) {
-					forFunc((*element->List)[i]
-							.Key,
-						(*element->List)[i]
-							.Data);
+				for (size_t i = 0; i < element->List->size(); i++) {
+					forFunc((*element->List)[i].Key, (*element->List)[i].Data);
 				}
 				nextKey = element->NextKey;
 			}
@@ -265,13 +239,8 @@ class ChainedHashMap {
 			nextKey = 0;
 			if (element != nullptr) {
 				forFunc(element->Key, element->Data);
-				for (size_t i = 0;
-					i < element->List->size();
-					i++) {
-					forFunc((*element->List)[i]
-							.Key,
-						(*element->List)[i]
-							.Data);
+				for (size_t i = 0; i < element->List->size(); i++) {
+					forFunc((*element->List)[i].Key, (*element->List)[i].Data);
 				}
 				nextKey = element->NextKey;
 			}
@@ -286,14 +255,12 @@ class ChainedHashMap {
 		return 0;
 	}
 
-       private:
+private:
 	int CapacityMask = 0;
 	Uint32 FirstKey = 0;
 	Uint32 LastKey = 0;
 
-	Uint32 TranslateIndex(Uint32 index) {
-		return TranslateHashMapIndex(index) & CapacityMask;
-	}
+	Uint32 TranslateIndex(Uint32 index) { return TranslateHashMapIndex(index) & CapacityMask; }
 
 	ChainedHashMapElement<T>* GetElement(Uint32 key) {
 		Uint32 index = TranslateIndex(key);
@@ -308,11 +275,8 @@ class ChainedHashMap {
 				return element;
 			}
 
-			for (size_t i = 0; i < element->List->size();
-				i++) {
-				if ((*element->List)[i].Used &&
-					(*element->List)[i].Key ==
-						key) {
+			for (size_t i = 0; i < element->List->size(); i++) {
+				if ((*element->List)[i].Used && (*element->List)[i].Key == key) {
 					return &((*element->List)[i]);
 				}
 			}
@@ -352,8 +316,7 @@ class ChainedHashMap {
 		data->PrevKey = LastKey;
 		data->NextKey = 0;
 		if (LastKey != 0) {
-			ChainedHashMapElement<T>* lastElement =
-				FindKey(LastKey);
+			ChainedHashMapElement<T>* lastElement = FindKey(LastKey);
 			if (lastElement != nullptr) {
 				lastElement->NextKey = data->Key;
 			}
@@ -374,10 +337,8 @@ class ChainedHashMap {
 		ChainedHashMapElement<T>* newData = NULL;
 		const char* oldTrack = Memory::GetName(oldData);
 
-		newData = (ChainedHashMapElement<T>*)
-			Memory::TrackedCalloc(oldTrack,
-				Capacity,
-				sizeof(ChainedHashMapElement<T>));
+		newData = (ChainedHashMapElement<T>*)Memory::TrackedCalloc(
+			oldTrack, Capacity, sizeof(ChainedHashMapElement<T>));
 		if (!newData) {
 			Log::Print(Log::LOG_ERROR,
 				"Could not allocate memory for ChainedHashMap data!");
@@ -389,14 +350,12 @@ class ChainedHashMap {
 
 		for (int i = 0; i < oldCapacity; i++) {
 			if (oldData[i].Used) {
-				ChainedHashMapElement<T>* element =
-					GetElement(oldData[i].Key);
+				ChainedHashMapElement<T>* element = GetElement(oldData[i].Key);
 				if (!element->Used) {
 					Count++;
 				}
 				else if (element->Used) {
-					element->List->push_back(
-						oldData[i]);
+					element->List->push_back(oldData[i]);
 					continue;
 				}
 				element->Key = oldData[i].Key;
@@ -404,8 +363,7 @@ class ChainedHashMap {
 				element->NextKey = oldData[i].NextKey;
 				element->Used = true;
 				element->Data = oldData[i].Data;
-				element->List = new vector<
-					ChainedHashMapElement<T>>();
+				element->List = new vector<ChainedHashMapElement<T>>();
 			}
 		}
 

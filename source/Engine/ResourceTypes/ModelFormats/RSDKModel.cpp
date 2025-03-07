@@ -38,25 +38,22 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 	mesh->FrameCount = frameCount;
 
 	mesh->VertexFlag = vertexFlag;
-	mesh->PositionBuffer = (Vector3*)Memory::Malloc(
-		mesh->VertexCount * frameCount * sizeof(Vector3));
+	mesh->PositionBuffer =
+		(Vector3*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector3));
 
 	if (vertexFlag & VertexType_Normal) {
 		mesh->NormalBuffer =
-			(Vector3*)Memory::Malloc(mesh->VertexCount *
-				frameCount * sizeof(Vector3));
+			(Vector3*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector3));
 	}
 
 	if (vertexFlag & VertexType_UV) {
 		mesh->UVBuffer =
-			(Vector2*)Memory::Malloc(mesh->VertexCount *
-				frameCount * sizeof(Vector2));
+			(Vector2*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Vector2));
 	}
 
 	if (vertexFlag & VertexType_Color) {
 		mesh->ColorBuffer =
-			(Uint32*)Memory::Malloc(mesh->VertexCount *
-				frameCount * sizeof(Uint32));
+			(Uint32*)Memory::Malloc(mesh->VertexCount * frameCount * sizeof(Uint32));
 	}
 
 	// Read UVs
@@ -64,10 +61,8 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 		int uvX, uvY;
 		for (size_t i = 0; i < mesh->VertexCount; i++) {
 			Vector2* uv = &mesh->UVBuffer[i];
-			uv->X = uvX =
-				(int)(stream->ReadFloat() * 0x10000);
-			uv->Y = uvY =
-				(int)(stream->ReadFloat() * 0x10000);
+			uv->X = uvX = (int)(stream->ReadFloat() * 0x10000);
+			uv->Y = uvY = (int)(stream->ReadFloat() * 0x10000);
 			// Copy the values to other frames
 			for (size_t f = 1; f < frameCount; f++) {
 				uv += mesh->VertexCount;
@@ -101,8 +96,8 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 
 	model->VertexIndexCount = stream->ReadInt16();
 	mesh->VertexIndexCount = model->VertexIndexCount;
-	mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc(
-		(model->VertexIndexCount + 1) * sizeof(Sint32));
+	mesh->VertexIndexBuffer =
+		(Sint32*)Memory::Malloc((model->VertexIndexCount + 1) * sizeof(Sint32));
 
 	for (size_t i = 0; i < model->VertexIndexCount; i++) {
 		mesh->VertexIndexBuffer[i] = stream->ReadInt16();
@@ -112,8 +107,7 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 	if (vertexFlag & VertexType_Normal) {
 		Vector3* vert = mesh->PositionBuffer;
 		Vector3* norm = mesh->NormalBuffer;
-		size_t totalVertexCount =
-			mesh->VertexCount * frameCount;
+		size_t totalVertexCount = mesh->VertexCount * frameCount;
 		for (size_t v = 0; v < totalVertexCount; v++) {
 			vert->X = (int)(stream->ReadFloat() * 0x10000);
 			vert->Y = (int)(stream->ReadFloat() * 0x10000);
@@ -128,8 +122,7 @@ bool RSDKModel::Convert(IModel* model, Stream* stream) {
 	}
 	else {
 		Vector3* vert = mesh->PositionBuffer;
-		size_t totalVertexCount =
-			mesh->VertexCount * frameCount;
+		size_t totalVertexCount = mesh->VertexCount * frameCount;
 		for (size_t v = 0; v < totalVertexCount; v++) {
 			vert->X = (int)(stream->ReadFloat() * 0x10000);
 			vert->Y = (int)(stream->ReadFloat() * 0x10000);

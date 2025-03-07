@@ -6,11 +6,11 @@
 
 class InputAction {
 public:
-    unsigned ID;
-    string Name;
+	unsigned ID;
+	string Name;
 
-    InputAction(const char* name, unsigned id);
-    ~InputAction();
+	InputAction(const char* name, unsigned id);
+	~InputAction();
 };
 
 #endif /* ENGINE_INPUT_INPUTACTION_H */

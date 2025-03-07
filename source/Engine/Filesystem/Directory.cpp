@@ -56,11 +56,7 @@ void Directory::GetFiles(vector<char*>* files,
 	bool allDirs) {
 #if WIN32
 	char winPath[MAX_PATH_SIZE];
-	snprintf(winPath,
-		MAX_PATH_SIZE,
-		"%s%s*",
-		path,
-		path[strlen(path) - 1] == '/' ? "" : "/");
+	snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
 	for (char* i = winPath; *i; i++) {
 		if (*i == '/') {
@@ -75,41 +71,28 @@ void Directory::GetFiles(vector<char*>* files,
 	char fullpath[MAX_PATH_SIZE];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (data.cFileName[0] == '.' &&
-				data.cFileName[1] == 0) {
+			if (data.cFileName[0] == '.' && data.cFileName[1] == 0) {
 				continue;
 			}
-			if (data.cFileName[0] == '.' &&
-				data.cFileName[1] == '.' &&
+			if (data.cFileName[0] == '.' && data.cFileName[1] == '.' &&
 				data.cFileName[2] == 0) {
 				continue;
 			}
 
-			if (data.dwFileAttributes &
-				FILE_ATTRIBUTE_DIRECTORY) {
+			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 				if (allDirs) {
 					snprintf(fullpath,
 						sizeof fullpath,
 						"%s\\%s",
 						path,
 						data.cFileName);
-					Directory::GetFiles(files,
-						fullpath,
-						searchPattern,
-						true);
+					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
 			}
-			else if (StringUtils::WildcardMatch(
-					 data.cFileName,
-					 searchPattern)) {
-				i = strlen(data.cFileName) +
-					strlen(path) + 1;
+			else if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
+				i = strlen(data.cFileName) + strlen(path) + 1;
 				char* str = (char*)calloc(1, i + 1);
-				snprintf(str,
-					i + 1,
-					"%s/%s",
-					path,
-					data.cFileName);
+				snprintf(str, i + 1, "%s/%s", path, data.cFileName);
 				str[i] = 0;
 				for (char* istr = str; *istr; istr++) {
 					if (*istr == '\\') {
@@ -132,8 +115,7 @@ void Directory::GetFiles(vector<char*>* files,
 			if (d->d_name[0] == '.' && !d->d_name[1]) {
 				continue;
 			}
-			if (d->d_name[0] == '.' &&
-				d->d_name[1] == '.' && !d->d_name[2]) {
+			if (d->d_name[0] == '.' && d->d_name[1] == '.' && !d->d_name[2]) {
 				continue;
 			}
 
@@ -144,22 +126,13 @@ void Directory::GetFiles(vector<char*>* files,
 						"%s/%s",
 						path,
 						d->d_name);
-					Directory::GetFiles(files,
-						fullpath,
-						searchPattern,
-						true);
+					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
 			}
-			else if (StringUtils::WildcardMatch(
-					 d->d_name, searchPattern)) {
-				i = strlen(d->d_name) + strlen(path) +
-					1;
+			else if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
+				i = strlen(d->d_name) + strlen(path) + 1;
 				char* str = (char*)calloc(1, i + 1);
-				snprintf(str,
-					i + 1,
-					"%s/%s",
-					path,
-					d->d_name);
+				snprintf(str, i + 1, "%s/%s", path, d->d_name);
 				str[i] = 0;
 
 				files->push_back(str);
@@ -171,9 +144,7 @@ void Directory::GetFiles(vector<char*>* files,
 	std::sort(files->begin(), files->end(), CompareFunction);
 #endif
 }
-vector<char*> Directory::GetFiles(const char* path,
-	const char* searchPattern,
-	bool allDirs) {
+vector<char*> Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
 	vector<char*> files;
 	Directory::GetFiles(&files, path, searchPattern, allDirs);
 	return files;
@@ -185,11 +156,7 @@ void Directory::GetDirectories(vector<char*>* files,
 	bool allDirs) {
 #if WIN32
 	char winPath[MAX_PATH_SIZE];
-	snprintf(winPath,
-		MAX_PATH_SIZE,
-		"%s%s*",
-		path,
-		path[strlen(path) - 1] == '/' ? "" : "/");
+	snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
 	for (char* i = winPath; *i; i++) {
 		if (*i == '/') {
@@ -204,33 +171,21 @@ void Directory::GetDirectories(vector<char*>* files,
 	char fullpath[MAX_PATH_SIZE];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (data.cFileName[0] == '.' &&
-				!data.cFileName[1]) {
+			if (data.cFileName[0] == '.' && !data.cFileName[1]) {
 				continue;
 			}
-			if (data.cFileName[0] == '.' &&
-				data.cFileName[1] == '.' &&
+			if (data.cFileName[0] == '.' && data.cFileName[1] == '.' &&
 				!data.cFileName[2]) {
 				continue;
 			}
 
-			if (data.dwFileAttributes &
-				FILE_ATTRIBUTE_DIRECTORY) {
-				if (StringUtils::WildcardMatch(
-					    data.cFileName,
-					    searchPattern)) {
-					i = strlen(data.cFileName) +
-						strlen(path) + 1;
-					char* str = (char*)calloc(
-						1, i + 1);
-					snprintf(str,
-						i + 1,
-						"%s/%s",
-						path,
-						data.cFileName);
+			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
+					i = strlen(data.cFileName) + strlen(path) + 1;
+					char* str = (char*)calloc(1, i + 1);
+					snprintf(str, i + 1, "%s/%s", path, data.cFileName);
 					str[i] = 0;
-					for (char* istr = str; *istr;
-						istr++) {
+					for (char* istr = str; *istr; istr++) {
 						if (*istr == '\\') {
 							*istr = '/';
 						}
@@ -243,10 +198,7 @@ void Directory::GetDirectories(vector<char*>* files,
 						"%s\\%s",
 						path,
 						data.cFileName);
-					Directory::GetFiles(files,
-						fullpath,
-						searchPattern,
-						true);
+					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
 			}
 		} while (FindNextFile(hFind, &data));
@@ -263,24 +215,15 @@ void Directory::GetDirectories(vector<char*>* files,
 			if (d->d_name[0] == '.' && !d->d_name[1]) {
 				continue;
 			}
-			if (d->d_name[0] == '.' &&
-				d->d_name[1] == '.' && !d->d_name[2]) {
+			if (d->d_name[0] == '.' && d->d_name[1] == '.' && !d->d_name[2]) {
 				continue;
 			}
 
 			if (d->d_type == DT_DIR) {
-				if (StringUtils::WildcardMatch(
-					    d->d_name,
-					    searchPattern)) {
-					i = strlen(d->d_name) +
-						strlen(path) + 1;
-					char* str = (char*)calloc(
-						1, i + 1);
-					snprintf(str,
-						i + 1,
-						"%s/%s",
-						path,
-						d->d_name);
+				if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
+					i = strlen(d->d_name) + strlen(path) + 1;
+					char* str = (char*)calloc(1, i + 1);
+					snprintf(str, i + 1, "%s/%s", path, d->d_name);
 					str[i] = 0;
 					files->push_back(str);
 				}
@@ -290,10 +233,7 @@ void Directory::GetDirectories(vector<char*>* files,
 						"%s/%s",
 						path,
 						d->d_name);
-					Directory::GetFiles(files,
-						fullpath,
-						searchPattern,
-						true);
+					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
 			}
 		}
@@ -301,11 +241,8 @@ void Directory::GetDirectories(vector<char*>* files,
 	}
 #endif
 }
-vector<char*> Directory::GetDirectories(const char* path,
-	const char* searchPattern,
-	bool allDirs) {
+vector<char*> Directory::GetDirectories(const char* path, const char* searchPattern, bool allDirs) {
 	vector<char*> files;
-	Directory::GetDirectories(
-		&files, path, searchPattern, allDirs);
+	Directory::GetDirectories(&files, path, searchPattern, allDirs);
 	return files;
 }

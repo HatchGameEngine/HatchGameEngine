@@ -5,7 +5,7 @@
 #include <Engine/Includes/Token.h>
 
 class Parser {
-       public:
+public:
 	Token Current;
 	Token Previous;
 	bool HadError;
@@ -13,7 +13,7 @@ class Parser {
 };
 
 class Scanner {
-       public:
+public:
 	int Line;
 	char* Start;
 	char* Current;

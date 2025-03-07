@@ -8,13 +8,10 @@
 
 // Assume Windows/MSVC is always little-endian, and use GCC/Clang's
 // __BYTE_ORDER__ for the other platforms
-#if defined(_MSC_VER) || \
-	(defined(__BYTE_ORDER__) && \
-		(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
+#if defined(_MSC_VER) || (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__))
 #define HATCH_LITTLE_ENDIAN 1
 #define HATCH_BIG_ENDIAN 0
-#elif defined(__BYTE_ORDER__) && \
-	(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#elif defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define HATCH_LITTLE_ENDIAN 0
 #define HATCH_BIG_ENDIAN 1
 #else
@@ -37,8 +34,7 @@
 
 // C++17 equivalent to std::bit_cast for float conversion
 template<class To, class From>
-constexpr std::enable_if_t<sizeof(To) == sizeof(From) &&
-		std::is_trivially_copyable_v<From> &&
+constexpr std::enable_if_t<sizeof(To) == sizeof(From) && std::is_trivially_copyable_v<From> &&
 		std::is_trivially_copyable_v<To>,
 	To>
 bit_cast(const From& src) noexcept {

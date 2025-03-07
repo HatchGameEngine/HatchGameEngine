@@ -25,12 +25,7 @@ enum {
 	BlendFactor_INV_DST_ALPHA = 9,
 };
 
-enum {
-	TintMode_SRC_NORMAL,
-	TintMode_DST_NORMAL,
-	TintMode_SRC_BLEND,
-	TintMode_DST_BLEND
-};
+enum { TintMode_SRC_NORMAL, TintMode_DST_NORMAL, TintMode_SRC_BLEND, TintMode_DST_BLEND };
 
 enum { Filter_NONE, Filter_BLACK_AND_WHITE, Filter_INVERT };
 
@@ -74,13 +69,10 @@ enum {
 	DrawMode_LightingMask = 0xC, // 0b1100
 
 	DrawMode_LINES_FLAT = DrawMode_LINES | DrawMode_FLAT_LIGHTING,
-	DrawMode_LINES_SMOOTH =
-		DrawMode_LINES | DrawMode_SMOOTH_LIGHTING,
+	DrawMode_LINES_SMOOTH = DrawMode_LINES | DrawMode_SMOOTH_LIGHTING,
 
-	DrawMode_POLYGONS_FLAT =
-		DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
-	DrawMode_POLYGONS_SMOOTH =
-		DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
+	DrawMode_POLYGONS_FLAT = DrawMode_POLYGONS | DrawMode_FLAT_LIGHTING,
+	DrawMode_POLYGONS_SMOOTH = DrawMode_POLYGONS | DrawMode_SMOOTH_LIGHTING,
 
 	DrawMode_FillTypeMask = 0xF, // 0b1111
 
@@ -145,8 +137,7 @@ struct BlendState {
 	int* FilterTable;
 };
 
-typedef void (
-	*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
+typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
 typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
 typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
 typedef void (*StencilOpFunction)(Uint8*, Uint8);

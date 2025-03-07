@@ -7,12 +7,9 @@
 int SoundFormat::LoadSamples(size_t count) {
 	return 0;
 }
-int SoundFormat::GetSamples(Uint8* buffer,
-	size_t count,
-	Sint32 loopIndex) {
+int SoundFormat::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 	if (SampleIndex >= Samples.size()) {
-		if (LoadSamples(count) ==
-			0) { // If we've reached end of file
+		if (LoadSamples(count) == 0) { // If we've reached end of file
 			return 0;
 		}
 	}
@@ -22,9 +19,7 @@ int SoundFormat::GetSamples(Uint8* buffer,
 	}
 
 	size_t samplecount = 0;
-	for (size_t i = SampleIndex;
-		i < SampleIndex + count && i < Samples.size();
-		i++) {
+	for (size_t i = SampleIndex; i < SampleIndex + count && i < Samples.size(); i++) {
 		memcpy(buffer, Samples[i], SampleSize);
 		buffer += SampleSize;
 		samplecount++;
@@ -75,8 +70,7 @@ double SoundFormat::GetDuration() {
 
 void SoundFormat::LoadFinish() {
 	SampleIndex = 0;
-	SampleSize = ((InputFormat.format & 0xFF) >> 3) *
-		InputFormat.channels;
+	SampleSize = ((InputFormat.format & 0xFF) >> 3) * InputFormat.channels;
 	SampleBuffer = NULL;
 }
 

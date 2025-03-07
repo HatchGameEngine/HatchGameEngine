@@ -17,8 +17,7 @@ bool IsDigit(int c) {
 	return c >= '0' && c <= '9';
 }
 bool IsHexDigit(int c) {
-	return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') ||
-		(c >= 'a' && c <= 'f');
+	return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 bool IsAlpha(int c) {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
@@ -27,10 +26,8 @@ bool IsIdentifierStart(int c) {
 	return IsAlpha(c) || c == ':' || c == '_' || c >= 0x80;
 }
 bool IsIdentifierBody(int c) {
-	return IsIdentifierStart(c) || c == '-' || c == '.' ||
-		('0' <= c && c <= '9') || c == 0xB7 ||
-		(0x0300 <= c && c <= 0x036F) ||
-		(0x203F <= c && c <= 0x2040);
+	return IsIdentifierStart(c) || c == '-' || c == '.' || ('0' <= c && c <= '9') ||
+		c == 0xB7 || (0x0300 <= c && c <= 0x036F) || (0x203F <= c && c <= 0x2040);
 }
 
 bool MatchChar(int expected) {
@@ -190,8 +187,7 @@ Token StringToken() {
 	return tok;
 }
 Token NumberToken() {
-	if (*scanner.Start == '0' &&
-		(PeekChar() == 'x' || PeekChar() == 'X')) {
+	if (*scanner.Start == '0' && (PeekChar() == 'x' || PeekChar() == 'X')) {
 		AdvanceChar(); // x
 		while (IsHexDigit(PeekChar())) {
 			AdvanceChar();
@@ -341,22 +337,18 @@ XMLNode* XMLCurrent = NULL;
 
 void GetAttributes() {
 	while (PeekToken().Type == TOKEN_IDENTIFIER) {
-		ConsumeToken(TOKEN_IDENTIFIER,
-			"Invalid identifier for attribute.");
+		ConsumeToken(TOKEN_IDENTIFIER, "Invalid identifier for attribute.");
 
 		Token name = PrevToken();
 		name.Type = TOKEN_CDATA;
 
 		bool strict_xml = true;
 		if (strict_xml) {
-			ConsumeToken(TOKEN_EQUAL,
-				"Missing '=' after attribute name.");
-			ConsumeToken(TOKEN_STRING,
-				"Invalid token for attribute value.");
+			ConsumeToken(TOKEN_EQUAL, "Missing '=' after attribute name.");
+			ConsumeToken(TOKEN_STRING, "Invalid token for attribute value.");
 
 			Token value = PrevToken();
-			XMLCurrent->attributes.Put(
-				XMLParser::TokenToString(name), value);
+			XMLCurrent->attributes.Put(XMLParser::TokenToString(name), value);
 		}
 
 		if (PeekToken().Type != TOKEN_IDENTIFIER) {
@@ -404,10 +396,8 @@ void GetComment() {
 	while (!_MatchToken(TOKEN_DASH) && !_MatchToken(TOKEN_EOF)) {
 		AdvanceToken();
 	}
-	ConsumeToken(
-		TOKEN_DASH, "Missing second '-' at end of comment.");
-	ConsumeToken(
-		TOKEN_RIGHT_BRACE, "Missing '>' at end of comment.");
+	ConsumeToken(TOKEN_DASH, "Missing second '-' at end of comment.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Missing '>' at end of comment.");
 }
 void GetInstruction() {
 	// Get instruction name
@@ -417,10 +407,8 @@ void GetInstruction() {
 
 	GetAttributes();
 
-	ConsumeToken(TOKEN_QUESTION,
-		"Missing '?' after instruction tokens.");
-	ConsumeToken(
-		TOKEN_RIGHT_BRACE, "Missing '>' after instruction.");
+	ConsumeToken(TOKEN_QUESTION, "Missing '?' after instruction tokens.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Missing '>' after instruction.");
 }
 
 bool XMLParser::MatchToken(Token tok, const char* string) {
@@ -451,8 +439,7 @@ XMLNode* XMLParser::Parse() {
 
 	AdvanceToken();
 	if (!_MatchToken(TOKEN_EOF)) {
-		ConsumeToken(
-			TOKEN_LEFT_BRACE, "SXML_ERROR_XMLINVALID");
+		ConsumeToken(TOKEN_LEFT_BRACE, "SXML_ERROR_XMLINVALID");
 
 		// Instruction
 		if (_MatchToken(TOKEN_QUESTION)) {
@@ -568,8 +555,7 @@ XMLNode* XMLParser::ParseFromResource(const char* filename) {
 char* XMLParser::TokenToString(Token tok) {
 	char* string = StringUtils::Create(tok);
 	if (!string) {
-		Log::Print(Log::LOG_ERROR,
-			"Out of memory converting XML token to string!");
+		Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
 		abort();
 	}
 	return string;
@@ -579,9 +565,7 @@ std::string XMLParser::TokenToStdString(Token tok) {
 	return std::string(tok.Start, tok.Length);
 }
 
-void XMLParser::CopyTokenToString(Token tok,
-	char* buffer,
-	size_t size) {
+void XMLParser::CopyTokenToString(Token tok, char* buffer, size_t size) {
 	size_t length = tok.Length;
 	if (length >= size) {
 		length = size - 1;

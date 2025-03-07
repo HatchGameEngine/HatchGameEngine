@@ -5,7 +5,7 @@
 
 class Shader {
 public:
-    static Shader* New();
+	static Shader* New();
 };
 
 #endif /* ENGINE_RENDERING_SHADER_H */

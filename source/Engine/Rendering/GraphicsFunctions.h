@@ -8,22 +8,11 @@ struct GraphicsFunctions {
 	void (*SetGraphicsFunctions)();
 	void (*Dispose)();
 
-	Texture* (*CreateTexture)(Uint32 format,
-		Uint32 access,
-		Uint32 width,
-		Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 width,
-		Uint32 height,
-		void* pixels,
-		int pitch);
+	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	Texture* (*CreateTextureFromPixels)(Uint32 width, Uint32 height, void* pixels, int pitch);
 	Texture* (*CreateTextureFromSurface)(SDL_Surface* surface);
-	int (*LockTexture)(Texture* texture,
-		void** pixels,
-		int* pitch);
-	int (*UpdateTexture)(Texture* texture,
-		SDL_Rect* src,
-		void* pixels,
-		int pitch);
+	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);
+	int (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	int (*UpdateYUVTexture)(Texture* texture,
 		SDL_Rect* src,
 		void* pixelsY,
@@ -32,17 +21,13 @@ struct GraphicsFunctions {
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
-	int (*SetTexturePalette)(Texture* texture,
-		void* palette,
-		unsigned numPaletteColors);
+	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
 	void (*UnlockTexture)(Texture* texture);
 	void (*DisposeTexture)(Texture* texture);
 
 	void (*UseShader)(void* shader);
 	void (*SetTextureInterpolation)(bool interpolate);
-	void (*SetUniformTexture)(Texture* texture,
-		int uniform_index,
-		int slot);
+	void (*SetUniformTexture)(Texture* texture, int uniform_index, int slot);
 	void (*SetUniformF)(int location, int count, float* values);
 	void (*SetUniformI)(int location, int count, int* values);
 
@@ -50,14 +35,8 @@ struct GraphicsFunctions {
 
 	void (*UpdateViewport)();
 	void (*UpdateClipRect)();
-	void (*UpdateOrtho)(float left,
-		float top,
-		float right,
-		float bottom);
-	void (*UpdatePerspective)(float fovy,
-		float aspect,
-		float near,
-		float far);
+	void (*UpdateOrtho)(float left, float top, float right, float bottom);
+	void (*UpdatePerspective)(float fovy, float aspect, float near, float far);
 	void (*UpdateProjectionMatrix)();
 	void (*MakePerspectiveMatrix)(Matrix4x4* out,
 		float fov,
@@ -79,20 +58,12 @@ struct GraphicsFunctions {
 	void (*SetLineWidth)(float n);
 
 	void (*StrokeLine)(float x1, float y1, float x2, float y2);
-	void (*StrokeCircle)(float x,
-		float y,
-		float rad,
-		float thickness);
+	void (*StrokeCircle)(float x, float y, float rad, float thickness);
 	void (*StrokeEllipse)(float x, float y, float w, float h);
 	void (*StrokeRectangle)(float x, float y, float w, float h);
 	void (*FillCircle)(float x, float y, float rad);
 	void (*FillEllipse)(float x, float y, float w, float h);
-	void (*FillTriangle)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3);
+	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
 	void (*FillRectangle)(float x, float y, float w, float h);
 
 	void (*DrawTexture)(Texture* texture,

@@ -5,25 +5,19 @@
 
 enum { Persistence_NONE, Persistence_SCENE, Persistence_GAME };
 
-enum {
-	HitboxSide_LEFT = 0,
-	HitboxSide_TOP = 1,
-	HitboxSide_RIGHT = 2,
-	HitboxSide_BOTTOM = 3
-};
+enum { HitboxSide_LEFT = 0, HitboxSide_TOP = 1, HitboxSide_RIGHT = 2, HitboxSide_BOTTOM = 3 };
 
 enum {
 	ACTIVE_NEVER = 0, // Never updates
 	ACTIVE_ALWAYS = 1, // Updates no matter what
 	ACTIVE_NORMAL = 2, // Updates no matter where the object is in
-	                   // the scene, but not if scene is paused
+	// the scene, but not if scene is paused
 	ACTIVE_PAUSED = 3, // Only updates when the scene is paused
-	ACTIVE_BOUNDS =
-		4, // Updates only when the object is within bounds
+	ACTIVE_BOUNDS = 4, // Updates only when the object is within bounds
 	ACTIVE_XBOUNDS = 5, // Updates within an x bound (not
-	                    // accounting for y bound)
+	// accounting for y bound)
 	ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting
-	                    // for x bound)
+	// for x bound)
 	ACTIVE_RBOUNDS = 7 // Updates within a radius (UpdateRegionW)
 };
 
@@ -67,9 +61,7 @@ struct ObjectListPerformanceStats {
 				AverageTime = elapsed;
 			}
 			else {
-				AverageTime = AverageTime +
-					(elapsed - AverageTime) /
-						count;
+				AverageTime = AverageTime + (elapsed - AverageTime) / count;
 			}
 			AverageItemCount = count;
 		}
@@ -77,9 +69,7 @@ struct ObjectListPerformanceStats {
 
 	double GetAverageTime() { return AverageTime * 1000.0; }
 
-	double GetTotalAverageTime() {
-		return GetAverageTime() * AverageItemCount;
-	}
+	double GetTotalAverageTime() { return GetAverageTime() * AverageItemCount; }
 
 	void Clear() {
 		AverageTime = 0.0;

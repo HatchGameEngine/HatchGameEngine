@@ -12,8 +12,7 @@ Texture* ViewTexture::GetTexture() {
 		return nullptr;
 	}
 
-	if (Scene::Views[ViewIndex].UseDrawTarget &&
-		Scene::Views[ViewIndex].DrawTarget) {
+	if (Scene::Views[ViewIndex].UseDrawTarget && Scene::Views[ViewIndex].DrawTarget) {
 		return Scene::Views[ViewIndex].DrawTarget;
 	}
 

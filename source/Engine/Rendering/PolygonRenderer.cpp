@@ -11,8 +11,7 @@ int PolygonRenderer::FaceSortFunction(const void* a, const void* b) {
 	return faceB->Depth - faceA->Depth;
 }
 
-void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane,
-	float farClippingPlane) {
+void PolygonRenderer::BuildFrustumPlanes(float nearClippingPlane, float farClippingPlane) {
 	// Near
 	ViewFrustum[0].Plane.Z = nearClippingPlane * 0x10000;
 	ViewFrustum[0].Normal.Z = 0x10000;
@@ -31,8 +30,7 @@ bool PolygonRenderer::SetBuffers() {
 	ProjectionMatrix = nullptr;
 
 	if (Graphics::CurrentVertexBuffer != -1) {
-		VertexBuf = Graphics::VertexBuffers
-			[Graphics::CurrentVertexBuffer];
+		VertexBuf = Graphics::VertexBuffers[Graphics::CurrentVertexBuffer];
 		if (VertexBuf == nullptr) {
 			return false;
 		}
@@ -42,8 +40,7 @@ bool PolygonRenderer::SetBuffers() {
 			return false;
 		}
 
-		Scene3D* scene =
-			&Graphics::Scene3Ds[Graphics::CurrentScene3D];
+		Scene3D* scene = &Graphics::Scene3Ds[Graphics::CurrentScene3D];
 		if (!scene->Initialized) {
 			return false;
 		}
@@ -66,14 +63,10 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 
 	Matrix4x4 mvpMatrix;
 	if (DoProjection) {
-		Graphics::CalculateMVPMatrix(&mvpMatrix,
-			ModelMatrix,
-			ViewMatrix,
-			ProjectionMatrix);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
 	}
 	else {
-		Graphics::CalculateMVPMatrix(
-			&mvpMatrix, ModelMatrix, nullptr, nullptr);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 	}
 
 	Uint32 arrayVertexCount = vertexBuffer->VertexCount;
@@ -82,38 +75,30 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 		vertexBuffer->Resize(maxVertexCount);
 	}
 
-	VertexAttribute* arrayVertexBuffer =
-		&vertexBuffer->Vertices[arrayVertexCount];
+	VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 	VertexAttribute* vertex = arrayVertexBuffer;
 	int numVertices = vertexCount;
 	int numBehind = 0;
 	while (numVertices--) {
 		// Calculate position
-		APPLY_MAT4X4(vertex->Position,
-			data->Position,
-			mvpMatrix.Values);
+		APPLY_MAT4X4(vertex->Position, data->Position, mvpMatrix.Values);
 
 		// Calculate normals
 		if (vertexFlag & VertexType_Normal) {
 			if (NormalMatrix) {
-				APPLY_MAT4X4(vertex->Normal,
-					data->Normal,
-					NormalMatrix->Values);
+				APPLY_MAT4X4(vertex->Normal, data->Normal, NormalMatrix->Values);
 			}
 			else {
-				COPY_NORMAL(
-					vertex->Normal, data->Normal);
+				COPY_NORMAL(vertex->Normal, data->Normal);
 			}
 		}
 		else {
-			vertex->Normal.X = vertex->Normal.Y =
-				vertex->Normal.Z = vertex->Normal.W =
-					0;
+			vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W =
+				0;
 		}
 
 		if (vertexFlag & VertexType_Color) {
-			vertex->Color = ColorUtils::Multiply(
-				data->Color, colRGB);
+			vertex->Color = ColorUtils::Multiply(data->Color, colRGB);
 		}
 		else {
 			vertex->Color = colRGB;
@@ -136,8 +121,7 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 	if (DoClipping) {
 		// Check if the polygon is at least partially inside
 		// the frustum
-		if (!CheckPolygonVisible(
-			    arrayVertexBuffer, vertexCount)) {
+		if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount)) {
 			return;
 		}
 
@@ -146,33 +130,25 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 		if (ClipPolygonsByFrustum) {
 			PolygonClipBuffer clipper;
 
-			vertexCount = ClipPolygon(clipper,
-				arrayVertexBuffer,
-				vertexCount);
+			vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
 			if (vertexCount == 0) {
 				return;
 			}
 
-			Uint32 maxVertexCount =
-				arrayVertexCount + vertexCount;
+			Uint32 maxVertexCount = arrayVertexCount + vertexCount;
 			if (maxVertexCount > vertexBuffer->Capacity) {
 				vertexBuffer->Resize(maxVertexCount);
-				arrayVertexBuffer =
-					&vertexBuffer->Vertices
-						 [arrayVertexCount];
+				arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 			}
 
-			CopyVertices(clipper.Buffer,
-				arrayVertexBuffer,
-				vertexCount);
+			CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
 		}
 		else if (numBehind != 0) {
 			return;
 		}
 	}
 
-	FaceInfo* face =
-		&vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
+	FaceInfo* face = &vertexBuffer->FaceInfoBuffer[vertexBuffer->FaceCount];
 	face->DrawMode = DrawMode;
 	face->NumVertices = vertexCount;
 	face->CullMode = FaceCullMode;
@@ -182,11 +158,7 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 	vertexBuffer->VertexCount += vertexCount;
 	vertexBuffer->FaceCount++;
 }
-void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
-	int sx,
-	int sy,
-	int sw,
-	int sh) {
+void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
 	static vector<AnimFrame> animFrames;
 	static vector<Texture*> textureSources;
 	animFrames.reserve(Scene::TileSpriteInfos.size());
@@ -199,14 +171,10 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 
 	Matrix4x4 mvpMatrix;
 	if (DoProjection) {
-		Graphics::CalculateMVPMatrix(&mvpMatrix,
-			ModelMatrix,
-			ViewMatrix,
-			ProjectionMatrix);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
 	}
 	else {
-		Graphics::CalculateMVPMatrix(
-			&mvpMatrix, ModelMatrix, nullptr, nullptr);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 	}
 
 	VertexBuffer* vertexBuffer = VertexBuf;
@@ -216,23 +184,16 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
 		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
 		animFrames[i] =
-			info.Sprite->Animations[info.AnimationIndex]
-				.Frames[info.FrameIndex];
-		textureSources[i] =
-			info.Sprite->Spritesheets[animFrames[i]
-					.SheetNumber];
+			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
 	}
 
 	Uint32 totalVertexCount = 0;
 	for (int y = sy; y < sh; y++) {
 		for (int x = sx; x < sw; x++) {
-			Uint32 tileID =
-				(Uint32)(layer->Tiles[x +
-						 (y << layer->WidthInBits)] &
-					TILE_IDENT_MASK);
-			if (tileID != Scene::EmptyTile &&
-				tileID < Scene::TileSpriteInfos
-						 .size()) {
+			Uint32 tileID = (Uint32)(layer->Tiles[x + (y << layer->WidthInBits)] &
+				TILE_IDENT_MASK);
+			if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size()) {
 				totalVertexCount += vertexCountPerFace;
 			}
 		}
@@ -243,19 +204,14 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 		vertexBuffer->Resize(maxVertexCount);
 	}
 
-	FaceInfo* faceInfoItem =
-		&vertexBuffer->FaceInfoBuffer[arrayFaceCount];
-	VertexAttribute* arrayVertexBuffer =
-		&vertexBuffer->Vertices[arrayVertexCount];
+	FaceInfo* faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+	VertexAttribute* arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 
 	for (int y = sy, destY = 0; y < sh; y++, destY++) {
 		for (int x = sx, destX = 0; x < sw; x++, destX++) {
-			Uint32 tileAtPos = layer->Tiles[x +
-				(y << layer->WidthInBits)];
+			Uint32 tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
 			Uint32 tileID = tileAtPos & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile ||
-				tileID >= Scene::TileSpriteInfos
-						  .size()) {
+			if (tileID == Scene::EmptyTile || tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -267,15 +223,12 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 			Texture* texture = textureSources[tileID];
 
 			Sint64 textureWidth = FP16_TO(texture->Width);
-			Sint64 textureHeight =
-				FP16_TO(texture->Height);
+			Sint64 textureHeight = FP16_TO(texture->Height);
 
 			float uv_left = (float)frameStr.X;
-			float uv_right =
-				(float)(frameStr.X + frameStr.Width);
+			float uv_right = (float)(frameStr.X + frameStr.Width);
 			float uv_top = (float)frameStr.Y;
-			float uv_bottom =
-				(float)(frameStr.Y + frameStr.Height);
+			float uv_bottom = (float)(frameStr.Y + frameStr.Height);
 
 			float left_u, right_u, top_v, bottom_v;
 			int flipX = tileAtPos & TILE_FLIPX_MASK;
@@ -299,53 +252,37 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 				bottom_v = uv_bottom;
 			}
 
-			data[0].Position.X =
-				FP16_TO(destX * tileWidth);
-			data[0].Position.Z =
-				FP16_TO(destY * tileHeight);
+			data[0].Position.X = FP16_TO(destX * tileWidth);
+			data[0].Position.Z = FP16_TO(destY * tileHeight);
 			data[0].Position.Y = 0;
-			data[0].UV.X = FP16_DIVIDE(
-				FP16_TO(left_u), textureWidth);
-			data[0].UV.Y = FP16_DIVIDE(
-				FP16_TO(top_v), textureHeight);
-			data[0].Normal.X = data[0].Normal.Y =
-				data[0].Normal.Z = data[0].Normal.W =
-					0;
+			data[0].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+			data[0].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+			data[0].Normal.X = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W =
+				0;
 
-			data[1].Position.X = data[0].Position.X +
-				FP16_TO(tileWidth);
+			data[1].Position.X = data[0].Position.X + FP16_TO(tileWidth);
 			data[1].Position.Z = data[0].Position.Z;
 			data[1].Position.Y = 0;
-			data[1].UV.X = FP16_DIVIDE(
-				FP16_TO(right_u), textureWidth);
-			data[1].UV.Y = FP16_DIVIDE(
-				FP16_TO(top_v), textureHeight);
-			data[1].Normal.X = data[1].Normal.Y =
-				data[1].Normal.Z = data[1].Normal.W =
-					0;
+			data[1].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+			data[1].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
+			data[1].Normal.X = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W =
+				0;
 
 			data[2].Position.X = data[1].Position.X;
-			data[2].Position.Z = data[1].Position.Z +
-				FP16_TO(tileHeight);
+			data[2].Position.Z = data[1].Position.Z + FP16_TO(tileHeight);
 			data[2].Position.Y = 0;
-			data[2].UV.X = FP16_DIVIDE(
-				FP16_TO(right_u), textureWidth);
-			data[2].UV.Y = FP16_DIVIDE(
-				FP16_TO(bottom_v), textureHeight);
-			data[2].Normal.X = data[2].Normal.Y =
-				data[2].Normal.Z = data[2].Normal.W =
-					0;
+			data[2].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
+			data[2].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+			data[2].Normal.X = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W =
+				0;
 
 			data[3].Position.X = data[0].Position.X;
 			data[3].Position.Z = data[2].Position.Z;
 			data[3].Position.Y = 0;
-			data[3].UV.X = FP16_DIVIDE(
-				FP16_TO(left_u), textureWidth);
-			data[3].UV.Y = FP16_DIVIDE(
-				FP16_TO(bottom_v), textureHeight);
-			data[3].Normal.X = data[3].Normal.Y =
-				data[3].Normal.Z = data[3].Normal.W =
-					0;
+			data[3].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
+			data[3].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
+			data[3].Normal.X = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W =
+				0;
 
 			VertexAttribute* vertex = arrayVertexBuffer;
 			int vertexIndex = 0;
@@ -358,14 +295,11 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 				// Calculate normals
 				if (NormalMatrix) {
 					APPLY_MAT4X4(vertex->Normal,
-						data[vertexIndex]
-							.Normal,
+						data[vertexIndex].Normal,
 						NormalMatrix->Values);
 				}
 				else {
-					COPY_NORMAL(vertex->Normal,
-						data[vertexIndex]
-							.Normal);
+					COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
 				}
 
 				vertex->UV = data[vertexIndex].UV;
@@ -379,9 +313,7 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 			if (DoClipping) {
 				// Check if the polygon is at least
 				// partially inside the frustum
-				if (!CheckPolygonVisible(
-					    arrayVertexBuffer,
-					    vertexCount)) {
+				if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount)) {
 					continue;
 				}
 
@@ -392,40 +324,30 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 					PolygonClipBuffer clipper;
 
 					vertexCount = ClipPolygon(
-						clipper,
-						arrayVertexBuffer,
-						vertexCount);
+						clipper, arrayVertexBuffer, vertexCount);
 					if (vertexCount == 0) {
 						continue;
 					}
 
-					Uint32 maxVertexCount =
-						arrayVertexCount +
-						vertexCount;
-					if (maxVertexCount >
-						vertexBuffer
-							->Capacity) {
-						vertexBuffer->Resize(
-							maxVertexCount);
+					Uint32 maxVertexCount = arrayVertexCount + vertexCount;
+					if (maxVertexCount > vertexBuffer->Capacity) {
+						vertexBuffer->Resize(maxVertexCount);
 						faceInfoItem =
-							&vertexBuffer->FaceInfoBuffer
-								 [arrayFaceCount];
+							&vertexBuffer
+								 ->FaceInfoBuffer[arrayFaceCount];
 						arrayVertexBuffer =
-							&vertexBuffer->Vertices
-								 [arrayVertexCount];
+							&vertexBuffer->Vertices[arrayVertexCount];
 					}
 
-					CopyVertices(clipper.Buffer,
-						arrayVertexBuffer,
-						vertexCount);
+					CopyVertices(
+						clipper.Buffer, arrayVertexBuffer, vertexCount);
 				}
 			}
 
 			faceInfoItem->DrawMode = DrawMode;
 			faceInfoItem->CullMode = FaceCullMode;
 			faceInfoItem->SetMaterial(texture);
-			faceInfoItem->SetBlendState(
-				Graphics::GetBlendState());
+			faceInfoItem->SetBlendState(Graphics::GetBlendState());
 			faceInfoItem->NumVertices = vertexCount;
 			faceInfoItem++;
 			arrayVertexCount += vertexCount;
@@ -437,19 +359,15 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer,
 	vertexBuffer->VertexCount = arrayVertexCount;
 	vertexBuffer->FaceCount = arrayFaceCount;
 }
-void PolygonRenderer::DrawModel(IModel* model,
-	Uint16 animation,
-	Uint32 frame) {
+void PolygonRenderer::DrawModel(IModel* model, Uint16 animation, Uint32 frame) {
 	if (animation < 0 || frame < 0) {
 		return;
 	}
-	else if (model->Animations.size() > 0 &&
-		animation >= model->Animations.size()) {
+	else if (model->Animations.size() > 0 && animation >= model->Animations.size()) {
 		return;
 	}
 
-	Uint32 maxVertexCount =
-		VertexBuf->VertexCount + model->VertexIndexCount;
+	Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
 	if (maxVertexCount > VertexBuf->Capacity) {
 		VertexBuf->Resize(maxVertexCount);
 	}
@@ -457,20 +375,14 @@ void PolygonRenderer::DrawModel(IModel* model,
 	ModelRenderer rend = ModelRenderer(this);
 
 	rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
-	rend.FaceCullMode = ScenePtr != nullptr
-		? ScenePtr->FaceCullMode
-		: FaceCull_None;
+	rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
 	rend.CurrentColor = CurrentColor;
 	rend.DoProjection = DoProjection;
 	rend.ClipFaces = DoProjection;
-	rend.SetMatrices(ModelMatrix,
-		ViewMatrix,
-		ProjectionMatrix,
-		NormalMatrix);
+	rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
 	rend.DrawModel(model, animation, frame);
 }
-void PolygonRenderer::DrawModelSkinned(IModel* model,
-	Uint16 armature) {
+void PolygonRenderer::DrawModelSkinned(IModel* model, Uint16 armature) {
 	if (model->UseVertexAnimation) {
 		DrawModel(model, 0, 0);
 		return;
@@ -480,8 +392,7 @@ void PolygonRenderer::DrawModelSkinned(IModel* model,
 		return;
 	}
 
-	Uint32 maxVertexCount =
-		VertexBuf->VertexCount + model->VertexIndexCount;
+	Uint32 maxVertexCount = VertexBuf->VertexCount + model->VertexIndexCount;
 	if (maxVertexCount > VertexBuf->Capacity) {
 		VertexBuf->Resize(maxVertexCount);
 	}
@@ -489,30 +400,21 @@ void PolygonRenderer::DrawModelSkinned(IModel* model,
 	ModelRenderer rend = ModelRenderer(this);
 
 	rend.DrawMode = ScenePtr != nullptr ? ScenePtr->DrawMode : 0;
-	rend.FaceCullMode = ScenePtr != nullptr
-		? ScenePtr->FaceCullMode
-		: FaceCull_None;
+	rend.FaceCullMode = ScenePtr != nullptr ? ScenePtr->FaceCullMode : FaceCull_None;
 	rend.CurrentColor = CurrentColor;
 	rend.DoProjection = DoProjection;
 	rend.ClipFaces = DoProjection;
 	rend.ArmaturePtr = model->Armatures[armature];
-	rend.SetMatrices(ModelMatrix,
-		ViewMatrix,
-		ProjectionMatrix,
-		NormalMatrix);
+	rend.SetMatrices(ModelMatrix, ViewMatrix, ProjectionMatrix, NormalMatrix);
 	rend.DrawModel(model, 0, 0);
 }
 void PolygonRenderer::DrawVertexBuffer() {
 	Matrix4x4 mvpMatrix;
 	if (DoProjection) {
-		Graphics::CalculateMVPMatrix(&mvpMatrix,
-			ModelMatrix,
-			ViewMatrix,
-			ProjectionMatrix);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, ViewMatrix, ProjectionMatrix);
 	}
 	else {
-		Graphics::CalculateMVPMatrix(
-			&mvpMatrix, ModelMatrix, nullptr, nullptr);
+		Graphics::CalculateMVPMatrix(&mvpMatrix, ModelMatrix, nullptr, nullptr);
 	}
 
 	// destination
@@ -521,24 +423,20 @@ void PolygonRenderer::DrawVertexBuffer() {
 	int arrayVertexCount = destVertexBuffer->VertexCount;
 
 	// source
-	Uint32 maxVertexCount =
-		arrayVertexCount + VertexBuf->VertexCount;
+	Uint32 maxVertexCount = arrayVertexCount + VertexBuf->VertexCount;
 	if (maxVertexCount > destVertexBuffer->Capacity) {
 		destVertexBuffer->Resize(maxVertexCount + 256);
 	}
 
-	FaceInfo* faceInfoItem =
-		&destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
-	VertexAttribute* arrayVertexBuffer =
-		&destVertexBuffer->Vertices[arrayVertexCount];
+	FaceInfo* faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+	VertexAttribute* arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
 	VertexAttribute* arrayVertexItem = arrayVertexBuffer;
 
 	// Copy the vertices into the vertex buffer
 	VertexAttribute* srcVertexItem = &VertexBuf->Vertices[0];
 
 	for (int f = 0; f < VertexBuf->FaceCount; f++) {
-		FaceInfo* srcFaceInfoItem =
-			&VertexBuf->FaceInfoBuffer[f];
+		FaceInfo* srcFaceInfoItem = &VertexBuf->FaceInfoBuffer[f];
 		int vertexCount = srcFaceInfoItem->NumVertices;
 		int vertexCountPerFace = vertexCount;
 		while (vertexCountPerFace--) {
@@ -552,8 +450,7 @@ void PolygonRenderer::DrawVertexBuffer() {
 					NormalMatrix->Values);
 			}
 			else {
-				COPY_NORMAL(arrayVertexItem->Normal,
-					srcVertexItem->Normal);
+				COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
 			}
 
 			arrayVertexItem->Color = srcVertexItem->Color;
@@ -567,8 +464,7 @@ void PolygonRenderer::DrawVertexBuffer() {
 		if (DoClipping) {
 			// Check if the polygon is at least partially
 			// inside the frustum
-			if (!CheckPolygonVisible(
-				    arrayVertexBuffer, vertexCount)) {
+			if (!CheckPolygonVisible(arrayVertexBuffer, vertexCount)) {
 				continue;
 			}
 
@@ -577,40 +473,29 @@ void PolygonRenderer::DrawVertexBuffer() {
 			if (ClipPolygonsByFrustum) {
 				PolygonClipBuffer clipper;
 
-				vertexCount = ClipPolygon(clipper,
-					arrayVertexBuffer,
-					vertexCount);
+				vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
 				if (vertexCount == 0) {
 					continue;
 				}
 
-				Uint32 maxVertexCount =
-					arrayVertexCount + vertexCount;
-				if (maxVertexCount >
-					destVertexBuffer->Capacity) {
-					destVertexBuffer->Resize(
-						maxVertexCount + 256);
+				Uint32 maxVertexCount = arrayVertexCount + vertexCount;
+				if (maxVertexCount > destVertexBuffer->Capacity) {
+					destVertexBuffer->Resize(maxVertexCount + 256);
 					faceInfoItem =
-						&destVertexBuffer->FaceInfoBuffer
-							 [arrayFaceCount];
+						&destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
 					arrayVertexBuffer =
-						&destVertexBuffer->Vertices
-							 [arrayVertexCount];
+						&destVertexBuffer->Vertices[arrayVertexCount];
 				}
 
-				CopyVertices(clipper.Buffer,
-					arrayVertexBuffer,
-					vertexCount);
+				CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
 			}
 		}
 
 		faceInfoItem->DrawMode = DrawMode;
 		faceInfoItem->CullMode = FaceCullMode;
-		faceInfoItem->UseMaterial =
-			srcFaceInfoItem->UseMaterial;
+		faceInfoItem->UseMaterial = srcFaceInfoItem->UseMaterial;
 		if (faceInfoItem->UseMaterial) {
-			faceInfoItem->MaterialInfo =
-				srcFaceInfoItem->MaterialInfo;
+			faceInfoItem->MaterialInfo = srcFaceInfoItem->MaterialInfo;
 		}
 		faceInfoItem->NumVertices = vertexCount;
 		faceInfoItem->SetBlendState(Graphics::GetBlendState());
@@ -632,20 +517,15 @@ int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper,
 	clipper.NumPoints = 0;
 	clipper.MaxPoints = MAX_POLYGON_VERTICES;
 
-	int numOutVertices = Clipper::FrustumClip(&clipper,
-		ViewFrustum,
-		NumFrustumPlanes,
-		input,
-		numVertices);
-	if (numOutVertices < 3 ||
-		numOutVertices >= MAX_POLYGON_VERTICES) {
+	int numOutVertices =
+		Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
+	if (numOutVertices < 3 || numOutVertices >= MAX_POLYGON_VERTICES) {
 		return 0;
 	}
 
 	return numOutVertices;
 }
-bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex,
-	int vertexCount) {
+bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCount) {
 	int numBehind[3] = {0, 0, 0};
 	int numVertices = vertexCount;
 	while (numVertices--) {
@@ -664,8 +544,7 @@ bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex,
 		vertex++;
 	}
 
-	if (numBehind[0] == vertexCount ||
-		numBehind[1] == vertexCount ||
+	if (numBehind[0] == vertexCount || numBehind[1] == vertexCount ||
 		numBehind[2] == vertexCount) {
 		return false;
 	}

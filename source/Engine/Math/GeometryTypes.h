@@ -13,12 +13,7 @@ enum {
 	GeoBooleanOp_ExclusiveOr
 };
 
-enum {
-	GeoFillRule_EvenOdd,
-	GeoFillRule_NonZero,
-	GeoFillRule_Positive,
-	GeoFillRule_Negative
-};
+enum { GeoFillRule_EvenOdd, GeoFillRule_NonZero, GeoFillRule_Positive, GeoFillRule_Negative };
 
 struct Polygon2D {
 	vector<FVector2> Points;
@@ -33,9 +28,7 @@ struct Polygon2D {
 		MaxY = 0.0;
 	}
 
-	Polygon2D(vector<FVector2> input) : Points(std::move(input)) {
-		CalcBounds();
-	}
+	Polygon2D(vector<FVector2> input) : Points(std::move(input)) { CalcBounds(); }
 
 	void AddPoint(FVector2 point) {
 		Points.push_back(point);
@@ -64,8 +57,8 @@ struct Polygon2D {
 
 	bool IsPointInside(FVector2 point) {
 		// Cannot possibly be inside
-		if (!IsValid() || point.X < MinX || point.X > MaxX ||
-			point.Y < MinY || point.Y > MaxY) {
+		if (!IsValid() || point.X < MinX || point.X > MaxX || point.Y < MinY ||
+			point.Y > MaxY) {
 			return false;
 		}
 
@@ -78,10 +71,7 @@ struct Polygon2D {
 			FVector2& b = Points[prevPt];
 
 			if (a.Y > point.Y != b.Y > point.Y) {
-				if (point.X <
-					(b.X - a.X) * (point.Y - a.Y) /
-							(b.Y - a.Y) +
-						a.X) {
+				if (point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X) {
 					isInside = !isInside;
 				}
 			}
@@ -98,8 +88,7 @@ struct Polygon2D {
 		return IsPointInside(vec);
 	}
 
-	bool IsLineSegmentIntersecting(FVector2 lineA,
-		FVector2 lineB) {
+	bool IsLineSegmentIntersecting(FVector2 lineA, FVector2 lineB) {
 		if (!IsValid()) {
 			return false;
 		}
@@ -110,8 +99,7 @@ struct Polygon2D {
 			FVector2& b = Points[currPt + 1];
 
 			FVector2 result;
-			if (FLineSegment::DoIntersection(
-				    a, b, lineA, lineB, result)) {
+			if (FLineSegment::DoIntersection(a, b, lineA, lineB, result)) {
 				return true;
 			}
 
@@ -125,10 +113,7 @@ struct Polygon2D {
 		return IsLineSegmentIntersecting(line.A, line.B);
 	}
 
-	bool IsLineSegmentIntersecting(float x1,
-		float y1,
-		float x2,
-		float y2) {
+	bool IsLineSegmentIntersecting(float x1, float y1, float x2, float y2) {
 		FLineSegment line(x1, y1, x2, y2);
 		return IsLineSegmentIntersecting(line);
 	}
@@ -156,7 +141,7 @@ struct Polygon2D {
 		return -1;
 	}
 
-       private:
+private:
 	void CalcBounds() {
 		if (!IsValid()) {
 			return;
@@ -216,17 +201,12 @@ struct Triangle {
 		return tri;
 	}
 
-	bool IsClockwise() {
-		return FVector2::CrossProduct(A, B, C) < 0;
-	}
+	bool IsClockwise() { return FVector2::CrossProduct(A, B, C) < 0; }
 
-	bool IsCounterClockwise() {
-		return FVector2::CrossProduct(A, B, C) > 0;
-	}
+	bool IsCounterClockwise() { return FVector2::CrossProduct(A, B, C) > 0; }
 
 	float GetArea() {
-		float area = A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) +
-			C.X * (A.Y - B.Y);
+		float area = A.X * (B.Y - C.Y) + B.X * (C.Y - A.Y) + C.X * (A.Y - B.Y);
 
 		return area / 2;
 	}

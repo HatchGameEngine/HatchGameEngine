@@ -56,9 +56,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 	}
 	// Unsupported format
 	else {
-		Log::Print(Log::LOG_ERROR,
-			"Unsupported audio format from file \"%s\"!",
-			Filename);
+		Log::Print(Log::LOG_ERROR, "Unsupported audio format from file \"%s\"!", Filename);
 		return;
 	}
 
@@ -66,8 +64,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 	if (!StreamFromFile) {
 		ticks = Clock::GetTicks();
 
-		SoundData->LoadSamples(
-			SoundData->TotalPossibleSamples);
+		SoundData->LoadSamples(SoundData->TotalPossibleSamples);
 		SoundData->Close();
 
 		Log::Print(Log::LOG_VERBOSE,
@@ -75,19 +72,15 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 			Clock::GetTicks() - ticks);
 	}
 
-	BytesPerSample =
-		((Format.format & 0xFF) >> 3) * Format.channels;
+	BytesPerSample = ((Format.format & 0xFF) >> 3) * Format.channels;
 	LoadFailed = false;
 }
 
 AudioPlayback* ISound::CreatePlayer() {
-	int requiredSamples = AudioManager::DeviceFormat.samples *
-		AUDIO_FIRST_LOAD_SAMPLE_BOOST;
+	int requiredSamples = AudioManager::DeviceFormat.samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST;
 
-	AudioPlayback* playback = new AudioPlayback(Format,
-		requiredSamples,
-		BytesPerSample,
-		AudioManager::BytesPerSample);
+	AudioPlayback* playback = new AudioPlayback(
+		Format, requiredSamples, BytesPerSample, AudioManager::BytesPerSample);
 	playback->SoundData = SoundData;
 	playback->OwnsSoundData = false;
 

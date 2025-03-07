@@ -12,8 +12,7 @@ ResourceStream* ResourceStream::New(const char* filename) {
 		goto FREE;
 	}
 
-	if (!ResourceManager::LoadResource(
-		    filename, &stream->pointer_start, &stream->size)) {
+	if (!ResourceManager::LoadResource(filename, &stream->pointer_start, &stream->size)) {
 		goto FREE;
 	}
 

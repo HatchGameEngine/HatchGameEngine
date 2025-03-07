@@ -26,8 +26,7 @@ void ObjectRegistry::Clear() {
 void ObjectRegistry::Iterate(std::function<void(Entity* e)> func) {
 	std::for_each(List.begin(), List.end(), func);
 }
-void ObjectRegistry::RemoveNonPersistentFromLinkedList(Entity* first,
-	int persistence) {
+void ObjectRegistry::RemoveNonPersistentFromLinkedList(Entity* first, int persistence) {
 	for (Entity *ent = first, *next; ent; ent = next) {
 		// Store the "next" so that when/if the current is
 		// removed, it can still be used to point at the end of
@@ -56,8 +55,7 @@ Entity* ObjectRegistry::GetClosest(int x, int y) {
 	Entity* closest = NULL;
 	int smallestDistance = 0x7FFFFFFF;
 
-	Iterate([x, y, &closest, &smallestDistance](
-			Entity* ent) -> void {
+	Iterate([x, y, &closest, &smallestDistance](Entity* ent) -> void {
 		int xD = ent->X - x;
 		xD *= xD;
 		int yD = ent->Y - y;

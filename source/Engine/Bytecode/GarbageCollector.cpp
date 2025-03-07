@@ -34,9 +34,7 @@ void GarbageCollector::Collect() {
 	for (Uint32 t = 0; t < ScriptManager::ThreadCount; t++) {
 		VMThread* thread = ScriptManager::Threads + t;
 		// Mark stack roots
-		for (VMValue* slot = thread->Stack;
-			slot < thread->StackTop;
-			slot++) {
+		for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
 			GrayValue(*slot);
 		}
 		// Mark frame modules
@@ -52,8 +50,7 @@ void GarbageCollector::Collect() {
 	GrayHashMap(ScriptManager::Constants);
 
 	// Mark static objects
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent;
-		ent = next) {
+	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
 		next = ent->NextEntity;
 
 		ScriptEntity* bobj = (ScriptEntity*)ent;
@@ -61,8 +58,7 @@ void GarbageCollector::Collect() {
 		GrayHashMap(bobj->Properties);
 	}
 	// Mark dynamic objects
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent;
-		ent = next) {
+	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
 		next = ent->NextEntity;
 
 		ScriptEntity* bobj = (ScriptEntity*)ent;
@@ -88,8 +84,7 @@ void GarbageCollector::Collect() {
 	}
 
 	// Mark classes
-	for (size_t i = 0; i < ScriptManager::ClassImplList.size();
-		i++) {
+	for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
 		GrayObject(ScriptManager::ClassImplList[i]);
 	}
 
@@ -125,8 +120,7 @@ void GarbageCollector::Collect() {
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeValue(
-				OBJECT_VAL(unreached));
+			GarbageCollector::FreeValue(OBJECT_VAL(unreached));
 		}
 		else {
 			// This object was reached, so unmark it (for
@@ -138,15 +132,9 @@ void GarbageCollector::Collect() {
 
 	freeElapsed = Clock::GetTicks() - freeElapsed;
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Sweep: Graying took %.1f ms",
-		grayElapsed);
-	Log::Print(Log::LOG_VERBOSE,
-		"Sweep: Blackening took %.1f ms",
-		blackenElapsed);
-	Log::Print(Log::LOG_VERBOSE,
-		"Sweep: Freeing took %.1f ms",
-		freeElapsed);
+	Log::Print(Log::LOG_VERBOSE, "Sweep: Graying took %.1f ms", grayElapsed);
+	Log::Print(Log::LOG_VERBOSE, "Sweep: Blackening took %.1f ms", blackenElapsed);
+	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
 		if (objectTypeCounts[i]) {
@@ -158,8 +146,7 @@ void GarbageCollector::Collect() {
 		}
 	}
 
-	GarbageCollector::NextGC =
-		GarbageCollector::GarbageSize + (1024 * 1024);
+	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
 void GarbageCollector::CollectResources() {
@@ -174,8 +161,7 @@ void GarbageCollector::CollectResources() {
 			continue;
 		}
 
-		for (size_t ii = 0; ii < model->Materials.size();
-			ii++) {
+		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
 			GrayObject(model->Materials[ii]->Object);
 		}
 	}
@@ -191,8 +177,7 @@ void GarbageCollector::FreeValue(VMValue value) {
 	if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
 		ObjInstance* instance = AS_INSTANCE(value);
 		if (instance->EntityPtr) {
-			Scene::DeleteRemoved(
-				(Entity*)instance->EntityPtr);
+			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
 		}
 	}
 
@@ -262,9 +247,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		ObjFunction* function = (ObjFunction*)object;
 		GrayObject(function->Name);
 		GrayObject(function->ClassName);
-		for (size_t i = 0;
-			i < function->Chunk.Constants->size();
-			i++) {
+		for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 			GrayValue((*function->Chunk.Constants)[i]);
 		}
 		break;
@@ -275,8 +258,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		for (size_t i = 0; i < module->Locals->size(); i++) {
 			GrayValue((*module->Locals)[i]);
 		}
-		for (size_t fn = 0; fn < module->Functions->size();
-			fn++) {
+		for (size_t fn = 0; fn < module->Functions->size(); fn++) {
 			GrayObject((*module->Functions)[fn]);
 		}
 		break;

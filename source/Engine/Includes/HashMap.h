@@ -32,15 +32,14 @@ struct HashMapElement {
 };
 template<typename T>
 class HashMap {
-       public:
+public:
 	int Count = 0;
 	int Capacity = 0;
 	HashMapElement<T>* Data = NULL;
 
 	Uint32 (*HashFunction)(const void*, size_t) = NULL;
 
-	HashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = NULL,
-		int capacity = 16) {
+	HashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = NULL, int capacity = 16) {
 		HashFunction = hashFunc;
 		if (HashFunction == NULL) {
 			HashFunction = Murmur::EncryptData;
@@ -51,12 +50,9 @@ class HashMap {
 		CapacityMask = Capacity - 1;
 
 		Data = (HashMapElement<T>*)Memory::TrackedCalloc(
-			"HashMap::Data",
-			Capacity,
-			sizeof(HashMapElement<T>));
+			"HashMap::Data", Capacity, sizeof(HashMapElement<T>));
 		if (!Data) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not allocate memory for HashMap data!");
+			Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
 			exit(-1);
 		}
 	}
@@ -77,8 +73,7 @@ class HashMap {
 					break;
 				}
 
-				if (Data[index].Used &&
-					Data[index].Key == hash) {
+				if (Data[index].Used && Data[index].Key == hash) {
 					break;
 				}
 
@@ -102,8 +97,7 @@ class HashMap {
 		Uint32 index = TranslateIndex(hash);
 
 		for (int i = 0; i < ChainLength; i++) {
-			if (Data[index].Used &&
-				Data[index].Key == hash) {
+			if (Data[index].Used && Data[index].Key == hash) {
 				return Data[index].Data;
 			}
 
@@ -124,8 +118,7 @@ class HashMap {
 		Uint32 index = TranslateIndex(hash);
 
 		for (int i = 0; i < ChainLength; i++) {
-			if (Data[index].Used &&
-				Data[index].Key == hash) {
+			if (Data[index].Used && Data[index].Key == hash) {
 				return true;
 			}
 
@@ -143,8 +136,7 @@ class HashMap {
 		Uint32 index = TranslateIndex(hash);
 
 		for (int i = 0; i < ChainLength; i++) {
-			if (Data[index].Used &&
-				Data[index].Key == hash) {
+			if (Data[index].Used && Data[index].Key == hash) {
 				*result = Data[index].Data;
 				return true;
 			}
@@ -163,8 +155,7 @@ class HashMap {
 		Uint32 index = TranslateIndex(hash);
 
 		for (int i = 0; i < ChainLength; i++) {
-			if (Data[index].Used &&
-				Data[index].Key == hash) {
+			if (Data[index].Used && Data[index].Key == hash) {
 				Count--;
 				RemoveKey(&Data[index]);
 				Data[index].Used = false;
@@ -213,8 +204,7 @@ class HashMap {
 			index = FindKey(nextKey);
 			nextKey = 0;
 			if (index != 0xFFFFFFFFU) {
-				forFunc(Data[index].Key,
-					Data[index].Data);
+				forFunc(Data[index].Key, Data[index].Data);
 				nextKey = Data[index].NextKey;
 			}
 		} while (nextKey);
@@ -230,8 +220,7 @@ class HashMap {
 			index = FindKey(nextKey);
 			nextKey = 0;
 			if (index != 0xFFFFFFFFU) {
-				forFunc(Data[index].Key,
-					Data[index].Data);
+				forFunc(Data[index].Key, Data[index].Data);
 				nextKey = Data[index].NextKey;
 			}
 		} while (nextKey);
@@ -247,16 +236,12 @@ class HashMap {
 
 	Uint8* GetBytes(bool exportHashes) {
 		Uint32 stride = ((exportHashes ? 4 : 0) + sizeof(T));
-		Uint8* bytes = (Uint8*)Memory::TrackedMalloc(
-			"HashMap::GetBytes", Count * stride);
+		Uint8* bytes = (Uint8*)Memory::TrackedMalloc("HashMap::GetBytes", Count * stride);
 		if (exportHashes) {
 			for (int i = 0, index = 0; i < Capacity; i++) {
 				if (Data[i].Used) {
-					*(Uint32*)(bytes +
-						index * stride) =
-						Data[i].Key;
-					*(T*)(bytes + index * stride +
-						4) = Data[i].Data;
+					*(Uint32*)(bytes + index * stride) = Data[i].Key;
+					*(T*)(bytes + index * stride + 4) = Data[i].Data;
 					index++;
 				}
 			}
@@ -264,8 +249,7 @@ class HashMap {
 		else {
 			for (int i = 0, index = 0; i < Capacity; i++) {
 				if (Data[i].Used) {
-					*(T*)(bytes + index * stride) =
-						Data[i].Data;
+					*(T*)(bytes + index * stride) = Data[i].Data;
 					index++;
 				}
 			}
@@ -275,28 +259,24 @@ class HashMap {
 	void FromBytes(Uint8* bytes, int count) {
 		Uint32 stride = (4 + sizeof(T));
 		for (int i = 0; i < count; i++) {
-			Put(*(Uint32*)(bytes + i * stride),
-				*(T*)(bytes + i * stride + 4));
+			Put(*(Uint32*)(bytes + i * stride), *(T*)(bytes + i * stride + 4));
 		}
 	}
 
 	~HashMap<T>() { Memory::Free(Data); }
 
-       private:
+private:
 	int CapacityMask = 0;
 	int ChainLength = 64;
 	Uint32 FirstKey = 0;
 	Uint32 LastKey = 0;
 
-	Uint32 TranslateIndex(Uint32 index) {
-		return TranslateHashMapIndex(index) & CapacityMask;
-	}
+	Uint32 TranslateIndex(Uint32 index) { return TranslateHashMapIndex(index) & CapacityMask; }
 
 	Uint32 FindKey(Uint32 key) {
 		Uint32 index = TranslateIndex(key);
 		for (int i = 0; i < ChainLength; i++) {
-			if (Data[index].Used &&
-				Data[index].Key == key) {
+			if (Data[index].Used && Data[index].Key == key) {
 				return index;
 			}
 
@@ -360,8 +340,7 @@ class HashMap {
 		newData = (HashMapElement<T>*)Memory::TrackedCalloc(
 			oldTrack, Capacity, sizeof(HashMapElement<T>));
 		if (!newData) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not allocate memory for HashMap data!");
+			Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
 			exit(-1);
 		}
 
@@ -370,8 +349,7 @@ class HashMap {
 
 		for (int i = 0; i < oldCapacity; i++) {
 			if (oldData[i].Used) {
-				Uint32 index =
-					TranslateIndex(oldData[i].Key);
+				Uint32 index = TranslateIndex(oldData[i].Key);
 
 				for (int c = 0; c < ChainLength; c++) {
 					if (!newData[index].Used) {
@@ -379,20 +357,15 @@ class HashMap {
 						break;
 					}
 					if (newData[index].Used &&
-						newData[index].Key ==
-							oldData[i]
-								.Key) {
+						newData[index].Key == oldData[i].Key) {
 						break;
 					}
-					index = (index + 1) &
-						CapacityMask;
+					index = (index + 1) & CapacityMask;
 				}
 
 				newData[index].Key = oldData[i].Key;
-				newData[index].PrevKey =
-					oldData[i].PrevKey;
-				newData[index].NextKey =
-					oldData[i].NextKey;
+				newData[index].PrevKey = oldData[i].PrevKey;
+				newData[index].NextKey = oldData[i].NextKey;
 				newData[index].Used = true;
 				newData[index].Data = oldData[i].Data;
 			}

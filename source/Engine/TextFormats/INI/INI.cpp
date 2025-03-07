@@ -15,8 +15,7 @@ INI* INI::New(const char* filename) {
 INI* INI::Load(const char* filename) {
 	INI* ini = INI::New(filename);
 
-	SDLStream* stream =
-		SDLStream::New(filename, SDLStream::READ_ACCESS);
+	SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
 	if (!stream) {
 		delete ini;
 		return nullptr;
@@ -34,8 +33,7 @@ INI* INI::Load(const char* filename) {
 	return ini;
 }
 bool INI::Reload() {
-	SDLStream* stream =
-		SDLStream::New(Filename, SDLStream::READ_ACCESS);
+	SDLStream* stream = SDLStream::New(Filename, SDLStream::READ_ACCESS);
 	if (!stream) {
 		return false;
 	}
@@ -51,19 +49,14 @@ bool INI::Reload() {
 	return true;
 }
 bool INI::Save(const char* filename) {
-	SDLStream* stream =
-		SDLStream::New(filename, SDLStream::WRITE_ACCESS);
+	SDLStream* stream = SDLStream::New(filename, SDLStream::WRITE_ACCESS);
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
 
 	if (!Write(stream)) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't write to file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't write to file '%s'!", filename);
 		stream->Close();
 		return false;
 	}
@@ -119,8 +112,7 @@ bool INI::Read(Stream* stream) {
 			}
 
 			if (*ptr == ']') {
-				std::string name(
-					start, (int)(ptr - start));
+				std::string name(start, (int)(ptr - start));
 				section = AddSection(name.c_str());
 				ptr++;
 			}
@@ -154,8 +146,7 @@ bool INI::Read(Stream* stream) {
 
 			if (*ptr == '=') {
 				ptr++;
-				while (*ptr && *ptr <= ' ' &&
-					*ptr != '\n') {
+				while (*ptr && *ptr <= ' ' && *ptr != '\n') {
 					ptr++;
 				}
 
@@ -168,18 +159,13 @@ bool INI::Read(Stream* stream) {
 				ptr++;
 
 				std::string key(keyPtr, l);
-				std::string value(valuePtr,
-					(int)(ptr - valuePtr));
+				std::string value(valuePtr, (int)(ptr - valuePtr));
 
 				if (section == nullptr) {
-					Sections[0]->AddProperty(
-						key.c_str(),
-						value.c_str());
+					Sections[0]->AddProperty(key.c_str(), value.c_str());
 				}
 				else {
-					section->AddProperty(
-						key.c_str(),
-						value.c_str());
+					section->AddProperty(key.c_str(), value.c_str());
 				}
 			}
 		}
@@ -191,27 +177,23 @@ bool INI::Read(Stream* stream) {
 }
 bool INI::Write(Stream* stream) {
 	for (INISection* section : Sections) {
-		if (!section->Name &&
-			section->Properties.size() == 0) {
+		if (!section->Name && section->Properties.size() == 0) {
 			continue;
 		}
 
 		if (section->Name) {
 			stream->WriteByte('[');
-			stream->WriteBytes(
-				section->Name, strlen(section->Name));
+			stream->WriteBytes(section->Name, strlen(section->Name));
 			stream->WriteByte(']');
 			stream->WriteByte('\n');
 		}
 
 		for (INIProperty* property : section->Properties) {
-			stream->WriteBytes(property->Name,
-				strlen(property->Name));
+			stream->WriteBytes(property->Name, strlen(property->Name));
 			stream->WriteByte(' ');
 			stream->WriteByte('=');
 			stream->WriteByte(' ');
-			stream->WriteBytes(property->Value,
-				strlen(property->Value));
+			stream->WriteBytes(property->Value, strlen(property->Value));
 			stream->WriteByte('\n');
 		}
 
@@ -237,10 +219,7 @@ INISection* INI::FindSection(const char* name) {
 	return nullptr;
 }
 
-bool INI::GetString(const char* sectionName,
-	const char* key,
-	char* dest,
-	size_t destSize) {
+bool INI::GetString(const char* sectionName, const char* key, char* dest, size_t destSize) {
 	if (!dest || !destSize) {
 		return false;
 	}
@@ -258,9 +237,7 @@ bool INI::GetString(const char* sectionName,
 	StringUtils::Copy(dest, property->Value, destSize);
 	return true;
 }
-bool INI::GetInteger(const char* sectionName,
-	const char* key,
-	int* dest) {
+bool INI::GetInteger(const char* sectionName, const char* key, int* dest) {
 	if (!dest) {
 		return false;
 	}
@@ -277,9 +254,7 @@ bool INI::GetInteger(const char* sectionName,
 
 	return StringUtils::ToNumber(dest, property->Value);
 }
-bool INI::GetDecimal(const char* sectionName,
-	const char* key,
-	double* dest) {
+bool INI::GetDecimal(const char* sectionName, const char* key, double* dest) {
 	if (!dest) {
 		return false;
 	}
@@ -296,9 +271,7 @@ bool INI::GetDecimal(const char* sectionName,
 
 	return StringUtils::ToDecimal(dest, property->Value);
 }
-bool INI::GetBool(const char* sectionName,
-	const char* key,
-	bool* dest) {
+bool INI::GetBool(const char* sectionName, const char* key, bool* dest) {
 	if (!dest) {
 		return false;
 	}
@@ -313,14 +286,11 @@ bool INI::GetBool(const char* sectionName,
 		return false;
 	}
 
-	(*dest) = !strcmp(property->Value, "true") ||
-		!strcmp(property->Value, "1");
+	(*dest) = !strcmp(property->Value, "true") || !strcmp(property->Value, "1");
 	return true;
 }
 
-bool INI::SetString(const char* sectionName,
-	const char* key,
-	const char* value) {
+bool INI::SetString(const char* sectionName, const char* key, const char* value) {
 	INISection* section = FindSection(sectionName);
 	if (section == nullptr) {
 		section = AddSection(sectionName);
@@ -340,9 +310,7 @@ bool INI::SetInteger(const char* section, const char* key, int value) {
 	snprintf(toStr, sizeof toStr, "%d", value);
 	return SetString(section, key, toStr);
 }
-bool INI::SetDecimal(const char* section,
-	const char* key,
-	double value) {
+bool INI::SetDecimal(const char* section, const char* key, double value) {
 	char toStr[512];
 	snprintf(toStr, sizeof toStr, "%lf", value);
 	return SetString(section, key, toStr);

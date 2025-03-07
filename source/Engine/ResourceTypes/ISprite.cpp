@@ -63,8 +63,7 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 	std::string sheetPath = std::string(filename);
 
-	TextureReference* textureRef =
-		Graphics::GetSpriteSheet(sheetPath);
+	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
 		SpritesheetFilenames.push_back(sheetPath);
 		Spritesheets.push_back(textureRef->TexturePtr);
@@ -91,15 +90,13 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 			if (png->Paletted) {
 				paletteColors = png->GetPalette();
-				numPaletteColors =
-					png->NumPaletteColors;
+				numPaletteColors = png->NumPaletteColors;
 			}
 
 			delete png;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"PNG could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
 			Memory::Free(filename);
 			return NULL;
 		}
@@ -124,8 +121,7 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 			delete jpeg;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"JPEG could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
 			Memory::Free(filename);
 			return NULL;
 		}
@@ -148,45 +144,37 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 			if (gif->Paletted) {
 				paletteColors = gif->GetPalette();
-				numPaletteColors =
-					gif->NumPaletteColors;
+				numPaletteColors = gif->NumPaletteColors;
 			}
 
 			delete gif;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"GIF could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
 			Memory::Free(filename);
 			return NULL;
 		}
 	}
 	else {
-		Log::Print(Log::LOG_ERROR,
-			"Unsupported image format for sprite!");
+		Log::Print(Log::LOG_ERROR, "Unsupported image format for sprite!");
 		Memory::Free(filename);
 		return texture;
 	}
 
 	bool forceSoftwareTextures = false;
-	Application::Settings->GetBool("display",
-		"forceSoftwareTextures",
-		&forceSoftwareTextures);
+	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
 	if (forceSoftwareTextures) {
 		Graphics::NoInternalTextures = true;
 	}
 
-	texture = Graphics::CreateTextureFromPixels(
-		width, height, data, width * sizeof(Uint32));
+	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
 
 	if (texture == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't create sprite sheet texture!");
+		Log::Print(Log::LOG_ERROR, "Couldn't create sprite sheet texture!");
 		abort();
 	}
 
-	Graphics::SetTexturePalette(
-		texture, paletteColors, numPaletteColors);
+	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
 	Graphics::NoInternalTextures = false;
 
@@ -204,9 +192,7 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 void ISprite::ReserveAnimationCount(int count) {
 	Animations.reserve(count);
 }
-void ISprite::AddAnimation(const char* name,
-	int animationSpeed,
-	int frameToLoop) {
+void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
 	size_t strl = strlen(name);
 
 	Animation an;
@@ -218,10 +204,7 @@ void ISprite::AddAnimation(const char* name,
 	an.Flags = 0;
 	Animations.push_back(an);
 }
-void ISprite::AddAnimation(const char* name,
-	int animationSpeed,
-	int frameToLoop,
-	int frmAlloc) {
+void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
 	AddAnimation(name, animationSpeed, frameToLoop);
 	Animations.back().Frames.reserve(frmAlloc);
 }
@@ -232,8 +215,7 @@ void ISprite::AddFrame(int duration,
 	int height,
 	int pivotX,
 	int pivotY) {
-	ISprite::AddFrame(
-		duration, left, top, width, height, pivotX, pivotY, 0);
+	ISprite::AddFrame(duration, left, top, width, height, pivotX, pivotY, 0);
 }
 void ISprite::AddFrame(int duration,
 	int left,
@@ -243,15 +225,7 @@ void ISprite::AddFrame(int duration,
 	int pivotX,
 	int pivotY,
 	int id) {
-	AddFrame(Animations.size() - 1,
-		duration,
-		left,
-		top,
-		width,
-		height,
-		pivotX,
-		pivotY,
-		id);
+	AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
 }
 void ISprite::AddFrame(int animID,
 	int duration,
@@ -262,16 +236,7 @@ void ISprite::AddFrame(int animID,
 	int pivotX,
 	int pivotY,
 	int id) {
-	AddFrame(animID,
-		duration,
-		left,
-		top,
-		width,
-		height,
-		pivotX,
-		pivotY,
-		id,
-		0);
+	AddFrame(animID, duration, left, top, width, height, pivotX, pivotY, id, 0);
 }
 void ISprite::AddFrame(int animID,
 	int duration,
@@ -315,8 +280,7 @@ void ISprite::ConvertToRGBA() {
 }
 void ISprite::ConvertToPalette(unsigned paletteNumber) {
 	for (int a = 0; a < Spritesheets.size(); a++) {
-		Graphics::ConvertTextureToPalette(
-			Spritesheets[a], paletteNumber);
+		Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
 	}
 }
 
@@ -326,9 +290,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	Stream* reader = ResourceStream::New(filename);
 	if (!reader) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
 
@@ -361,26 +323,17 @@ bool ISprite::LoadAnimation(const char* filename) {
 		// Spritesheet path is relative to where the animation
 		// file is
 		if (StringUtils::StartsWith(str, "./")) {
-			char* parentPath =
-				StringUtils::GetPath(filename);
+			char* parentPath = StringUtils::GetPath(filename);
 			if (parentPath) {
-				snprintf(fullPath,
-					sizeof fullPath,
-					"%s/%s",
-					parentPath,
-					str + 2);
+				snprintf(fullPath, sizeof fullPath, "%s/%s", parentPath, str + 2);
 				Memory::Free(parentPath);
 			}
 			else {
-				snprintf(fullPath,
-					sizeof fullPath,
-					"%s",
-					str + 2);
+				snprintf(fullPath, sizeof fullPath, "%s", str + 2);
 			}
 		}
 		else {
-			StringUtils::Copy(
-				fullPath, str, sizeof fullPath);
+			StringUtils::Copy(fullPath, str, sizeof fullPath);
 		}
 
 		Memory::Free(str);
@@ -391,21 +344,18 @@ bool ISprite::LoadAnimation(const char* filename) {
 		std::string sheetName = std::string(fullPath);
 
 #ifdef ISPRITE_DEBUG
-		Log::Print(
-			Log::LOG_VERBOSE, " - %s", sheetName.c_str());
+		Log::Print(Log::LOG_VERBOSE, " - %s", sheetName.c_str());
 #endif
 
 		bool shouldConcatSpritesPath = true;
-		if (StringUtils::StartsWith(
-			    sheetName.c_str(), "Sprites/")) {
+		if (StringUtils::StartsWith(sheetName.c_str(), "Sprites/")) {
 			// don't need to concat "Sprites/" if the path
 			// already begins with that
 			shouldConcatSpritesPath = false;
 		}
 
 		if (shouldConcatSpritesPath) {
-			char* altered = StringUtils::ConcatPaths(
-				"Sprites", sheetName.c_str());
+			char* altered = StringUtils::ConcatPaths("Sprites", sheetName.c_str());
 			if (!altered) {
 				abort();
 			}
@@ -487,20 +437,13 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 			anfrm.BoxCount = this->CollisionBoxCount;
 			if (anfrm.BoxCount) {
-				anfrm.Boxes =
-					(CollisionBox*)Memory::Malloc(
-						anfrm.BoxCount *
-						sizeof(CollisionBox));
-				for (int h = 0; h < anfrm.BoxCount;
-					h++) {
-					anfrm.Boxes[h].Left =
-						reader->ReadInt16();
-					anfrm.Boxes[h].Top =
-						reader->ReadInt16();
-					anfrm.Boxes[h].Right =
-						reader->ReadInt16();
-					anfrm.Boxes[h].Bottom =
-						reader->ReadInt16();
+				anfrm.Boxes = (CollisionBox*)Memory::Malloc(
+					anfrm.BoxCount * sizeof(CollisionBox));
+				for (int h = 0; h < anfrm.BoxCount; h++) {
+					anfrm.Boxes[h].Left = reader->ReadInt16();
+					anfrm.Boxes[h].Top = reader->ReadInt16();
+					anfrm.Boxes[h].Right = reader->ReadInt16();
+					anfrm.Boxes[h].Bottom = reader->ReadInt16();
 				}
 			}
 
@@ -528,8 +471,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 }
 int ISprite::FindAnimation(const char* animname) {
 	for (Uint32 a = 0; a < Animations.size(); a++) {
-		if (Animations[a].Name[0] == animname[0] &&
-			!strcmp(Animations[a].Name, animname)) {
+		if (Animations[a].Name[0] == animname[0] && !strcmp(Animations[a].Name, animname)) {
 			return a;
 		}
 	}
@@ -540,12 +482,9 @@ void ISprite::LinkAnimation(vector<Animation> ani) {
 	Animations = ani;
 }
 bool ISprite::SaveAnimation(const char* filename) {
-	Stream* stream =
-		FileStream::New(filename, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
 
@@ -568,8 +507,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 
 	// Load textures
 	for (int i = 0; i < this->Spritesheets.size(); i++) {
-		stream->WriteHeaderedString(
-			SpritesheetFilenames[i].c_str());
+		stream->WriteHeaderedString(SpritesheetFilenames[i].c_str());
 	}
 
 	// Get collision group count
@@ -612,14 +550,10 @@ bool ISprite::SaveAnimation(const char* filename) {
 			stream->WriteInt16(anfrm.OffsetY);
 
 			for (int h = 0; h < anfrm.BoxCount; h++) {
-				stream->WriteUInt16(
-					anfrm.Boxes[h].Left);
-				stream->WriteUInt16(
-					anfrm.Boxes[h].Top);
-				stream->WriteUInt16(
-					anfrm.Boxes[h].Right);
-				stream->WriteUInt16(
-					anfrm.Boxes[h].Bottom);
+				stream->WriteUInt16(anfrm.Boxes[h].Left);
+				stream->WriteUInt16(anfrm.Boxes[h].Top);
+				stream->WriteUInt16(anfrm.Boxes[h].Right);
+				stream->WriteUInt16(anfrm.Boxes[h].Bottom);
 			}
 		}
 	}
@@ -630,8 +564,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 
 void ISprite::Dispose() {
 	for (size_t a = 0; a < Animations.size(); a++) {
-		for (size_t i = 0; i < Animations[a].Frames.size();
-			i++) {
+		for (size_t i = 0; i < Animations[a].Frames.size(); i++) {
 			AnimFrame* anfrm = &Animations[a].Frames[i];
 			if (anfrm->BoxCount) {
 				Memory::Free(anfrm->Boxes);

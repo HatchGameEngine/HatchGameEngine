@@ -9,7 +9,5 @@ void PerformanceMeasure::Init() {
 	}
 
 	PerformanceMeasure::Initialized = true;
-	memset(PerformanceMeasure::PERF_ViewRender,
-		0,
-		sizeof(PerformanceMeasure::PERF_ViewRender));
+	memset(PerformanceMeasure::PERF_ViewRender, 0, sizeof(PerformanceMeasure::PERF_ViewRender));
 }

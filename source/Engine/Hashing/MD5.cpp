@@ -20,12 +20,7 @@
 	(dst)[2] = (Uint8)((src) >> 16); \
 	(dst)[3] = (Uint8)((src) >> 24);
 
-void* MD5::Body(Uint32* pa,
-	Uint32* pb,
-	Uint32* pc,
-	Uint32* pd,
-	void* data,
-	unsigned long size) {
+void* MD5::Body(Uint32* pa, Uint32* pb, Uint32* pc, Uint32* pd, void* data, unsigned long size) {
 	Uint32 saved_a, saved_b, saved_c, saved_d;
 
 	Uint8* ptr = (Uint8*)data;
@@ -142,8 +137,7 @@ Uint8* MD5::EncryptData(Uint8* dest, void* data, size_t size) {
 	// Init
 	Uint8 buffer[64];
 	size_t lo = 0, hi = 0;
-	Uint32 a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe,
-	       d = 0x10325476;
+	Uint32 a = 0x67452301, b = 0xefcdab89, c = 0x98badcfe, d = 0x10325476;
 
 	// Update
 	size_t used, available;
@@ -170,12 +164,7 @@ Uint8* MD5::EncryptData(Uint8* dest, void* data, size_t size) {
 	}
 
 	if (size >= 64) {
-		data = MD5::Body(&a,
-			&b,
-			&c,
-			&d,
-			data,
-			size & ~(unsigned long)0x3f);
+		data = MD5::Body(&a, &b, &c, &d, data, size & ~(unsigned long)0x3f);
 		size &= 0x3f;
 	}
 

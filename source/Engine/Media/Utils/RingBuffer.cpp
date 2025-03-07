@@ -20,21 +20,15 @@ RingBuffer::~RingBuffer() {
 }
 int RingBuffer::Write(const char* data, int len) {
 	int k;
-	len = (len > (this->Size - this->Length))
-		? (this->Size - this->Length)
-		: len;
+	len = (len > (this->Size - this->Length)) ? (this->Size - this->Length) : len;
 	if (this->Length < this->Size) {
 		if (len + this->WritePos > this->Size) {
 			k = (len + this->WritePos) % this->Size;
-			memcpy((this->Data + this->WritePos),
-				data,
-				len - k);
+			memcpy((this->Data + this->WritePos), data, len - k);
 			memcpy(this->Data, data + (len - k), k);
 		}
 		else {
-			memcpy((this->Data + this->WritePos),
-				data,
-				len);
+			memcpy((this->Data + this->WritePos), data, len);
 		}
 		this->Length += len;
 		this->WritePos += len;

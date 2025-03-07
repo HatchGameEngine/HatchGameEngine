@@ -9,12 +9,9 @@
 void Stream::Close() {
 	delete this;
 }
-void Stream::Seek(Sint64 offset) {
-}
-void Stream::SeekEnd(Sint64 offset) {
-}
-void Stream::Skip(Sint64 offset) {
-}
+void Stream::Seek(Sint64 offset) {}
+void Stream::SeekEnd(Sint64 offset) {}
+void Stream::Skip(Sint64 offset) {}
 size_t Stream::Position() {
 	return 0;
 }
@@ -29,8 +26,7 @@ size_t Stream::ReadBytes(void* data, size_t n) {
 
 #if DEBUG
 	if (Position() + n > Length()) {
-		Log::Print(Log::LOG_ERROR,
-			"Attempted to read past stream.");
+		Log::Print(Log::LOG_ERROR, "Attempted to read past stream.");
 	}
 #endif
 
@@ -92,8 +88,7 @@ char* Stream::ReadLine() {
 
 	size_t size = Position() - start;
 
-	char* data = (char*)Memory::TrackedMalloc(
-		"Stream::ReadLine", size + 1);
+	char* data = (char*)Memory::TrackedMalloc("Stream::ReadLine", size + 1);
 
 	if (size > 0) {
 		Skip(-size);
@@ -111,8 +106,7 @@ char* Stream::ReadString() {
 
 	size_t size = Position() - start;
 
-	char* data = (char*)Memory::TrackedMalloc(
-		"Stream::ReadString", size + 1);
+	char* data = (char*)Memory::TrackedMalloc("Stream::ReadString", size + 1);
 
 	if (size > 0) {
 		Skip(-size);
@@ -137,13 +131,10 @@ Uint16* Stream::ReadUnicodeString() {
 	size_t size = Position() - start;
 	if (size == 0) {
 		data = (Uint16*)Memory::TrackedCalloc(
-			"Stream::ReadUnicodeString",
-			1,
-			sizeof(Uint16));
+			"Stream::ReadUnicodeString", 1, sizeof(Uint16));
 	}
 	else {
-		data = (Uint16*)Memory::TrackedMalloc(
-			"Stream::ReadUnicodeString", size);
+		data = (Uint16*)Memory::TrackedMalloc("Stream::ReadUnicodeString", size);
 		Skip(-size);
 		ReadBytes(data, size);
 	}
@@ -153,8 +144,7 @@ Uint16* Stream::ReadUnicodeString() {
 char* Stream::ReadHeaderedString() {
 	Uint8 size = ReadByte();
 
-	char* data = (char*)Memory::TrackedMalloc(
-		"Stream::ReadHeaderedString", size + 1);
+	char* data = (char*)Memory::TrackedMalloc("Stream::ReadHeaderedString", size + 1);
 	if (size > 0) {
 		ReadBytes(data, size);
 	}
@@ -169,8 +159,7 @@ Uint32 Stream::ReadCompressed(void* out) {
 	void* buffer = Memory::Malloc(compressed_size);
 	ReadBytes(buffer, compressed_size);
 
-	ZLibStream::Decompress(
-		out, uncompressed_size, buffer, compressed_size);
+	ZLibStream::Decompress(out, uncompressed_size, buffer, compressed_size);
 	Memory::Free(buffer);
 
 	return uncompressed_size;
@@ -258,5 +247,4 @@ void Stream::CopyTo(Stream* dest) {
 	Memory::Free(memory);
 }
 
-Stream::~Stream() {
-}
+Stream::~Stream() {}

@@ -13,14 +13,12 @@ void Entity::Animate() {
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite || CurrentAnimation < 0 ||
-		(size_t)CurrentAnimation >=
-			sprite->Animations.size()) {
+		(size_t)CurrentAnimation >= sprite->Animations.size()) {
 		return;
 	}
 
 #ifdef USE_RSDK_ANIMATE
-	AnimationTimer += (AnimationSpeed * AnimationSpeedMult +
-		AnimationSpeedAdd);
+	AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 
 	while (AnimationTimer > AnimationFrameDuration) {
 		CurrentFrame++;
@@ -32,17 +30,12 @@ void Entity::Animate() {
 		}
 
 		AnimationFrameDuration =
-			sprite->Animations[CurrentAnimation]
-				.Frames[CurrentFrame]
-				.Duration;
+			sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 	}
 #else
 	if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
-		AnimationTimer +=
-			(AnimationSpeed * AnimationSpeedMult +
-				AnimationSpeedAdd);
-		if ((float)AnimationFrameDuration - AnimationTimer <=
-			0.0f) {
+		AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+		if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
 			CurrentFrame++;
 			if (CurrentFrame >= CurrentFrameCount) {
 				CurrentFrame = AnimationLoopIndex;
@@ -50,14 +43,9 @@ void Entity::Animate() {
 
 				// Sprite may have changed after a call
 				// to OnAnimationFinish
-				ResourceType* resource =
-					Scene::GetSpriteResource(
-						Sprite);
+				ResourceType* resource = Scene::GetSpriteResource(Sprite);
 				if (resource) {
-					sprite =
-						Scene::GetSpriteResource(
-							Sprite)
-							->AsSprite;
+					sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
 				}
 				else {
 					sprite = nullptr;
@@ -68,17 +56,11 @@ void Entity::Animate() {
 			// points (or just in case CurrentAnimation
 			// happens to be invalid, which is very
 			// possible)
-			if (sprite &&
-				CurrentFrame < CurrentFrameCount &&
-				CurrentAnimation >= 0 &&
-				CurrentAnimation <
-					sprite->Animations.size()) {
-				AnimationFrameDuration =
-					sprite
-						->Animations
-							[CurrentAnimation]
-						.Frames[CurrentFrame]
-						.Duration;
+			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 &&
+				CurrentAnimation < sprite->Animations.size()) {
+				AnimationFrameDuration = sprite->Animations[CurrentAnimation]
+								 .Frames[CurrentFrame]
+								 .Duration;
 			}
 			else {
 				AnimationFrameDuration = 1.0f;
@@ -104,29 +86,21 @@ void Entity::ResetAnimation(int animation, int frame) {
 	}
 
 	ISprite* sprite = resource->AsSprite;
-	if (!sprite || animation < 0 ||
-		(size_t)animation >= sprite->Animations.size()) {
+	if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size()) {
 		return;
 	}
 
-	if (frame < 0 ||
-		(size_t)frame >=
-			sprite->Animations[animation].Frames.size()) {
+	if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size()) {
 		return;
 	}
 
 	CurrentAnimation = animation;
 	AnimationTimer = 0.0;
 	CurrentFrame = frame;
-	CurrentFrameCount = (int)sprite->Animations[CurrentAnimation]
-				    .Frames.size();
-	AnimationFrameDuration = sprite->Animations[CurrentAnimation]
-					 .Frames[CurrentFrame]
-					 .Duration;
-	AnimationSpeed =
-		sprite->Animations[CurrentAnimation].AnimationSpeed;
-	AnimationLoopIndex =
-		sprite->Animations[CurrentAnimation].FrameToLoop;
+	CurrentFrameCount = (int)sprite->Animations[CurrentAnimation].Frames.size();
+	AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+	AnimationSpeed = sprite->Animations[CurrentAnimation].AnimationSpeed;
+	AnimationLoopIndex = sprite->Animations[CurrentAnimation].FrameToLoop;
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
 	float otherHitboxW = other->Hitbox.Width;
@@ -136,14 +110,10 @@ bool Entity::BasicCollideWithObject(Entity* other) {
 		return false;
 	}
 
-	return other->X + other->Hitbox.GetLeft() >=
-		X + Hitbox.GetLeft() &&
-		other->Y + other->Hitbox.GetTop() >=
-		Y + Hitbox.GetTop() &&
-		other->X + other->Hitbox.GetRight() <
-		X + Hitbox.GetRight() &&
-		other->Y + other->Hitbox.GetBottom() <
-		Y + Hitbox.GetBottom();
+	return other->X + other->Hitbox.GetLeft() >= X + Hitbox.GetLeft() &&
+		other->Y + other->Hitbox.GetTop() >= Y + Hitbox.GetTop() &&
+		other->X + other->Hitbox.GetRight() < X + Hitbox.GetRight() &&
+		other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
 }
 bool Entity::CollideWithObject(Entity* other) {
 	float sourceFlipX = (this->FlipFlag & 1) ? -1.0 : 1.0;
@@ -151,14 +121,10 @@ bool Entity::CollideWithObject(Entity* other) {
 	float otherFlipX = (other->FlipFlag & 1) ? -1.0 : 1.0;
 	float otherFlipY = (other->FlipFlag & 2) ? -1.0 : 1.0;
 
-	float sourceX = std::floor(
-		this->X + this->Hitbox.OffsetX * sourceFlipX);
-	float sourceY = std::floor(
-		this->Y + this->Hitbox.OffsetY * sourceFlipY);
-	float otherX = std::floor(
-		other->X + other->Hitbox.OffsetX * otherFlipX);
-	float otherY = std::floor(
-		other->Y + other->Hitbox.OffsetY * otherFlipY);
+	float sourceX = std::floor(this->X + this->Hitbox.OffsetX * sourceFlipX);
+	float sourceY = std::floor(this->Y + this->Hitbox.OffsetY * sourceFlipY);
+	float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
+	float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
 
 	float otherHitboxW = other->Hitbox.Width * 0.5;
 	float otherHitboxH = other->Hitbox.Height * 0.5;
@@ -197,16 +163,14 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 
 	// Check squeezed vertically
 	if (otherX <= (sRight + sLeft + 2 * sourceX) >> 1) {
-		if (otherX + oRight >= sourceX + sLeft &&
-			sourceY + sTop < otherY + oBottom &&
+		if (otherX + oRight >= sourceX + sLeft && sourceY + sTop < otherY + oBottom &&
 			sourceY + sBottom > otherY + oTop) {
 			collideSideHori = C_LEFT;
 			otherNewX = this->X + (sLeft - oRight);
 		}
 	}
 	else {
-		if (otherX + oLeft < sourceX + sRight &&
-			sourceY + sTop < otherY + oBottom &&
+		if (otherX + oLeft < sourceX + sRight && sourceY + sTop < otherY + oBottom &&
 			sourceY + sBottom > otherY + oTop) {
 			collideSideHori = C_RIGHT;
 			otherNewX = this->X + (sRight - oLeft);
@@ -221,16 +185,14 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 
 	// Check squeezed horizontally
 	if (otherY < (sTop + sBottom + 2 * sourceY) >> 1) {
-		if (otherY + oBottom >= sourceY + sTop &&
-			sourceX + sLeft < otherX + oRight &&
+		if (otherY + oBottom >= sourceY + sTop && sourceX + sLeft < otherX + oRight &&
 			sourceX + sRight > otherX + oLeft) {
 			collideSideVert = C_TOP;
 			otherY = this->Y + (sTop - oBottom);
 		}
 	}
 	else {
-		if (otherY + oTop < sourceY + sBottom &&
-			sourceX + sLeft < otherX + oRight) {
+		if (otherY + oTop < sourceY + sBottom && sourceX + sLeft < otherX + oRight) {
 			if (otherX + oLeft < sourceX + sRight) {
 				collideSideVert = C_BOTTOM;
 				otherY = this->Y + (sBottom - oTop);
@@ -252,19 +214,14 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 	int v46 = collideSideHori;
 
 	if (collideSideHori != 0 || collideSideVert != 0) {
-		if (deltaSquaredX1 + deltaSquaredY2 >=
-			deltaSquaredX2 + deltaSquaredY1) {
+		if (deltaSquaredX1 + deltaSquaredY2 >= deltaSquaredX2 + deltaSquaredY1) {
 			if (collideSideVert || !collideSideHori) {
 				other->X = initialOtherX;
 				other->Y = otherY;
 				if (flag == 1) {
 					if (collideSideVert != 1) {
-						if (collideSideVert ==
-								4 &&
-							other->YSpeed <
-								0.0) {
-							other->YSpeed =
-								0.0;
+						if (collideSideVert == 4 && other->YSpeed < 0.0) {
+							other->YSpeed = 0.0;
 							return v47;
 						}
 						return v47;
@@ -273,10 +230,8 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 					if (other->YSpeed > 0.0) {
 						other->YSpeed = 0.0;
 					}
-					if (!other->Ground &&
-						other->YSpeed >= 0.0) {
-						other->GroundSpeed =
-							other->XSpeed;
+					if (!other->Ground && other->YSpeed >= 0.0) {
+						other->GroundSpeed = other->XSpeed;
 						other->Angle = 0;
 						other->Ground = true;
 					}
@@ -290,12 +245,8 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 				other->Y = otherY;
 				if (flag == 1) {
 					if (collideSideVert != 1) {
-						if (collideSideVert ==
-								4 &&
-							other->YSpeed <
-								0.0) {
-							other->YSpeed =
-								0.0;
+						if (collideSideVert == 4 && other->YSpeed < 0.0) {
+							other->YSpeed = 0.0;
 							return v47;
 						}
 						return v47;
@@ -304,10 +255,8 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 					if (other->YSpeed > 0.0) {
 						other->YSpeed = 0.0;
 					}
-					if (!other->Ground &&
-						other->YSpeed >= 0.0) {
-						other->GroundSpeed =
-							other->XSpeed;
+					if (!other->Ground && other->YSpeed >= 0.0) {
+						other->GroundSpeed = other->XSpeed;
 						other->Angle = 0;
 						other->Ground = true;
 					}
@@ -354,29 +303,24 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	float sourceY = std::floor(this->Y);
 	float otherX = std::floor(initialOtherX);
 	float otherY = std::floor(initialOtherY);
-	float otherYMinusYSpeed =
-		std::floor(initialOtherY - other->YSpeed);
+	float otherYMinusYSpeed = std::floor(initialOtherY - other->YSpeed);
 
 	float otherHitboxW = other->Hitbox.Width * 0.5;
 	float otherHitboxH = other->Hitbox.Height * 0.5;
 	float sourceHitboxW = this->Hitbox.Width * 0.5;
 	float sourceHitboxH = this->Hitbox.Height * 0.5;
 
-	float sourceHitboxOffX = (this->FlipFlag & 1)
-		? -this->Hitbox.OffsetX
-		: this->Hitbox.OffsetX;
-	float sourceHitboxOffY = (this->FlipFlag & 2)
-		? -this->Hitbox.OffsetY
-		: this->Hitbox.OffsetY;
-	float otherHitboxOffX = (other->FlipFlag & 1)
-		? -other->Hitbox.OffsetX
-		: other->Hitbox.OffsetX;
-	float otherHitboxOffY = (other->FlipFlag & 2)
-		? -other->Hitbox.OffsetY
-		: other->Hitbox.OffsetY;
+	float sourceHitboxOffX =
+		(this->FlipFlag & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
+	float sourceHitboxOffY =
+		(this->FlipFlag & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
+	float otherHitboxOffX =
+		(other->FlipFlag & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
+	float otherHitboxOffY =
+		(other->FlipFlag & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
 
-	if ((otherHitboxH + otherHitboxOffY) + otherY < sourceY +
-				(-sourceHitboxH + sourceHitboxOffY) ||
+	if ((otherHitboxH + otherHitboxOffY) + otherY <
+			sourceY + (-sourceHitboxH + sourceHitboxOffY) ||
 		(otherHitboxH + otherHitboxOffY) + otherYMinusYSpeed >
 			sourceY + (sourceHitboxH + sourceHitboxOffY) ||
 		sourceX + (-sourceHitboxW + sourceHitboxOffX) >=
@@ -387,9 +331,8 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 		return false;
 	}
 
-	other->Y = this->Y +
-		((-sourceHitboxH + sourceHitboxOffY) -
-			(otherHitboxH + otherHitboxOffY));
+	other->Y =
+		this->Y + ((-sourceHitboxH + sourceHitboxOffY) - (otherHitboxH + otherHitboxOffY));
 	if (flag) {
 		other->YSpeed = 0.0;
 		if (!other->Ground) {
@@ -517,46 +460,30 @@ void Entity::CopyFields(Entity* other) {
 #undef COPY
 }
 
-void Entity::ApplyPhysics() {
-}
+void Entity::ApplyPhysics() {}
 
-void Entity::Initialize() {
-}
-void Entity::Create() {
-}
-void Entity::PostCreate() {
-}
+void Entity::Initialize() {}
+void Entity::Create() {}
+void Entity::PostCreate() {}
 
-void Entity::UpdateEarly() {
-}
-void Entity::Update() {
-}
-void Entity::UpdateLate() {
-}
+void Entity::UpdateEarly() {}
+void Entity::Update() {}
+void Entity::UpdateLate() {}
 
-void Entity::OnAnimationFinish() {
-}
+void Entity::OnAnimationFinish() {}
 
-void Entity::OnSceneLoad() {
-}
+void Entity::OnSceneLoad() {}
 
-void Entity::OnSceneRestart() {
-}
+void Entity::OnSceneRestart() {}
 
-void Entity::GameStart() {
-}
+void Entity::GameStart() {}
 
-void Entity::RenderEarly() {
-}
+void Entity::RenderEarly() {}
 
-void Entity::Render(int CamX, int CamY) {
-}
+void Entity::Render(int CamX, int CamY) {}
 
-void Entity::RenderLate() {
-}
+void Entity::RenderLate() {}
 
-void Entity::Remove() {
-}
+void Entity::Remove() {}
 
-void Entity::Dispose() {
-}
+void Entity::Dispose() {}

@@ -78,10 +78,7 @@ size_t ZLibStream::WriteBytes(void* data, size_t n) {
 	return n;
 }
 
-void ZLibStream::Decompress(void* dst,
-	size_t dstLen,
-	void* src,
-	size_t srcLen) {
+void ZLibStream::Decompress(void* dst, size_t dstLen, void* src, size_t srcLen) {
 	z_stream infstream;
 	infstream.zalloc = Z_NULL;
 	infstream.zfree = Z_NULL;

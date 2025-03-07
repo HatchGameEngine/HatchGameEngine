@@ -6,15 +6,15 @@
 
 class GameTexture {
 public:
-    Texture* TexturePtr = nullptr;
-    int UnloadPolicy;
-    bool OwnsTexture = true;
+	Texture* TexturePtr = nullptr;
+	int UnloadPolicy;
+	bool OwnsTexture = true;
 
-    GameTexture();
-    GameTexture(Uint32 width, Uint32 height, int unloadPolicy);
-    virtual Texture* GetTexture();
-    virtual int GetID();
-    virtual ~GameTexture();
+	GameTexture();
+	GameTexture(Uint32 width, Uint32 height, int unloadPolicy);
+	virtual Texture* GetTexture();
+	virtual int GetID();
+	virtual ~GameTexture();
 };
 
 #endif /* ENGINE_RENDERING_GAMETEXTURE_H */

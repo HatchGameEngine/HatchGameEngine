@@ -42,28 +42,19 @@ struct FVector2 {
 
 	FVector2 operator-() { return FVector2(-X, -Y); }
 
-	bool operator==(const FVector2& rhs) {
-		return X == rhs.X && Y == rhs.Y;
-	}
+	bool operator==(const FVector2& rhs) { return X == rhs.X && Y == rhs.Y; }
 
-	bool operator!=(const FVector2& rhs) {
-		return !(*this == rhs);
-	}
+	bool operator!=(const FVector2& rhs) { return !(*this == rhs); }
 
-	static float
-	CrossProduct(FVector2 v1, FVector2 v2, FVector2 v3) {
+	static float CrossProduct(FVector2 v1, FVector2 v2, FVector2 v3) {
 		FVector2 va = v2 - v1;
 		FVector2 vb = v3 - v2;
 		return Determinant(va, vb);
 	}
 
-	static float DotProduct(FVector2 v1, FVector2 v2) {
-		return (v1.X * v2.X) + (v1.Y * v2.Y);
-	}
+	static float DotProduct(FVector2 v1, FVector2 v2) { return (v1.X * v2.X) + (v1.Y * v2.Y); }
 
-	static float Determinant(FVector2 v1, FVector2 v2) {
-		return (v1.X * v2.Y) - (v1.Y * v2.X);
-	}
+	static float Determinant(FVector2 v1, FVector2 v2) { return (v1.X * v2.Y) - (v1.Y * v2.X); }
 };
 
 struct FLineSegment {
@@ -95,15 +86,13 @@ struct FLineSegment {
 			return false;
 		}
 
-		float n = ((line1A.Y - line2A.Y) * dx2) -
-			((line1A.X - line2A.X) * dy2);
+		float n = ((line1A.Y - line2A.Y) * dx2) - ((line1A.X - line2A.X) * dy2);
 		float t = n / d;
 		if (t < 0.0 || t > 1.0) {
 			return false;
 		}
 
-		float n2 = ((line1A.Y - line2A.Y) * dx1) -
-			((line1A.X - line2A.X) * dy1);
+		float n2 = ((line1A.Y - line2A.Y) * dx1) - ((line1A.X - line2A.X) * dy1);
 		float t2 = n2 / d;
 		if (t2 < 0.0 || t2 > 1.0) {
 			return false;
@@ -115,11 +104,8 @@ struct FLineSegment {
 		return true;
 	}
 
-	bool DoIntersection(FVector2 lineA,
-		FVector2 lineB,
-		FVector2& result) {
-		return FLineSegment::DoIntersection(
-			A, B, lineA, lineB, result);
+	bool DoIntersection(FVector2 lineA, FVector2 lineB, FVector2& result) {
+		return FLineSegment::DoIntersection(A, B, lineA, lineB, result);
 	}
 };
 

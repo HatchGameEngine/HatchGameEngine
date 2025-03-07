@@ -31,8 +31,7 @@ AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
 
 	ScratchFrame = av_frame_alloc();
 	if (ScratchFrame == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to initialize temporary audio frame");
+		Log::Print(Log::LOG_ERROR, "Unable to initialize temporary audio frame");
 		goto exit_2;
 	}
 
@@ -46,15 +45,12 @@ AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
 
 	SampleRate = AudioManager::DeviceFormat.freq;
 	Channels = AudioManager::DeviceFormat.channels;
-	Bytes = SDL_AUDIO_BITSIZE(AudioManager::DeviceFormat.format) >>
-		3;
-	IsSigned = !!SDL_AUDIO_ISSIGNED(
-		AudioManager::DeviceFormat.format);
+	Bytes = SDL_AUDIO_BITSIZE(AudioManager::DeviceFormat.format) >> 3;
+	IsSigned = !!SDL_AUDIO_ISSIGNED(AudioManager::DeviceFormat.format);
 	Format = AudioManager::DeviceFormat.format;
 
 	Log::Print(Log::LOG_WARN, "%s", "Destination:");
-	Log::Print(
-		Log::LOG_INFO, "%s = %d", "Channel Count", Channels);
+	Log::Print(Log::LOG_INFO, "%s = %d", "Channel Count", Channels);
 	Log::Print(Log::LOG_INFO,
 		"%s = %s",
 		"Sample Format",
@@ -65,8 +61,7 @@ AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
 	avcodec_string(yup, 400, CodecCtx, false);
 	if (CodecCtx->channel_layout == 0) {
 		if (strstr(yup, "6 channels")) {
-			CodecCtx->channel_layout =
-				AV_CH_LAYOUT_5POINT1;
+			CodecCtx->channel_layout = AV_CH_LAYOUT_5POINT1;
 		}
 		else if (strstr(yup, "stereo")) {
 			CodecCtx->channel_layout = AV_CH_LAYOUT_STEREO;
@@ -86,21 +81,17 @@ AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
 	// Log::Print(Log::LOG_INFO, "%s = %zX", "Channel Layout",
 	// CodecCtx->channel_layout);
 
-	av_get_channel_layout_string(
-		yup, 400, -1, CodecCtx->channel_layout);
+	av_get_channel_layout_string(yup, 400, -1, CodecCtx->channel_layout);
 	Log::Print(Log::LOG_INFO, "%s = %s", "Channel Layout", yup);
 	Log::Print(Log::LOG_INFO,
 		"%s = %s",
 		"Sample Format",
 		av_get_sample_fmt_name(CodecCtx->sample_fmt));
-	Log::Print(Log::LOG_INFO,
-		"%s = %d",
-		"Freq",
-		CodecCtx->sample_rate);
+	Log::Print(Log::LOG_INFO, "%s = %d", "Freq", CodecCtx->sample_rate);
 
 	SWR = swr_alloc_set_opts(NULL,
 		FindAVChannelLayout(Channels), // Target channel
-	                                       // layout
+		// layout
 		FindAVSampleFormat(Format), // Target fmt
 		SampleRate, // Target samplerate
 		CodecCtx->channel_layout, // Source channel layout
@@ -109,8 +100,7 @@ AudioDecoder::AudioDecoder(MediaSource* src, int stream_index) {
 		0,
 		NULL);
 	if (!SWR) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate audio converter!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate audio converter!");
 		goto exit_3;
 	}
 
@@ -138,11 +128,8 @@ exit_2:
 	// exit_0:
 	return;
 }
-void* AudioDecoder::CreateAudioPacket(const char* data,
-	size_t len,
-	double pts) {
-	AudioPacket* packet =
-		(AudioPacket*)calloc(1, sizeof(AudioPacket));
+void* AudioDecoder::CreateAudioPacket(const char* data, size_t len, double pts) {
+	AudioPacket* packet = (AudioPacket*)calloc(1, sizeof(AudioPacket));
 	if (!packet) {
 		Log::Print(Log::LOG_ERROR,
 			"Something went horribly wrong. (Ran out of memory at AudioDecoder::CreateAudioPacket \"(AudioPacket*)calloc\")");
@@ -269,15 +256,12 @@ void AudioDecoder::ReadAudio(void* ptr) {
 	int ret = 0;
 
 	while (!ret && self->CanWriteOutput()) {
-		ret = avcodec_receive_frame(
-			self->CodecCtx, self->ScratchFrame);
+		ret = avcodec_receive_frame(self->CodecCtx, self->ScratchFrame);
 		if (!ret) {
-			dst_nb_samples = av_rescale_rnd(
-				self->ScratchFrame->nb_samples,
+			dst_nb_samples = av_rescale_rnd(self->ScratchFrame->nb_samples,
 				self->SampleRate, // Target samplerate
-				self->CodecCtx
-					->sample_rate, // Source
-			                               // samplerate
+				self->CodecCtx->sample_rate, // Source
+				// samplerate
 				AV_ROUND_UP);
 
 			av_samples_alloc_array_and_samples(&dst_data,
@@ -290,30 +274,22 @@ void AudioDecoder::ReadAudio(void* ptr) {
 			len = swr_convert(self->SWR,
 				dst_data,
 				dst_nb_samples,
-				(const Uint8**)self->ScratchFrame
-					->extended_data,
+				(const Uint8**)self->ScratchFrame->extended_data,
 				self->ScratchFrame->nb_samples);
 
-			dst_bufsize = av_samples_get_buffer_size(
-				&dst_linesize,
+			dst_bufsize = av_samples_get_buffer_size(&dst_linesize,
 				self->Channels,
 				len,
 				self->FindAVSampleFormat(self->Format),
 				1);
 
 			// Get presentation timestamp
-			pts = self->ScratchFrame
-				      ->best_effort_timestamp;
-			pts *= av_q2d(self->FormatCtx
-					->streams[self->StreamIndex]
-					->time_base);
+			pts = self->ScratchFrame->best_effort_timestamp;
+			pts *= av_q2d(self->FormatCtx->streams[self->StreamIndex]->time_base);
 
 			// Lock, write to audio buffer, unlock
-			out_packet =
-				(AudioPacket*)self->CreateAudioPacket(
-					(char*)dst_data[0],
-					(size_t)dst_bufsize,
-					pts);
+			out_packet = (AudioPacket*)self->CreateAudioPacket(
+				(char*)dst_data[0], (size_t)dst_bufsize, pts);
 			self->WriteOutput(out_packet);
 
 			// Free temps
@@ -356,21 +332,17 @@ int AudioDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 
 	// Decode as long as there is data
 	while (in_packet->size > 0) {
-		len = avcodec_decode_audio4(self->CodecCtx,
-			self->ScratchFrame,
-			&frame_finished,
-			in_packet);
+		len = avcodec_decode_audio4(
+			self->CodecCtx, self->ScratchFrame, &frame_finished, in_packet);
 		if (len < 0) {
 			return 0;
 		}
 
 		if (frame_finished) {
-			dst_nb_samples = av_rescale_rnd(
-				self->ScratchFrame->nb_samples,
+			dst_nb_samples = av_rescale_rnd(self->ScratchFrame->nb_samples,
 				self->SampleRate, // Target samplerate
-				self->CodecCtx
-					->sample_rate, // Source
-			                               // samplerate
+				self->CodecCtx->sample_rate, // Source
+				// samplerate
 				AV_ROUND_UP);
 
 			av_samples_alloc_array_and_samples(&dst_data,
@@ -383,12 +355,10 @@ int AudioDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 			len2 = swr_convert(self->SWR,
 				dst_data,
 				self->ScratchFrame->nb_samples,
-				(const Uint8**)self->ScratchFrame
-					->extended_data,
+				(const Uint8**)self->ScratchFrame->extended_data,
 				self->ScratchFrame->nb_samples);
 
-			dst_bufsize = av_samples_get_buffer_size(
-				&dst_linesize,
+			dst_bufsize = av_samples_get_buffer_size(&dst_linesize,
 				self->Channels,
 				len2,
 				self->FindAVSampleFormat(self->Format),
@@ -396,22 +366,15 @@ int AudioDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 
 			// Get presentation timestamp
 #ifndef FF_API_FRAME_GET_SET
-			pts = av_frame_get_best_effort_timestamp(
-				self->ScratchFrame);
+			pts = av_frame_get_best_effort_timestamp(self->ScratchFrame);
 #else
-			pts = self->ScratchFrame
-				      ->best_effort_timestamp;
+			pts = self->ScratchFrame->best_effort_timestamp;
 #endif
-			pts *= av_q2d(self->FormatCtx
-					->streams[self->StreamIndex]
-					->time_base);
+			pts *= av_q2d(self->FormatCtx->streams[self->StreamIndex]->time_base);
 
 			// Lock, write to audio buffer, unlock
-			out_packet =
-				(AudioPacket*)self->CreateAudioPacket(
-					(char*)dst_data[0],
-					(size_t)dst_bufsize,
-					pts);
+			out_packet = (AudioPacket*)self->CreateAudioPacket(
+				(char*)dst_data[0], (size_t)dst_bufsize, pts);
 			self->WriteOutput(out_packet);
 
 			// Free temps
@@ -468,8 +431,7 @@ int AudioDecoder::GetAudioDecoderData(Uint8* buf, int len) {
 	// If packet should have already been played, skip it and try
 	// to find a better packet. For audio, it is possible that we
 	// cannot find good packet. Then just don't read anything.
-	while (packet != NULL &&
-		packet->pts < sync_ts - KIT_AUDIO_SYNC_THRESHOLD) {
+	while (packet != NULL && packet->pts < sync_ts - KIT_AUDIO_SYNC_THRESHOLD) {
 		AdvanceOutput();
 		FreeAudioPacket(packet);
 		packet = (AudioPacket*)PeekOutput();
@@ -483,10 +445,8 @@ int AudioDecoder::GetAudioDecoderData(Uint8* buf, int len) {
 		ret = packet->buffer->Read((char*)buf, len);
 		if (ret) {
 			bytes_per_sample = Bytes * Channels;
-			bytes_per_second =
-				bytes_per_sample * SampleRate;
-			packet->pts +=
-				((double)ret) / bytes_per_second;
+			bytes_per_second = bytes_per_sample * SampleRate;
+			packet->pts += ((double)ret) / bytes_per_second;
 		}
 	}
 	ClockPos = packet->pts;

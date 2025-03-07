@@ -16,10 +16,8 @@ Bytecode::~Bytecode() {
 	Memory::Free((void*)SourceFilename);
 }
 
-bool Bytecode::Read(BytecodeContainer bytecode,
-	HashMap<char*>* tokens) {
-	MemoryStream* stream =
-		MemoryStream::New(bytecode.Data, bytecode.Size);
+bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
+	MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
 	if (!stream) {
 		return false;
 	}
@@ -35,9 +33,7 @@ bool Bytecode::Read(BytecodeContainer bytecode,
 	Version = stream->ReadByte();
 
 	if (Version > BYTECODE_VERSION) {
-		Log::Print(Log::LOG_ERROR,
-			"Unsupported bytecode version 0x%02X!",
-			Version);
+		Log::Print(Log::LOG_ERROR, "Unsupported bytecode version 0x%02X!", Version);
 		stream->Close();
 		return false;
 	}
@@ -95,19 +91,14 @@ bool Bytecode::Read(BytecodeContainer bytecode,
 			Uint8 type = stream->ReadByte();
 			switch (type) {
 			case VAL_INTEGER:
-				function->Chunk.AddConstant(
-					INTEGER_VAL(
-						stream->ReadInt32()));
+				function->Chunk.AddConstant(INTEGER_VAL(stream->ReadInt32()));
 				break;
 			case VAL_DECIMAL:
-				function->Chunk.AddConstant(
-					DECIMAL_VAL(
-						stream->ReadFloat()));
+				function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
 				break;
 			case VAL_OBJECT:
 				function->Chunk.AddConstant(
-					OBJECT_VAL(TakeString(
-						stream->ReadString())));
+					OBJECT_VAL(TakeString(stream->ReadString())));
 				break;
 			}
 		}
@@ -123,8 +114,7 @@ bool Bytecode::Read(BytecodeContainer bytecode,
 				stream->SkipString();
 			}
 			else {
-				Uint32 hash =
-					Murmur::EncryptString(string);
+				Uint32 hash = Murmur::EncryptString(string);
 				if (!tokens->Exists(hash)) {
 					tokens->Put(hash, string);
 				}
@@ -136,11 +126,9 @@ bool Bytecode::Read(BytecodeContainer bytecode,
 
 		if (tokens) {
 			for (ObjFunction* function : Functions) {
-				if (tokens->Exists(
-					    function->NameHash)) {
+				if (tokens->Exists(function->NameHash)) {
 					function->Name =
-						CopyString(tokens->Get(
-							function->NameHash));
+						CopyString(tokens->Get(function->NameHash));
 				}
 			}
 		}
@@ -155,9 +143,7 @@ bool Bytecode::Read(BytecodeContainer bytecode,
 	return true;
 }
 
-void Bytecode::Write(Stream* stream,
-	const char* sourceFilename,
-	HashMap<Token>* tokenMap) {
+void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap) {
 	int hasSourceFilename = (sourceFilename != nullptr) ? 1 : 0;
 	int hasDebugInfo = HasDebugInfo ? 1 : 0;
 
@@ -186,13 +172,11 @@ void Bytecode::Write(Stream* stream,
 			stream->WriteUInt32(chunk->OpcodeCount);
 		}
 
-		stream->WriteUInt32(Murmur::EncryptString(
-			Functions[c]->Name->Chars));
+		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name->Chars));
 
 		stream->WriteBytes(chunk->Code, chunk->Count);
 		if (HasDebugInfo) {
-			stream->WriteBytes(chunk->Lines,
-				chunk->Count * sizeof(int));
+			stream->WriteBytes(chunk->Lines, chunk->Count * sizeof(int));
 		}
 
 		int constSize = (int)chunk->Constants->size();
@@ -204,26 +188,19 @@ void Bytecode::Write(Stream* stream,
 
 			switch (type) {
 			case VAL_INTEGER:
-				stream->WriteBytes(&AS_INTEGER(constt),
-					sizeof(int));
+				stream->WriteBytes(&AS_INTEGER(constt), sizeof(int));
 				break;
 			case VAL_DECIMAL:
-				stream->WriteBytes(&AS_DECIMAL(constt),
-					sizeof(float));
+				stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
 				break;
 			case VAL_OBJECT:
-				if (OBJECT_TYPE(constt) ==
-					OBJ_STRING) {
-					ObjString* str =
-						AS_STRING(constt);
-					stream->WriteBytes(str->Chars,
-						str->Length + 1);
+				if (OBJECT_TYPE(constt) == OBJ_STRING) {
+					ObjString* str = AS_STRING(constt);
+					stream->WriteBytes(str->Chars, str->Length + 1);
 				}
 				else {
 					printf("Unsupported object type...Chief. (%s)\n",
-						GetObjectTypeString(
-							OBJECT_TYPE(
-								constt)));
+						GetObjectTypeString(OBJECT_TYPE(constt)));
 					stream->WriteByte(0);
 				}
 				break;
@@ -233,13 +210,10 @@ void Bytecode::Write(Stream* stream,
 
 	// Add tokens
 	if (HasDebugInfo && tokenMap) {
-		stream->WriteUInt32(
-			tokenMap->Count + FunctionNames.size());
-		std::for_each(FunctionNames.begin(),
-			FunctionNames.end(),
-			[stream](const char* name) {
-				stream->WriteBytes(
-					(void*)name, strlen(name) + 1);
+		stream->WriteUInt32(tokenMap->Count + FunctionNames.size());
+		std::for_each(
+			FunctionNames.begin(), FunctionNames.end(), [stream](const char* name) {
+				stream->WriteBytes((void*)name, strlen(name) + 1);
 			});
 		tokenMap->WithAll([stream](Uint32, Token t) -> void {
 			stream->WriteBytes(t.Start, t.Length);
@@ -248,7 +222,6 @@ void Bytecode::Write(Stream* stream,
 	}
 
 	if (hasSourceFilename) {
-		stream->WriteBytes((void*)sourceFilename,
-			strlen(sourceFilename) + 1);
+		stream->WriteBytes((void*)sourceFilename, strlen(sourceFilename) + 1);
 	}
 }

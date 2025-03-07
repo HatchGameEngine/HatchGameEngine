@@ -55,8 +55,7 @@ void MaterialImpl::Init() {
 	Hash_SpecularGreen = Murmur::EncryptString("SpecularGreen");
 	Hash_SpecularBlue = Murmur::EncryptString("SpecularBlue");
 	Hash_SpecularAlpha = Murmur::EncryptString("SpecularAlpha");
-	Hash_SpecularTexture =
-		Murmur::EncryptString("SpecularTexture");
+	Hash_SpecularTexture = Murmur::EncryptString("SpecularTexture");
 
 	Hash_AmbientRed = Murmur::EncryptString("AmbientRed");
 	Hash_AmbientGreen = Murmur::EncryptString("AmbientGreen");
@@ -69,8 +68,7 @@ void MaterialImpl::Init() {
 	Hash_EmissiveGreen = Murmur::EncryptString("EmissiveGreen");
 	Hash_EmissiveBlue = Murmur::EncryptString("EmissiveBlue");
 	Hash_EmissiveAlpha = Murmur::EncryptString("EmissiveAlpha");
-	Hash_EmissiveTexture =
-		Murmur::EncryptString("EmissiveTexture");
+	Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
 #endif
 
 	ScriptManager::ClassImplList.push_back(Class);
@@ -78,16 +76,13 @@ void MaterialImpl::Init() {
 	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
 }
 
-#define GET_ARG(argIndex, argFunction) \
-	(StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
 Obj* MaterialImpl::VM_New() {
 	return (Obj*)NewMaterial(Material::Create(nullptr));
 }
 
-VMValue MaterialImpl::VM_Initializer(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjMaterial* objMaterial = AS_MATERIAL(args[0]);
 	Material* material = objMaterial->MaterialPtr;
 
@@ -106,8 +101,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount,
 	{ \
 		if (hash == Hash_##type##col) { \
 			if (result) \
-				*result = DECIMAL_VAL( \
-					material->Color##type[idx]); \
+				*result = DECIMAL_VAL(material->Color##type[idx]); \
 			return true; \
 		} \
 	}
@@ -126,10 +120,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount,
 		} \
 	}
 
-bool MaterialImpl::VM_PropertyGet(Obj* object,
-	Uint32 hash,
-	VMValue* result,
-	Uint32 threadID) {
+bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {
@@ -184,10 +175,8 @@ bool MaterialImpl::VM_PropertyGet(Obj* object,
 #define SET_COLOR(type, col, idx) \
 	{ \
 		if (hash == Hash_##type##col) { \
-			if (ScriptManager::DoDecimalConversion( \
-				    value, threadID)) \
-				material->Color##type[idx] = \
-					AS_DECIMAL(value); \
+			if (ScriptManager::DoDecimalConversion(value, threadID)) \
+				material->Color##type[idx] = AS_DECIMAL(value); \
 			return true; \
 		} \
 	}
@@ -202,14 +191,11 @@ static void DoTextureRemoval(Image** image) {
 	}
 }
 
-static void
-DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
+static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 	ResourceType* resource = Scene::GetImageResource(imageID);
 	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Image index \"%d\" is not valid!",
-			imageID);
+			false, "Image index \"%d\" is not valid!", imageID);
 		return;
 	}
 
@@ -224,24 +210,17 @@ DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 	{ \
 		if (hash == Hash_##type##Texture) { \
 			if (IS_NULL(value)) { \
-				DoTextureRemoval( \
-					&material->Texture##type); \
+				DoTextureRemoval(&material->Texture##type); \
 			} \
-			else if (ScriptManager::DoIntegerConversion( \
-					 value, threadID)) { \
+			else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
 				DoTextureReplacement( \
-					AS_INTEGER(value), \
-					&material->Texture##type, \
-					threadID); \
+					AS_INTEGER(value), &material->Texture##type, threadID); \
 			} \
 			return true; \
 		} \
 	}
 
-bool MaterialImpl::VM_PropertySet(Obj* object,
-	Uint32 hash,
-	VMValue value,
-	Uint32 threadID) {
+bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {

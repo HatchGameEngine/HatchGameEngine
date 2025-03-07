@@ -45,8 +45,7 @@ float Ease::InOutCubic(float t) {
 	if (t >= 0.5) {
 		t -= 1.0;
 	}
-	return t < 0.5 ? 4 * t * t * t
-		       : 1 + t * (2 * (t - 1)) * (2 * (t - 2));
+	return t < 0.5 ? 4 * t * t * t : 1 + t * (2 * (t - 1)) * (2 * (t - 2));
 }
 float Ease::InQuart(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);

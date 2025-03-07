@@ -2,8 +2,7 @@
 
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 
-void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText,
-	GLShaderUniforms uniforms) {
+void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
 	if (uniforms.u_matrix) {
 		shaderText += "uniform mat4 u_projectionMatrix;\n";
 		shaderText += "uniform mat4 u_modelViewMatrix;\n";
@@ -39,9 +38,7 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText,
 		shaderText += "uniform float u_fogDensity;\n";
 	}
 }
-void GLShaderBuilder::AddInputsToVertexShaderText(
-	std::string& shaderText,
-	GLShaderLinkage inputs) {
+void GLShaderBuilder::AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs) {
 	if (inputs.link_position) {
 		shaderText += "attribute vec3 i_position;\n";
 	}
@@ -52,8 +49,7 @@ void GLShaderBuilder::AddInputsToVertexShaderText(
 		shaderText += "attribute vec4 i_color;\n";
 	}
 }
-void GLShaderBuilder::AddOutputsToVertexShaderText(
-	std::string& shaderText,
+void GLShaderBuilder::AddOutputsToVertexShaderText(std::string& shaderText,
 	GLShaderLinkage outputs) {
 	if (outputs.link_position) {
 		shaderText += "varying vec4 o_position;\n";
@@ -65,13 +61,11 @@ void GLShaderBuilder::AddOutputsToVertexShaderText(
 		shaderText += "varying vec4 o_color;\n";
 	}
 }
-void GLShaderBuilder::AddInputsToFragmentShaderText(
-	std::string& shaderText,
+void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
 	GLShaderLinkage& inputs) {
 	AddOutputsToVertexShaderText(shaderText, inputs);
 }
-string GLShaderBuilder::BuildFragmentShaderMainFunc(
-	GLShaderLinkage& inputs,
+string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	GLShaderUniforms& uniforms) {
 	std::string shaderText = "";
 
@@ -98,47 +92,38 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(
 
 	if (uniforms.u_texture) {
 		if (inputs.link_color) {
-			shaderText +=
-				"if (o_color.a == 0.0) discard;\n";
-			shaderText +=
-				"vec4 base = texture2D(u_texture, o_uv);\n";
+			shaderText += "if (o_color.a == 0.0) discard;\n";
+			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
-				shaderText +=
-					"if (base.r == 0.0) discard;\n";
+				shaderText += "if (base.r == 0.0) discard;\n";
 				shaderText +=
 					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
 			}
 			shaderText += "if (base.a == 0.0) discard;\n";
 			shaderText += "finalColor = base * o_color;\n";
 			if (uniforms.u_materialColors) {
-				shaderText +=
-					"finalColor *= u_diffuseColor;\n";
+				shaderText += "finalColor *= u_diffuseColor;\n";
 			}
 		}
 		else {
-			shaderText +=
-				"vec4 base = texture2D(u_texture, o_uv);\n";
+			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
-				shaderText +=
-					"if (base.r == 0.0) discard;\n";
+				shaderText += "if (base.r == 0.0) discard;\n";
 				shaderText +=
 					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
 			}
 			else {
-				shaderText +=
-					"if (base.a == 0.0) discard;\n";
+				shaderText += "if (base.a == 0.0) discard;\n";
 			}
 			shaderText += "finalColor = base * u_color;\n";
 		}
 	}
 	else {
 		if (inputs.link_color) {
-			shaderText +=
-				"if (o_color.a == 0.0) discard;\n";
+			shaderText += "if (o_color.a == 0.0) discard;\n";
 			shaderText += "finalColor = o_color;\n";
 			if (uniforms.u_materialColors) {
-				shaderText +=
-					"finalColor *= u_diffuseColor;\n";
+				shaderText += "finalColor *= u_diffuseColor;\n";
 			}
 		}
 		else {
@@ -150,8 +135,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(
 		shaderText +=
 			"finalColor = mix(finalColor, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), ";
 		if (uniforms.u_fog_linear) {
-			shaderText +=
-				"u_fogLinearStart, u_fogLinearEnd";
+			shaderText += "u_fogLinearStart, u_fogLinearEnd";
 		}
 		else if (uniforms.u_fog_exp) {
 			shaderText += "u_fogDensity";
@@ -182,8 +166,7 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	shaderText +=
 		"gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n";
 	if (outputs.link_position) {
-		shaderText +=
-			"o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n";
+		shaderText += "o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n";
 	}
 	if (outputs.link_color) {
 		shaderText += "o_color = i_color;\n";
@@ -211,11 +194,8 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 
 	return shaderText;
 }
-string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
-	GLShaderUniforms& uniforms) {
-	return Fragment(inputs,
-		uniforms,
-		BuildFragmentShaderMainFunc(inputs, uniforms));
+string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
+	return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms));
 }
 
 #endif /* USING_OPENGL */

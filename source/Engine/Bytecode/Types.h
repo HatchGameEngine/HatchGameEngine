@@ -89,11 +89,9 @@ const char* GetValueTypeString(VMValue value);
 #define IS_OBJECT(value) ((value).Type == VAL_OBJECT)
 
 #define AS_INTEGER(value) \
-	(value.Type == VAL_INTEGER ? (value).as.Integer \
-				   : *((value).as.LinkedInteger))
+	(value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
 #define AS_DECIMAL(value) \
-	(value.Type == VAL_DECIMAL ? (value).as.Decimal \
-				   : *((value).as.LinkedDecimal))
+	(value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
 #define AS_OBJECT(value) ((value).as.Object)
 
 #ifdef WIN32
@@ -132,12 +130,9 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define NULL_VAL ((VMValue){VAL_NULL, {.Integer = 0}})
 #define INTEGER_VAL(value) ((VMValue){VAL_INTEGER, {.Integer = value}})
 #define DECIMAL_VAL(value) ((VMValue){VAL_DECIMAL, {.Decimal = value}})
-#define OBJECT_VAL(object) \
-	((VMValue){VAL_OBJECT, {.Object = (Obj*)object}})
-#define INTEGER_LINK_VAL(value) \
-	((VMValue){VAL_LINKED_INTEGER, {.LinkedInteger = value}})
-#define DECIMAL_LINK_VAL(value) \
-	((VMValue){VAL_LINKED_DECIMAL, {.LinkedDecimal = value}})
+#define OBJECT_VAL(object) ((VMValue){VAL_OBJECT, {.Object = (Obj*)object}})
+#define INTEGER_LINK_VAL(value) ((VMValue){VAL_LINKED_INTEGER, {.LinkedInteger = value}})
+#define DECIMAL_LINK_VAL(value) ((VMValue){VAL_LINKED_DECIMAL, {.LinkedDecimal = value}})
 #endif
 
 #define IS_LINKED_INTEGER(value) ((value).Type == VAL_LINKED_INTEGER)
@@ -146,35 +141,21 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define AS_LINKED_DECIMAL(value) (*((value).as.LinkedDecimal))
 
 #define IS_NUMBER(value) \
-	(IS_DECIMAL(value) || IS_INTEGER(value) || \
-		IS_LINKED_DECIMAL(value) || IS_LINKED_INTEGER(value))
+	(IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || \
+		IS_LINKED_INTEGER(value))
 #define IS_NOT_NUMBER(value) \
-	(!IS_DECIMAL(value) && !IS_INTEGER(value) && \
-		!IS_LINKED_DECIMAL(value) && \
+	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
-typedef VMValue (
-	*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
+typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
 typedef Obj* (*ClassNewFn)(void);
 
-typedef bool (*ValueGetFn)(Obj* object,
-	Uint32 hash,
-	VMValue* value,
-	Uint32 threadID);
-typedef bool (*ValueSetFn)(Obj* object,
-	Uint32 hash,
-	VMValue value,
-	Uint32 threadID);
+typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
+typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 
-typedef bool (*StructGetFn)(Obj* object,
-	VMValue at,
-	VMValue* value,
-	Uint32 threadID);
-typedef bool (*StructSetFn)(Obj* object,
-	VMValue at,
-	VMValue value,
-	Uint32 threadID);
+typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
+typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
 
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
@@ -281,8 +262,8 @@ struct ObjClass {
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields; // Keep this as a pointer, so that a new table
-	               // isn't created when passing an ObjClass value
-	               // around
+		// isn't created when passing an ObjClass value
+		// around
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
 	StructGetFn ElementGet;

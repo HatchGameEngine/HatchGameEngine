@@ -21,10 +21,8 @@ Uint16 PolygonRasterizer::FogTable[0x100 + 1];
 #define DEPTH_READ_DUMMY(depth) true
 #define DEPTH_WRITE_DUMMY(depth)
 
-#define DEPTH_READ_U32(depth) \
-	(depth < PolygonRasterizer::DepthBuffer[dst_x + dst_strideY])
-#define DEPTH_WRITE_U32(depth) \
-	PolygonRasterizer::DepthBuffer[dst_x + dst_strideY] = depth
+#define DEPTH_READ_U32(depth) (depth < PolygonRasterizer::DepthBuffer[dst_x + dst_strideY])
+#define DEPTH_WRITE_U32(depth) PolygonRasterizer::DepthBuffer[dst_x + dst_strideY] = depth
 
 #define CLAMP_VAL(v, a, b) \
 	if (v < a) \
@@ -53,8 +51,7 @@ int FogEquationFunc_Linear(float coord) {
 	return 0x100 - result;
 }
 int FogEquationFunc_Exp(float coord) {
-	int result =
-		expf(-PolygonRasterizer::FogDensity * coord) * 0x100;
+	int result = expf(-PolygonRasterizer::FogDensity * coord) * 0x100;
 	CLAMP_VAL(result, 0, 0x100);
 	return 0x100 - result;
 }
@@ -65,8 +62,7 @@ Uint32 DoFogLighting(int color, float fogCoord) {
 	int fogValue = FogEquationFunc(fogCoord / 192.0f);
 	if (fogValue != 0) {
 		fogValue = PolygonRasterizer::FogTable[fogValue];
-		color = ColorUtils::Blend(
-			color, PolygonRasterizer::FogColor, fogValue);
+		color = ColorUtils::Blend(color, PolygonRasterizer::FogColor, fogValue);
 	}
 	return color | 0xFF000000U;
 }
@@ -74,18 +70,14 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	return ColorUtils::Tint(color, colorMult) | 0xFF000000U;
 }
 
-#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro, pixelMacro) \
-	drawPolygonMacro(pixelMacro)
+#define POLYGON_BLENDFLAGS_SOLID(drawPolygonMacro, pixelMacro) drawPolygonMacro(pixelMacro)
 
-#define POLYGON_BLENDFLAGS_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) \
-	drawPolygonMacro(dpR, dpW)
+#define POLYGON_BLENDFLAGS_SOLID_DEPTH(drawPolygonMacro, dpR, dpW) drawPolygonMacro(dpR, dpW)
 
-#define POLYGON_BLENDFLAGS_DEPTH( \
-	drawPolygonMacro, placePixelMacro, dpR, dpW) \
+#define POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, placePixelMacro, dpR, dpW) \
 	drawPolygonMacro(placePixelMacro, dpR, dpW)
 
-#define DRAW_POLYGON_SCANLINE_DEPTH( \
-	drawPolygonMacro, placePixel, placePixelPaletted) \
+#define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
 	if (Graphics::UsePalettes && texture->Paletted) { \
 		if (UseDepthBuffer) { \
 			POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, \
@@ -102,10 +94,8 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	} \
 	else { \
 		if (UseDepthBuffer) { \
-			POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, \
-				placePixel, \
-				DEPTH_READ_U32, \
-				DEPTH_WRITE_U32); \
+			POLYGON_BLENDFLAGS_DEPTH( \
+				drawPolygonMacro, placePixel, DEPTH_READ_U32, DEPTH_WRITE_U32); \
 		} \
 		else { \
 			POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, \
@@ -117,14 +107,12 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 
 #define POLYGON_SCANLINE_DEPTH(drawPolygonMacro) \
 	if (UseFog) { \
-		DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, \
-			DRAW_PLACEPIXEL_FOG, \
-			DRAW_PLACEPIXEL_PAL_FOG) \
+		DRAW_POLYGON_SCANLINE_DEPTH( \
+			drawPolygonMacro, DRAW_PLACEPIXEL_FOG, DRAW_PLACEPIXEL_PAL_FOG) \
 	} \
 	else { \
-		DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, \
-			DRAW_PLACEPIXEL, \
-			DRAW_PLACEPIXEL_PAL) \
+		DRAW_POLYGON_SCANLINE_DEPTH( \
+			drawPolygonMacro, DRAW_PLACEPIXEL, DRAW_PLACEPIXEL_PAL) \
 	}
 
 #define SCANLINE_INIT_Z() \
@@ -177,16 +165,13 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	float mapU = contU; \
 	float mapV = contV
 #define SCANLINE_GET_TEXUV() \
-	int texU = ((int)((mapU + 1) * texture->Width) >> 16) % \
-		texture->Width; \
-	int texV = ((int)((mapV + 1) * texture->Height) >> 16) % \
-		texture->Height
+	int texU = ((int)((mapU + 1) * texture->Width) >> 16) % texture->Width; \
+	int texV = ((int)((mapV + 1) * texture->Height) >> 16) % texture->Height
 #define SCANLINE_GET_COLOR() \
 	CLAMP_VAL(colR, 0x00, 0xFF0000); \
 	CLAMP_VAL(colG, 0x00, 0xFF0000); \
 	CLAMP_VAL(colB, 0x00, 0xFF0000); \
-	col = 0xFF000000U | ((colR) & 0xFF0000) | \
-		((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
+	col = 0xFF000000U | ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
 
 #define SCANLINE_WRITE_PIXEL(px) \
 	pixelFunction((Uint32*)&px, \
@@ -198,8 +183,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 Contour* ContourField = SoftwareRenderer::ContourBuffer;
 
 template<typename T>
-static void
-GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) {
+static void GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) {
 	minVal = INT_MAX;
 	maxVal = INT_MIN;
 
@@ -217,10 +201,8 @@ GetPolygonBounds(T* positions, int count, int& minVal, int& maxVal) {
 
 #define CLIP_BOUNDS() \
 	if (Graphics::CurrentClip.Enabled) { \
-		if (dst_y2 > Graphics::CurrentClip.Y + \
-				Graphics::CurrentClip.Height) \
-			dst_y2 = Graphics::CurrentClip.Y + \
-				Graphics::CurrentClip.Height; \
+		if (dst_y2 > Graphics::CurrentClip.Y + Graphics::CurrentClip.Height) \
+			dst_y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height; \
 		if (dst_y1 < Graphics::CurrentClip.Y) \
 			dst_y1 = Graphics::CurrentClip.Y; \
 	} \
@@ -264,33 +246,24 @@ void PolygonRasterizer::DrawBasic(Vector2* positions,
 	if (count > 1) {
 		int countRem = count - 1;
 		while (countRem--) {
-			Scanline::Process(lastVector[0].X,
-				lastVector[0].Y,
-				lastVector[1].X,
-				lastVector[1].Y);
+			Scanline::Process(
+				lastVector[0].X, lastVector[0].Y, lastVector[1].X, lastVector[1].Y);
 			lastVector++;
 		}
 	}
-	Scanline::Process(lastVector[0].X,
-		lastVector[0].Y,
-		positions[0].X,
-		positions[0].Y);
+	Scanline::Process(lastVector[0].X, lastVector[0].Y, positions[0].X, positions[0].Y);
 
 	if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 	if (!SoftwareRenderer::IsStencilEnabled() &&
-		((blendFlag &
-			 (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) ==
-			BlendFlag_OPAQUE)) {
+		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
 		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 			Contour contour = ContourField[dst_y];
 			if (contour.MaxX < contour.MinX) {
@@ -298,8 +271,7 @@ void PolygonRasterizer::DrawBasic(Vector2* positions,
 				continue;
 			}
 
-			Memory::Memset4(
-				&dstPx[contour.MinX + dst_strideY],
+			Memory::Memset4(&dstPx[contour.MinX + dst_strideY],
 				color,
 				contour.MaxX - contour.MinX);
 			dst_strideY += dstStride;
@@ -312,9 +284,7 @@ void PolygonRasterizer::DrawBasic(Vector2* positions,
 				dst_strideY += dstStride;
 				continue;
 			}
-			for (int dst_x = contour.MinX;
-				dst_x < contour.MaxX;
-				dst_x++) {
+			for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) {
 				SCANLINE_WRITE_PIXEL(color);
 			}
 			dst_strideY += dstStride;
@@ -380,12 +350,10 @@ void PolygonRasterizer::DrawBasicBlend(Vector2* positions,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 		Contour contour = ContourField[dst_y];
@@ -399,8 +367,7 @@ void PolygonRasterizer::DrawBasicBlend(Vector2* positions,
 			int diff = contour.MinX - contour.MapLeft;
 			SCANLINE_STEP_RGB_BY(diff);
 		}
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX;
-			dst_x++) {
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) {
 			SCANLINE_GET_RGB();
 			SCANLINE_GET_COLOR();
 			SCANLINE_WRITE_PIXEL(col);
@@ -478,8 +445,7 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 			dst_strideY += dstStride; \
 			continue; \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			pixelRead(); \
 		} \
 		dst_strideY += dstStride; \
@@ -494,11 +460,9 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 		} \
 		SCANLINE_INIT_Z(); \
 		if (contour.MapLeft < contour.MinX) { \
-			SCANLINE_STEP_Z_BY( \
-				contour.MinX - contour.MapLeft); \
+			SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			SCANLINE_GET_MAPZ(); \
 			pixelRead(); \
 			SCANLINE_STEP_Z(); \
@@ -510,17 +474,14 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONSHADED_FOG, PX_GET_FOG);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED_FOG, PX_GET_FOG);
 	}
 	else {
 		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONSHADED, PX_GET);
@@ -616,8 +577,7 @@ void PolygonRasterizer::DrawBlendShaded(Vector3* positions,
 			SCANLINE_STEP_Z_BY(diff); \
 			SCANLINE_STEP_RGB_BY(diff); \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			SCANLINE_GET_MAPZ(); \
 			SCANLINE_GET_RGB(); \
 			pixelRead(); \
@@ -631,21 +591,17 @@ void PolygonRasterizer::DrawBlendShaded(Vector3* positions,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONBLENDSHADED, PX_GET_FOG);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET_FOG);
 	}
 	else {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONBLENDSHADED, PX_GET);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDSHADED, PX_GET);
 	}
 
 #undef PX_GET
@@ -721,8 +677,7 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 	int min_x, max_x;
 	if (Graphics::CurrentClip.Enabled) {
 		min_x = Graphics::CurrentClip.X;
-		max_x = Graphics::CurrentClip.X +
-			Graphics::CurrentClip.Width;
+		max_x = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
 	}
 	else {
 		min_x = 0;
@@ -730,24 +685,21 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		col = DoColorTint(color, texCol); \
 		SCANLINE_WRITE_PIXEL(col); \
 		dpW(iz); \
 	}
 
 #define DRAW_PLACEPIXEL_PAL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		col = DoColorTint(color, index[texCol]); \
 		SCANLINE_WRITE_PIXEL(col); \
 		dpW(iz); \
 	}
 
 #define DRAW_PLACEPIXEL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		col = DoColorTint(color, texCol); \
 		col = DoFogLighting(col, mapZ); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -755,8 +707,7 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		col = DoColorTint(color, index[texCol]); \
 		col = DoFogLighting(col, mapZ); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -782,12 +733,10 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 		if (contour.MaxX > max_x) \
 			contour.MaxX = max_x; \
 		if (Graphics::UsePaletteIndexLines) \
-			index = &Graphics::PaletteColors[Graphics:: \
-					PaletteIndexLines[dst_y]][0]; \
+			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		else \
 			index = &Graphics::PaletteColors[0][0]; \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			SCANLINE_GET_MAPZ(); \
 			SCANLINE_GET_INVZ(); \
 			if (dpR(iz)) { \
@@ -805,13 +754,11 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONAFFINE);
@@ -896,8 +843,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	int min_x, max_x;
 	if (Graphics::CurrentClip.Enabled) {
 		min_x = Graphics::CurrentClip.X;
-		max_x = Graphics::CurrentClip.X +
-			Graphics::CurrentClip.Width;
+		max_x = Graphics::CurrentClip.X + Graphics::CurrentClip.Width;
 	}
 	else {
 		min_x = 0;
@@ -905,8 +851,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, texCol); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -914,8 +859,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, index[texCol]); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -923,8 +867,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, texCol); \
 		col = DoFogLighting(col, mapZ); \
@@ -933,8 +876,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, index[texCol]); \
 		col = DoFogLighting(col, mapZ); \
@@ -963,12 +905,10 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		if (contour.MaxX > max_x) \
 			contour.MaxX = max_x; \
 		if (Graphics::UsePaletteIndexLines) \
-			index = &Graphics::PaletteColors[Graphics:: \
-					PaletteIndexLines[dst_y]][0]; \
+			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		else \
 			index = &Graphics::PaletteColors[0][0]; \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			SCANLINE_GET_MAPZ(); \
 			SCANLINE_GET_INVZ(); \
 			if (dpR(iz)) { \
@@ -988,13 +928,11 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDAFFINE);
@@ -1046,8 +984,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		float stepZ, stepU, stepV; \
 		float mapZ, currU, currV; \
 		while (contWidth >= contSize) { \
-			PERSP_MAPPER_SUBDIVIDE( \
-				contSize, placePixelMacro, dpR, dpW); \
+			PERSP_MAPPER_SUBDIVIDE(contSize, placePixelMacro, dpR, dpW); \
 			startU = endU; \
 			startV = endV; \
 			startZ = endZ; \
@@ -1055,16 +992,12 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		} \
 		if (contWidth > 0) { \
 			if (contWidth > 1) { \
-				PERSP_MAPPER_SUBDIVIDE(contWidth, \
-					placePixelMacro, \
-					dpR, \
-					dpW); \
+				PERSP_MAPPER_SUBDIVIDE(contWidth, placePixelMacro, dpR, dpW); \
 			} \
 			else { \
 				Uint32 iz = startZ * 65536; \
 				if (dpR(iz)) { \
-					DRAW_PERSP_GET( \
-						startU, startV); \
+					DRAW_PERSP_GET(startU, startV); \
 					placePixelMacro(dpW); \
 				} \
 			} \
@@ -1072,8 +1005,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	}
 #else
 #define DO_PERSP_MAPPING(placePixelMacro, dpR, dpW) \
-	for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-		dst_x++) { \
+	for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 		SCANLINE_GET_MAPZ(); \
 		SCANLINE_GET_INVZ(); \
 		if (dpR(iz)) { \
@@ -1150,24 +1082,21 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 	float mapZ;
 
 #define DRAW_PLACEPIXEL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		col = DoColorTint(color, texCol); \
 		SCANLINE_WRITE_PIXEL(col); \
 		dpW(iz); \
 	}
 
 #define DRAW_PLACEPIXEL_PAL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		col = DoColorTint(color, index[texCol]); \
 		SCANLINE_WRITE_PIXEL(col); \
 		dpW(iz); \
 	}
 
 #define DRAW_PLACEPIXEL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		col = DoColorTint(color, texCol); \
 		col = DoFogLighting(col, mapZ); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -1175,8 +1104,7 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		col = DoColorTint(color, index[texCol]); \
 		col = DoFogLighting(col, mapZ); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -1206,8 +1134,7 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 			SCANLINE_STEP_UV_BY(diff); \
 		} \
 		if (Graphics::UsePaletteIndexLines) \
-			index = &Graphics::PaletteColors[Graphics:: \
-					PaletteIndexLines[dst_y]][0]; \
+			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		else \
 			index = &Graphics::PaletteColors[0][0]; \
 		DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
@@ -1218,13 +1145,11 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONPERSP);
@@ -1309,8 +1234,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 	float mapZ;
 
 #define DRAW_PLACEPIXEL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, texCol); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -1318,8 +1242,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, index[texCol]); \
 		SCANLINE_WRITE_PIXEL(col); \
@@ -1327,8 +1250,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) & \
-		0xFF000000U) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) & 0xFF000000U) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, texCol); \
 		col = DoFogLighting(col, mapZ); \
@@ -1337,8 +1259,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 	}
 
 #define DRAW_PLACEPIXEL_PAL_FOG(dpW) \
-	if ((texCol = srcPx[(texV * srcStride) + texU]) && \
-		(index[texCol] & 0xFF000000U)) { \
+	if ((texCol = srcPx[(texV * srcStride) + texU]) && (index[texCol] & 0xFF000000U)) { \
 		SCANLINE_GET_COLOR(); \
 		col = DoColorTint(col, index[texCol]); \
 		col = DoFogLighting(col, mapZ); \
@@ -1372,8 +1293,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 			SCANLINE_STEP_UV_BY(diff); \
 		} \
 		if (Graphics::UsePaletteIndexLines) \
-			index = &Graphics::PaletteColors[Graphics:: \
-					PaletteIndexLines[dst_y]][0]; \
+			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		else \
 			index = &Graphics::PaletteColors[0][0]; \
 		DO_PERSP_MAPPING(placePixelMacro, dpR, dpW); \
@@ -1384,13 +1304,11 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDPERSP);
@@ -1485,11 +1403,9 @@ void PolygonRasterizer::DrawDepth(Vector3* positions,
 		} \
 		SCANLINE_INIT_Z(); \
 		if (contour.MapLeft < contour.MinX) { \
-			SCANLINE_STEP_Z_BY( \
-				contour.MinX - contour.MapLeft); \
+			SCANLINE_STEP_Z_BY(contour.MinX - contour.MapLeft); \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			pixelRead(); \
 			SCANLINE_STEP_Z(); \
 		} \
@@ -1500,17 +1416,14 @@ void PolygonRasterizer::DrawDepth(Vector3* positions,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONDEPTH, PX_GET_FOG);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET_FOG);
 	}
 	else {
 		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONDEPTH, PX_GET);
@@ -1617,8 +1530,7 @@ void PolygonRasterizer::DrawBlendDepth(Vector3* positions,
 			SCANLINE_STEP_Z_BY(diff); \
 			SCANLINE_STEP_RGB_BY(diff); \
 		} \
-		for (int dst_x = contour.MinX; dst_x < contour.MaxX; \
-			dst_x++) { \
+		for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 			pixelRead(); \
 			SCANLINE_STEP_Z(); \
 			SCANLINE_STEP_RGB(); \
@@ -1630,21 +1542,17 @@ void PolygonRasterizer::DrawBlendDepth(Vector3* positions,
 		SoftwareRenderer::SetTintFunction(blendFlag);
 	}
 
-	PixelFunction pixelFunction =
-		SoftwareRenderer::GetPixelFunction(blendFlag);
+	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt =
-		&SoftwareRenderer::MultSubTable[opacity << 8];
+	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONBLENDDEPTH, PX_GET_FOG);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET_FOG);
 	}
 	else {
-		POLYGON_BLENDFLAGS_SOLID(
-			DRAW_POLYGONBLENDDEPTH, PX_GET);
+		POLYGON_BLENDFLAGS_SOLID(DRAW_POLYGONBLENDDEPTH, PX_GET);
 	}
 
 #undef PX_GET
@@ -1659,12 +1567,12 @@ void PolygonRasterizer::SetDepthTest(bool enabled) {
 		return;
 	}
 
-	size_t dpSize = Graphics::CurrentRenderTarget->Width *
-		Graphics::CurrentRenderTarget->Height;
+	size_t dpSize =
+		Graphics::CurrentRenderTarget->Width * Graphics::CurrentRenderTarget->Height;
 	if (DepthBuffer == NULL || dpSize > DepthBufferSize) {
 		DepthBufferSize = dpSize;
-		DepthBuffer = (Uint32*)Memory::Realloc(DepthBuffer,
-			DepthBufferSize * sizeof(*DepthBuffer));
+		DepthBuffer = (Uint32*)Memory::Realloc(
+			DepthBuffer, DepthBufferSize * sizeof(*DepthBuffer));
 	}
 
 	memset(DepthBuffer, 0xFF, dpSize * sizeof(*DepthBuffer));

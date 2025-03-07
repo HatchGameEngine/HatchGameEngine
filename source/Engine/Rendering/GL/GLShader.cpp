@@ -4,40 +4,33 @@
 
 #include <Engine/Diagnostics/Log.h>
 
-GLShader::GLShader(std::string vertexShaderSource,
-	std::string fragmentShaderSource) {
+GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
 	GLint compiled = GL_FALSE;
 	ProgramID = glCreateProgram();
 
 	const char* vertexShaderSourceStr = vertexShaderSource.c_str();
 
 	VertexProgramID = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(
-		VertexProgramID, 1, &vertexShaderSourceStr, NULL);
+	glShaderSource(VertexProgramID, 1, &vertexShaderSourceStr, NULL);
 	glCompileShader(VertexProgramID);
 	CHECK_GL();
 	glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
 	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to compile vertex shader %d!",
-			VertexProgramID);
+		Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
 		CheckShaderError(VertexProgramID);
 		return;
 	}
 
-	const char* fragmentShaderSourceStr =
-		fragmentShaderSource.c_str();
+	const char* fragmentShaderSourceStr = fragmentShaderSource.c_str();
 
 	FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(
-		FragmentProgramID, 1, &fragmentShaderSourceStr, NULL);
+	glShaderSource(FragmentProgramID, 1, &fragmentShaderSourceStr, NULL);
 	glCompileShader(FragmentProgramID);
 	CHECK_GL();
 	glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
 	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to compile fragment shader %d!",
-			FragmentProgramID);
+		Log::Print(
+			Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
 		CheckShaderError(FragmentProgramID);
 		return;
 	}
@@ -77,9 +70,7 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 	CHECK_GL();
 	glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
 	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to compile vertex shader %d!",
-			VertexProgramID);
+		Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
 		CheckShaderError(VertexProgramID);
 
 		glDeleteProgram(ProgramID);
@@ -99,9 +90,8 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 	CHECK_GL();
 	glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
 	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to compile fragment shader %d!",
-			FragmentProgramID);
+		Log::Print(
+			Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
 		CheckShaderError(FragmentProgramID);
 
 		glDeleteProgram(ProgramID);
@@ -161,8 +151,8 @@ void GLShader::AttachAndLink() {
 	LocFogDensity = GetUniformLocation("u_fogDensity");
 	LocFogTable = GetUniformLocation("u_fogTable");
 
-	CachedBlendColors[0] = CachedBlendColors[1] =
-		CachedBlendColors[2] = CachedBlendColors[3] = 0.0;
+	CachedBlendColors[0] = CachedBlendColors[1] = CachedBlendColors[2] = CachedBlendColors[3] =
+		0.0;
 }
 
 bool GLShader::CheckShaderError(GLuint shader) {
@@ -294,10 +284,7 @@ bool GLShader::CheckGLError(int line) {
 		errstr = "unknown error";
 		break;
 	}
-	Log::Print(Log::LOG_ERROR,
-		"OpenGL error on line %d: %s",
-		line,
-		errstr);
+	Log::Print(Log::LOG_ERROR, "OpenGL error on line %d: %s", line, errstr);
 	return true;
 }
 #undef CHECK_GL

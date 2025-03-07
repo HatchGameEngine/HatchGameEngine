@@ -73,8 +73,7 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::PixelOffset = 0.0f;
 
 	Graphics::Internal.Init = SDL2Renderer::Init;
-	Graphics::Internal.GetWindowFlags =
-		SDL2Renderer::GetWindowFlags;
+	Graphics::Internal.GetWindowFlags = SDL2Renderer::GetWindowFlags;
 	Graphics::Internal.SetVSync = SDL2Renderer::SetVSync;
 	Graphics::Internal.Dispose = SDL2Renderer::Dispose;
 
@@ -82,35 +81,25 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.CreateTexture = SDL2Renderer::CreateTexture;
 	Graphics::Internal.LockTexture = SDL2Renderer::LockTexture;
 	Graphics::Internal.UpdateTexture = SDL2Renderer::UpdateTexture;
-	Graphics::Internal.UpdateYUVTexture =
-		SDL2Renderer::UpdateTextureYUV;
+	Graphics::Internal.UpdateYUVTexture = SDL2Renderer::UpdateTextureYUV;
 	Graphics::Internal.UnlockTexture = SDL2Renderer::UnlockTexture;
-	Graphics::Internal.DisposeTexture =
-		SDL2Renderer::DisposeTexture;
+	Graphics::Internal.DisposeTexture = SDL2Renderer::DisposeTexture;
 
 	// Viewport and view-related functions
-	Graphics::Internal.SetRenderTarget =
-		SDL2Renderer::SetRenderTarget;
-	Graphics::Internal.UpdateWindowSize =
-		SDL2Renderer::UpdateWindowSize;
-	Graphics::Internal.UpdateViewport =
-		SDL2Renderer::UpdateViewport;
-	Graphics::Internal.UpdateClipRect =
-		SDL2Renderer::UpdateClipRect;
+	Graphics::Internal.SetRenderTarget = SDL2Renderer::SetRenderTarget;
+	Graphics::Internal.UpdateWindowSize = SDL2Renderer::UpdateWindowSize;
+	Graphics::Internal.UpdateViewport = SDL2Renderer::UpdateViewport;
+	Graphics::Internal.UpdateClipRect = SDL2Renderer::UpdateClipRect;
 	Graphics::Internal.UpdateOrtho = SDL2Renderer::UpdateOrtho;
-	Graphics::Internal.UpdatePerspective =
-		SDL2Renderer::UpdatePerspective;
-	Graphics::Internal.UpdateProjectionMatrix =
-		SDL2Renderer::UpdateProjectionMatrix;
-	Graphics::Internal.MakePerspectiveMatrix =
-		SDL2Renderer::MakePerspectiveMatrix;
+	Graphics::Internal.UpdatePerspective = SDL2Renderer::UpdatePerspective;
+	Graphics::Internal.UpdateProjectionMatrix = SDL2Renderer::UpdateProjectionMatrix;
+	Graphics::Internal.MakePerspectiveMatrix = SDL2Renderer::MakePerspectiveMatrix;
 
 	// Shader-related functions
 	Graphics::Internal.UseShader = SDL2Renderer::UseShader;
 	Graphics::Internal.SetUniformF = SDL2Renderer::SetUniformF;
 	Graphics::Internal.SetUniformI = SDL2Renderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture =
-		SDL2Renderer::SetUniformTexture;
+	Graphics::Internal.SetUniformTexture = SDL2Renderer::SetUniformTexture;
 
 	// These guys
 	Graphics::Internal.Clear = SDL2Renderer::Clear;
@@ -121,16 +110,14 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.SetBlendMode = SDL2Renderer::SetBlendMode;
 	Graphics::Internal.SetTintColor = SDL2Renderer::SetTintColor;
 	Graphics::Internal.SetTintMode = SDL2Renderer::SetTintMode;
-	Graphics::Internal.SetTintEnabled =
-		SDL2Renderer::SetTintEnabled;
+	Graphics::Internal.SetTintEnabled = SDL2Renderer::SetTintEnabled;
 	Graphics::Internal.SetLineWidth = SDL2Renderer::SetLineWidth;
 
 	// Primitive drawing functions
 	Graphics::Internal.StrokeLine = SDL2Renderer::StrokeLine;
 	Graphics::Internal.StrokeCircle = SDL2Renderer::StrokeCircle;
 	Graphics::Internal.StrokeEllipse = SDL2Renderer::StrokeEllipse;
-	Graphics::Internal.StrokeRectangle =
-		SDL2Renderer::StrokeRectangle;
+	Graphics::Internal.StrokeRectangle = SDL2Renderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = SDL2Renderer::FillCircle;
 	Graphics::Internal.FillEllipse = SDL2Renderer::FillEllipse;
 	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
@@ -139,29 +126,22 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
 	Graphics::Internal.DrawSprite = SDL2Renderer::DrawSprite;
-	Graphics::Internal.DrawSpritePart =
-		SDL2Renderer::DrawSpritePart;
+	Graphics::Internal.DrawSpritePart = SDL2Renderer::DrawSpritePart;
 
-	Graphics::Internal.MakeFrameBufferID =
-		SDL2Renderer::MakeFrameBufferID;
+	Graphics::Internal.MakeFrameBufferID = SDL2Renderer::MakeFrameBufferID;
 }
 void SDL2Renderer::Dispose() {
 	SDL_DestroyRenderer(Renderer);
 }
 
 // Texture management functions
-Texture* SDL2Renderer::CreateTexture(Uint32 format,
-	Uint32 access,
-	Uint32 width,
-	Uint32 height) {
+Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
-	texture->DriverData = Memory::TrackedCalloc(
-		"Texture::DriverData", 1, sizeof(SDL_Texture*));
+	texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
 
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 
-	*textureData = SDL_CreateTexture(
-		Renderer, format, access, width, height);
+	*textureData = SDL_CreateTexture(Renderer, format, access, width, height);
 	SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
 
 	FindTextureID(texture);
@@ -169,15 +149,10 @@ Texture* SDL2Renderer::CreateTexture(Uint32 format,
 
 	return texture;
 }
-int SDL2Renderer::LockTexture(Texture* texture,
-	void** pixels,
-	int* pitch) {
+int SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
-int SDL2Renderer::UpdateTexture(Texture* texture,
-	SDL_Rect* src,
-	void* pixels,
-	int pitch) {
+int SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
 	return SDL_UpdateTexture(textureData, src, pixels, pitch);
 }
@@ -193,8 +168,7 @@ int SDL2Renderer::UpdateTextureYUV(Texture* texture,
 	// *(SDL_Texture**)texture->DriverData;
 	return 0;
 }
-void SDL2Renderer::UnlockTexture(Texture* texture) {
-}
+void SDL2Renderer::UnlockTexture(Texture* texture) {}
 void SDL2Renderer::DisposeTexture(Texture* texture) {
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 	if (!textureData) {
@@ -216,8 +190,7 @@ void SDL2Renderer::SetRenderTarget(Texture* texture) {
 		SDL_SetRenderTarget(Renderer, NULL);
 	}
 	else {
-		SDL_SetRenderTarget(
-			Renderer, *(SDL_Texture**)texture->DriverData);
+		SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
 	}
 }
 void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
@@ -229,9 +202,7 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 		&r,
 		Graphics::PreferredPixelFormat,
 		pixels,
-		width *
-			SDL_BYTESPERPIXEL(
-				Graphics::PreferredPixelFormat));
+		width * SDL_BYTESPERPIXEL(Graphics::PreferredPixelFormat));
 }
 void SDL2Renderer::UpdateWindowSize(int width, int height) {
 	SDL2Renderer::UpdateViewport();
@@ -263,18 +234,9 @@ void SDL2Renderer::UpdateClipRect() {
 		SDL_RenderSetClipRect(Renderer, NULL);
 	}
 }
-void SDL2Renderer::UpdateOrtho(float left,
-	float top,
-	float right,
-	float bottom) {
-}
-void SDL2Renderer::UpdatePerspective(float fovy,
-	float aspect,
-	float nearv,
-	float farv) {
-}
-void SDL2Renderer::UpdateProjectionMatrix() {
-}
+void SDL2Renderer::UpdateOrtho(float left, float top, float right, float bottom) {}
+void SDL2Renderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {}
+void SDL2Renderer::UpdateProjectionMatrix() {}
 void SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float fov,
 	float near,
@@ -291,18 +253,10 @@ void SDL2Renderer::GetMetalSize(int* width, int* height) {
 }
 
 // Shader-related functions
-void SDL2Renderer::UseShader(void* shader) {
-}
-void SDL2Renderer::SetUniformF(int location,
-	int count,
-	float* values) {
-}
-void SDL2Renderer::SetUniformI(int location, int count, int* values) {
-}
-void SDL2Renderer::SetUniformTexture(Texture* texture,
-	int uniform_index,
-	int slot) {
-}
+void SDL2Renderer::UseShader(void* shader) {}
+void SDL2Renderer::SetUniformF(int location, int count, float* values) {}
+void SDL2Renderer::SetUniformI(int location, int count, int* values) {}
+void SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void SDL2Renderer::Clear() {
@@ -323,16 +277,9 @@ void SDL2Renderer::Present() {
 
 // Draw mode setting functions
 void SDL2Renderer::SetBlendColor(float r, float g, float b, float a) {
-	SDL_SetRenderDrawColor(Renderer,
-		r / 255.0f,
-		g / 255.0f,
-		b / 255.0f,
-		a / 255.0f);
+	SDL_SetRenderDrawColor(Renderer, r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
-SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC,
-	int dstC,
-	int srcA,
-	int dstA) {
+SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA) {
 	SDL_BlendFactor blendFactorToSDL[] = {
 		SDL_BLENDFACTOR_ZERO,
 		SDL_BLENDFACTOR_ONE,
@@ -353,14 +300,9 @@ SDL_BlendMode SDL2Renderer::GetCustomBlendMode(int srcC,
 		blendFactorToSDL[srcA],
 		SDL_BLENDOPERATION_ADD);
 }
-void SDL2Renderer::SetBlendMode(int srcC,
-	int dstC,
-	int srcA,
-	int dstA) {
-	SDL_BlendMode customBlendMode =
-		GetCustomBlendMode(srcC, dstC, srcA, dstA);
-	if (SDL_SetRenderDrawBlendMode(Renderer, customBlendMode) ==
-		0) {
+void SDL2Renderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
+	SDL_BlendMode customBlendMode = GetCustomBlendMode(srcC, dstC, srcA, dstA);
+	if (SDL_SetRenderDrawBlendMode(Renderer, customBlendMode) == 0) {
 		return;
 	}
 
@@ -368,55 +310,29 @@ void SDL2Renderer::SetBlendMode(int srcC,
 	// match
 	switch (Graphics::BlendMode) {
 	case BlendMode_NORMAL:
-		SDL_SetRenderDrawBlendMode(
-			Renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_BLEND);
 		break;
 	case BlendMode_ADD:
-		SDL_SetRenderDrawBlendMode(
-			Renderer, SDL_BLENDMODE_ADD);
+		SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_ADD);
 		break;
 	default:
-		SDL_SetRenderDrawBlendMode(
-			Renderer, SDL_BLENDMODE_NONE);
+		SDL_SetRenderDrawBlendMode(Renderer, SDL_BLENDMODE_NONE);
 	}
 }
-void SDL2Renderer::SetTintColor(float r, float g, float b, float a) {
-}
-void SDL2Renderer::SetTintMode(int mode) {
-}
-void SDL2Renderer::SetTintEnabled(bool enabled) {
-}
-void SDL2Renderer::SetLineWidth(float n) {
-}
+void SDL2Renderer::SetTintColor(float r, float g, float b, float a) {}
+void SDL2Renderer::SetTintMode(int mode) {}
+void SDL2Renderer::SetTintEnabled(bool enabled) {}
+void SDL2Renderer::SetLineWidth(float n) {}
 
 // Primitive drawing functions
-void SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {
-}
-void SDL2Renderer::StrokeCircle(float x,
-	float y,
-	float rad,
-	float thickness) {
-}
-void SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {
-}
-void SDL2Renderer::StrokeRectangle(float x,
-	float y,
-	float w,
-	float h) {
-}
-void SDL2Renderer::FillCircle(float x, float y, float rad) {
-}
-void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {
-}
-void SDL2Renderer::FillTriangle(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3) {
-}
-void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {
-}
+void SDL2Renderer::StrokeLine(float x1, float y1, float x2, float y2) {}
+void SDL2Renderer::StrokeCircle(float x, float y, float rad, float thickness) {}
+void SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {}
+void SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {}
+void SDL2Renderer::FillCircle(float x, float y, float rad) {}
+void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {}
+void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
+void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {}
 // Texture drawing functions
 void SDL2Renderer::DrawTexture(Texture* texture,
 	float sx,
@@ -453,13 +369,7 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 		dst.h = -dst.h;
 		flip |= SDL_FLIP_VERTICAL;
 	}
-	SDL_RenderCopyEx(Renderer,
-		*textureData,
-		&src,
-		&dst,
-		0.0,
-		NULL,
-		(SDL_RendererFlip)flip);
+	SDL_RenderCopyEx(Renderer, *textureData, &src, &dst, 0.0, NULL, (SDL_RendererFlip)flip);
 }
 void SDL2Renderer::DrawSprite(ISprite* sprite,
 	int animation,
@@ -476,15 +386,13 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 		return;
 	}
 
-	AnimFrame animframe =
-		sprite->Animations[animation].Frames[frame];
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	float fX = flipX ? -1.0 : 1.0;
 	float fY = flipY ? -1.0 : 1.0;
 	float sw = animframe.Width;
 	float sh = animframe.Height;
 
-	SDL2Renderer::DrawTexture(
-		sprite->Spritesheets[animframe.SheetNumber],
+	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X,
 		animframe.Y,
 		sw,
@@ -513,8 +421,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		return;
 	}
 
-	AnimFrame animframe =
-		sprite->Animations[animation].Frames[frame];
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	if (sx == animframe.Width) {
 		return;
 	}
@@ -531,8 +438,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
-	SDL2Renderer::DrawTexture(
-		sprite->Spritesheets[animframe.SheetNumber],
+	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,

@@ -43,10 +43,8 @@ void InputPlayer::ResetBinds() {
 	for (size_t i = 0; i < DefaultBinds.size(); i++) {
 		Binds[i].Clear();
 
-		for (size_t j = 0; j < DefaultBinds[i].Binds.size();
-			j++) {
-			InputBind* clone =
-				DefaultBinds[i].Binds[j]->Clone();
+		for (size_t j = 0; j < DefaultBinds[i].Binds.size(); j++) {
+			InputBind* clone = DefaultBinds[i].Binds[j]->Clone();
 			Binds[i].Binds.push_back(clone);
 		}
 	}
@@ -67,8 +65,7 @@ void InputPlayer::Update() {
 
 	// Check if inputs are down
 	for (unsigned s = 0; s < (unsigned)InputDevice_MAX; s++) {
-		Status[s].NumHeld = Status[s].NumPressed =
-			Status[s].NumReleased = 0;
+		Status[s].NumHeld = Status[s].NumPressed = Status[s].NumReleased = 0;
 
 		for (size_t i = 0; i < Binds.size(); i++) {
 			bool isHeld = CheckIfInputHeld(i, s);
@@ -81,10 +78,8 @@ void InputPlayer::Update() {
 					state = INPUT_STATE_PRESSED;
 					NumPressed[i]++;
 				}
-				if (AllStatus.State[i] !=
-					INPUT_STATE_HELD) {
-					AllStatus.State[i] =
-						INPUT_STATE_PRESSED;
+				if (AllStatus.State[i] != INPUT_STATE_HELD) {
+					AllStatus.State[i] = INPUT_STATE_PRESSED;
 				}
 
 				Status[s].NumPressed++;
@@ -92,8 +87,7 @@ void InputPlayer::Update() {
 				AnyPressed = true;
 			}
 			else if (isHeld) {
-				state = AllStatus.State[i] =
-					INPUT_STATE_HELD;
+				state = AllStatus.State[i] = INPUT_STATE_HELD;
 				Status[s].NumHeld++;
 
 				NumHeld[i]++;
@@ -130,12 +124,9 @@ void InputPlayer::Update() {
 		for (size_t i = 0; i < Binds.size(); i++) {
 			Uint8& state = Status[s].State[i];
 
-			if (state == INPUT_STATE_PRESSED ||
-				state == INPUT_STATE_HELD) {
-				if (NumPressed[i] == 0 &&
-					NumHeld[i] == 0) {
-					state = AllStatus.State[i] =
-						INPUT_STATE_RELEASED;
+			if (state == INPUT_STATE_PRESSED || state == INPUT_STATE_HELD) {
+				if (NumPressed[i] == 0 && NumHeld[i] == 0) {
+					state = AllStatus.State[i] = INPUT_STATE_RELEASED;
 					Status[s].NumReleased++;
 
 					NumReleased[i]++;
@@ -144,23 +135,19 @@ void InputPlayer::Update() {
 				}
 			}
 			else if (state == INPUT_STATE_RELEASED) {
-				state = AllStatus.State[i] =
-					INPUT_STATE_UNPUSHED;
+				state = AllStatus.State[i] = INPUT_STATE_UNPUSHED;
 			}
 		}
 	}
 }
 
-size_t InputPlayer::PushBindToList(PlayerInputConfig& config,
-	InputBind* def) {
+size_t InputPlayer::PushBindToList(PlayerInputConfig& config, InputBind* def) {
 	config.Binds.push_back(def);
 
 	return config.Binds.size() - 1;
 }
 
-bool InputPlayer::ReplaceBindInList(PlayerInputConfig& config,
-	InputBind* def,
-	unsigned index) {
+bool InputPlayer::ReplaceBindInList(PlayerInputConfig& config, InputBind* def, unsigned index) {
 	if (index >= 0 && index < config.Binds.size()) {
 		if (config.Binds[index]) {
 			delete config.Binds[index];
@@ -172,8 +159,7 @@ bool InputPlayer::ReplaceBindInList(PlayerInputConfig& config,
 	return false;
 }
 
-bool InputPlayer::RemoveBindFromList(PlayerInputConfig& config,
-	unsigned index) {
+bool InputPlayer::RemoveBindFromList(PlayerInputConfig& config, unsigned index) {
 	if (index >= 0 && index < config.Binds.size()) {
 		config.Binds.erase(config.Binds.begin() + index);
 		return true;
@@ -190,9 +176,7 @@ int InputPlayer::AddBind(unsigned num, InputBind* bind) {
 	return -1;
 }
 
-bool InputPlayer::ReplaceBind(unsigned num,
-	InputBind* bind,
-	unsigned index) {
+bool InputPlayer::ReplaceBind(unsigned num, InputBind* bind, unsigned index) {
 	if (num < Binds.size()) {
 		return ReplaceBindInList(Binds[num], bind, index);
 	}
@@ -206,8 +190,7 @@ bool InputPlayer::RemoveBind(unsigned num, unsigned index) {
 	return false;
 }
 
-InputBind* InputPlayer::GetBindAtIndex(PlayerInputConfig& config,
-	unsigned index) {
+InputBind* InputPlayer::GetBindAtIndex(PlayerInputConfig& config, unsigned index) {
 	if (config.Binds.size() > 0 && index < config.Binds.size()) {
 		return config.Binds[index];
 	}
@@ -243,16 +226,13 @@ int InputPlayer::AddDefaultBind(unsigned num, InputBind* bind) {
 	return -1;
 }
 
-void InputPlayer::CopyDefaultBinds(InputPlayer& src,
-	bool filter,
-	int filterType) {
+void InputPlayer::CopyDefaultBinds(InputPlayer& src, bool filter, int filterType) {
 	for (size_t i = 0; i < src.Binds.size(); i++) {
 		PlayerInputConfig& config = src.Binds[i];
 		for (size_t j = 0; j < config.Binds.size(); j++) {
 			InputBind* def = config.Binds[j];
 			if (!filter || (def->Type == filterType)) {
-				PushBindToList(
-					DefaultBinds[i], def->Clone());
+				PushBindToList(DefaultBinds[i], def->Clone());
 			}
 		}
 	}
@@ -266,12 +246,9 @@ void InputPlayer::CopyDefaultBinds(InputPlayer& src, int filterType) {
 	CopyDefaultBinds(src, true, filterType);
 }
 
-bool InputPlayer::ReplaceDefaultBind(unsigned num,
-	InputBind* bind,
-	unsigned index) {
+bool InputPlayer::ReplaceDefaultBind(unsigned num, InputBind* bind, unsigned index) {
 	if (num < DefaultBinds.size()) {
-		return ReplaceBindInList(
-			DefaultBinds[num], bind, index);
+		return ReplaceBindInList(DefaultBinds[num], bind, index);
 	}
 	return false;
 }
@@ -319,8 +296,7 @@ void InputPlayer::ClearDefaultBinds(unsigned num) {
 	}
 }
 
-void InputPlayer::ResetBindList(PlayerInputConfig& dest,
-	PlayerInputConfig& src) {
+void InputPlayer::ResetBindList(PlayerInputConfig& dest, PlayerInputConfig& src) {
 	dest.Binds.clear();
 
 	for (size_t i = 0; i < src.Binds.size(); i++) {
@@ -336,12 +312,10 @@ void InputPlayer::ResetBind(unsigned num) {
 
 bool InputPlayer::CheckInputBindState(InputBind* bind, bool held) {
 	if (bind->IsDefined() && bind->Type == INPUT_BIND_KEYBOARD) {
-		KeyboardBind* keyBind =
-			static_cast<KeyboardBind*>(bind);
+		KeyboardBind* keyBind = static_cast<KeyboardBind*>(bind);
 
 		if (keyBind->Modifiers != 0) {
-			if (!InputManager::CheckKeyModifiers(
-				    keyBind->Modifiers)) {
+			if (!InputManager::CheckKeyModifiers(keyBind->Modifiers)) {
 				return false;
 			}
 		}
@@ -350,60 +324,49 @@ bool InputPlayer::CheckInputBindState(InputBind* bind, bool held) {
 			return InputManager::IsKeyDown(keyBind->Key);
 		}
 		else {
-			return InputManager::IsKeyPressed(
-				keyBind->Key);
+			return InputManager::IsKeyPressed(keyBind->Key);
 		}
 	}
 
 	return false;
 }
 
-bool InputPlayer::CheckIfInputHeld(unsigned actionID,
-	unsigned device) {
+bool InputPlayer::CheckIfInputHeld(unsigned actionID, unsigned device) {
 	if (actionID >= InputManager::Actions.size()) {
 		return false;
 	}
 
-	if (device == InputDevice_Keyboard &&
-		actionID < Binds.size()) {
-		for (size_t i = 0; i < Binds[actionID].Binds.size();
-			i++) {
+	if (device == InputDevice_Keyboard && actionID < Binds.size()) {
+		for (size_t i = 0; i < Binds[actionID].Binds.size(); i++) {
 			InputBind* bind = Binds[actionID].Binds[i];
 			if (CheckInputBindState(bind, true)) {
-				IsUsingDevice[InputDevice_Keyboard] =
-					true;
+				IsUsingDevice[InputDevice_Keyboard] = true;
 				return true;
 			}
 		}
 	}
-	else if (device == InputDevice_Controller &&
-		IsControllerBindHeld(actionID)) {
+	else if (device == InputDevice_Controller && IsControllerBindHeld(actionID)) {
 		IsUsingDevice[InputDevice_Controller] = true;
 		return true;
 	}
 
 	return false;
 }
-bool InputPlayer::CheckIfInputPressed(unsigned actionID,
-	unsigned device) {
+bool InputPlayer::CheckIfInputPressed(unsigned actionID, unsigned device) {
 	if (actionID >= InputManager::Actions.size()) {
 		return false;
 	}
 
-	if (device == InputDevice_Keyboard &&
-		actionID < Binds.size()) {
-		for (size_t i = 0; i < Binds[actionID].Binds.size();
-			i++) {
+	if (device == InputDevice_Keyboard && actionID < Binds.size()) {
+		for (size_t i = 0; i < Binds[actionID].Binds.size(); i++) {
 			InputBind* bind = Binds[actionID].Binds[i];
 			if (CheckInputBindState(bind, false)) {
-				IsUsingDevice[InputDevice_Keyboard] =
-					true;
+				IsUsingDevice[InputDevice_Keyboard] = true;
 				return true;
 			}
 		}
 	}
-	else if (device == InputDevice_Controller &&
-		IsControllerBindPressed(actionID)) {
+	else if (device == InputDevice_Controller && IsControllerBindPressed(actionID)) {
 		IsUsingDevice[InputDevice_Controller] = true;
 		return true;
 	}
@@ -412,26 +375,22 @@ bool InputPlayer::CheckIfInputPressed(unsigned actionID,
 }
 
 bool InputPlayer::IsInputHeld(unsigned actionID, unsigned device) {
-	if (actionID >= InputManager::Actions.size() ||
-		device > InputDevice_Controller) {
+	if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller) {
 		return false;
 	}
 
 	Uint8 state = Status[device].State[actionID];
-	return state == INPUT_STATE_PRESSED ||
-		state == INPUT_STATE_HELD;
+	return state == INPUT_STATE_PRESSED || state == INPUT_STATE_HELD;
 }
 bool InputPlayer::IsInputPressed(unsigned actionID, unsigned device) {
-	if (actionID >= InputManager::Actions.size() ||
-		device > InputDevice_Controller) {
+	if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller) {
 		return false;
 	}
 
 	return Status[device].State[actionID] == INPUT_STATE_PRESSED;
 }
 bool InputPlayer::IsInputReleased(unsigned actionID, unsigned device) {
-	if (actionID >= InputManager::Actions.size() ||
-		device > InputDevice_Controller) {
+	if (actionID >= InputManager::Actions.size() || device > InputDevice_Controller) {
 		return false;
 	}
 
@@ -465,8 +424,7 @@ bool InputPlayer::IsInputHeld(unsigned actionID) {
 	}
 
 	Uint8 state = AllStatus.State[actionID];
-	return state == INPUT_STATE_PRESSED ||
-		state == INPUT_STATE_HELD;
+	return state == INPUT_STATE_PRESSED || state == INPUT_STATE_HELD;
 }
 bool InputPlayer::IsInputPressed(unsigned actionID) {
 	if (actionID >= InputManager::Actions.size()) {
@@ -510,8 +468,7 @@ float InputPlayer::GetAnalogActionInput(unsigned actionID) {
 
 bool InputPlayer::IsControllerBindHeld(unsigned num) {
 	Uint8 state = ControllerState[num];
-	return state == INPUT_STATE_PRESSED ||
-		state == INPUT_STATE_HELD;
+	return state == INPUT_STATE_PRESSED || state == INPUT_STATE_HELD;
 }
 bool InputPlayer::IsControllerBindPressed(unsigned num) {
 	return ControllerState[num] == INPUT_STATE_PRESSED;
@@ -536,8 +493,7 @@ static float ApplyAxisDeadzone(float magnitude, float deadzone) {
 	return magnitude * scale;
 }
 
-static bool CheckControllerBindHeld(PlayerInputConfig& config,
-	Controller* controller) {
+static bool CheckControllerBindHeld(PlayerInputConfig& config, Controller* controller) {
 	if (controller == nullptr || !controller->Connected) {
 		return false;
 	}
@@ -549,36 +505,26 @@ static bool CheckControllerBindHeld(PlayerInputConfig& config,
 			continue;
 		}
 		else if (bind->Type == INPUT_BIND_CONTROLLER_AXIS) {
-			ControllerAxisBind* axisBind =
-				static_cast<ControllerAxisBind*>(bind);
+			ControllerAxisBind* axisBind = static_cast<ControllerAxisBind*>(bind);
 
-			float magnitude =
-				controller->GetAxis(axisBind->Axis);
+			float magnitude = controller->GetAxis(axisBind->Axis);
 			if (axisBind->AxisDeadzone != 0.0) {
-				magnitude = ApplyAxisDeadzone(
-					magnitude,
-					axisBind->AxisDeadzone);
+				magnitude = ApplyAxisDeadzone(magnitude, axisBind->AxisDeadzone);
 			}
 
 			if (axisBind->IsAxisNegative) {
-				if (magnitude <
-					-axisBind
-						->AxisDigitalThreshold) {
+				if (magnitude < -axisBind->AxisDigitalThreshold) {
 					return true;
 				}
 			}
-			else if (magnitude >
-				axisBind->AxisDigitalThreshold) {
+			else if (magnitude > axisBind->AxisDigitalThreshold) {
 				return true;
 			}
 		}
 		else if (bind->Type == INPUT_BIND_CONTROLLER_BUTTON) {
-			ControllerButtonBind* buttonBind =
-				static_cast<ControllerButtonBind*>(
-					bind);
+			ControllerButtonBind* buttonBind = static_cast<ControllerButtonBind*>(bind);
 
-			if (controller->IsButtonHeld(
-				    buttonBind->Button)) {
+			if (controller->IsButtonHeld(buttonBind->Button)) {
 				return true;
 			}
 		}
@@ -587,8 +533,7 @@ static bool CheckControllerBindHeld(PlayerInputConfig& config,
 	return false;
 }
 void InputPlayer::UpdateControllerBind(unsigned num) {
-	Controller* controller =
-		InputManager::GetController(ControllerIndex);
+	Controller* controller = InputManager::GetController(ControllerIndex);
 
 	if (CheckControllerBindHeld(Binds[num], controller)) {
 		if (ControllerState[num] == INPUT_STATE_RELEASED) {
@@ -606,14 +551,12 @@ void InputPlayer::UpdateControllerBind(unsigned num) {
 		ControllerState[num] = INPUT_STATE_UNPUSHED;
 	}
 }
-bool InputPlayer::GetAnalogControllerBind(unsigned num,
-	float& result) {
+bool InputPlayer::GetAnalogControllerBind(unsigned num, float& result) {
 	if (ControllerIndex == -1) {
 		return false;
 	}
 
-	Controller* controller =
-		InputManager::GetController(ControllerIndex);
+	Controller* controller = InputManager::GetController(ControllerIndex);
 	if (controller == nullptr || !controller->Connected) {
 		return false;
 	}
@@ -624,14 +567,11 @@ bool InputPlayer::GetAnalogControllerBind(unsigned num,
 			continue;
 		}
 		else if (bind->Type == INPUT_BIND_CONTROLLER_AXIS) {
-			ControllerAxisBind* axisBind =
-				static_cast<ControllerAxisBind*>(bind);
+			ControllerAxisBind* axisBind = static_cast<ControllerAxisBind*>(bind);
 
-			float magnitude =
-				controller->GetAxis(axisBind->Axis);
+			float magnitude = controller->GetAxis(axisBind->Axis);
 			if (axisBind->AxisDeadzone != 0.0) {
-				result = ApplyAxisDeadzone(magnitude,
-					axisBind->AxisDeadzone);
+				result = ApplyAxisDeadzone(magnitude, axisBind->AxisDeadzone);
 			}
 			else {
 				result = magnitude;
@@ -640,11 +580,8 @@ bool InputPlayer::GetAnalogControllerBind(unsigned num,
 			return true;
 		}
 		else if (bind->Type == INPUT_BIND_CONTROLLER_BUTTON) {
-			ControllerButtonBind* buttonBind =
-				static_cast<ControllerButtonBind*>(
-					bind);
-			if (controller->IsButtonHeld(
-				    buttonBind->Button)) {
+			ControllerButtonBind* buttonBind = static_cast<ControllerButtonBind*>(bind);
+			if (controller->IsButtonHeld(buttonBind->Button)) {
 				result = 1.0f;
 				return true;
 			}

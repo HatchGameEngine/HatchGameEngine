@@ -2,8 +2,7 @@
 #include <Engine/Hashing/Murmur.h>
 
 Uint32 Murmur::EncryptString(char* message) {
-	return Murmur::EncryptData(
-		message, strlen(message), 0xDEADBEEF);
+	return Murmur::EncryptData(message, strlen(message), 0xDEADBEEF);
 }
 Uint32 Murmur::EncryptString(const char* message) {
 	return Murmur::EncryptString((char*)message);

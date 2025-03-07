@@ -18,8 +18,7 @@ struct CurlData {
 	Uint8* Ptr;
 	size_t Length;
 };
-size_t
-CurlWriteFunction(void* ptr, size_t size, size_t n, CurlData* data) {
+size_t CurlWriteFunction(void* ptr, size_t size, size_t n, CurlData* data) {
 	size_t len = data->Length + size * n;
 
 	data->Ptr = (Uint8*)realloc(data->Ptr, len + 1);
@@ -57,8 +56,7 @@ CurlData* CurlGET(CURL* curl, const char* url) {
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 1024);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
-	curl_easy_setopt(
-		curl, CURLOPT_WRITEFUNCTION, CurlWriteFunction);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteFunction);
 
 	CURLcode res = curl_easy_perform(curl);
 	if (res != 0) {
@@ -108,10 +106,7 @@ int _GET_FromThread(void* op) {
 
 #endif
 
-bool HTTP::GET(const char* url,
-	Uint8** outBuf,
-	size_t* outLen,
-	ObjBoundMethod* callback) {
+bool HTTP::GET(const char* url, Uint8** outBuf, size_t* outLen, ObjBoundMethod* callback) {
 #ifdef USING_CURL
 
 	if (!curl) {
@@ -125,14 +120,12 @@ bool HTTP::GET(const char* url,
 		// NOTE: Mutex lock/unlock while using ScriptManager
 		// from other thread. if (callback->Function->Arity !=
 		// 1) ScriptManager::ThrowError
-		_GET_Bundle* bundle = (_GET_Bundle*)malloc(
-			sizeof(_GET_Bundle) + strlen(url) + 1);
+		_GET_Bundle* bundle = (_GET_Bundle*)malloc(sizeof(_GET_Bundle) + strlen(url) + 1);
 		bundle->URL = (char*)(bundle + 1);
 		bundle->Callback = *callback;
 		bundle->Callback.Object.Next = NULL;
 		strcpy(bundle->URL, url);
-		SDL_CreateThread(
-			_GET_FromThread, "_GET_FromThread", bundle);
+		SDL_CreateThread(_GET_FromThread, "_GET_FromThread", bundle);
 		return false;
 	}
 

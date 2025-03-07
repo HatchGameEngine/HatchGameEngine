@@ -3,19 +3,14 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Utilities/ColorUtils.h>
 
-Texture* Texture::New(Uint32 format,
-	Uint32 access,
-	Uint32 width,
-	Uint32 height) {
-	Texture* texture = (Texture*)Memory::TrackedCalloc(
-		"Texture::Texture", 1, sizeof(Texture));
+Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
 	texture->Format = format;
 	texture->Access = access;
 	texture->Width = width;
 	texture->Height = height;
-	texture->Pixels = Memory::TrackedCalloc("Texture::Pixels",
-		1,
-		sizeof(Uint32) * texture->Width * texture->Height);
+	texture->Pixels = Memory::TrackedCalloc(
+		"Texture::Pixels", 1, sizeof(Uint32) * texture->Width * texture->Height);
 	return texture;
 }
 
@@ -51,30 +46,22 @@ bool Texture::ConvertToRGBA() {
 
 	return true;
 }
-bool Texture::ConvertToPalette(Uint32* palColors,
-	unsigned numPaletteColors) {
+bool Texture::ConvertToPalette(Uint32* palColors, unsigned numPaletteColors) {
 	ConvertToRGBA();
 
 	Uint32* pixels = (Uint32*)Pixels;
 	int nearestColor;
 
-	ChainedHashMap<int>* colorsHash =
-		new ChainedHashMap<int>(NULL, 256);
+	ChainedHashMap<int>* colorsHash = new ChainedHashMap<int>(NULL, 256);
 
 	for (size_t i = 0; i < Width * Height; i++) {
 		Uint32 color = pixels[i];
 		if (color & 0xFF000000) {
-			if (!colorsHash->GetIfExists(
-				    color, &nearestColor)) {
+			if (!colorsHash->GetIfExists(color, &nearestColor)) {
 				Uint8 rgb[3];
 				ColorUtils::SeparateRGB(color, rgb);
-				nearestColor =
-					ColorUtils::NearestColor(
-						rgb[0],
-						rgb[1],
-						rgb[2],
-						palColors,
-						numPaletteColors);
+				nearestColor = ColorUtils::NearestColor(
+					rgb[0], rgb[1], rgb[2], palColors, numPaletteColors);
 				colorsHash->Put(color, nearestColor);
 			}
 

@@ -29,9 +29,7 @@ bool HatchModel::IsMagic(Stream* stream) {
 	return magic == HATCH_MODEL_MAGIC;
 }
 
-void HatchModel::ReadMaterialInfo(Stream* stream,
-	Uint8* destColors,
-	char** texName) {
+void HatchModel::ReadMaterialInfo(Stream* stream, Uint8* destColors, char** texName) {
 	*texName = stream->ReadString();
 
 	Uint32 colorIndex = stream->ReadUInt32();
@@ -41,8 +39,7 @@ void HatchModel::ReadMaterialInfo(Stream* stream,
 	ColorUtils::Separate(color, destColors);
 }
 
-Material* HatchModel::ReadMaterial(Stream* stream,
-	const char* parentDirectory) {
+Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) {
 	char* name = stream->ReadString();
 
 	Material* material = Material::Create(name);
@@ -54,19 +51,14 @@ Material* HatchModel::ReadMaterial(Stream* stream,
 		char* diffuseTexture;
 		Uint8 diffuseColor[4];
 
-		ReadMaterialInfo(
-			stream, diffuseColor, &diffuseTexture);
+		ReadMaterialInfo(stream, diffuseColor, &diffuseTexture);
 
-		ColorUtils::Separate(
-			material->ColorDiffuse, diffuseColor);
+		ColorUtils::Separate(material->ColorDiffuse, diffuseColor);
 
-		material->TextureDiffuse = Material::LoadForModel(
-			diffuseTexture, parentDirectory);
+		material->TextureDiffuse = Material::LoadForModel(diffuseTexture, parentDirectory);
 		if (material->TextureDiffuse) {
 			material->TextureDiffuseName =
-				StringUtils::Duplicate(
-					material->TextureDiffuse
-						->Filename);
+				StringUtils::Duplicate(material->TextureDiffuse->Filename);
 		}
 
 		Memory::Free(diffuseTexture);
@@ -77,19 +69,15 @@ Material* HatchModel::ReadMaterial(Stream* stream,
 		char* specularTexture;
 		Uint8 specularColor[4];
 
-		ReadMaterialInfo(
-			stream, specularColor, &specularTexture);
+		ReadMaterialInfo(stream, specularColor, &specularTexture);
 
-		ColorUtils::Separate(
-			material->ColorSpecular, specularColor);
+		ColorUtils::Separate(material->ColorSpecular, specularColor);
 
-		material->TextureSpecular = Material::LoadForModel(
-			specularTexture, parentDirectory);
+		material->TextureSpecular =
+			Material::LoadForModel(specularTexture, parentDirectory);
 		if (material->TextureSpecular) {
 			material->TextureSpecularName =
-				StringUtils::Duplicate(
-					material->TextureSpecular
-						->Filename);
+				StringUtils::Duplicate(material->TextureSpecular->Filename);
 		}
 
 		Memory::Free(specularTexture);
@@ -100,19 +88,14 @@ Material* HatchModel::ReadMaterial(Stream* stream,
 		char* ambientTexture;
 		Uint8 ambientColor[4];
 
-		ReadMaterialInfo(
-			stream, ambientColor, &ambientTexture);
+		ReadMaterialInfo(stream, ambientColor, &ambientTexture);
 
-		ColorUtils::Separate(
-			material->ColorAmbient, ambientColor);
+		ColorUtils::Separate(material->ColorAmbient, ambientColor);
 
-		material->TextureAmbient = Material::LoadForModel(
-			ambientTexture, parentDirectory);
+		material->TextureAmbient = Material::LoadForModel(ambientTexture, parentDirectory);
 		if (material->TextureAmbient) {
 			material->TextureAmbientName =
-				StringUtils::Duplicate(
-					material->TextureAmbient
-						->Filename);
+				StringUtils::Duplicate(material->TextureAmbient->Filename);
 		}
 
 		Memory::Free(ambientTexture);
@@ -123,19 +106,15 @@ Material* HatchModel::ReadMaterial(Stream* stream,
 		char* emissiveTexture;
 		Uint8 emissiveColor[4];
 
-		ReadMaterialInfo(
-			stream, emissiveColor, &emissiveTexture);
+		ReadMaterialInfo(stream, emissiveColor, &emissiveTexture);
 
-		ColorUtils::Separate(
-			material->ColorEmissive, emissiveColor);
+		ColorUtils::Separate(material->ColorEmissive, emissiveColor);
 
-		material->TextureEmissive = Material::LoadForModel(
-			emissiveTexture, parentDirectory);
+		material->TextureEmissive =
+			Material::LoadForModel(emissiveTexture, parentDirectory);
 		if (material->TextureEmissive) {
 			material->TextureEmissiveName =
-				StringUtils::Duplicate(
-					material->TextureEmissive
-						->Filename);
+				StringUtils::Duplicate(material->TextureEmissive->Filename);
 		}
 
 		Memory::Free(emissiveTexture);
@@ -164,8 +143,7 @@ void HatchModel::ReadVertexStore(Stream* stream) {
 		return;
 	}
 
-	VertexStore = (Vector3*)Memory::Malloc(
-		NumVertexStore * sizeof(Vector3));
+	VertexStore = (Vector3*)Memory::Malloc(NumVertexStore * sizeof(Vector3));
 
 	Vector3* vert = VertexStore;
 	for (Uint32 i = 0; i < NumVertexStore; i++) {
@@ -182,8 +160,7 @@ void HatchModel::ReadNormalStore(Stream* stream) {
 		return;
 	}
 
-	NormalStore = (Vector3*)Memory::Malloc(
-		NumNormalStore * sizeof(Vector3));
+	NormalStore = (Vector3*)Memory::Malloc(NumNormalStore * sizeof(Vector3));
 
 	Vector3* norm = NormalStore;
 	for (Uint32 i = 0; i < NumNormalStore; i++) {
@@ -200,8 +177,7 @@ void HatchModel::ReadTexCoordStore(Stream* stream) {
 		return;
 	}
 
-	TexCoordStore = (Vector2*)Memory::Malloc(
-		NumTexCoordStore * sizeof(Vector2));
+	TexCoordStore = (Vector2*)Memory::Malloc(NumTexCoordStore * sizeof(Vector2));
 
 	Vector2* uvs = TexCoordStore;
 	for (Uint32 i = 0; i < NumTexCoordStore; i++) {
@@ -217,8 +193,7 @@ void HatchModel::ReadColorStore(Stream* stream) {
 		return;
 	}
 
-	ColorStore = (Uint32*)Memory::Malloc(
-		NumColorStore * sizeof(Uint32));
+	ColorStore = (Uint32*)Memory::Malloc(NumColorStore * sizeof(Uint32));
 
 	Uint32* colors = ColorStore;
 	for (Uint32 i = 0; i < NumColorStore; i++) {
@@ -263,9 +238,7 @@ Uint32 HatchModel::GetStoredColor(Uint32 idx) {
 	return ColorStore[idx];
 }
 
-void HatchModel::ReadVertexIndices(Sint32* indices,
-	Uint32 triangleCount,
-	Stream* stream) {
+void HatchModel::ReadVertexIndices(Sint32* indices, Uint32 triangleCount, Stream* stream) {
 	for (Uint32 i = 0; i < triangleCount; i++) {
 		*indices++ = stream->ReadUInt32();
 		*indices++ = stream->ReadUInt32();
@@ -297,81 +270,70 @@ Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
 
 	Uint32 vertexCount = stream->ReadUInt32();
 	if (!vertexCount) {
-		Log::Print(Log::LOG_ERROR,
-			"Mesh \"%s\" has no vertices!",
-			mesh->Name);
+		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no vertices!", mesh->Name);
 		return nullptr;
 	}
 
 	Uint32 triangleCount = stream->ReadUInt32();
 	if (!triangleCount) {
-		Log::Print(Log::LOG_ERROR,
-			"Mesh \"%s\" has no triangles!",
-			mesh->Name);
+		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no triangles!", mesh->Name);
 		return nullptr;
 	}
 
 	Uint16 frameCount = stream->ReadUInt16();
 	if (!frameCount) {
-		Log::Print(Log::LOG_ERROR,
-			"Mesh \"%s\" has no frames!",
-			mesh->Name);
+		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no frames!", mesh->Name);
 		return nullptr;
 	}
 
 	mesh->VertexCount = vertexCount;
 	mesh->FrameCount = frameCount;
 
-	mesh->PositionBuffer = (Vector3*)Memory::Malloc(
-		vertexCount * frameCount * sizeof(Vector3));
+	mesh->PositionBuffer = (Vector3*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector3));
 
 	// Read vertices
 	Vector3* vert = mesh->PositionBuffer;
 	for (Uint16 i = 0; i < frameCount; i++) {
 		for (Uint32 j = 0; j < vertexCount; j++) {
-			*vert++ =
-				GetStoredVertex(stream->ReadUInt32());
+			*vert++ = GetStoredVertex(stream->ReadUInt32());
 		}
 	}
 
 	// Read normals
 	if (mesh->VertexFlag & VertexType_Normal) {
-		mesh->NormalBuffer = (Vector3*)Memory::Malloc(
-			vertexCount * frameCount * sizeof(Vector3));
+		mesh->NormalBuffer =
+			(Vector3*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector3));
 
 		Vector3* norm = mesh->NormalBuffer;
 		for (Uint16 i = 0; i < frameCount; i++) {
 			for (Uint32 j = 0; j < vertexCount; j++) {
-				*norm++ = GetStoredNormal(
-					stream->ReadUInt32());
+				*norm++ = GetStoredNormal(stream->ReadUInt32());
 			}
 		}
 	}
 
 	// Read UVs
 	if (mesh->VertexFlag & VertexType_UV) {
-		mesh->UVBuffer = (Vector2*)Memory::Malloc(
-			vertexCount * frameCount * sizeof(Vector2));
+		mesh->UVBuffer =
+			(Vector2*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector2));
 
 		Vector2* uv = mesh->UVBuffer;
 		for (Uint16 i = 0; i < frameCount; i++) {
 			for (Uint32 j = 0; j < vertexCount; j++) {
-				*uv++ = GetStoredTexCoord(
-					stream->ReadUInt32());
+				*uv++ = GetStoredTexCoord(stream->ReadUInt32());
 			}
 		}
 	}
 
 	// Read colors
 	if (mesh->VertexFlag & VertexType_Color) {
-		mesh->ColorBuffer = (Uint32*)Memory::Malloc(
-			vertexCount * frameCount * sizeof(Uint32));
+		mesh->ColorBuffer =
+			(Uint32*)Memory::Malloc(vertexCount * frameCount * sizeof(Uint32));
 
 		Uint32* colors = mesh->ColorBuffer;
 		for (Uint16 i = 0; i < frameCount; i++) {
 			for (Uint32 j = 0; j < vertexCount; j++) {
-				*colors++ = GetStoredColor(
-					stream->ReadUInt32());
+				*colors++ = GetStoredColor(stream->ReadUInt32());
 			}
 		}
 	}
@@ -380,18 +342,15 @@ Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
 	mesh->VertexIndexCount = triangleCount * 3;
 	model->VertexIndexCount += mesh->VertexIndexCount;
 
-	mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc(
-		(mesh->VertexIndexCount + 1) * sizeof(Sint32));
+	mesh->VertexIndexBuffer =
+		(Sint32*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint32));
 
-	ReadVertexIndices(
-		mesh->VertexIndexBuffer, triangleCount, stream);
+	ReadVertexIndices(mesh->VertexIndexBuffer, triangleCount, stream);
 
 	return mesh;
 }
 
-bool HatchModel::Convert(IModel* model,
-	Stream* stream,
-	const char* path) {
+bool HatchModel::Convert(IModel* model, Stream* stream, const char* path) {
 	bool success = false;
 
 	if (stream->ReadUInt32BE() != HATCH_MODEL_MAGIC) {
@@ -402,8 +361,7 @@ bool HatchModel::Convert(IModel* model,
 	Version = stream->ReadByte();
 
 	if (Version > 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Unsupported Hatch model version!");
+		Log::Print(Log::LOG_ERROR, "Unsupported Hatch model version!");
 		return false;
 	}
 
@@ -454,8 +412,7 @@ bool HatchModel::Convert(IModel* model,
 		char* parentDirectory = StringUtils::GetPath(path);
 
 		for (Uint8 i = 0; i < materialCount; i++) {
-			Material* material =
-				ReadMaterial(stream, parentDirectory);
+			Material* material = ReadMaterial(stream, parentDirectory);
 			if (material == nullptr) {
 				for (unsigned j = 0; j <= i; j++) {
 					delete model->Materials[j];
@@ -565,15 +522,12 @@ void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 	Vector3* vert = mesh->PositionBuffer;
 	for (Uint16 j = 0; j < frameCount; j++) {
 		for (Uint32 k = 0; k < vertexCount; k++) {
-			Uint32 key = vertexIDs->HashFunction(
-				vert, sizeof(*vert));
+			Uint32 key = vertexIDs->HashFunction(vert, sizeof(*vert));
 			if (vertexIDs->Exists(key)) {
-				stream->WriteUInt32(
-					vertexIDs->Get(key));
+				stream->WriteUInt32(vertexIDs->Get(key));
 			}
 			else {
-				vertexIDs->Put(key,
-					(Uint32)(vertexList.size()));
+				vertexIDs->Put(key, (Uint32)(vertexList.size()));
 				stream->WriteUInt32(vertexList.size());
 				vertexList.push_back(*vert);
 			}
@@ -586,18 +540,13 @@ void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 		Vector3* norm = mesh->NormalBuffer;
 		for (Uint16 j = 0; j < frameCount; j++) {
 			for (Uint32 k = 0; k < vertexCount; k++) {
-				Uint32 key = normalIDs->HashFunction(
-					norm, sizeof(*norm));
+				Uint32 key = normalIDs->HashFunction(norm, sizeof(*norm));
 				if (normalIDs->Exists(key)) {
-					stream->WriteUInt32(
-						normalIDs->Get(key));
+					stream->WriteUInt32(normalIDs->Get(key));
 				}
 				else {
-					normalIDs->Put(key,
-						(Uint32)(normalList
-								.size()));
-					stream->WriteUInt32(
-						normalList.size());
+					normalIDs->Put(key, (Uint32)(normalList.size()));
+					stream->WriteUInt32(normalList.size());
 					normalList.push_back(*norm);
 				}
 				norm++;
@@ -610,18 +559,13 @@ void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 		Vector2* uv = mesh->UVBuffer;
 		for (Uint16 j = 0; j < frameCount; j++) {
 			for (Uint32 k = 0; k < vertexCount; k++) {
-				Uint32 key = texCoordIDs->HashFunction(
-					uv, sizeof(*uv));
+				Uint32 key = texCoordIDs->HashFunction(uv, sizeof(*uv));
 				if (texCoordIDs->Exists(key)) {
-					stream->WriteUInt32(
-						texCoordIDs->Get(key));
+					stream->WriteUInt32(texCoordIDs->Get(key));
 				}
 				else {
-					texCoordIDs->Put(key,
-						(Uint32)(texCoordList
-								.size()));
-					stream->WriteUInt32(
-						texCoordList.size());
+					texCoordIDs->Put(key, (Uint32)(texCoordList.size()));
+					stream->WriteUInt32(texCoordList.size());
 					texCoordList.push_back(*uv);
 				}
 				uv++;
@@ -634,8 +578,7 @@ void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 		Uint32* color = mesh->ColorBuffer;
 		for (Uint16 j = 0; j < frameCount; j++) {
 			for (Uint32 k = 0; k < vertexCount; k++) {
-				HatchModel::WriteColorIndex(
-					color, stream);
+				HatchModel::WriteColorIndex(color, stream);
 				color++;
 			}
 		}
@@ -647,8 +590,7 @@ void HatchModel::WriteMesh(Mesh* mesh, Stream* stream) {
 	}
 }
 
-char* HatchModel::GetMaterialTextureName(const char* name,
-	const char* parentDirectory) {
+char* HatchModel::GetMaterialTextureName(const char* name, const char* parentDirectory) {
 	const char* result = strstr(name, parentDirectory);
 	if (result) {
 		size_t offset = strlen(parentDirectory);
@@ -673,47 +615,36 @@ void HatchModel::WriteColorIndex(Uint32* color, Stream* stream) {
 	}
 }
 
-void HatchModel::WriteMaterial(Material* material,
-	Stream* stream,
-	const char* parentDirectory) {
+void HatchModel::WriteMaterial(Material* material, Stream* stream, const char* parentDirectory) {
 	stream->WriteString(material->Name);
 
 	Uint8 flags = 0;
 
-	if ((material->ColorDiffuse[0] != 1.0 &&
-		    material->ColorDiffuse[1] != 1.0 &&
-		    material->ColorDiffuse[2] != 1.0 &&
-		    material->ColorDiffuse[3] != 1.0) ||
+	if ((material->ColorDiffuse[0] != 1.0 && material->ColorDiffuse[1] != 1.0 &&
+		    material->ColorDiffuse[2] != 1.0 && material->ColorDiffuse[3] != 1.0) ||
 		material->TextureDiffuseName) {
 		flags |= 1;
 	}
 
-	if ((material->ColorSpecular[0] != 1.0 &&
-		    material->ColorSpecular[1] != 1.0 &&
-		    material->ColorSpecular[2] != 1.0 &&
-		    material->ColorSpecular[3] != 1.0) ||
+	if ((material->ColorSpecular[0] != 1.0 && material->ColorSpecular[1] != 1.0 &&
+		    material->ColorSpecular[2] != 1.0 && material->ColorSpecular[3] != 1.0) ||
 		material->TextureSpecularName) {
 		flags |= 2;
 	}
 
-	if ((material->ColorAmbient[0] != 1.0 &&
-		    material->ColorAmbient[1] != 1.0 &&
-		    material->ColorAmbient[2] != 1.0 &&
-		    material->ColorAmbient[3] != 1.0) ||
+	if ((material->ColorAmbient[0] != 1.0 && material->ColorAmbient[1] != 1.0 &&
+		    material->ColorAmbient[2] != 1.0 && material->ColorAmbient[3] != 1.0) ||
 		material->TextureAmbientName) {
 		flags |= 4;
 	}
 
-	if ((material->ColorEmissive[0] != 1.0 &&
-		    material->ColorEmissive[1] != 1.0 &&
-		    material->ColorEmissive[2] != 1.0 &&
-		    material->ColorEmissive[3] != 1.0) ||
+	if ((material->ColorEmissive[0] != 1.0 && material->ColorEmissive[1] != 1.0 &&
+		    material->ColorEmissive[2] != 1.0 && material->ColorEmissive[3] != 1.0) ||
 		material->TextureEmissiveName) {
 		flags |= 8;
 	}
 
-	if (material->Shininess != 0.0 ||
-		material->ShininessStrength != 1.0) {
+	if (material->Shininess != 0.0 || material->ShininessStrength != 1.0) {
 		flags |= 16;
 	}
 
@@ -730,14 +661,11 @@ void HatchModel::WriteMaterial(Material* material,
 	if (flags & 1) {
 		if (material->TextureDiffuseName) {
 			char* name = GetMaterialTextureName(
-				material->TextureDiffuseName,
-				parentDirectory);
+				material->TextureDiffuseName, parentDirectory);
 
 			stream->WriteString(name);
 
-			Log::Print(Log::LOG_VERBOSE,
-				" - Diffuse texture: %s",
-				name);
+			Log::Print(Log::LOG_VERBOSE, " - Diffuse texture: %s", name);
 
 			Memory::Free(name);
 		}
@@ -745,8 +673,7 @@ void HatchModel::WriteMaterial(Material* material,
 			stream->WriteByte('\0');
 		}
 
-		Uint32 color =
-			ColorUtils::ToRGBA(material->ColorDiffuse);
+		Uint32 color = ColorUtils::ToRGBA(material->ColorDiffuse);
 
 		HatchModel::WriteColorIndex(&color, stream);
 
@@ -762,14 +689,11 @@ void HatchModel::WriteMaterial(Material* material,
 	if (flags & 2) {
 		if (material->TextureSpecularName) {
 			char* name = GetMaterialTextureName(
-				material->TextureSpecularName,
-				parentDirectory);
+				material->TextureSpecularName, parentDirectory);
 
 			stream->WriteString(name);
 
-			Log::Print(Log::LOG_VERBOSE,
-				" - Specular texture: %s",
-				name);
+			Log::Print(Log::LOG_VERBOSE, " - Specular texture: %s", name);
 
 			Memory::Free(name);
 		}
@@ -777,8 +701,7 @@ void HatchModel::WriteMaterial(Material* material,
 			stream->WriteByte('\0');
 		}
 
-		Uint32 color =
-			ColorUtils::ToRGBA(material->ColorSpecular);
+		Uint32 color = ColorUtils::ToRGBA(material->ColorSpecular);
 
 		HatchModel::WriteColorIndex(&color, stream);
 
@@ -794,14 +717,11 @@ void HatchModel::WriteMaterial(Material* material,
 	if (flags & 4) {
 		if (material->TextureAmbientName) {
 			char* name = GetMaterialTextureName(
-				material->TextureAmbientName,
-				parentDirectory);
+				material->TextureAmbientName, parentDirectory);
 
 			stream->WriteString(name);
 
-			Log::Print(Log::LOG_VERBOSE,
-				" - Ambient texture: %s",
-				name);
+			Log::Print(Log::LOG_VERBOSE, " - Ambient texture: %s", name);
 
 			Memory::Free(name);
 		}
@@ -809,8 +729,7 @@ void HatchModel::WriteMaterial(Material* material,
 			stream->WriteByte('\0');
 		}
 
-		Uint32 color =
-			ColorUtils::ToRGBA(material->ColorAmbient);
+		Uint32 color = ColorUtils::ToRGBA(material->ColorAmbient);
 
 		HatchModel::WriteColorIndex(&color, stream);
 
@@ -826,14 +745,11 @@ void HatchModel::WriteMaterial(Material* material,
 	if (flags & 8) {
 		if (material->TextureEmissiveName) {
 			char* name = GetMaterialTextureName(
-				material->TextureEmissiveName,
-				parentDirectory);
+				material->TextureEmissiveName, parentDirectory);
 
 			stream->WriteString(name);
 
-			Log::Print(Log::LOG_VERBOSE,
-				" - Emissive texture: %s",
-				name);
+			Log::Print(Log::LOG_VERBOSE, " - Emissive texture: %s", name);
 
 			Memory::Free(name);
 		}
@@ -841,8 +757,7 @@ void HatchModel::WriteMaterial(Material* material,
 			stream->WriteByte('\0');
 		}
 
-		Uint32 color =
-			ColorUtils::ToRGBA(material->ColorEmissive);
+		Uint32 color = ColorUtils::ToRGBA(material->ColorEmissive);
 
 		HatchModel::WriteColorIndex(&color, stream);
 
@@ -859,31 +774,23 @@ void HatchModel::WriteMaterial(Material* material,
 		stream->WriteByte(material->Shininess * 0xFF);
 		stream->WriteByte(material->ShininessStrength * 0xFF);
 
-		Log::Print(Log::LOG_VERBOSE,
-			" - Shininess: %f",
-			material->Shininess);
-		Log::Print(Log::LOG_VERBOSE,
-			" - Shininess strength: %f",
-			material->ShininessStrength);
+		Log::Print(Log::LOG_VERBOSE, " - Shininess: %f", material->Shininess);
+		Log::Print(
+			Log::LOG_VERBOSE, " - Shininess strength: %f", material->ShininessStrength);
 	}
 
 	// Write opacity
 	if (flags & 32) {
 		stream->WriteByte(material->Opacity * 0xFF);
 
-		Log::Print(Log::LOG_VERBOSE,
-			" - Opacity: %f",
-			material->Opacity);
+		Log::Print(Log::LOG_VERBOSE, " - Opacity: %f", material->Opacity);
 	}
 }
 
 bool HatchModel::Save(IModel* model, const char* filename) {
-	Stream* stream =
-		FileStream::New(filename, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open \"%s\"!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't open \"%s\"!", filename);
 		return false;
 	}
 
@@ -923,10 +830,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 	stream->WriteUInt32(lastPos);
 	stream->Seek(lastPos);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Mesh count: %d (%08X)",
-		model->Meshes.size(),
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Mesh count: %d (%08X)", model->Meshes.size(), lastPos);
 
 	for (size_t i = 0; i < model->Meshes.size(); i++) {
 		WriteMesh(model->Meshes[i], stream);
@@ -942,25 +846,19 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteByte(numMaterials);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Material count: %d (%08X)",
-		numMaterials,
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Material count: %d (%08X)", numMaterials, lastPos);
 
 	char* parentDirectory = StringUtils::GetPath(filename);
 	char* parentDirectoryPtr = parentDirectory;
 	if (StringUtils::StartsWith(parentDirectoryPtr, "./")) {
 		parentDirectoryPtr += 2;
 	}
-	if (StringUtils::StartsWith(
-		    parentDirectoryPtr, "Resources/")) {
+	if (StringUtils::StartsWith(parentDirectoryPtr, "Resources/")) {
 		parentDirectoryPtr += 10;
 	}
 
 	for (size_t i = 0; i < numMaterials; i++) {
-		WriteMaterial(model->Materials[i],
-			stream,
-			parentDirectoryPtr);
+		WriteMaterial(model->Materials[i], stream, parentDirectoryPtr);
 	}
 
 	Memory::Free(parentDirectory);
@@ -975,10 +873,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteByte(numAnimations);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Animation count: %d (%08X)",
-		numAnimations,
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Animation count: %d (%08X)", numAnimations, lastPos);
 
 	for (size_t i = 0; i < numAnimations; i++) {
 		ModelAnim* anim = model->Animations[i];
@@ -997,10 +892,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteUInt32(numVertices);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Vertex list size: %d (%08X)",
-		numVertices,
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Vertex list size: %d (%08X)", numVertices, lastPos);
 
 	for (size_t i = 0; i < numVertices; i++) {
 		Vector3 v = vertexList[i];
@@ -1019,10 +911,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteUInt32(numNormals);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Normal list size: %d (%08X)",
-		numNormals,
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Normal list size: %d (%08X)", numNormals, lastPos);
 
 	for (size_t i = 0; i < numNormals; i++) {
 		Vector3 n = normalList[i];
@@ -1041,10 +930,8 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteUInt32(numTexCoords);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Texture coordinate list size: %d (%08X)",
-		numTexCoords,
-		lastPos);
+	Log::Print(
+		Log::LOG_VERBOSE, "Texture coordinate list size: %d (%08X)", numTexCoords, lastPos);
 
 	for (size_t i = 0; i < numTexCoords; i++) {
 		Vector2 t = texCoordList[i];
@@ -1062,10 +949,7 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 
 	stream->WriteUInt32(numColors);
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Color list size: %d (%08X)",
-		numColors,
-		lastPos);
+	Log::Print(Log::LOG_VERBOSE, "Color list size: %d (%08X)", numColors, lastPos);
 
 	for (size_t i = 0; i < numColors; i++) {
 		Uint32 color = colorList[i];

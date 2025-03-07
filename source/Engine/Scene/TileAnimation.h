@@ -19,41 +19,31 @@ struct TileAnimator {
 
 	bool Paused = false;
 
-	TileAnimator(TileSpriteInfo* tileSpriteInfo,
-		ISprite* sprite,
-		int animationID) {
+	TileAnimator(TileSpriteInfo* tileSpriteInfo, ISprite* sprite, int animationID) {
 		TileInfo = tileSpriteInfo;
 		Sprite = sprite;
 		SetAnimation(animationID, 0);
 	}
 
 	void SetAnimation(int animation, int frame) {
-		if (animation < 0 ||
-			(size_t)animation >=
-				Sprite->Animations.size()) {
+		if (animation < 0 || (size_t)animation >= Sprite->Animations.size()) {
 			return;
 		}
-		if (frame < 0 ||
-			(size_t)frame >= Sprite->Animations[animation]
-						 .Frames.size()) {
+		if (frame < 0 || (size_t)frame >= Sprite->Animations[animation].Frames.size()) {
 			return;
 		}
 
-		Animation* animationPtr =
-			&Sprite->Animations[animation];
+		Animation* animationPtr = &Sprite->Animations[animation];
 		AnimationIndex = animation;
 		FrameIndex = frame;
-		FrameDuration =
-			animationPtr->Frames[FrameIndex].Duration;
+		FrameDuration = animationPtr->Frames[FrameIndex].Duration;
 		FrameCount = (int)animationPtr->Frames.size();
 		LoopIndex = animationPtr->FrameToLoop;
 		Speed = animationPtr->AnimationSpeed;
 		Timer = 0.0;
 	}
 
-	Animation* GetCurrentAnimation() {
-		return &Sprite->Animations[AnimationIndex];
-	}
+	Animation* GetCurrentAnimation() { return &Sprite->Animations[AnimationIndex]; }
 
 	void RestartAnimation() {
 		SetAnimation(AnimationIndex, 0);
@@ -80,9 +70,7 @@ struct TileAnimator {
 			UpdateTile();
 
 			FrameDuration =
-				Sprite->Animations[AnimationIndex]
-					.Frames[FrameIndex]
-					.Duration;
+				Sprite->Animations[AnimationIndex].Frames[FrameIndex].Duration;
 		}
 	}
 };

@@ -48,8 +48,7 @@ struct MeshBone {
 		newBone->GlobalTransform = GlobalTransform;
 		newBone->Weights.resize(Weights.size());
 
-		Matrix4x4::Copy(
-			newBone->InverseBindMatrix, InverseBindMatrix);
+		Matrix4x4::Copy(newBone->InverseBindMatrix, InverseBindMatrix);
 
 		for (size_t i = 0; i < Weights.size(); i++) {
 			newBone->Weights[i] = Weights[i];
@@ -161,7 +160,7 @@ struct Skeleton {
 	Vector3* TransformedNormals;
 
 	Matrix4x4* GlobalInverseMatrix; // Pointer to the model's
-	                                // GlobalInverseMatrix
+		// GlobalInverseMatrix
 
 	Skeleton() {
 		Bones = nullptr;
@@ -184,20 +183,17 @@ struct Skeleton {
 			MeshBone* bone = Bones[i];
 
 			if (bone->GlobalTransform) {
-				Matrix4x4::Multiply(
-					bone->FinalTransform,
+				Matrix4x4::Multiply(bone->FinalTransform,
 					bone->InverseBindMatrix,
 					bone->GlobalTransform);
-				Matrix4x4::Multiply(
-					bone->FinalTransform,
+				Matrix4x4::Multiply(bone->FinalTransform,
 					GlobalInverseMatrix,
 					bone->FinalTransform);
 			}
 			else {
 				// We don't have a GlobalTransform...
 				// so we just use its InverseBindMatrix
-				Matrix4x4::Multiply(
-					bone->FinalTransform,
+				Matrix4x4::Multiply(bone->FinalTransform,
 					GlobalInverseMatrix,
 					bone->InverseBindMatrix);
 			}
@@ -217,14 +213,11 @@ struct Skeleton {
 		Sint64 mat32 = m->Values[9] * 0x10000;
 		Sint64 mat33 = m->Values[10] * 0x10000;
 
-		result.X = FP16_MULTIPLY(mat11, v->X) +
-			FP16_MULTIPLY(mat12, v->Y) +
+		result.X = FP16_MULTIPLY(mat11, v->X) + FP16_MULTIPLY(mat12, v->Y) +
 			FP16_MULTIPLY(mat13, v->Z);
-		result.Y = FP16_MULTIPLY(mat21, v->X) +
-			FP16_MULTIPLY(mat22, v->Y) +
+		result.Y = FP16_MULTIPLY(mat21, v->X) + FP16_MULTIPLY(mat22, v->Y) +
 			FP16_MULTIPLY(mat23, v->Z);
-		result.Z = FP16_MULTIPLY(mat31, v->X) +
-			FP16_MULTIPLY(mat32, v->Y) +
+		result.Z = FP16_MULTIPLY(mat31, v->X) + FP16_MULTIPLY(mat32, v->Y) +
 			FP16_MULTIPLY(mat33, v->Z);
 
 		return result;
@@ -234,53 +227,38 @@ struct Skeleton {
 		Vector3* outPositions = TransformedPositions;
 		Vector3* outNormals = TransformedNormals;
 
-		memset(outPositions,
-			0x00,
-			NumVertices * sizeof(Vector3));
+		memset(outPositions, 0x00, NumVertices * sizeof(Vector3));
 		if (outNormals) {
-			memset(outNormals,
-				0x00,
-				NumVertices * sizeof(Vector3));
+			memset(outNormals, 0x00, NumVertices * sizeof(Vector3));
 		}
 
 		for (size_t i = 0; i < NumBones; i++) {
 			MeshBone* bone = Bones[i];
 
-			for (size_t w = 0; w < bone->Weights.size();
-				w++) {
-				BoneWeight& boneWeight =
-					bone->Weights[w];
+			for (size_t w = 0; w < bone->Weights.size(); w++) {
+				BoneWeight& boneWeight = bone->Weights[w];
 
 				Uint32 vertexID = boneWeight.VertexID;
-				Sint64 weight = FP16_DIVIDE(
-					boneWeight.Weight,
-					VertexWeights[vertexID]);
+				Sint64 weight =
+					FP16_DIVIDE(boneWeight.Weight, VertexWeights[vertexID]);
 
 				Vector3 temp = Vector::Multiply(
-					PositionBuffer[vertexID],
-					bone->FinalTransform);
+					PositionBuffer[vertexID], bone->FinalTransform);
 
-				outPositions[vertexID].X +=
-					FP16_MULTIPLY(temp.X, weight);
-				outPositions[vertexID].Y +=
-					FP16_MULTIPLY(temp.Y, weight);
-				outPositions[vertexID].Z +=
-					FP16_MULTIPLY(temp.Z, weight);
+				outPositions[vertexID].X += FP16_MULTIPLY(temp.X, weight);
+				outPositions[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
+				outPositions[vertexID].Z += FP16_MULTIPLY(temp.Z, weight);
 
 				if (!outNormals) {
 					continue;
 				}
 
 				temp = Skeleton::MultiplyMatrix3x3(
-					&NormalBuffer[vertexID],
-					bone->FinalTransform);
+					&NormalBuffer[vertexID], bone->FinalTransform);
 
-				outNormals[vertexID].X +=
-					FP16_MULTIPLY(temp.X, weight);
-				outNormals[vertexID].Y +=
-					FP16_MULTIPLY(temp.Y, weight);
-				outNormals[vertexID].Z +=
-					FP16_MULTIPLY(temp.Z, weight);
+				outNormals[vertexID].X += FP16_MULTIPLY(temp.X, weight);
+				outNormals[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
+				outNormals[vertexID].Z += FP16_MULTIPLY(temp.Z, weight);
 			}
 		}
 	}
@@ -290,14 +268,13 @@ struct Skeleton {
 
 		if (TransformedPositions == nullptr) {
 			TransformedPositions =
-				(Vector3*)Memory::Malloc(
-					NumVertices * sizeof(Vector3));
+				(Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
 		}
 
 		// Only if we have a normal buffer
 		if (TransformedNormals == nullptr && NormalBuffer) {
-			TransformedNormals = (Vector3*)Memory::Malloc(
-				NumVertices * sizeof(Vector3));
+			TransformedNormals =
+				(Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
 		}
 	}
 
@@ -329,12 +306,9 @@ struct Skeleton {
 		}
 
 		newSkeleton->NumVertices = NumVertices;
-		newSkeleton->VertexWeights = (Uint32*)Memory::Calloc(
-			NumVertices, sizeof(Uint32));
+		newSkeleton->VertexWeights = (Uint32*)Memory::Calloc(NumVertices, sizeof(Uint32));
 
-		memcpy(newSkeleton->VertexWeights,
-			VertexWeights,
-			NumVertices * sizeof(Uint32));
+		memcpy(newSkeleton->VertexWeights, VertexWeights, NumVertices * sizeof(Uint32));
 
 		newSkeleton->PositionBuffer = PositionBuffer;
 		newSkeleton->NormalBuffer = NormalBuffer;
@@ -436,8 +410,7 @@ struct ModelNode {
 		}
 
 		for (size_t i = 0; i < Children.size(); i++) {
-			ModelNode* found =
-				Children[i]->Search(nodeName);
+			ModelNode* found = Children[i]->Search(nodeName);
 			if (found != nullptr) {
 				return found;
 			}
@@ -447,8 +420,7 @@ struct ModelNode {
 	}
 
 	void Transform(Matrix4x4* parentMatrix) {
-		Matrix4x4::Multiply(
-			GlobalTransform, LocalTransform, parentMatrix);
+		Matrix4x4::Multiply(GlobalTransform, LocalTransform, parentMatrix);
 
 		for (size_t i = 0; i < Children.size(); i++) {
 			Children[i]->Transform(GlobalTransform);
@@ -463,8 +435,7 @@ struct ModelNode {
 
 	void Reset(Matrix4x4* parentMatrix) {
 		Matrix4x4::Copy(LocalTransform, TransformMatrix);
-		Matrix4x4::Multiply(
-			GlobalTransform, LocalTransform, parentMatrix);
+		Matrix4x4::Multiply(GlobalTransform, LocalTransform, parentMatrix);
 
 		for (size_t i = 0; i < Children.size(); i++) {
 			Children[i]->Reset(GlobalTransform);
@@ -492,10 +463,8 @@ struct ModelNode {
 		newNode->LocalTransform = Matrix4x4::Create();
 		newNode->GlobalTransform = Matrix4x4::Create();
 
-		Matrix4x4::Copy(
-			newNode->TransformMatrix, TransformMatrix);
-		Matrix4x4::Copy(
-			newNode->LocalTransform, TransformMatrix);
+		Matrix4x4::Copy(newNode->TransformMatrix, TransformMatrix);
+		Matrix4x4::Copy(newNode->LocalTransform, TransformMatrix);
 
 		return newNode;
 	}
@@ -539,25 +508,19 @@ struct Armature {
 
 		newArmature->RootNode = RootNode->Copy();
 		newArmature->NumSkeletons = NumSkeletons;
-		newArmature->Skeletons =
-			new Skeleton*[newArmature->NumSkeletons];
+		newArmature->Skeletons = new Skeleton*[newArmature->NumSkeletons];
 
-		for (size_t i = 0; i < newArmature->NumSkeletons;
-			i++) {
+		for (size_t i = 0; i < newArmature->NumSkeletons; i++) {
 			Skeleton* newSkeleton = Skeletons[i]->Copy();
 
 			// We need to point our new bones' global
 			// transforms to our new nodes' global
 			// transforms.
-			for (size_t i = 0; i < newSkeleton->NumBones;
-				i++) {
+			for (size_t i = 0; i < newSkeleton->NumBones; i++) {
 				MeshBone* bone = newSkeleton->Bones[i];
-				ModelNode* node =
-					newArmature->RootNode->Search(
-						bone->Name);
+				ModelNode* node = newArmature->RootNode->Search(bone->Name);
 				if (node) {
-					bone->GlobalTransform =
-						node->GlobalTransform;
+					bone->GlobalTransform = node->GlobalTransform;
 				}
 			}
 

@@ -6,12 +6,10 @@ ObjectList::ObjectList(const char* name) {
 	ObjectName = StringUtils::Duplicate(name);
 
 	std::string loadFunctionName = std::string(name) + "_Load";
-	std::string globalUpdateFunctionName =
-		std::string(name) + "_GlobalUpdate";
+	std::string globalUpdateFunctionName = std::string(name) + "_GlobalUpdate";
 
 	LoadFunctionName = StringUtils::Create(loadFunctionName);
-	GlobalUpdateFunctionName =
-		StringUtils::Create(globalUpdateFunctionName);
+	GlobalUpdateFunctionName = StringUtils::Create(globalUpdateFunctionName);
 }
 ObjectList::~ObjectList() {
 	Memory::Free(ObjectName);
@@ -40,8 +38,7 @@ void ObjectList::Add(Entity* obj) {
 	EntityCount++;
 }
 bool ObjectList::Contains(Entity* obj) {
-	for (Entity* search = EntityFirst; search != NULL;
-		search = search->NextEntityInList) {
+	for (Entity* search = EntityFirst; search != NULL; search = search->NextEntityInList) {
 		if (search == obj) {
 			return true;
 		}
@@ -65,13 +62,11 @@ void ObjectList::Remove(Entity* obj) {
 	}
 
 	if (obj->PrevEntityInList) {
-		obj->PrevEntityInList->NextEntityInList =
-			obj->NextEntityInList;
+		obj->PrevEntityInList->NextEntityInList = obj->NextEntityInList;
 	}
 
 	if (obj->NextEntityInList) {
-		obj->NextEntityInList->PrevEntityInList =
-			obj->PrevEntityInList;
+		obj->NextEntityInList->PrevEntityInList = obj->PrevEntityInList;
 	}
 
 	obj->PrevEntityInList = NULL;
@@ -92,21 +87,18 @@ Entity* ObjectList::Spawn() {
 	return SpawnFunction(this);
 }
 void ObjectList::Iterate(std::function<void(Entity* e)> func) {
-	for (Entity* ent = EntityFirst; ent != NULL;
-		ent = ent->NextEntityInList) {
+	for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList) {
 		func(ent);
 	}
 }
-void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first,
-	int persistence) {
+void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first, int persistence) {
 	for (Entity *ent = first, *next; ent; ent = next) {
 		// Store the "next" so that when/if the current is
 		// removed, it can still be used to point at the end of
 		// the loop.
 		next = ent->NextEntity;
 
-		if (ent->Persistence <= persistence &&
-			ent->List == this) {
+		if (ent->Persistence <= persistence && ent->List == this) {
 			Remove(ent);
 		}
 	}
@@ -119,8 +111,7 @@ void ObjectList::ResetPerf() {
 }
 Entity* ObjectList::GetNth(int n) {
 	Entity* ent = EntityFirst;
-	for (ent = EntityFirst; ent != NULL && n > 0;
-		ent = ent->NextEntityInList, n--)
+	for (ent = EntityFirst; ent != NULL && n > 0; ent = ent->NextEntityInList, n--)
 		;
 	return ent;
 }
@@ -135,8 +126,7 @@ Entity* ObjectList::GetClosest(int x, int y) {
 	Entity* closest = NULL;
 	int smallestDistance = 0x7FFFFFFF;
 
-	Iterate([x, y, &closest, &smallestDistance](
-			Entity* ent) -> void {
+	Iterate([x, y, &closest, &smallestDistance](Entity* ent) -> void {
 		int xD = ent->X - x;
 		xD *= xD;
 		int yD = ent->Y - y;

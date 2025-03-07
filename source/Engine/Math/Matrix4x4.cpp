@@ -32,11 +32,7 @@ void Matrix4x4::Identity(Matrix4x4* mat4) {
 	mat4->Values[15] = 1.0f;
 }
 
-void Matrix4x4::Perspective(Matrix4x4* out,
-	float fovy,
-	float aspect,
-	float near,
-	float far) {
+void Matrix4x4::Perspective(Matrix4x4* out, float fovy, float aspect, float near, float far) {
 	float f = 1.0f / tan(fovy / 2.0f);
 	float nf = 1.0f / (near - far);
 	out->Values[0] = f / aspect;
@@ -95,24 +91,17 @@ bool Matrix4x4::Equals(Matrix4x4* a, Matrix4x4* b) {
 		return false;
 	}
 
-	return memcmp(&a->Values[0],
-		       &b->Values[0],
-		       16 * sizeof(float)) == 0;
+	return memcmp(&a->Values[0], &b->Values[0], 16 * sizeof(float)) == 0;
 }
 
 void Matrix4x4::Multiply(Matrix4x4* out, Matrix4x4* a, Matrix4x4* b) {
-	float a00 = a->Values[0], a01 = a->Values[1],
-	      a02 = a->Values[2], a03 = a->Values[3];
-	float a10 = a->Values[4], a11 = a->Values[5],
-	      a12 = a->Values[6], a13 = a->Values[7];
-	float a20 = a->Values[8], a21 = a->Values[9],
-	      a22 = a->Values[10], a23 = a->Values[11];
-	float a30 = a->Values[12], a31 = a->Values[13],
-	      a32 = a->Values[14], a33 = a->Values[15];
+	float a00 = a->Values[0], a01 = a->Values[1], a02 = a->Values[2], a03 = a->Values[3];
+	float a10 = a->Values[4], a11 = a->Values[5], a12 = a->Values[6], a13 = a->Values[7];
+	float a20 = a->Values[8], a21 = a->Values[9], a22 = a->Values[10], a23 = a->Values[11];
+	float a30 = a->Values[12], a31 = a->Values[13], a32 = a->Values[14], a33 = a->Values[15];
 
 	// Cache only the current line of the second matrix
-	float b0 = b->Values[0], b1 = b->Values[1], b2 = b->Values[2],
-	      b3 = b->Values[3];
+	float b0 = b->Values[0], b1 = b->Values[1], b2 = b->Values[2], b3 = b->Values[3];
 	out->Values[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
 	out->Values[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
 	out->Values[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
@@ -151,34 +140,30 @@ void Matrix4x4::Multiply(Matrix4x4* mat, float* a) {
 	float a2 = a[2];
 	float a3 = a[3];
 
-	a[0] = mat->Values[0] * a0 + mat->Values[4] * a1 +
-		mat->Values[8] * a2 + mat->Values[12] * a3;
-	a[1] = mat->Values[1] * a0 + mat->Values[5] * a1 +
-		mat->Values[9] * a2 + mat->Values[13] * a3;
-	a[2] = mat->Values[2] * a0 + mat->Values[6] * a1 +
-		mat->Values[10] * a2 + mat->Values[14] * a3;
-	a[3] = mat->Values[3] * a0 + mat->Values[7] * a1 +
-		mat->Values[11] * a2 + mat->Values[15] * a3;
+	a[0] = mat->Values[0] * a0 + mat->Values[4] * a1 + mat->Values[8] * a2 +
+		mat->Values[12] * a3;
+	a[1] = mat->Values[1] * a0 + mat->Values[5] * a1 + mat->Values[9] * a2 +
+		mat->Values[13] * a3;
+	a[2] = mat->Values[2] * a0 + mat->Values[6] * a1 + mat->Values[10] * a2 +
+		mat->Values[14] * a3;
+	a[3] = mat->Values[3] * a0 + mat->Values[7] * a1 + mat->Values[11] * a2 +
+		mat->Values[15] * a3;
 }
 
-void Matrix4x4::Translate(Matrix4x4* out,
-	Matrix4x4* a,
-	float x,
-	float y,
-	float z) {
+void Matrix4x4::Translate(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
 	float a00, a01, a02, a03;
 	float a10, a11, a12, a13;
 	float a20, a21, a22, a23;
 
 	if (a == out) {
-		out->Values[12] = a->Values[0] * x + a->Values[4] * y +
-			a->Values[8] * z + a->Values[12];
-		out->Values[13] = a->Values[1] * x + a->Values[5] * y +
-			a->Values[9] * z + a->Values[13];
-		out->Values[14] = a->Values[2] * x + a->Values[6] * y +
-			a->Values[10] * z + a->Values[14];
-		out->Values[15] = a->Values[3] * x + a->Values[7] * y +
-			a->Values[11] * z + a->Values[15];
+		out->Values[12] =
+			a->Values[0] * x + a->Values[4] * y + a->Values[8] * z + a->Values[12];
+		out->Values[13] =
+			a->Values[1] * x + a->Values[5] * y + a->Values[9] * z + a->Values[13];
+		out->Values[14] =
+			a->Values[2] * x + a->Values[6] * y + a->Values[10] * z + a->Values[14];
+		out->Values[15] =
+			a->Values[3] * x + a->Values[7] * y + a->Values[11] * z + a->Values[15];
 	}
 	else {
 		a00 = a->Values[0];
@@ -195,25 +180,15 @@ void Matrix4x4::Translate(Matrix4x4* out,
 		a23 = a->Values[11];
 
 		// Copy the first 12 values
-		memcpy(&out->Values[0],
-			&a->Values[0],
-			12 * sizeof(float));
+		memcpy(&out->Values[0], &a->Values[0], 12 * sizeof(float));
 
-		out->Values[12] =
-			a00 * x + a10 * y + a20 * z + a->Values[12];
-		out->Values[13] =
-			a01 * x + a11 * y + a21 * z + a->Values[13];
-		out->Values[14] =
-			a02 * x + a12 * y + a22 * z + a->Values[14];
-		out->Values[15] =
-			a03 * x + a13 * y + a23 * z + a->Values[15];
+		out->Values[12] = a00 * x + a10 * y + a20 * z + a->Values[12];
+		out->Values[13] = a01 * x + a11 * y + a21 * z + a->Values[13];
+		out->Values[14] = a02 * x + a12 * y + a22 * z + a->Values[14];
+		out->Values[15] = a03 * x + a13 * y + a23 * z + a->Values[15];
 	}
 }
-void Matrix4x4::Scale(Matrix4x4* out,
-	Matrix4x4* a,
-	float x,
-	float y,
-	float z) {
+void Matrix4x4::Scale(Matrix4x4* out, Matrix4x4* a, float x, float y, float z) {
 	out->Values[0] = a->Values[0] * x;
 	out->Values[1] = a->Values[1] * x;
 	out->Values[2] = a->Values[2] * x;
@@ -231,12 +206,7 @@ void Matrix4x4::Scale(Matrix4x4* out,
 	out->Values[14] = a->Values[14];
 	out->Values[15] = a->Values[15];
 }
-void Matrix4x4::Rotate(Matrix4x4* out,
-	Matrix4x4* a,
-	float rad,
-	float x,
-	float y,
-	float z) {
+void Matrix4x4::Rotate(Matrix4x4* out, Matrix4x4* a, float rad, float x, float y, float z) {
 	float len = sqrt(x * x + y * y + z * z);
 	float s, c, t;
 	float a00, a01, a02, a03;
@@ -307,10 +277,7 @@ void Matrix4x4::Rotate(Matrix4x4* out,
 		out->Values[15] = a->Values[15];
 	}
 }
-void Matrix4x4::IdentityScale(Matrix4x4* out,
-	float x,
-	float y,
-	float z) {
+void Matrix4x4::IdentityScale(Matrix4x4* out, float x, float y, float z) {
 	Matrix4x4::Identity(out);
 
 	out->Values[0] = x;
@@ -348,10 +315,7 @@ void Matrix4x4::IdentityRotationZ(Matrix4x4* out, float z) {
 	out->Values[4] = -sinZ;
 	out->Values[5] = cosZ;
 }
-void Matrix4x4::IdentityRotationXYZ(Matrix4x4* out,
-	float x,
-	float y,
-	float z) {
+void Matrix4x4::IdentityRotationXYZ(Matrix4x4* out, float x, float y, float z) {
 	float sinX = Math::Sin(x);
 	float cosX = Math::Cos(x);
 	float sinY = Math::Sin(y);
@@ -383,8 +347,7 @@ void Matrix4x4::Transpose(Matrix4x4* out) {
 
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
-			transposed.Values[(i * 4) + j] =
-				out->Values[(j * 4) + i];
+			transposed.Values[(i * 4) + j] = out->Values[(j * 4) + i];
 		}
 	}
 
@@ -401,8 +364,7 @@ void Matrix4x4::LookAt(Matrix4x4* out,
 	float upy,
 	float upz) {
 	float x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
-	if (Math::Abs(eyex - centerx) < EPSILON &&
-		Math::Abs(eyey - centery) < EPSILON &&
+	if (Math::Abs(eyex - centerx) < EPSILON && Math::Abs(eyey - centery) < EPSILON &&
 		Math::Abs(eyez - centerz) < EPSILON) {
 		Matrix4x4::Identity(out);
 		return;
@@ -471,77 +433,53 @@ void Matrix4x4::Invert(Matrix4x4* out, Matrix4x4* in) {
 	float* src = in->Values;
 	float inv[16];
 
-	inv[0] = src[5] * src[10] * src[15] -
-		src[5] * src[11] * src[14] -
-		src[9] * src[6] * src[15] + src[9] * src[7] * src[14] +
-		src[13] * src[6] * src[11] -
+	inv[0] = src[5] * src[10] * src[15] - src[5] * src[11] * src[14] -
+		src[9] * src[6] * src[15] + src[9] * src[7] * src[14] + src[13] * src[6] * src[11] -
 		src[13] * src[7] * src[10];
-	inv[1] = -src[1] * src[10] * src[15] +
-		src[1] * src[11] * src[14] +
-		src[9] * src[2] * src[15] - src[9] * src[3] * src[14] -
-		src[13] * src[2] * src[11] +
+	inv[1] = -src[1] * src[10] * src[15] + src[1] * src[11] * src[14] +
+		src[9] * src[2] * src[15] - src[9] * src[3] * src[14] - src[13] * src[2] * src[11] +
 		src[13] * src[3] * src[10];
-	inv[2] = src[1] * src[6] * src[15] -
-		src[1] * src[7] * src[14] - src[5] * src[2] * src[15] +
-		src[5] * src[3] * src[14] + src[13] * src[2] * src[7] -
-		src[13] * src[3] * src[6];
-	inv[3] = -src[1] * src[6] * src[11] +
-		src[1] * src[7] * src[10] + src[5] * src[2] * src[11] -
-		src[5] * src[3] * src[10] - src[9] * src[2] * src[7] +
+	inv[2] = src[1] * src[6] * src[15] - src[1] * src[7] * src[14] - src[5] * src[2] * src[15] +
+		src[5] * src[3] * src[14] + src[13] * src[2] * src[7] - src[13] * src[3] * src[6];
+	inv[3] = -src[1] * src[6] * src[11] + src[1] * src[7] * src[10] +
+		src[5] * src[2] * src[11] - src[5] * src[3] * src[10] - src[9] * src[2] * src[7] +
 		src[9] * src[3] * src[6];
-	inv[4] = -src[4] * src[10] * src[15] +
-		src[4] * src[11] * src[14] +
-		src[8] * src[6] * src[15] - src[8] * src[7] * src[14] -
-		src[12] * src[6] * src[11] +
+	inv[4] = -src[4] * src[10] * src[15] + src[4] * src[11] * src[14] +
+		src[8] * src[6] * src[15] - src[8] * src[7] * src[14] - src[12] * src[6] * src[11] +
 		src[12] * src[7] * src[10];
-	inv[5] = src[0] * src[10] * src[15] -
-		src[0] * src[11] * src[14] -
-		src[8] * src[2] * src[15] + src[8] * src[3] * src[14] +
-		src[12] * src[2] * src[11] -
+	inv[5] = src[0] * src[10] * src[15] - src[0] * src[11] * src[14] -
+		src[8] * src[2] * src[15] + src[8] * src[3] * src[14] + src[12] * src[2] * src[11] -
 		src[12] * src[3] * src[10];
-	inv[6] = -src[0] * src[6] * src[15] +
-		src[0] * src[7] * src[14] + src[4] * src[2] * src[15] -
-		src[4] * src[3] * src[14] - src[12] * src[2] * src[7] +
+	inv[6] = -src[0] * src[6] * src[15] + src[0] * src[7] * src[14] +
+		src[4] * src[2] * src[15] - src[4] * src[3] * src[14] - src[12] * src[2] * src[7] +
 		src[12] * src[3] * src[6];
-	inv[7] = src[0] * src[6] * src[11] -
-		src[0] * src[7] * src[10] - src[4] * src[2] * src[11] +
-		src[4] * src[3] * src[10] + src[8] * src[2] * src[7] -
-		src[8] * src[3] * src[6];
-	inv[8] = src[4] * src[9] * src[15] -
-		src[4] * src[11] * src[13] -
-		src[8] * src[5] * src[15] + src[8] * src[7] * src[13] +
-		src[12] * src[5] * src[11] - src[12] * src[7] * src[9];
-	inv[9] = -src[0] * src[9] * src[15] +
-		src[0] * src[11] * src[13] +
-		src[8] * src[1] * src[15] - src[8] * src[3] * src[13] -
-		src[12] * src[1] * src[11] + src[12] * src[3] * src[9];
-	inv[10] = src[0] * src[5] * src[15] -
-		src[0] * src[7] * src[13] - src[4] * src[1] * src[15] +
-		src[4] * src[3] * src[13] + src[12] * src[1] * src[7] -
+	inv[7] = src[0] * src[6] * src[11] - src[0] * src[7] * src[10] - src[4] * src[2] * src[11] +
+		src[4] * src[3] * src[10] + src[8] * src[2] * src[7] - src[8] * src[3] * src[6];
+	inv[8] = src[4] * src[9] * src[15] - src[4] * src[11] * src[13] -
+		src[8] * src[5] * src[15] + src[8] * src[7] * src[13] + src[12] * src[5] * src[11] -
+		src[12] * src[7] * src[9];
+	inv[9] = -src[0] * src[9] * src[15] + src[0] * src[11] * src[13] +
+		src[8] * src[1] * src[15] - src[8] * src[3] * src[13] - src[12] * src[1] * src[11] +
+		src[12] * src[3] * src[9];
+	inv[10] = src[0] * src[5] * src[15] - src[0] * src[7] * src[13] -
+		src[4] * src[1] * src[15] + src[4] * src[3] * src[13] + src[12] * src[1] * src[7] -
 		src[12] * src[3] * src[5];
-	inv[11] = -src[0] * src[5] * src[11] +
-		src[0] * src[7] * src[9] + src[4] * src[1] * src[11] -
-		src[4] * src[3] * src[9] - src[8] * src[1] * src[7] +
+	inv[11] = -src[0] * src[5] * src[11] + src[0] * src[7] * src[9] +
+		src[4] * src[1] * src[11] - src[4] * src[3] * src[9] - src[8] * src[1] * src[7] +
 		src[8] * src[3] * src[5];
-	inv[12] = -src[4] * src[9] * src[14] +
-		src[4] * src[10] * src[13] +
-		src[8] * src[5] * src[14] - src[8] * src[6] * src[13] -
-		src[12] * src[5] * src[10] + src[12] * src[6] * src[9];
-	inv[13] = src[0] * src[9] * src[14] -
-		src[0] * src[10] * src[13] -
-		src[8] * src[1] * src[14] + src[8] * src[2] * src[13] +
-		src[12] * src[1] * src[10] - src[12] * src[2] * src[9];
-	inv[14] = -src[0] * src[5] * src[14] +
-		src[0] * src[6] * src[13] + src[4] * src[1] * src[14] -
-		src[4] * src[2] * src[13] - src[12] * src[1] * src[6] +
+	inv[12] = -src[4] * src[9] * src[14] + src[4] * src[10] * src[13] +
+		src[8] * src[5] * src[14] - src[8] * src[6] * src[13] - src[12] * src[5] * src[10] +
+		src[12] * src[6] * src[9];
+	inv[13] = src[0] * src[9] * src[14] - src[0] * src[10] * src[13] -
+		src[8] * src[1] * src[14] + src[8] * src[2] * src[13] + src[12] * src[1] * src[10] -
+		src[12] * src[2] * src[9];
+	inv[14] = -src[0] * src[5] * src[14] + src[0] * src[6] * src[13] +
+		src[4] * src[1] * src[14] - src[4] * src[2] * src[13] - src[12] * src[1] * src[6] +
 		src[12] * src[2] * src[5];
-	inv[15] = src[0] * src[5] * src[10] -
-		src[0] * src[6] * src[9] - src[4] * src[1] * src[10] +
-		src[4] * src[2] * src[9] + src[8] * src[1] * src[6] -
-		src[8] * src[2] * src[5];
+	inv[15] = src[0] * src[5] * src[10] - src[0] * src[6] * src[9] - src[4] * src[1] * src[10] +
+		src[4] * src[2] * src[9] + src[8] * src[1] * src[6] - src[8] * src[2] * src[5];
 
-	float det = src[0] * inv[0] + src[1] * inv[4] +
-		src[2] * inv[8] + src[3] * inv[12];
+	float det = src[0] * inv[0] + src[1] * inv[4] + src[2] * inv[8] + src[3] * inv[12];
 	if (det > 0.0f) {
 		det = 1.0f / det;
 		for (int i = 0; i < 16; i++) {

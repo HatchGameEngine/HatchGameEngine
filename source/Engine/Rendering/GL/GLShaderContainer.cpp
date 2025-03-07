@@ -4,8 +4,7 @@
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/GLShaderContainer.h>
 
-GLShaderContainer::GLShaderContainer() {
-}
+GLShaderContainer::GLShaderContainer() {}
 
 GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn,
 	GLShaderLinkage vsOut,
@@ -59,8 +58,7 @@ GLShader* GLShaderContainer::Get() {
 	return Get(false, false);
 }
 
-GLShaderContainer* GLShaderContainer::Make(bool useMaterial,
-	bool useVertexColors) {
+GLShaderContainer* GLShaderContainer::Make(bool useMaterial, bool useVertexColors) {
 	GLShaderLinkage vsIn = {0};
 	GLShaderLinkage vsOut = {0};
 	GLShaderLinkage fsIn = {0};
@@ -71,8 +69,7 @@ GLShaderContainer* GLShaderContainer::Make(bool useMaterial,
 	vsOut.link_color = useVertexColors;
 	fsIn.link_color = useVertexColors;
 
-	return new GLShaderContainer(
-		vsIn, vsOut, fsIn, vsUni, fsUni, useMaterial);
+	return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, useMaterial);
 }
 
 GLShaderContainer* GLShaderContainer::Make() {
@@ -99,8 +96,7 @@ GLShaderContainer* GLShaderContainer::MakeFog(int fogType) {
 		fsUni.u_fog_exp = true;
 	}
 
-	return new GLShaderContainer(
-		vsIn, vsOut, fsIn, vsUni, fsUni, true);
+	return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, true);
 }
 
 GLShaderContainer* GLShaderContainer::MakeYUV() {

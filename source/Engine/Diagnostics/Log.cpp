@@ -40,8 +40,7 @@ void Log::Init() {
 	// Set environment
 #ifdef MACOSX
 	char appSupportPath[1024];
-	int isBundle = MacOS_GetApplicationSupportDirectory(
-		appSupportPath, 512);
+	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, 512);
 	if (isBundle) {
 		strcat(appSupportPath, "/" TARGET_NAME);
 		if (!Directory::Exists(appSupportPath)) {
@@ -58,8 +57,7 @@ void Log::Init() {
 	if (WriteToFile) {
 		File = fopen(LogFilename, "w");
 		if (!File) {
-			printf("Couldn't open log file '%s' for writing!\n",
-				LogFilename);
+			printf("Couldn't open log file '%s' for writing!\n", LogFilename);
 			WriteToFile = false;
 		}
 	}
@@ -86,8 +84,7 @@ bool Log::ResizeBuffer(int written_chars) {
 	// size
 	if (Buffer == nullptr) {
 		BufferSize = 1024;
-		Buffer = (char*)realloc(
-			Buffer, BufferSize * sizeof(char));
+		Buffer = (char*)realloc(Buffer, BufferSize * sizeof(char));
 
 		// If that failed too, just give up.
 		if (!Buffer) {
@@ -115,8 +112,7 @@ void Log::Print(int sev, const char* format, ...) {
 
 	va_list args;
 	va_start(args, format);
-	int written_chars =
-		vsnprintf(Buffer, BufferSize, format, args);
+	int written_chars = vsnprintf(Buffer, BufferSize, format, args);
 	va_end(args);
 
 	if (written_chars <= 0) {
@@ -135,26 +131,19 @@ void Log::Print(int sev, const char* format, ...) {
 #if defined(ANDROID)
 	switch (sev) {
 	case LOG_VERBOSE:
-		__android_log_print(ANDROID_LOG_VERBOSE,
-			TARGET_NAME,
-			"%s",
-			Buffer);
+		__android_log_print(ANDROID_LOG_VERBOSE, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_INFO:
-		__android_log_print(
-			ANDROID_LOG_INFO, TARGET_NAME, "%s", Buffer);
+		__android_log_print(ANDROID_LOG_INFO, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_WARN:
-		__android_log_print(
-			ANDROID_LOG_WARN, TARGET_NAME, "%s", Buffer);
+		__android_log_print(ANDROID_LOG_WARN, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_ERROR:
-		__android_log_print(
-			ANDROID_LOG_ERROR, TARGET_NAME, "%s", Buffer);
+		__android_log_print(ANDROID_LOG_ERROR, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_IMPORTANT:
-		__android_log_print(
-			ANDROID_LOG_FATAL, TARGET_NAME, "%s", Buffer);
+		__android_log_print(ANDROID_LOG_FATAL, TARGET_NAME, "%s", Buffer);
 		return;
 	}
 #endif
@@ -245,8 +234,7 @@ void Log::Print(int sev, const char* format, ...) {
 void Log::PrintSimple(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	int written_chars =
-		vsnprintf(Buffer, BufferSize, format, args);
+	int written_chars = vsnprintf(Buffer, BufferSize, format, args);
 	va_end(args);
 
 	if (written_chars <= 0) {

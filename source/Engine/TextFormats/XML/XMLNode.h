@@ -5,7 +5,7 @@
 #include <Engine/Includes/Token.h>
 
 class XMLAttributes {
-       public:
+public:
 	vector<char*> KeyVector;
 	HashMap<Token> ValueMap;
 

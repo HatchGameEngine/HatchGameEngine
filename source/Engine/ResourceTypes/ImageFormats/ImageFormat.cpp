@@ -6,9 +6,8 @@ Uint32* ImageFormat::GetPalette() {
 		return nullptr;
 	}
 
-	Uint32* colors =
-		(Uint32*)Memory::TrackedMalloc("ImageFormat::Colors",
-			NumPaletteColors * sizeof(Uint32));
+	Uint32* colors = (Uint32*)Memory::TrackedMalloc(
+		"ImageFormat::Colors", NumPaletteColors * sizeof(Uint32));
 	memcpy(colors, Colors, NumPaletteColors * sizeof(Uint32));
 	return colors;
 }

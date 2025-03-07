@@ -65,8 +65,7 @@ D3D_RenderData* renderData = NULL;
 bool D3D_LoadDLL(void** pD3DDLL, IDirect3D9** pDirect3D9Interface) {
 	*pD3DDLL = SDL_LoadObject("D3D9.DLL");
 	if (*pD3DDLL) {
-		typedef IDirect3D9*(WINAPI * Direct3DCreate9_t)(
-			UINT SDKVersion);
+		typedef IDirect3D9*(WINAPI * Direct3DCreate9_t)(UINT SDKVersion);
 		Direct3DCreate9_t Direct3DCreate9Func;
 
 #ifdef USE_D3D9EX
@@ -75,32 +74,19 @@ bool D3D_LoadDLL(void** pD3DDLL, IDirect3D9** pDirect3D9Interface) {
 		Direct3DCreate9Ex_t Direct3DCreate9ExFunc;
 
 		Direct3DCreate9ExFunc =
-			(Direct3DCreate9Ex_t)SDL_LoadFunction(
-				*pD3DDLL, "Direct3DCreate9Ex");
+			(Direct3DCreate9Ex_t)SDL_LoadFunction(*pD3DDLL, "Direct3DCreate9Ex");
 		if (Direct3DCreate9ExFunc) {
 			IDirect3D9Ex* pDirect3D9ExInterface;
-			HRESULT hr =
-				Direct3DCreate9ExFunc(D3D_SDK_VERSION,
-					&pDirect3D9ExInterface);
+			HRESULT hr = Direct3DCreate9ExFunc(D3D_SDK_VERSION, &pDirect3D9ExInterface);
 			if (SUCCEEDED(hr)) {
-				const GUID IDirect3D9_GUID = {
-					0x81bdcbca,
+				const GUID IDirect3D9_GUID = {0x81bdcbca,
 					0x64d4,
 					0x426d,
-					{0xae,
-						0x8d,
-						0xad,
-						0x1,
-						0x47,
-						0xf4,
-						0x27,
-						0x5c}};
-				hr = IDirect3D9Ex_QueryInterface(
-					pDirect3D9ExInterface,
+					{0xae, 0x8d, 0xad, 0x1, 0x47, 0xf4, 0x27, 0x5c}};
+				hr = IDirect3D9Ex_QueryInterface(pDirect3D9ExInterface,
 					&IDirect3D9_GUID,
 					(void**)pDirect3D9Interface);
-				IDirect3D9Ex_Release(
-					pDirect3D9ExInterface);
+				IDirect3D9Ex_Release(pDirect3D9ExInterface);
 				if (SUCCEEDED(hr)) {
 					return true;
 				}
@@ -109,11 +95,9 @@ bool D3D_LoadDLL(void** pD3DDLL, IDirect3D9** pDirect3D9Interface) {
 #endif /* USE_D3D9EX */
 
 		Direct3DCreate9Func =
-			(Direct3DCreate9_t)SDL_LoadFunction(
-				*pD3DDLL, "Direct3DCreate9");
+			(Direct3DCreate9_t)SDL_LoadFunction(*pD3DDLL, "Direct3DCreate9");
 		if (Direct3DCreate9Func) {
-			*pDirect3D9Interface =
-				Direct3DCreate9Func(D3D_SDK_VERSION);
+			*pDirect3D9Interface = Direct3DCreate9Func(D3D_SDK_VERSION);
 			if (*pDirect3D9Interface) {
 				return true;
 			}
@@ -131,43 +115,31 @@ void D3D_InitRenderState() {
 	IDirect3DDevice9* device = renderData->Device;
 
 	IDirect3DDevice9_SetVertexShader(device, NULL);
-	IDirect3DDevice9_SetFVF(
-		device, D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1);
+	IDirect3DDevice9_SetFVF(device, D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 	// IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE,
 	// D3DZB_FALSE);
-	IDirect3DDevice9_SetRenderState(
-		device, D3DRS_ZENABLE, D3DZB_TRUE);
-	IDirect3DDevice9_SetRenderState(
-		device, D3DRS_CULLMODE, D3DCULL_NONE);
+	IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_TRUE);
+	IDirect3DDevice9_SetRenderState(device, D3DRS_CULLMODE, D3DCULL_NONE);
 	IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE);
 
 	/* Enable color modulation by diffuse color */
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 
 	/* Enable alpha modulation by diffuse alpha */
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-	IDirect3DDevice9_SetTextureStageState(
-		device, 0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+	IDirect3DDevice9_SetTextureStageState(device, 0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 	/* Enable separate alpha blend function, if possible */
 	if (renderData->EnableSeparateAlphaBlend) {
-		IDirect3DDevice9_SetRenderState(
-			device, D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
+		IDirect3DDevice9_SetRenderState(device, D3DRS_SEPARATEALPHABLENDENABLE, TRUE);
 	}
 
 	/* Disable second texture stage, since we're done */
-	IDirect3DDevice9_SetTextureStageState(
-		device, 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-	IDirect3DDevice9_SetTextureStageState(
-		device, 1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	IDirect3DDevice9_SetTextureStageState(device, 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+	IDirect3DDevice9_SetTextureStageState(device, 1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 
 	/* Set an identity world and view matrix */
 	matrix.m[0][0] = 1.0f;
@@ -214,8 +186,7 @@ void D3D_MakeShapeBuffers() {
 	Vertex* buffer;
 
 	D3D_BufferCircleFill = (Vertex*)Memory::TrackedMalloc(
-		"D3DRenderer::D3D_BufferCircleFill",
-		362 * sizeof(Vertex));
+		"D3DRenderer::D3D_BufferCircleFill", 362 * sizeof(Vertex));
 	buffer = D3D_BufferCircleFill;
 	buffer[0] = Vertex{0.0f, 0.0f, 0.0f, 0xFFFFFFFF, 0.0f, 0.0f};
 	for (int i = 0; i < 361; i++) {
@@ -228,8 +199,7 @@ void D3D_MakeShapeBuffers() {
 	}
 
 	D3D_BufferCircleStroke = (Vertex*)Memory::TrackedMalloc(
-		"D3DRenderer::D3D_BufferCircleStroke",
-		361 * sizeof(Vertex));
+		"D3DRenderer::D3D_BufferCircleStroke", 361 * sizeof(Vertex));
 	buffer = (Vertex*)D3D_BufferCircleStroke;
 	for (int i = 0; i < 361; i++) {
 		buffer[i + 0] = Vertex{cos(i * M_PI / 180.0f),
@@ -241,8 +211,7 @@ void D3D_MakeShapeBuffers() {
 	}
 
 	D3D_BufferSquareFill = (Vertex*)Memory::TrackedMalloc(
-		"D3DRenderer::D3D_BufferSquareFill",
-		4 * sizeof(Vertex));
+		"D3DRenderer::D3D_BufferSquareFill", 4 * sizeof(Vertex));
 	buffer = (Vertex*)D3D_BufferSquareFill;
 	buffer[0] = Vertex{0.0f, 0.0f, 0.0f, 0xFFFFFFFF, 0.0f, 0.0f};
 	buffer[1] = Vertex{1.0f, 0.0f, 0.0f, 0xFFFFFFFF, 0.0f, 0.0f};
@@ -331,24 +300,18 @@ Uint32 D3D_D3DFORMATToPixelFormat(D3DFORMAT format) {
 	return SDL_PIXELFORMAT_UNKNOWN;
 }
 int D3D_SetError(const char* error, HRESULT result) {
-	Log::Print(Log::LOG_ERROR,
-		"D3D: %s (%s)",
-		error,
-		D3D_GetResultString(result));
+	Log::Print(Log::LOG_ERROR, "D3D: %s (%s)", error, D3D_GetResultString(result));
 	exit(-1);
 	return 0;
 }
 
 void D3D_CreateTexture(Texture* texture) {
-	texture->DriverData = Memory::TrackedCalloc(
-		"Texture::DriverData", 1, sizeof(D3D_TextureData));
+	texture->DriverData =
+		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(D3D_TextureData));
 
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 
-	textureData->ScaleMode = Graphics::TextureInterpolate
-		? D3DTEXF_LINEAR
-		: D3DTEXF_POINT;
+	textureData->ScaleMode = Graphics::TextureInterpolate ? D3DTEXF_LINEAR : D3DTEXF_POINT;
 
 	DWORD usage = 0;
 	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
@@ -360,8 +323,7 @@ void D3D_CreateTexture(Texture* texture) {
 	textureData->Dirty = false;
 	textureData->Usage = usage;
 	textureData->Format = texture->Format;
-	textureData->D3DFormat =
-		D3D_PixelFormatToD3DFORMAT(texture->Format);
+	textureData->D3DFormat = D3D_PixelFormatToD3DFORMAT(texture->Format);
 
 	result = IDirect3DDevice9_CreateTexture(renderData->Device,
 		texture->Width,
@@ -387,8 +349,7 @@ void D3D_CreateTexture(Texture* texture) {
 	}
 }
 int D3D_RecreateTexture(Texture* texture) {
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 	if (!textureData) {
 		return 0;
 	}
@@ -398,8 +359,7 @@ int D3D_RecreateTexture(Texture* texture) {
 		textureData->Texture = NULL;
 	}
 	if (textureData->Staging) {
-		IDirect3DTexture9_AddDirtyRect(
-			textureData->Staging, NULL);
+		IDirect3DTexture9_AddDirtyRect(textureData->Staging, NULL);
 		textureData->Dirty = true;
 	}
 	return 0;
@@ -410,20 +370,17 @@ int D3D_SetRenderTarget(Texture* texture) {
 	/* Release the previous render target if it wasn't the default
 	 * one */
 	if (renderData->CurrentRenderTarget != NULL) {
-		IDirect3DSurface9_Release(
-			renderData->CurrentRenderTarget);
+		IDirect3DSurface9_Release(renderData->CurrentRenderTarget);
 		renderData->CurrentRenderTarget = NULL;
 	}
 
 	if (texture == NULL) {
-		IDirect3DDevice9_SetRenderTarget(renderData->Device,
-			0,
-			renderData->DefaultRenderTarget);
+		IDirect3DDevice9_SetRenderTarget(
+			renderData->Device, 0, renderData->DefaultRenderTarget);
 		return 0;
 	}
 
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 	if (!textureData) {
 		SDL_SetError("Texture is not currently available");
 		return -1;
@@ -433,26 +390,21 @@ int D3D_SetRenderTarget(Texture* texture) {
 	 * written to */
 	if (textureData->Dirty && textureData->Staging) {
 		if (!textureData->Texture) {
-			result = IDirect3DDevice9_CreateTexture(
-				renderData->Device,
+			result = IDirect3DDevice9_CreateTexture(renderData->Device,
 				texture->Width,
 				texture->Height,
 				1,
 				textureData->Usage,
-				D3D_PixelFormatToD3DFORMAT(
-					textureData->Format),
+				D3D_PixelFormatToD3DFORMAT(textureData->Format),
 				D3DPOOL_DEFAULT,
 				&textureData->Texture,
 				NULL);
 			if (FAILED(result)) {
-				return D3D_SetError(
-					"CreateTexture(D3DPOOL_DEFAULT)",
-					result);
+				return D3D_SetError("CreateTexture(D3DPOOL_DEFAULT)", result);
 			}
 		}
 
-		result = IDirect3DDevice9_UpdateTexture(
-			renderData->Device,
+		result = IDirect3DDevice9_UpdateTexture(renderData->Device,
 			(IDirect3DBaseTexture9*)textureData->Staging,
 			(IDirect3DBaseTexture9*)textureData->Texture);
 		if (FAILED(result)) {
@@ -461,17 +413,14 @@ int D3D_SetRenderTarget(Texture* texture) {
 		textureData->Dirty = false;
 	}
 
-	result =
-		IDirect3DTexture9_GetSurfaceLevel(textureData->Texture,
-			0,
-			&renderData->CurrentRenderTarget);
+	result = IDirect3DTexture9_GetSurfaceLevel(
+		textureData->Texture, 0, &renderData->CurrentRenderTarget);
 	if (FAILED(result)) {
 		return D3D_SetError("GetSurfaceLevel()", result);
 	}
 
-	result = IDirect3DDevice9_SetRenderTarget(renderData->Device,
-		0,
-		renderData->CurrentRenderTarget);
+	result = IDirect3DDevice9_SetRenderTarget(
+		renderData->Device, 0, renderData->CurrentRenderTarget);
 	if (FAILED(result)) {
 		return D3D_SetError("SetRenderTarget()", result);
 	}
@@ -483,19 +432,16 @@ void D3D_Reset() {
 
 	/* Release the default render target before reset */
 	if (renderData->DefaultRenderTarget) {
-		IDirect3DSurface9_Release(
-			renderData->DefaultRenderTarget);
+		IDirect3DSurface9_Release(renderData->DefaultRenderTarget);
 		renderData->DefaultRenderTarget = NULL;
 	}
 	if (renderData->CurrentRenderTarget) {
-		IDirect3DSurface9_Release(
-			renderData->CurrentRenderTarget);
+		IDirect3DSurface9_Release(renderData->CurrentRenderTarget);
 		renderData->CurrentRenderTarget = NULL;
 	}
 
 	/* Release application render targets */
-	for (Texture* texture = Graphics::TextureHead; texture != NULL;
-		texture = texture->Next) {
+	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
 		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
 			D3DRenderer::DisposeTexture(texture);
 		}
@@ -504,8 +450,7 @@ void D3D_Reset() {
 		}
 	}
 
-	result = IDirect3DDevice9_Reset(
-		renderData->Device, &renderData->PresentParams);
+	result = IDirect3DDevice9_Reset(renderData->Device, &renderData->PresentParams);
 	if (FAILED(result)) {
 		if (result == D3DERR_DEVICELOST) {
 			/* Don't worry about it, we'll reset later...
@@ -519,16 +464,13 @@ void D3D_Reset() {
 	}
 
 	/* Allocate application render targets */
-	for (Texture* texture = Graphics::TextureHead; texture != NULL;
-		texture = texture->Next) {
+	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
 		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
 			D3D_CreateTexture(texture);
 		}
 	}
 
-	IDirect3DDevice9_GetRenderTarget(renderData->Device,
-		0,
-		&renderData->DefaultRenderTarget);
+	IDirect3DDevice9_GetRenderTarget(renderData->Device, 0, &renderData->DefaultRenderTarget);
 	D3D_InitRenderState();
 	D3D_SetRenderTarget(Graphics::CurrentRenderTarget);
 	D3DRenderer::UpdateViewport();
@@ -545,26 +487,20 @@ void D3D_Predraw() {
 		renderData->PresentParams.BackBufferWidth = w;
 		renderData->PresentParams.BackBufferHeight = h;
 		if (window_flags & SDL_WINDOW_FULLSCREEN &&
-			(window_flags &
-				SDL_WINDOW_FULLSCREEN_DESKTOP) !=
+			(window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) !=
 				SDL_WINDOW_FULLSCREEN_DESKTOP) {
 			SDL_DisplayMode fullscreen_mode;
-			SDL_GetWindowDisplayMode(
-				window, &fullscreen_mode);
+			SDL_GetWindowDisplayMode(window, &fullscreen_mode);
 			renderData->PresentParams.Windowed = FALSE;
 			renderData->PresentParams.BackBufferFormat =
-				D3D_PixelFormatToD3DFORMAT(
-					fullscreen_mode.format);
-			renderData->PresentParams
-				.FullScreen_RefreshRateInHz =
+				D3D_PixelFormatToD3DFORMAT(fullscreen_mode.format);
+			renderData->PresentParams.FullScreen_RefreshRateInHz =
 				fullscreen_mode.refresh_rate;
 		}
 		else {
 			renderData->PresentParams.Windowed = TRUE;
-			renderData->PresentParams.BackBufferFormat =
-				D3DFMT_UNKNOWN;
-			renderData->PresentParams
-				.FullScreen_RefreshRateInHz = 0;
+			renderData->PresentParams.BackBufferFormat = D3DFMT_UNKNOWN;
+			renderData->PresentParams.FullScreen_RefreshRateInHz = 0;
 		}
 
 		D3D_Reset();
@@ -575,15 +511,13 @@ void D3D_Predraw() {
 		renderData->UpdateBackBufferSize = false;
 	}
 	if (renderData->BeginScene) {
-		result = IDirect3DDevice9_BeginScene(
-			renderData->Device);
+		result = IDirect3DDevice9_BeginScene(renderData->Device);
 		if (result == D3DERR_DEVICELOST) {
 			D3D_Reset();
 			// if (D3D_Reset(renderer) < 0) {
 			//     return -1;
 			// }
-			result = IDirect3DDevice9_BeginScene(
-				renderData->Device);
+			result = IDirect3DDevice9_BeginScene(renderData->Device);
 		}
 		if (FAILED(result)) {
 			D3D_SetError("BeginScene() %s", result);
@@ -593,28 +527,20 @@ void D3D_Predraw() {
 }
 
 void D3D_SetBlendMode() {
-	IDirect3DDevice9_SetRenderState(
-		renderData->Device, D3DRS_ALPHABLENDENABLE, TRUE);
-	IDirect3DDevice9_SetRenderState(renderData->Device,
-		D3DRS_SRCBLEND,
-		D3D_Blend_SRC_COLOR);
-	IDirect3DDevice9_SetRenderState(renderData->Device,
-		D3DRS_DESTBLEND,
-		D3D_Blend_DST_COLOR);
+	IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_ALPHABLENDENABLE, TRUE);
+	IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SRCBLEND, D3D_Blend_SRC_COLOR);
+	IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_DESTBLEND, D3D_Blend_DST_COLOR);
 	if (renderData->EnableSeparateAlphaBlend) {
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_SRCBLENDALPHA,
-			D3D_Blend_SRC_ALPHA);
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_DESTBLENDALPHA,
-			D3D_Blend_DST_ALPHA);
+		IDirect3DDevice9_SetRenderState(
+			renderData->Device, D3DRS_SRCBLENDALPHA, D3D_Blend_SRC_ALPHA);
+		IDirect3DDevice9_SetRenderState(
+			renderData->Device, D3DRS_DESTBLENDALPHA, D3D_Blend_DST_ALPHA);
 	}
 
 	// Enable multisample
 	if (Graphics::MultisamplingEnabled) {
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_MULTISAMPLEANTIALIAS,
-			TRUE);
+		IDirect3DDevice9_SetRenderState(
+			renderData->Device, D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 	}
 }
 DWORD D3D_GetBlendFactorFromHatch(int factor) {
@@ -646,56 +572,41 @@ void D3D_BindTexture(Texture* texture, int index) {
 	HRESULT result;
 
 	if (!texture) {
-		result = IDirect3DDevice9_SetTexture(
-			renderData->Device, index, NULL);
+		result = IDirect3DDevice9_SetTexture(renderData->Device, index, NULL);
 		if (FAILED(result)) {
 			D3D_SetError("SetTexture() %s", result);
 		}
 		return;
 	}
 
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 
-	IDirect3DDevice9_SetSamplerState(renderData->Device,
-		index,
-		D3DSAMP_MINFILTER,
-		textureData->ScaleMode);
-	IDirect3DDevice9_SetSamplerState(renderData->Device,
-		index,
-		D3DSAMP_MAGFILTER,
-		textureData->ScaleMode);
-	IDirect3DDevice9_SetSamplerState(renderData->Device,
-		index,
-		D3DSAMP_ADDRESSU,
-		D3DTADDRESS_CLAMP);
-	IDirect3DDevice9_SetSamplerState(renderData->Device,
-		index,
-		D3DSAMP_ADDRESSV,
-		D3DTADDRESS_CLAMP);
+	IDirect3DDevice9_SetSamplerState(
+		renderData->Device, index, D3DSAMP_MINFILTER, textureData->ScaleMode);
+	IDirect3DDevice9_SetSamplerState(
+		renderData->Device, index, D3DSAMP_MAGFILTER, textureData->ScaleMode);
+	IDirect3DDevice9_SetSamplerState(
+		renderData->Device, index, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	IDirect3DDevice9_SetSamplerState(
+		renderData->Device, index, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	if (textureData->Dirty && textureData->Staging) {
 		if (!textureData->Texture) {
-			result = IDirect3DDevice9_CreateTexture(
-				renderData->Device,
+			result = IDirect3DDevice9_CreateTexture(renderData->Device,
 				texture->Width,
 				texture->Height,
 				1,
 				textureData->Usage,
-				D3D_PixelFormatToD3DFORMAT(
-					texture->Format),
+				D3D_PixelFormatToD3DFORMAT(texture->Format),
 				D3DPOOL_DEFAULT,
 				&textureData->Texture,
 				NULL);
 			if (FAILED(result)) {
-				D3D_SetError(
-					"CreateTexture(D3DPOOL_DEFAULT)",
-					result);
+				D3D_SetError("CreateTexture(D3DPOOL_DEFAULT)", result);
 			}
 		}
 
-		result = IDirect3DDevice9_UpdateTexture(
-			renderData->Device,
+		result = IDirect3DDevice9_UpdateTexture(renderData->Device,
 			(IDirect3DBaseTexture9*)textureData->Staging,
 			(IDirect3DBaseTexture9*)textureData->Texture);
 		if (FAILED(result)) {
@@ -704,9 +615,8 @@ void D3D_BindTexture(Texture* texture, int index) {
 		textureData->Dirty = false;
 	}
 
-	result = IDirect3DDevice9_SetTexture(renderData->Device,
-		index,
-		(IDirect3DBaseTexture9*)textureData->Texture);
+	result = IDirect3DDevice9_SetTexture(
+		renderData->Device, index, (IDirect3DBaseTexture9*)textureData->Texture);
 	if (FAILED(result)) {
 		D3D_SetError("SetTexture() %s", result);
 	}
@@ -724,8 +634,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 	bool flipX,
 	bool flipY) {
 	HRESULT result;
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 
 	LPDIRECT3DPIXELSHADER9 shader = (LPDIRECT3DPIXELSHADER9)NULL;
 
@@ -772,9 +681,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 		Point points[4];
 		for (int i = 0; i < 4; i++) {
 			points[i] = Graphics::ProjectToScreen(
-				vertices[i].x,
-				vertices[i].y,
-				vertices[i].z);
+				vertices[i].x, vertices[i].y, vertices[i].z);
 			vertices[i].x = points[i].X;
 			vertices[i].y = points[i].Y;
 			vertices[i].z = points[i].Z;
@@ -811,9 +718,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 
 	D3DMATRIX matrix;
 	if (D3D_PixelPerfectScale) {
-		memcpy(&matrix.m,
-			D3D_MatrixIdentity->Values,
-			sizeof(float) * 16);
+		memcpy(&matrix.m, D3D_MatrixIdentity->Values, sizeof(float) * 16);
 	}
 	else {
 		// memcpy(&matrix.m, Graphics::ModelViewMatrix->Values,
@@ -821,27 +726,19 @@ void D3D_DrawTextureRaw(Texture* texture,
 		Graphics::Save();
 		Graphics::Translate(x, y, 0.0f);
 		if (texture->Access != SDL_TEXTUREACCESS_TARGET) {
-			Graphics::Translate(
-				-0.5f * fx, 0.5f * fy, 0.0f);
+			Graphics::Translate(-0.5f * fx, 0.5f * fy, 0.0f);
 		}
 		else {
-			Graphics::Translate(
-				-0.5f * fx, -0.5f * fy, 0.0f);
+			Graphics::Translate(-0.5f * fx, -0.5f * fy, 0.0f);
 		}
 		Graphics::Scale(w, h, 1.0f);
-		memcpy(&matrix.m,
-			Graphics::ModelViewMatrix->Values,
-			sizeof(float) * 16);
+		memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
 		Graphics::Restore();
 	}
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 
-	result = IDirect3DDevice9_DrawPrimitiveUP(renderData->Device,
-		D3DPT_TRIANGLEFAN,
-		2,
-		vertices,
-		sizeof(*vertices));
+	result = IDirect3DDevice9_DrawPrimitiveUP(
+		renderData->Device, D3DPT_TRIANGLEFAN, 2, vertices, sizeof(*vertices));
 	if (FAILED(result)) {
 		D3D_SetError("DrawPrimitiveUP() %s", result);
 	}
@@ -864,15 +761,9 @@ void D3D_BeginDrawShape(Vertex* shapeBuffer, int vertexCount) {
 	D3D_SetBlendMode();
 	D3D_BindTexture(NULL, 0);
 }
-void D3D_EndDrawShape(Vertex* shapeBuffer,
-	D3DPRIMITIVETYPE prim,
-	int triangleCount) {
-	HRESULT result =
-		IDirect3DDevice9_DrawPrimitiveUP(renderData->Device,
-			prim,
-			triangleCount,
-			shapeBuffer,
-			sizeof(Vertex));
+void D3D_EndDrawShape(Vertex* shapeBuffer, D3DPRIMITIVETYPE prim, int triangleCount) {
+	HRESULT result = IDirect3DDevice9_DrawPrimitiveUP(
+		renderData->Device, prim, triangleCount, shapeBuffer, sizeof(Vertex));
 	if (FAILED(result)) {
 		D3D_SetError("DrawPrimitiveUP() %s", result);
 	}
@@ -883,13 +774,11 @@ void D3DRenderer::Init() {
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 	D3D_MatrixIdentity = Matrix4x4::Create();
 
-	renderData =
-		(D3D_RenderData*)calloc(1, sizeof(D3D_RenderData));
+	renderData = (D3D_RenderData*)calloc(1, sizeof(D3D_RenderData));
 
 	// renderData->D3D = Direct3DCreate9(D3D_SDK_VERSION);
 	if (!D3D_LoadDLL(&renderData->D3D_DLL, &renderData->D3D)) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to create Direct3D interface.");
+		Log::Print(Log::LOG_ERROR, "Unable to create Direct3D interface.");
 		return;
 	}
 
@@ -910,8 +799,7 @@ void D3DRenderer::Init() {
 
 	window_flags = SDL_GetWindowFlags(Application::Window);
 	SDL_GetWindowSize(Application::Window, &w, &h);
-	SDL_GetWindowDisplayMode(
-		Application::Window, &fullscreen_mode);
+	SDL_GetWindowDisplayMode(Application::Window, &fullscreen_mode);
 
 	memset(&pparams, 0, sizeof(pparams));
 	pparams.hDeviceWindow = windowinfo.info.win.window;
@@ -924,13 +812,10 @@ void D3DRenderer::Init() {
 	pparams.AutoDepthStencilFormat = D3DFMT_D16;
 
 	if (window_flags & SDL_WINDOW_FULLSCREEN &&
-		(window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) !=
-			SDL_WINDOW_FULLSCREEN_DESKTOP) {
+		(window_flags & SDL_WINDOW_FULLSCREEN_DESKTOP) != SDL_WINDOW_FULLSCREEN_DESKTOP) {
 		pparams.Windowed = FALSE;
-		pparams.BackBufferFormat = D3D_PixelFormatToD3DFORMAT(
-			fullscreen_mode.format);
-		pparams.FullScreen_RefreshRateInHz =
-			fullscreen_mode.refresh_rate;
+		pparams.BackBufferFormat = D3D_PixelFormatToD3DFORMAT(fullscreen_mode.format);
+		pparams.FullScreen_RefreshRateInHz = fullscreen_mode.refresh_rate;
 	}
 	else {
 		pparams.Windowed = TRUE;
@@ -942,29 +827,23 @@ void D3DRenderer::Init() {
 		pparams.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	}
 	else {
-		pparams.PresentationInterval =
-			D3DPRESENT_INTERVAL_IMMEDIATE;
+		pparams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	}
 
 	displayIndex = SDL_GetWindowDisplayIndex(Application::Window);
-	renderData->Adapter =
-		SDL_Direct3D9GetAdapterIndex(displayIndex);
+	renderData->Adapter = SDL_Direct3D9GetAdapterIndex(displayIndex);
 
 	// Check for full-scene antialiasing
 	if (Graphics::MultisamplingEnabled) {
 		pparams.MultiSampleType = D3DMULTISAMPLE_2_SAMPLES;
-		if (SUCCEEDED(
-			    result = IDirect3D9_CheckDeviceMultiSampleType(
-				    renderData->D3D,
-				    renderData->Adapter,
-				    D3DDEVTYPE_HAL,
-				    D3D_PixelFormatToD3DFORMAT(
-					    SDL_GetWindowPixelFormat(
-						    Application::
-							    Window)),
-				    pparams.Windowed,
-				    pparams.MultiSampleType,
-				    NULL))) {
+		if (SUCCEEDED(result = IDirect3D9_CheckDeviceMultiSampleType(renderData->D3D,
+				      renderData->Adapter,
+				      D3DDEVTYPE_HAL,
+				      D3D_PixelFormatToD3DFORMAT(
+					      SDL_GetWindowPixelFormat(Application::Window)),
+				      pparams.Windowed,
+				      pparams.MultiSampleType,
+				      NULL))) {
 			pparams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 		}
 		else if (FAILED(result)) {
@@ -973,10 +852,7 @@ void D3DRenderer::Init() {
 		}
 	}
 
-	IDirect3D9_GetDeviceCaps(renderData->D3D,
-		renderData->Adapter,
-		D3DDEVTYPE_HAL,
-		&caps);
+	IDirect3D9_GetDeviceCaps(renderData->D3D, renderData->Adapter, D3DDEVTYPE_HAL, &caps);
 
 	device_flags = D3DCREATE_FPU_PRESERVE;
 	if (caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) {
@@ -986,8 +862,7 @@ void D3DRenderer::Init() {
 		device_flags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 	}
 
-	if (SDL_GetHintBoolean(
-		    SDL_HINT_RENDER_DIRECT3D_THREADSAFE, SDL_FALSE)) {
+	if (SDL_GetHintBoolean(SDL_HINT_RENDER_DIRECT3D_THREADSAFE, SDL_FALSE)) {
 		device_flags |= D3DCREATE_MULTITHREADED;
 	}
 
@@ -1000,29 +875,22 @@ void D3DRenderer::Init() {
 		&renderData->Device);
 	if (FAILED(result)) {
 		D3DRenderer::Dispose();
-		Log::Print(Log::LOG_ERROR,
-			"CreateDevice() %s",
-			D3D_GetResultString(result));
+		Log::Print(Log::LOG_ERROR, "CreateDevice() %s", D3D_GetResultString(result));
 		exit(-1);
 	}
 
 	/* Get presentation parameters to fill info */
-	result = IDirect3DDevice9_GetSwapChain(
-		renderData->Device, 0, &chain);
+	result = IDirect3DDevice9_GetSwapChain(renderData->Device, 0, &chain);
 	if (FAILED(result)) {
 		D3DRenderer::Dispose();
-		Log::Print(
-			Log::LOG_ERROR, "GetSwapChain() %d", result);
+		Log::Print(Log::LOG_ERROR, "GetSwapChain() %d", result);
 		return;
 	}
-	result = IDirect3DSwapChain9_GetPresentParameters(
-		chain, &pparams);
+	result = IDirect3DSwapChain9_GetPresentParameters(chain, &pparams);
 	if (FAILED(result)) {
 		IDirect3DSwapChain9_Release(chain);
 		D3DRenderer::Dispose();
-		Log::Print(Log::LOG_ERROR,
-			"GetPresentParameters() %d",
-			result);
+		Log::Print(Log::LOG_ERROR, "GetPresentParameters() %d", result);
 		return;
 	}
 	IDirect3DSwapChain9_Release(chain);
@@ -1043,9 +911,7 @@ void D3DRenderer::Init() {
 	}
 
 	/* Store the default render target */
-	IDirect3DDevice9_GetRenderTarget(renderData->Device,
-		0,
-		&renderData->DefaultRenderTarget);
+	IDirect3DDevice9_GetRenderTarget(renderData->Device, 0, &renderData->DefaultRenderTarget);
 	renderData->CurrentRenderTarget = NULL;
 
 	/* Set up parameters for rendering */
@@ -1081,24 +947,19 @@ void D3DRenderer::Init() {
 	Graphics::MaxTextureHeight = texture_max_h;
 
 	D3DADAPTER_IDENTIFIER9 indent;
-	IDirect3D9_GetAdapterIdentifier(
-		renderData->D3D, renderData->Adapter, 0, &indent);
+	IDirect3D9_GetAdapterIdentifier(renderData->D3D, renderData->Adapter, 0, &indent);
 
-	Log::Print(Log::LOG_INFO,
-		"Graphics Card: %s",
-		indent.Description);
+	Log::Print(Log::LOG_INFO, "Graphics Card: %s", indent.Description);
 }
 Uint32 D3DRenderer::GetWindowFlags() {
 	return 0;
 }
-void D3DRenderer::SetVSync(bool enabled) {
-}
+void D3DRenderer::SetVSync(bool enabled) {}
 void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::PixelOffset = 0.5f;
 
 	Graphics::Internal.Init = D3DRenderer::Init;
-	Graphics::Internal.GetWindowFlags =
-		D3DRenderer::GetWindowFlags;
+	Graphics::Internal.GetWindowFlags = D3DRenderer::GetWindowFlags;
 	Graphics::Internal.SetVSync = D3DRenderer::SetVSync;
 	Graphics::Internal.Dispose = D3DRenderer::Dispose;
 
@@ -1107,32 +968,23 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.LockTexture = D3DRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = D3DRenderer::UpdateTexture;
 	Graphics::Internal.UnlockTexture = D3DRenderer::UnlockTexture;
-	Graphics::Internal.DisposeTexture =
-		D3DRenderer::DisposeTexture;
+	Graphics::Internal.DisposeTexture = D3DRenderer::DisposeTexture;
 
 	// Viewport and view-related functions
-	Graphics::Internal.SetRenderTarget =
-		D3DRenderer::SetRenderTarget;
-	Graphics::Internal.UpdateWindowSize =
-		D3DRenderer::UpdateWindowSize;
-	Graphics::Internal.UpdateViewport =
-		D3DRenderer::UpdateViewport;
-	Graphics::Internal.UpdateClipRect =
-		D3DRenderer::UpdateClipRect;
+	Graphics::Internal.SetRenderTarget = D3DRenderer::SetRenderTarget;
+	Graphics::Internal.UpdateWindowSize = D3DRenderer::UpdateWindowSize;
+	Graphics::Internal.UpdateViewport = D3DRenderer::UpdateViewport;
+	Graphics::Internal.UpdateClipRect = D3DRenderer::UpdateClipRect;
 	Graphics::Internal.UpdateOrtho = D3DRenderer::UpdateOrtho;
-	Graphics::Internal.UpdatePerspective =
-		D3DRenderer::UpdatePerspective;
-	Graphics::Internal.UpdateProjectionMatrix =
-		D3DRenderer::UpdateProjectionMatrix;
-	Graphics::Internal.MakePerspectiveMatrix =
-		D3DRenderer::MakePerspectiveMatrix;
+	Graphics::Internal.UpdatePerspective = D3DRenderer::UpdatePerspective;
+	Graphics::Internal.UpdateProjectionMatrix = D3DRenderer::UpdateProjectionMatrix;
+	Graphics::Internal.MakePerspectiveMatrix = D3DRenderer::MakePerspectiveMatrix;
 
 	// Shader-related functions
 	Graphics::Internal.UseShader = D3DRenderer::UseShader;
 	Graphics::Internal.SetUniformF = D3DRenderer::SetUniformF;
 	Graphics::Internal.SetUniformI = D3DRenderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture =
-		D3DRenderer::SetUniformTexture;
+	Graphics::Internal.SetUniformTexture = D3DRenderer::SetUniformTexture;
 
 	// These guys
 	Graphics::Internal.Clear = D3DRenderer::Clear;
@@ -1143,16 +995,14 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.SetBlendMode = D3DRenderer::SetBlendMode;
 	Graphics::Internal.SetTintColor = D3DRenderer::SetTintColor;
 	Graphics::Internal.SetTintMode = D3DRenderer::SetTintMode;
-	Graphics::Internal.SetTintEnabled =
-		D3DRenderer::SetTintEnabled;
+	Graphics::Internal.SetTintEnabled = D3DRenderer::SetTintEnabled;
 	Graphics::Internal.SetLineWidth = D3DRenderer::SetLineWidth;
 
 	// Primitive drawing functions
 	Graphics::Internal.StrokeLine = D3DRenderer::StrokeLine;
 	Graphics::Internal.StrokeCircle = D3DRenderer::StrokeCircle;
 	Graphics::Internal.StrokeEllipse = D3DRenderer::StrokeEllipse;
-	Graphics::Internal.StrokeRectangle =
-		D3DRenderer::StrokeRectangle;
+	Graphics::Internal.StrokeRectangle = D3DRenderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = D3DRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = D3DRenderer::FillEllipse;
 	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
@@ -1161,22 +1011,16 @@ void D3DRenderer::SetGraphicsFunctions() {
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
 	Graphics::Internal.DrawSprite = D3DRenderer::DrawSprite;
-	Graphics::Internal.DrawSpritePart =
-		D3DRenderer::DrawSpritePart;
+	Graphics::Internal.DrawSpritePart = D3DRenderer::DrawSpritePart;
 
 	// 3D drawing functions
 	Graphics::Internal.DrawPolygon3D = D3DRenderer::DrawPolygon3D;
-	Graphics::Internal.DrawSceneLayer3D =
-		D3DRenderer::DrawSceneLayer3D;
+	Graphics::Internal.DrawSceneLayer3D = D3DRenderer::DrawSceneLayer3D;
 	Graphics::Internal.DrawModel = D3DRenderer::DrawModel;
-	Graphics::Internal.DrawModelSkinned =
-		D3DRenderer::DrawModelSkinned;
-	Graphics::Internal.DrawVertexBuffer =
-		D3DRenderer::DrawVertexBuffer;
-	Graphics::Internal.BindVertexBuffer =
-		D3DRenderer::BindVertexBuffer;
-	Graphics::Internal.UnbindVertexBuffer =
-		D3DRenderer::UnbindVertexBuffer;
+	Graphics::Internal.DrawModelSkinned = D3DRenderer::DrawModelSkinned;
+	Graphics::Internal.DrawVertexBuffer = D3DRenderer::DrawVertexBuffer;
+	Graphics::Internal.BindVertexBuffer = D3DRenderer::BindVertexBuffer;
+	Graphics::Internal.UnbindVertexBuffer = D3DRenderer::UnbindVertexBuffer;
 	Graphics::Internal.BindScene3D = D3DRenderer::BindScene3D;
 	Graphics::Internal.ClearScene3D = D3DRenderer::ClearScene3D;
 	Graphics::Internal.DrawScene3D = D3DRenderer::DrawScene3D;
@@ -1195,10 +1039,7 @@ void D3DRenderer::Dispose() {
 }
 
 // Texture management functions
-Texture* D3DRenderer::CreateTexture(Uint32 format,
-	Uint32 access,
-	Uint32 width,
-	Uint32 height) {
+Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
 	D3D_CreateTexture(texture);
@@ -1208,15 +1049,10 @@ Texture* D3DRenderer::CreateTexture(Uint32 format,
 
 	return texture;
 }
-int D3DRenderer::LockTexture(Texture* texture,
-	void** pixels,
-	int* pitch) {
+int D3DRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
-int D3DRenderer::UpdateTexture(Texture* texture,
-	SDL_Rect* r,
-	void* pixels,
-	int pitch) {
+int D3DRenderer::UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch) {
 	int inputPixelsX = 0;
 	int inputPixelsY = 0;
 	int inputPixelsW = texture->Width;
@@ -1237,8 +1073,7 @@ int D3DRenderer::UpdateTexture(Texture* texture,
 		}
 	}
 
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 
 	RECT d3drect;
 	D3DLOCKED_RECT locked;
@@ -1253,8 +1088,7 @@ int D3DRenderer::UpdateTexture(Texture* texture,
 	d3drect.bottom = inputPixelsY + inputPixelsH;
 
 	if (textureData->Staging == NULL) {
-		result = IDirect3DDevice9_CreateTexture(
-			renderData->Device,
+		result = IDirect3DDevice9_CreateTexture(renderData->Device,
 			texture->Width,
 			texture->Height,
 			1,
@@ -1264,14 +1098,11 @@ int D3DRenderer::UpdateTexture(Texture* texture,
 			&textureData->Staging,
 			NULL);
 		if (FAILED(result)) {
-			return D3D_SetError(
-				"CreateTexture(D3DPOOL_SYSTEMMEM)",
-				result);
+			return D3D_SetError("CreateTexture(D3DPOOL_SYSTEMMEM)", result);
 		}
 	}
 
-	result = IDirect3DTexture9_LockRect(
-		textureData->Staging, 0, &locked, &d3drect, 0);
+	result = IDirect3DTexture9_LockRect(textureData->Staging, 0, &locked, &d3drect, 0);
 	if (FAILED(result)) {
 		D3D_SetError("LockRect() %s", result);
 		return -1;
@@ -1305,11 +1136,9 @@ int D3DRenderer::UpdateTexture(Texture* texture,
 
 	return 0;
 }
-void D3DRenderer::UnlockTexture(Texture* texture) {
-}
+void D3DRenderer::UnlockTexture(Texture* texture) {}
 void D3DRenderer::DisposeTexture(Texture* texture) {
-	D3D_TextureData* textureData =
-		(D3D_TextureData*)texture->DriverData;
+	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
 	if (!textureData) {
 		return;
 	}
@@ -1360,9 +1189,7 @@ void D3DRenderer::UpdateClipRect() {
 	if (Graphics::CurrentClip.Enabled) {
 		Viewport view = Graphics::CurrentViewport;
 
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_SCISSORTESTENABLE,
-			TRUE);
+		IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SCISSORTESTENABLE, TRUE);
 
 		int w, h;
 		float scaleW = 1.0f, scaleH = 1.0f;
@@ -1374,30 +1201,21 @@ void D3DRenderer::UpdateClipRect() {
 		RECT r;
 		r.left = view.X + (int)((clip.X) * scaleW);
 		r.top = view.Y + (int)((clip.Y) * scaleH);
-		r.right =
-			view.X + (int)((clip.X + clip.Width) * scaleW);
-		r.bottom = view.Y +
-			(int)((clip.Y + clip.Height) * scaleH);
+		r.right = view.X + (int)((clip.X + clip.Width) * scaleW);
+		r.bottom = view.Y + (int)((clip.Y + clip.Height) * scaleH);
 
-		HRESULT result = IDirect3DDevice9_SetScissorRect(
-			renderData->Device, &r);
+		HRESULT result = IDirect3DDevice9_SetScissorRect(renderData->Device, &r);
 		if (result != D3D_OK) {
 			D3D_SetError("SetScissor()", result);
 		}
 	}
 	else {
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_SCISSORTESTENABLE,
-			FALSE);
+		IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SCISSORTESTENABLE, FALSE);
 	}
 }
-void D3DRenderer::UpdateOrtho(float left,
-	float top,
-	float right,
-	float bottom) {
+void D3DRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
 	if (Scene::Views[Scene::ViewCurrent].Software) {
-		Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent]
-					 .BaseProjectionMatrix,
+		Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
 			left,
 			right,
 			bottom,
@@ -1406,8 +1224,7 @@ void D3DRenderer::UpdateOrtho(float left,
 			-500.0f);
 	}
 	else {
-		Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent]
-					 .BaseProjectionMatrix,
+		Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
 			left,
 			right,
 			top,
@@ -1415,39 +1232,26 @@ void D3DRenderer::UpdateOrtho(float left,
 			500.0f,
 			-500.0f);
 	}
-	Matrix4x4::Copy(
-		Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
+	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
 		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 
 	if (D3D_PixelPerfectScale) {
-		D3D_RenderScaleX =
-			Graphics::CurrentViewport.Width / right;
-		D3D_RenderScaleY =
-			Graphics::CurrentViewport.Height / top;
+		D3D_RenderScaleX = Graphics::CurrentViewport.Width / right;
+		D3D_RenderScaleY = Graphics::CurrentViewport.Height / top;
 	}
 }
-void D3DRenderer::UpdatePerspective(float fovy,
-	float aspect,
-	float nearv,
-	float farv) {
+void D3DRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
 	MakePerspectiveMatrix(
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
-		fovy,
-		nearv,
-		farv,
-		aspect);
-	Matrix4x4::Copy(
-		Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
+		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
+	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
 		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 void D3DRenderer::UpdateProjectionMatrix() {
 	D3DMATRIX matrix;
 	memcpy(&matrix.m,
-		Scene::Views[Scene::ViewCurrent]
-			.ProjectionMatrix->Values,
+		Scene::Views[Scene::ViewCurrent].ProjectionMatrix->Values,
 		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_PROJECTION, &matrix);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_PROJECTION, &matrix);
 }
 void D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float fov,
@@ -1478,10 +1282,7 @@ void D3DRenderer::SetUniformF(int location, int count, float* values) {
 void D3DRenderer::SetUniformI(int location, int count, int* values) {
 	// glUniform1iv(location, count, values);
 }
-void D3DRenderer::SetUniformTexture(Texture* texture,
-	int uniform_index,
-	int slot) {
-}
+void D3DRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void D3DRenderer::Clear() {
@@ -1493,20 +1294,15 @@ void D3DRenderer::Clear() {
 
 	if (Graphics::CurrentRenderTarget) {
 		BackBufferWidth = Graphics::CurrentRenderTarget->Width;
-		BackBufferHeight =
-			Graphics::CurrentRenderTarget->Height;
+		BackBufferHeight = Graphics::CurrentRenderTarget->Height;
 	}
 	else {
-		BackBufferWidth =
-			renderData->PresentParams.BackBufferWidth;
-		BackBufferHeight =
-			renderData->PresentParams.BackBufferHeight;
+		BackBufferWidth = renderData->PresentParams.BackBufferWidth;
+		BackBufferHeight = renderData->PresentParams.BackBufferHeight;
 	}
 
 	if (Graphics::CurrentClip.Enabled) {
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_SCISSORTESTENABLE,
-			FALSE);
+		IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SCISSORTESTENABLE, FALSE);
 	}
 
 	DWORD clear_flags = D3DCLEAR_TARGET;
@@ -1517,16 +1313,10 @@ void D3DRenderer::Clear() {
 
 	/* Don't reset the viewport if we don't have to! */
 	Viewport* vp = &Graphics::CurrentViewport;
-	if (vp->X == 0.0 && vp->Y == 0.0 &&
-		vp->Width == BackBufferWidth &&
+	if (vp->X == 0.0 && vp->Y == 0.0 && vp->Width == BackBufferWidth &&
 		vp->Height == BackBufferHeight) {
-		result = IDirect3DDevice9_Clear(renderData->Device,
-			0,
-			NULL,
-			clear_flags,
-			color,
-			1.0f,
-			0);
+		result = IDirect3DDevice9_Clear(
+			renderData->Device, 0, NULL, clear_flags, color, 1.0f, 0);
 	}
 	else {
 		D3DVIEWPORT9 viewport;
@@ -1539,16 +1329,10 @@ void D3DRenderer::Clear() {
 		viewport.Height = BackBufferHeight;
 		viewport.MinZ = 0.0f;
 		viewport.MaxZ = 1.0f;
-		IDirect3DDevice9_SetViewport(
-			renderData->Device, &viewport);
+		IDirect3DDevice9_SetViewport(renderData->Device, &viewport);
 
-		result = IDirect3DDevice9_Clear(renderData->Device,
-			0,
-			NULL,
-			clear_flags,
-			color,
-			1.0f,
-			0);
+		result = IDirect3DDevice9_Clear(
+			renderData->Device, 0, NULL, clear_flags, color, 1.0f, 0);
 
 		/* Reset the viewport */
 		viewport.X = vp->X;
@@ -1557,14 +1341,11 @@ void D3DRenderer::Clear() {
 		viewport.Height = vp->Height;
 		viewport.MinZ = 0.0f;
 		viewport.MaxZ = 1.0f;
-		IDirect3DDevice9_SetViewport(
-			renderData->Device, &viewport);
+		IDirect3DDevice9_SetViewport(renderData->Device, &viewport);
 	}
 
 	if (Graphics::CurrentClip.Enabled) {
-		IDirect3DDevice9_SetRenderState(renderData->Device,
-			D3DRS_SCISSORTESTENABLE,
-			TRUE);
+		IDirect3DDevice9_SetRenderState(renderData->Device, D3DRS_SCISSORTESTENABLE, TRUE);
 	}
 
 	if (FAILED(result)) {
@@ -1579,8 +1360,7 @@ void D3DRenderer::Present() {
 		renderData->BeginScene = true;
 	}
 
-	result = IDirect3DDevice9_TestCooperativeLevel(
-		renderData->Device);
+	result = IDirect3DDevice9_TestCooperativeLevel(renderData->Device);
 	if (result == D3DERR_DEVICELOST) {
 		/* We'll reset later */
 		return;
@@ -1590,8 +1370,7 @@ void D3DRenderer::Present() {
 		// D3D_Reset(renderer);
 	}
 
-	result = IDirect3DDevice9_Present(
-		renderData->Device, NULL, NULL, NULL, NULL);
+	result = IDirect3DDevice9_Present(renderData->Device, NULL, NULL, NULL, NULL);
 	if (FAILED(result)) {
 		D3D_SetError("Present()", result);
 	}
@@ -1605,23 +1384,16 @@ void D3DRenderer::SetBlendColor(float r, float g, float b, float a) {
 	int hb = (int)(b * 0xFF);
 	D3D_BlendColorsAsHex = ha | hr | hg | hb;
 }
-void D3DRenderer::SetBlendMode(int srcC,
-	int dstC,
-	int srcA,
-	int dstA) {
+void D3DRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
 	D3D_Blend_SRC_COLOR = D3D_GetBlendFactorFromHatch(srcC);
 	D3D_Blend_DST_COLOR = D3D_GetBlendFactorFromHatch(dstC);
 	D3D_Blend_SRC_ALPHA = D3D_GetBlendFactorFromHatch(srcA);
 	D3D_Blend_DST_ALPHA = D3D_GetBlendFactorFromHatch(dstA);
 }
-void D3DRenderer::SetTintColor(float r, float g, float b, float a) {
-}
-void D3DRenderer::SetTintMode(int mode) {
-}
-void D3DRenderer::SetTintEnabled(bool enabled) {
-}
-void D3DRenderer::SetLineWidth(float n) {
-}
+void D3DRenderer::SetTintColor(float r, float g, float b, float a) {}
+void D3DRenderer::SetTintMode(int mode) {}
+void D3DRenderer::SetTintEnabled(bool enabled) {}
+void D3DRenderer::SetLineWidth(float n) {}
 
 // Primitive drawing functions
 void D3DRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
@@ -1645,21 +1417,15 @@ void D3DRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
 	// GL_FLOAT, GL_FALSE, 0, v); glDrawArrays(GL_LINES, 0, 2);
 	Graphics::Restore();
 }
-void D3DRenderer::StrokeCircle(float x,
-	float y,
-	float rad,
-	float thickness) {
+void D3DRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
 	D3D_BeginDrawShape(D3D_BufferCircleStroke, 361);
 
 	Graphics::Save();
 	Graphics::Translate(x, y, 0.0f);
 	Graphics::Scale(rad, rad, 1.0f);
 	D3DMATRIX matrix;
-	memcpy(&matrix.m,
-		Graphics::ModelViewMatrix->Values,
-		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 	Graphics::Restore();
 
 	D3D_EndDrawShape(D3D_BufferCircleStroke, D3DPT_LINESTRIP, 360);
@@ -1694,11 +1460,8 @@ void D3DRenderer::FillCircle(float x, float y, float rad) {
 	Graphics::Translate(x, y, 0.0f);
 	Graphics::Scale(rad, rad, 1.0f);
 	D3DMATRIX matrix;
-	memcpy(&matrix.m,
-		Graphics::ModelViewMatrix->Values,
-		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 	Graphics::Restore();
 
 	D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
@@ -1713,37 +1476,23 @@ void D3DRenderer::FillEllipse(float x, float y, float w, float h) {
 	Graphics::Translate(x + w, y + h, 0.0f);
 	Graphics::Scale(w, h, 1.0f);
 	D3DMATRIX matrix;
-	memcpy(&matrix.m,
-		Graphics::ModelViewMatrix->Values,
-		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 	Graphics::Restore();
 
 	D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
 }
-void D3DRenderer::FillTriangle(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3) {
+void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Vertex vertices[3];
-	vertices[0] =
-		Vertex{x1, y1, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
-	vertices[1] =
-		Vertex{x2, y2, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
-	vertices[2] =
-		Vertex{x3, y3, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
+	vertices[0] = Vertex{x1, y1, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
+	vertices[1] = Vertex{x2, y2, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
+	vertices[2] = Vertex{x3, y3, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
 
 	D3D_BeginDrawShape(vertices, 3);
 
 	D3DMATRIX matrix;
-	memcpy(&matrix.m,
-		Graphics::ModelViewMatrix->Values,
-		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 
 	D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
@@ -1754,11 +1503,8 @@ void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
 	Graphics::Translate(x, y, 0.0f);
 	Graphics::Scale(w, h, 1.0f);
 	D3DMATRIX matrix;
-	memcpy(&matrix.m,
-		Graphics::ModelViewMatrix->Values,
-		sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(
-		renderData->Device, D3DTS_VIEW, &matrix);
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
 	Graphics::Restore();
 
 	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
@@ -1777,8 +1523,7 @@ void D3DRenderer::DrawTexture(Texture* texture,
 	// UseShader(D3D_SelectedShader ? D3D_SelectedShader :
 	// D3D_ShaderTexturedShape);
 	if (sx < 0) {
-		sx = 0.0, sy = 0.0, sw = texture->Width,
-		sh = texture->Height;
+		sx = 0.0, sy = 0.0, sw = texture->Width, sh = texture->Height;
 	}
 	D3D_DrawTextureRaw(texture,
 		sx,
@@ -1807,8 +1552,7 @@ void D3DRenderer::DrawSprite(ISprite* sprite,
 		return;
 	}
 
-	AnimFrame animframe =
-		sprite->Animations[animation].Frames[frame];
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 
 	float fX = flipX ? -1.0 : 1.0;
 	float fY = flipY ? -1.0 : 1.0;
@@ -1854,8 +1598,7 @@ void D3DRenderer::DrawSpritePart(ISprite* sprite,
 		return;
 	}
 
-	AnimFrame animframe =
-		sprite->Animations[animation].Frames[frame];
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	if (sx == animframe.Width) {
 		return;
 	}
@@ -1896,41 +1639,31 @@ void D3DRenderer::DrawPolygon3D(void* data,
 	int vertexFlag,
 	Texture* texture,
 	Matrix4x4* modelMatrix,
-	Matrix4x4* normalMatrix) {
-}
+	Matrix4x4* normalMatrix) {}
 void D3DRenderer::DrawSceneLayer3D(void* layer,
 	int sx,
 	int sy,
 	int sw,
 	int sh,
 	Matrix4x4* modelMatrix,
-	Matrix4x4* normalMatrix) {
-}
+	Matrix4x4* normalMatrix) {}
 void D3DRenderer::DrawModel(void* model,
 	Uint16 animation,
 	Uint32 frame,
 	Matrix4x4* modelMatrix,
-	Matrix4x4* normalMatrix) {
-}
+	Matrix4x4* normalMatrix) {}
 void D3DRenderer::DrawModelSkinned(void* model,
 	Uint16 armature,
 	Matrix4x4* modelMatrix,
-	Matrix4x4* normalMatrix) {
-}
+	Matrix4x4* normalMatrix) {}
 void D3DRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	Matrix4x4* modelMatrix,
-	Matrix4x4* normalMatrix) {
-}
-void D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {
-}
-void D3DRenderer::UnbindVertexBuffer() {
-}
-void D3DRenderer::BindScene3D(Uint32 sceneIndex) {
-}
-void D3DRenderer::ClearScene3D(Uint32 sceneIndex) {
-}
-void D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
-}
+	Matrix4x4* normalMatrix) {}
+void D3DRenderer::BindVertexBuffer(Uint32 vertexBufferIndex) {}
+void D3DRenderer::UnbindVertexBuffer() {}
+void D3DRenderer::BindScene3D(Uint32 sceneIndex) {}
+void D3DRenderer::ClearScene3D(Uint32 sceneIndex) {}
+void D3DRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {}
 
 /*
 // Draw buffering

@@ -19,12 +19,9 @@ bool Init() {
 
 	auto memPool = &MemoryPools[0];
 	for (int i = 0; i < MEMPOOL_COUNT; i++) {
-		memPool->Blocks =
-			(Uint32*)malloc(memPool->BlocksDataSize);
+		memPool->Blocks = (Uint32*)malloc(memPool->BlocksDataSize);
 		if (!memPool->Blocks) {
-			Log::Print(Log::LOG_ERROR,
-				"Pool %d could not be allocated.",
-				i);
+			Log::Print(Log::LOG_ERROR, "Pool %d could not be allocated.", i);
 			return false;
 		}
 
@@ -76,31 +73,24 @@ void* Alloc(void** mem, size_t size, int pool, bool clearMem) {
 	if (memPool->ReferenceCount < MAX_REFERENCE_COUNT) {
 		// Is there enough space in the pool for this
 		// allocation?
-		Uint32 blockDataCurrentSize =
-			memPool->BlockCount * sizeof(Uint32);
-		if (size + blockDataCurrentSize <
-			memPool->BlocksDataSize) {
+		Uint32 blockDataCurrentSize = memPool->BlockCount * sizeof(Uint32);
+		if (size + blockDataCurrentSize < memPool->BlocksDataSize) {
 			// BlockStruct: isUsed
 			memPool->Blocks[memPool->BlockCount++] = true;
 			// BlockStruct: dataStartIndex
 			//     Set index to the block after the next
 			//     one.
-			memPool->Blocks[memPool->BlockCount] =
-				memPool->BlockCount + 2;
+			memPool->Blocks[memPool->BlockCount] = memPool->BlockCount + 2;
 			memPool->BlockCount++;
 			// BlockStruct: dataSize
-			memPool->Blocks[memPool->BlockCount++] =
-				(Uint32)size;
+			memPool->Blocks[memPool->BlockCount++] = (Uint32)size;
 			// BlockStruct: data
-			*mem = (void*)&memPool
-				       ->Blocks[memPool->BlockCount];
+			*mem = (void*)&memPool->Blocks[memPool->BlockCount];
 			memPool->BlockCount += size / sizeof(Uint32);
 
 			// Add reference
-			memPool->ReferenceList[memPool
-					->ReferenceCount] = mem;
-			memPool->PointerList[memPool->ReferenceCount] =
-				*mem;
+			memPool->ReferenceList[memPool->ReferenceCount] = mem;
+			memPool->PointerList[memPool->ReferenceCount] = *mem;
 			memPool->ReferenceCount++;
 		}
 		else {
@@ -109,39 +99,27 @@ void* Alloc(void** mem, size_t size, int pool, bool clearMem) {
 			RunGC(pool);
 
 			// Update the current pool size
-			blockDataCurrentSize =
-				memPool->BlockCount * sizeof(Uint32);
+			blockDataCurrentSize = memPool->BlockCount * sizeof(Uint32);
 
 			// Is there enough space in the pool for this
 			// allocation?
-			if (size + blockDataCurrentSize <
-				memPool->BlocksDataSize) {
+			if (size + blockDataCurrentSize < memPool->BlocksDataSize) {
 				// BlockStruct: isUsed
-				memPool->Blocks[memPool
-						->BlockCount++] = true;
+				memPool->Blocks[memPool->BlockCount++] = true;
 				// BlockStruct: dataStartIndex
 				//     Set index to the block after the
 				//     next one.
-				memPool->Blocks[memPool->BlockCount] =
-					memPool->BlockCount + 2;
+				memPool->Blocks[memPool->BlockCount] = memPool->BlockCount + 2;
 				memPool->BlockCount++;
 				// BlockStruct: dataSize
-				memPool->Blocks[memPool
-						->BlockCount++] =
-					(Uint32)size;
+				memPool->Blocks[memPool->BlockCount++] = (Uint32)size;
 				// BlockStruct: data
-				*mem = (void*)&memPool->Blocks[memPool
-						->BlockCount];
-				memPool->BlockCount +=
-					size / sizeof(Uint32);
+				*mem = (void*)&memPool->Blocks[memPool->BlockCount];
+				memPool->BlockCount += size / sizeof(Uint32);
 
 				// Add reference
-				memPool->ReferenceList[memPool
-						->ReferenceCount] =
-					mem;
-				memPool->PointerList[memPool
-						->ReferenceCount] =
-					*mem;
+				memPool->ReferenceList[memPool->ReferenceCount] = mem;
+				memPool->PointerList[memPool->ReferenceCount] = *mem;
 				memPool->ReferenceCount++;
 			}
 			else {
@@ -150,8 +128,7 @@ void* Alloc(void** mem, size_t size, int pool, bool clearMem) {
 					pool,
 					size,
 					memPool->BlocksDataSize,
-					memPool->BlocksDataSize -
-						blockDataCurrentSize);
+					memPool->BlocksDataSize - blockDataCurrentSize);
 			}
 		}
 
@@ -199,10 +176,9 @@ void RunGC(int pool) {
 		Uint32* block = &memPool->Blocks[i];
 		BlockHeader* header = (BlockHeader*)block;
 
-		int blockSizeInBytes = header->dataSize +
-			3 * sizeof(Uint32); // 3 =
-		                            // sizeof(BlockHeader) /
-		                            // sizeof(Uint32)
+		int blockSizeInBytes = header->dataSize + 3 * sizeof(Uint32); // 3 =
+			// sizeof(BlockHeader) /
+			// sizeof(Uint32)
 		int blockSize = blockSizeInBytes / sizeof(Uint32);
 		int nextBlockIndex = i + blockSize;
 
@@ -234,8 +210,7 @@ void RunGC(int pool) {
 			// If the current block is ahead of the free
 			// block, move current block back to free block
 			if (i > freeBlockIndex) {
-				memcpy(&memPool->Blocks
-						[freeBlockIndex],
+				memcpy(&memPool->Blocks[freeBlockIndex],
 					&memPool->Blocks[i],
 					blockSizeInBytes);
 			}
@@ -254,8 +229,7 @@ void RunGC(int pool) {
 		printf("Freed 0x%X blocks out of 0x%X possible (0x%X max)\n",
 			freedBlocks,
 			memPool->BlockCount,
-			(int)(memPool->BlocksDataSize /
-				sizeof(Uint32)));
+			(int)(memPool->BlocksDataSize / sizeof(Uint32)));
 	}
 
 	if (freedBlocks) {
@@ -263,43 +237,30 @@ void RunGC(int pool) {
 		if (memPool->BlockCount) {
 			for (Uint32 i = 0; i < memPool->BlockCount;) {
 				Uint32* block = &memPool->Blocks[i];
-				BlockHeader* header =
-					(BlockHeader*)block;
+				BlockHeader* header = (BlockHeader*)block;
 
-				int blockSizeInBytes =
-					header->dataSize +
-					3 * sizeof(Uint32); // 3 =
-				                            // sizeof(BlockHeader)
-				                            // /
-				                            // sizeof(Uint32)
-				int blockSize = blockSizeInBytes /
-					sizeof(Uint32);
+				int blockSizeInBytes = header->dataSize + 3 * sizeof(Uint32); // 3 =
+					// sizeof(BlockHeader)
+					// /
+					// sizeof(Uint32)
+				int blockSize = blockSizeInBytes / sizeof(Uint32);
 				int nextBlockIndex = i + blockSize;
 
 				// For any pointers that point to this
 				// allocblock's data
 				void* oldAllocBlockDataPtr =
-					(void*)&memPool->Blocks
-						[header->dataStartIndex];
-				void* newAllocBlockDataPtr =
-					(void*)&header[1];
-				for (Uint32 r = 0;
-					r < memPool->ReferenceCount;
-					r++) {
-					if (oldAllocBlockDataPtr ==
-						memPool->PointerList
-							[r]) {
-						*memPool->ReferenceList
-							 [r] =
-							memPool->PointerList
-								[r] =
+					(void*)&memPool->Blocks[header->dataStartIndex];
+				void* newAllocBlockDataPtr = (void*)&header[1];
+				for (Uint32 r = 0; r < memPool->ReferenceCount; r++) {
+					if (oldAllocBlockDataPtr == memPool->PointerList[r]) {
+						*memPool->ReferenceList[r] =
+							memPool->PointerList[r] =
 								newAllocBlockDataPtr;
 					}
 				}
 
-				header->dataStartIndex = i +
-					3; // 3 = sizeof(BlockHeader) /
-				           // sizeof(Uint32)
+				header->dataStartIndex = i + 3; // 3 = sizeof(BlockHeader) /
+					// sizeof(Uint32)
 
 				// Next block
 				i = nextBlockIndex;
@@ -368,21 +329,16 @@ void Dispose() {
 	}
 }
 
-void PassReference(void** newReference,
-	void** oldReference,
-	int pool) {
+void PassReference(void** newReference, void** oldReference, int pool) {
 	if (oldReference) {
 		*newReference = *oldReference;
 
 		auto mPool = &MemoryPools[pool];
 		if (mPool->ReferenceCount < MAX_REFERENCE_COUNT) {
-			mPool->ReferenceList[mPool->ReferenceCount] =
-				newReference;
-			mPool->PointerList[mPool->ReferenceCount] =
-				*newReference;
+			mPool->ReferenceList[mPool->ReferenceCount] = newReference;
+			mPool->PointerList[mPool->ReferenceCount] = *newReference;
 			mPool->ReferenceCount++;
-			if (mPool->ReferenceCount >=
-				MAX_REFERENCE_COUNT) {
+			if (mPool->ReferenceCount >= MAX_REFERENCE_COUNT) {
 				CleanupReferences(pool);
 			}
 		}

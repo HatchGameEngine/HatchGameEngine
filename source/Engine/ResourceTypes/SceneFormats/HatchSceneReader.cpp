@@ -28,13 +28,10 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_FLIPY_MASK 0x00002000U
 #define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
 
-bool HatchSceneReader::Read(const char* filename,
-	const char* parentFolder) {
+bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
 	if (!r) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
 
@@ -54,11 +51,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	Uint8 verMinor = r->ReadByte();
 	Uint8 verPatch = r->ReadUInt16();
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Scene version: %d.%d.%d",
-		verMajor,
-		verMinor,
-		verPatch);
+	Log::Print(Log::LOG_VERBOSE, "Scene version: %d.%d.%d", verMajor, verMinor, verPatch);
 
 	if (verMajor != 0) {
 		Log::Print(Log::LOG_ERROR,
@@ -152,8 +145,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	layer.ConstantY = r->ReadInt16();
 
 	layer.ScrollInfoCount = r->ReadUInt16();
-	layer.ScrollInfos = (ScrollingInfo*)Memory::Malloc(
-		layer.ScrollInfoCount * sizeof(ScrollingInfo));
+	layer.ScrollInfos =
+		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 
 	if (!layer.ScrollInfos) {
 		Log::Print(Log::LOG_ERROR, "Out of memory!");
@@ -192,8 +185,7 @@ void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
 }
 
 void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
-	for (size_t i = 0; i < (size_t)layer->Width * layer->Height;
-		i++) {
+	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
@@ -213,10 +205,8 @@ void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
 			tile |= TILE_FLIPY_MASK;
 		}
 
-		Uint32 collA =
-			(layer->Tiles[i] & HSCN_COLLA_MASK) >> 14;
-		Uint32 collB =
-			(layer->Tiles[i] & HSCN_COLLB_MASK) >> 16;
+		Uint32 collA = (layer->Tiles[i] & HSCN_COLLA_MASK) >> 14;
+		Uint32 collB = (layer->Tiles[i] & HSCN_COLLB_MASK) >> 16;
 
 		tile |= (collA << 28);
 		tile |= (collB << 26);
@@ -269,8 +259,7 @@ SceneClass* HatchSceneReader::FindClass(SceneHash hash) {
 	return NULL;
 }
 
-SceneClassProperty*
-HatchSceneReader::FindProperty(SceneClass* scnClass, SceneHash hash) {
+SceneClassProperty* HatchSceneReader::FindProperty(SceneClass* scnClass, SceneHash hash) {
 	for (size_t i = 0; i < scnClass->Properties.size(); i++) {
 		if (scnClass->Properties[i].Hash == hash) {
 			return &scnClass->Properties[i];
@@ -285,14 +274,10 @@ void HatchSceneReader::HashString(char* string, SceneHash* hash) {
 
 	MD5::EncryptString(final, string);
 
-	hash->A = final[0] + (final[1] << 8) + (final[2] << 16) +
-		(final[3] << 24);
-	hash->B = final[4] + (final[5] << 8) + (final[6] << 16) +
-		(final[7] << 24);
-	hash->C = final[8] + (final[9] << 8) + (final[10] << 16) +
-		(final[11] << 24);
-	hash->D = final[12] + (final[13] << 8) + (final[14] << 16) +
-		(final[15] << 24);
+	hash->A = final[0] + (final[1] << 8) + (final[2] << 16) + (final[3] << 24);
+	hash->B = final[4] + (final[5] << 8) + (final[6] << 16) + (final[7] << 24);
+	hash->C = final[8] + (final[9] << 8) + (final[10] << 16) + (final[11] << 24);
+	hash->D = final[12] + (final[13] << 8) + (final[14] << 16) + (final[15] << 24);
 }
 
 void HatchSceneReader::ReadClasses(Stream* r) {
@@ -308,8 +293,7 @@ void HatchSceneReader::ReadClasses(Stream* r) {
 		scnClass.Name = className;
 		scnClass.Properties.clear();
 
-		HatchSceneReader::HashString(
-			className, &scnClass.Hash); // Create hash
+		HatchSceneReader::HashString(className, &scnClass.Hash); // Create hash
 
 #ifdef HSCN_READER_DEBUG
 		Log::Print(Log::LOG_VERBOSE, "Class: %s", className);
@@ -319,9 +303,7 @@ void HatchSceneReader::ReadClasses(Stream* r) {
 			scnClass.Hash.B,
 			scnClass.Hash.C,
 			scnClass.Hash.D);
-		Log::Print(Log::LOG_VERBOSE,
-			"  Properties: %u",
-			numProps);
+		Log::Print(Log::LOG_VERBOSE, "  Properties: %u", numProps);
 #endif
 
 		for (Uint8 j = 0; j < numProps; j++) {
@@ -332,8 +314,7 @@ void HatchSceneReader::ReadClasses(Stream* r) {
 			prop.Name = propName;
 			prop.Type = propType;
 
-			HatchSceneReader::HashString(
-				propName, &prop.Hash); // Create hash
+			HatchSceneReader::HashString(propName, &prop.Hash); // Create hash
 
 #ifdef HSCN_READER_DEBUG
 			static const char* propTypeNames[] = {"uint8",
@@ -349,12 +330,8 @@ void HatchSceneReader::ReadClasses(Stream* r) {
 				"unknown",
 				"color"};
 
-			Log::Print(Log::LOG_VERBOSE,
-				"    Name: %s",
-				propName);
-			Log::Print(Log::LOG_VERBOSE,
-				"    Type: %s",
-				propTypeNames[prop.Type]);
+			Log::Print(Log::LOG_VERBOSE, "    Name: %s", propName);
+			Log::Print(Log::LOG_VERBOSE, "    Type: %s", propTypeNames[prop.Type]);
 			Log::Print(Log::LOG_VERBOSE,
 				"    Hash: %08x%08x%08x%08x",
 				prop.Hash.A,
@@ -374,8 +351,7 @@ void HatchSceneReader::FreeClasses() {
 	for (size_t i = 0; i < SceneClasses.size(); i++) {
 		SceneClass* scnClass = &SceneClasses[i];
 		Memory::Free(scnClass->Name);
-		for (size_t j = 0; j < scnClass->Properties.size();
-			j++) {
+		for (size_t j = 0; j < scnClass->Properties.size(); j++) {
 			Memory::Free(scnClass->Properties[j].Name);
 		}
 	}
@@ -387,10 +363,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	int curTileCount = (int)Scene::TileSpriteInfos.size();
 
 	char tilesetFile[4096];
-	snprintf(tilesetFile,
-		sizeof(tilesetFile),
-		"%s/Tileset.png",
-		parentFolder);
+	snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
 
 	ISprite* tileSprite = new ISprite();
 	Texture* spriteSheet = tileSprite->AddSpriteSheet(tilesetFile);
@@ -410,8 +383,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	for (int i = 0; i < cols * rows; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
-		info.FrameIndex =
-			(int)tileSprite->Animations[0].Frames.size();
+		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
 		info.TilesetID = Scene::Tilesets.size();
 		Scene::TileSpriteInfos.push_back(info);
 
@@ -464,22 +436,17 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint8 filter = r->ReadByte();
 		Uint8 numProps = r->ReadByte();
 
-		if (classHash.A == 0x19191919 &&
-			classHash.B == 0x29292929 &&
-			classHash.C == 0x39393939 &&
-			classHash.D == 0x49494949) {
+		if (classHash.A == 0x19191919 && classHash.B == 0x29292929 &&
+			classHash.C == 0x39393939 && classHash.D == 0x49494949) {
 #ifdef HSCN_READER_DEBUG
-			Log::Print(Log::LOG_WARN,
-				"Ignoring entity with an unknown class");
+			Log::Print(Log::LOG_WARN, "Ignoring entity with an unknown class");
 #endif
-			HatchSceneReader::SkipEntityProperties(
-				r, numProps);
+			HatchSceneReader::SkipEntityProperties(r, numProps);
 			continue;
 		}
 
 		// Find the class from its hash
-		SceneClass* scnClass =
-			HatchSceneReader::FindClass(classHash);
+		SceneClass* scnClass = HatchSceneReader::FindClass(classHash);
 		if (!scnClass) {
 #ifdef HSCN_READER_DEBUG
 			Log::Print(Log::LOG_WARN,
@@ -489,25 +456,20 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 				classHash.C,
 				classHash.D);
 #endif
-			HatchSceneReader::SkipEntityProperties(
-				r, numProps);
+			HatchSceneReader::SkipEntityProperties(r, numProps);
 			continue;
 		}
 
 		// Get the correct object list from the class name
-		Uint32 objectHash =
-			CRC32::EncryptData(&classHash.A, 16);
+		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
 		// Spawn the object, if the class exists
-		ObjectList* objectList =
-			Scene::GetStaticObjectList(objectName);
+		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 		if (objectList->SpawnFunction) {
-			ScriptEntity* obj =
-				(ScriptEntity*)objectList->Spawn();
+			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
 			if (!obj) {
-				HatchSceneReader::SkipEntityProperties(
-					r, numProps);
+				HatchSceneReader::SkipEntityProperties(r, numProps);
 				continue;
 			}
 
@@ -520,8 +482,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
-			obj->Properties->Put(
-				"filter", INTEGER_VAL(filter));
+			obj->Properties->Put("filter", INTEGER_VAL(filter));
 
 			// Add all properties
 			for (Uint8 j = 0; j < numProps; j++) {
@@ -536,8 +497,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 				// Find the class property from the
 				// hash
 				SceneClassProperty* classProp =
-					HatchSceneReader::FindProperty(
-						scnClass, propHash);
+					HatchSceneReader::FindProperty(scnClass, propHash);
 				if (!classProp) {
 #ifdef HSCN_READER_DEBUG
 					Log::Print(Log::LOG_WARN,
@@ -547,8 +507,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 						propHash.C,
 						propHash.D);
 #endif
-					HatchSceneReader::SkipProperty(
-						r, varType);
+					HatchSceneReader::SkipProperty(r, varType);
 					continue;
 				}
 
@@ -585,68 +544,46 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 				case HSCN_VAR_VECTOR2:
 					r->ReadBytes(vecVar, 8);
 					{
-						float fx = vecVar[0] /
-							65536.0;
-						float fy = vecVar[1] /
-							65536.0;
+						float fx = vecVar[0] / 65536.0;
+						float fy = vecVar[1] / 65536.0;
 
-						VMValue valX =
-							DECIMAL_VAL(
-								fx);
-						VMValue valY =
-							DECIMAL_VAL(
-								fy);
+						VMValue valX = DECIMAL_VAL(fx);
+						VMValue valY = DECIMAL_VAL(fy);
 
-						ObjArray* array =
-							NewArray();
-						array->Values
-							->push_back(
-								valX);
-						array->Values
-							->push_back(
-								valY);
+						ObjArray* array = NewArray();
+						array->Values->push_back(valX);
+						array->Values->push_back(valY);
 
-						val = OBJECT_VAL(
-							array);
+						val = OBJECT_VAL(array);
 					}
 					break;
 				case HSCN_VAR_STRING:
 					strLength = r->ReadUInt16();
-					strVar = (char*)malloc(
-						strLength);
+					strVar = (char*)malloc(strLength);
 					if (!strVar) {
-						Log::Print(
-							Log::LOG_ERROR,
-							"Out of memory!");
+						Log::Print(Log::LOG_ERROR, "Out of memory!");
 						exit(-1);
 					}
 
-					for (size_t i = 0;
-						i < strLength;
-						i++) {
-						strVar[i] =
-							r->ReadInt16();
+					for (size_t i = 0; i < strLength; i++) {
+						strVar[i] = r->ReadInt16();
 					}
 
-					val = OBJECT_VAL(CopyString(
-						strVar, strLength));
+					val = OBJECT_VAL(CopyString(strVar, strLength));
 					free(strVar);
 					break;
 				}
 
-				obj->Properties->Put(
-					classProp->Name, val);
+				obj->Properties->Put(classProp->Name, val);
 			}
 		}
 		else {
-			HatchSceneReader::SkipEntityProperties(
-				r, numProps);
+			HatchSceneReader::SkipEntityProperties(r, numProps);
 		}
 	}
 }
 
-void HatchSceneReader::SkipEntityProperties(Stream* r,
-	Uint8 numProps) {
+void HatchSceneReader::SkipEntityProperties(Stream* r, Uint8 numProps) {
 	for (Uint8 j = 0; j < numProps; j++) {
 		r->ReadUInt32();
 		r->ReadUInt32();

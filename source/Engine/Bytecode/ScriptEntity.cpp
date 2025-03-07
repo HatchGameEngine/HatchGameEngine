@@ -5,12 +5,9 @@
 
 bool ScriptEntity::DisableAutoAnimate = false;
 
-#define LINK_INT(VAR) \
-	Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
-#define LINK_DEC(VAR) \
-	Instance->Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
-#define LINK_BOOL(VAR) \
-	Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
+#define LINK_INT(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
+#define LINK_DEC(VAR) Instance->Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
+#define LINK_BOOL(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 
 bool SavedHashes = false;
 Uint32 Hash_Create = 0;
@@ -41,26 +38,19 @@ void ScriptEntity::Link(ObjInstance* instance) {
 		Hash_PostCreate = Murmur::EncryptString("PostCreate");
 		Hash_Update = Murmur::EncryptString("Update");
 		Hash_UpdateLate = Murmur::EncryptString("UpdateLate");
-		Hash_UpdateEarly =
-			Murmur::EncryptString("UpdateEarly");
-		Hash_RenderEarly =
-			Murmur::EncryptString("RenderEarly");
+		Hash_UpdateEarly = Murmur::EncryptString("UpdateEarly");
+		Hash_RenderEarly = Murmur::EncryptString("RenderEarly");
 		Hash_Render = Murmur::EncryptString("Render");
 		Hash_RenderLate = Murmur::EncryptString("RenderLate");
-		Hash_OnAnimationFinish =
-			Murmur::EncryptString("OnAnimationFinish");
-		Hash_OnSceneLoad =
-			Murmur::EncryptString("OnSceneLoad");
-		Hash_OnSceneRestart =
-			Murmur::EncryptString("OnSceneRestart");
+		Hash_OnAnimationFinish = Murmur::EncryptString("OnAnimationFinish");
+		Hash_OnSceneLoad = Murmur::EncryptString("OnSceneLoad");
+		Hash_OnSceneRestart = Murmur::EncryptString("OnSceneRestart");
 		Hash_GameStart = Murmur::EncryptString("GameStart");
 		Hash_Dispose = Murmur::EncryptString("Dispose");
 		Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
 		Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
-		Hash_HitboxRight =
-			Murmur::EncryptString("HitboxRight");
-		Hash_HitboxBottom =
-			Murmur::EncryptString("HitboxBottom");
+		Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
+		Hash_HitboxBottom = Murmur::EncryptString("HitboxBottom");
 
 		SavedHashes = true;
 	}
@@ -360,8 +350,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.
     */
-	Instance->Fields->Put(
-		"UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
+	Instance->Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
 	/***
     * \field UpdateRegionH
     * \type Decimal
@@ -369,8 +358,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.
     */
-	Instance->Fields->Put(
-		"UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
+	Instance->Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
 	/***
     * \field UpdateRegionTop
     * \type Decimal
@@ -378,8 +366,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
     */
-	Instance->Fields->Put("UpdateRegionTop",
-		DECIMAL_LINK_VAL(&OnScreenRegionTop));
+	Instance->Fields->Put("UpdateRegionTop", DECIMAL_LINK_VAL(&OnScreenRegionTop));
 	/***
     * \field UpdateRegionLeft
     * \type Decimal
@@ -387,8 +374,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
     */
-	Instance->Fields->Put("UpdateRegionLeft",
-		DECIMAL_LINK_VAL(&OnScreenRegionLeft));
+	Instance->Fields->Put("UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
 	/***
     * \field UpdateRegionRight
     * \type Decimal
@@ -396,8 +382,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionW">UpdateRegionW</linkto> instead.
     */
-	Instance->Fields->Put("UpdateRegionRight",
-		DECIMAL_LINK_VAL(&OnScreenRegionRight));
+	Instance->Fields->Put("UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
 	/***
     * \field UpdateRegionBottom
     * \type Decimal
@@ -405,8 +390,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <linkto ref="instance.UpdateRegionH">UpdateRegionH</linkto> instead.
     */
-	Instance->Fields->Put("UpdateRegionBottom",
-		DECIMAL_LINK_VAL(&OnScreenRegionBottom));
+	Instance->Fields->Put("UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
 	/***
     * \field RenderRegionW
     * \type Decimal
@@ -463,8 +447,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The width of the hitbox.
     */
-	Instance->Fields->Put(
-		"HitboxW", DECIMAL_LINK_VAL(&Hitbox.Width));
+	Instance->Fields->Put("HitboxW", DECIMAL_LINK_VAL(&Hitbox.Width));
 	/***
     * \field HitboxH
     * \type Decimal
@@ -472,8 +455,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The height of the hitbox.
     */
-	Instance->Fields->Put(
-		"HitboxH", DECIMAL_LINK_VAL(&Hitbox.Height));
+	Instance->Fields->Put("HitboxH", DECIMAL_LINK_VAL(&Hitbox.Height));
 	/***
     * \field HitboxOffX
     * \type Decimal
@@ -481,8 +463,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The horizontal offset of the hitbox.
     */
-	Instance->Fields->Put(
-		"HitboxOffX", DECIMAL_LINK_VAL(&Hitbox.OffsetX));
+	Instance->Fields->Put("HitboxOffX", DECIMAL_LINK_VAL(&Hitbox.OffsetX));
 	/***
     * \field HitboxOffY
     * \type Decimal
@@ -490,8 +471,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc The vertical offset of the hitbox.
     */
-	Instance->Fields->Put(
-		"HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
+	Instance->Fields->Put("HitboxOffY", DECIMAL_LINK_VAL(&Hitbox.OffsetY));
 
 	/***
     * \field HitboxLeft
@@ -696,8 +676,7 @@ void ScriptEntity::LinkFields() {
     * \ns Instance
     * \desc See <linkto ref="instance.Persistence"></linkto> instead.
     */
-	Instance->Fields->Put(
-		"Persistent", INTEGER_LINK_VAL(&Persistence));
+	Instance->Fields->Put("Persistent", INTEGER_LINK_VAL(&Persistence));
 	/***
     * \field Interactable
     * \type Boolean
@@ -778,8 +757,7 @@ bool ScriptEntity::RunCreateFunction(VMValue flag) {
 	// NOTE:
 	// If the function doesn't exist, this is not an error VM side,
 	// treat whatever we call from C++ as a virtual-like function.
-	ObjFunction* func =
-		ScriptEntity::GetCallableFunction(Hash_Create);
+	ObjFunction* func = ScriptEntity::GetCallableFunction(Hash_Create);
 	if (!func) {
 		return true;
 	}
@@ -867,10 +845,9 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 
 	destProperties->Clear();
 
-	srcProperties->WithAll(
-		[destProperties](Uint32 key, VMValue value) -> void {
-			destProperties->Put(key, value);
-		});
+	srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
+		destProperties->Put(key, value);
+	});
 }
 
 void ScriptEntity::CopyFields(ScriptEntity* other) {
@@ -885,14 +862,12 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 	destFields->Clear();
 
-	srcFields->WithAll(
-		[destFields](Uint32 key, VMValue value) -> void {
-			// Don't copy linked fields, because they point to this entity's built-in fields
-			if (value.Type != VAL_LINKED_INTEGER &&
-				value.Type != VAL_LINKED_DECIMAL) {
-				destFields->Put(key, value);
-			}
-		});
+	srcFields->WithAll([destFields](Uint32 key, VMValue value) -> void {
+		// Don't copy linked fields, because they point to this entity's built-in fields
+		if (value.Type != VAL_LINKED_INTEGER && value.Type != VAL_LINKED_DECIMAL) {
+			destFields->Put(key, value);
+		}
+	});
 
 	// Link the built-in fields again, since they have been removed
 	other->LinkFields();
@@ -1089,14 +1064,10 @@ void ScriptEntity::Dispose() {
 }
 
 // Events/methods called from VM
-#define GET_ARG(argIndex, argFunction) \
-	(StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
-	(argIndex < argCount ? GET_ARG(argIndex, \
-				       StandardLibrary::argFunction) \
-			     : argDefault)
-#define GET_ENTITY(argIndex) \
-	(GetScriptEntity(args, argIndex, threadID))
+	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
+#define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, threadID))
 ScriptEntity* GetScriptEntity(Obj* object) {
 	ObjInstance* entity = (ObjInstance*)object;
 	if (!entity->EntityPtr) {
@@ -1104,8 +1075,7 @@ ScriptEntity* GetScriptEntity(Obj* object) {
 	}
 	return (ScriptEntity*)entity->EntityPtr;
 }
-ScriptEntity*
-GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
+ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* entity = GET_ARG(index, GetInstance);
 	if (!entity->EntityPtr) {
 		return nullptr;
@@ -1126,10 +1096,7 @@ bool TestEntityCollision(Entity* other, Entity* self) {
 
 	return self->CollideWithObject(other);
 }
-bool ScriptEntity::VM_Getter(Obj* object,
-	Uint32 hash,
-	VMValue* result,
-	Uint32 threadID) {
+bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	Entity* self = GetScriptEntity(object);
 	if (self == nullptr) {
 		return false;
@@ -1155,47 +1122,39 @@ bool ScriptEntity::VM_Getter(Obj* object,
 	}
 	else if (hash == Hash_HitboxBottom) {
 		if (result) {
-			*result =
-				DECIMAL_VAL(self->Hitbox.GetBottom());
+			*result = DECIMAL_VAL(self->Hitbox.GetBottom());
 		}
 		return true;
 	}
 
 	return false;
 }
-bool ScriptEntity::VM_Setter(Obj* object,
-	Uint32 hash,
-	VMValue value,
-	Uint32 threadID) {
+bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	Entity* self = GetScriptEntity(object);
 	if (self == nullptr) {
 		return false;
 	}
 
 	if (hash == Hash_HitboxLeft) {
-		if (ScriptManager::DoDecimalConversion(
-			    value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			self->Hitbox.SetLeft(AS_DECIMAL(value));
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxTop) {
-		if (ScriptManager::DoDecimalConversion(
-			    value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			self->Hitbox.SetTop(AS_DECIMAL(value));
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxRight) {
-		if (ScriptManager::DoDecimalConversion(
-			    value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			self->Hitbox.SetRight(AS_DECIMAL(value));
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxBottom) {
-		if (ScriptManager::DoDecimalConversion(
-			    value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			self->Hitbox.SetBottom(AS_DECIMAL(value));
 		}
 		return true;
@@ -1210,9 +1169,7 @@ bool ScriptEntity::VM_Setter(Obj* object,
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetAnimation(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	Entity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
@@ -1222,8 +1179,7 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount,
 		return NULL_VAL;
 	}
 
-	ResourceType* resource =
-		Scene::GetSpriteResource(self->Sprite);
+	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
 	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
@@ -1237,22 +1193,14 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount,
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 &&
-		    (size_t)animation < sprite->Animations.size())) {
+	if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Animation %d is not in bounds of sprite.",
-			animation);
+			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 &&
-		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size())) {
+	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Frame %d is not in bounds of animation %d.",
-			frame,
-			animation);
+			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
 
@@ -1266,9 +1214,7 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount,
  * \param frame (Integer): The frame index.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ResetAnimation(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	Entity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
@@ -1278,41 +1224,28 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount,
 		return NULL_VAL;
 	}
 
-	ResourceType* resource =
-		Scene::GetSpriteResource(self->Sprite);
+	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
 	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Sprite %d does not exist!",
-			self->Sprite);
+			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Sprite %d does not exist!",
-			self->Sprite);
+			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 &&
-		    (Uint32)animation < sprite->Animations.size())) {
+	if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Animation %d is not in bounds of sprite.",
-			animation);
+			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 &&
-		    (Uint32)frame < sprite->Animations[animation]
-					    .Frames.size())) {
+	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Frame %d is not in bounds of animation %d.",
-			frame,
-			animation);
+			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
 
@@ -1324,9 +1257,7 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount,
  * \desc Animates the entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_Animate(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	Entity* self = GET_ENTITY(0);
 	if (self) {
@@ -1341,9 +1272,7 @@ VMValue ScriptEntity::VM_Animate(int argCount,
  * \return Returns an Integer value.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_GetIDWithinClass(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	Entity* self = GET_ENTITY(0);
 	if (!self || !self->List) {
@@ -1371,9 +1300,7 @@ VMValue ScriptEntity::VM_GetIDWithinClass(int argCount,
  * \param registry (String): The registry name.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_AddToRegistry(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	Entity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
@@ -1388,8 +1315,7 @@ VMValue ScriptEntity::VM_AddToRegistry(int argCount,
 		Scene::ObjectRegistries->Put(registry, objectRegistry);
 	}
 	else {
-		objectRegistry =
-			Scene::ObjectRegistries->Get(registry);
+		objectRegistry = Scene::ObjectRegistries->Get(registry);
 	}
 
 	objectRegistry->Add(self);
@@ -1403,20 +1329,16 @@ VMValue ScriptEntity::VM_AddToRegistry(int argCount,
  * \return Returns a Boolean value.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_IsInRegistry(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	Entity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
-	if (!IsValidEntity(self) ||
-		!Scene::ObjectRegistries->Exists(registry)) {
+	if (!IsValidEntity(self) || !Scene::ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
 	}
 
-	ObjectRegistry* objectRegistry =
-		Scene::ObjectRegistries->Get(registry);
+	ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
 
 	return INTEGER_VAL(objectRegistry->Contains(self));
 }
@@ -1426,20 +1348,16 @@ VMValue ScriptEntity::VM_IsInRegistry(int argCount,
  * \param registry (String): The registry name.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	Entity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
-	if (!IsValidEntity(self) ||
-		!Scene::ObjectRegistries->Exists(registry)) {
+	if (!IsValidEntity(self) || !Scene::ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
 	}
 
-	ObjectRegistry* objectRegistry =
-		Scene::ObjectRegistries->Get(registry);
+	ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
 
 	objectRegistry->Remove(self);
 
@@ -1450,9 +1368,7 @@ VMValue ScriptEntity::VM_RemoveFromRegistry(int argCount,
  * \desc Applies gravity and velocities to the entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ApplyMotion(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	Entity* self = GET_ENTITY(0);
 	if (IsValidEntity(self)) {
@@ -1471,8 +1387,7 @@ VMValue ScriptEntity::VM_ApplyMotion(int argCount,
  * \return Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue
-ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 6);
 	// Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
 	int view = GET_ARG(1, GetInteger);
@@ -1481,8 +1396,7 @@ ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
 	float w = GET_ARG(4, GetDecimal);
 	float h = GET_ARG(5, GetDecimal);
 
-	if (x + w >= Scene::Views[view].X &&
-		y + h >= Scene::Views[view].Y &&
+	if (x + w >= Scene::Views[view].X && y + h >= Scene::Views[view].Y &&
 		x < Scene::Views[view].X + Scene::Views[view].Width &&
 		y < Scene::Views[view].Y + Scene::Views[view].Height) {
 		return INTEGER_VAL(true);
@@ -1497,9 +1411,7 @@ ScriptEntity::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
  * \return Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ScriptEntity* self = GET_ENTITY(0);
@@ -1529,8 +1441,7 @@ VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
 		}
 	}
 
-	if (self->Hitbox.Width == 0.0f ||
-		self->Hitbox.Height == 0.0f) {
+	if (self->Hitbox.Width == 0.0f || self->Hitbox.Height == 0.0f) {
 		return NULL_VAL;
 	}
 
@@ -1556,9 +1467,7 @@ VMValue ScriptEntity::VM_CollidedWithObject(int argCount,
  * \param hitbox (Integer): The hitbox ID.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 5);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISprite* sprite = GET_ARG(1, GetSprite);
@@ -1570,22 +1479,14 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
 		return NULL_VAL;
 	}
 
-	if (!(animation > -1 &&
-		    (size_t)animation < sprite->Animations.size())) {
+	if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Animation %d is not in bounds of sprite.",
-			animation);
+			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame > -1 &&
-		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size())) {
+	if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Frame %d is not in bounds of animation %d.",
-			frame,
-			animation);
+			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
 
@@ -1611,9 +1512,7 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount,
  * \return Returns an array containing the hitbox top, left, right and bottom sides in that order.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 5);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISprite* sprite = GET_ARG(1, GetSprite);
@@ -1625,22 +1524,14 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
 		return NULL_VAL;
 	}
 
-	if (!(animation > -1 &&
-		    (size_t)animation < sprite->Animations.size())) {
+	if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Animation %d is not in bounds of sprite.",
-			animation);
+			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame > -1 &&
-		    (size_t)frame < sprite->Animations[animation]
-					    .Frames.size())) {
+	if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
-			"Frame %d is not in bounds of animation %d.",
-			frame,
-			animation);
+			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
 
@@ -1667,9 +1558,7 @@ VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount,
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_CollideWithObject(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
@@ -1685,9 +1574,7 @@ VMValue ScriptEntity::VM_CollideWithObject(int argCount,
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
@@ -1704,9 +1591,7 @@ VMValue ScriptEntity::VM_SolidCollideWithObject(int argCount,
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
@@ -1714,13 +1599,10 @@ VMValue ScriptEntity::VM_TopSolidCollideWithObject(int argCount,
 	if (!IsValidEntity(self) || !IsValidEntity(other)) {
 		return NULL_VAL;
 	}
-	return INTEGER_VAL(
-		self->TopSolidCollideWithObject(other, flag));
+	return INTEGER_VAL(self->TopSolidCollideWithObject(other, flag));
 }
 
-VMValue ScriptEntity::VM_ApplyPhysics(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (IsValidEntity(self)) {
@@ -1736,9 +1618,7 @@ VMValue ScriptEntity::VM_ApplyPhysics(int argCount,
  * \return Returns <code>true</code> if the property exists, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PropertyExists(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
@@ -1754,9 +1634,7 @@ VMValue ScriptEntity::VM_PropertyExists(int argCount,
  * \return Returns the property if it exists, and <code>null</code> if the property does not exist.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PropertyGet(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
@@ -1773,9 +1651,7 @@ VMValue ScriptEntity::VM_PropertyGet(int argCount,
  * \param visible (Boolean): Whether the entity will be visible or not on the specified view.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetViewVisibility(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
@@ -1798,9 +1674,7 @@ VMValue ScriptEntity::VM_SetViewVisibility(int argCount,
  * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_SetViewOverride(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
@@ -1823,9 +1697,7 @@ VMValue ScriptEntity::VM_SetViewOverride(int argCount,
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_AddToDrawGroup(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!IsValidEntity(self)) {
@@ -1838,8 +1710,7 @@ VMValue ScriptEntity::VM_AddToDrawGroup(int argCount,
 		}
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			Scene::PriorityPerLayer - 1);
@@ -1853,9 +1724,7 @@ VMValue ScriptEntity::VM_AddToDrawGroup(int argCount,
  * \return Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_IsInDrawGroup(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!IsValidEntity(self)) {
@@ -1863,13 +1732,10 @@ VMValue ScriptEntity::VM_IsInDrawGroup(int argCount,
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
 	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
-		return INTEGER_VAL(
-			!!(Scene::PriorityLists[drawGroup].Contains(
-				self)));
+		return INTEGER_VAL(!!(Scene::PriorityLists[drawGroup].Contains(self)));
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			Scene::PriorityPerLayer - 1);
@@ -1882,9 +1748,7 @@ VMValue ScriptEntity::VM_IsInDrawGroup(int argCount,
  * \param drawGroup (Integer): The draw group.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!IsValidEntity(self)) {
@@ -1895,8 +1759,7 @@ VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount,
 		Scene::PriorityLists[drawGroup].Remove(self);
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false,
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			Scene::PriorityPerLayer - 1);
@@ -1914,9 +1777,7 @@ VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount,
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_PlaySound(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
@@ -1926,13 +1787,8 @@ VMValue ScriptEntity::VM_PlaySound(int argCount,
 	int channel = -1;
 	if (IsValidEntity(self)) {
 		AudioManager::StopOriginSound((void*)self, audio);
-		channel = AudioManager::PlaySound(audio,
-			false,
-			0,
-			panning,
-			speed,
-			volume,
-			(void*)self);
+		channel = AudioManager::PlaySound(
+			audio, false, 0, panning, speed, volume, (void*)self);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -1947,9 +1803,7 @@ VMValue ScriptEntity::VM_PlaySound(int argCount,
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_LoopSound(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
@@ -1960,13 +1814,8 @@ VMValue ScriptEntity::VM_LoopSound(int argCount,
 	int channel = -1;
 	if (IsValidEntity(self)) {
 		AudioManager::StopOriginSound((void*)self, audio);
-		channel = AudioManager::PlaySound(audio,
-			true,
-			loopPoint,
-			panning,
-			speed,
-			volume,
-			(void*)self);
+		channel = AudioManager::PlaySound(
+			audio, true, loopPoint, panning, speed, volume, (void*)self);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -1976,9 +1825,7 @@ VMValue ScriptEntity::VM_LoopSound(int argCount,
  * \param sound (Integer): The sound index to interrupt.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_StopSound(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
@@ -1992,9 +1839,7 @@ VMValue ScriptEntity::VM_StopSound(int argCount,
  * \desc Stops all sounds the entity is playing.
  * \ns Instance
  */
-VMValue ScriptEntity::VM_StopAllSounds(int argCount,
-	VMValue* args,
-	Uint32 threadID) {
+VMValue ScriptEntity::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (IsValidEntity(self)) {

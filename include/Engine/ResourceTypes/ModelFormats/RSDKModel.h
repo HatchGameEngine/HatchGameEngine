@@ -6,8 +6,8 @@
 
 class RSDKModel {
 public:
-    static bool IsMagic(Stream* stream);
-    static bool Convert(IModel* model, Stream* stream);
+	static bool IsMagic(Stream* stream);
+	static bool Convert(IModel* model, Stream* stream);
 };
 
 #endif /* ENGINE_RESOURCETYPES_MODELFORMATS_RSDKMODEL_H */

@@ -41,10 +41,8 @@ void InputManager::Init() {
 	InputManager::InitStringLookup();
 	InputManager::InitControllers();
 
-	InputManager::TouchStates =
-		Memory::TrackedCalloc("InputManager::TouchStates",
-			NUM_TOUCH_STATES,
-			sizeof(TouchState));
+	InputManager::TouchStates = Memory::TrackedCalloc(
+		"InputManager::TouchStates", NUM_TOUCH_STATES, sizeof(TouchState));
 	for (int t = 0; t < NUM_TOUCH_STATES; t++) {
 		TouchState* current = &((TouchState*)TouchStates)[t];
 		current->X = 0.0f;
@@ -68,8 +66,7 @@ void InputManager::InitStringLookup() {
 
 #define DEF_KEY(key) \
 	{ \
-		InputManager::KeyToSDLScancode[Key_##key] = \
-			SDL_SCANCODE_##key; \
+		InputManager::KeyToSDLScancode[Key_##key] = SDL_SCANCODE_##key; \
 		NameMap::Keys->Put(#key, Key_##key); \
 	}
 	DEF_KEY(A);
@@ -188,8 +185,7 @@ void InputManager::InitStringLookup() {
 
 #undef DEF_KEY
 
-#define DEF_BUTTON(x, y) \
-	NameMap::Buttons->Put(#x, (int)ControllerButton::y)
+#define DEF_BUTTON(x, y) NameMap::Buttons->Put(#x, (int)ControllerButton::y)
 	DEF_BUTTON(A, A);
 	DEF_BUTTON(B, B);
 	DEF_BUTTON(X, X);
@@ -259,8 +255,7 @@ char* InputManager::GetAxisName(int axis) {
 #define FIND_IN_BIJECTIVE(which, search) \
 	{ \
 		int found = -1; \
-		which->WithAllKeys([search, &found](const char* k, \
-					   Uint16 v) -> bool { \
+		which->WithAllKeys([search, &found](const char* k, Uint16 v) -> bool { \
 			if (!strcmp(search, k)) { \
 				found = v; \
 				return true; \
@@ -285,10 +280,8 @@ int InputManager::ParseAxisName(const char* axis) {
 Controller* InputManager::OpenController(int index) {
 	Controller* controller = new Controller(index);
 	if (controller->Device == nullptr) {
-		Log::Print(Log::LOG_ERROR,
-			"Opening controller %d failed: %s",
-			index,
-			SDL_GetError());
+		Log::Print(
+			Log::LOG_ERROR, "Opening controller %d failed: %s", index, SDL_GetError());
 		delete controller;
 	}
 
@@ -306,9 +299,7 @@ void InputManager::InitControllers() {
 		}
 	}
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Opening controllers... (%d count)",
-		numControllers);
+	Log::Print(Log::LOG_VERBOSE, "Opening controllers... (%d count)", numControllers);
 
 	InputManager::Controllers.resize(0);
 	InputManager::NumControllers = 0;
@@ -318,11 +309,9 @@ void InputManager::InitControllers() {
 			continue;
 		}
 
-		Controller* controller =
-			InputManager::OpenController(i);
+		Controller* controller = InputManager::OpenController(i);
 		if (controller) {
-			InputManager::Controllers.push_back(
-				controller);
+			InputManager::Controllers.push_back(controller);
 			InputManager::NumControllers++;
 		}
 	}
@@ -331,8 +320,7 @@ void InputManager::InitControllers() {
 int InputManager::FindController(int joystickID) {
 	for (int i = 0; i < InputManager::NumControllers; i++) {
 		Controller* controller = InputManager::Controllers[i];
-		if (controller->Connected &&
-			controller->JoystickID == joystickID) {
+		if (controller->Connected && controller->JoystickID == joystickID) {
 			return i;
 		}
 	}
@@ -355,8 +343,7 @@ bool InputManager::AddController(int index) {
 	}
 
 	InputManager::Controllers.push_back(controller);
-	InputManager::NumControllers =
-		InputManager::Controllers.size();
+	InputManager::NumControllers = InputManager::Controllers.size();
 
 	return true;
 }
@@ -383,27 +370,17 @@ void InputManager::Poll() {
 			TouchDevice = SDL_GetTouchDevice(d);
 			if (TouchDevice) {
 				OneDown = false;
-				for (int t = 0; t < 8 &&
-					SDL_GetNumTouchFingers(
-						TouchDevice);
-					t++) {
-					TouchState* current =
-						&states[t];
+				for (int t = 0; t < 8 && SDL_GetNumTouchFingers(TouchDevice); t++) {
+					TouchState* current = &states[t];
 
-					bool previouslyDown =
-						current->Down;
+					bool previouslyDown = current->Down;
 
 					current->Down = false;
-					if (t < SDL_GetNumTouchFingers(
-							TouchDevice)) {
+					if (t < SDL_GetNumTouchFingers(TouchDevice)) {
 						SDL_Finger* finger =
-							SDL_GetTouchFinger(
-								TouchDevice,
-								t);
-						float tx =
-							finger->x * w;
-						float ty =
-							finger->y * h;
+							SDL_GetTouchFinger(TouchDevice, t);
+						float tx = finger->x * w;
+						float ty = finger->y * h;
 
 						current->X = tx;
 						current->Y = ty;
@@ -412,12 +389,8 @@ void InputManager::Poll() {
 						OneDown = true;
 					}
 
-					current->Pressed =
-						!previouslyDown &&
-						current->Down;
-					current->Released =
-						previouslyDown &&
-						!current->Down;
+					current->Pressed = !previouslyDown && current->Down;
+					current->Released = previouslyDown && !current->Down;
 				}
 
 				if (OneDown) {
@@ -435,10 +408,8 @@ void InputManager::Poll() {
 				bool previouslyDown = current->Down;
 
 				current->Down = false;
-				current->Pressed = !previouslyDown &&
-					current->Down;
-				current->Released = previouslyDown &&
-					!current->Down;
+				current->Pressed = !previouslyDown && current->Down;
+				current->Released = previouslyDown && !current->Down;
 			}
 		}
 	}
@@ -617,8 +588,7 @@ char* InputManager::ControllerGetName(int index) {
 	}
 	return nullptr;
 }
-void InputManager::ControllerSetPlayerIndex(int index,
-	int player_index) {
+void InputManager::ControllerSetPlayerIndex(int index, int player_index) {
 	Controller* controller = GetController(index);
 	if (controller) {
 		controller->SetPlayerIndex(player_index);
@@ -644,15 +614,12 @@ bool InputManager::ControllerRumble(int index,
 	int duration) {
 	Controller* controller = GetController(index);
 	if (controller && controller->Rumble) {
-		return controller->Rumble->Enable(large_frequency,
-			small_frequency,
-			(Uint32)duration);
+		return controller->Rumble->Enable(
+			large_frequency, small_frequency, (Uint32)duration);
 	}
 	return false;
 }
-bool InputManager::ControllerRumble(int index,
-	float strength,
-	int duration) {
+bool InputManager::ControllerRumble(int index, float strength, int duration) {
 	return ControllerRumble(index, strength, strength, duration);
 }
 void InputManager::ControllerStopRumble(int index) {
@@ -686,21 +653,17 @@ void InputManager::ControllerSetRumblePaused(int index, bool paused) {
 		controller->Rumble->SetPaused(paused);
 	}
 }
-bool InputManager::ControllerSetLargeMotorFrequency(int index,
-	float frequency) {
+bool InputManager::ControllerSetLargeMotorFrequency(int index, float frequency) {
 	Controller* controller = GetController(index);
 	if (controller && controller->Rumble) {
-		return controller->Rumble->SetLargeMotorFrequency(
-			frequency);
+		return controller->Rumble->SetLargeMotorFrequency(frequency);
 	}
 	return false;
 }
-bool InputManager::ControllerSetSmallMotorFrequency(int index,
-	float frequency) {
+bool InputManager::ControllerSetSmallMotorFrequency(int index, float frequency) {
 	Controller* controller = GetController(index);
 	if (controller && controller->Rumble) {
-		return controller->Rumble->SetSmallMotorFrequency(
-			frequency);
+		return controller->Rumble->SetSmallMotorFrequency(frequency);
 	}
 	return false;
 }
@@ -755,8 +718,7 @@ int InputManager::AddPlayer() {
 int InputManager::GetPlayerCount() {
 	return (int)Players.size();
 }
-void InputManager::SetPlayerControllerIndex(unsigned playerID,
-	int index) {
+void InputManager::SetPlayerControllerIndex(unsigned playerID, int index) {
 	if (playerID >= Players.size()) {
 		return;
 	}
@@ -783,8 +745,7 @@ bool InputManager::IsActionHeld(unsigned playerID, unsigned actionID) {
 
 	return player.IsInputHeld(actionID);
 }
-bool InputManager::IsActionPressed(unsigned playerID,
-	unsigned actionID) {
+bool InputManager::IsActionPressed(unsigned playerID, unsigned actionID) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -793,8 +754,7 @@ bool InputManager::IsActionPressed(unsigned playerID,
 
 	return player.IsInputPressed(actionID);
 }
-bool InputManager::IsActionReleased(unsigned playerID,
-	unsigned actionID) {
+bool InputManager::IsActionReleased(unsigned playerID, unsigned actionID) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -830,9 +790,7 @@ bool InputManager::IsAnyActionReleased(unsigned playerID) {
 
 	return player.IsAnyInputReleased();
 }
-bool InputManager::IsActionHeld(unsigned playerID,
-	unsigned actionID,
-	unsigned device) {
+bool InputManager::IsActionHeld(unsigned playerID, unsigned actionID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -841,9 +799,7 @@ bool InputManager::IsActionHeld(unsigned playerID,
 
 	return player.IsInputHeld(actionID, device);
 }
-bool InputManager::IsActionPressed(unsigned playerID,
-	unsigned actionID,
-	unsigned device) {
+bool InputManager::IsActionPressed(unsigned playerID, unsigned actionID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -852,9 +808,7 @@ bool InputManager::IsActionPressed(unsigned playerID,
 
 	return player.IsInputPressed(actionID, device);
 }
-bool InputManager::IsActionReleased(unsigned playerID,
-	unsigned actionID,
-	unsigned device) {
+bool InputManager::IsActionReleased(unsigned playerID, unsigned actionID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -863,8 +817,7 @@ bool InputManager::IsActionReleased(unsigned playerID,
 
 	return player.IsInputReleased(actionID, device);
 }
-bool InputManager::IsAnyActionHeld(unsigned playerID,
-	unsigned device) {
+bool InputManager::IsAnyActionHeld(unsigned playerID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -873,8 +826,7 @@ bool InputManager::IsAnyActionHeld(unsigned playerID,
 
 	return player.IsAnyInputHeld(device);
 }
-bool InputManager::IsAnyActionPressed(unsigned playerID,
-	unsigned device) {
+bool InputManager::IsAnyActionPressed(unsigned playerID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -883,8 +835,7 @@ bool InputManager::IsAnyActionPressed(unsigned playerID,
 
 	return player.IsAnyInputPressed(device);
 }
-bool InputManager::IsAnyActionReleased(unsigned playerID,
-	unsigned device) {
+bool InputManager::IsAnyActionReleased(unsigned playerID, unsigned device) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -893,8 +844,7 @@ bool InputManager::IsAnyActionReleased(unsigned playerID,
 
 	return player.IsAnyInputReleased(device);
 }
-bool InputManager::IsPlayerUsingDevice(unsigned playerID,
-	unsigned device) {
+bool InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
 	if (playerID >= Players.size() || device >= InputDevice_MAX) {
 		return false;
 	}
@@ -903,8 +853,7 @@ bool InputManager::IsPlayerUsingDevice(unsigned playerID,
 
 	return player.IsUsingDevice[device];
 }
-float InputManager::GetAnalogActionInput(unsigned playerID,
-	unsigned actionID) {
+float InputManager::GetAnalogActionInput(unsigned playerID, unsigned actionID) {
 	if (playerID >= Players.size()) {
 		return 0.0f;
 	}
@@ -943,8 +892,7 @@ bool InputManager::SetPlayerInputBind(unsigned playerID,
 	InputPlayer& player = Players[playerID];
 
 	if (isDefault) {
-		return player.ReplaceDefaultBind(
-			actionID, bind, index);
+		return player.ReplaceDefaultBind(actionID, bind, index);
 	}
 	else {
 		return player.ReplaceBind(actionID, bind, index);
@@ -984,9 +932,7 @@ bool InputManager::RemovePlayerInputBind(unsigned playerID,
 		return player.RemoveBind(actionID, index);
 	}
 }
-int InputManager::GetPlayerInputBindCount(unsigned playerID,
-	unsigned actionID,
-	bool isDefault) {
+int InputManager::GetPlayerInputBindCount(unsigned playerID, unsigned actionID, bool isDefault) {
 	if (playerID >= Players.size()) {
 		return 0;
 	}
@@ -1001,9 +947,7 @@ int InputManager::GetPlayerInputBindCount(unsigned playerID,
 	}
 }
 
-void InputManager::ClearPlayerBinds(unsigned playerID,
-	unsigned actionID,
-	bool isDefault) {
+void InputManager::ClearPlayerBinds(unsigned playerID, unsigned actionID, bool isDefault) {
 	if (playerID >= Players.size()) {
 		return;
 	}
@@ -1018,9 +962,7 @@ void InputManager::ClearPlayerBinds(unsigned playerID,
 	}
 }
 
-bool InputManager::IsBindIndexValid(unsigned playerID,
-	unsigned actionID,
-	unsigned index) {
+bool InputManager::IsBindIndexValid(unsigned playerID, unsigned actionID, unsigned index) {
 	if (playerID >= Players.size()) {
 		return false;
 	}
@@ -1065,8 +1007,7 @@ int InputManager::RegisterAction(const char* name) {
 int InputManager::GetActionID(const char* name) {
 	if (name != nullptr && name[0] != '\0') {
 		for (size_t i = 0; i < Actions.size(); i++) {
-			if (strcmp(Actions[i].Name.c_str(), name) ==
-				0) {
+			if (strcmp(Actions[i].Name.c_str(), name) == 0) {
 				return (int)i;
 			}
 		}
@@ -1087,8 +1028,8 @@ void InputManager::InitPlayerControls() {
 		return;
 	}
 
-	XMLNode* controlsNode = XMLParser::SearchNode(
-		Application::GameConfig->children[0], "controls");
+	XMLNode* controlsNode =
+		XMLParser::SearchNode(Application::GameConfig->children[0], "controls");
 	if (!controlsNode) {
 		return;
 	}
@@ -1102,9 +1043,7 @@ void InputManager::InitPlayerControls() {
 
 		if (XMLParser::MatchToken(child->name, "player") &&
 			child->attributes.Exists("id") &&
-			StringUtils::ToNumber(&id,
-				child->attributes.Get("id")
-					.ToString()) &&
+			StringUtils::ToNumber(&id, child->attributes.Get("id").ToString()) &&
 			id > numPlayers && id < NUM_INPUT_PLAYERS) {
 			numPlayers = id;
 		}
@@ -1121,8 +1060,7 @@ void InputManager::InitPlayerControls() {
 		if (XMLParser::MatchToken(child->name, "action")) {
 			if (child->children[0]->name.Length > 0) {
 				Token& name = child->children[0]->name;
-				RegisterAction(
-					name.ToString().c_str());
+				RegisterAction(name.ToString().c_str());
 			}
 		}
 	}
@@ -1136,9 +1074,7 @@ void InputManager::InitPlayerControls() {
 			}
 
 			int id = 0;
-			if (!StringUtils::ToNumber(&id,
-				    child->attributes.Get("id")
-					    .ToString())) {
+			if (!StringUtils::ToNumber(&id, child->attributes.Get("id").ToString())) {
 				continue;
 			}
 
@@ -1157,30 +1093,22 @@ void InputManager::InitPlayerControls() {
 	}
 }
 
-void InputManager::ParsePlayerControls(InputPlayer& player,
-	XMLNode* node) {
+void InputManager::ParsePlayerControls(InputPlayer& player, XMLNode* node) {
 	for (size_t i = 0; i < node->children.size(); i++) {
 		XMLNode* child = node->children[i];
 		if (XMLParser::MatchToken(child->name, "default")) {
 			if (child->attributes.Exists("action")) {
-				std::string actionName =
-					child->attributes.Get("action")
-						.ToString();
-				int actionID = GetActionID(
-					actionName.c_str());
+				std::string actionName = child->attributes.Get("action").ToString();
+				int actionID = GetActionID(actionName.c_str());
 				if (actionID != -1) {
-					ParseDefaultInputBinds(player,
-						actionID,
-						actionName,
-						child);
+					ParseDefaultInputBinds(player, actionID, actionName, child);
 				}
 			}
 			else if (child->attributes.Exists("copy") &&
 				child->attributes.Exists("id")) {
 				int id = 0;
-				if (!StringUtils::ToNumber(&id,
-					    child->attributes.Get("id")
-						    .ToString())) {
+				if (!StringUtils::ToNumber(
+					    &id, child->attributes.Get("id").ToString())) {
 					continue;
 				}
 
@@ -1188,37 +1116,29 @@ void InputManager::ParsePlayerControls(InputPlayer& player,
 					continue;
 				}
 
-				std::string copyType =
-					child->attributes.Get("copy")
-						.ToString();
+				std::string copyType = child->attributes.Get("copy").ToString();
 				int filterType = -1;
 				if (copyType == "key") {
-					filterType =
-						INPUT_BIND_KEYBOARD;
+					filterType = INPUT_BIND_KEYBOARD;
 				}
 				else if (copyType == "button") {
-					filterType =
-						INPUT_BIND_CONTROLLER_BUTTON;
+					filterType = INPUT_BIND_CONTROLLER_BUTTON;
 				}
 				else if (copyType == "axis") {
-					filterType =
-						INPUT_BIND_CONTROLLER_AXIS;
+					filterType = INPUT_BIND_CONTROLLER_AXIS;
 				}
 				else {
 					continue;
 				}
 
-				InputPlayer& copyPlayer =
-					Players[id - 1];
-				player.CopyDefaultBinds(
-					copyPlayer, filterType);
+				InputPlayer& copyPlayer = Players[id - 1];
+				player.CopyDefaultBinds(copyPlayer, filterType);
 			}
 		}
 	}
 }
 
-Uint16 InputManager::ParseKeyModifiers(string& str,
-	string& actionName) {
+Uint16 InputManager::ParseKeyModifiers(string& str, string& actionName) {
 	Uint16 flags = 0;
 
 	std::stringstream strStream(str);
@@ -1255,28 +1175,19 @@ void InputManager::ParseDefaultInputBinds(InputPlayer& player,
 		XMLNode* child = node->children[i];
 
 		if (XMLParser::MatchToken(child->name, "key")) {
-			std::string keyNameStr =
-				child->children[0]->name.ToString();
+			std::string keyNameStr = child->children[0]->name.ToString();
 			const char* keyName = keyNameStr.c_str();
 			int key = ParseKeyName(keyName);
 			if (key != Key_UNKNOWN) {
-				KeyboardBind* bind =
-					new KeyboardBind(key);
+				KeyboardBind* bind = new KeyboardBind(key);
 
-				if (child->attributes.Exists(
-					    "modifiers")) {
+				if (child->attributes.Exists("modifiers")) {
 					std::string keymod =
-						child->attributes
-							.Get("modifiers")
-							.ToString();
-					bind->Modifiers =
-						ParseKeyModifiers(
-							keymod,
-							actionName);
+						child->attributes.Get("modifiers").ToString();
+					bind->Modifiers = ParseKeyModifiers(keymod, actionName);
 				}
 
-				if (player.AddDefaultBind(
-					    actionID, bind) < 0) {
+				if (player.AddDefaultBind(actionID, bind) < 0) {
 					delete bind;
 				}
 			}
@@ -1287,18 +1198,13 @@ void InputManager::ParseDefaultInputBinds(InputPlayer& player,
 					actionName.c_str());
 			}
 		}
-		else if (XMLParser::MatchToken(
-				 child->name, "button")) {
-			std::string buttonNameStr =
-				child->children[0]->name.ToString();
+		else if (XMLParser::MatchToken(child->name, "button")) {
+			std::string buttonNameStr = child->children[0]->name.ToString();
 			const char* buttonName = buttonNameStr.c_str();
 			int button = ParseButtonName(buttonName);
 			if (button != -1) {
-				ControllerButtonBind* bind =
-					new ControllerButtonBind(
-						button);
-				if (player.AddDefaultBind(
-					    actionID, bind) < 0) {
+				ControllerButtonBind* bind = new ControllerButtonBind(button);
+				if (player.AddDefaultBind(actionID, bind) < 0) {
 					delete bind;
 				}
 			}
@@ -1310,8 +1216,7 @@ void InputManager::ParseDefaultInputBinds(InputPlayer& player,
 			}
 		}
 		else if (XMLParser::MatchToken(child->name, "axis")) {
-			std::string axisNameStr =
-				child->children[0]->name.ToString();
+			std::string axisNameStr = child->children[0]->name.ToString();
 			const char* axisName = axisNameStr.c_str();
 
 			int axisID;
@@ -1330,35 +1235,28 @@ void InputManager::ParseDefaultInputBinds(InputPlayer& player,
 				continue;
 			}
 
-			ControllerAxisBind* bind =
-				new ControllerAxisBind();
+			ControllerAxisBind* bind = new ControllerAxisBind();
 			bind->Axis = axisID;
 			bind->IsAxisNegative = axisName[0] == '-';
 
 			if (child->attributes.Exists("deadzone")) {
 				double deadzone;
 				if (StringUtils::ToDecimal(&deadzone,
-					    child->attributes
-						    .Get("deadzone")
-						    .ToString())) {
+					    child->attributes.Get("deadzone").ToString())) {
 					bind->AxisDeadzone = deadzone;
 				}
 			}
 
-			if (child->attributes.Exists(
-				    "digital_threshold")) {
+			if (child->attributes.Exists("digital_threshold")) {
 				double threshold;
 				if (StringUtils::ToDecimal(&threshold,
-					    child->attributes
-						    .Get("digital_threshold")
+					    child->attributes.Get("digital_threshold")
 						    .ToString())) {
-					bind->AxisDigitalThreshold =
-						threshold;
+					bind->AxisDigitalThreshold = threshold;
 				}
 			}
 
-			if (player.AddDefaultBind(actionID, bind) <
-				0) {
+			if (player.AddDefaultBind(actionID, bind) < 0) {
 				delete bind;
 			}
 		}
@@ -1370,8 +1268,7 @@ void InputManager::Dispose() {
 
 	// Close controllers
 	for (int i = 0; i < InputManager::NumControllers; i++) {
-		Log::Print(
-			Log::LOG_VERBOSE, "Closing controller %d", i);
+		Log::Print(Log::LOG_VERBOSE, "Closing controller %d", i);
 		delete InputManager::Controllers[i];
 	}
 

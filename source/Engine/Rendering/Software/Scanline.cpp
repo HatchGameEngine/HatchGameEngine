@@ -6,20 +6,16 @@
 	if (Graphics::CurrentClip.Enabled) { \
 		x1 = Graphics::CurrentClip.X; \
 		y1 = Graphics::CurrentClip.Y; \
-		x2 = Graphics::CurrentClip.X + \
-			Graphics::CurrentClip.Width; \
-		y2 = Graphics::CurrentClip.Y + \
-			Graphics::CurrentClip.Height; \
+		x2 = Graphics::CurrentClip.X + Graphics::CurrentClip.Width; \
+		y2 = Graphics::CurrentClip.Y + Graphics::CurrentClip.Height; \
 		if (x1 < 0) \
 			x1 = 0; \
 		if (y1 < 0) \
 			y1 = 0; \
 		if (x2 > (int)Graphics::CurrentRenderTarget->Width) \
-			x2 = (int)Graphics::CurrentRenderTarget \
-				     ->Width; \
+			x2 = (int)Graphics::CurrentRenderTarget->Width; \
 		if (y2 > (int)Graphics::CurrentRenderTarget->Height) \
-			y2 = (int)Graphics::CurrentRenderTarget \
-				     ->Height; \
+			y2 = (int)Graphics::CurrentRenderTarget->Height; \
 		if (x2 < 0 || y2 < 0 || x1 >= x2 || y1 >= y2) \
 			return; \
 	} \
@@ -106,12 +102,7 @@ void Scanline::Process(int x1, int y1, int x2, int y2) {
 }
 
 // Blended
-void Scanline::Process(int color1,
-	int color2,
-	int x1,
-	int y1,
-	int x2,
-	int y2) {
+void Scanline::Process(int color1, int color2, int x1, int y1, int x2, int y2) {
 	int xStart = x1 / 0x10000;
 	int xEnd = x2 / 0x10000;
 	int yStart = y1 / 0x10000;
@@ -196,17 +187,13 @@ void Scanline::Process(int color1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinR = colorBegRED;
 					contour->MinG = colorBegGREEN;
 					contour->MinB = colorBegBLUE;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxR = colorBegRED;
 					contour->MaxG = colorBegGREEN;
 					contour->MaxB = colorBegBLUE;
@@ -223,12 +210,7 @@ void Scanline::Process(int color1,
 }
 
 // With depth
-void Scanline::ProcessDepth(int x1,
-	int y1,
-	int z1,
-	int x2,
-	int y2,
-	int z2) {
+void Scanline::ProcessDepth(int x1, int y1, int z1, int x2, int y2, int z2) {
 	int xStart = x1 / 0x10000;
 	int xEnd = x2 / 0x10000;
 	int yStart = y1 / 0x10000;
@@ -297,15 +279,11 @@ void Scanline::ProcessDepth(int x1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinZ = invZStart;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxZ = invZStart;
 				}
 			}
@@ -408,16 +386,14 @@ void Scanline::ProcessDepth(int color1,
 			int linePointX = linePointSubpxX / 0x10000;
 
 			if (linePointX <= minX) {
-				contour->MinX = contour->MapLeft =
-					minX;
+				contour->MinX = contour->MapLeft = minX;
 				contour->MinZ = invZStart;
 				contour->MinR = colorBegRED;
 				contour->MinG = colorBegGREEN;
 				contour->MinB = colorBegBLUE;
 			}
 			else if (linePointX >= maxX) {
-				contour->MaxX = contour->MapRight =
-					maxX;
+				contour->MaxX = contour->MapRight = maxX;
 				contour->MaxZ = invZStart;
 				contour->MaxR = colorBegRED;
 				contour->MaxG = colorBegGREEN;
@@ -425,18 +401,14 @@ void Scanline::ProcessDepth(int color1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinZ = invZStart;
 					contour->MinR = colorBegRED;
 					contour->MinG = colorBegGREEN;
 					contour->MinB = colorBegBLUE;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxZ = invZStart;
 					contour->MaxR = colorBegRED;
 					contour->MaxG = colorBegGREEN;
@@ -540,32 +512,26 @@ void Scanline::ProcessUVAffine(Vector2 uv1,
 			int linePointX = linePointSubpxX / 0x10000;
 
 			if (linePointX <= minX) {
-				contour->MinX = contour->MapLeft =
-					linePointX;
+				contour->MinX = contour->MapLeft = linePointX;
 				contour->MinZ = invZStart;
 				contour->MinU = texBegU;
 				contour->MinV = texBegV;
 			}
 			else if (linePointX >= maxX) {
-				contour->MaxX = contour->MapRight =
-					linePointX;
+				contour->MaxX = contour->MapRight = linePointX;
 				contour->MaxZ = invZStart;
 				contour->MaxU = texBegU;
 				contour->MaxV = texBegV;
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinZ = invZStart;
 					contour->MinU = texBegU;
 					contour->MinV = texBegV;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxZ = invZStart;
 					contour->MaxU = texBegU;
 					contour->MaxV = texBegV;
@@ -695,8 +661,7 @@ void Scanline::ProcessUVAffine(int color1,
 			int linePointX = linePointSubpxX / 0x10000;
 
 			if (linePointX <= minX) {
-				contour->MinX = contour->MapLeft =
-					linePointX;
+				contour->MinX = contour->MapLeft = linePointX;
 				contour->MinR = colorBegRED;
 				contour->MinG = colorBegGREEN;
 				contour->MinB = colorBegBLUE;
@@ -705,8 +670,7 @@ void Scanline::ProcessUVAffine(int color1,
 				contour->MinV = texBegV;
 			}
 			else if (linePointX >= maxX) {
-				contour->MaxX = contour->MapRight =
-					linePointX;
+				contour->MaxX = contour->MapRight = linePointX;
 				contour->MaxR = colorBegRED;
 				contour->MaxG = colorBegGREEN;
 				contour->MaxB = colorBegBLUE;
@@ -716,9 +680,7 @@ void Scanline::ProcessUVAffine(int color1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinR = colorBegRED;
 					contour->MinG = colorBegGREEN;
 					contour->MinB = colorBegBLUE;
@@ -727,9 +689,7 @@ void Scanline::ProcessUVAffine(int color1,
 					contour->MinV = texBegV;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxR = colorBegRED;
 					contour->MaxG = colorBegGREEN;
 					contour->MaxB = colorBegBLUE;
@@ -752,14 +712,7 @@ void Scanline::ProcessUVAffine(int color1,
 }
 
 // Perspective correct
-void Scanline::ProcessUV(Vector2 uv1,
-	Vector2 uv2,
-	int x1,
-	int y1,
-	int z1,
-	int x2,
-	int y2,
-	int z2) {
+void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x2, int y2, int z2) {
 	int xStart = x1 / 0x10000;
 	int xEnd = x2 / 0x10000;
 	int yStart = y1 / 0x10000;
@@ -857,17 +810,13 @@ void Scanline::ProcessUV(Vector2 uv1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinZ = invZStart;
 					contour->MinU = texMapU;
 					contour->MinV = texMapV;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxZ = invZStart;
 					contour->MaxU = texMapU;
 					contour->MaxV = texMapV;
@@ -1023,9 +972,7 @@ void Scanline::ProcessUV(int color1,
 			}
 			else {
 				if (linePointX < contour->MinX) {
-					contour->MinX =
-						contour->MapLeft =
-							linePointX;
+					contour->MinX = contour->MapLeft = linePointX;
 					contour->MinR = colorRED;
 					contour->MinG = colorGREEN;
 					contour->MinB = colorBLUE;
@@ -1034,9 +981,7 @@ void Scanline::ProcessUV(int color1,
 					contour->MinV = texMapV;
 				}
 				if (linePointX > contour->MaxX) {
-					contour->MaxX =
-						contour->MapRight =
-							linePointX;
+					contour->MaxX = contour->MapRight = linePointX;
 					contour->MaxR = colorRED;
 					contour->MaxG = colorGREEN;
 					contour->MaxB = colorBLUE;

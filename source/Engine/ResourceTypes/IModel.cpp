@@ -61,26 +61,18 @@ bool IModel::Load(Stream* stream, const char* filename) {
 		success = RSDKModel::Convert(this, stream);
 	}
 	else {
-		success =
-			ModelImporter::Convert(this, stream, filename);
+		success = ModelImporter::Convert(this, stream, filename);
 	}
 
 	if (!success) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not load model \"%s\"!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
 		return false;
 	}
 
-	Log::Print(Log::LOG_VERBOSE,
-		"Model load took %.3f ms (%s)",
-		Clock::End(),
-		filename);
+	Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
 
 	if (Application::DevConvertModels && !isHatchModel) {
-		Log::Print(Log::LOG_VERBOSE,
-			"Converting model \"%s\" to HatchModel...",
-			filename);
+		Log::Print(Log::LOG_VERBOSE, "Converting model \"%s\" to HatchModel...", filename);
 
 		std::string newFilename = std::string(filename);
 		size_t pos = newFilename.find_last_of('.');
@@ -92,13 +84,10 @@ bool IModel::Load(Stream* stream, const char* filename) {
 		filename = newFilename.c_str();
 		success = HatchModel::Save(this, filename);
 		if (success) {
-			Log::Print(Log::LOG_VERBOSE,
-				"Saved HatchModel to \"%s\"",
-				filename);
+			Log::Print(Log::LOG_VERBOSE, "Saved HatchModel to \"%s\"", filename);
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"Failed to convert HatchModel!");
+			Log::Print(Log::LOG_ERROR, "Failed to convert HatchModel!");
 		}
 	}
 
@@ -135,8 +124,7 @@ size_t IModel::AddUniqueMaterial(Material* material) {
 	unsigned attempts = 0;
 
 	while (FindMaterial(material->Name) != -1) {
-		std::string matName =
-			std::string(material->Name) + "_copy";
+		std::string matName = std::string(material->Name) + "_copy";
 		if (attempts > 1) {
 			matName += std::to_string(attempts);
 		}
@@ -170,15 +158,10 @@ void IModel::AnimateNode(ModelNode* node,
 		UpdateChannel(node->LocalTransform, nodeAnim, frame);
 	}
 
-	Matrix4x4::Multiply(node->GlobalTransform,
-		node->LocalTransform,
-		parentMatrix);
+	Matrix4x4::Multiply(node->GlobalTransform, node->LocalTransform, parentMatrix);
 
 	for (size_t i = 0; i < node->Children.size(); i++) {
-		AnimateNode(node->Children[i],
-			animation,
-			frame,
-			node->GlobalTransform);
+		AnimateNode(node->Children[i], animation, frame, node->GlobalTransform);
 	}
 }
 
@@ -186,19 +169,14 @@ void IModel::Pose() {
 	BaseArmature->RootNode->Transform();
 }
 
-void IModel::Pose(Armature* armature,
-	SkeletalAnim* animation,
-	Uint32 frame) {
+void IModel::Pose(Armature* armature, SkeletalAnim* animation, Uint32 frame) {
 	Matrix4x4 identity;
 	Matrix4x4::Identity(&identity);
 
 	AnimateNode(armature->RootNode, animation, frame, &identity);
 }
 
-static void MakeChannelMatrix(Matrix4x4* out,
-	Vector3* pos,
-	Vector4* rot,
-	Vector3* scale) {
+static void MakeChannelMatrix(Matrix4x4* out, Vector3* pos, Vector4* rot, Vector3* scale) {
 	float rotX = FP16_FROM(rot->X);
 	float rotY = FP16_FROM(rot->Y);
 	float rotZ = FP16_FROM(rot->Z);
@@ -252,8 +230,7 @@ static void MakeChannelMatrix(Matrix4x4* out,
 	out->Values[10] = out->Values[10] * scaleZ;
 }
 
-static Vector4
-InterpolateQuaternions(Vector4 q1, Vector4 q2, Sint64 t) {
+static Vector4 InterpolateQuaternions(Vector4 q1, Vector4 q2, Sint64 t) {
 	Vector4 v1 = q1;
 	Vector4 v2 = q2;
 
@@ -314,8 +291,7 @@ void IModel::DoVertexFrameInterpolation(Mesh* mesh,
 	Uint32 animLength;
 
 	if (animation) {
-		animLength =
-			animation->Length % (mesh->FrameCount + 1);
+		animLength = animation->Length % (mesh->FrameCount + 1);
 		if (!animLength) {
 			animLength = 1;
 		}
@@ -328,10 +304,8 @@ void IModel::DoVertexFrameInterpolation(Mesh* mesh,
 		animLength = 1;
 	}
 
-	Uint32 keyframe =
-		startFrame + (GetKeyFrame(frame) % animLength);
-	Uint32 nextKeyframe =
-		startFrame + ((keyframe + 1) % animLength);
+	Uint32 keyframe = startFrame + (GetKeyFrame(frame) % animLength);
+	Uint32 nextKeyframe = startFrame + ((keyframe + 1) % animLength);
 	Sint64 inbetween = GetInBetween(frame);
 
 	if (inbetween == 0 || inbetween == 0x10000) {
@@ -339,25 +313,18 @@ void IModel::DoVertexFrameInterpolation(Mesh* mesh,
 			keyframe = nextKeyframe;
 		}
 
-		*positionBuffer = mesh->PositionBuffer +
-			(keyframe * mesh->VertexCount);
-		*normalBuffer = mesh->NormalBuffer +
-			(keyframe * mesh->VertexCount);
-		*uvBuffer = mesh->UVBuffer +
-			(keyframe * mesh->VertexCount);
+		*positionBuffer = mesh->PositionBuffer + (keyframe * mesh->VertexCount);
+		*normalBuffer = mesh->NormalBuffer + (keyframe * mesh->VertexCount);
+		*uvBuffer = mesh->UVBuffer + (keyframe * mesh->VertexCount);
 	}
 	else {
 		if (mesh->InbetweenPositions == nullptr) {
 			mesh->InbetweenPositions =
-				(Vector3*)Memory::Malloc(
-					mesh->VertexCount *
-					sizeof(Vector3));
+				(Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
 		}
 		if (mesh->InbetweenNormals == nullptr) {
 			mesh->InbetweenNormals =
-				(Vector3*)Memory::Malloc(
-					mesh->VertexCount *
-					sizeof(Vector3));
+				(Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
 		}
 
 		Vector3* outPos = mesh->InbetweenPositions;
@@ -367,108 +334,64 @@ void IModel::DoVertexFrameInterpolation(Mesh* mesh,
 		*normalBuffer = outNormal;
 
 		// UVs are not interpolated
-		*uvBuffer = mesh->UVBuffer +
-			(keyframe * mesh->VertexCount);
+		*uvBuffer = mesh->UVBuffer + (keyframe * mesh->VertexCount);
 
 		for (size_t i = 0; i < mesh->VertexCount; i++) {
-			Vector3 posA =
-				mesh->PositionBuffer
-					[(keyframe *
-						 mesh->VertexCount) +
-						i];
-			Vector3 posB =
-				mesh->PositionBuffer
-					[(nextKeyframe *
-						 mesh->VertexCount) +
-						i];
+			Vector3 posA = mesh->PositionBuffer[(keyframe * mesh->VertexCount) + i];
+			Vector3 posB = mesh->PositionBuffer[(nextKeyframe * mesh->VertexCount) + i];
 
-			Vector3 normA =
-				mesh->NormalBuffer
-					[(keyframe *
-						 mesh->VertexCount) +
-						i];
-			Vector3 normB =
-				mesh->NormalBuffer
-					[(nextKeyframe *
-						 mesh->VertexCount) +
-						i];
+			Vector3 normA = mesh->NormalBuffer[(keyframe * mesh->VertexCount) + i];
+			Vector3 normB = mesh->NormalBuffer[(nextKeyframe * mesh->VertexCount) + i];
 
-			*outPos++ = Vector::Interpolate(
-				posA, posB, inbetween);
-			*outNormal++ = Vector::Interpolate(
-				normA, normB, inbetween);
+			*outPos++ = Vector::Interpolate(posA, posB, inbetween);
+			*outNormal++ = Vector::Interpolate(normA, normB, inbetween);
 		}
 	}
 }
 
-void IModel::UpdateChannel(Matrix4x4* out,
-	NodeAnim* channel,
-	Uint32 frame) {
+void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
 	Uint32 keyframe = GetKeyFrame(frame);
 	Sint64 inbetween = GetInBetween(frame);
 
 	// TODO: Use the keys' time values instead of what I'm doing
 	// right now
 	if (inbetween == 0) {
-		AnimVectorKey& p1 = channel->PositionKeys[keyframe %
-			channel->NumPositionKeys];
-		AnimQuaternionKey& r1 =
-			channel->RotationKeys[keyframe %
-				channel->NumRotationKeys];
-		AnimVectorKey& s1 = channel->ScalingKeys[keyframe %
-			channel->NumScalingKeys];
+		AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
+		AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
+		AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
 
-		MakeChannelMatrix(
-			out, &p1.Value, &r1.Value, &s1.Value);
+		MakeChannelMatrix(out, &p1.Value, &r1.Value, &s1.Value);
 	}
 	else if (inbetween == 0x10000) {
 		AnimVectorKey& p2 =
-			channel->PositionKeys[(keyframe + 1) %
-				channel->NumPositionKeys];
+			channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
 		AnimQuaternionKey& r2 =
-			channel->RotationKeys[(keyframe + 1) %
-				channel->NumRotationKeys];
-		AnimVectorKey& s2 =
-			channel->ScalingKeys[(keyframe + 1) %
-				channel->NumScalingKeys];
+			channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
+		AnimVectorKey& s2 = channel->ScalingKeys[(keyframe + 1) % channel->NumScalingKeys];
 
-		MakeChannelMatrix(
-			out, &p2.Value, &r2.Value, &s2.Value);
+		MakeChannelMatrix(out, &p2.Value, &r2.Value, &s2.Value);
 	}
 	else {
-		AnimVectorKey& p1 = channel->PositionKeys[keyframe %
-			channel->NumPositionKeys];
+		AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
 		AnimVectorKey& p2 =
-			channel->PositionKeys[(keyframe + 1) %
-				channel->NumPositionKeys];
+			channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
 
-		AnimQuaternionKey& r1 =
-			channel->RotationKeys[keyframe %
-				channel->NumRotationKeys];
+		AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
 		AnimQuaternionKey& r2 =
-			channel->RotationKeys[(keyframe + 1) %
-				channel->NumRotationKeys];
+			channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
 
-		AnimVectorKey& s1 = channel->ScalingKeys[keyframe %
-			channel->NumScalingKeys];
-		AnimVectorKey& s2 =
-			channel->ScalingKeys[(keyframe + 1) %
-				channel->NumScalingKeys];
+		AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
+		AnimVectorKey& s2 = channel->ScalingKeys[(keyframe + 1) % channel->NumScalingKeys];
 
-		Vector3 pos = Vector::Interpolate(
-			p1.Value, p2.Value, inbetween);
-		Vector4 rot = InterpolateQuaternions(
-			r1.Value, r2.Value, inbetween);
-		Vector3 scale = Vector::Interpolate(
-			s1.Value, s2.Value, inbetween);
+		Vector3 pos = Vector::Interpolate(p1.Value, p2.Value, inbetween);
+		Vector4 rot = InterpolateQuaternions(r1.Value, r2.Value, inbetween);
+		Vector3 scale = Vector::Interpolate(s1.Value, s2.Value, inbetween);
 
 		MakeChannelMatrix(out, &pos, &rot, &scale);
 	}
 }
 
-void IModel::Animate(Armature* armature,
-	ModelAnim* animation,
-	Uint32 frame) {
+void IModel::Animate(Armature* armature, ModelAnim* animation, Uint32 frame) {
 	if (animation->Skeletal == nullptr) {
 		return;
 	}

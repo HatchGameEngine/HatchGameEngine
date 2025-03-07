@@ -8,10 +8,7 @@
 #define HAS_DISCORD_RPC
 
 void* library = NULL;
-void (*_Discord_Initialize)(const char*,
-	DiscordEventHandlers*,
-	int,
-	const char*) = NULL;
+void (*_Discord_Initialize)(const char*, DiscordEventHandlers*, int, const char*) = NULL;
 void (*_Discord_UpdatePresence)(const DiscordRichPresence*) = NULL;
 void (*_Discord_ClearPresence)(void) = NULL;
 void (*_Discord_Shutdown)(void) = NULL;
@@ -29,16 +26,13 @@ void Discord::Init(const char* application_id, const char* steam_id) {
 		return;
 	}
 
-	_Discord_Initialize = (void (*)(
-		const char*, DiscordEventHandlers*, int, const char*))
-		SDL_LoadFunction(library, "Discord_Initialize");
-	_Discord_UpdatePresence =
-		(void (*)(const DiscordRichPresence*))SDL_LoadFunction(
-			library, "Discord_UpdatePresence");
-	_Discord_ClearPresence = (void (*)(void))SDL_LoadFunction(
-		library, "Discord_ClearPresence");
-	_Discord_Shutdown = (void (*)(void))SDL_LoadFunction(
-		library, "Discord_Shutdown");
+	_Discord_Initialize =
+		(void (*)(const char*, DiscordEventHandlers*, int, const char*))SDL_LoadFunction(
+			library, "Discord_Initialize");
+	_Discord_UpdatePresence = (void (*)(const DiscordRichPresence*))SDL_LoadFunction(
+		library, "Discord_UpdatePresence");
+	_Discord_ClearPresence = (void (*)(void))SDL_LoadFunction(library, "Discord_ClearPresence");
+	_Discord_Shutdown = (void (*)(void))SDL_LoadFunction(library, "Discord_Shutdown");
 
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
@@ -56,25 +50,18 @@ void Discord::UpdatePresence(char* details) {
 void Discord::UpdatePresence(char* details, char* state) {
 	Discord::UpdatePresence(details, state, NULL);
 }
-void Discord::UpdatePresence(char* details,
-	char* state,
-	char* image_key) {
+void Discord::UpdatePresence(char* details, char* state, char* image_key) {
 	Discord::UpdatePresence(details, state, image_key, 0, 0);
 }
-void Discord::UpdatePresence(char* details,
-	char* state,
-	char* image_key,
-	time_t start_time) {
-	Discord::UpdatePresence(
-		details, state, image_key, 0, 0, start_time);
+void Discord::UpdatePresence(char* details, char* state, char* image_key, time_t start_time) {
+	Discord::UpdatePresence(details, state, image_key, 0, 0, start_time);
 }
 void Discord::UpdatePresence(char* details,
 	char* state,
 	char* image_key,
 	int party_size,
 	int party_max) {
-	Discord::UpdatePresence(
-		details, state, image_key, party_size, party_max, 0);
+	Discord::UpdatePresence(details, state, image_key, party_size, party_max, 0);
 }
 void Discord::UpdatePresence(char* details,
 	char* state,

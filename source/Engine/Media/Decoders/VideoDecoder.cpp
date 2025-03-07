@@ -46,15 +46,14 @@ VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
 
 	ScratchFrame = av_frame_alloc();
 	if (ScratchFrame == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to initialize temporary video frame");
+		Log::Print(Log::LOG_ERROR, "Unable to initialize temporary video frame");
 		exit(-1);
 		goto exit_2;
 	}
 
 	// Find best output format for us
-	output_format = avcodec_find_best_pix_fmt_of_list(
-		supported_list, this->CodecCtx->pix_fmt, 1, NULL);
+	output_format =
+		avcodec_find_best_pix_fmt_of_list(supported_list, this->CodecCtx->pix_fmt, 1, NULL);
 
 	// Set format configs
 	Width = this->CodecCtx->width;
@@ -73,8 +72,7 @@ VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
 		NULL,
 		NULL);
 	if (this->SWS == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to initialize video converter context");
+		Log::Print(Log::LOG_ERROR, "Unable to initialize video converter context");
 		exit(-1);
 		goto exit_3;
 	}
@@ -97,8 +95,7 @@ exit_2:
 	return;
 }
 void* VideoDecoder::CreateVideoPacket(AVFrame* frame, double pts) {
-	VideoPacket* packet =
-		(VideoPacket*)calloc(1, sizeof(VideoPacket));
+	VideoPacket* packet = (VideoPacket*)calloc(1, sizeof(VideoPacket));
 	if (!packet) {
 		Log::Print(Log::LOG_ERROR,
 			"Something went horribly wrong. (Ran out of memory at VideoDecoder::CreateVideoPacket \"(VideoPacket*)calloc\")");
@@ -183,8 +180,7 @@ void VideoDecoder::ReadVideo(void* ptr) {
 	int ret = 0;
 
 	while (!ret && self->CanWriteOutput()) {
-		ret = avcodec_receive_frame(
-			self->CodecCtx, self->ScratchFrame);
+		ret = avcodec_receive_frame(self->CodecCtx, self->ScratchFrame);
 		if (!ret) {
 			out_frame = av_frame_alloc();
 			av_image_alloc(out_frame->data,
@@ -197,8 +193,7 @@ void VideoDecoder::ReadVideo(void* ptr) {
 			// Scale from source format to target format,
 			// don't touch the size
 			sws_scale(self->SWS,
-				(const unsigned char* const*)
-					self->ScratchFrame->data,
+				(const unsigned char* const*)self->ScratchFrame->data,
 				self->ScratchFrame->linesize,
 				0,
 				self->CodecCtx->height,
@@ -206,16 +201,11 @@ void VideoDecoder::ReadVideo(void* ptr) {
 				out_frame->linesize);
 
 			// Get presentation timestamp
-			pts = self->ScratchFrame
-				      ->best_effort_timestamp;
-			pts *= av_q2d(self->FormatCtx
-					->streams[self->StreamIndex]
-					->time_base);
+			pts = self->ScratchFrame->best_effort_timestamp;
+			pts *= av_q2d(self->FormatCtx->streams[self->StreamIndex]->time_base);
 
 			// Lock, write to audio buffer, unlock
-			out_packet =
-				(VideoPacket*)self->CreateVideoPacket(
-					out_frame, pts);
+			out_packet = (VideoPacket*)self->CreateVideoPacket(out_frame, pts);
 			self->WriteOutput(out_packet);
 		}
 	}
@@ -249,10 +239,8 @@ int VideoDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 	double pts;
 
 	while (in_packet->size > 0) {
-		len = avcodec_decode_video2(self->CodecCtx,
-			self->ScratchFrame,
-			&frame_finished,
-			in_packet);
+		len = avcodec_decode_video2(
+			self->CodecCtx, self->ScratchFrame, &frame_finished, in_packet);
 		if (len < 0) {
 			return 0;
 		}
@@ -270,8 +258,7 @@ int VideoDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 			// Scale from source format to target format,
 			// don't touch the size
 			sws_scale(this->SWS,
-				(const unsigned char* const*)this
-					->ScratchFrame->data,
+				(const unsigned char* const*)this->ScratchFrame->data,
 				this->ScratchFrame->linesize,
 				0,
 				this->CodecCtx->height,
@@ -280,20 +267,14 @@ int VideoDecoder::DecodeFunction(void* ptr, AVPacket* in_packet) {
 
 // Get presentation timestamp
 #ifndef FF_API_FRAME_GET_SET
-			pts = av_frame_get_best_effort_timestamp(
-				this->ScratchFrame);
+			pts = av_frame_get_best_effort_timestamp(this->ScratchFrame);
 #else
-			pts = this->ScratchFrame
-				      ->best_effort_timestamp;
+			pts = this->ScratchFrame->best_effort_timestamp;
 #endif
-			pts *= av_q2d(this->FormatCtx
-					->streams[this->StreamIndex]
-					->time_base);
+			pts *= av_q2d(this->FormatCtx->streams[this->StreamIndex]->time_base);
 
 			// Lock, write to audio buffer, unlock
-			out_packet =
-				(VideoPacket*)self->CreateVideoPacket(
-					out_frame, pts);
+			out_packet = (VideoPacket*)self->CreateVideoPacket(out_frame, pts);
 			self->WriteOutput(out_packet);
 		}
 		in_packet->size -= len;
@@ -342,8 +323,7 @@ int VideoDecoder::GetVideoDecoderData(Texture* texture) {
 	// If packet should have already been played, skip it and try
 	// to find a better packet.
 	limit_rounds = GetOutputLength();
-	while (packet != NULL &&
-		packet->pts < sync_ts - KIT_VIDEO_SYNC_THRESHOLD &&
+	while (packet != NULL && packet->pts < sync_ts - KIT_VIDEO_SYNC_THRESHOLD &&
 		--limit_rounds) {
 		AdvanceOutput();
 		FreeVideoPacket(packet);
@@ -367,10 +347,8 @@ int VideoDecoder::GetVideoDecoderData(Texture* texture) {
 			packet->frame->linesize[2]);
 		break;
 	default:
-		Graphics::UpdateTexture(texture,
-			NULL,
-			packet->frame->data[0],
-			packet->frame->linesize[0]);
+		Graphics::UpdateTexture(
+			texture, NULL, packet->frame->data[0], packet->frame->linesize[0]);
 		break;
 	}
 

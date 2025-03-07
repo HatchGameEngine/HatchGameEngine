@@ -11,15 +11,10 @@ void Values::PrintValue(VMValue value) {
 void Values::PrintValue(PrintBuffer* buffer, VMValue value) {
 	Values::PrintValue(buffer, value, 0, false);
 }
-void Values::PrintValue(PrintBuffer* buffer,
-	VMValue value,
-	bool prettyPrint) {
+void Values::PrintValue(PrintBuffer* buffer, VMValue value, bool prettyPrint) {
 	Values::PrintValue(buffer, value, 0, prettyPrint);
 }
-void Values::PrintValue(PrintBuffer* buffer,
-	VMValue value,
-	int indent,
-	bool prettyPrint) {
+void Values::PrintValue(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
 	switch (value.Type) {
 	case VAL_NULL:
 		buffer_printf(buffer, "null");
@@ -36,60 +31,45 @@ void Values::PrintValue(PrintBuffer* buffer,
 		PrintObject(buffer, value, indent, prettyPrint);
 		break;
 	default:
-		buffer_printf(buffer,
-			"<unknown value type 0x%02X>",
-			value.Type);
+		buffer_printf(buffer, "<unknown value type 0x%02X>", value.Type);
 	}
 }
-void Values::PrintObject(PrintBuffer* buffer,
-	VMValue value,
-	int indent,
-	bool prettyPrint) {
+void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool prettyPrint) {
 	switch (OBJECT_TYPE(value)) {
 	case OBJ_CLASS:
 		buffer_printf(buffer,
 			"<class %s>",
-			AS_CLASS(value)->Name
-				? AS_CLASS(value)->Name->Chars
-				: "(null)");
+			AS_CLASS(value)->Name ? AS_CLASS(value)->Name->Chars : "(null)");
 		break;
 	case OBJ_BOUND_METHOD:
 		buffer_printf(buffer,
 			"<bound method %s>",
 			AS_BOUND_METHOD(value)->Method->Name
-				? AS_BOUND_METHOD(value)
-					  ->Method->Name->Chars
+				? AS_BOUND_METHOD(value)->Method->Name->Chars
 				: "(null)");
 		break;
 	case OBJ_CLOSURE:
 		buffer_printf(buffer,
 			"<closure %s>",
-			AS_CLOSURE(value)->Function->Name
-				? AS_CLOSURE(value)
-					  ->Function->Name->Chars
-				: "(null)");
+			AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars
+							  : "(null)");
 		break;
 	case OBJ_FUNCTION:
 		buffer_printf(buffer,
 			"<fn %s>",
-			AS_FUNCTION(value)->Name
-				? AS_FUNCTION(value)->Name->Chars
-				: "(null)");
+			AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)");
 		break;
 	case OBJ_MODULE:
 		buffer_printf(buffer,
 			"<module %s>",
-			AS_MODULE(value)->SourceFilename
-				? AS_MODULE(value)
-					  ->SourceFilename->Chars
-				: "(null)");
+			AS_MODULE(value)->SourceFilename ? AS_MODULE(value)->SourceFilename->Chars
+							 : "(null)");
 		break;
 	case OBJ_INSTANCE:
 		buffer_printf(buffer,
 			"<class %s> instance",
 			AS_INSTANCE(value)->Object.Class->Name
-				? AS_INSTANCE(value)
-					  ->Object.Class->Name->Chars
+				? AS_INSTANCE(value)->Object.Class->Name->Chars
 				: "(null)");
 		break;
 	case OBJ_NATIVE:
@@ -102,18 +82,14 @@ void Values::PrintObject(PrintBuffer* buffer,
 		buffer_printf(buffer,
 			"<material %s>",
 			(AS_MATERIAL(value)->MaterialPtr != nullptr &&
-				AS_MATERIAL(value)
-						->MaterialPtr->Name !=
-					nullptr)
+				AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
 				? AS_MATERIAL(value)->MaterialPtr->Name
 				: "(null)");
 		break;
 	case OBJ_NAMESPACE:
 		buffer_printf(buffer,
 			"<namespace %s>",
-			AS_NAMESPACE(value)->Name
-				? AS_NAMESPACE(value)->Name->Chars
-				: "(null)");
+			AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)");
 		break;
 	case OBJ_STRING:
 		buffer_printf(buffer, "\"%s\"", AS_CSTRING(value));
@@ -143,9 +119,7 @@ void Values::PrintObject(PrintBuffer* buffer,
 				}
 			}
 
-			PrintValue(buffer,
-				(*array->Values)[i],
-				indent + 1);
+			PrintValue(buffer, (*array->Values)[i], indent + 1);
 		}
 
 		if (prettyPrint) {
@@ -177,29 +151,21 @@ void Values::PrintObject(PrintBuffer* buffer,
 				else {
 					buffer_printf(buffer, ",");
 					if (prettyPrint) {
-						buffer_printf(
-							buffer, "\n");
+						buffer_printf(buffer, "\n");
 					}
 				}
 
-				for (int k = 0;
-					k < indent + 1 && prettyPrint;
-					k++) {
+				for (int k = 0; k < indent + 1 && prettyPrint; k++) {
 					buffer_printf(buffer, "    ");
 				}
 
 				hash = map->Values->Data[i].Key;
 				value = map->Values->Data[i].Data;
-				if (map->Keys &&
-					map->Keys->Exists(hash)) {
-					buffer_printf(buffer,
-						"\"%s\": ",
-						map->Keys->Get(hash));
+				if (map->Keys && map->Keys->Exists(hash)) {
+					buffer_printf(buffer, "\"%s\": ", map->Keys->Get(hash));
 				}
 				else {
-					buffer_printf(buffer,
-						"0x%08X: ",
-						hash);
+					buffer_printf(buffer, "0x%08X: ", hash);
 				}
 				PrintValue(buffer, value, indent + 1);
 			}
@@ -215,8 +181,6 @@ void Values::PrintObject(PrintBuffer* buffer,
 		break;
 	}
 	default:
-		buffer_printf(buffer,
-			"<unknown object type 0x%02X>",
-			OBJECT_TYPE(value));
+		buffer_printf(buffer, "<unknown object type 0x%02X>", OBJECT_TYPE(value));
 	}
 }

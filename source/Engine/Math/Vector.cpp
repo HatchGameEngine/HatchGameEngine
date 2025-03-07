@@ -44,15 +44,12 @@ Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
 	Sint64 mat33 = m->Values[10] * 0x10000;
 	Sint64 mat34 = m->Values[11] * 0x10000;
 
-	result.X = FP16_MULTIPLY(mat11, v.X) +
-		FP16_MULTIPLY(mat12, v.Y) + FP16_MULTIPLY(mat13, v.Z) +
-		mat14;
-	result.Y = FP16_MULTIPLY(mat21, v.X) +
-		FP16_MULTIPLY(mat22, v.Y) + FP16_MULTIPLY(mat23, v.Z) +
-		mat24;
-	result.Z = FP16_MULTIPLY(mat31, v.X) +
-		FP16_MULTIPLY(mat32, v.Y) + FP16_MULTIPLY(mat33, v.Z) +
-		mat34;
+	result.X = FP16_MULTIPLY(mat11, v.X) + FP16_MULTIPLY(mat12, v.Y) +
+		FP16_MULTIPLY(mat13, v.Z) + mat14;
+	result.Y = FP16_MULTIPLY(mat21, v.X) + FP16_MULTIPLY(mat22, v.Y) +
+		FP16_MULTIPLY(mat23, v.Z) + mat24;
+	result.Z = FP16_MULTIPLY(mat31, v.X) + FP16_MULTIPLY(mat32, v.Y) +
+		FP16_MULTIPLY(mat33, v.Z) + mat34;
 
 	return result;
 }
@@ -119,10 +116,7 @@ Vector4 Vector::Normalize(Vector4 v) {
 	return result;
 }
 
-Sint64 Vector::IntersectWithPlane(Vector4 plane,
-	Vector4 normal,
-	Vector4 v1,
-	Vector4 v2) {
+Sint64 Vector::IntersectWithPlane(Vector4 plane, Vector4 normal, Vector4 v1, Vector4 v2) {
 	Vector4 planeNormal = Vector::Normalize(normal);
 	Sint64 dotProduct = Vector::DotProduct(v1, planeNormal);
 	Sint64 t = Vector::DotProduct(planeNormal, plane) - dotProduct;
@@ -134,8 +128,7 @@ Sint64 Vector::IntersectWithPlane(Vector4 plane,
 	return FP16_DIVIDE(t, diff);
 }
 
-Sint64
-Vector::DistanceToPlane(Vector4 v, Vector4 plane, Vector4 normal) {
+Sint64 Vector::DistanceToPlane(Vector4 v, Vector4 plane, Vector4 normal) {
 	Sint64 dotProduct = Vector::DotProduct(normal, plane);
 	Sint64 result = 0;
 

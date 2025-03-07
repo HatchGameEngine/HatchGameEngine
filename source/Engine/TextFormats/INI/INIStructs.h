@@ -59,8 +59,7 @@ struct INISection {
 		for (size_t i = 0; i < Properties.size(); i++) {
 			if (!strcmp(Properties[i]->Name, name)) {
 				delete Properties[i];
-				Properties.erase(
-					Properties.begin() + i);
+				Properties.erase(Properties.begin() + i);
 				return true;
 			}
 		}

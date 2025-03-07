@@ -1,8 +1,7 @@
 #include <Engine/IO/NetworkStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
-NetworkStream* NetworkStream::New(const char* filename,
-	Uint32 access) {
+NetworkStream* NetworkStream::New(const char* filename, Uint32 access) {
 	NetworkStream* stream = new NetworkStream;
 	if (!stream) {
 		return NULL;

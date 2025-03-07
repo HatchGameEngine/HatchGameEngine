@@ -40,9 +40,7 @@ bool File::Exists(const char* path) {
 	char romfsPath[256];
 	snprintf(romfsPath, romfsPath, "romfs:/%s", path);
 	if (access(romfsPath, F_OK) != -1) {
-		Log::Print(Log::LOG_WARN,
-			"YES access \"%s\".",
-			romfsPath);
+		Log::Print(Log::LOG_WARN, "YES access \"%s\".", romfsPath);
 		return true;
 	}
 
@@ -57,8 +55,7 @@ bool File::Exists(const char* path) {
 
 size_t File::ReadAllBytes(const char* path, char** out) {
 	FileStream* stream;
-	if ((stream = FileStream::New(
-		     path, FileStream::READ_ACCESS))) {
+	if ((stream = FileStream::New(path, FileStream::READ_ACCESS))) {
 		size_t size = stream->Length();
 		*out = (char*)Memory::Malloc(size + 1);
 		if (!*out) {
@@ -72,9 +69,7 @@ size_t File::ReadAllBytes(const char* path, char** out) {
 	return 0;
 }
 
-bool File::WriteAllBytes(const char* path,
-	const char* bytes,
-	size_t len) {
+bool File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
 	if (!path) {
 		return false;
 	}
@@ -86,8 +81,7 @@ bool File::WriteAllBytes(const char* path,
 	}
 
 	FileStream* stream;
-	if ((stream = FileStream::New(
-		     path, FileStream::WRITE_ACCESS))) {
+	if ((stream = FileStream::New(path, FileStream::WRITE_ACCESS))) {
 		stream->WriteBytes((char*)bytes, len);
 		stream->Close();
 		return true;

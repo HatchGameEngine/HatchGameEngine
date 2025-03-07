@@ -28,8 +28,7 @@ void Clock::Init() {
 
 	if (QueryPerformanceFrequency(&Win32_Frequency)) {
 		Win32_PerformanceFrequencyEnabled = true;
-		Win32_CPUFreq =
-			(double)Win32_Frequency.QuadPart / 1000.0;
+		Win32_CPUFreq = (double)Win32_Frequency.QuadPart / 1000.0;
 
 		LARGE_INTEGER ticks;
 		if (QueryPerformanceCounter(&ticks)) {
@@ -60,18 +59,14 @@ double Clock::GetTicks() {
 	if (Win32_PerformanceFrequencyEnabled) {
 		LARGE_INTEGER ticks;
 		if (QueryPerformanceCounter(&ticks)) {
-			return (double)(ticks.QuadPart -
-				       Win32_GameStartTime) /
-				Win32_CPUFreq;
+			return (double)(ticks.QuadPart - Win32_GameStartTime) / Win32_CPUFreq;
 		}
 
 		return 0.0;
 	}
 #endif
 
-	return (std::chrono::steady_clock::now() - GameStartTime)
-		       .count() /
-		1000000.0;
+	return (std::chrono::steady_clock::now() - GameStartTime).count() / 1000000.0;
 }
 double Clock::End() {
 #ifdef USE_WIN32_CLOCK
@@ -96,6 +91,5 @@ void Clock::Delay(double milliseconds) {
 	}
 #endif
 
-	std::this_thread::sleep_for(std::chrono::nanoseconds(
-		(int)(milliseconds * 1000000.0)));
+	std::this_thread::sleep_for(std::chrono::nanoseconds((int)(milliseconds * 1000000.0)));
 }

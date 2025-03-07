@@ -8,7 +8,7 @@
 struct WAVheader {
 	Uint32 FMTSize; // Size of the fmt chunk
 	Uint16 AudioFormat; // Audio format 1=PCM,6=mulaw,7=alaw,
-	                    // 257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
+		// 257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
 	Uint16 Channels;
 	Uint32 Frequency;
 	Uint16 BitsPerSample;
@@ -19,9 +19,7 @@ SoundFormat* WAV::Load(const char* filename) {
 	WAV* wav = NULL;
 	class Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto WAV_Load_FAIL;
 	}
 
@@ -68,9 +66,8 @@ SoundFormat* WAV::Load(const char* filename) {
 
 	wav->DataStart = (int)stream->Position();
 
-	wav->TotalPossibleSamples = (int)(header.DATASize /
-		(((header.BitsPerSample & 0xFF) >> 3) *
-			header.Channels));
+	wav->TotalPossibleSamples =
+		(int)(header.DATASize / (((header.BitsPerSample & 0xFF) >> 3) * header.Channels));
 	// stream->Seek(wav->DataStart);
 
 	// Common
@@ -98,13 +95,11 @@ int WAV::LoadSamples(size_t count) {
 
 	if (SampleBuffer == NULL) {
 		SampleBuffer = (Uint8*)Memory::TrackedMalloc(
-			"SoundData::SampleBuffer",
-			TotalPossibleSamples * SampleSize);
+			"SoundData::SampleBuffer", TotalPossibleSamples * SampleSize);
 		Samples.reserve(TotalPossibleSamples);
 	}
 
-	char* buffer =
-		(char*)SampleBuffer + Samples.size() * SampleSize;
+	char* buffer = (char*)SampleBuffer + Samples.size() * SampleSize;
 	char* bufferStartSample = buffer;
 
 	if ((size_t)count > TotalPossibleSamples - Samples.size()) {

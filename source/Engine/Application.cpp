@@ -112,16 +112,8 @@ int KeyBinds[(int)KeyBind::Max];
 ISprite* DEBUG_fontSprite = NULL;
 void DEBUG_DrawText(char* text, float x, float y) {
 	for (char* i = text; *i; i++) {
-		Graphics::DrawSprite(DEBUG_fontSprite,
-			0,
-			(int)*i,
-			x,
-			y,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
+		Graphics::DrawSprite(
+			DEBUG_fontSprite, 0, (int)*i, x, y, false, false, 1.0f, 1.0f, 0.0f);
 		x += 14; // DEBUG_fontSprite->Animations[0].Frames[(int)*i].ID;
 	}
 }
@@ -143,9 +135,7 @@ void Application::Init(int argc, char* args[]) {
 		"Hatch Game Engine %s (commit " GIT_COMMIT_HASH ")",
 		Application::EngineVersion);
 #else
-	Log::Print(Log::LOG_INFO,
-		"Hatch Game Engine %s",
-		Application::EngineVersion);
+	Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
 #endif
 
 	MemoryPools::Init();
@@ -167,19 +157,13 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
 #endif
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO |
-		    SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
-		Log::Print(Log::LOG_INFO,
-			"SDL_Init failed with error: %s",
-			SDL_GetError());
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK |
+		    SDL_INIT_GAMECONTROLLER) < 0) {
+		Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
 	}
 
-	Log::Print(Log::LOG_VERBOSE,
-		"CPU Core Count: %d",
-		SDL_GetCPUCount());
-	Log::Print(Log::LOG_INFO,
-		"System Memory: %d MB",
-		SDL_GetSystemRAM());
+	Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
+	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
 
 	SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
@@ -187,12 +171,10 @@ void Application::Init(int argc, char* args[]) {
 
 	Graphics::ChooseBackend();
 
-	Application::Settings->GetBool(
-		"dev", "writeToFile", &Log::WriteToFile);
+	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
 
 	bool allowRetina = false;
-	Application::Settings->GetBool(
-		"display", "retina", &allowRetina);
+	Application::Settings->GetBool("display", "retina", &allowRetina);
 
 	int defaultMonitor = Application::DefaultMonitor;
 
@@ -211,28 +193,21 @@ void Application::Init(int argc, char* args[]) {
 		window_flags);
 
 	if (Application::Platform == Platforms::iOS) {
-		SDL_SetWindowFullscreen(
-			Application::Window, SDL_WINDOW_FULLSCREEN);
+		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
 	}
 	else if (Application::Platform == Platforms::Switch) {
-		SDL_SetWindowFullscreen(
-			Application::Window, SDL_WINDOW_FULLSCREEN);
+		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
 		AudioManager::MasterVolume = 0.25;
 
 #ifdef SWITCH
 		SDL_DisplayMode mode;
-		SDL_GetDisplayMode(
-			0, 1 - appletGetOperationMode(), &mode);
-		Log::Print(Log::LOG_INFO,
-			"Display Mode: %i x %i",
-			mode.w,
-			mode.h);
+		SDL_GetDisplayMode(0, 1 - appletGetOperationMode(), &mode);
+		Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
 #endif
 	}
 	else {
 		bool fullscreen = false;
-		Application::Settings->GetBool(
-			"display", "fullscreen", &fullscreen);
+		Application::Settings->GetBool("display", "fullscreen", &fullscreen);
 
 		if (Application::GetWindowFullscreen() != fullscreen) {
 			Application::SetWindowFullscreen(fullscreen);
@@ -240,8 +215,7 @@ void Application::Init(int argc, char* args[]) {
 	}
 
 	for (int i = 1; i < argc; i++) {
-		Application::CmdLineArgs.push_back(
-			StringUtils::Duplicate(args[i]));
+		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
 	}
 
 	// Initialize subsystems
@@ -318,8 +292,8 @@ void Application::SetTargetFrameRate(int targetFPS) {
 }
 
 void Application::MakeEngineVersion() {
-	std::string versionText = std::to_string(VERSION_MAJOR) + "." +
-		std::to_string(VERSION_MINOR);
+	std::string versionText =
+		std::to_string(VERSION_MAJOR) + "." + std::to_string(VERSION_MINOR);
 
 #ifdef VERSION_PATCH
 	versionText += ".";
@@ -397,89 +371,50 @@ void Application::GetPerformanceSnapshot() {
 		};
 
 		ListList.clear();
-		Scene::ObjectLists->WithAll([](Uint32,
-						    ObjectList* list)
-						    -> void {
-			if ((list->Performance.Update.AverageTime >
-					    0.0 &&
-				    list->Performance.Update
-						    .AverageItemCount >
-					    0) ||
-				(list->Performance.Render.AverageTime >
-						0.0 &&
-					list->Performance.Render
-							.AverageItemCount >
-						0)) {
+		Scene::ObjectLists->WithAll([](Uint32, ObjectList* list) -> void {
+			if ((list->Performance.Update.AverageTime > 0.0 &&
+				    list->Performance.Update.AverageItemCount > 0) ||
+				(list->Performance.Render.AverageTime > 0.0 &&
+					list->Performance.Render.AverageItemCount > 0)) {
 				ListList.push_back(list);
 			}
 		});
-		std::sort(ListList.begin(),
-			ListList.end(),
-			[](ObjectList* a, ObjectList* b) -> bool {
-				ObjectListPerformanceStats&
-					updatePerfA =
-						a->Performance.Update;
-				ObjectListPerformanceStats&
-					updatePerfB =
-						b->Performance.Update;
-				ObjectListPerformanceStats&
-					renderPerfA =
-						a->Performance.Render;
-				ObjectListPerformanceStats&
-					renderPerfB =
-						b->Performance.Render;
-				return updatePerfA.AverageTime *
-						updatePerfA
-							.AverageItemCount +
-					renderPerfA.AverageTime *
-						renderPerfA
-							.AverageItemCount >
-					updatePerfB.AverageTime *
-						updatePerfB
-							.AverageItemCount +
-					renderPerfB.AverageTime *
-						renderPerfB
-							.AverageItemCount;
+		std::sort(
+			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
+				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
+				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
+				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
+				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
+				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
+					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
+					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
+					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
 			});
 
-		Log::Print(Log::LOG_IMPORTANT,
-			"General Performance Snapshot:");
-		for (size_t i = 0;
-			i < sizeof(types) / sizeof(types[0]);
-			i++) {
-			Log::Print(
-				Log::LOG_INFO, typeNames[i], types[i]);
+		Log::Print(Log::LOG_IMPORTANT, "General Performance Snapshot:");
+		for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
+			Log::Print(Log::LOG_INFO, typeNames[i], types[i]);
 		}
 
 		// View Rendering Performance Snapshot
 		char layerText[2048];
-		Log::Print(Log::LOG_IMPORTANT,
-			"View Rendering Performance Snapshot:");
+		Log::Print(Log::LOG_IMPORTANT, "View Rendering Performance Snapshot:");
 		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 			View* currentView = &Scene::Views[i];
 			if (currentView->Active) {
 				layerText[0] = 0;
 				double tilesTotal = 0.0;
-				for (size_t li = 0;
-					li < Scene::Layers.size();
-					li++) {
-					SceneLayer* layer =
-						&Scene::Layers[li];
+				for (size_t li = 0; li < Scene::Layers.size(); li++) {
+					SceneLayer* layer = &Scene::Layers[li];
 					char temp[128];
 					snprintf(temp,
 						sizeof(temp),
 						"     > %24s:   %8.3f ms\n",
 						layer->Name,
-						Scene::PERF_ViewRender[i]
-							.LayerTileRenderTime
-								[li]);
-					StringUtils::Concat(layerText,
-						temp,
-						sizeof(layerText));
+						Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
+					StringUtils::Concat(layerText, temp, sizeof(layerText));
 					tilesTotal +=
-						Scene::PERF_ViewRender[i]
-							.LayerTileRenderTime
-								[li];
+						Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
 				}
 				Log::Print(Log::LOG_INFO,
 					"View %d:\n"
@@ -492,26 +427,18 @@ void Application::GetPerformanceSnapshot() {
 					"           - Finish:              %8.3f ms\n"
 					"           - Total:               %8.3f ms",
 					i,
-					Scene::PERF_ViewRender[i]
-						.RenderSetupTime,
-					Scene::PERF_ViewRender[i]
-							.RecreatedDrawTarget
+					Scene::PERF_ViewRender[i].RenderSetupTime,
+					Scene::PERF_ViewRender[i].RecreatedDrawTarget
 						? "(recreated draw target)"
 						: "",
-					Scene::PERF_ViewRender[i]
-						.ProjectionSetupTime,
-					Scene::PERF_ViewRender[i]
-						.ObjectRenderEarlyTime,
-					Scene::PERF_ViewRender[i]
-						.ObjectRenderTime,
-					Scene::PERF_ViewRender[i]
-						.ObjectRenderLateTime,
+					Scene::PERF_ViewRender[i].ProjectionSetupTime,
+					Scene::PERF_ViewRender[i].ObjectRenderEarlyTime,
+					Scene::PERF_ViewRender[i].ObjectRenderTime,
+					Scene::PERF_ViewRender[i].ObjectRenderLateTime,
 					tilesTotal,
 					layerText,
-					Scene::PERF_ViewRender[i]
-						.RenderFinishTime,
-					Scene::PERF_ViewRender[i]
-						.RenderTime);
+					Scene::PERF_ViewRender[i].RenderFinishTime,
+					Scene::PERF_ViewRender[i].RenderTime);
 			}
 		}
 
@@ -520,12 +447,10 @@ void Application::GetPerformanceSnapshot() {
 		double totalUpdate = 0.0;
 		double totalUpdateLate = 0.0;
 		double totalRender = 0.0;
-		Log::Print(Log::LOG_IMPORTANT,
-			"Object Performance Snapshot:");
+		Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
 		for (size_t i = 0; i < ListList.size(); i++) {
 			ObjectList* list = ListList[i];
-			ObjectListPerformance& perf =
-				list->Performance;
+			ObjectListPerformance& perf = list->Performance;
 			Log::Print(Log::LOG_INFO,
 				"Object \"%s\":\n"
 				"           - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
@@ -546,14 +471,10 @@ void Application::GetPerformanceSnapshot() {
 				perf.Render.GetTotalAverageTime(),
 				(int)perf.Render.AverageItemCount);
 
-			totalUpdateEarly +=
-				perf.EarlyUpdate.GetTotalAverageTime();
-			totalUpdate +=
-				perf.Update.GetTotalAverageTime();
-			totalUpdateLate +=
-				perf.LateUpdate.GetTotalAverageTime();
-			totalRender +=
-				perf.Render.GetTotalAverageTime();
+			totalUpdateEarly += perf.EarlyUpdate.GetTotalAverageTime();
+			totalUpdate += perf.Update.GetTotalAverageTime();
+			totalUpdateLate += perf.LateUpdate.GetTotalAverageTime();
+			totalRender += perf.Render.GetTotalAverageTime();
 		}
 		Log::Print(Log::LOG_WARN,
 			"Total Update Early: %8.3f mcs / %1.3f ms",
@@ -573,20 +494,13 @@ void Application::GetPerformanceSnapshot() {
 			totalRender / 1000.0);
 
 		Log::Print(Log::LOG_IMPORTANT, "Garbage Size:");
-		Log::Print(Log::LOG_INFO,
-			"%u",
-			(Uint32)GarbageCollector::GarbageSize);
+		Log::Print(Log::LOG_INFO, "%u", (Uint32)GarbageCollector::GarbageSize);
 	}
 }
 
 void Application::SetWindowTitle(const char* title) {
-	memset(Application::WindowTitle,
-		0,
-		sizeof(Application::WindowTitle));
-	snprintf(Application::WindowTitle,
-		sizeof(Application::WindowTitle),
-		"%s",
-		title);
+	memset(Application::WindowTitle, 0, sizeof(Application::WindowTitle));
+	snprintf(Application::WindowTitle, sizeof(Application::WindowTitle), "%s", title);
 	Application::UpdateWindowTitle();
 }
 
@@ -678,8 +592,7 @@ void Application::SetMasterVolume(int volume) {
 	CLAMP_VOLUME(volume);
 
 	Application::MasterVolume = volume;
-	AudioManager::MasterVolume =
-		Application::MasterVolume / 100.0f;
+	AudioManager::MasterVolume = Application::MasterVolume / 100.0f;
 }
 void Application::SetMusicVolume(int volume) {
 	CLAMP_VOLUME(volume);
@@ -725,29 +638,23 @@ SDL_Keycode KeyBindsSDL[(int)KeyBind::Max];
 void Application::LoadKeyBinds() {
 	XMLNode* node = nullptr;
 	if (Application::GameConfig) {
-		node = XMLParser::SearchNode(
-			Application::GameConfig->children[0], "keys");
+		node = XMLParser::SearchNode(Application::GameConfig->children[0], "keys");
 	}
 
 #define GET_KEY(setting, bind, def) \
 	{ \
 		char read[256] = {0}; \
 		if (node) { \
-			XMLNode* child = \
-				XMLParser::SearchNode(node, setting); \
+			XMLNode* child = XMLParser::SearchNode(node, setting); \
 			if (child) { \
 				XMLParser::CopyTokenToString( \
-					child->children[0]->name, \
-					read, \
-					sizeof(read)); \
+					child->children[0]->name, read, sizeof(read)); \
 			} \
 		} \
-		Application::Settings->GetString( \
-			"keys", setting, read, sizeof(read)); \
+		Application::Settings->GetString("keys", setting, read, sizeof(read)); \
 		int key = def; \
 		if (read[0]) { \
-			int parsed = \
-				InputManager::ParseKeyName(read); \
+			int parsed = InputManager::ParseKeyName(read); \
 			if (parsed >= 0) \
 				key = parsed; \
 			else \
@@ -775,14 +682,10 @@ void Application::LoadKeyBinds() {
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
-	Application::Settings->GetBool(
-		"dev", "viewPerformance", &ShowFPS);
+	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
-	Application::Settings->GetInteger(
-		"dev", "fastforward", &UpdatesPerFastForward);
-	Application::Settings->GetBool("dev",
-		"convertModels",
-		&Application::DevConvertModels);
+	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
+	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
 #endif
 }
 
@@ -809,13 +712,12 @@ void Application::SetWindowSize(int window_w, int window_h) {
 }
 
 bool Application::GetWindowFullscreen() {
-	return !!(SDL_GetWindowFlags(Application::Window) &
-		SDL_WINDOW_FULLSCREEN_DESKTOP);
+	return !!(SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
 void Application::SetWindowFullscreen(bool isFullscreen) {
-	SDL_SetWindowFullscreen(Application::Window,
-		isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	SDL_SetWindowFullscreen(
+		Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
@@ -824,8 +726,7 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 }
 
 void Application::SetWindowBorderless(bool isBorderless) {
-	SDL_SetWindowBordered(
-		Application::Window, (SDL_bool)(!isBorderless));
+	SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
 }
 
 int Application::GetKeyBind(int bind) {
@@ -837,8 +738,7 @@ void Application::SetKeyBind(int bind, int key) {
 		KeyBindsSDL[bind] = SDLK_UNKNOWN;
 	}
 	else {
-		KeyBindsSDL[bind] = SDL_GetKeyFromScancode(
-			InputManager::KeyToSDLScancode[key]);
+		KeyBindsSDL[bind] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[key]);
 	}
 }
 
@@ -854,20 +754,15 @@ void Application::PollEvents() {
 			SDL_Keycode key = e.key.keysym.sym;
 
 			// Fullscreen
-			if (key ==
-				KeyBindsSDL[(
-					int)KeyBind::Fullscreen]) {
+			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
 				Application::SetWindowFullscreen(
-					!Application::
-						GetWindowFullscreen());
+					!Application::GetWindowFullscreen());
 				break;
 			}
 
 			if (DevMenu) {
 				// Quit game (dev)
-				if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevQuit]) {
+				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
 					Running = false;
 					// Application::DevMenuActivated
 					// ^= 1;
@@ -877,33 +772,22 @@ void Application::PollEvents() {
 					break;
 				}
 				// Restart application (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevRestartApp]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
 					Application::Restart();
 
 					Scene::Init();
 					if (*StartingScene) {
-						Scene::LoadScene(
-							StartingScene);
+						Scene::LoadScene(StartingScene);
 					}
 					Scene::Restart();
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Show layer info (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevLayerInfo]) {
-					for (size_t li = 0; li <
-						Scene::Layers.size();
-						li++) {
-						SceneLayer& layer =
-							Scene::Layers
-								[li];
-						Log::Print(
-							Log::LOG_IMPORTANT,
+				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
+					for (size_t li = 0; li < Scene::Layers.size(); li++) {
+						SceneLayer& layer = Scene::Layers[li];
+						Log::Print(Log::LOG_IMPORTANT,
 							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 							li,
 							layer.Name,
@@ -921,107 +805,75 @@ void Application::PollEvents() {
 					break;
 				}
 				// Print performance snapshot (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevPerfSnapshot]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
 					TakeSnapshot = true;
 					break;
 				}
 				// Recompile and restart scene (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevRecompile]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
 					Application::Restart();
 
 					char temp[256];
-					memcpy(temp,
-						Scene::CurrentScene,
-						256);
+					memcpy(temp, Scene::CurrentScene, 256);
 
 					Scene::Init();
 
-					memcpy(Scene::CurrentScene,
-						temp,
-						256);
-					Scene::LoadScene(
-						Scene::CurrentScene);
+					memcpy(Scene::CurrentScene, temp, 256);
+					Scene::LoadScene(Scene::CurrentScene);
 
 					Scene::Restart();
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Restart scene (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevRestartScene]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
 					// Reset FPS timer
 					BenchmarkFrameCount = 0;
 
-					InputManager::
-						ControllerStopRumble();
+					InputManager::ControllerStopRumble();
 
 					Scene::Restart();
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Enable update speedup (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevFastForward]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevFastForward]) {
 					if (UpdatesPerFrame == 1) {
-						UpdatesPerFrame =
-							UpdatesPerFastForward;
+						UpdatesPerFrame = UpdatesPerFastForward;
 					}
 					else {
 						UpdatesPerFrame = 1;
 					}
 
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Cycle view tile collision (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevTileCol]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevTileCol]) {
 					Scene::ShowTileCollisionFlag =
-						(Scene::ShowTileCollisionFlag +
-							1) %
-						3;
-					Application::
-						UpdateWindowTitle();
+						(Scene::ShowTileCollisionFlag + 1) % 3;
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// View object regions (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevObjectRegions]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevObjectRegions]) {
 					Scene::ShowObjectRegions ^= 1;
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Toggle frame stepper (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevFrameStepper]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevFrameStepper]) {
 					Stepper = !Stepper;
 					MetricFrameCounterTime = 0;
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 				// Step frame (dev)
-				else if (key ==
-					KeyBindsSDL[(int)KeyBind::
-							DevStepFrame]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevStepFrame]) {
 					Stepper = true;
 					Step = true;
 					MetricFrameCounterTime++;
-					Application::
-						UpdateWindowTitle();
+					Application::UpdateWindowTitle();
 					break;
 				}
 			}
@@ -1030,25 +882,20 @@ void Application::PollEvents() {
 		case SDL_WINDOWEVENT: {
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_RESIZED:
-				Graphics::Resize(e.window.data1,
-					e.window.data2);
+				Graphics::Resize(e.window.data1, e.window.data2);
 				break;
 			}
 			break;
 		}
 		case SDL_CONTROLLERDEVICEADDED: {
 			int i = e.cdevice.which;
-			Log::Print(Log::LOG_VERBOSE,
-				"Added controller device %d",
-				i);
+			Log::Print(Log::LOG_VERBOSE, "Added controller device %d", i);
 			InputManager::AddController(i);
 			break;
 		}
 		case SDL_CONTROLLERDEVICEREMOVED: {
 			int i = e.cdevice.which;
-			Log::Print(Log::LOG_VERBOSE,
-				"Removed controller device %d",
-				i);
+			Log::Print(Log::LOG_VERBOSE, "Removed controller device %d", i);
 			InputManager::RemoveController(i);
 			break;
 		}
@@ -1076,8 +923,7 @@ void Application::RunFrame(int runFrames) {
 
 	MetricAfterSceneTime = Clock::GetTicks();
 	Scene::AfterScene();
-	MetricAfterSceneTime =
-		Clock::GetTicks() - MetricAfterSceneTime;
+	MetricAfterSceneTime = Clock::GetTicks() - MetricAfterSceneTime;
 
 	if (DoNothing) {
 		goto DO_NOTHING;
@@ -1092,18 +938,15 @@ void Application::RunFrame(int runFrames) {
 			// Poll for inputs
 			MetricPollTime = Clock::GetTicks();
 			InputManager::Poll();
-			MetricPollTime =
-				Clock::GetTicks() - MetricPollTime;
+			MetricPollTime = Clock::GetTicks() - MetricPollTime;
 
 			// Update scene
 			MetricUpdateTime = Clock::GetTicks();
 			Scene::Update();
-			MetricUpdateTime =
-				Clock::GetTicks() - MetricUpdateTime;
+			MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
 		}
 		Step = false;
-		if (runFrames != 1 &&
-			(*Scene::NextScene || Scene::DoRestart)) {
+		if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart)) {
 			break;
 		}
 	}
@@ -1129,9 +972,7 @@ DO_NOTHING:
 			DEBUG_fontSprite = new ISprite();
 
 			int cols, rows;
-			Texture* spriteSheet =
-				DEBUG_fontSprite->AddSpriteSheet(
-					"Debug/Font.png");
+			Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
 			if (!spriteSheet) {
 				spriteSheet = DEBUG_fontSprite->AddSpriteSheet(
 					"Sprites/Fonts/DebugFont.png");
@@ -1140,10 +981,8 @@ DO_NOTHING:
 				cols = spriteSheet->Width / 32;
 				rows = spriteSheet->Height / 32;
 
-				DEBUG_fontSprite
-					->ReserveAnimationCount(1);
-				DEBUG_fontSprite->AddAnimation(
-					"Font", 0, 0, cols * rows);
+				DEBUG_fontSprite->ReserveAnimationCount(1);
+				DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
 				for (int i = 0; i < cols * rows; i++) {
 					DEBUG_fontSprite->AddFrame(0,
 						(i % cols) * 32,
@@ -1215,25 +1054,20 @@ DO_NOTHING:
 		int typeCount = sizeof(types) / sizeof(double);
 
 		Graphics::Save();
-		Graphics::Translate(
-			infoPadding - 2.0, infoPadding, 0.0);
+		Graphics::Translate(infoPadding - 2.0, infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "Frame Information");
 		DEBUG_DrawText(textBuffer, 0.0, 0.0);
 		Graphics::Restore();
 
 		Graphics::Save();
-		Graphics::Translate(
-			infoW - infoPadding - (8 * 16.0 * 0.85),
-			infoPadding,
-			0.0);
+		Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
 		DEBUG_DrawText(textBuffer, 0.0, 0.0);
 		Graphics::Restore();
 
-		if (Application::Platform == Platforms::Android ||
-			true) {
+		if (Application::Platform == Platforms::Android || true) {
 			// Draw bar
 			double total = 0.0001;
 			for (int i = 0; i < typeCount; i++) {
@@ -1246,39 +1080,27 @@ DO_NOTHING:
 			Graphics::Save();
 			Graphics::Translate(infoPadding, 50.0, 0.0);
 			Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.25);
-			Graphics::FillRectangle(0.0,
-				0.0f,
-				infoW - infoPadding * 2,
-				30.0);
+			Graphics::FillRectangle(0.0, 0.0f, infoW - infoPadding * 2, 30.0);
 			Graphics::Restore();
 
 			double rectx = 0.0;
 			for (int i = 0; i < typeCount; i++) {
 				Graphics::Save();
-				Graphics::Translate(
-					infoPadding, 50.0, 0.0);
+				Graphics::Translate(infoPadding, 50.0, 0.0);
 				if (i < 8) {
 					Graphics::SetBlendColor(
-						colors[i].r,
-						colors[i].g,
-						colors[i].b,
-						0.5);
+						colors[i].r, colors[i].g, colors[i].b, 0.5);
 				}
 				else {
-					Graphics::SetBlendColor(
-						0.5, 0.5, 0.5, 0.5);
+					Graphics::SetBlendColor(0.5, 0.5, 0.5, 0.5);
 				}
 				Graphics::FillRectangle(rectx,
 					0.0f,
-					types[i] / total *
-						(infoW -
-							infoPadding *
-								2),
+					types[i] / total * (infoW - infoPadding * 2),
 					30.0);
 				Graphics::Restore();
 
-				rectx += types[i] / total *
-					(infoW - infoPadding * 2);
+				rectx += types[i] / total * (infoW - infoPadding * 2);
 			}
 
 			// Draw list
@@ -1287,22 +1109,11 @@ DO_NOTHING:
 			infoPadding += infoPadding;
 			for (int i = 0; i < typeCount; i++) {
 				Graphics::Save();
-				Graphics::Translate(
-					infoPadding, listY, 0.0);
-				Graphics::SetBlendColor(colors[i].r,
-					colors[i].g,
-					colors[i].b,
-					0.5);
-				Graphics::FillRectangle(
-					-infoPadding / 2.0,
-					0.0,
-					12.0,
-					12.0);
+				Graphics::Translate(infoPadding, listY, 0.0);
+				Graphics::SetBlendColor(colors[i].r, colors[i].g, colors[i].b, 0.5);
+				Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 				Graphics::Scale(0.6, 0.6, 1.0);
-				snprintf(textBuffer,
-					256,
-					typeNames[i],
-					types[i]);
+				snprintf(textBuffer, 256, typeNames[i], types[i]);
 				DEBUG_DrawText(textBuffer, 0.0, 0.0);
 				listY += 20.0;
 				Graphics::Restore();
@@ -1314,13 +1125,9 @@ DO_NOTHING:
 			Graphics::Save();
 			Graphics::Translate(infoPadding, listY, 0.0);
 			Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-			Graphics::FillRectangle(
-				-infoPadding / 2.0, 0.0, 12.0, 12.0);
+			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer,
-				256,
-				"Total Frame Time: %.3f ms",
-				totalFrameCount);
+			snprintf(textBuffer, 256, "Total Frame Time: %.3f ms", totalFrameCount);
 			DEBUG_DrawText(textBuffer, 0.0, 0.0);
 			listY += 20.0;
 			Graphics::Restore();
@@ -1329,13 +1136,9 @@ DO_NOTHING:
 			Graphics::Save();
 			Graphics::Translate(infoPadding, listY, 0.0);
 			Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-			Graphics::FillRectangle(
-				-infoPadding / 2.0, 0.0, 12.0, 12.0);
+			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer,
-				256,
-				"Overdelay: %.3f ms",
-				Overdelay);
+			snprintf(textBuffer, 256, "Overdelay: %.3f ms", Overdelay);
 			DEBUG_DrawText(textBuffer, 0.0, 0.0);
 			listY += 20.0;
 			Graphics::Restore();
@@ -1359,59 +1162,34 @@ DO_NOTHING:
 			listY += 30.0 - 20.0;
 
 			Graphics::Save();
-			Graphics::Translate(
-				infoPadding / 2.0, listY, 0.0);
+			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer,
-				256,
-				"RAM Usage: %.3f %s",
-				count,
-				moniker);
+			snprintf(textBuffer, 256, "RAM Usage: %.3f %s", count, moniker);
 			DEBUG_DrawText(textBuffer, 0.0, 0.0);
 			Graphics::Restore();
 
 			listY += 30.0;
 
 			float* listYPtr = &listY;
-			if (Scene::ObjectLists &&
-				Application::Platform !=
-					Platforms::Android) {
-				Scene::ObjectLists->WithAll([infoPadding,
-								    listYPtr](
-								    Uint32,
-								    ObjectList*
-									    list)
-								    -> void {
+			if (Scene::ObjectLists && Application::Platform != Platforms::Android) {
+				Scene::ObjectLists->WithAll([infoPadding, listYPtr](Uint32,
+								    ObjectList* list) -> void {
 					char textBufferXXX[1024];
-					if (list->Performance.Update
-							.AverageItemCount >
-						0.0) {
+					if (list->Performance.Update.AverageItemCount > 0.0) {
 						Graphics::Save();
 						Graphics::Translate(
-							infoPadding /
-								2.0,
-							*listYPtr,
-							0.0);
-						Graphics::Scale(
-							0.6, 0.6, 1.0);
+							infoPadding / 2.0, *listYPtr, 0.0);
+						Graphics::Scale(0.6, 0.6, 1.0);
 						snprintf(textBufferXXX,
 							1024,
 							"Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
 							list->ObjectName,
-							list->Performance
-								.Render
-								.GetAverageTime(),
-							list->Performance
-								.Render
+							list->Performance.Render.GetAverageTime(),
+							list->Performance.Render
 								.GetTotalAverageTime(),
-							(int)list
-								->Performance
-								.Render
+							(int)list->Performance.Render
 								.AverageItemCount);
-						DEBUG_DrawText(
-							textBufferXXX,
-							0.0,
-							0.0);
+						DEBUG_DrawText(textBufferXXX, 0.0, 0.0);
 						Graphics::Restore();
 
 						*listYPtr += 20.0;
@@ -1421,8 +1199,7 @@ DO_NOTHING:
 		}
 		Graphics::Restore();
 	}
-	MetricFPSCounterTime =
-		Clock::GetTicks() - MetricFPSCounterTime;
+	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
 
 	MetricPresentTime = Clock::GetTicks();
 	Graphics::Present();
@@ -1441,14 +1218,11 @@ void Application::DelayFrame() {
 
 			Clock::Delay(frameDurationRemainder - 1.0);
 
-			double delayTime =
-				Clock::GetTicks() - delayStartTime;
-			Overdelay = delayTime -
-				(frameDurationRemainder - 1.0);
+			double delayTime = Clock::GetTicks() - delayStartTime;
+			Overdelay = delayTime - (frameDurationRemainder - 1.0);
 		}
 
-		while ((Clock::GetTicks() - FrameTimeStart) <
-			FrameTimeDesired)
+		while ((Clock::GetTicks() - FrameTimeStart) < FrameTimeDesired)
 			;
 	}
 }
@@ -1461,16 +1235,13 @@ void Application::Run(int argc, char* args[]) {
 	Scene::Init();
 
 	if (argc > 1 && AllowCmdLineSceneLoad) {
-		char* pathStart = StringUtils::StrCaseStr(
-			args[1], "/Resources/");
+		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
 		if (pathStart == NULL) {
-			pathStart = StringUtils::StrCaseStr(
-				args[1], "\\Resources\\");
+			pathStart = StringUtils::StrCaseStr(args[1], "\\Resources\\");
 		}
 
 		if (pathStart) {
-			char* tmxPath =
-				pathStart + strlen("/Resources/");
+			char* tmxPath = pathStart + strlen("/Resources/");
 			for (char* i = tmxPath; *i; i++) {
 				if (*i == '\\') {
 					*i = '/';
@@ -1490,8 +1261,7 @@ void Application::Run(int argc, char* args[]) {
 
 	Scene::Restart();
 	Application::UpdateWindowTitle();
-	Application::SetWindowSize(
-		Application::WindowWidth, Application::WindowHeight);
+	Application::SetWindowSize(Application::WindowWidth, Application::WindowHeight);
 
 	Graphics::Clear();
 	Graphics::Present();
@@ -1504,8 +1274,7 @@ void Application::Run(int argc, char* args[]) {
 
 	// Set up the game to run in the window animation callback on
 	// iOS so that Game Center and so forth works correctly.
-	SDL_iPhoneSetAnimationCallback(
-		Application::Window, 1, RunFrameCallback, NULL);
+	SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrameCallback, NULL);
 #else
 	float lastTick = Clock::GetTicks();
 	while (Running) {
@@ -1516,9 +1285,7 @@ void Application::Run(int argc, char* args[]) {
 		int updateFrames = UpdatesPerFrame;
 		if (updateFrames == 1) {
 			// Compensate for lag
-			int lagFrames = ((int)round(timeTaken /
-						FrameTimeDesired)) -
-				1;
+			int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
 			if (lagFrames > 15) {
 				lagFrames = 15;
 			}
@@ -1538,21 +1305,16 @@ void Application::Run(int argc, char* args[]) {
 		// Do benchmarking stuff
 		BenchmarkFrameCount++;
 		if (BenchmarkFrameCount == TargetFPS) {
-			double measuredSecond =
-				Clock::GetTicks() - BenchmarkTickStart;
-			CurrentFPS = 1000.0 / floor(measuredSecond) *
-				TargetFPS;
+			double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
+			CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
 			BenchmarkFrameCount = 0;
 		}
 
 		if (AutomaticPerformanceSnapshots &&
-			MetricFrameTime >
-				AutomaticPerformanceSnapshotFrameTimeThreshold) {
-			if (Clock::GetTicks() -
-					AutomaticPerformanceSnapshotLastTime >
+			MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
+			if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime >
 				AutomaticPerformanceSnapshotMinInterval) {
-				AutomaticPerformanceSnapshotLastTime =
-					Clock::GetTicks();
+				AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
 				TakeSnapshot = true;
 			}
 		}
@@ -1611,28 +1373,24 @@ static char* ParseGameConfigText(XMLNode* parent, const char* option) {
 
 	return XMLParser::TokenToString(node->children[0]->name);
 }
-static bool
-ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
+static bool ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
 	XMLNode* node = XMLParser::SearchNode(parent, option);
 	if (!node) {
 		return false;
 	}
 
 	char read[32];
-	XMLParser::CopyTokenToString(
-		node->children[0]->name, read, sizeof(read));
+	XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
 	return StringUtils::ToNumber(&val, read);
 }
-static bool
-ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
+static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 	node = XMLParser::SearchNode(node, option);
 	if (!node) {
 		return false;
 	}
 
 	char read[5];
-	XMLParser::CopyTokenToString(
-		node->children[0]->name, read, sizeof(read));
+	XMLParser::CopyTokenToString(node->children[0]->name, read, sizeof(read));
 	val = !strcmp(read, "true");
 
 	return true;
@@ -1647,8 +1405,7 @@ void Application::LoadGameConfig() {
 		return;
 	}
 
-	Application::GameConfig =
-		XMLParser::ParseFromResource("GameConfig.xml");
+	Application::GameConfig = XMLParser::ParseFromResource("GameConfig.xml");
 	if (!Application::GameConfig) {
 		return;
 	}
@@ -1663,27 +1420,18 @@ void Application::LoadGameConfig() {
 		ParseGameConfigInt(node, "framerate", targetFPS);
 		Application::SetTargetFrameRate(targetFPS);
 
-		ParseGameConfigBool(node,
-			"allowCmdLineSceneLoad",
-			Application::AllowCmdLineSceneLoad);
-		ParseGameConfigBool(node,
-			"loadAllClasses",
-			ScriptManager::LoadAllClasses);
-		ParseGameConfigBool(node,
-			"useSoftwareRenderer",
-			Graphics::UseSoftwareRenderer);
-		ParseGameConfigBool(node,
-			"enablePaletteUsage",
-			Graphics::UsePalettes);
+		ParseGameConfigBool(
+			node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
+		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
+		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
+		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
 	}
 
 	// Read display defaults
 	node = XMLParser::SearchNode(root, "display");
 	if (node) {
-		ParseGameConfigInt(
-			node, "width", Application::WindowWidth);
-		ParseGameConfigInt(
-			node, "height", Application::WindowHeight);
+		ParseGameConfigInt(node, "width", Application::WindowWidth);
+		ParseGameConfigInt(node, "height", Application::WindowHeight);
 	}
 
 	// Read audio defaults
@@ -1692,9 +1440,7 @@ void Application::LoadGameConfig() {
 		int volume; \
 		char xmlTokStr[32]; \
 		XMLParser::CopyTokenToString( \
-			node->attributes.Get("volume"), \
-			xmlTokStr, \
-			sizeof(xmlTokStr)); \
+			node->attributes.Get("volume"), xmlTokStr, sizeof(xmlTokStr)); \
 		if (StringUtils::ToNumber(&volume, xmlTokStr)) \
 			Application::func(volume); \
 	}
@@ -1722,9 +1468,8 @@ void Application::LoadGameConfig() {
 	// Read starting scene
 	node = XMLParser::SearchNode(root, "startscene");
 	if (node) {
-		XMLParser::CopyTokenToString(node->children[0]->name,
-			StartingScene,
-			sizeof(StartingScene));
+		XMLParser::CopyTokenToString(
+			node->children[0]->name, StartingScene, sizeof(StartingScene));
 	}
 }
 
@@ -1754,8 +1499,7 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 	// minor
 	node = XMLParser::SearchNode(versionNode, "minor");
 	if (node) {
-		versionText +=
-			"." + node->children[0]->name.ToString();
+		versionText += "." + node->children[0]->name.ToString();
 	}
 	else {
 		return versionText;
@@ -1764,8 +1508,7 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 	// patch
 	node = XMLParser::SearchNode(versionNode, "patch");
 	if (node) {
-		versionText +=
-			"." + node->children[0]->name.ToString();
+		versionText += "." + node->children[0]->name.ToString();
 	}
 	else {
 		return versionText;
@@ -1774,23 +1517,19 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 	// pre-release
 	node = XMLParser::SearchNode(versionNode, "prerelease");
 	if (node) {
-		versionText +=
-			"-" + node->children[0]->name.ToString();
+		versionText += "-" + node->children[0]->name.ToString();
 	}
 
 	return versionText;
 }
 
 void Application::LoadGameInfo() {
-	StringUtils::Copy(Application::GameTitle,
-		"Hatch Game Engine",
-		sizeof(Application::GameTitle));
+	StringUtils::Copy(
+		Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
 	StringUtils::Copy(Application::GameTitleShort,
 		Application::GameTitle,
 		sizeof(Application::GameTitleShort));
-	StringUtils::Copy(Application::GameVersion,
-		"1.0",
-		sizeof(Application::GameVersion));
+	StringUtils::Copy(Application::GameVersion, "1.0", sizeof(Application::GameVersion));
 	StringUtils::Copy(Application::GameDescription,
 		"Cluck cluck I'm a chicken",
 		sizeof(Application::GameDescription));
@@ -1798,14 +1537,12 @@ void Application::LoadGameInfo() {
 	if (Application::GameConfig) {
 		XMLNode* root = Application::GameConfig->children[0];
 
-		XMLNode* node =
-			XMLParser::SearchNode(root, "gameTitle");
+		XMLNode* node = XMLParser::SearchNode(root, "gameTitle");
 		if (node == nullptr) {
 			node = XMLParser::SearchNode(root, "name");
 		}
 		if (node) {
-			XMLParser::CopyTokenToString(
-				node->children[0]->name,
+			XMLParser::CopyTokenToString(node->children[0]->name,
 				Application::GameTitle,
 				sizeof(Application::GameTitle));
 			StringUtils::Copy(Application::GameTitleShort,
@@ -1815,29 +1552,24 @@ void Application::LoadGameInfo() {
 
 		node = XMLParser::SearchNode(root, "shortTitle");
 		if (node) {
-			XMLParser::CopyTokenToString(
-				node->children[0]->name,
+			XMLParser::CopyTokenToString(node->children[0]->name,
 				Application::GameTitleShort,
 				sizeof(Application::GameTitleShort));
 		}
 
 		node = XMLParser::SearchNode(root, "version");
 		if (node) {
-			std::string versionText =
-				Application::ParseGameVersion(node);
+			std::string versionText = Application::ParseGameVersion(node);
 			if (versionText.size() > 0) {
-				StringUtils::Copy(
-					Application::GameVersion,
+				StringUtils::Copy(Application::GameVersion,
 					versionText.c_str(),
-					sizeof(Application::
-							GameVersion));
+					sizeof(Application::GameVersion));
 			}
 		}
 
 		node = XMLParser::SearchNode(root, "description");
 		if (node) {
-			XMLParser::CopyTokenToString(
-				node->children[0]->name,
+			XMLParser::CopyTokenToString(node->children[0]->name,
 				Application::GameDescription,
 				sizeof(Application::GameDescription));
 		}
@@ -1854,12 +1586,10 @@ void Application::LoadSceneInfo() {
 
 	// Open and read SceneConfig
 	if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-		sceneConfig = XMLParser::ParseFromResource(
-			"Game/SceneConfig.xml");
+		sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
 	}
 	else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
-		sceneConfig = XMLParser::ParseFromResource(
-			"SceneConfig.xml");
+		sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
 	}
 
 	// Parse Scene List
@@ -1868,26 +1598,20 @@ void Application::LoadSceneInfo() {
 			// Read category and starting scene number to
 			// be used by the SceneConfig
 			if (Application::GameConfig) {
-				XMLNode* node = Application::GameConfig
-							->children[0];
+				XMLNode* node = Application::GameConfig->children[0];
 				if (node) {
 					// Parse active category
 					if (!ParseGameConfigInt(node,
 						    "activeCategory",
 						    Scene::ActiveCategory)) { // backwards compat
-						char* text = ParseGameConfigText(
-							node,
-							"activeCategory");
+						char* text =
+							ParseGameConfigText(node, "activeCategory");
 						if (text) {
-							int id = SceneInfo::
-								GetCategoryID(
-									text);
+							int id = SceneInfo::GetCategoryID(text);
 							if (id >= 0) {
-								Scene::ActiveCategory =
-									id;
+								Scene::ActiveCategory = id;
 							}
-							Memory::Free(
-								text);
+							Memory::Free(text);
 						}
 					}
 
@@ -1895,19 +1619,14 @@ void Application::LoadSceneInfo() {
 					ParseGameConfigInt(node,
 						"startSceneNum",
 						startSceneNum); // backwards
-					                        // compat
+					// compat
 
-					char* text =
-						ParseGameConfigText(
-							node,
-							"startscene");
+					char* text = ParseGameConfigText(node, "startscene");
 					if (text) {
 						int id = SceneInfo::GetEntryID(
-							Scene::ActiveCategory,
-							text);
+							Scene::ActiveCategory, text);
 						if (id >= 0) {
-							startSceneNum =
-								id;
+							startSceneNum = id;
 						}
 						Memory::Free(text);
 					}
@@ -1916,22 +1635,17 @@ void Application::LoadSceneInfo() {
 
 			// TODO: Check existing scene folder and id
 			// here to reset them upon reload
-			if (SceneInfo::IsEntryValid(
-				    Scene::ActiveCategory,
-				    startSceneNum)) {
-				Scene::CurrentSceneInList =
-					startSceneNum;
+			if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
+				Scene::CurrentSceneInList = startSceneNum;
 			}
 
 			if (StartingScene[0] == '\0' &&
-				SceneInfo::CategoryHasEntries(
-					Scene::ActiveCategory)) {
+				SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
 				Scene::SetInfoFromCurrentID();
 
 				StringUtils::Copy(StartingScene,
 					SceneInfo::GetFilename(
-						Scene::ActiveCategory,
-						Scene::CurrentSceneInList)
+						Scene::ActiveCategory, Scene::CurrentSceneInList)
 						.c_str(),
 					sizeof(StartingScene));
 			}
@@ -1956,9 +1670,7 @@ bool Application::LoadSettings(const char* filename) {
 		return false;
 	}
 
-	StringUtils::Copy(Application::SettingsFile,
-		filename,
-		sizeof(Application::SettingsFile));
+	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 
 	if (Application::Settings) {
 		Application::Settings->Dispose();
@@ -1992,17 +1704,13 @@ void Application::InitSettings(const char* filename) {
 	// NOTE: If no settings could be loaded, create settings with
 	// default values.
 	if (!Application::Settings) {
-		StringUtils::Copy(Application::SettingsFile,
-			filename,
-			sizeof(Application::SettingsFile));
+		StringUtils::Copy(
+			Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 
-		Application::Settings =
-			INI::New(Application::SettingsFile);
+		Application::Settings = INI::New(Application::SettingsFile);
 
-		Application::Settings->SetBool(
-			"display", "fullscreen", false);
-		Application::Settings->SetBool(
-			"display", "vsync", false);
+		Application::Settings->SetBool("display", "fullscreen", false);
+		Application::Settings->SetBool("display", "vsync", false);
 	}
 
 	int logLevel = 0;
@@ -2012,32 +1720,22 @@ void Application::InitSettings(const char* filename) {
 #ifdef ANDROID
 	logLevel = -1;
 #endif
-	Application::Settings->GetInteger(
-		"dev", "logLevel", &logLevel);
-	Application::Settings->GetBool(
-		"dev", "trackMemory", &Memory::IsTracking);
+	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
+	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
 	Log::SetLogLevel(logLevel);
 
-	Application::Settings->GetBool("dev",
-		"autoPerfSnapshots",
-		&AutomaticPerformanceSnapshots);
+	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
 	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
-	Application::Settings->GetInteger(
-		"dev", "apsMinFrameTime", &apsFrameTimeThreshold);
-	Application::Settings->GetInteger(
-		"dev", "apsMinInterval", &apsMinInterval);
-	AutomaticPerformanceSnapshotFrameTimeThreshold =
-		apsFrameTimeThreshold;
+	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
+	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
+	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
 	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
 
-	Application::Settings->GetBool(
-		"display", "vsync", &Graphics::VsyncEnabled);
-	Application::Settings->GetInteger("display",
-		"multisample",
-		&Graphics::MultisamplingEnabled);
-	Application::Settings->GetInteger("display",
-		"defaultMonitor",
-		&Application::DefaultMonitor);
+	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+	Application::Settings->GetInteger(
+		"display", "multisample", &Graphics::MultisamplingEnabled);
+	Application::Settings->GetInteger(
+		"display", "defaultMonitor", &Application::DefaultMonitor);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {
@@ -2050,9 +1748,7 @@ void Application::SaveSettings(const char* filename) {
 	}
 }
 void Application::SetSettingsFilename(const char* filename) {
-	StringUtils::Copy(Application::SettingsFile,
-		filename,
-		sizeof(Application::SettingsFile));
+	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	if (Application::Settings) {
 		Application::Settings->SetFilename(filename);
 	}
@@ -2069,23 +1765,19 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_WILLENTERBACKGROUND:
-		Log::Print(Log::LOG_VERBOSE,
-			"SDL_APP_WILLENTERBACKGROUND");
+		Log::Print(Log::LOG_VERBOSE, "SDL_APP_WILLENTERBACKGROUND");
 		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_DIDENTERBACKGROUND:
-		Log::Print(Log::LOG_VERBOSE,
-			"SDL_APP_DIDENTERBACKGROUND");
+		Log::Print(Log::LOG_VERBOSE, "SDL_APP_DIDENTERBACKGROUND");
 		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_WILLENTERFOREGROUND:
-		Log::Print(Log::LOG_VERBOSE,
-			"SDL_APP_WILLENTERFOREGROUND");
+		Log::Print(Log::LOG_VERBOSE, "SDL_APP_WILLENTERFOREGROUND");
 		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_DIDENTERFOREGROUND:
-		Log::Print(Log::LOG_VERBOSE,
-			"SDL_APP_DIDENTERFOREGROUND");
+		Log::Print(Log::LOG_VERBOSE, "SDL_APP_DIDENTERFOREGROUND");
 		Scene::OnEvent(event->type);
 		return 0;
 	default:

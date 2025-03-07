@@ -166,25 +166,13 @@ enum class ControllerButton {
 	Max
 };
 
-enum class ControllerAxis {
-	LeftX,
-	LeftY,
-	RightX,
-	RightY,
-	TriggerLeft,
-	TriggerRight,
-	Max
-};
+enum class ControllerAxis { LeftX, LeftY, RightX, RightY, TriggerLeft, TriggerRight, Max };
 
 #define NUM_INPUT_PLAYERS 8
 #define NUM_TOUCH_STATES 8
 #define DEFAULT_DIGITAL_AXIS_THRESHOLD 0.5
 
-enum InputDevice {
-	InputDevice_Keyboard,
-	InputDevice_Controller,
-	InputDevice_MAX
-};
+enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX };
 
 #define KB_MODIFIER_SHIFT 1 // Either Shift key
 #define KB_MODIFIER_CTRL 2 // Either Ctrl key
@@ -204,7 +192,7 @@ enum InputDevice {
 #define NUM_INPUT_BIND_TYPES 3
 
 class InputBind {
-       public:
+public:
 	Uint8 Type;
 
 	InputBind() { Type = INPUT_BIND_KEYBOARD; }
@@ -221,7 +209,7 @@ class InputBind {
 };
 
 class KeyboardBind : public InputBind {
-       public:
+public:
 	int Key;
 	Uint16 Modifiers;
 
@@ -244,43 +232,33 @@ class KeyboardBind : public InputBind {
 };
 
 class ControllerButtonBind : public InputBind {
-       public:
+public:
 	int Button;
 
-	ControllerButtonBind()
-		: InputBind(INPUT_BIND_CONTROLLER_BUTTON) {
-		Clear();
-	}
+	ControllerButtonBind() : InputBind(INPUT_BIND_CONTROLLER_BUTTON) { Clear(); }
 
-	ControllerButtonBind(int button) : ControllerButtonBind() {
-		Button = button;
-	}
+	ControllerButtonBind(int button) : ControllerButtonBind() { Button = button; }
 
 	void Clear() { Button = -1; }
 
 	bool IsDefined() const { return Button != -1; }
 
 	InputBind* Clone() const {
-		ControllerButtonBind* clone =
-			new ControllerButtonBind(Button);
+		ControllerButtonBind* clone = new ControllerButtonBind(Button);
 		return static_cast<InputBind*>(clone);
 	}
 };
 
 class ControllerAxisBind : public InputBind {
-       public:
+public:
 	int Axis;
 	double AxisDeadzone;
 	double AxisDigitalThreshold;
 	bool IsAxisNegative;
 
-	ControllerAxisBind() : InputBind(INPUT_BIND_CONTROLLER_AXIS) {
-		Clear();
-	}
+	ControllerAxisBind() : InputBind(INPUT_BIND_CONTROLLER_AXIS) { Clear(); }
 
-	ControllerAxisBind(int axis) : ControllerAxisBind() {
-		Axis = axis;
-	}
+	ControllerAxisBind(int axis) : ControllerAxisBind() { Axis = axis; }
 
 	void Clear() {
 		Axis = -1;
@@ -292,8 +270,7 @@ class ControllerAxisBind : public InputBind {
 	bool IsDefined() const { return Axis != -1; }
 
 	InputBind* Clone() const {
-		ControllerAxisBind* clone =
-			new ControllerAxisBind(Axis);
+		ControllerAxisBind* clone = new ControllerAxisBind(Axis);
 		clone->AxisDeadzone = AxisDeadzone;
 		clone->AxisDigitalThreshold = AxisDigitalThreshold;
 		clone->IsAxisNegative = IsAxisNegative;

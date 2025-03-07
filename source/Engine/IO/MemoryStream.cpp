@@ -80,8 +80,7 @@ Uint32 MemoryStream::ReadCompressed(void* out) {
 	Uint32 compressed_size = ReadUInt32() - 4;
 	Uint32 uncompressed_size = ReadUInt32BE();
 
-	ZLibStream::Decompress(
-		out, uncompressed_size, pointer, compressed_size);
+	ZLibStream::Decompress(out, uncompressed_size, pointer, compressed_size);
 	pointer += compressed_size;
 
 	return uncompressed_size;
@@ -99,8 +98,7 @@ Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 size_t MemoryStream::WriteBytes(void* data, size_t n) {
 	if (Position() + n > size) {
 		size_t pos = Position();
-		pointer_start = (unsigned char*)Memory::Realloc(
-			pointer_start, pos + n);
+		pointer_start = (unsigned char*)Memory::Realloc(pointer_start, pos + n);
 		pointer = pointer_start + pos;
 	}
 	memcpy(pointer, data, n);

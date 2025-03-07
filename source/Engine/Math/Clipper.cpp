@@ -8,8 +8,7 @@ void Clipper::AddPoint(VertexAttribute* buf,
 	Vector4 p2,
 	Sint64 t) {
 	Vector4 diff = Vector::Subtract(p2, p1);
-	Vector4 newPosition =
-		Vector::Add(p1, Vector::Multiply(diff, t));
+	Vector4 newPosition = Vector::Add(p1, Vector::Multiply(diff, t));
 
 	buf->Position = newPosition;
 
@@ -39,10 +38,8 @@ bool Clipper::ClipEdge(Frustum frustum,
 
 	frustum.Normal = Vector::Normalize(frustum.Normal);
 
-	Sint64 distance1 = Vector::DistanceToPlane(
-		pos1, frustum.Plane, frustum.Normal);
-	Sint64 distance2 = Vector::DistanceToPlane(
-		pos2, frustum.Plane, frustum.Normal);
+	Sint64 distance1 = Vector::DistanceToPlane(pos1, frustum.Plane, frustum.Normal);
+	Sint64 distance2 = Vector::DistanceToPlane(pos2, frustum.Plane, frustum.Normal);
 
 	bool inside1 = distance1 >= 0;
 	bool inside2 = distance2 >= 0;
@@ -63,8 +60,7 @@ bool Clipper::ClipEdge(Frustum frustum,
 	else if (inside1) {
 		// If the first point is inside, add the intersected
 		// point
-		Sint64 t = Vector::IntersectWithPlane(
-			frustum.Plane, frustum.Normal, pos1, pos2);
+		Sint64 t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos1, pos2);
 		if (t <= 0) {
 			return false;
 		}
@@ -80,8 +76,7 @@ bool Clipper::ClipEdge(Frustum frustum,
 			return false;
 		}
 
-		Sint64 t = Vector::IntersectWithPlane(
-			frustum.Plane, frustum.Normal, pos2, pos1);
+		Sint64 t = Vector::IntersectWithPlane(frustum.Plane, frustum.Normal, pos2, pos1);
 		if (t <= 0) {
 			return false;
 		}
@@ -112,18 +107,14 @@ int Clipper::ClipPolygon(Frustum frustum,
 	VertexAttribute* lastVertex = input;
 	int countRem = vertexCount - 1;
 	while (countRem--) {
-		if (!Clipper::ClipEdge(frustum,
-			    &lastVertex[0],
-			    &lastVertex[1],
-			    output)) {
+		if (!Clipper::ClipEdge(frustum, &lastVertex[0], &lastVertex[1], output)) {
 			return 0;
 		}
 
 		lastVertex++;
 	}
 
-	if (!Clipper::ClipEdge(
-		    frustum, &lastVertex[0], &input[0], output)) {
+	if (!Clipper::ClipEdge(frustum, &lastVertex[0], &input[0], output)) {
 		return 0;
 	}
 
@@ -143,14 +134,11 @@ int Clipper::FrustumClip(PolygonClipBuffer* output,
 		temp[i].NumPoints = output->NumPoints;
 		temp[i].MaxPoints = output->MaxPoints;
 
-		vertexCount = Clipper::ClipPolygon(
-			frustum[i], &temp[i], buffer, vertexCount);
+		vertexCount = Clipper::ClipPolygon(frustum[i], &temp[i], buffer, vertexCount);
 		buffer = temp[i].Buffer; // pass the buck
 	}
 
-	memcpy(output->Buffer,
-		buffer,
-		sizeof(VertexAttribute) * vertexCount);
+	memcpy(output->Buffer, buffer, sizeof(VertexAttribute) * vertexCount);
 
 	return vertexCount;
 }

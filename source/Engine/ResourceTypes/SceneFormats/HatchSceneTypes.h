@@ -4,12 +4,8 @@
 struct SceneHash {
 	Uint32 A, B, C, D;
 
-	bool operator==(const SceneHash& b) {
-		return A == b.A && B == b.B && C == b.C && D == b.D;
-	}
-	bool operator!=(const SceneHash& b) {
-		return A != b.A || B != b.B || C != b.C || D != b.D;
-	}
+	bool operator==(const SceneHash& b) { return A == b.A && B == b.B && C == b.C && D == b.D; }
+	bool operator!=(const SceneHash& b) { return A != b.A || B != b.B || C != b.C || D != b.D; }
 };
 
 struct SceneClassProperty {

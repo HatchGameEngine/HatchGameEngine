@@ -6,12 +6,12 @@ class Texture;
 
 class TextureReference {
 public:
-    Texture* TexturePtr;
-    unsigned References;
+	Texture* TexturePtr;
+	unsigned References;
 
-    TextureReference(Texture *ptr);
-    void AddRef();
-    bool TakeRef();
+	TextureReference(Texture* ptr);
+	void AddRef();
+	bool TakeRef();
 };
 
 #endif /* ENGINE_RENDERING_TEXTUREREFERENCE_H */

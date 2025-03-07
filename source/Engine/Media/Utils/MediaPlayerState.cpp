@@ -26,14 +26,11 @@ double MediaPlayerState::GetSystemTime() {
 }
 bool MediaPlayerState::AttachmentIsFont(void* p) {
 	AVStream* stream = (AVStream*)p;
-	AVDictionaryEntry* tag = av_dict_get(stream->metadata,
-		"mimetype",
-		NULL,
-		AV_DICT_MATCH_CASE);
+	AVDictionaryEntry* tag =
+		av_dict_get(stream->metadata, "mimetype", NULL, AV_DICT_MATCH_CASE);
 	if (tag) {
 		for (int n = 0; font_mime[n]; n++) {
-			if (av_strcasecmp(font_mime[n], tag->value) ==
-				0) {
+			if (av_strcasecmp(font_mime[n], tag->value) == 0) {
 				return true;
 			}
 		}

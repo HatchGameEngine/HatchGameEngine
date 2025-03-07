@@ -33,17 +33,14 @@ static void CustomErrorExit(j_common_ptr cinfo) {
 	CustomErrorManager* err = (CustomErrorManager*)cinfo->err;
 	longjmp(err->escape, 1);
 }
-static void CustomOutputMessage(j_common_ptr cinfo) {
-}
+static void CustomOutputMessage(j_common_ptr cinfo) {}
 
-static void init_source(j_decompress_ptr cinfo) {
-}
+static void init_source(j_decompress_ptr cinfo) {}
 static boolean fill_input_buffer(j_decompress_ptr cinfo) {
 	CustomSourceManager* src = (CustomSourceManager*)cinfo->src;
 	int nbytes;
 
-	nbytes = (int)src->stream->ReadBytes(
-		src->buffer, INPUT_BUFFER_SIZE);
+	nbytes = (int)src->stream->ReadBytes(src->buffer, INPUT_BUFFER_SIZE);
 	if (nbytes <= 0) {
 		src->buffer[0] = (Uint8)0xFF;
 		src->buffer[1] = (Uint8)JPEG_EOI;
@@ -66,8 +63,7 @@ static void skip_input_data(j_decompress_ptr cinfo, long num_bytes) {
 		src->pub.bytes_in_buffer -= (size_t)num_bytes;
 	}
 }
-static void term_source(j_decompress_ptr cinfo) {
-}
+static void term_source(j_decompress_ptr cinfo) {}
 static void jpeg_Hatch_IO_src(j_decompress_ptr cinfo, Stream* stream) {
 	CustomSourceManager* src;
 
@@ -79,13 +75,9 @@ static void jpeg_Hatch_IO_src(j_decompress_ptr cinfo, Stream* stream) {
 	 * this manager and a different source manager serially with
 	 * the same JPEG object.  Caveat programmer.
 	 */
-	if (cinfo->src ==
-		NULL) { /* first time for this JPEG object? */
-		cinfo->src =
-			(jpeg_source_mgr*)(*cinfo->mem->alloc_small)(
-				(j_common_ptr)cinfo,
-				JPOOL_PERMANENT,
-				sizeof(CustomSourceManager));
+	if (cinfo->src == NULL) { /* first time for this JPEG object? */
+		cinfo->src = (jpeg_source_mgr*)(*cinfo->mem->alloc_small)(
+			(j_common_ptr)cinfo, JPOOL_PERMANENT, sizeof(CustomSourceManager));
 		// src = (CustomSourceManager*)cinfo->src;
 	}
 
@@ -93,12 +85,10 @@ static void jpeg_Hatch_IO_src(j_decompress_ptr cinfo, Stream* stream) {
 	src->pub.init_source = init_source;
 	src->pub.fill_input_buffer = fill_input_buffer;
 	src->pub.skip_input_data = skip_input_data;
-	src->pub.resync_to_restart =
-		jpeg_resync_to_restart; /* use default method */
+	src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
 	src->pub.term_source = term_source;
 	src->stream = stream;
-	src->pub.bytes_in_buffer =
-		0; /* forces fill_input_buffer on first read */
+	src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
 	src->pub.next_input_byte = NULL; /* until buffer loaded */
 }
 #endif
@@ -123,16 +113,13 @@ JPEG* JPEG::Load(const char* filename) {
 	bool doConvert;
 
 	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(
-			filename + 7, FileStream::READ_ACCESS);
+		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
 	}
 	else {
 		stream = ResourceStream::New(filename);
 	}
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto JPEG_Load_FAIL;
 	}
 
@@ -183,8 +170,7 @@ JPEG* JPEG::Load(const char* filename) {
 	jpeg->Paletted = false;
 	jpeg->NumPaletteColors = 0;
 
-	pixelData = (Uint32*)malloc(
-		jpeg->Width * jpeg->Height * cinfo.num_components);
+	pixelData = (Uint32*)malloc(jpeg->Width * jpeg->Height * cinfo.num_components);
 	pitch = jpeg->Width * cinfo.num_components;
 	num_channels = cinfo.num_components;
 
@@ -194,8 +180,8 @@ JPEG* JPEG::Load(const char* filename) {
 		goto JPEG_Load_FAIL;
 	}
 
-	jpeg->Data = (Uint32*)Memory::TrackedMalloc("JPEG::Data",
-		jpeg->Width * jpeg->Height * sizeof(Uint32));
+	jpeg->Data = (Uint32*)Memory::TrackedMalloc(
+		"JPEG::Data", jpeg->Width * jpeg->Height * sizeof(Uint32));
 	for (Uint32 i = 0; i < jpeg->Width * (jpeg->Height / 2); i++) {
 		jpeg->Data[i] = 0xFF41D1F2;
 	}
@@ -203,15 +189,13 @@ JPEG* JPEG::Load(const char* filename) {
 	// /* Decompress the image */
 	jpeg_start_decompress(&cinfo);
 	while (cinfo.output_scanline < cinfo.output_height) {
-		rowptr[0] = (JSAMPROW)(Uint8*)pixelData +
-			cinfo.output_scanline * pitch;
+		rowptr[0] = (JSAMPROW)(Uint8*)pixelData + cinfo.output_scanline * pitch;
 		jpeg_read_scanlines(&cinfo, rowptr, (JDIMENSION)1);
 	}
 	jpeg_finish_decompress(&cinfo);
 
 	doConvert = false;
-	if (Graphics::PreferredPixelFormat ==
-		SDL_PIXELFORMAT_ABGR8888) {
+	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
 		Amask = (num_channels == 4) ? 0xFF000000 : 0;
 		Bmask = 0x00FF0000;
 		Gmask = 0x0000FF00;
@@ -220,8 +204,7 @@ JPEG* JPEG::Load(const char* filename) {
 			doConvert = true;
 		}
 	}
-	else if (Graphics::PreferredPixelFormat ==
-		SDL_PIXELFORMAT_ARGB8888) {
+	else if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
 		Amask = (num_channels == 4) ? 0xFF000000 : 0;
 		Rmask = 0x00FF0000;
 		Gmask = 0x0000FF00;
@@ -234,42 +217,29 @@ JPEG* JPEG::Load(const char* filename) {
 		Uint32 a, b, g, r;
 		int pc = 0, size = jpeg->Width * jpeg->Height;
 		if (Amask) {
-			for (Uint32* i = pixelData; pc < size;
-				i++, pc++) {
+			for (Uint32* i = pixelData; pc < size; i++, pc++) {
 				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 |
-					px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 |
-					px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 |
-					px[2] << 24;
-				a = px[3] | px[3] << 8 | px[3] << 16 |
-					px[3] << 24;
-				jpeg->Data[pc] = (r & Rmask) |
-					(g & Gmask) | (b & Bmask) |
-					(a & Amask);
+				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
+				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
+				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
+				a = px[3] | px[3] << 8 | px[3] << 16 | px[3] << 24;
+				jpeg->Data[pc] =
+					(r & Rmask) | (g & Gmask) | (b & Bmask) | (a & Amask);
 			}
 		}
 		else {
-			for (Uint8* i = (Uint8*)pixelData; pc < size;
-				i += 3, pc++) {
+			for (Uint8* i = (Uint8*)pixelData; pc < size; i += 3, pc++) {
 				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 |
-					px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 |
-					px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 |
-					px[2] << 24;
-				jpeg->Data[pc] = (r & Rmask) |
-					(g & Gmask) | (b & Bmask) |
-					0xFF000000;
+				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
+				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
+				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
+				jpeg->Data[pc] =
+					(r & Rmask) | (g & Gmask) | (b & Bmask) | 0xFF000000;
 			}
 		}
 	}
 	else {
-		memcpy(jpeg->Data,
-			pixelData,
-			jpeg->Width * jpeg->Height * sizeof(Uint32));
+		memcpy(jpeg->Data, pixelData, jpeg->Width * jpeg->Height * sizeof(Uint32));
 		// memcpy(jpeg->Data, pixelData, jpeg->Width *
 		// jpeg->Height * 3);
 	}
@@ -297,8 +267,7 @@ bool JPEG::Save(JPEG* jpeg, const char* filename) {
 }
 
 bool JPEG::Save(const char* filename) {
-	Stream* stream =
-		FileStream::New(filename, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
 	if (!stream) {
 		return false;
 	}
@@ -307,5 +276,4 @@ bool JPEG::Save(const char* filename) {
 	return true;
 }
 
-JPEG::~JPEG() {
-}
+JPEG::~JPEG() {}

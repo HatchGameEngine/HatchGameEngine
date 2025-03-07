@@ -7,14 +7,13 @@
 
 class WAV : public SoundFormat {
 private:
-    // WAV Specific
-    int DataStart = 0;
-
+	// WAV Specific
+	int DataStart = 0;
 
 public:
-    static SoundFormat* Load(const char* filename);
-    int LoadSamples(size_t count);
-    void Dispose();
+	static SoundFormat* Load(const char* filename);
+	int LoadSamples(size_t count);
+	void Dispose();
 };
 
 #endif /* ENGINE_RESOURCETYPES_SOUNDFORMATS_WAV_H */

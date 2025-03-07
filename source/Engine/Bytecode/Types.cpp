@@ -12,10 +12,8 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
 
-#define ALLOCATE_OBJ(type, objectType) \
-	(type*)AllocateObject(sizeof(type), objectType)
-#define ALLOCATE(type, size) \
-	(type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
+#define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
+#define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
 
 #define GROW_CAPACITY(val) ((val) < 8 ? 8 : val << 1)
 
@@ -23,8 +21,7 @@ static Obj* AllocateObject(size_t size, ObjType type) {
 	// Only do this when allocating more memory
 	GarbageCollector::GarbageSize += size;
 
-	Obj* object =
-		(Obj*)Memory::TrackedMalloc("AllocateObject", size);
+	Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
 	object->Type = type;
 	object->Class = nullptr;
 	object->IsDark = false;
@@ -33,8 +30,7 @@ static Obj* AllocateObject(size_t size, ObjType type) {
 
 	return object;
 }
-static ObjString*
-AllocateString(char* chars, size_t length, Uint32 hash) {
+static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
 	ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
 	Memory::Track(string, "NewString");
 	string->Object.Class = StringImpl::Class;
@@ -78,8 +74,7 @@ ObjString* AllocString(size_t length) {
 }
 
 ObjFunction* NewFunction() {
-	ObjFunction* function =
-		ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
+	ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
 	Memory::Track(function, "NewFunction");
 	function->Object.Class = FunctionImpl::Class;
 	function->Arity = 0;
@@ -105,8 +100,7 @@ ObjUpvalue* NewUpvalue(VMValue* slot) {
 	return upvalue;
 }
 ObjClosure* NewClosure(ObjFunction* function) {
-	ObjUpvalue** upvalues =
-		ALLOCATE(ObjUpvalue*, function->UpvalueCount);
+	ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, function->UpvalueCount);
 	for (int i = 0; i < function->UpvalueCount; i++) {
 		upvalues[i] = NULL;
 	}
@@ -136,8 +130,7 @@ ObjClass* NewClass(Uint32 hash) {
 	return klass;
 }
 ObjInstance* NewInstance(ObjClass* klass) {
-	ObjInstance* instance =
-		ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
+	ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
 	Memory::Track(instance, "NewInstance");
 	instance->Object.Class = klass;
 	instance->Fields = new Table(NULL, 16);
@@ -147,8 +140,7 @@ ObjInstance* NewInstance(ObjClass* klass) {
 	return instance;
 }
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
-	ObjBoundMethod* bound =
-		ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
+	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
 	Memory::Track(bound, "NewBoundMethod");
 	bound->Receiver = receiver;
 	bound->Method = method;
@@ -203,8 +195,7 @@ ObjModule* NewModule() {
 	return module;
 }
 ObjMaterial* NewMaterial(Material* materialPtr) {
-	ObjMaterial* material =
-		ALLOCATE_OBJ(ObjMaterial, OBJ_MATERIAL);
+	ObjMaterial* material = ALLOCATE_OBJ(ObjMaterial, OBJ_MATERIAL);
 	Memory::Track(material, "NewMaterial");
 	material->Object.Class = MaterialImpl::Class;
 	material->MaterialPtr = materialPtr;
@@ -299,21 +290,17 @@ void Chunk::Init() {
 }
 void Chunk::Alloc() {
 	if (!Code) {
-		Code = (Uint8*)Memory::TrackedMalloc(
-			"Chunk::Code", sizeof(Uint8) * Capacity);
+		Code = (Uint8*)Memory::TrackedMalloc("Chunk::Code", sizeof(Uint8) * Capacity);
 	}
 	else {
-		Code = (Uint8*)Memory::Realloc(
-			Code, sizeof(Uint8) * Capacity);
+		Code = (Uint8*)Memory::Realloc(Code, sizeof(Uint8) * Capacity);
 	}
 
 	if (!Lines) {
-		Lines = (int*)Memory::TrackedMalloc(
-			"Chunk::Lines", sizeof(int) * Capacity);
+		Lines = (int*)Memory::TrackedMalloc("Chunk::Lines", sizeof(int) * Capacity);
 	}
 	else {
-		Lines = (int*)Memory::Realloc(
-			Lines, sizeof(int) * Capacity);
+		Lines = (int*)Memory::Realloc(Lines, sizeof(int) * Capacity);
 	}
 
 	OwnsMemory = true;
@@ -358,17 +345,14 @@ void Chunk::SetupOpfuncs() {
 		// try to get it manually thru iterating it (for
 		// version <= 2 bytecode)
 		for (int offset = 0; offset < Count;) {
-			offset += Compiler::GetTotalOpcodeSize(
-				Code + offset);
+			offset += Compiler::GetTotalOpcodeSize(Code + offset);
 			OpcodeCount++;
 		}
 	}
 
 	OpcodeFuncs = (OpcodeFunc*)Memory::TrackedMalloc(
-		"Chunk::OpcodeFuncs",
-		sizeof(OpcodeFunc) * OpcodeCount);
-	IPToOpcode = (int*)Memory::TrackedMalloc(
-		"Chunk::IPToOpcode", sizeof(int) * Count);
+		"Chunk::OpcodeFuncs", sizeof(OpcodeFunc) * OpcodeCount);
+	IPToOpcode = (int*)Memory::TrackedMalloc("Chunk::IPToOpcode", sizeof(int) * Count);
 	int offset = 0;
 	for (int i = 0; i < OpcodeCount; i++) {
 		Uint8 op = *(Code + offset);

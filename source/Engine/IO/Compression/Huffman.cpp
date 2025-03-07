@@ -1,9 +1,6 @@
 #include <Engine/IO/Compression/Huffman.h>
 
-bool Huffman::Decompress(uint8_t* in,
-	size_t in_sz,
-	uint8_t* out,
-	size_t out_sz) {
+bool Huffman::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
 #define datat_t uint8_t
 	datat_t* in_head = (datat_t*)in;
 	datat_t* out_head = (datat_t*)out;
@@ -62,8 +59,7 @@ bool Huffman::Decompress(uint8_t* in,
 			wordbuf[2] = *in_head++;
 			wordbuf[3] = *in_head++;
 
-			word = (wordbuf[0] << 0) | (wordbuf[1] << 8) |
-				(wordbuf[2] << 16) |
+			word = (wordbuf[0] << 0) | (wordbuf[1] << 8) | (wordbuf[2] << 16) |
 				(wordbuf[3] << 24);
 		}
 

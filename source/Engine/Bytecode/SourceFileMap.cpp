@@ -22,21 +22,17 @@ void SourceFileMap::CheckInit() {
 	}
 
 	if (SourceFileMap::Checksums == NULL) {
-		SourceFileMap::Checksums = new HashMap<Uint32>(
-			CombinedHash::EncryptData, 16);
+		SourceFileMap::Checksums = new HashMap<Uint32>(CombinedHash::EncryptData, 16);
 	}
 	if (SourceFileMap::ClassMap == NULL) {
-		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(
-			Murmur::EncryptData, 16);
+		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
 	if (ResourceManager::ResourceExists("Objects/Objects.hcm")) {
-		ResourceStream* stream =
-			ResourceStream::New("Objects/Objects.hcm");
+		ResourceStream* stream = ResourceStream::New("Objects/Objects.hcm");
 		if (stream) {
 			Uint32 magic_got;
-			if ((magic_got = stream->ReadUInt32()) ==
-				SourceFileMap::Magic) {
+			if ((magic_got = stream->ReadUInt32()) == SourceFileMap::Magic) {
 				stream->ReadByte(); // Version
 				stream->ReadByte(); // Version
 				stream->ReadByte(); // Version
@@ -44,22 +40,15 @@ void SourceFileMap::CheckInit() {
 
 				Uint32 count = stream->ReadUInt32();
 				for (Uint32 ch = 0; ch < count; ch++) {
-					Uint32 classHash =
-						stream->ReadUInt32();
-					Uint32 fnCount =
-						stream->ReadUInt32();
+					Uint32 classHash = stream->ReadUInt32();
+					Uint32 fnCount = stream->ReadUInt32();
 
-					vector<Uint32>* fnList =
-						new vector<Uint32>();
-					for (Uint32 fn = 0;
-						fn < fnCount;
-						fn++) {
-						fnList->push_back(
-							stream->ReadUInt32());
+					vector<Uint32>* fnList = new vector<Uint32>();
+					for (Uint32 fn = 0; fn < fnCount; fn++) {
+						fnList->push_back(stream->ReadUInt32());
 					}
 
-					SourceFileMap::ClassMap->Put(
-						classHash, fnList);
+					SourceFileMap::ClassMap->Put(classHash, fnList);
 				}
 			}
 			else {
@@ -78,12 +67,10 @@ void SourceFileMap::CheckInit() {
 #ifndef NO_SCRIPT_COMPILING
 	if (File::Exists("SourceFileMap.bin")) {
 		char* bytes;
-		size_t len = File::ReadAllBytes(
-			"SourceFileMap.bin", &bytes);
-		SourceFileMap::Checksums->FromBytes((Uint8*)bytes,
-			(len - 4) / (sizeof(Uint32) + sizeof(Uint32)));
-		SourceFileMap::DirectoryChecksum =
-			*(Uint32*)(bytes + len - 4);
+		size_t len = File::ReadAllBytes("SourceFileMap.bin", &bytes);
+		SourceFileMap::Checksums->FromBytes(
+			(Uint8*)bytes, (len - 4) / (sizeof(Uint32) + sizeof(Uint32)));
+		SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - 4);
 		Memory::Free(bytes);
 	}
 #endif
@@ -125,10 +112,8 @@ void SourceFileMap::CheckForUpdate() {
 	SourceFileMap::DirectoryChecksum = 0x0;
 	for (size_t i = 0; i < list.size(); i++) {
 		char* filename = list[i] + scriptFolderNameLen;
-		SourceFileMap::DirectoryChecksum =
-			FNV1A::EncryptData(filename,
-				(Uint32)strlen(filename),
-				SourceFileMap::DirectoryChecksum);
+		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
+			filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
 	}
 
 	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum &&
@@ -140,17 +125,15 @@ void SourceFileMap::CheckForUpdate() {
 		anyChanges = true;
 
 		SourceFileMap::Checksums->Clear();
-		SourceFileMap::ClassMap->WithAll(
-			[](Uint32, vector<Uint32>* list) -> void {
-				list->clear();
-				list->shrink_to_fit();
-				delete list;
-			});
+		SourceFileMap::ClassMap->WithAll([](Uint32, vector<Uint32>* list) -> void {
+			list->clear();
+			list->shrink_to_fit();
+			delete list;
+		});
 		SourceFileMap::ClassMap->Clear();
 	}
 
-	std::string scriptFolderPathStr =
-		std::string(scriptFolder) + "/";
+	std::string scriptFolderPathStr = std::string(scriptFolder) + "/";
 	const char* scriptFolderPath = scriptFolderPathStr.c_str();
 	size_t scriptFolderPathLen = strlen(scriptFolderPath);
 
@@ -158,8 +141,8 @@ void SourceFileMap::CheckForUpdate() {
 		char* filename = strrchr(list[i], '/');
 		Uint32 filenameHash = 0;
 		if (filename) {
-			filenameHash = ScriptManager::MakeFilenameHash(
-				list[i] + scriptFolderNameLen + 1);
+			filenameHash =
+				ScriptManager::MakeFilenameHash(list[i] + scriptFolderNameLen + 1);
 		}
 		if (!filenameHash) {
 			Memory::Free(list[i]);
@@ -177,25 +160,20 @@ void SourceFileMap::CheckForUpdate() {
 		Memory::Track(source, "SourceFileMap::SourceText");
 
 		if (SourceFileMap::Checksums->Exists(filenameHash)) {
-			oldChecksum = SourceFileMap::Checksums->Get(
-				filenameHash);
+			oldChecksum = SourceFileMap::Checksums->Get(filenameHash);
 		}
 		doRecompile = newChecksum != oldChecksum;
 		anyChanges |= doRecompile;
 
 		char outFile[35];
-		snprintf(outFile,
-			sizeof outFile,
-			"Resources/Objects/%08X.ibc",
-			filenameHash);
+		snprintf(outFile, sizeof outFile, "Resources/Objects/%08X.ibc", filenameHash);
 
 		// If changed, then compile.
 		if (doRecompile || !File::Exists(outFile)) {
 			Compiler::PrepareCompiling();
 
 			char* scriptFilename = list[i];
-			if (StringUtils::StartsWith(scriptFilename,
-				    scriptFolderPath)) {
+			if (StringUtils::StartsWith(scriptFilename, scriptFolderPath)) {
 				scriptFilename += scriptFolderPathLen;
 			}
 
@@ -213,57 +191,35 @@ void SourceFileMap::CheckForUpdate() {
 			}
 
 			Compiler* compiler = new Compiler;
-			compiler->Compile(
-				scriptFilename, source, outFile);
+			compiler->Compile(scriptFilename, source, outFile);
 
 			// Add this file to the list
-			for (size_t h = 0;
-				h < compiler->ClassHashList.size();
-				h++) {
-				Uint32 classHash =
-					compiler->ClassHashList[h];
-				Uint32 classExtended =
-					compiler->ClassExtendedList[h];
-				if (SourceFileMap::ClassMap->Exists(
-					    classHash)) {
+			for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {
+				Uint32 classHash = compiler->ClassHashList[h];
+				Uint32 classExtended = compiler->ClassExtendedList[h];
+				if (SourceFileMap::ClassMap->Exists(classHash)) {
 					vector<Uint32>* filenameHashList =
-						SourceFileMap::ClassMap
-							->Get(classHash);
-					if (std::count(
-						    filenameHashList
-							    ->begin(),
-						    filenameHashList
-							    ->end(),
-						    filenameHash) ==
-						0) {
+						SourceFileMap::ClassMap->Get(classHash);
+					if (std::count(filenameHashList->begin(),
+						    filenameHashList->end(),
+						    filenameHash) == 0) {
 						// NOTE: We need a
 						// better way of
 						// sorting
-						if (classExtended ==
-							0) {
-							filenameHashList
-								->insert(
-									filenameHashList
-										->begin(),
-									filenameHash);
+						if (classExtended == 0) {
+							filenameHashList->insert(
+								filenameHashList->begin(),
+								filenameHash);
 						}
-						else if (
-							classExtended ==
-							1) {
-							filenameHashList
-								->push_back(
-									filenameHash);
+						else if (classExtended == 1) {
+							filenameHashList->push_back(filenameHash);
 						}
 					}
 				}
 				else {
-					vector<Uint32>* filenameHashList =
-						new vector<Uint32>();
-					filenameHashList->push_back(
-						filenameHash);
-					SourceFileMap::ClassMap->Put(
-						classHash,
-						filenameHashList);
+					vector<Uint32>* filenameHashList = new vector<Uint32>();
+					filenameHashList->push_back(filenameHash);
+					SourceFileMap::ClassMap->Put(classHash, filenameHashList);
 				}
 			}
 
@@ -277,36 +233,28 @@ void SourceFileMap::CheckForUpdate() {
 		// %08X, new: %08X) %d", list[i], filenameHash,
 		// oldChecksum, newChecksum, false);
 
-		SourceFileMap::Checksums->Put(
-			filenameHash, newChecksum);
+		SourceFileMap::Checksums->Put(filenameHash, newChecksum);
 		Memory::Free(list[i]);
 	}
 
 	if (anyChanges) {
 		FileStream* stream;
 		// SourceFileMap.bin
-		stream = FileStream::New(
-			"SourceFileMap.bin", FileStream::WRITE_ACCESS);
+		stream = FileStream::New("SourceFileMap.bin", FileStream::WRITE_ACCESS);
 		if (stream) {
-			Uint8* data =
-				SourceFileMap::Checksums->GetBytes(
-					true);
+			Uint8* data = SourceFileMap::Checksums->GetBytes(true);
 			stream->WriteBytes(data,
 				SourceFileMap::Checksums->Count *
-					(sizeof(Uint32) +
-						sizeof(Uint32)));
+					(sizeof(Uint32) + sizeof(Uint32)));
 			Memory::Free(data);
 
-			stream->WriteUInt32(
-				SourceFileMap::DirectoryChecksum);
+			stream->WriteUInt32(SourceFileMap::DirectoryChecksum);
 
 			stream->Close();
 		}
 
 		// Objects.hcm
-		stream = FileStream::New(
-			"Resources/Objects/Objects.hcm",
-			FileStream::WRITE_ACCESS);
+		stream = FileStream::New("Resources/Objects/Objects.hcm", FileStream::WRITE_ACCESS);
 		if (stream) {
 			stream->WriteUInt32(SourceFileMap::Magic);
 			stream->WriteByte(0x00); // Version
@@ -314,22 +262,13 @@ void SourceFileMap::CheckForUpdate() {
 			stream->WriteByte(0x02); // Version
 			stream->WriteByte(0x03); // Version
 
-			stream->WriteUInt32(
-				(Uint32)SourceFileMap::ClassMap
-					->Count); // Count
+			stream->WriteUInt32((Uint32)SourceFileMap::ClassMap->Count); // Count
 			SourceFileMap::ClassMap->WithAll(
-				[stream](Uint32 hash,
-					vector<Uint32>* list) -> void {
-					stream->WriteUInt32(
-						hash); // ClassHash
-					stream->WriteUInt32(
-						(Uint32)list
-							->size()); // Count
-					for (size_t fn = 0;
-						fn < list->size();
-						fn++) {
-						stream->WriteUInt32(
-							(*list)[fn]);
+				[stream](Uint32 hash, vector<Uint32>* list) -> void {
+					stream->WriteUInt32(hash); // ClassHash
+					stream->WriteUInt32((Uint32)list->size()); // Count
+					for (size_t fn = 0; fn < list->size(); fn++) {
+						stream->WriteUInt32((*list)[fn]);
 					}
 				});
 
@@ -348,12 +287,11 @@ void SourceFileMap::Dispose() {
 		delete SourceFileMap::Checksums;
 	}
 	if (SourceFileMap::ClassMap) {
-		SourceFileMap::ClassMap->WithAll(
-			[](Uint32, vector<Uint32>* list) -> void {
-				list->clear();
-				list->shrink_to_fit();
-				delete list;
-			});
+		SourceFileMap::ClassMap->WithAll([](Uint32, vector<Uint32>* list) -> void {
+			list->clear();
+			list->shrink_to_fit();
+			delete list;
+		});
 		delete SourceFileMap::ClassMap;
 	}
 

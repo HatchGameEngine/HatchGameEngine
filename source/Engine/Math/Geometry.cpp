@@ -59,8 +59,7 @@ static std::vector<p2t::Point*> GetP2TPoints(Polygon2D& input) {
 	std::vector<p2t::Point*> points;
 
 	for (unsigned i = 0; i < input.Points.size(); i++) {
-		points.push_back(new p2t::Point(
-			input.Points[i].X, input.Points[i].Y));
+		points.push_back(new p2t::Point(input.Points[i].X, input.Points[i].Y));
 	}
 
 	return points;
@@ -72,8 +71,7 @@ static void FreeP2TPoints(std::vector<p2t::Point*>& points) {
 	}
 }
 
-vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input,
-	vector<Polygon2D> holes) {
+vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input, vector<Polygon2D> holes) {
 	vector<FVector2> points = input.Points;
 
 	unsigned count = points.size();
@@ -89,8 +87,7 @@ vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input,
 	p2t::CDT* cdt = new p2t::CDT(inputPoly);
 
 	for (Polygon2D hole : holes) {
-		std::vector<p2t::Point*> inputHole =
-			GetP2TPoints(hole);
+		std::vector<p2t::Point*> inputHole = GetP2TPoints(hole);
 		inputHoles.push_back(inputHole);
 		cdt->AddHole(inputHole);
 	}
@@ -114,9 +111,7 @@ vector<Polygon2D>* Geometry::Triangulate(Polygon2D& input,
 			output->push_back(polygon);
 		}
 	} catch (std::runtime_error& err) {
-		Log::Print(Log::LOG_ERROR,
-			"Geometry::Triangulate error: %s",
-			err.what());
+		Log::Print(Log::LOG_ERROR, "Geometry::Triangulate error: %s", err.what());
 	}
 
 	FreeP2TPoints(inputPoly);
@@ -168,8 +163,7 @@ vector<Polygon2D>* Geometry::Intersect(unsigned clipType,
 	Clipper2Lib::PathsD clips;
 
 	for (Polygon2D& sub : inputSubjects) {
-		subjects.push_back(
-			Clipper2Lib::MakePathD(sub.ToList()));
+		subjects.push_back(Clipper2Lib::MakePathD(sub.ToList()));
 	}
 	for (Polygon2D& clip : inputClips) {
 		clips.push_back(Clipper2Lib::MakePathD(clip.ToList()));
@@ -180,8 +174,7 @@ vector<Polygon2D>* Geometry::Intersect(unsigned clipType,
 	clipper.AddClip(clips);
 
 	Clipper2Lib::PathsD result;
-	clipper.Execute(
-		GetClipType(clipType), GetFillRule(fillRule), result);
+	clipper.Execute(GetClipType(clipType), GetFillRule(fillRule), result);
 
 	vector<Polygon2D>* output = new vector<Polygon2D>();
 

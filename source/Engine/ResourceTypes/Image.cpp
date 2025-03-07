@@ -62,8 +62,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	Uint32 magic = 0x000000;
 	Stream* stream;
 	if (strncmp(altered, "file://", 7) == 0) {
-		stream = FileStream::New(
-			altered + 7, FileStream::READ_ACCESS);
+		stream = FileStream::New(altered + 7, FileStream::READ_ACCESS);
 	}
 	else {
 		stream = ResourceStream::New(altered);
@@ -95,15 +94,13 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 
 			if (png->Paletted) {
 				paletteColors = png->GetPalette();
-				numPaletteColors =
-					png->NumPaletteColors;
+				numPaletteColors = png->NumPaletteColors;
 			}
 
 			delete png;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"PNG could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
 			return NULL;
 		}
 	}
@@ -125,8 +122,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete jpeg;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"JPEG could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
 			return NULL;
 		}
 	}
@@ -152,29 +148,23 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete gif;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"GIF could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
 			return NULL;
 		}
 	}
 	else {
-		Log::Print(Log::LOG_ERROR,
-			"Unsupported image format! %s",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Unsupported image format! %s", filename);
 		return NULL;
 	}
 
 	bool forceSoftwareTextures = false;
-	Application::Settings->GetBool("display",
-		"forceSoftwareTextures",
-		&forceSoftwareTextures);
+	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
 	if (forceSoftwareTextures) {
 		Graphics::NoInternalTextures = true;
 	}
 
 	if (!forceSoftwareTextures &&
-		(width > Graphics::MaxTextureWidth ||
-			height > Graphics::MaxTextureHeight)) {
+		(width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight)) {
 		Log::Print(Log::LOG_WARN,
 			"Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!",
 			altered,
@@ -185,11 +175,9 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		// return NULL;
 	}
 
-	texture = Graphics::CreateTextureFromPixels(
-		width, height, data, width * sizeof(Uint32));
+	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
 
-	Graphics::SetTexturePalette(
-		texture, paletteColors, numPaletteColors);
+	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
 	Graphics::NoInternalTextures = false;
 

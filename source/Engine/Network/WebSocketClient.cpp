@@ -1,7 +1,6 @@
 #include <Engine/Network/WebSocketClient.h>
 
-const char* BASE64_CHARS =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char* BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 enum opcode_type {
 	CONTINUATION = 0x0,
@@ -35,10 +34,7 @@ void base64_encode_triple(unsigned char triple[3], char result[4]) {
 		tripleValue /= 64;
 	}
 }
-int base64_encode(unsigned char* source,
-	size_t sourcelen,
-	char* target,
-	size_t targetlen) {
+int base64_encode(unsigned char* source, size_t sourcelen, char* target, size_t targetlen) {
 	/* check if the result will fit in the target buffer */
 	if ((sourcelen + 2) / 3 * 4 > targetlen - 1) {
 		return 0;
@@ -142,8 +138,7 @@ int base64_decode_triple(char quadruple[4], unsigned char* result) {
 
 	return bytes_to_decode;
 }
-size_t
-base64_decode(char* source, unsigned char* target, size_t targetlen) {
+size_t base64_decode(char* source, unsigned char* target, size_t targetlen) {
 	char *src, *tmpptr;
 	char quadruple[4], tmpresult[3];
 	size_t i, tmplen = 3;
@@ -165,16 +160,14 @@ base64_decode(char* source, unsigned char* target, size_t targetlen) {
 		for (i = 0; i < 4; i++) {
 			/* skip invalid characters - we won't reach the
 			 * end */
-			while (*tmpptr != '=' &&
-				base64_char_value(*tmpptr) < 0) {
+			while (*tmpptr != '=' && base64_char_value(*tmpptr) < 0) {
 				tmpptr++;
 			}
 			quadruple[i] = *(tmpptr++);
 		}
 
 		/* convert the characters */
-		tmplen = base64_decode_triple(
-			quadruple, (unsigned char*)&tmpresult);
+		tmplen = base64_decode_triple(quadruple, (unsigned char*)&tmpresult);
 
 		/* check if the fit in the result buffer */
 		if (targetlen < tmplen) {
@@ -204,25 +197,20 @@ socket_t socket_connect(const char* hostname, int port) {
 
 	int ret;
 	struct addrinfo* result;
-	if ((ret = getaddrinfo(hostname, sport, &hints, &result)) !=
-		0) {
-		fprintf(stderr,
-			"getaddrinfo: %s\n",
-			gai_strerror(ret));
+	if ((ret = getaddrinfo(hostname, sport, &hints, &result)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
 		return 1;
 	}
 
 	struct addrinfo* p;
 	socket_t sockfd = INVALID_SOCKET;
 	for (p = result; p != NULL; p = p->ai_next) {
-		sockfd = socket(
-			p->ai_family, p->ai_socktype, p->ai_protocol);
+		sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 		if (sockfd == INVALID_SOCKET) {
 			continue;
 		}
 
-		if (connect(sockfd, p->ai_addr, p->ai_addrlen) !=
-			SOCKET_ERROR) {
+		if (connect(sockfd, p->ai_addr, p->ai_addrlen) != SOCKET_ERROR) {
 			break;
 		}
 
@@ -282,9 +270,7 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 		path[0] = '\0';
 	}
 	else {
-		fprintf(stderr,
-			"ERROR: Could not parse WebSocketClient url: %s\n",
-			url);
+		fprintf(stderr, "ERROR: Could not parse WebSocketClient url: %s\n", url);
 		goto FREE;
 	}
 
@@ -302,8 +288,7 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 		socket_send_string(sockfd, "Host: %s\r\n", host);
 	}
 	else {
-		socket_send_string(
-			sockfd, "Host: %s:%d\r\n", host, port);
+		socket_send_string(sockfd, "Host: %s:%d\r\n", host, port);
 	}
 	socket_send_string(sockfd, "Upgrade: websocket\r\n");
 	socket_send_string(sockfd, "Connection: Upgrade\r\n");
@@ -314,39 +299,27 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 	}
 	base64_encode((uint8_t*)&key_nonce, 16, websocket_key, 256);
 
-	socket_send_string(
-		sockfd, "Sec-WebSocket-Key: %s\r\n", websocket_key);
+	socket_send_string(sockfd, "Sec-WebSocket-Key: %s\r\n", websocket_key);
 	socket_send_string(sockfd, "Sec-WebSocket-Version: 13\r\n");
 	socket_send_string(sockfd, "\r\n");
 
-	for (i = 0; i < 2 ||
-		(i < 1023 && line[i - 2] != '\r' &&
-			line[i - 1] != '\n');
-		++i) {
+	for (i = 0; i < 2 || (i < 1023 && line[i - 2] != '\r' && line[i - 1] != '\n'); ++i) {
 		if (recv(sockfd, line + i, 1, 0) == 0) {
 			goto FREE;
 		}
 	}
 	line[i] = 0;
 	if (i == 1023) {
-		fprintf(stderr,
-			"ERROR: Got invalid status line connecting to: %s\n",
-			url);
+		fprintf(stderr, "ERROR: Got invalid status line connecting to: %s\n", url);
 		goto FREE;
 	}
-	if (sscanf(line, "HTTP/1.1 %d", &status) != 1 ||
-		status != 101) {
-		fprintf(stderr,
-			"ERROR: Got bad status connecting to %s: %s\n",
-			url,
-			line);
+	if (sscanf(line, "HTTP/1.1 %d", &status) != 1 || status != 101) {
+		fprintf(stderr, "ERROR: Got bad status connecting to %s: %s\n", url, line);
 		goto FREE;
 	}
 	// TODO: verify response headers,
 	while (true) {
-		for (i = 0; i < 2 ||
-			(i < 1023 && line[i - 2] != '\r' &&
-				line[i - 1] != '\n');
+		for (i = 0; i < 2 || (i < 1023 && line[i - 2] != '\r' && line[i - 1] != '\n');
 			++i) {
 			if (recv(sockfd, line + i, 1, 0) == 0) {
 				goto FREE;
@@ -387,8 +360,7 @@ FREE:
 void WebSocketClient::Poll(int timeout) {
 	if (readyState == WebSocketClient::CLOSED) {
 		if (timeout > 0) {
-			timeval tv = {timeout / 1000,
-				(timeout % 1000) * 1000};
+			timeval tv = {timeout / 1000, (timeout % 1000) * 1000};
 			select(0, NULL, NULL, NULL, &tv);
 		}
 		return;
@@ -405,11 +377,7 @@ void WebSocketClient::Poll(int timeout) {
 			FD_SET(socket, &wfds);
 		}
 
-		select(socket + 1,
-			&rfds,
-			&wfds,
-			NULL,
-			timeout > 0 ? &tv : NULL);
+		select(socket + 1, &rfds, &wfds, NULL, timeout > 0 ? &tv : NULL);
 	}
 
 	while (true) {
@@ -418,12 +386,10 @@ void WebSocketClient::Poll(int timeout) {
 		ssize_t ret;
 		rxbuf.resize(N + 1500);
 		ret = recv(socket, (char*)&rxbuf[0] + N, 1500, 0);
-		if (false) {
-		}
+		if (false) {}
 		else if (ret < 0 &&
 			(socketerrno == SOCKET_EWOULDBLOCK ||
-				socketerrno ==
-					SOCKET_EAGAIN_EINPROGRESS)) {
+				socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
 			rxbuf.resize(N);
 			break;
 		}
@@ -432,9 +398,7 @@ void WebSocketClient::Poll(int timeout) {
 			closesocket(socket);
 			readyState = CLOSED;
 			printf("readyState = CLOSED      0\n");
-			fputs(ret < 0 ? "Connection error!\n"
-				      : "Connection closed!\n",
-				stderr);
+			fputs(ret < 0 ? "Connection error!\n" : "Connection closed!\n", stderr);
 			break;
 		}
 		else {
@@ -442,28 +406,22 @@ void WebSocketClient::Poll(int timeout) {
 		}
 	}
 	while (txbuf.size()) {
-		int ret = send(
-			socket, (char*)&txbuf[0], txbuf.size(), 0);
-		if (false) {
-		} // ??
+		int ret = send(socket, (char*)&txbuf[0], txbuf.size(), 0);
+		if (false) {} // ??
 		else if (ret < 0 &&
 			(socketerrno == SOCKET_EWOULDBLOCK ||
-				socketerrno ==
-					SOCKET_EAGAIN_EINPROGRESS)) {
+				socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
 			break;
 		}
 		else if (ret <= 0) {
 			closesocket(socket);
 			readyState = CLOSED;
 			printf("readyState = CLOSED      1\n");
-			fputs(ret < 0 ? "Connection error!\n"
-				      : "Connection closed!\n",
-				stderr);
+			fputs(ret < 0 ? "Connection error!\n" : "Connection closed!\n", stderr);
 			break;
 		}
 		else {
-			txbuf.erase(
-				txbuf.begin(), txbuf.begin() + ret);
+			txbuf.erase(txbuf.begin(), txbuf.begin() + ret);
 		}
 	}
 	if (!txbuf.size() && readyState == CLOSING) {
@@ -472,8 +430,7 @@ void WebSocketClient::Poll(int timeout) {
 		printf("readyState = CLOSED      2\n");
 	}
 }
-void WebSocketClient::Dispatch(
-	void (*callback)(void* mem, size_t size)) {
+void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 	// TODO: consider acquiring a lock on rxbuf...
 	if (isRxBad) {
 		printf("bad rx\n");
@@ -485,15 +442,14 @@ void WebSocketClient::Dispatch(
 			return; /* Need at least 2 */
 		}
 
-		const uint8_t* data =
-			(uint8_t*)&rxbuf[0]; // peek, but don't
-		                             // consume
+		const uint8_t* data = (uint8_t*)&rxbuf[0]; // peek, but don't
+			// consume
 		ws.fin = (data[0] & 0x80) == 0x80;
 		ws.opcode = (opcode_type)(data[0] & 0x0f);
 		ws.mask = (data[1] & 0x80) == 0x80;
 		ws.N0 = (data[1] & 0x7f);
-		ws.header_size = 2 + (ws.N0 == 126 ? 2 : 0) +
-			(ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
+		ws.header_size =
+			2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
 
 		if (rxbuf.size() < ws.header_size) {
 			return; /* Need: ws.header_size - rxbuf.size()
@@ -543,14 +499,10 @@ void WebSocketClient::Dispatch(
 		}
 
 		if (ws.mask) {
-			ws.masking_key[0] = ((uint8_t)data[i + 0])
-				<< 0;
-			ws.masking_key[1] = ((uint8_t)data[i + 1])
-				<< 0;
-			ws.masking_key[2] = ((uint8_t)data[i + 2])
-				<< 0;
-			ws.masking_key[3] = ((uint8_t)data[i + 3])
-				<< 0;
+			ws.masking_key[0] = ((uint8_t)data[i + 0]) << 0;
+			ws.masking_key[1] = ((uint8_t)data[i + 1]) << 0;
+			ws.masking_key[2] = ((uint8_t)data[i + 2]) << 0;
+			ws.masking_key[3] = ((uint8_t)data[i + 3]) << 0;
 		}
 		else {
 			ws.masking_key[0] = 0;
@@ -574,65 +526,48 @@ void WebSocketClient::Dispatch(
 			ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; i++) {
-					rxbuf[i + ws.header_size] ^=
-						ws.masking_key[i &
-							0x3];
+					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
 
 			receivedData.insert(receivedData.end(),
 				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size +
-					(size_t)ws.N); // just feed
+				rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
 
 			if (ws.fin) {
 				if (callback) {
-					callback(receivedData.data(),
-						receivedData.size());
+					callback(receivedData.data(), receivedData.size());
 				}
 
-				receivedData.erase(
-					receivedData.begin(),
-					receivedData.end());
-				std::vector<uint8_t>().swap(
-					receivedData); // free memory
+				receivedData.erase(receivedData.begin(), receivedData.end());
+				std::vector<uint8_t>().swap(receivedData); // free memory
 			}
 		}
 		else if (ws.opcode == opcode_type::PING) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; ++i) {
-					rxbuf[i + ws.header_size] ^=
-						ws.masking_key[i &
-							0x3];
+					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
-			std::string data(
-				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size +
-					(size_t)ws.N);
-			SendData(opcode_type::PONG,
-				data.data(),
-				data.size());
+			std::string data(rxbuf.begin() + ws.header_size,
+				rxbuf.begin() + ws.header_size + (size_t)ws.N);
+			SendData(opcode_type::PONG, data.data(), data.size());
 		}
-		else if (ws.opcode == opcode_type::PONG) {
-		}
+		else if (ws.opcode == opcode_type::PONG) {}
 		else if (ws.opcode == opcode_type::CLOSE) {
 			Close();
 		}
 		else {
-			fprintf(stderr,
-				"ERROR: Got unexpected WebSocketClient message.\n");
+			fprintf(stderr, "ERROR: Got unexpected WebSocketClient message.\n");
 			Close();
 		}
 
-		rxbuf.erase(rxbuf.begin(),
-			rxbuf.begin() + ws.header_size + (size_t)ws.N);
+		rxbuf.erase(rxbuf.begin(), rxbuf.begin() + ws.header_size + (size_t)ws.N);
 	}
 }
 
 size_t WebSocketClient::BytesToRead() {
-	if (readyState == WebSocketClient::CLOSED ||
-		readyState == WebSocketClient::CLOSING) {
+	if (readyState == WebSocketClient::CLOSED || readyState == WebSocketClient::CLOSING) {
 		return 0;
 	}
 
@@ -653,8 +588,8 @@ size_t WebSocketClient::BytesToRead() {
 		ws.opcode = (opcode_type)(data[0] & 0x0f);
 		ws.mask = (data[1] & 0x80) == 0x80;
 		ws.N0 = (data[1] & 0x7f);
-		ws.header_size = 2 + (ws.N0 == 126 ? 2 : 0) +
-			(ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
+		ws.header_size =
+			2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
 
 		if (rxbuf.size() < ws.header_size) {
 			return 0; /* Need: ws.header_size -
@@ -704,14 +639,10 @@ size_t WebSocketClient::BytesToRead() {
 		}
 
 		if (ws.mask) {
-			ws.masking_key[0] = ((uint8_t)data[i + 0])
-				<< 0;
-			ws.masking_key[1] = ((uint8_t)data[i + 1])
-				<< 0;
-			ws.masking_key[2] = ((uint8_t)data[i + 2])
-				<< 0;
-			ws.masking_key[3] = ((uint8_t)data[i + 3])
-				<< 0;
+			ws.masking_key[0] = ((uint8_t)data[i + 0]) << 0;
+			ws.masking_key[1] = ((uint8_t)data[i + 1]) << 0;
+			ws.masking_key[2] = ((uint8_t)data[i + 2]) << 0;
+			ws.masking_key[3] = ((uint8_t)data[i + 3]) << 0;
 		}
 		else {
 			ws.masking_key[0] = 0;
@@ -735,22 +666,17 @@ size_t WebSocketClient::BytesToRead() {
 			ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; i++) {
-					rxbuf[i + ws.header_size] ^=
-						ws.masking_key[i &
-							0x3];
+					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
 
 			receivedData.insert(receivedData.end(),
 				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size +
-					(size_t)ws.N); // just feed
+				rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
 
 			if (ws.fin) {
 				rxbuf.erase(rxbuf.begin(),
-					rxbuf.begin() +
-						ws.header_size +
-						(size_t)ws.N);
+					rxbuf.begin() + ws.header_size + (size_t)ws.N);
 				return receivedData.size();
 
 				// receivedData.erase(receivedData.begin(),
@@ -762,39 +688,29 @@ size_t WebSocketClient::BytesToRead() {
 		else if (ws.opcode == opcode_type::PING) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; ++i) {
-					rxbuf[i + ws.header_size] ^=
-						ws.masking_key[i &
-							0x3];
+					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
-			std::string data(
-				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size +
-					(size_t)ws.N);
-			SendData(opcode_type::PONG,
-				data.data(),
-				data.size());
+			std::string data(rxbuf.begin() + ws.header_size,
+				rxbuf.begin() + ws.header_size + (size_t)ws.N);
+			SendData(opcode_type::PONG, data.data(), data.size());
 		}
-		else if (ws.opcode == opcode_type::PONG) {
-		}
+		else if (ws.opcode == opcode_type::PONG) {}
 		else if (ws.opcode == opcode_type::CLOSE) {
 			Close();
 		}
 		else {
-			fprintf(stderr,
-				"ERROR: Got unexpected WebSocketClient message.\n");
+			fprintf(stderr, "ERROR: Got unexpected WebSocketClient message.\n");
 			Close();
 		}
 
-		rxbuf.erase(rxbuf.begin(),
-			rxbuf.begin() + ws.header_size + (size_t)ws.N);
+		rxbuf.erase(rxbuf.begin(), rxbuf.begin() + ws.header_size + (size_t)ws.N);
 	}
 	return 0;
 }
 size_t WebSocketClient::ReadBytes(void* data, size_t n) {
 	memcpy(data, receivedData.data(), n);
-	receivedData.erase(
-		receivedData.begin(), receivedData.begin() + n);
+	receivedData.erase(receivedData.begin(), receivedData.begin() + n);
 	return n;
 }
 Uint32 WebSocketClient::ReadUint32() {
@@ -829,30 +745,25 @@ char* WebSocketClient::ReadString() {
 	return output;
 }
 
-void WebSocketClient::SendData(int type,
-	const void* message,
-	int64_t message_size) {
+void WebSocketClient::SendData(int type, const void* message, int64_t message_size) {
 	// TODO:
 	// Masking key should (must) be derived from a high quality
 	// random number generator, to mitigate attacks on
 	// non-WebSocketClient friendly middleware:
 	const uint8_t masking_key[4] = {0x12, 0x34, 0x56, 0x78};
 	// TODO: consider acquiring a lock on txbuf...
-	if (readyState == WebSocketClient::CLOSING ||
-		readyState == WebSocketClient::CLOSED) {
+	if (readyState == WebSocketClient::CLOSING || readyState == WebSocketClient::CLOSED) {
 		return;
 	}
 
 	std::vector<uint8_t> header;
-	header.assign(2 + (message_size >= 126 ? 2 : 0) +
-			(message_size >= 65536 ? 6 : 0) +
+	header.assign(2 + (message_size >= 126 ? 2 : 0) + (message_size >= 65536 ? 6 : 0) +
 			(useMask ? 4 : 0),
 		0x00);
 	header[0] = 0x80 | type;
 
 	if (message_size < 126) {
-		header[1] =
-			(message_size & 0xff) | (useMask ? 0x80 : 0);
+		header[1] = (message_size & 0xff) | (useMask ? 0x80 : 0);
 		if (useMask) {
 			header[2] = masking_key[0];
 			header[3] = masking_key[1];
@@ -891,38 +802,30 @@ void WebSocketClient::SendData(int type,
 	// N.B. - txbuf will keep growing until it can be transmitted
 	// over the socket:
 	txbuf.insert(txbuf.end(), header.begin(), header.end());
-	txbuf.insert(txbuf.end(),
-		(uint8_t*)message,
-		(uint8_t*)message + message_size);
+	txbuf.insert(txbuf.end(), (uint8_t*)message, (uint8_t*)message + message_size);
 	if (useMask) {
 		size_t message_offset = txbuf.size() - message_size;
 		for (size_t i = 0; i != (size_t)message_size; i++) {
-			txbuf[message_offset + i] ^=
-				masking_key[i & 0x3];
+			txbuf[message_offset + i] ^= masking_key[i & 0x3];
 		}
 	}
 }
-void WebSocketClient::SendBinary(const void* message,
-	int64_t message_size) {
+void WebSocketClient::SendBinary(const void* message, int64_t message_size) {
 	SendData(opcode_type::BINARY_FRAME, message, message_size);
 }
 void WebSocketClient::SendText(const char* message) {
-	SendData(opcode_type::TEXT_FRAME,
-		message,
-		(int64_t)strlen(message));
+	SendData(opcode_type::TEXT_FRAME, message, (int64_t)strlen(message));
 }
 void WebSocketClient::Close() {
-	if (readyState == WebSocketClient::CLOSING ||
-		readyState == WebSocketClient::CLOSED) {
+	if (readyState == WebSocketClient::CLOSING || readyState == WebSocketClient::CLOSED) {
 		return;
 	}
 
 	readyState = WebSocketClient::CLOSING;
 	printf("readyState = WebSocketClient::CLOSING\n");
-	uint8_t closeFrame[6] = {
-		0x88, 0x80, 0x00, 0x00, 0x00, 0x00}; // last 4 bytes
-	                                             // are a masking
-	                                             // key
+	uint8_t closeFrame[6] = {0x88, 0x80, 0x00, 0x00, 0x00, 0x00}; // last 4 bytes
+		// are a masking
+		// key
 	std::vector<uint8_t> header(closeFrame, closeFrame + 6);
 	txbuf.insert(txbuf.end(), header.begin(), header.end());
 

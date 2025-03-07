@@ -37,13 +37,11 @@ void Serializer::WriteValue(VMValue val) {
 			case OBJ_STRING:
 			case OBJ_ARRAY:
 			case OBJ_MAP:
-				StreamPtr->WriteByte(
-					Serializer::VAL_TYPE_OBJECT);
+				StreamPtr->WriteByte(Serializer::VAL_TYPE_OBJECT);
 				StreamPtr->WriteUInt32(objectID);
 				return;
 			default:
-				StreamPtr->WriteByte(
-					Serializer::VAL_TYPE_NULL);
+				StreamPtr->WriteByte(Serializer::VAL_TYPE_NULL);
 				return;
 			}
 		}
@@ -60,8 +58,7 @@ void Serializer::WriteObject(Obj* obj) {
 		WriteObjectPreamble(Serializer::OBJ_TYPE_STRING);
 
 		ObjString* string = (ObjString*)obj;
-		StreamPtr->WriteUInt32(GetUniqueStringID(
-			string->Chars, string->Length));
+		StreamPtr->WriteUInt32(GetUniqueStringID(string->Chars, string->Length));
 		break;
 	}
 	case OBJ_ARRAY: {
@@ -86,31 +83,27 @@ void Serializer::WriteObject(Obj* obj) {
 		map->Keys->WithAll([&numKeys](Uint32, char*) -> void {
 			numKeys++;
 		});
-		map->Values->WithAll(
-			[&numValues](Uint32, VMValue) -> void {
-				numValues++;
-			});
+		map->Values->WithAll([&numValues](Uint32, VMValue) -> void {
+			numValues++;
+		});
 
 		StreamPtr->WriteUInt32(numKeys);
 		StreamPtr->WriteUInt32(numValues);
 
 		map->Keys->WithAll([this](Uint32, char* ptr) -> void {
-			StreamPtr->WriteUInt32(
-				GetUniqueStringID(ptr, strlen(ptr)));
+			StreamPtr->WriteUInt32(GetUniqueStringID(ptr, strlen(ptr)));
 		});
-		map->Values->WithAll(
-			[this](Uint32 hash, VMValue mapVal) -> void {
-				StreamPtr->WriteUInt32(hash);
-				WriteValue(mapVal);
-			});
+		map->Values->WithAll([this](Uint32 hash, VMValue mapVal) -> void {
+			StreamPtr->WriteUInt32(hash);
+			WriteValue(mapVal);
+		});
 		break;
 	}
 	default:
 		Log::Print(Log::LOG_WARN,
 			"Cannot serialize an object of type %s; ignoring",
 			GetObjectTypeString(obj->Type));
-		WriteObjectPreamble(
-			Serializer::OBJ_TYPE_UNIMPLEMENTED);
+		WriteObjectPreamble(Serializer::OBJ_TYPE_UNIMPLEMENTED);
 	}
 
 	PatchObjectSize();
@@ -193,8 +186,7 @@ void Serializer::AddUniqueString(char* chars, size_t length) {
 	}
 
 	for (size_t i = 0; i < StringList.size(); i++) {
-		if (StringList[i].Length == length &&
-			!memcmp(StringList[i].Chars, chars, length)) {
+		if (StringList[i].Length == length && !memcmp(StringList[i].Chars, chars, length)) {
 			return;
 		}
 	}
@@ -207,8 +199,7 @@ void Serializer::AddUniqueString(char* chars, size_t length) {
 
 Uint32 Serializer::GetUniqueStringID(char* chars, size_t length) {
 	for (size_t i = 0; i < StringList.size(); i++) {
-		if (StringList[i].Length == length &&
-			!memcmp(StringList[i].Chars, chars, length)) {
+		if (StringList[i].Length == length && !memcmp(StringList[i].Chars, chars, length)) {
 			return (Uint32)i;
 		}
 	}
@@ -242,12 +233,10 @@ void Serializer::AddUniqueObject(Obj* obj) {
 	}
 	case OBJ_MAP: {
 		ObjMap* map = (ObjMap*)obj;
-		map->Keys->WithAll([this](Uint32,
-					   char* mapKey) -> void {
+		map->Keys->WithAll([this](Uint32, char* mapKey) -> void {
 			AddUniqueString(mapKey, strlen(mapKey));
 		});
-		map->Values->WithAll([this](Uint32,
-					     VMValue mapVal) -> void {
+		map->Values->WithAll([this](Uint32, VMValue mapVal) -> void {
 			if (IS_OBJECT(mapVal)) {
 				AddUniqueObject(AS_OBJECT(mapVal));
 			}
@@ -322,8 +311,7 @@ void Serializer::GetObject() {
 	case Serializer::OBJ_TYPE_STRING: {
 		Uint32 stringID = StreamPtr->ReadUInt32();
 		if (stringID >= StringList.size()) {
-			Log::Print(Log::LOG_ERROR,
-				"Attempted to read an invalid string ID!");
+			Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
 			return;
 		}
 		else if (StringList[stringID].Chars == nullptr) {
@@ -332,9 +320,7 @@ void Serializer::GetObject() {
 		}
 		Uint32 length = StringList[stringID].Length;
 		ObjString* string = AllocString(length);
-		memcpy(string->Chars,
-			StringList[stringID].Chars,
-			length);
+		memcpy(string->Chars, StringList[stringID].Chars, length);
 		ObjList.push_back((Obj*)string);
 		return;
 	}
@@ -352,12 +338,11 @@ void Serializer::GetObject() {
 	}
 	default:
 		if (type == OBJ_TYPE_UNIMPLEMENTED) {
-			Log::Print(Log::LOG_WARN,
-				"Ignoring unimplemented object type");
+			Log::Print(Log::LOG_WARN, "Ignoring unimplemented object type");
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"Attempted to deserialize an invalid object type!");
+			Log::Print(
+				Log::LOG_ERROR, "Attempted to deserialize an invalid object type!");
 		}
 		ObjList.push_back(nullptr);
 		StreamPtr->Skip(size);
@@ -384,18 +369,14 @@ void Serializer::ReadObject(Obj* obj) {
 		for (Uint32 i = 0; i < numKeys; i++) {
 			Uint32 stringID = StreamPtr->ReadUInt32();
 			if (stringID >= StringList.size()) {
-				Log::Print(Log::LOG_ERROR,
-					"Attempted to read an invalid string ID!");
+				Log::Print(
+					Log::LOG_ERROR, "Attempted to read an invalid string ID!");
 				continue;
 			}
-			else if (StringList[stringID].Chars !=
-				nullptr) {
-				Uint32 length =
-					StringList[stringID].Length;
+			else if (StringList[stringID].Chars != nullptr) {
+				Uint32 length = StringList[stringID].Length;
 				char* mapKey = StringUtils::Create(
-					(void*)StringList[stringID]
-						.Chars,
-					length);
+					(void*)StringList[stringID].Chars, length);
 				if (mapKey) {
 					map->Keys->Put(mapKey, mapKey);
 				}
@@ -425,8 +406,7 @@ VMValue Serializer::ReadValue() {
 	case Serializer::VAL_TYPE_OBJECT: {
 		Uint32 objectID = StreamPtr->ReadUInt32();
 		if (objectID >= ObjList.size()) {
-			Log::Print(Log::LOG_ERROR,
-				"Attempted to read an invalid object ID!");
+			Log::Print(Log::LOG_ERROR, "Attempted to read an invalid object ID!");
 		}
 		else if (ObjList[objectID] != nullptr) {
 			return OBJECT_VAL(ObjList[objectID]);
@@ -434,12 +414,10 @@ VMValue Serializer::ReadValue() {
 		break;
 	}
 	case Serializer::END:
-		Log::Print(Log::LOG_ERROR,
-			"Unexpected end of serialized data!");
+		Log::Print(Log::LOG_ERROR, "Unexpected end of serialized data!");
 		break;
 	default:
-		Log::Print(Log::LOG_ERROR,
-			"Attempted to deserialize an invalid value type!");
+		Log::Print(Log::LOG_ERROR, "Attempted to deserialize an invalid value type!");
 		break;
 	}
 	return NULL_VAL;
@@ -481,8 +459,7 @@ bool Serializer::ReadTextChunk() {
 	for (Uint32 i = 0; i < count; i++) {
 		Serializer::String str;
 		str.Length = StreamPtr->ReadUInt32();
-		str.Chars = (char*)Memory::Calloc(
-			str.Length, sizeof(char));
+		str.Chars = (char*)Memory::Calloc(str.Length, sizeof(char));
 		if (str.Chars) {
 			StreamPtr->ReadBytes(str.Chars, str.Length);
 		}

@@ -36,17 +36,14 @@ char* StringUtils::Resize(char* src, size_t length) {
 	size_t originalSize = strlen(src);
 	char* string = (char*)Memory::Realloc(src, length + 1);
 	if (length > originalSize) {
-		memset(&string[originalSize],
-			0x00,
-			(length - originalSize) + 1);
+		memset(&string[originalSize], 0x00, (length - originalSize) + 1);
 	}
 	else {
 		string[length] = '\0';
 	}
 	return string;
 }
-bool StringUtils::WildcardMatch(const char* first,
-	const char* second) {
+bool StringUtils::WildcardMatch(const char* first, const char* second) {
 	if (*first == 0 && *second == 0) {
 		return true;
 	}
@@ -54,8 +51,7 @@ bool StringUtils::WildcardMatch(const char* first,
 		return false;
 	}
 	if (*first == *second || *second == '?') {
-		return StringUtils::WildcardMatch(
-			first + 1, second + 1);
+		return StringUtils::WildcardMatch(first + 1, second + 1);
 	}
 	if (*second == '*') {
 		return StringUtils::WildcardMatch(first, second + 1) ||
@@ -71,8 +67,7 @@ bool StringUtils::StartsWith(const char* string, const char* compare) {
 
 	return memcmp(string, compare, cmpLen) == 0;
 }
-char* StringUtils::StrCaseStr(const char* haystack,
-	const char* needle) {
+char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
 		return (char*)haystack;
 	}
@@ -91,8 +86,7 @@ char* StringUtils::StrCaseStr(const char* haystack,
 			/* If there's a character mismatch, the needle
 			 * doesn't fit here. */
 			if (tolower((unsigned char)needle[j]) !=
-				tolower((unsigned char)
-						haystack[i + j])) {
+				tolower((unsigned char)haystack[i + j])) {
 				matches = false;
 				break;
 			}
@@ -163,12 +157,10 @@ bool StringUtils::ToNumber(int* dst, const char* src) {
 	if (*end != '\0') {
 		return false;
 	}
-	else if (num > INT_MAX ||
-		(errno == ERANGE && num == LONG_MAX)) {
+	else if (num > INT_MAX || (errno == ERANGE && num == LONG_MAX)) {
 		return false;
 	}
-	else if (num < INT_MIN ||
-		(errno == ERANGE && num == LONG_MIN)) {
+	else if (num < INT_MIN || (errno == ERANGE && num == LONG_MIN)) {
 		return false;
 	}
 
@@ -255,8 +247,7 @@ char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
 	size_t lenB = strlen(pathB) + 1;
 	size_t totalLen = lenA + lenB;
 
-	bool hasSep =
-		pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
+	bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
 	if (!hasSep) {
 		totalLen++;
 	}
@@ -309,8 +300,7 @@ char* StringUtils::NormalizePath(const char* path) {
 		return nullptr;
 	}
 
-	std::filesystem::path fsPath =
-		std::filesystem::path(std::string(path));
+	std::filesystem::path fsPath = std::filesystem::path(std::string(path));
 	std::string fsNorm = fsPath.lexically_normal().u8string();
 
 	char* normalizedPath = StringUtils::Create(fsNorm);
@@ -318,8 +308,7 @@ char* StringUtils::NormalizePath(const char* path) {
 		return nullptr;
 	}
 
-	char* newPath =
-		StringUtils::ReplacePathSeparators(normalizedPath);
+	char* newPath = StringUtils::ReplacePathSeparators(normalizedPath);
 
 	Memory::Free(normalizedPath);
 

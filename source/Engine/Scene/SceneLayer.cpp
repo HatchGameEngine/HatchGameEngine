@@ -2,8 +2,7 @@
 #include <Engine/Math/Math.h>
 #include <Engine/Scene/SceneLayer.h>
 
-SceneLayer::SceneLayer() {
-}
+SceneLayer::SceneLayer() {}
 SceneLayer::SceneLayer(int w, int h) {
 	Width = w;
 	Height = h;
@@ -34,12 +33,10 @@ SceneLayer::SceneLayer(int w, int h) {
 	memset(DeformSetA, 0, sizeof(DeformSetA));
 	memset(DeformSetB, 0, sizeof(DeformSetB));
 
-	Tiles = (Uint32*)Memory::TrackedCalloc(
-		"SceneLayer::Tiles", w * h, sizeof(Uint32));
-	TilesBackup = (Uint32*)Memory::TrackedCalloc(
-		"SceneLayer::TilesBackup", w * h, sizeof(Uint32));
-	ScrollIndexes = (Uint8*)Memory::Calloc(
-		ScrollIndexCount * 16, sizeof(Uint8));
+	Tiles = (Uint32*)Memory::TrackedCalloc("SceneLayer::Tiles", w * h, sizeof(Uint32));
+	TilesBackup =
+		(Uint32*)Memory::TrackedCalloc("SceneLayer::TilesBackup", w * h, sizeof(Uint32));
+	ScrollIndexes = (Uint8*)Memory::Calloc(ScrollIndexCount * 16, sizeof(Uint8));
 }
 bool SceneLayer::PropertyExists(char* property) {
 	return Properties && Properties->Exists(property);

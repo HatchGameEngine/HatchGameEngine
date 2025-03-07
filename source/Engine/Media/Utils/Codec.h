@@ -6,18 +6,18 @@
 
 struct Codec {
 	Uint32 Threads; ///< Currently enabled threads (For all
-	                ///< decoders)
+		///< decoders)
 	char Name[KIT_CODEC_NAME_MAX]; ///< Codec short name, eg. "ogg"
-	                               ///< or "webm"
+		///< or "webm"
 	char Description[KIT_CODEC_DESC_MAX]; ///< Codec longer, more
-	                                      ///< descriptive name
+		///< descriptive name
 };
 
 struct OutputFormat {
 	Uint32 Format; ///< SDL Format (SDL_PixelFormat if
-	               ///< video/subtitle, SDL_AudioFormat if audio)
+		///< video/subtitle, SDL_AudioFormat if audio)
 	int IsSigned; ///< Signedness, 1 = signed, 0 = unsigned (if
-	              ///< audio)
+		///< audio)
 	int Bytes; ///< Bytes per sample per channel (if audio)
 	int SampleRate; ///< Sampling rate (if audio)
 	int Channels; ///< Channels (if audio)
@@ -28,7 +28,7 @@ struct OutputFormat {
 struct PlayerStreamInfo {
 	struct Codec Codec; ///< Decoder codec information
 	struct OutputFormat Output; ///< Information about the output
-	                            ///< format
+		///< format
 };
 struct PlayerInfo {
 	PlayerStreamInfo Video; ///< Video stream data

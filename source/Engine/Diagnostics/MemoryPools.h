@@ -38,7 +38,6 @@ M* Alloc(M** mem, size_t size, int pool, bool clearMem) {
 }
 template<typename M>
 void PassReference(M** newReference, M** oldReference, int pool) {
-	PassReference(
-		(void**)newReference, (void**)oldReference, pool);
+	PassReference((void**)newReference, (void**)oldReference, pool);
 }
 } // namespace MemoryPools

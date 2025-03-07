@@ -7,8 +7,7 @@ struct PrintBuffer {
 	int BufferSize;
 };
 
-inline int
-buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
+inline int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	va_list args;
 	va_list argsCopy;
 	va_start(args, format);
@@ -25,14 +24,13 @@ buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	// Get the character count we would write if we did
 	int count = vsnprintf(NULL, 0, format, argsCopy);
 
-	while (printBuffer->WriteIndex + count >=
-		printBuffer->BufferSize) {
+	while (printBuffer->WriteIndex + count >= printBuffer->BufferSize) {
 		// Increase the buffer size
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer = (char*)realloc(
-			*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer =
+			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
 			Log::Print(Log::LOG_ERROR,
 				"Could not reallocate print buffer of size %d!",
@@ -44,8 +42,7 @@ buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	}
 
 	// Write the characters
-	printBuffer->WriteIndex += vsnprintf(
-		*printBuffer->Buffer + printBuffer->WriteIndex,
+	printBuffer->WriteIndex += vsnprintf(*printBuffer->Buffer + printBuffer->WriteIndex,
 		printBuffer->BufferSize - printBuffer->WriteIndex,
 		format,
 		args);
@@ -61,14 +58,13 @@ inline int buffer_write(PrintBuffer* printBuffer, const char* string) {
 
 	int count = strlen(string);
 
-	while (printBuffer->WriteIndex + count >=
-		printBuffer->BufferSize) {
+	while (printBuffer->WriteIndex + count >= printBuffer->BufferSize) {
 		// Increase the buffer size
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer = (char*)realloc(
-			*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer =
+			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
 			Log::Print(Log::LOG_ERROR,
 				"Could not reallocate print buffer of size %d!",
@@ -78,8 +74,7 @@ inline int buffer_write(PrintBuffer* printBuffer, const char* string) {
 	}
 
 	// Copy the string
-	strcpy(&((*printBuffer->Buffer)[printBuffer->WriteIndex]),
-		string);
+	strcpy(&((*printBuffer->Buffer)[printBuffer->WriteIndex]), string);
 	printBuffer->WriteIndex += count;
 
 	return count;
@@ -90,14 +85,13 @@ inline int buffer_write(PrintBuffer* printBuffer, char chr) {
 		return 0;
 	}
 
-	while (printBuffer->WriteIndex + 1 >=
-		printBuffer->BufferSize) {
+	while (printBuffer->WriteIndex + 1 >= printBuffer->BufferSize) {
 		// Increase the buffer size
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer = (char*)realloc(
-			*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer =
+			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
 			Log::Print(Log::LOG_ERROR,
 				"Could not reallocate print buffer of size %d!",

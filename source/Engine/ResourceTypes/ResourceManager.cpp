@@ -32,14 +32,10 @@ HashMap<ResourceRegistryItem>* ResourceRegistry = NULL;
 bool ResourceManager::UsingDataFolder = true;
 bool ResourceManager::UsingModPack = false;
 
-void ResourceManager::PrefixResourcePath(char* out,
-	size_t outSize,
-	const char* path) {
+void ResourceManager::PrefixResourcePath(char* out, size_t outSize, const char* path) {
 	snprintf(out, outSize, "Resources/%s", path);
 }
-void ResourceManager::PrefixParentPath(char* out,
-	size_t outSize,
-	const char* path) {
+void ResourceManager::PrefixParentPath(char* out, size_t outSize, const char* path) {
 #if defined(SWITCH_ROMFS)
 	snprintf(out, outSize, "romfs:/%s", path);
 #else
@@ -49,8 +45,7 @@ void ResourceManager::PrefixParentPath(char* out,
 
 void ResourceManager::Init(const char* filename) {
 	StreamNodeHead = NULL;
-	ResourceRegistry = new HashMap<ResourceRegistryItem>(
-		CRC32::EncryptData, 16);
+	ResourceRegistry = new HashMap<ResourceRegistryItem>(CRC32::EncryptData, 16);
 
 	if (filename == NULL) {
 		filename = "Data.hatch";
@@ -63,22 +58,16 @@ void ResourceManager::Init(const char* filename) {
 		ResourceManager::Load(filename);
 	}
 	else {
-		Log::Print(Log::LOG_WARN,
-			"Cannot find \"%s\".",
-			filename);
+		Log::Print(Log::LOG_WARN, "Cannot find \"%s\".", filename);
 	}
 
 	char modpacksString[1024];
-	if (Application::Settings->GetString("game",
-		    "modpacks",
-		    modpacksString,
-		    sizeof modpacksString)) {
+	if (Application::Settings->GetString(
+		    "game", "modpacks", modpacksString, sizeof modpacksString)) {
 		if (File::Exists(modpacksString)) {
 			ResourceManager::UsingModPack = true;
 
-			Log::Print(Log::LOG_IMPORTANT,
-				"Using \"%s\"",
-				modpacksString);
+			Log::Print(Log::LOG_IMPORTANT, "Using \"%s\"", modpacksString);
 			ResourceManager::Load(modpacksString);
 		}
 	}
@@ -90,14 +79,11 @@ void ResourceManager::Load(const char* filename) {
 
 	// Load directly from Resource folder
 	char resourcePath[4096];
-	ResourceManager::PrefixParentPath(
-		resourcePath, sizeof resourcePath, filename);
+	ResourceManager::PrefixParentPath(resourcePath, sizeof resourcePath, filename);
 
-	SDLStream* dataTableStream =
-		SDLStream::New(resourcePath, SDLStream::READ_ACCESS);
+	SDLStream* dataTableStream = SDLStream::New(resourcePath, SDLStream::READ_ACCESS);
 	if (!dataTableStream) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not open MemoryStream!");
+		Log::Print(Log::LOG_ERROR, "Could not open MemoryStream!");
 		return;
 	}
 
@@ -129,9 +115,7 @@ void ResourceManager::Load(const char* filename) {
 	StreamNodeHead = streamNode;
 
 	fileCount = dataTableStream->ReadUInt16();
-	Log::Print(Log::LOG_VERBOSE,
-		"Loading resource table from \"%s\"...",
-		filename);
+	Log::Print(Log::LOG_VERBOSE, "Loading resource table from \"%s\"...", filename);
 	for (int i = 0; i < fileCount; i++) {
 		Uint32 crc32 = dataTableStream->ReadUInt32();
 		Uint64 offset = dataTableStream->ReadUInt64();
@@ -139,27 +123,20 @@ void ResourceManager::Load(const char* filename) {
 		Uint32 dataFlag = dataTableStream->ReadUInt32();
 		Uint64 compressedSize = dataTableStream->ReadUInt64();
 
-		ResourceRegistryItem item{dataTableStream,
-			offset,
-			size,
-			dataFlag,
-			compressedSize};
+		ResourceRegistryItem item{dataTableStream, offset, size, dataFlag, compressedSize};
 		ResourceRegistry->Put(crc32, item);
 		// Log::Print(Log::LOG_VERBOSE, "%08X: Offset: %08llX
 		// Size: %08llX Comp Size: %08llX Data Flag: %08X",
 		// crc32, offset, size, compressedSize, dataFlag);
 	}
 }
-bool ResourceManager::LoadResource(const char* filename,
-	Uint8** out,
-	size_t* size) {
+bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
 	Uint8* memory;
 	char resourcePath[4096];
 	char* pathToLoad = StringUtils::NormalizePath(filename);
 	ResourceRegistryItem item;
 
-	if (ResourceManager::UsingDataFolder &&
-		!ResourceManager::UsingModPack) {
+	if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack) {
 		goto DATA_FOLDER;
 	}
 
@@ -182,19 +159,15 @@ bool ResourceManager::LoadResource(const char* filename,
 
 	item.Table->Seek(item.Offset);
 	if (item.Size != item.CompressedSize) {
-		Uint8* compressedMemory =
-			(Uint8*)Memory::Malloc(item.Size);
+		Uint8* compressedMemory = (Uint8*)Memory::Malloc(item.Size);
 		if (!compressedMemory) {
 			Memory::Free(memory);
 			goto DATA_FOLDER;
 		}
-		item.Table->ReadBytes(
-			compressedMemory, item.CompressedSize);
+		item.Table->ReadBytes(compressedMemory, item.CompressedSize);
 
-		ZLibStream::Decompress(memory,
-			(size_t)item.Size,
-			compressedMemory,
-			(size_t)item.CompressedSize);
+		ZLibStream::Decompress(
+			memory, (size_t)item.Size, compressedMemory, (size_t)item.CompressedSize);
 		Memory::Free(compressedMemory);
 	}
 	else {
@@ -206,8 +179,7 @@ bool ResourceManager::LoadResource(const char* filename,
 		Uint8 keyB[16];
 		Uint32 filenameHash = CRC32::EncryptString(pathToLoad);
 		Uint64 leSize = TO_LE64(item.Size);
-		Uint32 sizeHash =
-			CRC32::EncryptData(&leSize, sizeof(leSize));
+		Uint32 sizeHash = CRC32::EncryptData(&leSize, sizeof(leSize));
 
 		// Populate Key A
 		Uint32* keyA32 = (Uint32*)&keyA[0];
@@ -233,8 +205,7 @@ bool ResourceManager::LoadResource(const char* filename,
 			temp ^= xorValue ^ keyB[indexKeyB++];
 
 			if (swapNibbles) {
-				temp = (((temp & 0x0F) << 4) |
-					((temp & 0xF0) >> 4));
+				temp = (((temp & 0x0F) << 4) | ((temp & 0xF0) >> 4));
 			}
 
 			temp ^= keyA[indexKeyA++];
@@ -256,13 +227,11 @@ bool ResourceManager::LoadResource(const char* filename,
 				if (swapNibbles) {
 					swapNibbles = false;
 					indexKeyA = xorValue % 7;
-					indexKeyB =
-						(xorValue % 12) + 2;
+					indexKeyB = (xorValue % 12) + 2;
 				}
 				else {
 					swapNibbles = true;
-					indexKeyA =
-						(xorValue % 12) + 3;
+					indexKeyA = (xorValue % 12) + 3;
 					indexKeyB = xorValue % 7;
 				}
 			}
@@ -276,8 +245,7 @@ bool ResourceManager::LoadResource(const char* filename,
 	return true;
 
 DATA_FOLDER:
-	ResourceManager::PrefixResourcePath(
-		resourcePath, sizeof resourcePath, pathToLoad);
+	ResourceManager::PrefixResourcePath(resourcePath, sizeof resourcePath, pathToLoad);
 
 	Memory::Free(pathToLoad);
 
@@ -315,8 +283,7 @@ bool ResourceManager::ResourceExists(const char* filename) {
 	char* pathToLoad = StringUtils::NormalizePath(filename);
 
 	char resourcePath[4096];
-	if (ResourceManager::UsingDataFolder &&
-		!ResourceManager::UsingModPack) {
+	if (ResourceManager::UsingDataFolder && !ResourceManager::UsingModPack) {
 		goto DATA_FOLDER;
 	}
 
@@ -333,8 +300,7 @@ bool ResourceManager::ResourceExists(const char* filename) {
 	return true;
 
 DATA_FOLDER:
-	ResourceManager::PrefixResourcePath(
-		resourcePath, sizeof resourcePath, pathToLoad);
+	ResourceManager::PrefixResourcePath(resourcePath, sizeof resourcePath, pathToLoad);
 
 	Memory::Free(pathToLoad);
 
@@ -347,8 +313,7 @@ DATA_FOLDER:
 }
 void ResourceManager::Dispose() {
 	if (StreamNodeHead) {
-		for (StreamNode *old, *streamNode = StreamNodeHead;
-			streamNode;) {
+		for (StreamNode *old, *streamNode = StreamNodeHead; streamNode;) {
 			old = streamNode;
 			streamNode = streamNode->Next;
 

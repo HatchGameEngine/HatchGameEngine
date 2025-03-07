@@ -272,8 +272,7 @@ bool Compiler::IsDigit(char c) {
 	return c >= '0' && c <= '9';
 }
 bool Compiler::IsHexDigit(char c) {
-	return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') ||
-		(c >= 'a' && c <= 'f');
+	return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
 }
 bool Compiler::IsAlpha(char c) {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
@@ -334,8 +333,7 @@ void Compiler::SkipWhitespace() {
 			if (PeekNextChar() == '/') {
 				AdvanceChar(); // char in 'c'
 				AdvanceChar(); // '/'
-				while (PeekChar() != '\n' &&
-					!IsEOF()) {
+				while (PeekChar() != '\n' && !IsEOF()) {
 					AdvanceChar();
 				}
 			}
@@ -346,13 +344,11 @@ void Compiler::SkipWhitespace() {
 					if (PeekChar() == '\n') {
 						scanner.Line++;
 						AdvanceChar();
-						scanner.LinePos =
-							scanner.Current;
+						scanner.LinePos = scanner.Current;
 					}
 					else if (PeekChar() == '*') {
 						AdvanceChar(); // '*'
-						if (PeekChar() ==
-							'/') {
+						if (PeekChar() == '/') {
 							break;
 						}
 					}
@@ -377,14 +373,9 @@ void Compiler::SkipWhitespace() {
 }
 
 // Token functions
-int Compiler::CheckKeyword(int start,
-	int length,
-	const char* rest,
-	int type) {
+int Compiler::CheckKeyword(int start, int length, const char* rest, int type) {
 	if (scanner.Current - scanner.Start == start + length &&
-		(!rest ||
-			memcmp(scanner.Start + start, rest, length) ==
-				0)) {
+		(!rest || memcmp(scanner.Start + start, rest, length) == 0)) {
 		return type;
 	}
 
@@ -396,11 +387,9 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'n':
-				return CheckKeyword(
-					2, 1, "d", TOKEN_AND);
+				return CheckKeyword(2, 1, "d", TOKEN_AND);
 			case 's':
-				return CheckKeyword(
-					2, 0, NULL, TOKEN_AS);
+				return CheckKeyword(2, 0, NULL, TOKEN_AS);
 			}
 		}
 		break;
@@ -410,34 +399,23 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'a':
-				return CheckKeyword(
-					2, 2, "se", TOKEN_CASE);
+				return CheckKeyword(2, 2, "se", TOKEN_CASE);
 			case 'l':
-				return CheckKeyword(
-					2, 3, "ass", TOKEN_CLASS);
+				return CheckKeyword(2, 3, "ass", TOKEN_CLASS);
 			case 'o': {
-				if (scanner.Current - scanner.Start >
-					2) {
+				if (scanner.Current - scanner.Start > 2) {
 					switch (*(scanner.Start + 2)) {
 					case 'n':
-						if (scanner.Current -
-								scanner.Start >
-							3) {
-							switch (*(
-								scanner.Start +
-								3)) {
+						if (scanner.Current - scanner.Start > 3) {
+							switch (*(scanner.Start + 3)) {
 							case 't':
-								return CheckKeyword(
-									4,
+								return CheckKeyword(4,
 									4,
 									"inue",
 									TOKEN_CONTINUE);
 							case 's':
 								return CheckKeyword(
-									4,
-									1,
-									"t",
-									TOKEN_CONST);
+									4, 1, "t", TOKEN_CONST);
 							}
 						}
 					}
@@ -450,11 +428,9 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'e':
-				return CheckKeyword(
-					2, 5, "fault", TOKEN_DEFAULT);
+				return CheckKeyword(2, 5, "fault", TOKEN_DEFAULT);
 			case 'o':
-				return CheckKeyword(
-					2, 0, NULL, TOKEN_DO);
+				return CheckKeyword(2, 0, NULL, TOKEN_DO);
 			}
 		}
 		break;
@@ -462,14 +438,11 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'l':
-				return CheckKeyword(
-					2, 2, "se", TOKEN_ELSE);
+				return CheckKeyword(2, 2, "se", TOKEN_ELSE);
 			case 'n':
-				return CheckKeyword(
-					2, 2, "um", TOKEN_ENUM);
+				return CheckKeyword(2, 2, "um", TOKEN_ENUM);
 			case 'v':
-				return CheckKeyword(
-					2, 3, "ent", TOKEN_EVENT);
+				return CheckKeyword(2, 3, "ent", TOKEN_EVENT);
 			}
 		}
 		break;
@@ -477,37 +450,24 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'a':
-				return CheckKeyword(
-					2, 3, "lse", TOKEN_FALSE);
+				return CheckKeyword(2, 3, "lse", TOKEN_FALSE);
 			case 'o':
-				if (scanner.Current - scanner.Start >
-					2) {
+				if (scanner.Current - scanner.Start > 2) {
 					switch (*(scanner.Start + 2)) {
 					case 'r':
-						if (scanner.Current -
-								scanner.Start >
-							3) {
-							switch (*(
-								scanner.Start +
-								3)) {
+						if (scanner.Current - scanner.Start > 3) {
+							switch (*(scanner.Start + 3)) {
 							case 'e':
 								return CheckKeyword(
-									4,
-									3,
-									"ach",
-									TOKEN_FOREACH);
+									4, 3, "ach", TOKEN_FOREACH);
 							}
 						}
-						return CheckKeyword(3,
-							0,
-							NULL,
-							TOKEN_FOR);
+						return CheckKeyword(3, 0, NULL, TOKEN_FOR);
 					}
 				}
 				break;
 			case 'r':
-				return CheckKeyword(
-					2, 2, "om", TOKEN_FROM);
+				return CheckKeyword(2, 2, "om", TOKEN_FROM);
 			}
 		}
 		break;
@@ -517,14 +477,11 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'f':
-				return CheckKeyword(
-					2, 0, NULL, TOKEN_IF);
+				return CheckKeyword(2, 0, NULL, TOKEN_IF);
 			case 'n':
-				return CheckKeyword(
-					2, 0, NULL, TOKEN_IN);
+				return CheckKeyword(2, 0, NULL, TOKEN_IN);
 			case 'm':
-				return CheckKeyword(
-					2, 4, "port", TOKEN_IMPORT);
+				return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
 			}
 		}
 		break;
@@ -534,16 +491,11 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'a':
-				return CheckKeyword(2,
-					7,
-					"mespace",
-					TOKEN_NAMESPACE);
+				return CheckKeyword(2, 7, "mespace", TOKEN_NAMESPACE);
 			case 'u':
-				return CheckKeyword(
-					2, 2, "ll", TOKEN_NULL);
+				return CheckKeyword(2, 2, "ll", TOKEN_NULL);
 			case 'e':
-				return CheckKeyword(
-					2, 1, "w", TOKEN_NEW);
+				return CheckKeyword(2, 1, "w", TOKEN_NEW);
 			}
 		}
 		break;
@@ -551,8 +503,7 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'r':
-				return CheckKeyword(
-					2, 0, NULL, TOKEN_OR);
+				return CheckKeyword(2, 0, NULL, TOKEN_OR);
 			}
 		}
 		break;
@@ -560,8 +511,7 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'r':
-				return CheckKeyword(
-					2, 3, "int", TOKEN_PRINT);
+				return CheckKeyword(2, 3, "int", TOKEN_PRINT);
 			}
 		}
 		break;
@@ -569,19 +519,12 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'e':
-				if (scanner.Current - scanner.Start >
-					2) {
+				if (scanner.Current - scanner.Start > 2) {
 					switch (*(scanner.Start + 2)) {
 					case 't':
-						return CheckKeyword(3,
-							3,
-							"urn",
-							TOKEN_RETURN);
+						return CheckKeyword(3, 3, "urn", TOKEN_RETURN);
 					case 'p':
-						return CheckKeyword(3,
-							3,
-							"eat",
-							TOKEN_REPEAT);
+						return CheckKeyword(3, 3, "eat", TOKEN_REPEAT);
 					}
 				}
 				break;
@@ -592,23 +535,17 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 't':
-				return CheckKeyword(
-					2, 4, "atic", TOKEN_STATIC);
+				return CheckKeyword(2, 4, "atic", TOKEN_STATIC);
 			case 'u':
-				if (scanner.Current - scanner.Start >
-					2) {
+				if (scanner.Current - scanner.Start > 2) {
 					switch (*(scanner.Start + 2)) {
 					case 'p':
-						return CheckKeyword(3,
-							2,
-							"er",
-							TOKEN_SUPER);
+						return CheckKeyword(3, 2, "er", TOKEN_SUPER);
 					}
 				}
 				break;
 			case 'w':
-				return CheckKeyword(
-					2, 4, "itch", TOKEN_SWITCH);
+				return CheckKeyword(2, 4, "itch", TOKEN_SWITCH);
 			}
 		}
 		break;
@@ -616,14 +553,11 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'h':
-				return CheckKeyword(
-					2, 2, "is", TOKEN_THIS);
+				return CheckKeyword(2, 2, "is", TOKEN_THIS);
 			case 'r':
-				return CheckKeyword(
-					2, 2, "ue", TOKEN_TRUE);
+				return CheckKeyword(2, 2, "ue", TOKEN_TRUE);
 			case 'y':
-				return CheckKeyword(
-					2, 4, "peof", TOKEN_TYPEOF);
+				return CheckKeyword(2, 4, "peof", TOKEN_TYPEOF);
 			}
 		}
 		break;
@@ -635,11 +569,9 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'i':
-				return CheckKeyword(
-					2, 2, "th", TOKEN_WITH);
+				return CheckKeyword(2, 2, "th", TOKEN_WITH);
 			case 'h':
-				return CheckKeyword(
-					2, 3, "ile", TOKEN_WHILE);
+				return CheckKeyword(2, 3, "ile", TOKEN_WHILE);
 			}
 		}
 		break;
@@ -679,8 +611,7 @@ Token Compiler::StringToken() {
 	return MakeToken(TOKEN_STRING);
 }
 Token Compiler::NumberToken() {
-	if (*scanner.Start == '0' &&
-		(PeekChar() == 'x' || PeekChar() == 'X')) {
+	if (*scanner.Start == '0' && (PeekChar() == 'x' || PeekChar() == 'X')) {
 		AdvanceChar(); // x
 		while (IsHexDigit(PeekChar())) {
 			AdvanceChar();
@@ -758,59 +689,44 @@ Token Compiler::ScanToken() {
 		return MakeToken(TOKEN_BITWISE_NOT);
 		// Two-char punctuations
 	case '!':
-		return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS
-						: TOKEN_LOGICAL_NOT);
+		return MakeToken(MatchChar('=') ? TOKEN_NOT_EQUALS : TOKEN_LOGICAL_NOT);
 	case '=':
-		return MakeToken(MatchChar('=') ? TOKEN_EQUALS
-						: TOKEN_ASSIGNMENT);
+		return MakeToken(MatchChar('=') ? TOKEN_EQUALS : TOKEN_ASSIGNMENT);
 
 	case '*':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_MULTIPLY
-				: TOKEN_MULTIPLY);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MULTIPLY : TOKEN_MULTIPLY);
 	case '/':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_DIVISION
-				: TOKEN_DIVISION);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_DIVISION : TOKEN_DIVISION);
 	case '%':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_MODULO
-				: TOKEN_MODULO);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MODULO : TOKEN_MODULO);
 	case '+':
-		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_PLUS
+		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_PLUS
 				: MatchChar('+') ? TOKEN_INCREMENT
 						 : TOKEN_PLUS);
 	case '-':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_MINUS
+		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_MINUS
 				: MatchChar('-') ? TOKEN_DECREMENT
 						 : TOKEN_MINUS);
 	case '<':
-		return MakeToken(MatchChar('<')  ? MatchChar('=')
-					 ? TOKEN_ASSIGNMENT_BITWISE_LEFT
-					 : TOKEN_BITWISE_LEFT
+		return MakeToken(MatchChar('<')  ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_LEFT
+								  : TOKEN_BITWISE_LEFT
 				: MatchChar('=') ? TOKEN_LESS_EQUAL
 						 : TOKEN_LESS);
 	case '>':
-		return MakeToken(MatchChar('>')  ? MatchChar('=')
-					 ? TOKEN_ASSIGNMENT_BITWISE_RIGHT
-					 : TOKEN_BITWISE_RIGHT
+		return MakeToken(MatchChar('>')  ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_RIGHT
+								  : TOKEN_BITWISE_RIGHT
 				: MatchChar('=') ? TOKEN_GREATER_EQUAL
 						 : TOKEN_GREATER);
 	case '&':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_BITWISE_AND
+		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_BITWISE_AND
 				: MatchChar('&') ? TOKEN_LOGICAL_AND
 						 : TOKEN_BITWISE_AND);
 	case '|':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_BITWISE_OR
+		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_BITWISE_OR
 				: MatchChar('|') ? TOKEN_LOGICAL_OR
 						 : TOKEN_BITWISE_OR);
 	case '^':
-		return MakeToken(MatchChar('=')
-				? TOKEN_ASSIGNMENT_BITWISE_XOR
-				: TOKEN_BITWISE_XOR);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_XOR : TOKEN_BITWISE_XOR);
 		// String
 	case '"':
 		return StringToken();
@@ -932,11 +848,7 @@ void Compiler::SynchronizeToken() {
 }
 
 // Error handling
-bool Compiler::ReportError(int line,
-	int pos,
-	bool fatal,
-	const char* string,
-	...) {
+bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
 	if (!fatal && !Compiler::ShowWarnings) {
 		return true;
 	}
@@ -1004,18 +916,10 @@ void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 	}
 
 	if (token->Type == TOKEN_EOF) {
-		ReportError(token->Line,
-			(int)token->Pos,
-			fatal,
-			" at end of file: %s",
-			message);
+		ReportError(token->Line, (int)token->Pos, fatal, " at end of file: %s", message);
 	}
 	else if (token->Type == TOKEN_ERROR) {
-		ReportError(token->Line,
-			(int)token->Pos,
-			fatal,
-			"%s",
-			message);
+		ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
 	}
 	else {
 		ReportError(token->Line,
@@ -1148,8 +1052,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	Constants.push_back({*name, ScopeDepth, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
-int Compiler::ParseModuleVariable(const char* errorMessage,
-	bool constant) {
+int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
 	ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
 	return DeclareModuleVariable(&parser.Previous, constant);
 }
@@ -1166,8 +1069,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		}
 	}
 
-	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0;
-		i--) {
+	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
 		Local& local = Compiler::ModuleConstants[i];
 
 		if (IdentifiersEqual(name, &local.Name)) {
@@ -1179,8 +1081,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back(
-		{*name, 0, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, 0, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
@@ -1348,8 +1249,7 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 			getOp = OP_GET_MODULE_LOCAL;
 			setOp = OP_SET_MODULE_LOCAL;
 		}
-		else if (StandardConstants->GetIfExists(
-				 name.ToString().c_str(), &value)) {
+		else if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
 			EmitConstant(value);
 			return;
 		}
@@ -1361,9 +1261,7 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 
 	if (canAssign && MatchAssignmentToken()) {
 		if (local.Constant) {
-			ErrorAt(&name,
-				"Attempted to assign to constant!",
-				true);
+			ErrorAt(&name, "Attempted to assign to constant!", true);
 		}
 		else if (getOp == OP_GET_LOCAL) {
 			Locals[arg].WasSet = true;
@@ -1379,9 +1277,8 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 
 			EmitCopy(1);
 			EmitByte(OP_SAVE_VALUE); // Save value. (value)
-			EmitAssignmentToken(
-				assignmentToken); // OP_DECREMENT
-			                          // (value - 1, this)
+			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
+				// (value - 1, this)
 
 			EmitSetOperation(setOp, arg, name);
 			EmitByte(OP_POP);
@@ -1399,8 +1296,7 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 			EmitSetOperation(setOp, arg, name);
 		}
 	}
-	else if (local.Constant &&
-		local.ConstantVal.Type != VAL_ERROR) {
+	else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
 		EmitConstant(local.ConstantVal);
 	}
 	else {
@@ -1416,25 +1312,20 @@ void Compiler::ScopeEnd() {
 }
 void Compiler::ClearToScope(int depth) {
 	int popCount = 0;
-	while (LocalCount > 0 &&
-		Locals[LocalCount - 1].Depth > depth) {
+	while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
 		if (!Locals[LocalCount - 1].Resolved) {
-			UnusedVariables->push_back(
-				Locals[LocalCount - 1]);
+			UnusedVariables->push_back(Locals[LocalCount - 1]);
 		}
-		else if (Locals[LocalCount - 1].ConstantVal.Type !=
-				VAL_ERROR &&
+		else if (Locals[LocalCount - 1].ConstantVal.Type != VAL_ERROR &&
 			!Locals[LocalCount - 1].WasSet) {
-			UnsetVariables->push_back(
-				Locals[LocalCount - 1]);
+			UnsetVariables->push_back(Locals[LocalCount - 1]);
 		}
 
 		popCount++; // pop locals
 
 		LocalCount--;
 	}
-	while (Constants.size() > 0 &&
-		Constants.back().Depth > depth) {
+	while (Constants.size() > 0 && Constants.back().Depth > depth) {
 		Constants.pop_back();
 	}
 
@@ -1497,9 +1388,7 @@ int Compiler::AddHiddenLocal(const char* name, size_t len) {
 	MarkInitialized();
 	return local;
 }
-void Compiler::RenameLocal(Local* local,
-	const char* name,
-	size_t len) {
+void Compiler::RenameLocal(Local* local, const char* name, size_t len) {
 	local->Name.Start = (char*)name;
 	local->Name.Length = len;
 }
@@ -1567,8 +1456,7 @@ int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0;
-		i--) {
+	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
 		Local& local = Compiler::ModuleConstants[i];
 		if (IdentifiersEqual(name, &local.Name)) {
 			local.Resolved = true;
@@ -1593,8 +1481,7 @@ Uint8 Compiler::GetArgumentList() {
 		} while (MatchToken(TOKEN_COMMA));
 	}
 
-	ConsumeToken(
-		TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
 	return argumentCount;
 }
 
@@ -1614,8 +1501,7 @@ void Compiler::GetDot(bool canAssign) {
 	bool isSuper = InstanceToken.Type == TOKEN_SUPER;
 	InstanceToken.Type = -1;
 
-	ConsumeToken(
-		TOKEN_IDENTIFIER, "Expect property name after '.'.");
+	ConsumeToken(TOKEN_IDENTIFIER, "Expect property name after '.'.");
 	Token nameToken = parser.Previous;
 
 	if (canAssign && MatchAssignmentToken()) {
@@ -1628,22 +1514,19 @@ void Compiler::GetDot(bool canAssign) {
 			assignmentToken.Type == TOKEN_DECREMENT) {
 			// (this)
 			EmitCopy(1); // Copy property holder. (this,
-			             // this)
-			EmitGetOperation(OP_GET_PROPERTY,
-				-1,
+				// this)
+			EmitGetOperation(OP_GET_PROPERTY, -1,
 				nameToken); // Pops a property holder.
-			                    // (value, this)
+			// (value, this)
 
 			EmitCopy(1); // Copy value. (value, value,
-			             // this)
+				// this)
 			EmitByte(OP_SAVE_VALUE); // Save value.
-			                         // (value, this)
-			EmitAssignmentToken(
-				assignmentToken); // OP_DECREMENT
-			                          // (value - 1, this)
+				// (value, this)
+			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
+				// (value - 1, this)
 
-			EmitSetOperation(
-				OP_SET_PROPERTY, -1, nameToken);
+			EmitSetOperation(OP_SET_PROPERTY, -1, nameToken);
 			// Pops the value and then pops the instance,
 			// pushes the value (value - 1)
 
@@ -1653,16 +1536,13 @@ void Compiler::GetDot(bool canAssign) {
 		else {
 			if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
 				EmitCopy(1);
-				EmitGetOperation(OP_GET_PROPERTY,
-					-1,
-					nameToken);
+				EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
 			}
 
 			GetExpression();
 
 			EmitAssignmentToken(assignmentToken);
-			EmitSetOperation(
-				OP_SET_PROPERTY, -1, nameToken);
+			EmitSetOperation(OP_SET_PROPERTY, -1, nameToken);
 		}
 	}
 	else if (MatchToken(TOKEN_LEFT_PAREN)) {
@@ -1682,8 +1562,7 @@ void Compiler::GetElement(bool canAssign) {
 	Token blank;
 	memset(&blank, 0, sizeof(blank));
 	GetExpression();
-	ConsumeToken(
-		TOKEN_RIGHT_SQUARE_BRACE, "Expected matching ']'.");
+	ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected matching ']'.");
 
 	if (canAssign && MatchAssignmentToken()) {
 		Token assignmentToken = parser.Previous;
@@ -1691,19 +1570,17 @@ void Compiler::GetElement(bool canAssign) {
 			assignmentToken.Type == TOKEN_DECREMENT) {
 			// (index, array)
 			EmitCopy(2); // Copy array & index.
-			EmitGetOperation(OP_GET_ELEMENT,
-				-1,
+			EmitGetOperation(OP_GET_ELEMENT, -1,
 				blank); // Pops a array and index.
-			                // (value)
+			// (value)
 
 			EmitCopy(1); // Copy value. (value, value,
-			             // index)
+				// index)
 			EmitByte(OP_SAVE_VALUE); // Save value.
-			                         // (value, index)
-			EmitAssignmentToken(
-				assignmentToken); // OP_DECREMENT
-			                          // (value - 1,
-			                          // index)
+				// (value, index)
+			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
+				// (value - 1,
+				// index)
 
 			EmitSetOperation(OP_SET_ELEMENT, -1, blank);
 			// Pops the value and then pops the instance,
@@ -1715,8 +1592,7 @@ void Compiler::GetElement(bool canAssign) {
 		else {
 			if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
 				EmitCopy(2);
-				EmitGetOperation(
-					OP_GET_ELEMENT, -1, blank);
+				EmitGetOperation(OP_GET_ELEMENT, -1, blank);
 			}
 
 			// Get right-hand side
@@ -1735,8 +1611,7 @@ void Compiler::GetElement(bool canAssign) {
 bool negateConstant = false;
 void Compiler::GetGrouping(bool canAssign) {
 	GetExpression();
-	ConsumeToken(
-		TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
 }
 void Compiler::GetLiteral(bool canAssign) {
 	switch (parser.Previous.Type) {
@@ -1782,16 +1657,13 @@ void Compiler::GetDecimal(bool canAssign) {
 	EmitConstant(DECIMAL_VAL(value));
 }
 ObjString* Compiler::MakeString(Token token) {
-	ObjString* string =
-		CopyString(token.Start + 1, token.Length - 2);
+	ObjString* string = CopyString(token.Start + 1, token.Length - 2);
 
 	// Escape the string
 	char* dst = string->Chars;
 	string->Length = 0;
 
-	for (char* src = token.Start + 1;
-		src < token.Start + token.Length - 1;
-		src++) {
+	for (char* src = token.Start + 1; src < token.Start + token.Length - 1; src++) {
 		if (*src == '\\') {
 			src++;
 			switch (*src) {
@@ -1835,8 +1707,7 @@ void Compiler::GetArray(bool canAssign) {
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE,
-				"Expected \"]\" at end of array.");
+			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected \"]\" at end of array.");
 			break;
 		}
 	}
@@ -1851,14 +1722,12 @@ void Compiler::GetMap(bool canAssign) {
 		AdvanceToken();
 		GetString(false);
 
-		ConsumeToken(TOKEN_COLON,
-			"Expected \":\" after key string.");
+		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
 		GetExpression();
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_BRACE,
-				"Expected \"}\" after map.");
+			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after map.");
 			break;
 		}
 	}
@@ -1964,8 +1833,7 @@ void Compiler::GetConditional(bool canAssign) {
 	ParsePrecedence(PREC_TERNARY);
 
 	int elseJump = EmitJump(OP_JUMP);
-	ConsumeToken(TOKEN_COLON,
-		"Expected \":\" after conditional condition.");
+	ConsumeToken(TOKEN_COLON, "Expected \":\" after conditional condition.");
 
 	PatchJump(thenJump);
 	EmitByte(OP_POP);
@@ -2085,8 +1953,7 @@ void Compiler::GetHas(bool canAssign) {
 	EmitByte(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
 }
-void Compiler::GetSuffix(bool canAssign) {
-}
+void Compiler::GetSuffix(bool canAssign) {}
 void Compiler::GetCall(bool canAssign) {
 	Uint8 argCount = GetArgumentList();
 	EmitByte(OP_CALL);
@@ -2118,8 +1985,7 @@ void Compiler::GetPrintStatement() {
 void Compiler::GetExpressionStatement() {
 	GetExpression();
 	EmitByte(OP_POP);
-	ConsumeToken(
-		TOKEN_SEMICOLON, "Expected \";\" after expression.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
 }
 void Compiler::GetContinueStatement() {
 	if (ContinueJumpListStack.size() == 0) {
@@ -2151,12 +2017,10 @@ void Compiler::GetDoWhileStatement() {
 	EndContinueJumpList();
 
 	// Evaluate the condition
-	ConsumeToken(
-		TOKEN_WHILE, "Expected 'while' at end of 'do' block.");
+	ConsumeToken(TOKEN_WHILE, "Expected 'while' at end of 'do' block.");
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
-	ConsumeToken(
-		TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after ')'.");
 
 	// Jump if false (or 0)
@@ -2193,8 +2057,7 @@ void Compiler::GetReturnStatement() {
 		}
 
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON,
-			"Expect ';' after return value.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after return value.");
 		EmitByte(OP_RETURN);
 	}
 }
@@ -2207,12 +2070,10 @@ void Compiler::GetRepeatStatement() {
 	int remaining = 0;
 
 	if (MatchToken(TOKEN_COMMA)) {
-		ConsumeToken(
-			TOKEN_IDENTIFIER, "Expect variable name.");
+		ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
 		variableToken = parser.Previous;
 		if (MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_IDENTIFIER,
-				"Expect variable name.");
+			ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
 			remaining = AddLocal(parser.Previous);
 			MarkInitialized();
 		}
@@ -2224,16 +2085,15 @@ void Compiler::GetRepeatStatement() {
 		remaining = AddHiddenLocal("$remaining", 11);
 	}
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
-	                        // to decrement it, so we can cheat
-	                        // continue
+		// to decrement it, so we can cheat
+		// continue
 
 	if (variableToken.Type != TOKEN_ERROR) {
 		EmitConstant(INTEGER_VAL(-1));
 		AddLocal(variableToken);
 		MarkInitialized();
-		Locals[LocalCount - 1].Constant =
-			true; // trick the compiler into ensuring it
-		              // doesn't get modified
+		Locals[LocalCount - 1].Constant = true; // trick the compiler into ensuring it
+			// doesn't get modified
 	}
 
 	int loopStart = CurrentChunk()->Count;
@@ -2290,8 +2150,7 @@ void Compiler::GetSwitchStatement() {
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
-	ConsumeToken(
-		TOKEN_LEFT_BRACE, "Expected \"{\" before statements.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected \"{\" before statements.");
 
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
@@ -2306,18 +2165,12 @@ void Compiler::GetSwitchStatement() {
 	code_block_length = CodePointer() - code_block_start;
 
 	// Copy code block
-	code_block_copy =
-		(Uint8*)malloc(code_block_length * sizeof(Uint8));
-	memcpy(code_block_copy,
-		&chunk->Code[code_block_start],
-		code_block_length * sizeof(Uint8));
+	code_block_copy = (Uint8*)malloc(code_block_length * sizeof(Uint8));
+	memcpy(code_block_copy, &chunk->Code[code_block_start], code_block_length * sizeof(Uint8));
 
 	// Copy line info block
-	line_block_copy =
-		(int*)malloc(code_block_length * sizeof(int));
-	memcpy(line_block_copy,
-		&chunk->Lines[code_block_start],
-		code_block_length * sizeof(int));
+	line_block_copy = (int*)malloc(code_block_length * sizeof(int));
+	memcpy(line_block_copy, &chunk->Lines[code_block_start], code_block_length * sizeof(int));
 
 	chunk->Count -= code_block_length;
 
@@ -2337,8 +2190,7 @@ void Compiler::GetSwitchStatement() {
 		EmitCopy(1);
 
 		for (Uint32 i = 0; i < case_info.CodeLength; i++) {
-			chunk->Write(case_info.CodeBlock[i],
-				case_info.LineBlock[i]);
+			chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
 		}
 
 		EmitByte(OP_EQUAL);
@@ -2378,8 +2230,7 @@ void Compiler::GetSwitchStatement() {
 	int code_offset = new_block_pos - code_block_start;
 
 	for (size_t i = 0; i < cases.size(); i++) {
-		int jump = cases[i].CasePosition -
-			(cases[i].JumpPosition + 2);
+		int jump = cases[i].CasePosition - (cases[i].JumpPosition + 2);
 
 		jump += code_offset;
 
@@ -2426,15 +2277,13 @@ void Compiler::GetCaseStatement() {
 	case_info.CodeLength = code_block_length;
 
 	// Copy code block
-	case_info.CodeBlock =
-		(Uint8*)malloc(code_block_length * sizeof(Uint8));
+	case_info.CodeBlock = (Uint8*)malloc(code_block_length * sizeof(Uint8));
 	memcpy(case_info.CodeBlock,
 		&chunk->Code[code_block_start],
 		code_block_length * sizeof(Uint8));
 
 	// Copy line info block
-	case_info.LineBlock =
-		(int*)malloc(code_block_length * sizeof(int));
+	case_info.LineBlock = (int*)malloc(code_block_length * sizeof(int));
 	memcpy(case_info.LineBlock,
 		&chunk->Lines[code_block_start],
 		code_block_length * sizeof(int));
@@ -2511,20 +2360,14 @@ void Compiler::GetBreakStatement() {
 	ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after break.");
 }
 void Compiler::GetBlockStatement() {
-	while (!CheckToken(TOKEN_RIGHT_BRACE) &&
-		!CheckToken(TOKEN_EOF)) {
+	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		GetDeclaration();
 	}
 
 	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after block.");
 }
 void Compiler::GetWithStatement() {
-	enum {
-		WITH_STATE_INIT,
-		WITH_STATE_ITERATE,
-		WITH_STATE_FINISH,
-		WITH_STATE_INIT_SLOTTED
-	};
+	enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED };
 
 	bool useOther = true;
 	bool useOtherSlot = false;
@@ -2561,8 +2404,7 @@ void Compiler::GetWithStatement() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
 	GetExpression();
 	if (MatchToken(TOKEN_AS)) {
-		ConsumeToken(
-			TOKEN_IDENTIFIER, "Expect receiver name.");
+		ConsumeToken(TOKEN_IDENTIFIER, "Expect receiver name.");
 
 		receiverName = parser.Previous;
 
@@ -2590,7 +2432,7 @@ void Compiler::GetWithStatement() {
 	if (useOtherSlot) {
 		EmitByte(WITH_STATE_INIT_SLOTTED);
 		EmitByte(otherSlot); // Store the slot where the
-		                     // receiver will land
+			// receiver will land
 	}
 	else {
 		EmitByte(WITH_STATE_INIT);
@@ -2666,8 +2508,7 @@ void Compiler::GetForStatement() {
 	// Conditional
 	if (!MatchToken(TOKEN_SEMICOLON)) {
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON,
-			"Expect ';' after loop condition.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
 
 		// Jump out of the loop if the condition is false.
 		exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2681,8 +2522,7 @@ void Compiler::GetForStatement() {
 		int incrementStart = CurrentChunk()->Count;
 		GetExpression();
 		EmitByte(OP_POP);
-		ConsumeToken(TOKEN_RIGHT_PAREN,
-			"Expect ')' after for clauses.");
+		ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
 
 		EmitLoop(loopStart);
 		loopStart = incrementStart;
@@ -2745,8 +2585,7 @@ void Compiler::GetForEachStatement() {
 
 	int iterValue = AddHiddenLocal("$iterValue", 10);
 
-	ConsumeToken(
-		TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 
 	int exitJump = -1;
 	int loopStart = CurrentChunk()->Count;
@@ -2822,7 +2661,7 @@ void Compiler::GetIfStatement() {
 
 	PatchJump(thenJump);
 	EmitByte(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
-	                  // doesn't pop
+		// doesn't pop
 
 	if (MatchToken(TOKEN_ELSE)) {
 		GetStatement();
@@ -2891,46 +2730,37 @@ int Compiler::GetFunction(int type, string className) {
 	compiler->Initialize(this, 1, type);
 
 	// Compile the parameter list.
-	compiler->ConsumeToken(
-		TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
 	bool isOptional = false;
 
 	if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
 		do {
-			if (!isOptional &&
-				compiler->MatchToken(
-					TOKEN_LEFT_SQUARE_BRACE)) {
+			if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
 				isOptional = true;
 			}
 
-			compiler->ParseVariable(
-				"Expect parameter name.", false);
-			compiler->DefineVariableToken(
-				parser.Previous, false);
+			compiler->ParseVariable("Expect parameter name.", false);
+			compiler->DefineVariableToken(parser.Previous, false);
 
 			compiler->Function->Arity++;
 			if (compiler->Function->Arity > 255) {
-				compiler->Error(
-					"Cannot have more than 255 parameters.");
+				compiler->Error("Cannot have more than 255 parameters.");
 			}
 
 			if (!isOptional) {
 				compiler->Function->MinArity++;
 			}
-			else if (compiler->MatchToken(
-					 TOKEN_RIGHT_SQUARE_BRACE)) {
+			else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
 				break;
 			}
 		} while (compiler->MatchToken(TOKEN_COMMA));
 	}
 
-	compiler->ConsumeToken(
-		TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
 
 	// The body.
-	compiler->ConsumeToken(
-		TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
 	compiler->GetBlockStatement();
 
 	compiler->Finish();
@@ -2967,8 +2797,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 	}
 
 	do {
-		int variable = ParseVariable(
-			"Expected variable name.", constant);
+		int variable = ParseVariable("Expected variable name.", constant);
 
 		Token token = parser.Previous;
 
@@ -2987,14 +2816,8 @@ void Compiler::GetVariableDeclaration(bool constant) {
 
 		VMValue value;
 		Local* locals = constant ? Constants.data() : Locals;
-		if (pre +
-					GetTotalOpcodeSize(
-						CurrentChunk()->Code +
-						pre) ==
-				CodePointer() &&
-			GetEmittedConstant(CurrentChunk(),
-				CurrentChunk()->Code + pre,
-				&value)) {
+		if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
+			GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
 			if (variable != -1) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
@@ -3004,37 +2827,31 @@ void Compiler::GetVariableDeclaration(bool constant) {
 			}
 		}
 		else if (constant) {
-			ErrorAtCurrent(
-				"\"const\" variables must be set to a constant.");
+			ErrorAtCurrent("\"const\" variables must be set to a constant.");
 		}
 
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back(
-				{token, 0, false, false, true, value});
+			ModuleConstants.push_back({token, 0, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON,
-		"Expected \";\" after variable declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 }
 void Compiler::GetModuleVariableDeclaration() {
 	if (ScopeDepth > 0) {
 		Error("Cannot use local declaration outside of top-level code.");
 	}
 
-	if (parser.Current.Type == TOKEN_VAR ||
-		parser.Current.Type == TOKEN_CONST) {
+	if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
 		bool constant = parser.Current.Type == TOKEN_CONST;
-		vector<Local>* vec =
-			constant ? &ModuleConstants : &ModuleLocals;
+		vector<Local>* vec = constant ? &ModuleConstants : &ModuleLocals;
 		AdvanceToken();
 
 		Token token = parser.Current;
 		do {
-			int local = ParseModuleVariable(
-				"Expected variable name.", constant);
+			int local = ParseModuleVariable("Expected variable name.", constant);
 
 			int pre = CodePointer();
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
@@ -3050,15 +2867,9 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 
 			VMValue value;
-			if (pre +
-						GetTotalOpcodeSize(
-							CurrentChunk()
-								->Code +
-							pre) ==
-					CodePointer() &&
-				GetEmittedConstant(CurrentChunk(),
-					CurrentChunk()->Code + pre,
-					&value)) {
+			if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
+				GetEmittedConstant(
+					CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
 					CurrentChunk()->Count = pre;
@@ -3075,12 +2886,10 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 		} while (MatchToken(TOKEN_COMMA));
 
-		ConsumeToken(TOKEN_SEMICOLON,
-			"Expected \";\" after variable declaration.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 	}
 	else {
-		ErrorAtCurrent(
-			"Expected \"var\" or \"const\" after \"local\" declaration.");
+		ErrorAtCurrent("Expected \"var\" or \"const\" after \"local\" declaration.");
 	}
 }
 void Compiler::GetPropertyDeclaration(Token propertyName) {
@@ -3103,8 +2912,7 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 		EmitByte(OP_POP);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON,
-		"Expected \";\" after property declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
 }
 void Compiler::GetClassDeclaration() {
 	ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
@@ -3128,8 +2936,7 @@ void Compiler::GetClassDeclaration() {
 	}
 
 	if (MatchToken(TOKEN_LESS)) {
-		ConsumeToken(
-			TOKEN_IDENTIFIER, "Expect base class name.");
+		ConsumeToken(TOKEN_IDENTIFIER, "Expect base class name.");
 		Token superName = parser.Previous;
 
 		EmitByte(OP_INHERIT);
@@ -3138,11 +2945,9 @@ void Compiler::GetClassDeclaration() {
 
 	DefineVariableToken(className, false);
 
-	ConsumeToken(
-		TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
 
-	while (!CheckToken(TOKEN_RIGHT_BRACE) &&
-		!CheckToken(TOKEN_EOF)) {
+	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		if (MatchToken(TOKEN_EVENT)) {
 			NamedVariable(className, false);
 			GetMethod(className);
@@ -3156,8 +2961,7 @@ void Compiler::GetClassDeclaration() {
 		}
 	}
 
-	ConsumeToken(
-		TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
 void Compiler::GetEnumDeclaration() {
 	Token enumName;
@@ -3177,8 +2981,7 @@ void Compiler::GetEnumDeclaration() {
 
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
 
-	while (!CheckToken(TOKEN_RIGHT_BRACE) &&
-		!CheckToken(TOKEN_EOF)) {
+	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		bool didStart = false;
 
 		VMValue current = INTEGER_VAL(0);
@@ -3187,8 +2990,7 @@ void Compiler::GetEnumDeclaration() {
 				break;
 			}
 
-			int variable = ParseVariable(
-				"Expected constant name.", true);
+			int variable = ParseVariable("Expected constant name.", true);
 
 			Token token = parser.Previous;
 
@@ -3200,16 +3002,10 @@ void Compiler::GetEnumDeclaration() {
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				int pre = CodePointer();
 				GetExpression();
-				if (pre +
-							GetTotalOpcodeSize(
-								CurrentChunk()
-									->Code +
-								pre) !=
+				if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
 						CodePointer() ||
-					!GetEmittedConstant(
-						CurrentChunk(),
-						CurrentChunk()->Code +
-							pre,
+					!GetEmittedConstant(CurrentChunk(),
+						CurrentChunk()->Code + pre,
 						&current)) {
 					ErrorAt(&token,
 						"Manual enum value must be constant.",
@@ -3225,8 +3021,7 @@ void Compiler::GetEnumDeclaration() {
 						current = NULL_VAL;
 					}
 					else if (IS_DECIMAL(current)) {
-						current.as.Decimal +=
-							1;
+						current.as.Decimal += 1;
 					}
 					else if (IS_INTEGER(current)) {
 						current.as.Integer++;
@@ -3254,12 +3049,7 @@ void Compiler::GetEnumDeclaration() {
 					// treat it as a module
 					// constant
 					ModuleConstants.push_back(
-						{token,
-							0,
-							false,
-							false,
-							true,
-							current});
+						{token, 0, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -3271,38 +3061,32 @@ void Compiler::GetImportDeclaration() {
 	bool importModules = MatchToken(TOKEN_FROM);
 
 	do {
-		ConsumeToken(
-			TOKEN_STRING, "Expect string after 'import'.");
+		ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
 
 		Token className = parser.Previous;
-		VMValue value =
-			OBJECT_VAL(Compiler::MakeString(className));
+		VMValue value = OBJECT_VAL(Compiler::MakeString(className));
 
 		EmitByte(importModules ? OP_IMPORT_MODULE : OP_IMPORT);
 		EmitUint32(GetConstantIndex(value));
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON,
-		"Expected \";\" after \"import\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
 }
 void Compiler::GetUsingDeclaration() {
-	ConsumeToken(TOKEN_NAMESPACE,
-		"Expected \"namespace\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
 
 	if (ScopeDepth > 0) {
 		Error("Cannot use namespaces outside of top-level code.");
 	}
 
 	do {
-		ConsumeToken(
-			TOKEN_IDENTIFIER, "Expected namespace name.");
+		ConsumeToken(TOKEN_IDENTIFIER, "Expected namespace name.");
 		Token nsName = parser.Previous;
 		EmitByte(OP_USE_NAMESPACE);
 		EmitStringHash(nsName);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON,
-		"Expected \";\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
 }
 void Compiler::GetEventDeclaration() {
 	ConsumeToken(TOKEN_IDENTIFIER, "Expected event name.");
@@ -3365,130 +3149,71 @@ void Compiler::MakeRules() {
 	Rules = (ParseRule*)Memory::TrackedCalloc(
 		"Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
 	// Single-character tokens.
-	Rules[TOKEN_LEFT_PAREN] = ParseRule{&Compiler::GetGrouping,
-		&Compiler::GetCall,
-		NULL,
-		PREC_CALL};
-	Rules[TOKEN_RIGHT_PAREN] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LEFT_BRACE] =
-		ParseRule{&Compiler::GetMap, NULL, NULL, PREC_CALL};
-	Rules[TOKEN_RIGHT_BRACE] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LEFT_SQUARE_BRACE] = ParseRule{&Compiler::GetArray,
-		&Compiler::GetElement,
-		NULL,
-		PREC_CALL};
-	Rules[TOKEN_RIGHT_SQUARE_BRACE] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_LEFT_PAREN] =
+		ParseRule{&Compiler::GetGrouping, &Compiler::GetCall, NULL, PREC_CALL};
+	Rules[TOKEN_RIGHT_PAREN] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_LEFT_BRACE] = ParseRule{&Compiler::GetMap, NULL, NULL, PREC_CALL};
+	Rules[TOKEN_RIGHT_BRACE] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_LEFT_SQUARE_BRACE] =
+		ParseRule{&Compiler::GetArray, &Compiler::GetElement, NULL, PREC_CALL};
+	Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule{NULL, NULL, NULL, PREC_NONE};
 	Rules[TOKEN_COMMA] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_DOT] =
-		ParseRule{NULL, &Compiler::GetDot, NULL, PREC_CALL};
-	Rules[TOKEN_SEMICOLON] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_DOT] = ParseRule{NULL, &Compiler::GetDot, NULL, PREC_CALL};
+	Rules[TOKEN_SEMICOLON] = ParseRule{NULL, NULL, NULL, PREC_NONE};
 	// Operators
-	Rules[TOKEN_MINUS] = ParseRule{&Compiler::GetUnary,
-		&Compiler::GetBinary,
-		NULL,
-		PREC_TERM};
-	Rules[TOKEN_PLUS] =
-		ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_TERM};
-	Rules[TOKEN_DECREMENT] = ParseRule{&Compiler::GetUnary,
-		NULL,
-		NULL,
-		PREC_CALL}; // &Compiler::GetSuffix
-	Rules[TOKEN_INCREMENT] = ParseRule{&Compiler::GetUnary,
-		NULL,
-		NULL,
-		PREC_CALL}; // &Compiler::GetSuffix
-	Rules[TOKEN_DIVISION] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_MULTIPLY] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_MODULO] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_BITWISE_XOR] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_XOR};
-	Rules[TOKEN_BITWISE_AND] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_AND};
-	Rules[TOKEN_BITWISE_OR] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_OR};
-	Rules[TOKEN_BITWISE_LEFT] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
-	Rules[TOKEN_BITWISE_RIGHT] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
-	Rules[TOKEN_BITWISE_NOT] =
-		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_TERNARY] = ParseRule{
-		NULL, &Compiler::GetConditional, NULL, PREC_TERNARY};
+	Rules[TOKEN_MINUS] = ParseRule{&Compiler::GetUnary, &Compiler::GetBinary, NULL, PREC_TERM};
+	Rules[TOKEN_PLUS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_TERM};
+	Rules[TOKEN_DECREMENT] =
+		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_CALL}; // &Compiler::GetSuffix
+	Rules[TOKEN_INCREMENT] =
+		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_CALL}; // &Compiler::GetSuffix
+	Rules[TOKEN_DIVISION] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
+	Rules[TOKEN_MULTIPLY] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
+	Rules[TOKEN_MODULO] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
+	Rules[TOKEN_BITWISE_XOR] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_XOR};
+	Rules[TOKEN_BITWISE_AND] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_AND};
+	Rules[TOKEN_BITWISE_OR] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_OR};
+	Rules[TOKEN_BITWISE_LEFT] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
+	Rules[TOKEN_BITWISE_RIGHT] =
+		ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
+	Rules[TOKEN_BITWISE_NOT] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
+	Rules[TOKEN_TERNARY] = ParseRule{NULL, &Compiler::GetConditional, NULL, PREC_TERNARY};
 	Rules[TOKEN_COLON] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LOGICAL_AND] = ParseRule{
-		NULL, &Compiler::GetLogicalAND, NULL, PREC_AND};
-	Rules[TOKEN_LOGICAL_OR] = ParseRule{
-		NULL, &Compiler::GetLogicalOR, NULL, PREC_OR};
-	Rules[TOKEN_LOGICAL_NOT] =
-		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_TYPEOF] =
-		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_NEW] =
-		ParseRule{&Compiler::GetNew, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_NOT_EQUALS] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
-	Rules[TOKEN_EQUALS] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
-	Rules[TOKEN_HAS] = ParseRule{
-		NULL, &Compiler::GetHas, NULL, PREC_EQUALITY};
-	Rules[TOKEN_GREATER] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_GREATER_EQUAL] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_LESS] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_LESS_EQUAL] = ParseRule{
-		NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
+	Rules[TOKEN_LOGICAL_AND] = ParseRule{NULL, &Compiler::GetLogicalAND, NULL, PREC_AND};
+	Rules[TOKEN_LOGICAL_OR] = ParseRule{NULL, &Compiler::GetLogicalOR, NULL, PREC_OR};
+	Rules[TOKEN_LOGICAL_NOT] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
+	Rules[TOKEN_TYPEOF] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
+	Rules[TOKEN_NEW] = ParseRule{&Compiler::GetNew, NULL, NULL, PREC_UNARY};
+	Rules[TOKEN_NOT_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
+	Rules[TOKEN_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
+	Rules[TOKEN_HAS] = ParseRule{NULL, &Compiler::GetHas, NULL, PREC_EQUALITY};
+	Rules[TOKEN_GREATER] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
+	Rules[TOKEN_GREATER_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
+	Rules[TOKEN_LESS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
+	Rules[TOKEN_LESS_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
 	//
-	Rules[TOKEN_ASSIGNMENT] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MULTIPLY] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_DIVISION] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MODULO] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_PLUS] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MINUS] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_AND] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_OR] =
-		ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_MODULO] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_PLUS] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_MINUS] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_AND] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_OR] = ParseRule{NULL, NULL, NULL, PREC_NONE};
 	// Keywords
-	Rules[TOKEN_THIS] =
-		ParseRule{&Compiler::GetThis, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_SUPER] =
-		ParseRule{&Compiler::GetSuper, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_THIS] = ParseRule{&Compiler::GetThis, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_SUPER] = ParseRule{&Compiler::GetSuper, NULL, NULL, PREC_NONE};
 	// Constants or whatever
-	Rules[TOKEN_NULL] = ParseRule{
-		&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_TRUE] = ParseRule{
-		&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_FALSE] = ParseRule{
-		&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_STRING] =
-		ParseRule{&Compiler::GetString, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_NUMBER] = ParseRule{
-		&Compiler::GetInteger, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_DECIMAL] = ParseRule{
-		&Compiler::GetDecimal, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_IDENTIFIER] = ParseRule{
-		&Compiler::GetVariable, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_NULL] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_TRUE] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_FALSE] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_STRING] = ParseRule{&Compiler::GetString, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_NUMBER] = ParseRule{&Compiler::GetInteger, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_DECIMAL] = ParseRule{&Compiler::GetDecimal, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_IDENTIFIER] = ParseRule{&Compiler::GetVariable, NULL, NULL, PREC_NONE};
 }
 ParseRule* Compiler::GetRule(int type) {
 	return &Compiler::Rules[(int)type];
@@ -3509,21 +3234,17 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 	(this->*prefixRule)(canAssign);
 
 	if (DoOptimizations) {
-		preConstant = CheckPrefixOptimize(
-			preCount, preConstant, prefixRule);
+		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 	}
 
-	while (precedence <=
-		GetRule(parser.Current.Type)->Precedence) {
+	while (precedence <= GetRule(parser.Current.Type)->Precedence) {
 		AdvanceToken();
-		ParseFn infixRule =
-			GetRule(parser.Previous.Type)->Infix;
+		ParseFn infixRule = GetRule(parser.Previous.Type)->Infix;
 		if (infixRule) {
 			(this->*infixRule)(canAssign);
 		}
 		if (DoOptimizations) {
-			preConstant = CheckInfixOptimize(
-				preCount, preConstant, infixRule);
+			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
 
@@ -3547,8 +3268,7 @@ int Compiler::CodePointer() {
 }
 void Compiler::EmitByte(Uint8 byte) {
 	CurrentChunk()->Write(byte,
-		(int)((parser.Previous.Pos & 0xFFFF) << 16 |
-			(parser.Previous.Line & 0xFFFF)));
+		(int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
 void Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
 	EmitByte(byte1);
@@ -3612,18 +3332,14 @@ int Compiler::EmitConstant(VMValue value) {
 
 	return index;
 }
-bool Compiler::GetEmittedConstant(Chunk* chunk,
-	Uint8* code,
-	VMValue* value,
-	int* index) {
+bool Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int* index) {
 	if (index) {
 		*index = -1;
 	}
 	switch (*code) {
 	case OP_CONSTANT:
 		if (value) {
-			*value = (*chunk->Constants)[*(
-				Uint32*)(code + 1)];
+			*value = (*chunk->Constants)[*(Uint32*)(code + 1)];
 		}
 		if (index) {
 			*index = *(Uint32*)(code + 1);
@@ -3632,8 +3348,7 @@ bool Compiler::GetEmittedConstant(Chunk* chunk,
 	case OP_FALSE:
 	case OP_TRUE:
 		if (value) {
-			*value =
-				INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
+			*value = INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
 		}
 		return true;
 	case OP_NULL:
@@ -3714,7 +3429,7 @@ void Compiler::EmitReturn() {
 	if (Type == TYPE_CONSTRUCTOR) {
 		EmitBytes(OP_GET_LOCAL,
 			0); // return the new instance built from the
-		            // constructor
+		// constructor
 	}
 	else {
 		EmitByte(OP_NULL);
@@ -3769,12 +3484,10 @@ void Compiler::EndSwitchJumpList() {
 }
 
 int Compiler::FindConstant(VMValue value) {
-	for (size_t i = 0; i < CurrentChunk()->Constants->size();
-		i++) {
+	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
 		VMValue constant = (*CurrentChunk()->Constants)[i];
 		if (IS_STRING(constant) && IS_STRING(value) &&
-			ScriptManager::ValuesSortaEqual(
-				constant, value)) {
+			ScriptManager::ValuesSortaEqual(constant, value)) {
 			return (int)i;
 		}
 		if (ValuesEqual(value, constant)) {
@@ -3811,9 +3524,7 @@ void Compiler::SetReceiverName(Token name) {
 	local->Name = name;
 }
 
-int Compiler::CheckPrefixOptimize(int preCount,
-	int preConstant,
-	ParseFn fn) {
+int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 	///////////
 	// printf("------PrefixOptimize @ %d %d\n", preCount,
 	// preConstant); for (int i = preCount; i <
@@ -3833,10 +3544,7 @@ int Compiler::CheckPrefixOptimize(int preCount,
 		}
 		Uint8 op = CurrentChunk()->Code[preCount];
 		VMValue constant;
-		if (preCount +
-					GetTotalOpcodeSize(
-						CurrentChunk()->Code +
-						preCount) !=
+		if (preCount + GetTotalOpcodeSize(CurrentChunk()->Code + preCount) !=
 				CodePointer() - 1 ||
 			!GetEmittedConstant(CurrentChunk(),
 				CurrentChunk()->Code + preCount,
@@ -3861,16 +3569,10 @@ int Compiler::CheckPrefixOptimize(int preCount,
 				EmitByte(OP_FALSE);
 				break;
 			case VAL_DECIMAL:
-				EmitByte(
-					(float)(AS_DECIMAL(constant) ==
-						0.0)
-						? OP_TRUE
-						: OP_FALSE);
+				EmitByte((float)(AS_DECIMAL(constant) == 0.0) ? OP_TRUE : OP_FALSE);
 				break;
 			case VAL_INTEGER:
-				EmitByte(!AS_INTEGER(constant)
-						? OP_TRUE
-						: OP_FALSE);
+				EmitByte(!AS_INTEGER(constant) ? OP_TRUE : OP_FALSE);
 				break;
 			}
 			break;
@@ -3878,24 +3580,20 @@ int Compiler::CheckPrefixOptimize(int preCount,
 			CurrentChunk()->Count = preCount;
 
 			if (constant.Type == VAL_DECIMAL) {
-				out = DECIMAL_VAL(
-					-AS_DECIMAL(constant));
+				out = DECIMAL_VAL(-AS_DECIMAL(constant));
 			}
 			else {
-				out = INTEGER_VAL(
-					-AS_INTEGER(constant));
+				out = INTEGER_VAL(-AS_INTEGER(constant));
 			}
 			break;
 		case OP_BW_NOT:
 			CurrentChunk()->Count = preCount;
 
 			if (constant.Type == VAL_DECIMAL) {
-				out = DECIMAL_VAL((float)(~(
-					int)AS_DECIMAL(constant)));
+				out = DECIMAL_VAL((float)(~(int)AS_DECIMAL(constant)));
 			}
 			else {
-				out = INTEGER_VAL(
-					~AS_INTEGER(constant));
+				out = INTEGER_VAL(~AS_INTEGER(constant));
 			}
 			break;
 		}
@@ -3910,9 +3608,8 @@ int Compiler::CheckPrefixOptimize(int preCount,
 		EmitConstant(out);
 		preConstant = CurrentChunk()->Constants->size();
 		if (out.Type == VAL_INTEGER) {
-			preConstant = CheckPrefixOptimize(preCount,
-				preConstant,
-				&Compiler::GetInteger);
+			preConstant =
+				CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
 		}
 	}
 
@@ -3927,9 +3624,7 @@ int Compiler::CheckPrefixOptimize(int preCount,
 	return preConstant;
 }
 
-int Compiler::CheckInfixOptimize(int preCount,
-	int preConstant,
-	ParseFn fn) {
+int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 	///////////
 	// printf("------InfixOptimize @ %d %d\n", preCount,
 	// preConstant); for (int i = preCount; i <
@@ -3945,18 +3640,14 @@ int Compiler::CheckInfixOptimize(int preCount,
 
 		int off1 = preCount;
 		Uint8 op1 = CurrentChunk()->Code[off1];
-		int off2 = GetTotalOpcodeSize(
-				   CurrentChunk()->Code + off1) +
-			off1;
+		int off2 = GetTotalOpcodeSize(CurrentChunk()->Code + off1) + off1;
 		if (off2 >= CodePointer()) {
 			return preConstant;
 		}
 		Uint8 op2 = CurrentChunk()->Code[off2];
-		int offB = GetTotalOpcodeSize(
-				   CurrentChunk()->Code + off2) +
-			off2;
+		int offB = GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
 		if (offB != CodePointer() - 1) { // CHANGE TO >= ONCE
-			                         // CASCADING IS ADDED
+			// CASCADING IS ADDED
 			return preConstant;
 		}
 		Uint8 opB = CurrentChunk()->Code[offB];
@@ -3966,17 +3657,13 @@ int Compiler::CheckInfixOptimize(int preCount,
 		VMValue b;
 		int checkConstantB = -1;
 
-		if (!GetEmittedConstant(CurrentChunk(),
-			    CurrentChunk()->Code + off1,
-			    &a,
-			    &checkConstantA)) {
+		if (!GetEmittedConstant(
+			    CurrentChunk(), CurrentChunk()->Code + off1, &a, &checkConstantA)) {
 			return preConstant;
 		}
 
-		if (!GetEmittedConstant(CurrentChunk(),
-			    CurrentChunk()->Code + off2,
-			    &b,
-			    &checkConstantB)) {
+		if (!GetEmittedConstant(
+			    CurrentChunk(), CurrentChunk()->Code + off2, &b, &checkConstantB)) {
 			return preConstant;
 		}
 
@@ -3986,25 +3673,18 @@ int Compiler::CheckInfixOptimize(int preCount,
 			// Numeric Operations
 		case OP_ADD: {
 			if (IS_STRING(a) || IS_STRING(b)) {
-				VMValue str_b = ScriptManager::
-					CastValueAsString(b);
-				VMValue str_a = ScriptManager::
-					CastValueAsString(a);
-				out = ScriptManager::Concatenate(
-					str_a, str_b);
+				VMValue str_b = ScriptManager::CastValueAsString(b);
+				VMValue str_a = ScriptManager::CastValueAsString(a);
+				out = ScriptManager::Concatenate(str_a, str_b);
 				break;
 			}
-			else if (IS_NOT_NUMBER(a) ||
-				IS_NOT_NUMBER(b)) {
+			else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = DECIMAL_VAL(a_d + b_d);
 			}
 			else {
@@ -4020,12 +3700,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = DECIMAL_VAL(a_d - b_d);
 			}
 			else {
@@ -4041,12 +3718,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = DECIMAL_VAL(a_d * b_d);
 			}
 			else {
@@ -4062,12 +3736,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 
 				if (b_d == 0) {
 					return preConstant;
@@ -4091,12 +3762,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = DECIMAL_VAL(fmod(a_d, b_d));
 			}
 			else {
@@ -4113,14 +3781,10 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
-				out = DECIMAL_VAL(
-					(float)((int)a_d << (int)b_d));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -4135,14 +3799,10 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
-				out = DECIMAL_VAL(
-					(float)((int)a_d >> (int)b_d));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -4157,14 +3817,10 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
-				out = DECIMAL_VAL(
-					(float)((int)a_d | (int)b_d));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -4179,14 +3835,10 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
-				out = DECIMAL_VAL(
-					(float)((int)a_d & (int)b_d));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -4201,14 +3853,10 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
-				out = DECIMAL_VAL(
-					(float)((int)a_d ^ (int)b_d));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -4221,8 +3869,7 @@ int Compiler::CheckInfixOptimize(int preCount,
 			// Equality and Comparison Operators
 		case OP_EQUAL_NOT:
 		case OP_EQUAL: {
-			bool equal =
-				ScriptManager::ValuesSortaEqual(a, b);
+			bool equal = ScriptManager::ValuesSortaEqual(a, b);
 			if (opB == OP_EQUAL_NOT) {
 				equal = !equal;
 			}
@@ -4234,12 +3881,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = INTEGER_VAL(a_d > b_d);
 			}
 			else {
@@ -4255,12 +3899,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = INTEGER_VAL(a_d >= b_d);
 			}
 			else {
@@ -4276,12 +3917,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = INTEGER_VAL(a_d < b_d);
 			}
 			else {
@@ -4297,12 +3935,9 @@ int Compiler::CheckInfixOptimize(int preCount,
 				return preConstant;
 			}
 
-			if (a.Type == VAL_DECIMAL ||
-				b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::
-						CastValueAsDecimal(b));
+			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
+				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
+				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
 				out = INTEGER_VAL(a_d <= b_d);
 			}
 			else {
@@ -4319,8 +3954,7 @@ int Compiler::CheckInfixOptimize(int preCount,
 		if (checkConstantA >= preConstant) {
 			CurrentChunk()->Constants->pop_back();
 		}
-		if (checkConstantB >= preConstant &&
-			checkConstantA != checkConstantB) {
+		if (checkConstantB >= preConstant && checkConstantA != checkConstantB) {
 			CurrentChunk()->Constants->pop_back();
 		}
 		// Log::PrintSimple("Constants eaten: %d %d\n",
@@ -4329,9 +3963,8 @@ int Compiler::CheckInfixOptimize(int preCount,
 		preConstant = CurrentChunk()->Constants->size();
 		EmitConstant(out);
 		if (out.Type == VAL_INTEGER) {
-			preConstant = CheckPrefixOptimize(preCount,
-				preConstant,
-				&Compiler::GetInteger);
+			preConstant =
+				CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
 		}
 	}
 
@@ -4440,9 +4073,7 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 }
 
 // Debugging functions
-int Compiler::HashInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::HashInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
 	Log::PrintSimple("%-16s #%08X", opcodeNames[opcode], hash);
 	if (TokenMap->Exists(hash)) {
@@ -4452,73 +4083,51 @@ int Compiler::HashInstruction(uint8_t opcode,
 	Log::PrintSimple("\n");
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::ConstantInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	int constant;
 	VMValue value;
-	if (GetEmittedConstant(
-		    chunk, chunk->Code + offset, &value, &constant)) {
+	if (GetEmittedConstant(chunk, chunk->Code + offset, &value, &constant)) {
 		if (constant != -1) {
-			Log::PrintSimple("%-16s %9d '",
-				opcodeNames[opcode],
-				constant);
+			Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
 		}
 		else {
-			Log::PrintSimple("%-16s           '",
-				opcodeNames[opcode]);
+			Log::PrintSimple("%-16s           '", opcodeNames[opcode]);
 		}
 	}
 	else {
 		constant = *(int*)&chunk->Code[offset + 1];
 		value = (*chunk->Constants)[constant];
-		Log::PrintSimple(
-			"%-16s %9d '", opcodeNames[opcode], constant);
+		Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
 	}
 	Values::PrintValue(NULL, value);
 	Log::PrintSimple("'\n");
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::SimpleInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::SimpleInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	Log::PrintSimple("%s\n", opcodeNames[opcode]);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::ByteInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
-	Log::PrintSimple("%-16s %9d\n",
-		opcodeNames[opcode],
-		chunk->Code[offset + 1]);
+int Compiler::ByteInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+	Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], chunk->Code[offset + 1]);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::ShortInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::ShortInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	uint16_t data = (uint16_t)(chunk->Code[offset + 1]);
 	data |= chunk->Code[offset + 2] << 8;
 	Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], data);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::LocalInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	uint8_t slot = chunk->Code[offset + 1];
 	if (slot > 0) {
-		Log::PrintSimple(
-			"%-16s %9d\n", opcodeNames[opcode], slot);
+		Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], slot);
 	}
 	else {
-		Log::PrintSimple("%-16s %9d 'this'\n",
-			opcodeNames[opcode],
-			slot);
+		Log::PrintSimple("%-16s %9d 'this'\n", opcodeNames[opcode], slot);
 	}
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::MethodInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	uint8_t slot = chunk->Code[offset + 1];
 	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
 	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
@@ -4530,36 +4139,23 @@ int Compiler::MethodInstruction(uint8_t opcode,
 	Log::PrintSimple("\n");
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::InvokeInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::MethodInstruction(opcode, chunk, offset);
 }
-int Compiler::JumpInstruction(uint8_t opcode,
-	int sign,
-	Chunk* chunk,
-	int offset) {
+int Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
 	jump |= chunk->Code[offset + 2] << 8;
-	Log::PrintSimple("%-16s %9d -> %d\n",
-		opcodeNames[opcode],
-		offset,
-		offset + 3 + sign * jump);
+	Log::PrintSimple(
+		"%-16s %9d -> %d\n", opcodeNames[opcode], offset, offset + 3 + sign * jump);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
-int Compiler::ClassInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::HashInstruction(opcode, chunk, offset);
 }
-int Compiler::EnumInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::EnumInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::HashInstruction(opcode, chunk, offset);
 }
-int Compiler::WithInstruction(uint8_t opcode,
-	Chunk* chunk,
-	int offset) {
+int Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	uint8_t type = chunk->Code[offset + 1];
 	uint8_t slot = 0;
 	if (type == 3) {
@@ -4569,18 +4165,11 @@ int Compiler::WithInstruction(uint8_t opcode,
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
 	jump |= chunk->Code[offset + 3] << 8;
 	if (slot > 0) {
-		Log::PrintSimple("%-16s %1d %7d -> %d\n",
-			opcodeNames[opcode],
-			type,
-			slot,
-			jump);
+		Log::PrintSimple("%-16s %1d %7d -> %d\n", opcodeNames[opcode], type, slot, jump);
 	}
 	else {
-		Log::PrintSimple("%-16s %1d %7d 'this' -> %d\n",
-			opcodeNames[opcode],
-			type,
-			slot,
-			jump);
+		Log::PrintSimple(
+			"%-16s %1d %7d 'this' -> %d\n", opcodeNames[opcode], type, slot, jump);
 	}
 	if (type == 3) {
 		offset--;
@@ -4589,14 +4178,11 @@ int Compiler::WithInstruction(uint8_t opcode,
 }
 int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	Log::PrintSimple("%04d ", offset);
-	if (offset > 0 &&
-		(chunk->Lines[offset] & 0xFFFF) ==
-			(chunk->Lines[offset - 1] & 0xFFFF)) {
+	if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
 		Log::PrintSimple("   | ");
 	}
 	else {
-		Log::PrintSimple(
-			"%4d ", chunk->Lines[offset] & 0xFFFF);
+		Log::PrintSimple("%4d ", chunk->Lines[offset] & 0xFFFF);
 	}
 
 	uint8_t instruction = chunk->Code[offset];
@@ -4681,20 +4267,15 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_PRINT_STACK: {
 		offset++;
 		uint8_t constant = chunk->Code[offset++];
-		Log::PrintSimple("%-16s %4d ",
-			opcodeNames[instruction],
-			constant);
-		Values::PrintValue(
-			NULL, (*chunk->Constants)[constant]);
+		Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
+		Values::PrintValue(NULL, (*chunk->Constants)[constant]);
 		Log::PrintSimple("\n");
 
-		ObjFunction* function =
-			AS_FUNCTION((*chunk->Constants)[constant]);
+		ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
 		for (int j = 0; j < function->UpvalueCount; j++) {
 			int isLocal = chunk->Code[offset++];
 			int index = chunk->Code[offset++];
-			Log::PrintSimple(
-				"%04d   |                     %s %d\n",
+			Log::PrintSimple("%04d   |                     %s %d\n",
 				offset - 2,
 				isLocal ? "local" : "upvalue",
 				index);
@@ -4713,39 +4294,29 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		return MethodInstruction(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
-			Log::PrintSimple("No viewer for opcode %s\n",
-				opcodeNames[instruction]);
+			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
 		}
 		else {
-			Log::PrintSimple(
-				"Unknown opcode %d\n", instruction);
+			Log::PrintSimple("Unknown opcode %d\n", instruction);
 		}
 		return chunk->Count + 1;
 	}
 }
-void Compiler::DebugChunk(Chunk* chunk,
-	const char* name,
-	int minArity,
-	int maxArity) {
+void Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
 	int optArgCount = maxArity - minArity;
 	if (optArgCount) {
 		Log::PrintSimple(
-			"== %s (argCount: %d, optArgCount: %d) ==\n",
-			name,
-			maxArity,
-			optArgCount);
+			"== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
 	}
 	else {
-		Log::PrintSimple(
-			"== %s (argCount: %d) ==\n", name, maxArity);
+		Log::PrintSimple("== %s (argCount: %d) ==\n", name, maxArity);
 	}
 	Log::PrintSimple("byte   ln\n");
 	for (int offset = 0; offset < chunk->Count;) {
 		offset = DebugInstruction(chunk, offset);
 	}
 
-	Log::PrintSimple("\nConstants: (%d count)\n",
-		(int)(*chunk->Constants).size());
+	Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
 	for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
 		Log::PrintSimple(" %2d '", (int)i);
 		Values::PrintValue(NULL, (*chunk->Constants)[i]);
@@ -4768,28 +4339,20 @@ void Compiler::Init() {
 #endif
 	Compiler::DoOptimizations = true;
 
-	Application::Settings->GetBool(
-		"compiler", "log", &Compiler::DoLogging);
+	Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
 	if (Compiler::DoLogging) {
-		Application::Settings->GetBool("compiler",
-			"showWarnings",
-			&Compiler::ShowWarnings);
+		Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
 	}
 
-	Application::Settings->GetBool("compiler",
-		"writeDebugInfo",
-		&Compiler::WriteDebugInfo);
-	Application::Settings->GetBool("compiler",
-		"writeSourceFilename",
-		&Compiler::WriteSourceFilename);
-	Application::Settings->GetBool("compiler",
-		"optimizations",
-		&Compiler::DoOptimizations);
+	Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+	Application::Settings->GetBool(
+		"compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
+	Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
-		Compiler::StandardConstants = new HashMap<VMValue>(
-			NULL, ScriptManager::Constants->Capacity);
+		Compiler::StandardConstants =
+			new HashMap<VMValue>(NULL, ScriptManager::Constants->Capacity);
 	}
 	Compiler::StandardConstants->Clear();
 
@@ -4818,8 +4381,7 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 	case TYPE_CONSTRUCTOR:
 	case TYPE_METHOD:
 	case TYPE_FUNCTION:
-		Function->Name = CopyString(
-			parser.Previous.Start, parser.Previous.Length);
+		Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
 		break;
 	case TYPE_TOP_LEVEL:
 		Function->Name = CopyString("main", 4);
@@ -4847,9 +4409,7 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	}
 
 	bytecode->HasDebugInfo = Compiler::WriteDebugInfo;
-	bytecode->Write(stream,
-		Compiler::WriteSourceFilename ? filename : nullptr,
-		TokenMap);
+	bytecode->Write(stream, Compiler::WriteSourceFilename ? filename : nullptr, TokenMap);
 
 	delete bytecode;
 
@@ -4857,12 +4417,9 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		TokenMap->Clear();
 	}
 }
-bool Compiler::Compile(const char* filename,
-	const char* source,
-	const char* output) {
+bool Compiler::Compile(const char* filename, const char* source, const char* output) {
 	bool debugCompiler = false;
-	Application::Settings->GetBool(
-		"dev", "debugCompiler", &debugCompiler);
+	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
 
 	scanner.Line = 1;
 	scanner.Start = (char*)source;
@@ -4874,8 +4431,7 @@ bool Compiler::Compile(const char* filename,
 	parser.PanicMode = false;
 
 	if (debugCompiler) {
-		Log::PrintSimple(
-			"Compiling script into file %s\n", output);
+		Log::PrintSimple("Compiling script into file %s\n", output);
 	}
 
 	Initialize(NULL, 0, TYPE_TOP_LEVEL);
@@ -4888,18 +4444,14 @@ bool Compiler::Compile(const char* filename,
 	ConsumeToken(TOKEN_EOF, "Expected end of file.");
 
 	for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
-		if (UnusedVariables &&
-			!Compiler::ModuleLocals[i].Resolved) {
+		if (UnusedVariables && !Compiler::ModuleLocals[i].Resolved) {
 			UnusedVariables->insert(
-				UnusedVariables->begin(),
-				Compiler::ModuleLocals[i]);
+				UnusedVariables->begin(), Compiler::ModuleLocals[i]);
 		}
 		else if (UnsetVariables &&
-			Compiler::ModuleLocals[i].ConstantVal.Type !=
-				VAL_ERROR &&
+			Compiler::ModuleLocals[i].ConstantVal.Type != VAL_ERROR &&
 			!Compiler::ModuleLocals[i].WasSet) {
-			UnsetVariables->insert(UnsetVariables->begin(),
-				Compiler::ModuleLocals[i]);
+			UnsetVariables->insert(UnsetVariables->begin(), Compiler::ModuleLocals[i]);
 		}
 	}
 
@@ -4909,15 +4461,13 @@ bool Compiler::Compile(const char* filename,
 		Chunk* chunk = &Compiler::Functions[c]->Chunk;
 		chunk->OpcodeCount = 0;
 		for (int offset = 0; offset < chunk->Count;) {
-			offset += GetTotalOpcodeSize(
-				chunk->Code + offset);
+			offset += GetTotalOpcodeSize(chunk->Code + offset);
 			chunk->OpcodeCount++;
 		}
 	}
 
 	if (debugCompiler) {
-		for (size_t c = 0; c < Compiler::Functions.size();
-			c++) {
+		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
 			DebugChunk(chunk,
 				Compiler::Functions[c]->Name->Chars,
@@ -4927,8 +4477,7 @@ bool Compiler::Compile(const char* filename,
 		}
 	}
 
-	Stream* stream =
-		FileStream::New(output, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR,
 			"Couldn't open file '%s' for writing compiled script!",
@@ -4961,8 +4510,7 @@ void Compiler::Finish() {
 	EmitReturn();
 }
 
-Compiler::~Compiler() {
-}
+Compiler::~Compiler() {}
 void Compiler::FinishCompiling() {
 	Compiler::Functions.clear();
 	Compiler::ModuleLocals.clear();

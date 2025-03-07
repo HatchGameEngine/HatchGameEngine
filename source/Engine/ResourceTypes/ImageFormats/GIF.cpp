@@ -23,11 +23,8 @@ struct Entry {
 	Uint8 Suffix;
 };
 
-inline Uint32 GIF::ReadCode(Stream* stream,
-	int codeSize,
-	int* blockLength,
-	int* bitCache,
-	int* bitCacheLength) {
+inline Uint32
+GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int* bitCacheLength) {
 	if (*blockLength == 0) {
 		*blockLength = stream->ReadByte();
 	}
@@ -102,35 +99,21 @@ inline void GIF::WriteFrame(Stream* stream, Uint32* data) {
 
 	root = node = (Node*)NewTree(degree, &nkeys);
 	key_size = depth + 1;
-	WriteCode(stream,
-		&offset,
-		&partial,
-		buffer,
-		degree,
-		key_size); /* clear code */
+	WriteCode(stream, &offset, &partial, buffer, degree, key_size); /* clear code */
 	for (i = 0; i < (int)this->Height; i++) {
 		for (j = 0; j < (int)this->Width; j++) {
-			Uint8 pixel =
-				(Uint8)(data[i * this->Width + j] &
-					(degree - 1));
+			Uint8 pixel = (Uint8)(data[i * this->Width + j] & (degree - 1));
 			child = node->Children[pixel];
 			if (child) {
 				node = child;
 			}
 			else {
-				WriteCode(stream,
-					&offset,
-					&partial,
-					buffer,
-					node->Key,
-					key_size);
+				WriteCode(stream, &offset, &partial, buffer, node->Key, key_size);
 				if (nkeys < 0x1000) {
 					if (nkeys == (1 << key_size)) {
 						key_size++;
 					}
-					node->Children[pixel] =
-						(Node*)NewNode(nkeys++,
-							degree);
+					node->Children[pixel] = (Node*)NewNode(nkeys++, degree);
 				}
 				else {
 					WriteCode(stream,
@@ -141,26 +124,15 @@ inline void GIF::WriteFrame(Stream* stream, Uint32* data) {
 						key_size); /* clear
 					                      code */
 					FreeTree(root, degree);
-					root = node = (Node*)NewTree(
-						degree, &nkeys);
+					root = node = (Node*)NewTree(degree, &nkeys);
 					key_size = depth + 1;
 				}
 				node = root->Children[pixel];
 			}
 		}
 	}
-	WriteCode(stream,
-		&offset,
-		&partial,
-		buffer,
-		node->Key,
-		key_size);
-	WriteCode(stream,
-		&offset,
-		&partial,
-		buffer,
-		degree + 1,
-		key_size); /* stop code */
+	WriteCode(stream, &offset, &partial, buffer, node->Key, key_size);
+	WriteCode(stream, &offset, &partial, buffer, degree + 1, key_size); /* stop code */
 	// end_key(gif);
 	int byte_offset;
 	byte_offset = offset >> 3;
@@ -176,8 +148,7 @@ inline void GIF::WriteFrame(Stream* stream, Uint32* data) {
 }
 
 void* GIF::NewNode(Uint16 key, int degree) {
-	Node* node = (Node*)Memory::Calloc(
-		1, sizeof(*node) + degree * sizeof(Node*));
+	Node* node = (Node*)Memory::Calloc(1, sizeof(*node) + degree * sizeof(Node*));
 	if (node) {
 		node->Key = key;
 	}
@@ -186,8 +157,7 @@ void* GIF::NewNode(Uint16 key, int degree) {
 void* GIF::NewTree(int degree, int* nkeys) {
 	Node* root = (Node*)GIF::NewNode(0, degree);
 	for (*nkeys = 0; *nkeys < degree; (*nkeys)++) {
-		root->Children[*nkeys] =
-			(Node*)GIF::NewNode(*nkeys, degree);
+		root->Children[*nkeys] = (Node*)GIF::NewNode(*nkeys, degree);
 	}
 	*nkeys += 2;
 	return root;
@@ -214,17 +184,13 @@ void GIF::FreeTree(void* root, int degree) {
 #define MARK_PERF_LABEL(label) \
 	{ \
 		float delta = Clock::End(); \
-		Log::Print(Log::LOG_VERBOSE, \
-			"- Mark '%s' took %.3f ms to reach.", \
-			label, \
-			delta); \
+		Log::Print(Log::LOG_VERBOSE, "- Mark '%s' took %.3f ms to reach.", label, delta); \
 		Clock::Start(); \
 	}
 
 GIF* GIF::Load(const char* filename) {
 	bool loadPalette = Graphics::UsePalettes;
-	Entry* codeTable =
-		(Entry*)Memory::Malloc(0x1000 * sizeof(Entry));
+	Entry* codeTable = (Entry*)Memory::Malloc(0x1000 * sizeof(Entry));
 
 	GIF* gif = new GIF;
 	Stream* stream = NULL;
@@ -235,16 +201,13 @@ GIF* GIF::Load(const char* filename) {
 	Clock::Start();
 
 	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(
-			filename + 7, FileStream::READ_ACCESS);
+		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
 	}
 	else {
 		stream = ResourceStream::New(filename);
 	}
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not open file '%s'!",
-			filename);
+		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto GIF_Load_FAIL;
 	}
 
@@ -283,8 +246,7 @@ GIF* GIF::Load(const char* filename) {
 
 	Uint8 magic89a[4];
 	stream->ReadBytes(magic89a, 3);
-	if (memcmp(magic89a, "89a", 3) != 0 &&
-		memcmp(magic89a, "87a", 3) != 0) {
+	if (memcmp(magic89a, "89a", 3) != 0 && memcmp(magic89a, "87a", 3) != 0) {
 		magic89a[3] = 0;
 		Log::Print(Log::LOG_ERROR,
 			"Invalid GIF version! Found \"%s\", expected \"89a\"! (%s)",
@@ -306,17 +268,15 @@ GIF* GIF::Load(const char* filename) {
 	stream->Skip(1); // pixelAspectRatio = stream->ReadByte();
 
 	if ((logicalScreenDesc & 0x80) == 0) {
-		Log::Print(Log::LOG_ERROR,
-			"GIF missing palette table! (%s)",
-			filename);
+		Log::Print(Log::LOG_ERROR, "GIF missing palette table! (%s)", filename);
 		goto GIF_Load_FAIL;
 	}
 
 	gif->Width = width;
 	gif->Height = height;
 
-	colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) +
-		1; // normally 7, sometimes it is 4 (wrong)
+	colorBitDepth =
+		((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
 	// sortFlag = (logicalScreenDesc & 0x8) != 0; // This is
 	// unneeded.
 	paletteTableSize = 2 << (logicalScreenDesc & 0x7);
@@ -326,13 +286,10 @@ GIF* GIF::Load(const char* filename) {
 #endif
 
 	// Prepare image data
-	gif->Data = (Uint32*)Memory::TrackedMalloc(
-		"GIF::Data", width * height * sizeof(Uint32));
+	gif->Data = (Uint32*)Memory::TrackedMalloc("GIF::Data", width * height * sizeof(Uint32));
 	// Load Palette Table
-	gif->Colors = (Uint32*)Memory::TrackedMalloc(
-		"GIF::Colors", 0x100 * sizeof(Uint32));
-	if (Graphics::PreferredPixelFormat ==
-		SDL_PIXELFORMAT_ABGR8888) {
+	gif->Colors = (Uint32*)Memory::TrackedMalloc("GIF::Colors", 0x100 * sizeof(Uint32));
+	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
 		for (int p = 0; p < paletteTableSize; p++) {
 			gif->Colors[p] = 0xFF000000U;
 			// Load 'red'
@@ -362,9 +319,7 @@ GIF* GIF::Load(const char* filename) {
 	gif->Paletted = loadPalette;
 	gif->NumPaletteColors = 256;
 
-	memset(gif->Colors + paletteTableSize,
-		0,
-		(0x100 - paletteTableSize) * sizeof(Uint32));
+	memset(gif->Colors + paletteTableSize, 0, (0x100 - paletteTableSize) * sizeof(Uint32));
 
 	width--;
 	height--;
@@ -403,12 +358,11 @@ GIF* GIF::Load(const char* filename) {
 				// stream->ReadUInt16(); // Delay Time
 				// [short] //
 				stream->Skip(0x04);
-				transparentColorIndex =
-					stream->ReadByte(); // Transparent
-				                            // Color
-				                            // Index?
-				                            // [byte]
-				                            // //
+				transparentColorIndex = stream->ReadByte(); // Transparent
+					// Color
+					// Index?
+					// [byte]
+					// //
 				stream->Skip(0x01);
 				// temp = stream->ReadByte();  // Block
 				// Terminator [byte] //
@@ -420,13 +374,12 @@ GIF* GIF::Load(const char* filename) {
 			// Application Extension
 			case 0xFF:
 				temp = stream->ReadByte(); // Block
-				                           // Size
+					// Size
 				// Continue until we run out of blocks
 				while (temp) {
 					// Read block
-					stream->Skip(
-						temp); // stream->ReadBytes(buffer,
-					               // temp);
+					stream->Skip(temp); // stream->ReadBytes(buffer,
+						// temp);
 					temp = stream->ReadByte(); // next block Size
 				}
 				break;
@@ -447,15 +400,14 @@ GIF* GIF::Load(const char* filename) {
 			// Destination Height
 			stream->Skip(8);
 			temp = stream->ReadByte(); // Packed Field
-			                           // [byte]
+				// [byte]
 
 			// If a local color table exists,
 			if (temp & 0x80) {
 				int size = 2 << (temp & 0x07);
 				// Load all colors
-				stream->Skip(3 *
-					size); // stream->ReadBytes(buffer,
-				               // 3 * size);
+				stream->Skip(3 * size); // stream->ReadBytes(buffer,
+					// 3 * size);
 			}
 
 			interlaced = (temp & 0x40) == 0x40;
@@ -503,11 +455,8 @@ GIF* GIF::Load(const char* filename) {
 			bitCacheLength = 0;
 			tableFull = false;
 
-			currentCode = ReadCode(stream,
-				codeSize,
-				&blockLength,
-				&bitCache,
-				&bitCacheLength);
+			currentCode = ReadCode(
+				stream, codeSize, &blockLength, &bitCache, &bitCacheLength);
 
 			codeSize = initCodeSize;
 			emptyCode = eoiCode + 1;
@@ -525,19 +474,14 @@ GIF* GIF::Load(const char* filename) {
 					tableFull = false;
 				}
 				else if (!tableFull) {
-					codeTable[emptyCode].Length =
-						str_len + 1;
-					codeTable[emptyCode].Prefix =
-						currentCode;
-					codeTable[emptyCode].Suffix =
-						entry.Suffix;
+					codeTable[emptyCode].Length = str_len + 1;
+					codeTable[emptyCode].Prefix = currentCode;
+					codeTable[emptyCode].Suffix = entry.Suffix;
 					emptyCode++;
 
 					// Once we reach highest code,
 					// increase code size
-					if ((emptyCode &
-						    (emptyCode - 1)) ==
-						0) {
+					if ((emptyCode & (emptyCode - 1)) == 0) {
 						mark = 1;
 					}
 					else {
@@ -550,11 +494,8 @@ GIF* GIF::Load(const char* filename) {
 					}
 				}
 
-				currentCode = ReadCode(stream,
-					codeSize,
-					&blockLength,
-					&bitCache,
-					&bitCacheLength);
+				currentCode = ReadCode(
+					stream, codeSize, &blockLength, &bitCache, &bitCacheLength);
 
 				if (currentCode == clearCode) {
 					continue;
@@ -570,39 +511,26 @@ GIF* GIF::Load(const char* filename) {
 				str_len = entry.Length;
 
 				while (true) {
-					int p = frm_off +
-						entry.Length - 1;
+					int p = frm_off + entry.Length - 1;
 					if (interlaced) {
-						int row =
-							p >> bitsWidth;
-						if (row <
-							eighthHeight) {
+						int row = p >> bitsWidth;
+						if (row < eighthHeight) {
 							p = (p & width) +
-								((((row) << 3) +
-									 0)
+								((((row) << 3) + 0) << bitsWidth);
+						}
+						else if (row < quarterHeight) {
+							p = (p & width) +
+								((((row - eighthHeight) << 3) + 4)
 									<< bitsWidth);
 						}
-						else if (row <
-							quarterHeight) {
+						else if (row < halfHeight) {
 							p = (p & width) +
-								((((row - eighthHeight)
-									  << 3) +
-									 4)
-									<< bitsWidth);
-						}
-						else if (row <
-							halfHeight) {
-							p = (p & width) +
-								((((row - quarterHeight)
-									  << 2) +
-									 2)
+								((((row - quarterHeight) << 2) + 2)
 									<< bitsWidth);
 						}
 						else {
 							p = (p & width) +
-								((((row - halfHeight)
-									  << 1) +
-									 1)
+								((((row - halfHeight) << 1) + 1)
 									<< bitsWidth);
 						}
 					}
@@ -611,31 +539,24 @@ GIF* GIF::Load(const char* filename) {
 					// For setting straight to
 					// color (no palette use)
 					if (!loadPalette) {
-						if (gif->Data[p] ==
-							transparentColorIndex) {
-							gif->Data[p] =
-								0;
+						if (gif->Data[p] == transparentColorIndex) {
+							gif->Data[p] = 0;
 						}
 						else {
-							gif->Data[p] =
-								gif->Colors
-									[gif->Data[p]];
+							gif->Data[p] = gif->Colors[gif->Data[p]];
 						}
 					}
 
 					if (entry.Prefix != 0xFFF) {
-						entry = codeTable
-							[entry.Prefix];
+						entry = codeTable[entry.Prefix];
 					}
 					else {
 						break;
 					}
 				}
 				frm_off += str_len;
-				if (currentCode < emptyCode - 1 &&
-					!tableFull) {
-					codeTable[emptyCode - 1]
-						.Suffix = entry.Suffix;
+				if (currentCode < emptyCode - 1 && !tableFull) {
+					codeTable[emptyCode - 1].Suffix = entry.Suffix;
 				}
 			}
 			break;
@@ -672,8 +593,7 @@ bool GIF::Save(GIF* gif, const char* filename) {
 }
 
 bool GIF::Save(const char* filename) {
-	Stream* stream =
-		FileStream::New(filename, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
 	if (!stream) {
 		return false;
 	}
@@ -734,5 +654,4 @@ bool GIF::Save(const char* filename) {
 	return true;
 }
 
-GIF::~GIF() {
-}
+GIF::~GIF() {}

@@ -1,9 +1,6 @@
 #include <Engine/IO/Compression/LZ11.h>
 
-bool LZ11::Decompress(uint8_t* in,
-	size_t in_sz,
-	uint8_t* out,
-	size_t out_sz) {
+bool LZ11::Decompress(uint8_t* in, size_t in_sz, uint8_t* out, size_t out_sz) {
 	int i;
 	uint8_t flags;
 	uint8_t* in_head = (uint8_t*)in;
@@ -43,13 +40,11 @@ bool LZ11::Decompress(uint8_t* in,
 				switch (displen[pos] >> 4) {
 				case 0: // extended block
 					displen[1] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 					displen[2] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 
@@ -60,23 +55,19 @@ bool LZ11::Decompress(uint8_t* in,
 
 				case 1: // extra extended block
 					displen[1] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 					displen[2] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 					displen[3] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 
-					len = (displen[pos++] & 0x0F)
-						<< 12;
+					len = (displen[pos++] & 0x0F) << 12;
 					len |= (displen[pos++]) << 4;
 					len |= displen[pos] >> 4;
 					len += 0x111;
@@ -84,8 +75,7 @@ bool LZ11::Decompress(uint8_t* in,
 
 				default: // normal block
 					displen[1] = *in_head++;
-					if (in_head >=
-						in_sz + (uint8_t*)in) {
+					if (in_head >= in_sz + (uint8_t*)in) {
 						return false;
 					}
 

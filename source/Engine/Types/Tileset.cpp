@@ -25,8 +25,7 @@ Tileset::Tileset(ISprite* sprite,
 }
 
 void Tileset::RunAnimations() {
-	for (map<int, TileAnimator>::iterator it = AnimatorMap.begin();
-		it != AnimatorMap.end();
+	for (map<int, TileAnimator>::iterator it = AnimatorMap.begin(); it != AnimatorMap.end();
 		it++) {
 		TileAnimator& animator = it->second;
 		if (!animator.Paused) {
@@ -36,8 +35,7 @@ void Tileset::RunAnimations() {
 }
 
 void Tileset::RestartAnimations() {
-	for (map<int, TileAnimator>::iterator it = AnimatorMap.begin();
-		it != AnimatorMap.end();
+	for (map<int, TileAnimator>::iterator it = AnimatorMap.begin(); it != AnimatorMap.end();
 		it++) {
 		TileAnimator& animator = it->second;
 		animator.RestartAnimation();
@@ -86,29 +84,20 @@ void Tileset::AddTileAnimSequence(int tileID,
 		size_t sheetID = 0;
 
 		if (otherTileID >= StartTile + TileCount) {
-			Tileset* otherTileset =
-				Scene::GetTileset(otherTileID);
-			ISprite* otherTileSprite =
-				otherTileset->Sprite;
-			if (otherTileSprite &&
-				otherTileSprite->Spritesheets.size() >
-					0) {
+			Tileset* otherTileset = Scene::GetTileset(otherTileID);
+			ISprite* otherTileSprite = otherTileset->Sprite;
+			if (otherTileSprite && otherTileSprite->Spritesheets.size() > 0) {
 				tileset = otherTileset;
 				otherTileID -= otherTileset->StartTile;
 				sheetID = tileSprite->FindOrAddSpriteSheet(
-					otherTileSprite
-						->SpritesheetFilenames
-							[0]
-						.c_str());
+					otherTileSprite->SpritesheetFilenames[0].c_str());
 			}
 		}
 
 		tileSprite->AddFrame(animID,
 			durations[i],
-			(otherTileID % tileset->NumCols) *
-				tileset->TileWidth,
-			(otherTileID / tileset->NumCols) *
-				tileset->TileHeight,
+			(otherTileID % tileset->NumCols) * tileset->TileWidth,
+			(otherTileID / tileset->NumCols) * tileset->TileHeight,
 			tileset->TileWidth,
 			tileset->TileHeight,
 			-tileset->TileWidth / 2,
@@ -141,8 +130,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 }
 
 TileAnimator* Tileset::GetTileAnimSequence(int tileID) {
-	std::map<int, TileAnimator>::iterator it =
-		AnimatorMap.find(tileID);
+	std::map<int, TileAnimator>::iterator it = AnimatorMap.find(tileID);
 	if (it == AnimatorMap.end()) {
 		return nullptr;
 	}

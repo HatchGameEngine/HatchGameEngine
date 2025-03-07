@@ -81,15 +81,12 @@ Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
 	dB = (Uint8)((dB * sB + 0xFF) >> 8);
 	return dB | (dG << 8) | (dR << 16);
 }
-Uint32
-ColorUtils::Tint(Uint32 color, Uint32 colorMult, Uint16 percentage) {
+Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult, Uint16 percentage) {
 	return Blend(color, Tint(color, colorMult), percentage);
 }
 Uint32 ColorUtils::Multiply(Uint32 color, Uint32 colorMult) {
-	Uint32 R =
-		(((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
-	Uint32 G =
-		(((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
+	Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
+	Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
 	Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
 	return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
@@ -118,11 +115,7 @@ void ColorUtils::ConvertFromABGRtoARGB(Uint32* argb, int count) {
 		argb++;
 	}
 }
-int ColorUtils::NearestColor(Uint8 r,
-	Uint8 g,
-	Uint8 b,
-	Uint32* palette,
-	unsigned numColors) {
+int ColorUtils::NearestColor(Uint8 r, Uint8 g, Uint8 b, Uint32* palette, unsigned numColors) {
 	Sint64 minDist = 255 * 255 * 3;
 
 	int bestColor = 0;
@@ -134,8 +127,7 @@ int ColorUtils::NearestColor(Uint8 r,
 		Sint64 diffG = ((Sint64)g) - ((color >> 8) & 0xFF);
 		Sint64 diffB = ((Sint64)b) - (color & 0xFF);
 
-		Sint64 dist =
-			diffR * diffR + diffG * diffG + diffB * diffB;
+		Sint64 dist = diffR * diffR + diffG * diffG + diffB * diffB;
 		if (dist < minDist) {
 			bestColor = (int)i;
 			if (!dist) {

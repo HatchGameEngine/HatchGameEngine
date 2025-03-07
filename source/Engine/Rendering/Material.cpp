@@ -28,24 +28,20 @@ Material::Material(char* name) {
 	Name = name;
 
 	for (int i = 0; i < 4; i++) {
-		ColorDiffuse[i] = ColorSpecular[i] = ColorAmbient[i] =
-			ColorEmissive[i] = 1.0f;
+		ColorDiffuse[i] = ColorSpecular[i] = ColorAmbient[i] = ColorEmissive[i] = 1.0f;
 	}
 }
 
-Image* Material::TryLoadForModel(std::string imagePath,
-	const char* parentDirectory) {
+Image* Material::TryLoadForModel(std::string imagePath, const char* parentDirectory) {
 	std::string filename = imagePath;
 
 	if (parentDirectory) {
-		char* concat = StringUtils::ConcatPaths(
-			parentDirectory, filename.c_str());
+		char* concat = StringUtils::ConcatPaths(parentDirectory, filename.c_str());
 		filename = std::string(concat);
 		Memory::Free(concat);
 	}
 
-	int resourceID = Scene::LoadImageResource(
-		filename.c_str(), SCOPE_SCENE);
+	int resourceID = Scene::LoadImageResource(filename.c_str(), SCOPE_SCENE);
 	if (resourceID == -1) {
 		return nullptr;
 	}
@@ -57,24 +53,20 @@ Image* Material::TryLoadForModel(std::string imagePath,
 	return image;
 }
 
-Image* Material::LoadForModel(string imagePath,
-	const char* parentDirectory) {
+Image* Material::LoadForModel(string imagePath, const char* parentDirectory) {
 	// Try possible combinations
 	Image* image = nullptr;
 
 	if ((image = TryLoadForModel(imagePath, parentDirectory))) {
 		return image;
 	}
-	if ((image = TryLoadForModel(
-		     imagePath + ".png", parentDirectory))) {
+	if ((image = TryLoadForModel(imagePath + ".png", parentDirectory))) {
 		return image;
 	}
-	if ((image = TryLoadForModel(
-		     "Textures/" + imagePath, parentDirectory))) {
+	if ((image = TryLoadForModel("Textures/" + imagePath, parentDirectory))) {
 		return image;
 	}
-	if ((image = TryLoadForModel("Textures/" + imagePath + ".png",
-		     parentDirectory))) {
+	if ((image = TryLoadForModel("Textures/" + imagePath + ".png", parentDirectory))) {
 		return image;
 	}
 
@@ -84,12 +76,10 @@ Image* Material::LoadForModel(string imagePath,
 	if ((image = TryLoadForModel(imagePath + ".png", nullptr))) {
 		return image;
 	}
-	if ((image = TryLoadForModel(
-		     "Textures/" + imagePath, nullptr))) {
+	if ((image = TryLoadForModel("Textures/" + imagePath, nullptr))) {
 		return image;
 	}
-	if ((image = TryLoadForModel(
-		     "Textures/" + imagePath + ".png", nullptr))) {
+	if ((image = TryLoadForModel("Textures/" + imagePath + ".png", nullptr))) {
 		return image;
 	}
 
@@ -97,8 +87,7 @@ Image* Material::LoadForModel(string imagePath,
 	return nullptr;
 }
 
-Image* Material::LoadForModel(const char* imagePath,
-	const char* parentDirectory) {
+Image* Material::LoadForModel(const char* imagePath, const char* parentDirectory) {
 	return LoadForModel(std::string(imagePath), parentDirectory);
 }
 

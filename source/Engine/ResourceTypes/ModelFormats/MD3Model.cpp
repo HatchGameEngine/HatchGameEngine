@@ -31,10 +31,7 @@ bool MD3Model::IsMagic(Stream* stream) {
 	return magic == MD3_MODEL_MAGIC;
 }
 
-void MD3Model::DecodeNormal(Uint16 index,
-	float& x,
-	float& y,
-	float& z) {
+void MD3Model::DecodeNormal(Uint16 index, float& x, float& y, float& z) {
 	unsigned latIdx = (index >> 8) & 0xFF;
 	unsigned lngIdx = index & 0xFF;
 
@@ -78,9 +75,7 @@ void MD3Model::ReadVerticesAndNormals(Vector3* vert,
 	}
 }
 
-void MD3Model::ReadUVs(Vector2* uvs,
-	Sint32 vertexCount,
-	Stream* stream) {
+void MD3Model::ReadUVs(Vector2* uvs, Sint32 vertexCount, Stream* stream) {
 	for (Sint32 i = 0; i < vertexCount; i++) {
 		uvs->X = (int)(stream->ReadFloat() * 0x10000);
 		uvs->Y = (int)(stream->ReadFloat() * 0x10000);
@@ -88,9 +83,7 @@ void MD3Model::ReadUVs(Vector2* uvs,
 	}
 }
 
-void MD3Model::ReadVertexIndices(Sint32* indices,
-	Sint32 triangleCount,
-	Stream* stream) {
+void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* stream) {
 	for (Sint32 i = 0; i < triangleCount; i++) {
 		*indices++ = stream->ReadUInt32();
 		*indices++ = stream->ReadUInt32();
@@ -100,13 +93,10 @@ void MD3Model::ReadVertexIndices(Sint32* indices,
 	*indices = -1;
 }
 
-Mesh* MD3Model::ReadSurface(IModel* model,
-	Stream* stream,
-	size_t surfaceDataOffset) {
+Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
 	Sint32 magic = stream->ReadUInt32BE();
 	if (magic != MD3_MODEL_MAGIC) {
-		Log::Print(Log::LOG_ERROR,
-			"Invalid magic for MD3 surface!");
+		Log::Print(Log::LOG_ERROR, "Invalid magic for MD3 surface!");
 		return nullptr;
 	}
 
@@ -133,24 +123,20 @@ Mesh* MD3Model::ReadSurface(IModel* model,
 
 	DataEndOffset = stream->ReadInt32();
 
-	mesh->VertexFlag = VertexType_Position | VertexType_Normal |
-		VertexType_UV;
+	mesh->VertexFlag = VertexType_Position | VertexType_Normal | VertexType_UV;
 
 	mesh->VertexCount = vertexCount;
 	mesh->FrameCount = frameCount;
 
-	mesh->PositionBuffer = (Vector3*)Memory::Malloc(
-		vertexCount * frameCount * sizeof(Vector3));
-	mesh->NormalBuffer = (Vector3*)Memory::Malloc(
-		vertexCount * frameCount * sizeof(Vector3));
-	mesh->UVBuffer = (Vector2*)Memory::Malloc(
-		vertexCount * frameCount * sizeof(Vector2));
+	mesh->PositionBuffer = (Vector3*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector3));
+	mesh->NormalBuffer = (Vector3*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector3));
+	mesh->UVBuffer = (Vector2*)Memory::Malloc(vertexCount * frameCount * sizeof(Vector2));
 
 	mesh->VertexIndexCount = triangleCount * 3;
 	model->VertexIndexCount += mesh->VertexIndexCount;
 
-	mesh->VertexIndexBuffer = (Sint32*)Memory::Malloc(
-		(mesh->VertexIndexCount + 1) * sizeof(Sint32));
+	mesh->VertexIndexBuffer =
+		(Sint32*)Memory::Malloc((mesh->VertexIndexCount + 1) * sizeof(Sint32));
 
 	const size_t surfaceDataSize = sizeof(Sint16) * 4;
 
@@ -159,11 +145,10 @@ Mesh* MD3Model::ReadSurface(IModel* model,
 	Vector3* norm = mesh->NormalBuffer;
 
 	for (Sint32 i = 0; i < frameCount; i++) {
-		stream->Seek(surfaceDataOffset + vertexDataOffset +
-			(i * vertexCount * surfaceDataSize));
+		stream->Seek(
+			surfaceDataOffset + vertexDataOffset + (i * vertexCount * surfaceDataSize));
 
-		ReadVerticesAndNormals(
-			vert, norm, vertexCount, stream);
+		ReadVerticesAndNormals(vert, norm, vertexCount, stream);
 
 		vert += vertexCount;
 		norm += vertexCount;
@@ -188,8 +173,7 @@ Mesh* MD3Model::ReadSurface(IModel* model,
 			Vector2* uvA = &mesh->UVBuffer[i];
 
 			for (Sint32 j = 1; j < frameCount; j++) {
-				Vector2* uvB = &mesh->UVBuffer[i +
-					(vertexCount * j)];
+				Vector2* uvB = &mesh->UVBuffer[i + (vertexCount * j)];
 				uvB->X = uvA->X;
 				uvB->Y = uvA->X;
 			}
@@ -199,12 +183,10 @@ Mesh* MD3Model::ReadSurface(IModel* model,
 	// Read vertex indices
 	stream->Seek(surfaceDataOffset + triangleDataOffset);
 
-	ReadVertexIndices(
-		mesh->VertexIndexBuffer, triangleCount, stream);
+	ReadVertexIndices(mesh->VertexIndexBuffer, triangleCount, stream);
 
 	// Read shaders
-	const size_t shaderDataSize =
-		(sizeof(Uint8) * 64) + sizeof(Sint32);
+	const size_t shaderDataSize = (sizeof(Uint8) * 64) + sizeof(Sint32);
 
 	if (shaderCount) {
 		if (shaderCount > MD3_MAX_SHADERS) {
@@ -218,29 +200,23 @@ Mesh* MD3Model::ReadSurface(IModel* model,
 	}
 
 	for (Sint32 i = 0; i < shaderCount; i++) {
-		stream->Seek(surfaceDataOffset + shaderDataOffset +
-			(i * shaderDataSize));
+		stream->Seek(surfaceDataOffset + shaderDataOffset + (i * shaderDataSize));
 		ReadShader(stream);
 	}
 
 	return mesh;
 }
 
-bool MD3Model::Convert(IModel* model,
-	Stream* stream,
-	const char* path) {
+bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 	if (stream->ReadUInt32BE() != MD3_MODEL_MAGIC) {
-		Log::Print(Log::LOG_ERROR,
-			"Model not of MD3 (Quake III) type!");
+		Log::Print(Log::LOG_ERROR, "Model not of MD3 (Quake III) type!");
 		return false;
 	}
 
 	Version = stream->ReadInt32();
 
-	if (Version != MD3_BASE_VERSION &&
-		Version != MD3_EXTRA_VERSION) {
-		Log::Print(
-			Log::LOG_ERROR, "Unknown MD3 model version!");
+	if (Version != MD3_BASE_VERSION && Version != MD3_EXTRA_VERSION) {
+		Log::Print(Log::LOG_ERROR, "Unknown MD3 model version!");
 		return false;
 	}
 
@@ -257,8 +233,7 @@ bool MD3Model::Convert(IModel* model,
 	Sint32 surfCount = stream->ReadInt32();
 
 	if (!surfCount) {
-		Log::Print(
-			Log::LOG_ERROR, "MD3 model has no surfaces!");
+		Log::Print(Log::LOG_ERROR, "MD3 model has no surfaces!");
 		return false;
 	}
 
@@ -282,7 +257,7 @@ bool MD3Model::Convert(IModel* model,
 	}
 
 	stream->ReadInt32(); // Skin count. Apparently a leftover from
-	                     // the previous MD2 format.
+		// the previous MD2 format.
 
 	Sint32 frameDataOffset = stream->ReadInt32();
 	Sint32 tagDataOffset = stream->ReadInt32();
@@ -331,22 +306,16 @@ bool MD3Model::Convert(IModel* model,
 	// Add materials
 	size_t numMaterials = MaterialNames.size();
 	if (numMaterials) {
-		const char* parentDirectory =
-			StringUtils::GetPath(path);
+		const char* parentDirectory = StringUtils::GetPath(path);
 
 		for (size_t i = 0; i < numMaterials; i++) {
-			char* name =
-				StringUtils::Create(MaterialNames[i]);
+			char* name = StringUtils::Create(MaterialNames[i]);
 			Material* material = Material::Create(name);
 			material->TextureDiffuse =
-				Material::LoadForModel(
-					MaterialNames[i],
-					parentDirectory);
+				Material::LoadForModel(MaterialNames[i], parentDirectory);
 			if (material->TextureDiffuse) {
 				material->TextureDiffuseName =
-					StringUtils::Duplicate(
-						material->TextureDiffuse
-							->Filename);
+					StringUtils::Duplicate(material->TextureDiffuse->Filename);
 			}
 			model->AddUniqueMaterial(material);
 		}

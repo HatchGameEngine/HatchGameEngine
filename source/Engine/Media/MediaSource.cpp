@@ -33,10 +33,7 @@ int64_t _SeekPacket(void* opaque, int64_t offset, int whence) {
 	}
 	return (int64_t)stream->Position();
 }
-void _AVLogCallback(void* ptr,
-	int level,
-	const char* fmt,
-	va_list vargs) {
+void _AVLogCallback(void* ptr, int level, const char* fmt, va_list vargs) {
 	if (!fmt) {
 		return;
 	}
@@ -84,34 +81,20 @@ MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
 	MediaSource* src = (MediaSource*)Memory::TrackedCalloc(
 		"MediaSource::MediaSource", 1, sizeof(MediaSource));
 	if (!src) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate MediaSource!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
 		return NULL;
 	}
 
 #ifdef USING_LIBAV
-	if (avformat_open_input((AVFormatContext**)&src->FormatCtx,
-		    url,
-		    NULL,
-		    NULL) < 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to open source URL: %s!",
-			url);
+	if (avformat_open_input((AVFormatContext**)&src->FormatCtx, url, NULL, NULL) < 0) {
+		Log::Print(Log::LOG_ERROR, "Unable to open source URL: %s!", url);
 		goto __FREE;
 	}
 
-	av_opt_set_int((AVFormatContext*)src->FormatCtx,
-		"probesize",
-		INT_MAX,
-		0);
-	av_opt_set_int((AVFormatContext*)src->FormatCtx,
-		"analyzeduration",
-		INT_MAX,
-		0);
-	if (avformat_find_stream_info(
-		    (AVFormatContext*)src->FormatCtx, NULL) < 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to fetch source info!");
+	av_opt_set_int((AVFormatContext*)src->FormatCtx, "probesize", INT_MAX, 0);
+	av_opt_set_int((AVFormatContext*)src->FormatCtx, "analyzeduration", INT_MAX, 0);
+	if (avformat_find_stream_info((AVFormatContext*)src->FormatCtx, NULL) < 0) {
+		Log::Print(Log::LOG_ERROR, "Unable to fetch source info!");
 		goto __CLOSE;
 	}
 
@@ -130,8 +113,7 @@ MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
 #ifdef USING_LIBAV
 	AVIOContext* avio_ctx = NULL;
 	Uint8* avio_ctx_buffer = NULL;
-	size_t avio_ctx_buffer_size =
-		4096; // Typical cache page size (4KB)
+	size_t avio_ctx_buffer_size = 4096; // Typical cache page size (4KB)
 
 	av_log_set_level(AV_LOG_ERROR);
 	av_log_set_callback(_AVLogCallback);
@@ -139,22 +121,19 @@ MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
 	MediaSource* src = (MediaSource*)Memory::TrackedCalloc(
 		"MediaSource::MediaSource", 1, sizeof(MediaSource));
 	if (!src) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate MediaSource!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
 		return NULL;
 	}
 
 	src->StreamPtr = stream;
 
 	if (!(src->FormatCtx = avformat_alloc_context())) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate Format context!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate Format context!");
 		goto __FREE;
 	}
 	avio_ctx_buffer = (Uint8*)av_malloc(avio_ctx_buffer_size);
 	if (!avio_ctx_buffer) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate AVIO context buffer!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate AVIO context buffer!");
 		goto __CLOSE;
 	}
 	avio_ctx = avio_alloc_context(avio_ctx_buffer,
@@ -162,45 +141,32 @@ MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
 		false, // isWritable
 		stream, // opaque pointer
 		&_ReadPacket, // int(*)(void *opaque, uint8_t *buf, int
-	                      // buf_size) 	read_packet,
+		// buf_size) 	read_packet,
 		NULL, // int(*)(void *opaque, uint8_t *buf, int
-	              // buf_size) 	write_packet,
+		// buf_size) 	write_packet,
 		&_SeekPacket); // int64_t(*)(void *opaque, int64_t
-	                       // offset, int whence) 	seek
+	// offset, int whence) 	seek
 	if (!avio_ctx) {
 		// ret = AVERROR(ENOMEM);
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate AVIO context!");
+		Log::Print(Log::LOG_ERROR, "Unable to allocate AVIO context!");
 		goto __CLOSE;
 	}
 	((AVFormatContext*)src->FormatCtx)->pb = avio_ctx;
-	((AVFormatContext*)src->FormatCtx)->flags |=
-		AVFMT_FLAG_CUSTOM_IO;
+	((AVFormatContext*)src->FormatCtx)->flags |= AVFMT_FLAG_CUSTOM_IO;
 	// ((AVFormatContext*)src->FormatCtx)->flags |=
 	// AVFMT_FLAG_FAST_SEEK;
 	// ((AVFormatContext*)src->FormatCtx)->flags |=
 	// AVFMT_SEEK_TO_PTS;
 
-	if (avformat_open_input((AVFormatContext**)&src->FormatCtx,
-		    NULL,
-		    NULL,
-		    NULL) < 0) {
+	if (avformat_open_input((AVFormatContext**)&src->FormatCtx, NULL, NULL, NULL) < 0) {
 		Log::Print(Log::LOG_ERROR, "Unable to open source!");
 		goto __FREE;
 	}
 
-	av_opt_set_int((AVFormatContext*)src->FormatCtx,
-		"probesize",
-		INT_MAX,
-		0);
-	av_opt_set_int((AVFormatContext*)src->FormatCtx,
-		"analyzeduration",
-		INT_MAX,
-		0);
-	if (avformat_find_stream_info(
-		    (AVFormatContext*)src->FormatCtx, NULL) < 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to fetch source info!");
+	av_opt_set_int((AVFormatContext*)src->FormatCtx, "probesize", INT_MAX, 0);
+	av_opt_set_int((AVFormatContext*)src->FormatCtx, "analyzeduration", INT_MAX, 0);
+	if (avformat_find_stream_info((AVFormatContext*)src->FormatCtx, NULL) < 0) {
+		Log::Print(Log::LOG_ERROR, "Unable to fetch source info!");
 		goto __CLOSE;
 	}
 
@@ -232,8 +198,7 @@ int MediaSource::GetStreamInfo(Uint32* info, int index) {
 
 #ifdef USING_LIBAV
 
-	AVFormatContext* format_ctx =
-		(AVFormatContext*)this->FormatCtx;
+	AVFormatContext* format_ctx = (AVFormatContext*)this->FormatCtx;
 	if (index < 0 || (Uint32)index >= format_ctx->nb_streams) {
 		Log::Print(Log::LOG_ERROR, "Invalid stream index");
 		return 1;
@@ -267,8 +232,7 @@ int MediaSource::GetStreamInfo(Uint32* info, int index) {
 		*info = STREAMTYPE_ATTACHMENT;
 		break;
 	default:
-		Log::Print(
-			Log::LOG_ERROR, "Unknown native stream type");
+		Log::Print(Log::LOG_ERROR, "Unknown native stream type");
 		return 1;
 	}
 
@@ -298,19 +262,13 @@ int MediaSource::GetBestStream(Uint32 type) {
 	default:
 		return -1;
 	}
-	int ret =
-		av_find_best_stream((AVFormatContext*)this->FormatCtx,
-			(enum AVMediaType)avmedia_type,
-			-1,
-			-1,
-			NULL,
-			0);
+	int ret = av_find_best_stream(
+		(AVFormatContext*)this->FormatCtx, (enum AVMediaType)avmedia_type, -1, -1, NULL, 0);
 	if (ret == AVERROR_STREAM_NOT_FOUND) {
 		return -1;
 	}
 	if (ret == AVERROR_DECODER_NOT_FOUND) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to find a decoder for the stream");
+		Log::Print(Log::LOG_ERROR, "Unable to find a decoder for the stream");
 		return 1;
 	}
 	return ret;
@@ -320,8 +278,7 @@ int MediaSource::GetBestStream(Uint32 type) {
 
 void MediaSource::Close() {
 #ifdef USING_LIBAV
-	AVFormatContext* format_ctx =
-		(AVFormatContext*)this->FormatCtx;
+	AVFormatContext* format_ctx = (AVFormatContext*)this->FormatCtx;
 	AVIOContext* avio_ctx = (AVIOContext*)this->AvioCtx;
 	avformat_close_input(&format_ctx);
 	if (avio_ctx) {

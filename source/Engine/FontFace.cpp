@@ -42,16 +42,12 @@ FT_PackageNode* FindNode(FT_PackageNode* root, int width, int height) {
 			return space;
 		}
 	}
-	else if (width <= root->Box->Width &&
-		height <= root->Box->Height) {
+	else if (width <= root->Box->Width && height <= root->Box->Height) {
 		return root;
 	}
 	return NULL;
 }
-FT_PackageNode* InsertNode(FT_PackageNode* parent,
-	FT_GlyphBox* box,
-	int width,
-	int height) {
+FT_PackageNode* InsertNode(FT_PackageNode* parent, FT_GlyphBox* box, int width, int height) {
 	parent->Used = true;
 
 	// 'parent' is box we're inserting into
@@ -77,10 +73,7 @@ FT_PackageNode* InsertNode(FT_PackageNode* parent,
 
 	return parent;
 }
-FT_Package* PackBoxes(FT_GlyphBox* boxes,
-	int boxCount,
-	int defWidth,
-	int defHeight) {
+FT_Package* PackBoxes(FT_GlyphBox* boxes, int boxCount, int defWidth, int defHeight) {
 	FT_Package* package = new FT_Package;
 	package->Width = defWidth;
 	package->Height = defHeight;
@@ -106,9 +99,7 @@ FT_Package* PackBoxes(FT_GlyphBox* boxes,
 
 			FT_PackageNode* node;
 			// If we can find a place for this box
-			if ((node = FindNode(root,
-				     boxes[i].Width,
-				     boxes[i].Height)) != NULL) {
+			if ((node = FindNode(root, boxes[i].Width, boxes[i].Height)) != NULL) {
 				InsertNode(node,
 					&boxes[i],
 					boxes[i].Width + padding,
@@ -132,11 +123,8 @@ FT_Package* PackBoxes(FT_GlyphBox* boxes,
 				// %d)\n", package->Width,
 				// package->Height);
 
-				if (package->Width == 0 ||
-					package->Height == 0 ||
-					(package->Width >= maxSz &&
-						package->Height >=
-							maxSz)) {
+				if (package->Width == 0 || package->Height == 0 ||
+					(package->Width >= maxSz && package->Height >= maxSz)) {
 					printf("package too big: %d x %d\n",
 						package->Width,
 						package->Height);
@@ -163,15 +151,12 @@ FT_Package* PackBoxes(FT_GlyphBox* boxes,
 	return package;
 }
 
-ISprite* FontFace::SpriteFromFont(Stream* stream,
-	int pixelSize,
-	const char* filename) {
+ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* filename) {
 #ifdef USING_FREETYPE
 
 	if (!ftInitialized) {
 		if (FT_Init_FreeType(&ftLib)) {
-			Log::Print(Log::LOG_ERROR,
-				"FREETYPE: Could not init FreeType Library.");
+			Log::Print(Log::LOG_ERROR, "FREETYPE: Could not init FreeType Library.");
 			stream->Close();
 			return NULL;
 		}
@@ -183,13 +168,8 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 	stream->ReadBytes(fontFileMemory, fontFileLength);
 
 	FT_Face face;
-	if (FT_New_Memory_Face(ftLib,
-		    (Uint8*)fontFileMemory,
-		    fontFileLength,
-		    0,
-		    &face)) {
-		Log::Print(Log::LOG_ERROR,
-			"FREETYPE: Failed to load font.");
+	if (FT_New_Memory_Face(ftLib, (Uint8*)fontFileMemory, fontFileLength, 0, &face)) {
+		Log::Print(Log::LOG_ERROR, "FREETYPE: Failed to load font.");
 		Memory::Free(fontFileMemory);
 		return NULL;
 	}
@@ -212,12 +192,10 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 
 	// Allocate pixel memory
 	ISprite* sprite = new ISprite();
-	Uint32* pixelData = (Uint32*)Memory::Malloc(
-		package->Width * package->Height * sizeof(Uint32));
+	Uint32* pixelData =
+		(Uint32*)Memory::Malloc(package->Width * package->Height * sizeof(Uint32));
 	Uint32 pixelStride = package->Width * sizeof(Uint32);
-	Memory::Memset4(pixelData,
-		0x00FFFFFF,
-		package->Width * package->Height);
+	Memory::Memset4(pixelData, 0x00FFFFFF, package->Width * package->Height);
 
 	int offsetSlightX = 0;
 	int offsetBaseline = 0;
@@ -233,14 +211,10 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 
 		Uint8* buf = face->glyph->bitmap.buffer;
 		char* pixel_start =
-			(char*)(pixelData + boxes[c].X +
-				boxes[c].Y * package->Width) +
-			3;
-		for (Uint32 py = 0; py < face->glyph->bitmap.rows;
-			py++) {
+			(char*)(pixelData + boxes[c].X + boxes[c].Y * package->Width) + 3;
+		for (Uint32 py = 0; py < face->glyph->bitmap.rows; py++) {
 			for (char* pixel_a = pixel_start;
-				pixel_a < pixel_start +
-					face->glyph->bitmap.width * 4;
+				pixel_a < pixel_start + face->glyph->bitmap.width * 4;
 				pixel_a += 4) {
 				// Set alpha
 				*pixel_a = *buf++;
@@ -249,30 +223,22 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 		}
 	}
 
-	Texture* spriteSheet =
-		Graphics::CreateTextureFromPixels(package->Width,
-			package->Height,
-			pixelData,
-			package->Width * sizeof(Uint32));
+	Texture* spriteSheet = Graphics::CreateTextureFromPixels(
+		package->Width, package->Height, pixelData, package->Width * sizeof(Uint32));
 	if (spriteSheet) {
 		sprite->Spritesheets.push_back(spriteSheet);
-		sprite->SpritesheetFilenames.push_back(
-			std::string(filename));
+		sprite->SpritesheetFilenames.push_back(std::string(filename));
 	}
 
 	// Add preliminary chars
-	sprite->AddAnimation(
-		"Font", offsetBaseline & 0xFFFF, pixelSize, 0x100);
+	sprite->AddAnimation("Font", offsetBaseline & 0xFFFF, pixelSize, 0x100);
 	for (Uint32 c = 0; c < ' '; c++) {
 		sprite->AddFrame(0, 0, 0, 1, 1, 0, 0, 0);
 	}
 
 	for (Uint32 c = ' '; c < 0x100; c++) {
 		if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-			Log::Print(Log::LOG_ERROR,
-				"FREETYTPE: Failed to load Glyph %X (%c)",
-				c,
-				c);
+			Log::Print(Log::LOG_ERROR, "FREETYTPE: Failed to load Glyph %X (%c)", c, c);
 			sprite->AddFrame(0, 0, 0, 1, 1, 0, 0, 0);
 			continue;
 		}
@@ -285,18 +251,14 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 			face->glyph->bitmap_left + offsetSlightX,
 			-face->glyph->bitmap_top + offsetBaseline,
 			0);
-		sprite->Animations.back().Frames.back().Advance =
-			face->glyph->advance.x >> 6;
+		sprite->Animations.back().Frames.back().Advance = face->glyph->advance.x >> 6;
 	}
 
 	bool exportFonts = false;
-	Application::Settings->GetBool(
-		"dev", "exportFonts", &exportFonts);
+	Application::Settings->GetBool("dev", "exportFonts", &exportFonts);
 	if (exportFonts) {
-		char* filenameJustName =
-			filename + strlen(filename) - 1;
-		for (; filenameJustName > filename;
-			filenameJustName--) {
+		char* filenameJustName = filename + strlen(filename) - 1;
+		for (; filenameJustName > filename; filenameJustName--) {
 			if (*filenameJustName == '/') {
 				filenameJustName++;
 				break;
@@ -309,19 +271,17 @@ ISprite* FontFace::SpriteFromFont(Stream* stream,
 			"Fonts/%s_%d.bmp",
 			filenameJustName,
 			pixelSize);
-		sprite->SpritesheetsFilenames.push_back(
-			std::string(testFilename));
+		sprite->SpritesheetsFilenames.push_back(std::string(testFilename));
 
-		SDL_Surface* surface =
-			SDL_CreateRGBSurfaceFrom(pixelData,
-				package->Width,
-				package->Height,
-				32,
-				package->Width * 4,
-				0x00FF0000,
-				0x0000FF00,
-				0x000000FF,
-				0xFF000000);
+		SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixelData,
+			package->Width,
+			package->Height,
+			32,
+			package->Width * 4,
+			0x00FF0000,
+			0x0000FF00,
+			0x000000FF,
+			0xFF000000);
 		SDL_SaveBMP(surface, testFilename);
 		SDL_FreeSurface(surface);
 

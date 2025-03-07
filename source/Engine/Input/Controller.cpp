@@ -49,8 +49,7 @@ static SDL_GameControllerAxis AxisEnums[] = {CONST_AXIS(LEFTX),
 #undef CONST_AXIS
 
 ControllerType Controller::DetermineType(void* gamecontroller) {
-	switch (SDL_GameControllerGetType(
-		(SDL_GameController*)gamecontroller)) {
+	switch (SDL_GameControllerGetType((SDL_GameController*)gamecontroller)) {
 	case SDL_CONTROLLER_TYPE_XBOX360:
 		return ControllerType::Xbox360;
 	case SDL_CONTROLLER_TYPE_XBOXONE:
@@ -99,12 +98,9 @@ bool Controller::Open(int index) {
 		Rumble = new ControllerRumble(Device);
 	}
 
-	ButtonsPressed = (bool*)Memory::Calloc(
-		(int)ControllerButton::Max, sizeof(bool));
-	ButtonsHeld = (bool*)Memory::Calloc(
-		(int)ControllerButton::Max, sizeof(bool));
-	AxisValues = (float*)Memory::Calloc(
-		(int)ControllerAxis::Max, sizeof(float));
+	ButtonsPressed = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
+	ButtonsHeld = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
+	AxisValues = (float*)Memory::Calloc((int)ControllerAxis::Max, sizeof(float));
 
 	return true;
 }
@@ -156,8 +152,7 @@ bool Controller::GetButton(int button) {
 	if (button >= (int)ControllerButton::Max) {
 		return false;
 	}
-	return SDL_GameControllerGetButton(
-		Device, ButtonEnums[button]);
+	return SDL_GameControllerGetButton(Device, ButtonEnums[button]);
 }
 
 bool Controller::IsButtonHeld(int button) {
@@ -185,29 +180,24 @@ void Controller::Update() {
 		Rumble->Update();
 	}
 
-	for (unsigned i = 0; i < (unsigned)ControllerButton::Max;
-		i++) {
+	for (unsigned i = 0; i < (unsigned)ControllerButton::Max; i++) {
 		bool isDown = GetButton(i);
 		ButtonsPressed[i] = !ButtonsHeld[i] && isDown;
 		ButtonsHeld[i] = isDown;
 	}
 
 	for (unsigned i = 0; i < (unsigned)ControllerAxis::Max; i++) {
-		Sint16 value = SDL_GameControllerGetAxis(
-			Device, AxisEnums[i]);
+		Sint16 value = SDL_GameControllerGetAxis(Device, AxisEnums[i]);
 		AxisValues[i] = (float)value / 32767;
 	}
 }
 
 bool Controller::IsXbox() {
-	return Type == ControllerType::Xbox360 ||
-		Type == ControllerType::XboxOne ||
-		Type == ControllerType::XboxSeriesXS ||
-		Type == ControllerType::XboxElite;
+	return Type == ControllerType::Xbox360 || Type == ControllerType::XboxOne ||
+		Type == ControllerType::XboxSeriesXS || Type == ControllerType::XboxElite;
 }
 bool Controller::IsPlayStation() {
-	return Type == ControllerType::PS3 ||
-		Type == ControllerType::PS4 ||
+	return Type == ControllerType::PS3 || Type == ControllerType::PS4 ||
 		Type == ControllerType::PS5;
 }
 bool Controller::IsJoyCon() {
@@ -215,13 +205,11 @@ bool Controller::IsJoyCon() {
 		Type == ControllerType::SwitchJoyConRight;
 }
 bool Controller::HasShareButton() {
-	return Type == ControllerType::XboxSeriesXS ||
-		Type == ControllerType::SwitchPro ||
+	return Type == ControllerType::XboxSeriesXS || Type == ControllerType::SwitchPro ||
 		Type == ControllerType::SwitchJoyConLeft;
 }
 bool Controller::HasMicrophoneButton() {
-	return Type == ControllerType::PS5 ||
-		Type == ControllerType::AmazonLuna;
+	return Type == ControllerType::PS5 || Type == ControllerType::AmazonLuna;
 }
 bool Controller::HasPaddles() {
 	return Type == ControllerType::XboxElite;

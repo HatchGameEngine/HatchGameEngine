@@ -10,17 +10,14 @@ void FunctionImpl::Init() {
 	Class = NewClass(Murmur::EncryptString(name));
 	Class->Name = CopyString(name);
 
-	ScriptManager::DefineNative(
-		Class, "bind", FunctionImpl::VM_Bind);
+	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 
 	ScriptManager::ClassImplList.push_back(Class);
 }
 
-#define GET_ARG(argIndex, argFunction) \
-	(StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-VMValue
-FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjFunction* function = GET_ARG(0, GetFunction);
