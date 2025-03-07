@@ -1,6 +1,8 @@
 #ifndef ENGINE_RENDERING_GRAPHICSFUNCTIONS
 #define ENGINE_RENDERING_GRAPHICSFUNCTIONS
 
+#include <Engine/Rendering/Texture.h>
+
 struct GraphicsFunctions {
 	void (*Init)();
 	Uint32 (*GetWindowFlags)();

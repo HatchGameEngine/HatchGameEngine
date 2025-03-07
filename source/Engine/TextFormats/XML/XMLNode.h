@@ -3,6 +3,8 @@
 
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Includes/Token.h>
+#include <Engine/Includes/HashMap.h>
+#include <Engine/IO/Stream.h>
 
 class XMLAttributes {
 public:
