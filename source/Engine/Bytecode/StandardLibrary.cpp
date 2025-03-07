@@ -36,9 +36,10 @@
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
-#include <Engine/TextFormats/JSON/jsmn.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#include <Libraries/jsmn.h>
 
 #ifdef USING_FREETYPE
 #include <ft2build.h>
