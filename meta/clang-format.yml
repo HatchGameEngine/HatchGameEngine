@@ -20,17 +20,7 @@ AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
 BraceWrapping:
-   AfterClass: false
-   AfterControlStatement: false
-   AfterEnum: false
-   AfterFunction: false
-   AfterNamespace: false
-   AfterObjCDeclaration: false
-   AfterStruct: false
-   AfterUnion: false
-   BeforeCatch: false
    BeforeElse: true
-   IndentBraces: false
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeTernaryOperators: true
