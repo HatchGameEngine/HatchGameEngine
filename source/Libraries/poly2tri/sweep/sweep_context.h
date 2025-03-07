@@ -4,38 +4,36 @@
  *
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
  *
- * * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- * * Neither the name of Poly2Tri nor the names of its contributors may
- * be used to endorse or promote products derived from this software
- * without specific prior written permission.
+ * * Redistributions of source code must retain the above copyright notice,
+ *   this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
+ *   and/or other materials provided with the distribution.
+ * * Neither the name of Poly2Tri nor the names of its contributors may be
+ *   used to endorse or promote products derived from this software without specific
+ *   prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #pragma once
 
-#include <cstddef>
 #include <list>
 #include <vector>
+#include <cstddef>
 
 namespace p2t {
 
@@ -50,126 +48,137 @@ struct Edge;
 class AdvancingFront;
 
 class SweepContext {
-       public:
-	/// Constructor
-	explicit SweepContext(std::vector<Point*> polyline);
-	/// Destructor
-	~SweepContext();
+public:
 
-	void set_head(Point* p1);
+/// Constructor
+explicit SweepContext(std::vector<Point*> polyline);
+/// Destructor
+~SweepContext();
 
-	Point* head() const;
+void set_head(Point* p1);
 
-	void set_tail(Point* p1);
+Point* head() const;
 
-	Point* tail() const;
+void set_tail(Point* p1);
 
-	size_t point_count() const;
+Point* tail() const;
 
-	Node* LocateNode(const Point& point);
+size_t point_count() const;
 
-	void RemoveNode(Node* node);
+Node* LocateNode(const Point& point);
 
-	void CreateAdvancingFront();
+void RemoveNode(Node* node);
 
-	/// Try to map a node to all sides of this triangle that don't
-	/// have a neighbor
-	void MapTriangleToNodes(Triangle& t);
+void CreateAdvancingFront();
 
-	void AddToMap(Triangle* triangle);
+/// Try to map a node to all sides of this triangle that don't have a neighbor
+void MapTriangleToNodes(Triangle& t);
 
-	Point* GetPoint(size_t index);
+void AddToMap(Triangle* triangle);
 
-	Point* GetPoints();
+Point* GetPoint(size_t index);
 
-	void RemoveFromMap(Triangle* triangle);
+Point* GetPoints();
 
-	void AddHole(const std::vector<Point*>& polyline);
+void RemoveFromMap(Triangle* triangle);
 
-	void AddPoint(Point* point);
+void AddHole(const std::vector<Point*>& polyline);
 
-	AdvancingFront* front() const;
+void AddPoint(Point* point);
 
-	void MeshClean(Triangle& triangle);
+AdvancingFront* front() const;
 
-	std::vector<Triangle*>& GetTriangles();
-	std::list<Triangle*>& GetMap();
+void MeshClean(Triangle& triangle);
 
-	std::vector<Edge*> edge_list;
+std::vector<Triangle*> &GetTriangles();
+std::list<Triangle*> &GetMap();
 
-	struct Basin {
-		Node* left_node;
-		Node* bottom_node;
-		Node* right_node;
-		double width;
-		bool left_highest;
+std::vector<Edge*> edge_list;
 
-		Basin()
-			: left_node(nullptr), bottom_node(nullptr),
-			  right_node(nullptr), width(0.0),
-			  left_highest(false) {}
+struct Basin {
+  Node* left_node;
+  Node* bottom_node;
+  Node* right_node;
+  double width;
+  bool left_highest;
 
-		void Clear() {
-			left_node = nullptr;
-			bottom_node = nullptr;
-			right_node = nullptr;
-			width = 0.0;
-			left_highest = false;
-		}
-	};
+  Basin()
+  : left_node(nullptr), bottom_node(nullptr), right_node(nullptr), width(0.0), left_highest(false)
+  {
+  }
 
-	struct EdgeEvent {
-		Edge* constrained_edge;
-		bool right;
-
-		EdgeEvent() : constrained_edge(NULL), right(false) {}
-	};
-
-	Basin basin;
-	EdgeEvent edge_event;
-
-       private:
-	friend class Sweep;
-
-	std::vector<Triangle*> triangles_;
-	std::list<Triangle*> map_;
-	std::vector<Point*> points_;
-
-	// Advancing front
-	AdvancingFront* front_;
-	// head point used with advancing front
-	Point* head_;
-	// tail point used with advancing front
-	Point* tail_;
-
-	Node *af_head_, *af_middle_, *af_tail_;
-
-	void InitTriangulation();
-	void InitEdges(const std::vector<Point*>& polyline);
+  void Clear()
+  {
+    left_node = nullptr;
+    bottom_node = nullptr;
+    right_node = nullptr;
+    width = 0.0;
+    left_highest = false;
+  }
 };
 
-inline AdvancingFront* SweepContext::front() const {
-	return front_;
+struct EdgeEvent {
+  Edge* constrained_edge;
+  bool right;
+
+  EdgeEvent() : constrained_edge(NULL), right(false)
+  {
+  }
+};
+
+Basin basin;
+EdgeEvent edge_event;
+
+private:
+
+friend class Sweep;
+
+std::vector<Triangle*> triangles_;
+std::list<Triangle*> map_;
+std::vector<Point*> points_;
+
+// Advancing front
+AdvancingFront* front_;
+// head point used with advancing front
+Point* head_;
+// tail point used with advancing front
+Point* tail_;
+
+Node *af_head_, *af_middle_, *af_tail_;
+
+void InitTriangulation();
+void InitEdges(const std::vector<Point*>& polyline);
+
+};
+
+inline AdvancingFront* SweepContext::front() const
+{
+  return front_;
 }
 
-inline size_t SweepContext::point_count() const {
-	return points_.size();
+inline size_t SweepContext::point_count() const
+{
+  return points_.size();
 }
 
-inline void SweepContext::set_head(Point* p1) {
-	head_ = p1;
+inline void SweepContext::set_head(Point* p1)
+{
+  head_ = p1;
 }
 
-inline Point* SweepContext::head() const {
-	return head_;
+inline Point* SweepContext::head() const
+{
+  return head_;
 }
 
-inline void SweepContext::set_tail(Point* p1) {
-	tail_ = p1;
+inline void SweepContext::set_tail(Point* p1)
+{
+  tail_ = p1;
 }
 
-inline Point* SweepContext::tail() const {
-	return tail_;
+inline Point* SweepContext::tail() const
+{
+  return tail_;
 }
 
-} // namespace p2t
+}
