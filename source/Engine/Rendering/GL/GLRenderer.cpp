@@ -1167,8 +1167,10 @@ void GLRenderer::Init() {
 
 	Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
+#ifndef MACOSX
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
