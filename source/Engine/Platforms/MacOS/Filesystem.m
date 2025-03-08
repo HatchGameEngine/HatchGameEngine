@@ -11,6 +11,7 @@
 int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
 	@autoreleasepool {
 #if MACOSX_AAAAAAAA
+		/* clang-format off */
 		NSBundle* bundle = [NSBundle mainBundle];
 		const char* baseType =
 			[[bundle bundlePath] fileSystemRepresentation];
@@ -32,6 +33,7 @@ int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
 				baseType, ".app");
 		}
 
+/* clang-format on */
 #endif
 		return 0;
 	}
