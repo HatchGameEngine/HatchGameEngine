@@ -6,6 +6,75 @@
 extern "C" {
 #include <Engine/Platforms/MacOS/Filesystem.h>
 }
+
+static void getAppName(char* buffer, int maxSize) {
+	char* tmp = new char[maxSize];
+	char* tmp2 = new char[maxSize];
+
+	if (MacOS_GetSelfPath(tmp, maxSize)) {
+		/* this shouldn't happen */
+		delete[] tmp;
+		delete[] tmp2;
+
+		return;
+	}
+
+	memset(tmp2, 0, maxSize);
+
+	int slashcount = 0;
+	int end = 0;
+	for (int i = maxSize - 1; i >= 0; --i) {
+		slashcount += tmp[i] == '/' ? 1 : 0;
+
+		if (slashcount >= 2) {
+			end = i;
+			break;
+		}
+	}
+
+	if (slashcount < 2) {
+		memset(buffer, 0, maxSize);
+
+		delete[] tmp;
+		delete[] tmp2;
+
+		return;
+	}
+
+	int start = -1;
+	for (int i = end - 1; i >= 0; --i) {
+		if (tmp[i] == '/') {
+			start = i + 1;
+
+			break;
+		}
+	}
+
+	if (start == -1) {
+		memset(buffer, 0, maxSize);
+
+		delete[] tmp;
+		delete[] tmp2;
+
+		return;
+	}
+
+	if (tmp[end - 1] != 'p' || tmp[end - 2] != 'p' || tmp[end - 3] != 'a' ||
+		tmp[end - 4] != '.') {
+		/* no .app, it's not packaged */
+		memset(buffer, 0, maxSize);
+
+		delete[] tmp;
+		delete[] tmp2;
+
+		return;
+	}
+
+	memcpy(buffer, (unsigned char*)tmp + start, (end - start) - 4);
+
+	delete[] tmp;
+	delete[] tmp2;
+}
 #endif
 
 FileStream* FileStream::New(const char* filename, Uint32 access) {
@@ -30,7 +99,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 	stream->f = NULL;
 
 #if 0
-        printf("THIS SHOULDN'T HAPPEN\n");
+	printf("THIS SHOULDN'T HAPPEN\n");
 #elif defined(WIN32)
 	if (access & FileStream::SAVEGAME_ACCESS) {
 		// Saves in
@@ -48,6 +117,8 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 #elif defined(MACOSX)
 	if (access & FileStream::SAVEGAME_ACCESS) {
 		char documentPath[256];
+		char appDirName[256];
+		getAppName(appDirName, 256);
 		if (MacOS_GetApplicationSupportDirectory(documentPath, 256)) {
 			snprintf(documentPath, 256, "%s/" TARGET_NAME "/Saves", documentPath);
 			if (!Directory::Exists(documentPath)) {

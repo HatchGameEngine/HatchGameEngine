@@ -8,6 +8,8 @@
 #include <NotificationCenter/NotificationCenter.h>
 #endif
 
+#include <string.h>
+
 int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
 	@autoreleasepool {
 #if MACOSX_AAAAAAAA
@@ -37,4 +39,20 @@ int MacOS_GetApplicationSupportDirectory(char* buffer, int maxSize) {
 #endif
 		return 0;
 	}
+}
+
+int MacOS_GetSelfPath(char* buffer, int maxSize) {
+#if MACOSX_AAAAAAAA
+	char p[maxSize];
+	uint32_t p_sz = sizeof p;
+
+	memset(p, 0, maxSize);
+
+	if (_NSGetExecutablePath(p, &p_sz) != 0) {
+		return 1;
+	}
+
+	memcpy(buffer, p, maxSize);
+#endif
+	return 0;
 }
