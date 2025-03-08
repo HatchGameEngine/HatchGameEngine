@@ -225,6 +225,7 @@ PRVHFILES := \
 	source/Libraries/Clipper2/clipper.offset.h \
 	source/Libraries/Clipper2/clipper.rectclip.h \
 	source/Libraries/Clipper2/clipper.version.h \
+	source/Libraries/jsmn.h \
 	source/Libraries/miniz.h \
 	source/Libraries/nanoprintf.h \
 	source/Libraries/poly2tri/common/dll_symbol.h \
