@@ -2,9 +2,9 @@
 #define XMLNODE_H
 
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Includes/Token.h>
-#include <Engine/Includes/HashMap.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Includes/HashMap.h>
+#include <Engine/Includes/Token.h>
 
 class XMLAttributes {
 public:
