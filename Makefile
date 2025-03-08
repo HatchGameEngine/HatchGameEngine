@@ -214,7 +214,6 @@ PRVHFILES := \
 	source/Engine/Scene/TileAnimation.h \
 	source/Engine/Sprites/Animation.h \
 	source/Engine/TextFormats/INI/INIStructs.h \
-	source/Engine/TextFormats/JSON/jsmn.h \
 	source/Engine/TextFormats/XML/XMLNode.h \
 	source/Engine/Types/Collision.h \
 	source/Engine/Types/EntityTypes.h \
