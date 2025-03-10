@@ -821,7 +821,7 @@ $(.L_EXETARGET): $(.L_OFILES)
 ifneq ($(strip $(.L_OFILES)),)
 	$(call .FN_FILE,LD,$@)
 #	@$(ECHO) $^
-	$(LD) $(LDFLAGS) -o $@ $^ $(.K_LIB) $(.K_FWORK)
+	@$(LD) $(LDFLAGS) -o $@ $^ $(.K_LIB) $(.K_FWORK)
 	$(call .FN_FILE,STRIP,$@)
 	@$(REALSTRIP) -s $@
 endif
