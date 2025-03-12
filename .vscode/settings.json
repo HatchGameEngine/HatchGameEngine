@@ -1,0 +1,6 @@
+{
+	"editor.minimap.maxColumn": 100,
+	"editor.lineHeight": 1.2,
+	"html.format.wrapLineLength": 100,
+	"editor.wordWrapColumn": 100
+}
