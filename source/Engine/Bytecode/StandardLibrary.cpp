@@ -15699,10 +15699,10 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.CharAt
- * \desc Gets the UTF8 value of the character at the specified index.
- * \param string (String):
- * \param index (Integer):
- * \return Returns the UTF8 value as an Integer.
+ * \desc Gets the ASCII code of the character at the specified index.
+ * \param string (String): The input string.
+ * \param index (Integer): The index of the character to get.
+ * \return Returns the character as an Integer.
  * \ns String
  */
 VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
@@ -15714,7 +15714,7 @@ VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.Length
  * \desc Gets the length of the String value.
- * \param string (String):
+ * \param string (String): The input string.
  * \return Returns the length of the String value as an Integer.
  * \ns String
  */
@@ -15725,10 +15725,10 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Compare
- * \desc Compare two Strings and retrieve a numerical difference.
- * \param stringA (String):
- * \param stringB (String):
- * \return Returns the comparison result as an Integer.
+ * \desc Compares two Strings lexicographically.
+ * \param stringA (String): The first string to compare.
+ * \param stringB (String): The second string to compare.
+ * \return Returns the comparison result as an Integer. The return value is a negative integer if <code>stringA</code> appears before <code>stringB</code> lexicographically, a positive integer if <code>stringA</code> appears after <code>stringB</code> lexicographically, and zero if <code>stringA</code> and <code>stringB</code> are equal.
  * \ns String
  */
 VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
@@ -15740,8 +15740,8 @@ VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.IndexOf
  * \desc Get the first index at which the substring occurs in the string.
- * \param string (String):
- * \param substring (String):
+ * \param string (String): The string to compare.
+ * \param substring (String): The substring to search for.
  * \return Returns the index as an Integer.
  * \ns String
  */
@@ -15758,8 +15758,8 @@ VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.Contains
  * \desc Searches for whether or not a substring is within a String value.
- * \param string (String):
- * \param substring (String):
+ * \param string (String): The string to compare.
+ * \param substring (String): The substring to search for.
  * \return Returns a Boolean value.
  * \ns String
  */
@@ -15772,9 +15772,9 @@ VMValue String_Contains(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.Substring
  * \desc Get a String value from a portion of a larger String value.
- * \param string (String):
- * \param startIndex (Integer):
- * \param length (Integer):
+ * \param string (String): The input string.
+ * \param startIndex (Integer): The starting index of the substring.
+ * \param length (Integer): The length of the substring.
  * \return Returns a String value.
  * \ns String
  */
@@ -15799,7 +15799,7 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.ToUpperCase
  * \desc Convert a String value to its uppercase representation.
- * \param string (String):
+ * \param string (String): The string to make uppercase.
  * \return Returns a uppercase String value.
  * \ns String
  */
@@ -15826,7 +15826,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.ToLowerCase
  * \desc Convert a String value to its lowercase representation.
- * \param string (String):
+ * \param string (String): The string to make lowercase.
  * \return Returns a lowercase String value.
  * \ns String
  */
@@ -15850,8 +15850,8 @@ VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.LastIndexOf
  * \desc Get the last index at which the substring occurs in the string.
- * \param string (String):
- * \param substring (String):
+ * \param string (String): The string to compare.
+ * \param substring (String): The substring to search for.
  * \return Returns the index as an Integer.
  * \ns String
  */
@@ -19682,12 +19682,12 @@ void StandardLibrary::Link() {
 	DEF_ENUM(ACTIVE_ALWAYS);
 	/***
     * \enum ACTIVE_NORMAL
-    * \desc Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.
+    * \desc Entity updates no matter where it is located on the scene, if the scene is not paused. GlobalUpdate is also called for the entity's class.
     */
 	DEF_ENUM(ACTIVE_NORMAL);
 	/***
     * \enum ACTIVE_PAUSED
-    * \desc Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.
+    * \desc Entity only updates if the scene is paused. GlobalUpdate is also called for the entity's class.
     */
 	DEF_ENUM(ACTIVE_PAUSED);
 	/***
