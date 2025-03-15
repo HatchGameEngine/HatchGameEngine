@@ -4,12 +4,11 @@
 
 float Ease::InSine(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);
-	return sin(M_PI_HALF * t);
+	return 1.0 - cos(M_PI_HALF * t);
 }
 float Ease::OutSine(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);
-	t -= 1.0;
-	return 1 + sin(M_PI_HALF * t);
+	return sin(M_PI_HALF * t);
 }
 float Ease::InOutSine(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);
@@ -38,10 +37,7 @@ float Ease::OutCubic(float t) {
 }
 float Ease::InOutCubic(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);
-	if (t >= 0.5) {
-		t -= 1.0;
-	}
-	return t < 0.5 ? 4 * t * t * t : 1 + t * (2 * (t - 1)) * (2 * (t - 2));
+	return t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2;
 }
 float Ease::InQuart(float t) {
 	t = Math::Clamp(t, 0.0f, 1.0f);
