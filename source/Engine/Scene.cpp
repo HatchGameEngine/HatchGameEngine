@@ -2722,24 +2722,13 @@ int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
 		return (int)index;
 	}
 
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
 	resource->AsMusic = new (std::nothrow) ISound(filename);
 	if (resource->AsMusic->LoadFailed) {
 		delete resource->AsMusic;
 		delete resource;
-		stream->Close();
 		(*list)[index] = NULL;
 		return -1;
 	}
-
-	stream->Close();
 
 	return (int)index;
 }
