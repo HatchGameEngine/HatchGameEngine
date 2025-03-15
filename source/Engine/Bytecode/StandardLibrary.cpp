@@ -19850,7 +19850,7 @@ void StandardLibrary::Link() {
     * \type Decimal
     * \desc A less precise value of pi.
     */
-	DEF_CONST_DECIMAL("Math_R_PI", R_PI);
+	DEF_CONST_DECIMAL("Math_R_PI", RSDK_PI);
 
 	/***
     * \constant NUM_KEYBOARD_KEYS

@@ -85,11 +85,11 @@ void Math::CalculateTrigAngles() {
 	randSeed = rand();
 
 	for (int i = 0; i < 0x400; i++) {
-		Sin1024LookupTable[i] = (int)(sinf((i / 512.0) * R_PI) * 1024.0);
-		Cos1024LookupTable[i] = (int)(cosf((i / 512.0) * R_PI) * 1024.0);
-		Tan1024LookupTable[i] = (int)(tanf((i / 512.0) * R_PI) * 1024.0);
-		ASin1024LookupTable[i] = (int)((asinf(i / 1023.0) * 512.0) / R_PI);
-		ACos1024LookupTable[i] = (int)((acosf(i / 1023.0) * 512.0) / R_PI);
+		Sin1024LookupTable[i] = (int)(sinf((i / 512.0) * RSDK_PI) * 1024.0);
+		Cos1024LookupTable[i] = (int)(cosf((i / 512.0) * RSDK_PI) * 1024.0);
+		Tan1024LookupTable[i] = (int)(tanf((i / 512.0) * RSDK_PI) * 1024.0);
+		ASin1024LookupTable[i] = (int)((asinf(i / 1023.0) * 512.0) / RSDK_PI);
+		ACos1024LookupTable[i] = (int)((acosf(i / 1023.0) * 512.0) / RSDK_PI);
 	}
 
 	Cos1024LookupTable[0x000] = 0x400;
@@ -103,11 +103,11 @@ void Math::CalculateTrigAngles() {
 	Sin1024LookupTable[0x300] = -0x400;
 
 	for (int i = 0; i < 0x200; i++) {
-		Sin512LookupTable[i] = (int)(sinf((i / 256.0) * R_PI) * 512.0);
-		Cos512LookupTable[i] = (int)(cosf((i / 256.0) * R_PI) * 512.0);
-		Tan512LookupTable[i] = (int)(tanf((i / 256.0) * R_PI) * 512.0);
-		ASin512LookupTable[i] = (int)((asinf(i / 511.0) * 256.0) / R_PI);
-		ACos512LookupTable[i] = (int)((acosf(i / 511.0) * 256.0) / R_PI);
+		Sin512LookupTable[i] = (int)(sinf((i / 256.0) * RSDK_PI) * 512.0);
+		Cos512LookupTable[i] = (int)(cosf((i / 256.0) * RSDK_PI) * 512.0);
+		Tan512LookupTable[i] = (int)(tanf((i / 256.0) * RSDK_PI) * 512.0);
+		ASin512LookupTable[i] = (int)((asinf(i / 511.0) * 256.0) / RSDK_PI);
+		ACos512LookupTable[i] = (int)((acosf(i / 511.0) * 256.0) / RSDK_PI);
 	}
 
 	Cos512LookupTable[0x00] = 0x200;
@@ -124,8 +124,8 @@ void Math::CalculateTrigAngles() {
 		Sin256LookupTable[i] = (int)((Sin512LookupTable[i * 2] >> 1));
 		Cos256LookupTable[i] = (int)((Cos512LookupTable[i * 2] >> 1));
 		Tan256LookupTable[i] = (int)((Tan512LookupTable[i * 2] >> 1));
-		ASin256LookupTable[i] = (int)((asinf(i / 255.0) * 128.0) / R_PI);
-		ACos256LookupTable[i] = (int)((acosf(i / 255.0) * 128.0) / R_PI);
+		ASin256LookupTable[i] = (int)((asinf(i / 255.0) * 128.0) / RSDK_PI);
+		ACos256LookupTable[i] = (int)((acosf(i / 255.0) * 128.0) / RSDK_PI);
 	}
 }
 int Math::Sin1024(int angle) {
