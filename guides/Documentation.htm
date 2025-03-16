@@ -9228,14 +9228,14 @@
         <p id="Reference_functions_String_CharAt">
         <h2 style="margin-bottom: 8px;">String.CharAt</h2>
         <code>String.CharAt(string, index)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the UTF8 value of the character at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the ASCII code of the character at the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>index (Integer):</li>
+        <li>string (String): The input string.</li>
+        <li>index (Integer): The index of the character to get.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the UTF8 value as an Integer.</div>
+        <div style="font-size: 14px;">Returns the character as an Integer.</div>
         </p>
         <p id="Reference_functions_String_Length">
         <h2 style="margin-bottom: 8px;">String.Length</h2>
@@ -9243,7 +9243,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the length of the String value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The input string.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the length of the String value as an Integer.</div>
@@ -9251,14 +9251,14 @@
         <p id="Reference_functions_String_Compare">
         <h2 style="margin-bottom: 8px;">String.Compare</h2>
         <code>String.Compare(stringA, stringB)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Compare two Strings and retrieve a numerical difference.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Compares two Strings lexicographically.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>stringA (String):</li>
-        <li>stringB (String):</li>
+        <li>stringA (String): The first string to compare.</li>
+        <li>stringB (String): The second string to compare.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the comparison result as an Integer.</div>
+        <div style="font-size: 14px;">Returns the comparison result as an Integer. The return value is a negative integer if <code>stringA</code> appears before <code>stringB</code> lexicographically, a positive integer if <code>stringA</code> appears after <code>stringB</code> lexicographically, and zero if <code>stringA</code> and <code>stringB</code> are equal.</div>
         </p>
         <p id="Reference_functions_String_IndexOf">
         <h2 style="margin-bottom: 8px;">String.IndexOf</h2>
@@ -9266,8 +9266,8 @@
         <div style="margin-top: 8px; font-size: 14px;">Get the first index at which the substring occurs in the string.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>substring (String):</li>
+        <li>string (String): The string to compare.</li>
+        <li>substring (String): The substring to search for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index as an Integer.</div>
@@ -9278,8 +9278,8 @@
         <div style="margin-top: 8px; font-size: 14px;">Searches for whether or not a substring is within a String value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>substring (String):</li>
+        <li>string (String): The string to compare.</li>
+        <li>substring (String): The substring to search for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -9290,9 +9290,9 @@
         <div style="margin-top: 8px; font-size: 14px;">Get a String value from a portion of a larger String value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>startIndex (Integer):</li>
-        <li>length (Integer):</li>
+        <li>string (String): The input string.</li>
+        <li>startIndex (Integer): The starting index of the substring.</li>
+        <li>length (Integer): The length of the substring.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
@@ -9303,7 +9303,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to its uppercase representation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to make uppercase.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a uppercase String value.</div>
@@ -9314,7 +9314,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Convert a String value to its lowercase representation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
+        <li>string (String): The string to make lowercase.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a lowercase String value.</div>
@@ -9325,8 +9325,8 @@
         <div style="margin-top: 8px; font-size: 14px;">Get the last index at which the substring occurs in the string.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String):</li>
-        <li>substring (String):</li>
+        <li>string (String): The string to compare.</li>
+        <li>substring (String): The substring to search for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index as an Integer.</div>
@@ -10891,11 +10891,11 @@
         </p>
         <p id="Reference_enums_ACTIVE_NORMAL">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_NORMAL</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity updates no matter where it is located on the scene if the scene is paused. Object runs GlobalUpdate if the scene is not paused.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Entity updates no matter where it is located on the scene, if the scene is not paused. GlobalUpdate is also called for the entity's class.</div>
         </p>
         <p id="Reference_enums_ACTIVE_PAUSED">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_PAUSED</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if the scene is paused. Object runs GlobalUpdate if the scene is paused.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Entity only updates if the scene is paused. GlobalUpdate is also called for the entity's class.</div>
         </p>
         <p id="Reference_enums_ACTIVE_BOUNDS">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_BOUNDS</code></h2>

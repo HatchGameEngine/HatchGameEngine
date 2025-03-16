@@ -271,7 +271,7 @@ ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* fil
 			"Fonts/%s_%d.bmp",
 			filenameJustName,
 			pixelSize);
-		sprite->SpritesheetsFilenames.push_back(std::string(testFilename));
+		sprite->SpritesheetFilenames.push_back(std::string(testFilename));
 
 		SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixelData,
 			package->Width,

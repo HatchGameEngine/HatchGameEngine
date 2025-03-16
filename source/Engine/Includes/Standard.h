@@ -29,10 +29,6 @@
 #undef __on_failure
 #endif
 
-#ifndef R_PI
-#define R_PI 3.1415927
-#endif
-
 template<typename T>
 using vector = std::vector<T>;
 
@@ -88,6 +84,16 @@ typedef int8_t Sint8;
 typedef int16_t Sint16;
 typedef int32_t Sint32;
 typedef int64_t Sint64;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327
+#endif
+
+#ifndef M_PI_HALF
+#define M_PI_HALF (M_PI / 2)
+#endif
+
+#define RSDK_PI 3.1415927
 
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)
