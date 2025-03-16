@@ -1,8 +1,9 @@
 #######################################################################
-##                         Thoth Game Engine                         ##
+##                         HATCH Game Engine                         ##
 ##                                                                   ##
 ##               Copyright (C) 2019-2024 ARQADIUM LLC.               ##
-##                        All rights reserved                        ##
+##             Copyright (C) 2024-2025 Alexander Nicholi             ##
+##                    Released under BSD-2-Clause                    ##
 #######################################################################
 
 include meta/prologue.mk
