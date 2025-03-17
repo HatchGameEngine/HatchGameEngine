@@ -178,6 +178,10 @@
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
     <ClCompile Include="..\source\engine\filesystem\Directory.cpp" />
     <ClCompile Include="..\source\engine\filesystem\File.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\ArchiveVFS.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\VirtualFileSystem.cpp" />
     <ClCompile Include="..\source\engine\FontFace.cpp" />
     <ClCompile Include="..\source\engine\Graphics.cpp" />
     <ClCompile Include="..\source\engine\hashing\CombinedHash.cpp" />
@@ -201,6 +205,7 @@
     <ClCompile Include="..\source\engine\io\SDLStream.cpp" />
     <ClCompile Include="..\source\engine\io\Serializer.cpp" />
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
+    <ClCompile Include="..\source\engine\io\TextStream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
     <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\math\Ease.cpp" />

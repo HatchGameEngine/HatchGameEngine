@@ -27,6 +27,7 @@ public:
 	static char* ConcatPaths(const char* pathA, const char* pathB);
 	static char* ReplacePathSeparators(const char* path);
 	static char* NormalizePath(const char* path);
+	static void NormalizePath(const char* path, char* dest, size_t destSize);
 	static void ReplacePathSeparatorsInPlace(char* path);
 };
 

@@ -1,7 +1,7 @@
 #ifndef ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 #define ENGINE_RESOURCETYPES_RESOURCEMANAGER_H
 
-#include <Engine/Includes/HashMap.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Includes/Standard.h>
 
 class ResourceManager {
@@ -9,10 +9,9 @@ public:
 	static bool UsingDataFolder;
 	static bool UsingModPack;
 
-	static void PrefixResourcePath(char* out, size_t outSize, const char* path);
 	static void PrefixParentPath(char* out, size_t outSize, const char* path);
 	static void Init(const char* filename);
-	static void Load(const char* filename);
+	static void Load(const char* filename, VFSType type);
 	static bool LoadResource(const char* filename, Uint8** out, size_t* size);
 	static bool ResourceExists(const char* filename);
 	static void Dispose();

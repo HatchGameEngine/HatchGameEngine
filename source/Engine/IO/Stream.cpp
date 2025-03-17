@@ -239,10 +239,8 @@ void Stream::CopyTo(Stream* dest) {
 	size_t length = Length() - Position();
 	void* memory = Memory::Malloc(length);
 
-	// Seek(0);
 	ReadBytes(memory, length);
 	dest->WriteBytes(memory, length);
-	// dest->Seek(0);
 
 	Memory::Free(memory);
 }
