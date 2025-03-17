@@ -1,12 +1,7 @@
 #include <Engine/IO/SDLStream.h>
 
-SDLStream* SDLStream::New(const char* filename, Uint32 access) {
-	SDLStream* stream = new SDLStream;
-	if (!stream) {
-		return NULL;
-	}
-
-	const char* accessString = NULL;
+SDL_RWops* SDLStream::OpenFile(const char* filename, Uint32 access) {
+	const char* accessString = nullptr;
 
 	switch (access) {
 	case SDLStream::READ_ACCESS:
@@ -20,16 +15,67 @@ SDLStream* SDLStream::New(const char* filename, Uint32 access) {
 		break;
 	}
 
-	stream->f = SDL_RWFromFile(filename, accessString);
+	return SDL_RWFromFile(filename, accessString);
+}
+
+SDLStream* SDLStream::New(const char* filename, Uint32 access) {
+	SDLStream* stream = new SDLStream;
+	if (!stream) {
+		return NULL;
+	}
+
+	stream->f = OpenFile(filename, access);
 	if (!stream->f) {
 		goto FREE;
 	}
+
+	stream->Filename = std::string(filename);
+	stream->CurrentAccess = access;
 
 	return stream;
 
 FREE:
 	delete stream;
 	return NULL;
+}
+
+bool SDLStream::Reopen(Uint32 newAccess) {
+	if (CurrentAccess == newAccess) {
+		return true;
+	}
+
+	SDL_RWops* newFile = OpenFile(Filename.c_str(), newAccess);
+	if (!newFile) {
+		return false;
+	}
+
+	SDL_RWclose(f);
+	f = newFile;
+
+	CurrentAccess = newAccess;
+
+	return true;
+}
+
+bool SDLStream::IsReadable() {
+	return CurrentAccess == SDLStream::READ_ACCESS;
+}
+bool SDLStream::IsWritable() {
+	return !IsReadable();
+}
+bool SDLStream::MakeReadable(bool readable) {
+	if (!readable) {
+		return MakeWritable(true);
+	}
+
+	return Reopen(READ_ACCESS);
+}
+bool SDLStream::MakeWritable(bool writable) {
+	if (!writable) {
+		return MakeReadable(true);
+	}
+
+	return Reopen(WRITE_ACCESS);
 }
 
 void SDLStream::Close() {

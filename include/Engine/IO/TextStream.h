@@ -13,6 +13,10 @@ public:
 	static TextStream* New(Stream* other);
 	static TextStream* New(const char* text);
 	static TextStream* New(std::string text);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

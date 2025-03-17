@@ -41,6 +41,19 @@ FREE:
 	return NULL;
 }
 
+bool MemoryStream::IsReadable() {
+	return true;
+}
+bool MemoryStream::IsWritable() {
+	return true;
+}
+bool MemoryStream::MakeReadable(bool readable) {
+	return true;
+}
+bool MemoryStream::MakeWritable(bool writable) {
+	return true;
+}
+
 void MemoryStream::Close() {
 	if (owns_memory) {
 		Memory::Free(pointer_start);
@@ -87,7 +100,7 @@ Uint32 MemoryStream::ReadCompressed(void* out) {
 }
 Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 	Uint32 compressed_size = ReadUInt32() - 4;
-	ReadUInt32BE(); // Uint32 uncompressed_size = ReadUInt32BE();
+	ReadUInt32BE();
 
 	ZLibStream::Decompress(out, outSz, pointer, compressed_size);
 	pointer += compressed_size;
@@ -96,9 +109,10 @@ Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 }
 
 size_t MemoryStream::WriteBytes(void* data, size_t n) {
-	if (Position() + n > size) {
-		size_t pos = Position();
-		pointer_start = (unsigned char*)Memory::Realloc(pointer_start, pos + n);
+	size_t pos = Position();
+	if (pos + n > size) {
+		size = pos + n;
+		pointer_start = (unsigned char*)Memory::Realloc(pointer_start, size);
 		pointer = pointer_start + pos;
 	}
 	memcpy(pointer, data, n);

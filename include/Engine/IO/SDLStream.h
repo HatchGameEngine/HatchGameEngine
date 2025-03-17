@@ -6,6 +6,13 @@
 #include <Engine/Includes/StandardSDL2.h>
 
 class SDLStream : public Stream {
+private:
+	std::string Filename;
+	Uint32 CurrentAccess;
+
+	static SDL_RWops* OpenFile(const char* filename, Uint32 access);
+	bool Reopen(Uint32 newAccess);
+
 public:
 	SDL_RWops* f;
 	enum {
@@ -15,6 +22,10 @@ public:
 	};
 
 	static SDLStream* New(const char* filename, Uint32 access);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

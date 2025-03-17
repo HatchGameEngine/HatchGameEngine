@@ -77,12 +77,7 @@ static void getAppName(char* buffer, int maxSize) {
 }
 #endif
 
-FileStream* FileStream::New(const char* filename, Uint32 access) {
-	FileStream* stream = new (std::nothrow) FileStream;
-	if (!stream) {
-		return NULL;
-	}
-
+FILE* FileStream::OpenFile(const char* filename, Uint32 access) {
 	const char* accessString = NULL;
 	switch (access & 15) {
 	case FileStream::READ_ACCESS:
@@ -96,7 +91,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 		break;
 	}
 
-	stream->f = NULL;
+	FILE* file = nullptr;
 
 #if 0
 	printf("THIS SHOULDN'T HAPPEN\n");
@@ -112,7 +107,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 		char documentPath[256];
 		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
 		printf("documentPath: %s\n", documentPath);
-		stream->f = fopen(documentPath, accessString);
+		file = fopen(documentPath, accessString);
 	}
 #elif defined(MACOSX)
 	if (access & FileStream::SAVEGAME_ACCESS) {
@@ -126,7 +121,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 			}
 
 			snprintf(documentPath, 256, "%s/%s", documentPath, filename);
-			stream->f = fopen(documentPath, accessString);
+			file = fopen(documentPath, accessString);
 		}
 	}
 #elif defined(IOS)
@@ -135,7 +130,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 		if (base_path) {
 			char documentPath[256];
 			snprintf(documentPath, 256, "%s%s", base_path, filename);
-			stream->f = fopen(documentPath, accessString);
+			file = fopen(documentPath, accessString);
 		}
 	}
 	else if (access & FileStream::PREFERENCES_ACCESS) {
@@ -143,7 +138,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 		if (base_path) {
 			char documentPath[256];
 			snprintf(documentPath, 256, "%s%s", base_path, filename);
-			stream->f = fopen(documentPath, accessString);
+			file = fopen(documentPath, accessString);
 		}
 	}
 #elif defined(ANDROID)
@@ -158,11 +153,11 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 
 			char documentPath[256];
 			snprintf(documentPath, 256, "%s/%s", androidPath, filename);
-			stream->f = fopen(documentPath, accessString);
+			file = fopen(documentPath, accessString);
 		}
 		else {
 			snprintf(androidPath, 256, "%s/%s", internalStorage, filename);
-			stream->f = fopen(androidPath, accessString);
+			file = fopen(androidPath, accessString);
 		}
 	}
 #elif defined(SWITCH)
@@ -175,13 +170,24 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 
 		char documentPath[256];
 		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
-		stream->f = fopen(documentPath, accessString);
+		file = fopen(documentPath, accessString);
 	}
 #endif
 
-	if (!stream->f) {
-		stream->f = fopen(filename, accessString);
+	if (!file) {
+		file = fopen(filename, accessString);
 	}
+
+	return file;
+}
+
+FileStream* FileStream::New(const char* filename, Uint32 access) {
+	FileStream* stream = new (std::nothrow) FileStream;
+	if (!stream) {
+		return NULL;
+	}
+
+	stream->f = OpenFile(filename, access);
 
 	if (!stream->f) {
 		goto FREE;
@@ -191,11 +197,53 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 	stream->size = ftell(stream->f);
 	fseek(stream->f, 0, SEEK_SET);
 
+	stream->Filename = std::string(filename);
+	stream->CurrentAccess = access;
+
 	return stream;
 
 FREE:
 	delete stream;
 	return NULL;
+}
+
+bool FileStream::Reopen(Uint32 newAccess) {
+	if (CurrentAccess == newAccess) {
+		return true;
+	}
+
+	FILE* newFile = OpenFile(Filename.c_str(), newAccess);
+	if (!newFile) {
+		return false;
+	}
+
+	fclose(f);
+	f = newFile;
+
+	CurrentAccess = newAccess;
+
+	return true;
+}
+
+bool FileStream::IsReadable() {
+	return CurrentAccess == FileStream::READ_ACCESS;
+}
+bool FileStream::IsWritable() {
+	return !IsReadable();
+}
+bool FileStream::MakeReadable(bool readable) {
+	if (!readable) {
+		return MakeWritable(true);
+	}
+
+	return Reopen(READ_ACCESS);
+}
+bool FileStream::MakeWritable(bool writable) {
+	if (!writable) {
+		return MakeReadable(true);
+	}
+
+	return Reopen(WRITE_ACCESS);
 }
 
 void FileStream::Close() {

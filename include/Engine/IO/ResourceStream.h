@@ -11,6 +11,10 @@ public:
 	size_t size = 0;
 
 	static ResourceStream* New(const char* filename);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

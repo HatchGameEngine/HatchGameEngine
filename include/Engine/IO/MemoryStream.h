@@ -14,6 +14,10 @@ public:
 	static MemoryStream* New(size_t size);
 	static MemoryStream* New(Stream* other);
 	static MemoryStream* New(void* data, size_t size);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

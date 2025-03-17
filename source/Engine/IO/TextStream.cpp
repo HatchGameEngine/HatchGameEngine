@@ -65,6 +65,19 @@ TextStream* TextStream::New(std::string text) {
 	return TextStream::New(text.c_str());
 }
 
+bool TextStream::IsReadable() {
+	return true;
+}
+bool TextStream::IsWritable() {
+	return true;
+}
+bool TextStream::MakeReadable(bool readable) {
+	return true;
+}
+bool TextStream::MakeWritable(bool writable) {
+	return true;
+}
+
 void TextStream::Close() {
 	if (pointer_start != nullptr) {
 		Memory::Free(pointer_start);

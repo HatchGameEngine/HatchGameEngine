@@ -5,6 +5,13 @@
 #include <Engine/Includes/Standard.h>
 
 class FileStream : public Stream {
+private:
+	std::string Filename;
+	Uint32 CurrentAccess;
+
+	static FILE* OpenFile(const char* filename, Uint32 access);
+	bool Reopen(Uint32 newAccess);
+
 public:
 	FILE* f;
 	size_t size;
@@ -17,6 +24,10 @@ public:
 	};
 
 	static FileStream* New(const char* filename, Uint32 access);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);
