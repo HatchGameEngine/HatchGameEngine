@@ -145,18 +145,7 @@ void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool dec
 	}
 }
 
-bool HatchVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
-	VFSEntry* entry = FindFile(filename);
-	if (entry == nullptr) {
-		return false;
-	}
-
-	Uint8* memory = (Uint8*)Memory::Malloc(entry->Size);
-	if (!memory) {
-		return false;
-	}
-
-	// Read from file
+bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory) {
 	StreamPtr->Seek(entry->Offset);
 	StreamPtr->ReadBytes(memory, entry->Size);
 
@@ -193,9 +182,6 @@ bool HatchVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 
 		Memory::Free(compressedMemory);
 	}
-
-	*out = memory;
-	*size = (size_t)entry->Size;
 
 	return true;
 }

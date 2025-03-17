@@ -35,6 +35,34 @@ VFSEntry* ArchiveVFS::FindFile(const char* filename) {
 }
 
 bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
+	VFSEntry* entry = FindFile(filename);
+	if (entry == nullptr) {
+		return false;
+	}
+
+	Uint8* memory = (Uint8*)Memory::Malloc(entry->Size);
+	if (!memory) {
+		return false;
+	}
+
+	// Read cached data if available
+	if (entry->CachedData) {
+		memcpy(memory, entry->CachedData, entry->Size);
+	}
+	// Else, read from file
+	else if (!ReadEntryData(entry, memory)) {
+		Memory::Free(memory);
+
+		return false;
+	}
+
+	*out = memory;
+	*size = (size_t)entry->Size;
+
+	return true;
+}
+
+bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory) {
 	return false;
 }
 

@@ -1,9 +1,9 @@
 #ifndef ENGINE_FILESYSTEM_VFS_VFSENTRY_H
 #define ENGINE_FILESYSTEM_VFS_VFSENTRY_H
 
-#include <Engine/Includes/Standard.h>
-
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Includes/Standard.h>
+#include <Engine/IO/Stream.h>
 
 #define VFSE_COMPRESSED 1
 #define VFSE_ENCRYPTED  2
@@ -17,6 +17,8 @@ public:
 	Uint64 CompressedSize = 0;
 	Uint8 *CachedData = nullptr;
 	Uint8 *CachedDataInFile = nullptr;
+
+	static VFSEntry* FromStream(const char* filename, Stream* stream);
 
 	void DeleteCache() {
 		if (CachedDataInFile != CachedData) {

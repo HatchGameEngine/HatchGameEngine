@@ -8,6 +8,8 @@ private:
 	char* ParentPath = nullptr;
 	VFSEntryMap Cache;
 
+	bool GetPath(const char* filename, char* path, size_t pathSize);
+
 public:
 	FileSystemVFS(const char *mountPoint, Uint16 flags) : VirtualFileSystem(mountPoint, flags) {};
 	virtual ~FileSystemVFS();

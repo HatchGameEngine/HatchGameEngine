@@ -21,13 +21,14 @@ MemoryStream* MemoryStream::New(Stream* other) {
 	return stream;
 }
 MemoryStream* MemoryStream::New(void* data, size_t size) {
-	MemoryStream* stream = new (std::nothrow) MemoryStream;
-	if (!stream) {
-		return NULL;
+	MemoryStream* stream = nullptr;
+	if (!data) {
+		return nullptr;
 	}
 
-	if (!data) {
-		goto FREE;
+	stream = new (std::nothrow) MemoryStream;
+	if (!stream) {
+		return nullptr;
 	}
 
 	stream->pointer_start = (Uint8*)data;
@@ -35,10 +36,6 @@ MemoryStream* MemoryStream::New(void* data, size_t size) {
 	stream->size = size;
 
 	return stream;
-
-FREE:
-	delete stream;
-	return NULL;
 }
 
 bool MemoryStream::IsReadable() {

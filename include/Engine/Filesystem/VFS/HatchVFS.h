@@ -16,7 +16,7 @@ public:
 	bool Open(Stream* stream);
 
 	virtual void TransformFilename(const char* filename, char* dest, size_t destSize);
-	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
+	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual bool Flush();

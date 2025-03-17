@@ -11,14 +11,24 @@ bool FileSystemVFS::Open(const char* path) {
 	return true;
 }
 
+bool FileSystemVFS::GetPath(const char* filename, char* path, size_t pathSize) {
+	// TODO: Validate the path here.
+	snprintf(path, pathSize, "%s/%s", ParentPath, filename);
+
+	return true;
+}
+
 bool FileSystemVFS::HasFile(const char* filename) {
 	if (!IsReadable()) {
 		return false;
 	}
 
 	char resourcePath[4096];
-	snprintf(resourcePath, sizeof resourcePath, "%s/%s", ParentPath, filename);
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
 
+	// TODO: Leverage FileStream instead.
 	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
 	if (!rw) {
 		return false;
@@ -35,7 +45,9 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 	}
 
 	char resourcePath[4096];
-	snprintf(resourcePath, sizeof resourcePath, "%s/%s", ParentPath, filename);
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return nullptr;
+	}
 
 	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
 	if (!rw) {
@@ -77,7 +89,9 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	}
 
 	char resourcePath[4096];
-	snprintf(resourcePath, sizeof resourcePath, "%s/%s", ParentPath, filename);
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
 
 	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
 	if (!rw) {
@@ -111,8 +125,20 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 		return false;
 	}
 
-	// TODO: Implement
-	return false;
+	char resourcePath[4096];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
+
+	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "wb");
+	if (!rw) {
+		return false;
+	}
+
+	SDL_RWwrite(rw, entry->CachedData, entry->Size, 1);
+	SDL_RWclose(rw);
+
+	return true;
 }
 
 bool FileSystemVFS::EraseFile(const char* filename) {
@@ -120,8 +146,14 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 		return false;
 	}
 
-	// TODO: Implement
-	return false;
+	char resourcePath[4096];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return false;
+	}
+
+	int success = remove(resourcePath);
+
+	return (success == 0);
 }
 
 void FileSystemVFS::Close() {

@@ -53,8 +53,6 @@ TextStream* TextStream::New(const char* text) {
 
 	memcpy(data, text, source_length);
 
-	printf("TextStream::New: %s\n",data);
-
 	return stream;
 
 FREE:

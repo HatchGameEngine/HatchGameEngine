@@ -20,6 +20,7 @@ public:
 	virtual bool HasFile(const char* filename);
 	virtual VFSEntry* FindFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
+	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual bool Flush();
