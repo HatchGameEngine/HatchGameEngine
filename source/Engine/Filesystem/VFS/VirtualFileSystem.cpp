@@ -2,7 +2,8 @@
 
 #include <Engine/Utilities/StringUtils.h>
 
-VirtualFileSystem::VirtualFileSystem(Uint16 flags) {
+VirtualFileSystem::VirtualFileSystem(const char *mountPoint, Uint16 flags) {
+	MountPoint = std::string(mountPoint);
 	Flags = flags;
 }
 
@@ -18,8 +19,19 @@ bool VirtualFileSystem::IsWritable() {
 	return (Flags & VFS_WRITABLE) != 0;
 }
 
+const char* VirtualFileSystem::GetMountPoint() {
+	return MountPoint.c_str();
+}
+
 void VirtualFileSystem::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	StringUtils::Copy(dest, filename, destSize);
+	size_t offset = 0;
+
+	if (MountPoint != DEFAULT_MOUNT_POINT
+		&& StringUtils::StartsWith(filename, MountPoint.c_str())) {
+		offset = MountPoint.size();
+	}
+
+	StringUtils::NormalizePath(filename + offset, dest, destSize);
 }
 
 bool VirtualFileSystem::HasFile(const char* filename) {

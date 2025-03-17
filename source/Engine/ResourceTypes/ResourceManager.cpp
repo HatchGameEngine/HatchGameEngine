@@ -12,68 +12,86 @@
 
 std::deque<VirtualFileSystem*> LoadedVFS;
 
-bool ResourceManager::UsingDataFolder = true;
+bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
 
-void ResourceManager::PrefixParentPath(char* out, size_t outSize, const char* path) {
-#if defined(SWITCH_ROMFS)
-	snprintf(out, outSize, "romfs:/%s", path);
-#else
-	snprintf(out, outSize, "%s", path);
-#endif
+const char* data_files[] = {
+	"Data.hatch",
+	"Game.hatch",
+	TARGET_NAME ".hatch"
+};
+
+const char* FindDataFile() {
+	for (size_t i = 0; i < sizeof(data_files) / sizeof(data_files[0]); i++) {
+		const char* filename = data_files[i];
+
+		if (File::Exists(filename)) {
+			return filename;
+		}
+	}
+
+	return nullptr;
 }
 
-void ResourceManager::Init(const char* filename) {
-	if (filename == NULL) {
-		filename = "Data.hatch";
-	}
-
-	if (File::Exists(filename)) {
-		ResourceManager::UsingDataFolder = false;
-
-		Log::Print(Log::LOG_INFO, "Using \"%s\"", filename);
-		ResourceManager::Load(filename, VFSType::HATCH);
+bool ResourceManager::Init(const char* filename) {
+	if (filename != NULL && File::Exists(filename)) {
+		Log::Print(Log::LOG_IMPORTANT, "Loading \"%s\"...", filename);
 	}
 	else {
-		Log::Print(Log::LOG_WARN, "Cannot find \"%s\".", filename);
+		filename = FindDataFile();
 	}
 
-	if (ResourceManager::UsingDataFolder) {
-		ResourceManager::Load(RESOURCES_PATH, VFSType::FILESYSTEM);
+	if (filename != NULL && File::Exists(filename)) {
+		ResourceManager::Mount(filename, nullptr, VFSType::HATCH, VFS_READABLE);
+	}
+	else if (ResourceManager::Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE)) {
+		Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
+
+		ResourceManager::UsingDataFolder = true;
 	}
 
 	char modpacksString[1024];
 	if (Application::Settings->GetString(
 		    "game", "modpacks", modpacksString, sizeof modpacksString)) {
 		if (File::Exists(modpacksString)) {
-			ResourceManager::UsingModPack = true;
+			Log::Print(Log::LOG_IMPORTANT, "Loading modpack \"%s\"...", modpacksString);
 
-			Log::Print(Log::LOG_IMPORTANT, "Using \"%s\"", modpacksString);
-			ResourceManager::Load(modpacksString, VFSType::HATCH);
+			if (ResourceManager::Mount(modpacksString, nullptr, VFSType::HATCH, VFS_READABLE)) {
+				ResourceManager::UsingModPack = true;
+			}
 		}
 	}
+
+	if (LoadedVFS.size() == 0) {
+		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
+
+		return false;
+	}
+
+	return true;
 }
-void ResourceManager::Load(const char* filename, VFSType type) {
+bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
 	VirtualFileSystem* vfs = nullptr;
 
+	if (mountPoint == nullptr) {
+		mountPoint = DEFAULT_MOUNT_POINT;
+	}
+
 	if (type == VFSType::FILESYSTEM) {
-		FileSystemVFS* fsVfs = new FileSystemVFS(VFS_READABLE);
+		FileSystemVFS* fsVfs = new FileSystemVFS(mountPoint, flags);
 		fsVfs->Open(filename);
 		vfs = fsVfs;
 	}
 	else {
-		char resourcePath[4096];
-		ResourceManager::PrefixParentPath(resourcePath, sizeof resourcePath, filename);
-
-		SDLStream* stream = SDLStream::New(resourcePath, SDLStream::READ_ACCESS);
+		SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
 		if (!stream) {
 			Log::Print(Log::LOG_ERROR, "Resource file \"%s\" not found!", filename);
-			return;
+			return false;
 		}
 
 		switch (type) {
 		case VFSType::HATCH: {
-			HatchVFS *hatchVfs = new HatchVFS(VFS_READABLE);
+			HatchVFS *hatchVfs = new HatchVFS(mountPoint, flags);
 			hatchVfs->Open(stream);
 			vfs = hatchVfs;
 			break;
@@ -87,10 +105,12 @@ void ResourceManager::Load(const char* filename, VFSType type) {
 
 	if (vfs == nullptr || !vfs->IsOpen()) {
 		Log::Print(Log::LOG_ERROR, "Could not read resource file \"%s\"!", filename);
-		return;
+		return false;
 	}
 
 	LoadedVFS.push_front(vfs);
+
+	return true;
 }
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
 	char resourcePath[4096];

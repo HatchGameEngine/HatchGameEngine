@@ -9,12 +9,11 @@ private:
 	VFSEntryMap Cache;
 
 public:
-	FileSystemVFS(Uint16 flags) : VirtualFileSystem(flags) {};
+	FileSystemVFS(const char *mountPoint, Uint16 flags) : VirtualFileSystem(mountPoint, flags) {};
 	virtual ~FileSystemVFS();
 
 	bool Open(const char* path);
 
-	virtual void TransformFilename(const char* filename, char* dest, size_t destSize);
 	virtual bool HasFile(const char* filename);
 	virtual VFSEntry* FindFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);

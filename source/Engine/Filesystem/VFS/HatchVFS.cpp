@@ -28,7 +28,6 @@ bool HatchVFS::Open(Stream* stream) {
 	stream->ReadByte();
 
 	fileCount = stream->ReadUInt16();
-	Log::Print(Log::LOG_VERBOSE, "Loading resource table from HATCH data file...");
 	for (int i = 0; i < fileCount; i++) {
 		Uint32 crc32 = stream->ReadUInt32();
 		Uint64 offset = stream->ReadUInt64();
@@ -62,8 +61,9 @@ bool HatchVFS::Open(Stream* stream) {
 }
 
 void HatchVFS::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	Uint32 filenameHash = CRC32::EncryptString(filename);
-	snprintf(dest, destSize, "%08x", filenameHash);
+	VirtualFileSystem::TransformFilename(filename, dest, destSize);
+
+	snprintf(dest, destSize, "%08x", CRC32::EncryptString(dest));
 }
 
 bool HatchVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {

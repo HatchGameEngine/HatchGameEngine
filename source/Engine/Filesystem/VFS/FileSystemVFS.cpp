@@ -11,10 +11,6 @@ bool FileSystemVFS::Open(const char* path) {
 	return true;
 }
 
-void FileSystemVFS::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	StringUtils::NormalizePath(filename, dest, destSize);
-}
-
 bool FileSystemVFS::HasFile(const char* filename) {
 	if (!IsReadable()) {
 		return false;

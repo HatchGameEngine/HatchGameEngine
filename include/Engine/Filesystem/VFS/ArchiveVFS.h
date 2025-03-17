@@ -9,7 +9,7 @@ protected:
 	size_t NumEntries = 0;
 
 public:
-	ArchiveVFS(Uint16 flags) : VirtualFileSystem(flags) {};
+	ArchiveVFS(const char *mountPoint, Uint16 flags) : VirtualFileSystem(mountPoint, flags) {};
 	virtual ~ArchiveVFS();
 
 	virtual bool PutFile(const char* filename, VFSEntry* entry);

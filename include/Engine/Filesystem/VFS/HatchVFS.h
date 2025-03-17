@@ -8,7 +8,7 @@ private:
 	Stream* StreamPtr = nullptr;
 
 public:
-	HatchVFS(Uint16 flags) : ArchiveVFS(flags) {};
+	HatchVFS(const char *mountPoint, Uint16 flags) : ArchiveVFS(mountPoint, flags) {};
 	virtual ~HatchVFS();
 
 	bool Open(Stream* stream);
