@@ -177,6 +177,9 @@
     <ClCompile Include="..\source\engine\io\Serializer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\io\StandardIOStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\io\Stream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

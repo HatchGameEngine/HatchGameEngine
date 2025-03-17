@@ -84,6 +84,7 @@ CPPFILES := \
 	source/Engine/IO/ResourceStream.cpp \
 	source/Engine/IO/SDLStream.cpp \
 	source/Engine/IO/Serializer.cpp \
+	source/Engine/IO/StandardIOStream.cpp \
 	source/Engine/IO/Stream.cpp \
 	source/Engine/IO/TextStream.cpp \
 	source/Engine/Input/Controller.cpp \

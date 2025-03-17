@@ -1,7 +1,6 @@
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 
-#include <Engine/Diagnostics/Log.h>
-#include <Engine/Includes/StandardSDL2.h>
+#include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
 bool FileSystemVFS::Open(const char* path) {
@@ -28,13 +27,12 @@ bool FileSystemVFS::HasFile(const char* filename) {
 		return false;
 	}
 
-	// TODO: Leverage FileStream instead.
-	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
-	if (!rw) {
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	if (!stream) {
 		return false;
 	}
 
-	SDL_RWclose(rw);
+	stream->Close();
 
 	return true;
 }
@@ -49,17 +47,8 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 		return nullptr;
 	}
 
-	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
-	if (!rw) {
-		return nullptr;
-	}
-
-	Sint64 rwSize = SDL_RWsize(rw);
-	if (rwSize < 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not get size of file \"%s\": %s",
-			resourcePath,
-			SDL_GetError());
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	if (!stream) {
 		return nullptr;
 	}
 
@@ -75,10 +64,10 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 		Cache[entry->Name] = entry;
 	}
 
-	entry->Size = rwSize;
-	entry->CompressedSize = rwSize;
+	entry->Size = stream->Length();
+	entry->CompressedSize = entry->Size;
 
-	SDL_RWclose(rw);
+	stream->Close();
 
 	return entry;
 }
@@ -93,30 +82,24 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		return false;
 	}
 
-	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "rb");
-	if (!rw) {
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	if (!stream) {
 		return false;
 	}
 
-	Sint64 rwSize = SDL_RWsize(rw);
-	if (rwSize < 0) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not get size of file \"%s\": %s",
-			resourcePath,
-			SDL_GetError());
-		return false;
-	}
+	size_t length = stream->Length();
 
-	Uint8* memory = (Uint8*)Memory::Malloc(rwSize);
+	Uint8* memory = (Uint8*)Memory::Malloc(length);
 	if (!memory) {
 		return false;
 	}
 
-	SDL_RWread(rw, memory, rwSize, 1);
-	SDL_RWclose(rw);
+	stream->ReadBytes(memory, length);
+	stream->Close();
 
 	*out = memory;
-	*size = rwSize;
+	*size = length;
+
 	return true;
 }
 
@@ -130,13 +113,13 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 		return false;
 	}
 
-	SDL_RWops* rw = SDL_RWFromFile(resourcePath, "wb");
-	if (!rw) {
+	FileStream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS);
+	if (!stream) {
 		return false;
 	}
 
-	SDL_RWwrite(rw, entry->CachedData, entry->Size, 1);
-	SDL_RWclose(rw);
+	stream->WriteBytes(entry->CachedData, entry->Size);
+	stream->Close();
 
 	return true;
 }

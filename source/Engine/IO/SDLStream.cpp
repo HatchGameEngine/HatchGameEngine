@@ -1,3 +1,4 @@
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/SDLStream.h>
 
 SDL_RWops* SDLStream::OpenFile(const char* filename, Uint32 access) {
@@ -15,7 +16,24 @@ SDL_RWops* SDLStream::OpenFile(const char* filename, Uint32 access) {
 		break;
 	}
 
-	return SDL_RWFromFile(filename, accessString);
+	SDL_RWops* rw = SDL_RWFromFile(filename, accessString);
+	if (rw == nullptr) {
+		return nullptr;
+	}
+
+	if (access == SDLStream::READ_ACCESS) {
+		Sint64 rwSize = SDL_RWsize(rw);
+		if (rwSize < 0) {
+			Log::Print(Log::LOG_ERROR,
+				"Could not get size of file \"%s\": %s",
+				filename,
+				SDL_GetError());
+			SDL_RWclose(rw);
+			return nullptr;
+		}
+	}
+
+	return rw;
 }
 
 SDLStream* SDLStream::New(const char* filename, Uint32 access) {

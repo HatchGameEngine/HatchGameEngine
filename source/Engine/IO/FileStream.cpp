@@ -1,5 +1,6 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/IO/FileStream.h>
+#include <Engine/IO/StandardIOStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
 #ifdef MACOSX
@@ -77,21 +78,21 @@ static void getAppName(char* buffer, int maxSize) {
 }
 #endif
 
-FILE* FileStream::OpenFile(const char* filename, Uint32 access) {
-	const char* accessString = NULL;
+Stream* FileStream::OpenFile(const char* filename, Uint32 access) {
+	Uint32 streamAccess = 0;
 	switch (access & 15) {
 	case FileStream::READ_ACCESS:
-		accessString = "rb";
+		streamAccess = StandardIOStream::READ_ACCESS;
 		break;
 	case FileStream::WRITE_ACCESS:
-		accessString = "wb";
+		streamAccess = StandardIOStream::WRITE_ACCESS;
 		break;
 	case FileStream::APPEND_ACCESS:
-		accessString = "ab";
+		streamAccess = StandardIOStream::APPEND_ACCESS;
 		break;
 	}
 
-	FILE* file = nullptr;
+	Stream* stream = nullptr;
 
 #if 0
 	printf("THIS SHOULDN'T HAPPEN\n");
@@ -104,59 +105,59 @@ FILE* FileStream::OpenFile(const char* filename, Uint32 access) {
 			Directory::Create(saveDataPath);
 		}
 
-		char documentPath[256];
-		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
+		char documentPath[4096];
+		snprintf(documentPath, sizeof documentPath, "%s/%s", saveDataPath, filename);
 		printf("documentPath: %s\n", documentPath);
 		file = fopen(documentPath, accessString);
 	}
 #elif defined(MACOSX)
 	if (access & FileStream::SAVEGAME_ACCESS) {
-		char documentPath[256];
-		char appDirName[256];
-		getAppName(appDirName, 256);
-		if (MacOS_GetApplicationSupportDirectory(documentPath, 256)) {
-			snprintf(documentPath, 256, "%s/" TARGET_NAME "/Saves", documentPath);
+		char documentPath[4096];
+		char appDirName[4096];
+		getAppName(appDirName, sizeof appDirName);
+		if (MacOS_GetApplicationSupportDirectory(documentPath, sizeof documentPath)) {
+			snprintf(documentPath, sizeof documentPath, "%s/" TARGET_NAME "/Saves", documentPath);
 			if (!Directory::Exists(documentPath)) {
 				Directory::Create(documentPath);
 			}
 
-			snprintf(documentPath, 256, "%s/%s", documentPath, filename);
+			snprintf(documentPath, sizeof documentPath, "%s/%s", documentPath, filename);
 			file = fopen(documentPath, accessString);
 		}
 	}
 #elif defined(IOS)
 	if (access & FileStream::SAVEGAME_ACCESS) {
-		char* base_path = SDL_GetPrefPath("aknetk", TARGET_NAME);
+		char* base_path = SDL_GetPrefPath("HatchGameEngine", TARGET_NAME);
 		if (base_path) {
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s%s", base_path, filename);
+			char documentPath[4096];
+			snprintf(documentPath, sizeof documentPath, "%s%s", base_path, filename);
 			file = fopen(documentPath, accessString);
 		}
 	}
 	else if (access & FileStream::PREFERENCES_ACCESS) {
-		char* base_path = SDL_GetPrefPath("aknetk", TARGET_NAME);
+		char* base_path = SDL_GetPrefPath("HatchGameEngine", TARGET_NAME);
 		if (base_path) {
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s%s", base_path, filename);
+			char documentPath[4096];
+			snprintf(documentPath, sizeof documentPath, "%s%s", base_path, filename);
 			file = fopen(documentPath, accessString);
 		}
 	}
 #elif defined(ANDROID)
 	const char* internalStorage = SDL_AndroidGetInternalStoragePath();
 	if (internalStorage) {
-		char androidPath[256];
+		char androidPath[4096];
 		if (access & FileStream::SAVEGAME_ACCESS) {
-			snprintf(androidPath, 256, "%s/Save", internalStorage);
+			snprintf(androidPath, sizeof androidPath, "%s/Saves", internalStorage);
 			if (!Directory::Exists(androidPath)) {
 				Directory::Create(androidPath);
 			}
 
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s/%s", androidPath, filename);
+			char documentPath[4096];
+			snprintf(documentPath, sizeof documentPath, "%s/%s", androidPath, filename);
 			file = fopen(documentPath, accessString);
 		}
 		else {
-			snprintf(androidPath, 256, "%s/%s", internalStorage, filename);
+			snprintf(androidPath, sizeof androidPath, "%s/%s", internalStorage, filename);
 			file = fopen(androidPath, accessString);
 		}
 	}
@@ -168,34 +169,30 @@ FILE* FileStream::OpenFile(const char* filename, Uint32 access) {
 			Directory::Create(saveDataPath);
 		}
 
-		char documentPath[256];
-		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
+		char documentPath[4096];
+		snprintf(documentPath, sizeof documentPath, "%s/%s", saveDataPath, filename);
 		file = fopen(documentPath, accessString);
 	}
 #endif
 
-	if (!file) {
-		file = fopen(filename, accessString);
+	if (!stream) {
+		stream = StandardIOStream::New(filename, streamAccess);
 	}
 
-	return file;
+	return stream;
 }
 
 FileStream* FileStream::New(const char* filename, Uint32 access) {
 	FileStream* stream = new (std::nothrow) FileStream;
 	if (!stream) {
-		return NULL;
+		return nullptr;
 	}
 
-	stream->f = OpenFile(filename, access);
+	stream->StreamPtr = OpenFile(filename, access);
 
-	if (!stream->f) {
+	if (!stream->StreamPtr) {
 		goto FREE;
 	}
-
-	fseek(stream->f, 0, SEEK_END);
-	stream->size = ftell(stream->f);
-	fseek(stream->f, 0, SEEK_SET);
 
 	stream->Filename = std::string(filename);
 	stream->CurrentAccess = access;
@@ -204,7 +201,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 
 FREE:
 	delete stream;
-	return NULL;
+	return nullptr;
 }
 
 bool FileStream::Reopen(Uint32 newAccess) {
@@ -212,13 +209,13 @@ bool FileStream::Reopen(Uint32 newAccess) {
 		return true;
 	}
 
-	FILE* newFile = OpenFile(Filename.c_str(), newAccess);
-	if (!newFile) {
+	Stream* newStream = OpenFile(Filename.c_str(), newAccess);
+	if (!newStream) {
 		return false;
 	}
 
-	fclose(f);
-	f = newFile;
+	StreamPtr->Close();
+	StreamPtr = newStream;
 
 	CurrentAccess = newAccess;
 
@@ -247,32 +244,30 @@ bool FileStream::MakeWritable(bool writable) {
 }
 
 void FileStream::Close() {
-	fclose(f);
-	f = NULL;
+	StreamPtr->Close();
+	StreamPtr = nullptr;
 	Stream::Close();
 }
 void FileStream::Seek(Sint64 offset) {
-	fseek(f, offset, SEEK_SET);
+	StreamPtr->Seek(offset);
 }
 void FileStream::SeekEnd(Sint64 offset) {
-	fseek(f, offset, SEEK_END);
+	StreamPtr->SeekEnd(offset);
 }
 void FileStream::Skip(Sint64 offset) {
-	fseek(f, offset, SEEK_CUR);
+	StreamPtr->Skip(offset);
 }
 size_t FileStream::Position() {
-	return ftell(f);
+	return StreamPtr->Position();
 }
 size_t FileStream::Length() {
-	return size;
+	return StreamPtr->Length();
 }
 
 size_t FileStream::ReadBytes(void* data, size_t n) {
-	// if (!f) Log::Print(Log::LOG_ERROR, "Attempt to read from
-	// closed stream.")
-	return fread(data, 1, n, f);
+	return StreamPtr->ReadBytes(data, n);
 }
 
 size_t FileStream::WriteBytes(void* data, size_t n) {
-	return fwrite(data, 1, n, f);
+	return StreamPtr->WriteBytes(data, n);
 }

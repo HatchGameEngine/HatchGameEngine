@@ -1,28 +1,27 @@
-#ifndef ENGINE_IO_FILESTREAM_H
-#define ENGINE_IO_FILESTREAM_H
+#ifndef ENGINE_IO_STANDARDIOSTREAM_H
+#define ENGINE_IO_STANDARDIOSTREAM_H
 
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 
-class FileStream : public Stream {
+class StandardIOStream : public Stream {
 private:
 	std::string Filename;
 	Uint32 CurrentAccess;
 
-	static Stream* OpenFile(const char* filename, Uint32 access);
+	static FILE* OpenFile(const char* filename, Uint32 access);
 	bool Reopen(Uint32 newAccess);
 
 public:
-	Stream* StreamPtr;
+	FILE* f;
+	size_t size;
 	enum {
 		READ_ACCESS = 0,
 		WRITE_ACCESS = 1,
-		APPEND_ACCESS = 2,
-		SAVEGAME_ACCESS = 16,
-		PREFERENCES_ACCESS = 32,
+		APPEND_ACCESS = 2
 	};
 
-	static FileStream* New(const char* filename, Uint32 access);
+	static StandardIOStream* New(const char* filename, Uint32 access);
 	bool IsReadable();
 	bool IsWritable();
 	bool MakeReadable(bool readable);
@@ -37,4 +36,4 @@ public:
 	size_t WriteBytes(void* data, size_t n);
 };
 
-#endif /* ENGINE_IO_FILESTREAM_H */
+#endif /* ENGINE_IO_STANDARDIOSTREAM_H */

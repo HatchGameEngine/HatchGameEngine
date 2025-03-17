@@ -205,6 +205,7 @@
     <ClCompile Include="..\source\engine\io\ResourceStream.cpp" />
     <ClCompile Include="..\source\engine\io\SDLStream.cpp" />
     <ClCompile Include="..\source\engine\io\Serializer.cpp" />
+    <ClCompile Include="..\source\engine\io\StandardIOStream.cpp" />
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
     <ClCompile Include="..\source\engine\io\TextStream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
