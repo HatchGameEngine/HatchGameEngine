@@ -16,6 +16,7 @@ public:
 	static bool StartsWith(const char* string, const char* compare);
 	static char* StrCaseStr(const char* haystack, const char* needle);
 	static size_t Copy(char* dst, const char* src, size_t sz);
+	static size_t Copy(char* dst, std::string src, size_t sz);
 	static size_t Concat(char* dst, const char* src, size_t sz);
 	static bool ToNumber(int* dst, const char* src);
 	static bool ToDecimal(double* dst, const char* src);
@@ -26,6 +27,7 @@ public:
 	static const char* GetExtension(const char* filename);
 	static char* ConcatPaths(const char* pathA, const char* pathB);
 	static char* ReplacePathSeparators(const char* path);
+	static std::string LexicallyNormalFormOfPath(const char* path);
 	static char* NormalizePath(const char* path);
 	static void NormalizePath(const char* path, char* dest, size_t destSize);
 	static void ReplacePathSeparatorsInPlace(char* path);

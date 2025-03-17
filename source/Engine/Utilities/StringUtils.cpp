@@ -122,6 +122,9 @@ size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
 
 	return s - src - 1; // count does not include NUL
 }
+size_t StringUtils::Copy(char* dst, std::string src, size_t sz) {
+	return Copy(dst, src.c_str(), sz);
+}
 size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
 	char* d = dst;
 	const char* s = src;
@@ -295,7 +298,7 @@ char* StringUtils::ReplacePathSeparators(const char* path) {
 
 	return newPath;
 }
-std::string GetNormalizedPath(const char* path) {
+std::string StringUtils::LexicallyNormalFormOfPath(const char* path) {
 	std::filesystem::path fsPath = std::filesystem::path(std::string(path));
 	return fsPath.lexically_normal().u8string();
 }
@@ -304,7 +307,7 @@ char* StringUtils::NormalizePath(const char* path) {
 		return nullptr;
 	}
 
-	std::string fsNorm = GetNormalizedPath(path);
+	std::string fsNorm = LexicallyNormalFormOfPath(path);
 
 	char* normalizedPath = StringUtils::Create(fsNorm);
 	if (normalizedPath != nullptr) {
@@ -318,7 +321,7 @@ void StringUtils::NormalizePath(const char* path, char* dest, size_t destSize) {
 		return;
 	}
 
-	std::string fsNorm = GetNormalizedPath(path);
+	std::string fsNorm = LexicallyNormalFormOfPath(path);
 
 	snprintf(dest, destSize, "%s", fsNorm.c_str());
 }
