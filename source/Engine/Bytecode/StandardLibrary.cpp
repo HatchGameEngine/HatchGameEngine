@@ -6008,7 +6008,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	return INTEGER_VAL(File::Exists(filePath));
+	return INTEGER_VAL(File::Exists(filePath, true));
 }
 /***
  * File.ReadAllText

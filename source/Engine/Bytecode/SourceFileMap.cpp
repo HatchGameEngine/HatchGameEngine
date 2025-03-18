@@ -10,6 +10,8 @@
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 
+#define SOURCEFILEMAP_NAME "cache://SourceFileMap.bin"
+
 bool SourceFileMap::Initialized = false;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
@@ -65,9 +67,9 @@ void SourceFileMap::CheckInit() {
 	}
 
 #ifndef NO_SCRIPT_COMPILING
-	if (File::Exists("SourceFileMap.bin")) {
+	if (File::Exists(SOURCEFILEMAP_NAME, true)) {
 		char* bytes;
-		size_t len = File::ReadAllBytes("SourceFileMap.bin", &bytes);
+		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
 		SourceFileMap::Checksums->FromBytes(
 			(Uint8*)bytes, (len - 4) / (sizeof(Uint32) + sizeof(Uint32)));
 		SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - 4);
@@ -154,7 +156,7 @@ void SourceFileMap::CheckForUpdate() {
 		bool doRecompile = false;
 
 		char* source;
-		File::ReadAllBytes(list[i], &source);
+		File::ReadAllBytes(list[i], &source, false);
 		newChecksum = Murmur::EncryptString(source);
 
 		Memory::Track(source, "SourceFileMap::SourceText");
@@ -165,6 +167,7 @@ void SourceFileMap::CheckForUpdate() {
 		doRecompile = newChecksum != oldChecksum;
 		anyChanges |= doRecompile;
 
+		// TODO: Detect the main VFS used for resources and write into it
 		char outFile[35];
 		snprintf(outFile, sizeof outFile, "Resources/Objects/%08X.ibc", filenameHash);
 
@@ -179,14 +182,10 @@ void SourceFileMap::CheckForUpdate() {
 
 			if (Compiler::DoLogging) {
 				if (doRecompile) {
-					Log::Print(Log::LOG_VERBOSE,
-						"Recompiling %s...",
-						scriptFilename);
+					Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", scriptFilename);
 				}
 				else {
-					Log::Print(Log::LOG_VERBOSE,
-						"Compiling %s...",
-						scriptFilename);
+					Log::Print(Log::LOG_VERBOSE, "Compiling %s...", scriptFilename);
 				}
 			}
 
@@ -203,9 +202,7 @@ void SourceFileMap::CheckForUpdate() {
 					if (std::count(filenameHashList->begin(),
 						    filenameHashList->end(),
 						    filenameHash) == 0) {
-						// NOTE: We need a
-						// better way of
-						// sorting
+						// NOTE: We need a better way of sorting
 						if (classExtended == 0) {
 							filenameHashList->insert(
 								filenameHashList->begin(),
@@ -229,18 +226,12 @@ void SourceFileMap::CheckForUpdate() {
 
 		Memory::Free(source);
 
-		// Log::Print(Log::LOG_INFO, "List: %s (%08X) (old:
-		// %08X, new: %08X) %d", list[i], filenameHash,
-		// oldChecksum, newChecksum, false);
-
 		SourceFileMap::Checksums->Put(filenameHash, newChecksum);
 		Memory::Free(list[i]);
 	}
 
 	if (anyChanges) {
-		FileStream* stream;
-		// SourceFileMap.bin
-		stream = FileStream::New("SourceFileMap.bin", FileStream::WRITE_ACCESS);
+		FileStream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
 			Uint8* data = SourceFileMap::Checksums->GetBytes(true);
 			stream->WriteBytes(data,
@@ -253,7 +244,7 @@ void SourceFileMap::CheckForUpdate() {
 			stream->Close();
 		}
 
-		// Objects.hcm
+		// TODO: Detect the main VFS used for resources and write into it
 		stream = FileStream::New("Resources/Objects/Objects.hcm", FileStream::WRITE_ACCESS);
 		if (stream) {
 			stream->WriteUInt32(SourceFileMap::Magic);

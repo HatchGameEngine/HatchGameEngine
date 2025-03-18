@@ -13,49 +13,27 @@
 #include <Engine/Includes/StandardSDL2.h>
 #endif
 
-bool File::Exists(const char* path) {
-#if WIN32
-	return _access(path, 0) != -1;
-#elif MACOSX
-	if (access(path, F_OK) != -1) {
+bool File::Exists(const char* path, bool allowURLs) {
+	if (path == nullptr) {
+		return false;
+	}
+
+	Stream* stream = FileStream::New(path, FileStream::READ_ACCESS, allowURLs);
+	if (stream) {
+		stream->Close();
 		return true;
 	}
 
-	// Avoid doing FILE pointer handling in case of multithreaded
-	// file access
-	SDL_RWops* rw = SDL_RWFromFile(path, "rb");
-	if (rw) {
-		SDL_RWclose(rw);
-		return true;
-	}
 	return false;
-#elif ANDROID
-	SDL_RWops* rw = SDL_RWFromFile(path, "rb");
-	if (rw) {
-		SDL_RWclose(rw);
-		return true;
-	}
-	return false;
-#elif SWITCH_ROMFS
-	char romfsPath[256];
-	snprintf(romfsPath, romfsPath, "romfs:/%s", path);
-	if (access(romfsPath, F_OK) != -1) {
-		Log::Print(Log::LOG_WARN, "YES access \"%s\".", romfsPath);
-		return true;
-	}
-
-	Log::Print(Log::LOG_WARN, "NO access \"%s\".", romfsPath);
-
-	return false;
-#else
-	// access probably works in most systems... right?!
-	return access(path, F_OK) != -1;
-#endif
 }
 
-size_t File::ReadAllBytes(const char* path, char** out) {
-	FileStream* stream;
-	if ((stream = FileStream::New(path, FileStream::READ_ACCESS, true))) {
+bool File::Exists(const char* path) {
+	return Exists(path, false);
+}
+
+size_t File::ReadAllBytes(const char* path, char** out, bool allowURLs) {
+	FileStream* stream = FileStream::New(path, FileStream::READ_ACCESS, allowURLs);
+	if (stream) {
 		size_t size = stream->Length();
 		*out = (char*)Memory::Malloc(size + 1);
 		if (!*out) {
@@ -69,7 +47,7 @@ size_t File::ReadAllBytes(const char* path, char** out) {
 	return 0;
 }
 
-bool File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
+bool File::WriteAllBytes(const char* path, const char* bytes, size_t len, bool allowURLs) {
 	if (!path) {
 		return false;
 	}
@@ -80,8 +58,8 @@ bool File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
 		return false;
 	}
 
-	FileStream* stream;
-	if ((stream = FileStream::New(path, FileStream::WRITE_ACCESS, true))) {
+	FileStream* stream = FileStream::New(path, FileStream::WRITE_ACCESS, allowURLs);
+	if (stream) {
 		stream->WriteBytes((char*)bytes, len);
 		stream->Close();
 		return true;
