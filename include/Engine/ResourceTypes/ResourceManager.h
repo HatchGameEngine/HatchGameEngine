@@ -10,7 +10,8 @@ public:
 	static bool UsingModPack;
 
 	static bool Init(const char* filename);
-	static bool Mount(const char* filename, const char *mountPoint, VFSType type, Uint16 flags);
+	static bool Mount(const char* name, const char* filename, const char *mountPoint, VFSType type,
+		Uint16 flags);
 	static bool LoadResource(const char* filename, Uint8** out, size_t* size);
 	static bool ResourceExists(const char* filename);
 	static void Dispose();

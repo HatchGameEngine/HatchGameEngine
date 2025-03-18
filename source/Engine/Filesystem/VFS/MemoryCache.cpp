@@ -14,7 +14,7 @@ bool MemoryCache::Init() {
 
 	Using = true;
 
-	if (!CacheVFS->Mount(nullptr, nullptr, VFSType::MEMORY, VFS_READABLE | VFS_WRITABLE)) {
+	if (!CacheVFS->Mount("memorycache", nullptr, nullptr, VFSType::MEMORY, VFS_READABLE | VFS_WRITABLE)) {
 		Dispose();
 	}
 

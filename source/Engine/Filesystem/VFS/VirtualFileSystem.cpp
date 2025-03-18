@@ -6,7 +6,20 @@
 #include <Engine/Filesystem/Path.h>
 #include <Engine/IO/SDLStream.h>
 
-VFSMountStatus VirtualFileSystem::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
+VFSProvider* VirtualFileSystem::Get(const char* name) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		if (strcmp(vfs->GetName().c_str(), name) == 0) {
+			return vfs;
+		}
+	}
+
+	return nullptr;
+}
+
+VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
+	const char* mountPoint, VFSType type, Uint16 flags) {
 	VFSProvider* vfs = nullptr;
 
 	if (mountPoint == nullptr) {
@@ -14,12 +27,12 @@ VFSMountStatus VirtualFileSystem::Mount(const char* filename, const char* mountP
 	}
 
 	if (type == VFSType::FILESYSTEM) {
-		FileSystemVFS* fsVfs = new FileSystemVFS(mountPoint, flags);
+		FileSystemVFS* fsVfs = new FileSystemVFS(name, mountPoint, flags);
 		fsVfs->Open(filename);
 		vfs = fsVfs;
 	}
 	else if (type == VFSType::MEMORY) {
-		MemoryVFS* memVfs = new MemoryVFS(mountPoint, flags);
+		MemoryVFS* memVfs = new MemoryVFS(name, mountPoint, flags);
 		memVfs->Open();
 		vfs = memVfs;
 	}
@@ -31,7 +44,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* filename, const char* mountP
 
 		switch (type) {
 		case VFSType::HATCH: {
-			HatchVFS *hatchVfs = new HatchVFS(mountPoint, flags);
+			HatchVFS *hatchVfs = new HatchVFS(name, mountPoint, flags);
 			hatchVfs->Open(stream);
 			vfs = hatchVfs;
 			break;

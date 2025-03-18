@@ -2,12 +2,17 @@
 
 #include <Engine/Utilities/StringUtils.h>
 
-VFSProvider::VFSProvider(const char *mountPoint, Uint16 flags) {
+VFSProvider::VFSProvider(const char *name, const char *mountPoint, Uint16 flags) {
+	Name = std::string(name);
 	MountPoint = StringUtils::LexicallyNormalFormOfPath(mountPoint);
 	Flags = flags;
 }
 VFSProvider::~VFSProvider() {
 	Close();
+}
+
+std::string VFSProvider::GetName() {
+	return Name;
 }
 
 bool VFSProvider::IsOpen() {

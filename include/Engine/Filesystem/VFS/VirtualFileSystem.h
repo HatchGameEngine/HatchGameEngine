@@ -23,7 +23,9 @@ private:
 public:
 	~VirtualFileSystem();
 
-	VFSMountStatus Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags);
+	VFSProvider* Get(const char* name);
+	VFSMountStatus Mount(const char* name, const char* filename, const char* mountPoint,
+		VFSType type, Uint16 flags);
 	int NumMounted();
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);

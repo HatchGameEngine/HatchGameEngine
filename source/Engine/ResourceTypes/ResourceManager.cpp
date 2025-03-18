@@ -5,9 +5,12 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Filesystem/File.h>
 
+#define RESOURCES_VFS_NAME "main"
+
 #define RESOURCES_PATH "Resources"
 
 VirtualFileSystem* vfs = nullptr;
+VFSProvider* mainResource = nullptr;
 
 bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
@@ -41,10 +44,11 @@ bool ResourceManager::Init(const char* filename) {
 	}
 
 	if (filename != NULL && File::Exists(filename)) {
-		ResourceManager::Mount(filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 	else {
-		VFSMountStatus status = vfs->Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
+		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_PATH, nullptr,
+			VFSType::FILESYSTEM, VFS_READABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
 			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
@@ -56,28 +60,32 @@ bool ResourceManager::Init(const char* filename) {
 		}
 	}
 
+	mainResource = vfs->Get(RESOURCES_VFS_NAME);
+	if (mainResource == nullptr) {
+		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
+
+		return false;
+	}
+
+	// TODO: Allow multiple modpacks!
 	char modpacksString[1024];
 	if (Application::Settings->GetString(
 		    "game", "modpacks", modpacksString, sizeof modpacksString)) {
 		if (File::Exists(modpacksString)) {
 			Log::Print(Log::LOG_IMPORTANT, "Loading modpack \"%s\"...", modpacksString);
 
-			if (ResourceManager::Mount(modpacksString, nullptr, VFSType::HATCH, VFS_READABLE)) {
+			if (ResourceManager::Mount("modpack", modpacksString, nullptr,
+				VFSType::HATCH, VFS_READABLE)) {
 				ResourceManager::UsingModPack = true;
 			}
 		}
 	}
 
-	if (vfs->NumMounted() == 0) {
-		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
-
-		return false;
-	}
-
 	return true;
 }
-bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
-	VFSMountStatus status = vfs->Mount(filename, mountPoint, type, flags);
+bool ResourceManager::Mount(const char* name, const char* filename, const char* mountPoint,
+	VFSType type, Uint16 flags) {
+	VFSMountStatus status = vfs->Mount(name, filename, mountPoint, type, flags);
 
 	if (status == VFSMountStatus::NOT_FOUND) {
 		Log::Print(Log::LOG_ERROR, "Could not find resource \"%s\"!", filename);
@@ -104,4 +112,5 @@ bool ResourceManager::ResourceExists(const char* filename) {
 void ResourceManager::Dispose() {
 	delete vfs;
 	vfs = nullptr;
+	mainResource = nullptr;
 }
