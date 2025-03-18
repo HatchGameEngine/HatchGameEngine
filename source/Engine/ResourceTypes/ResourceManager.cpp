@@ -2,15 +2,12 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/VFS/VFSContainer.h>
 #include <Engine/Filesystem/File.h>
-#include <Engine/Filesystem/VFS/FileSystemVFS.h>
-#include <Engine/Filesystem/VFS/HatchVFS.h>
-#include <Engine/IO/SDLStream.h>
-#include <Engine/IO/Stream.h>
 
 #define RESOURCES_PATH "Resources"
 
-std::deque<VirtualFileSystem*> LoadedVFS;
+VFSContainer* vfsContainer = nullptr;
 
 bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
@@ -34,6 +31,8 @@ const char* FindDataFile() {
 }
 
 bool ResourceManager::Init(const char* filename) {
+	vfsContainer = new VFSContainer();
+
 	if (filename != NULL && File::Exists(filename)) {
 		Log::Print(Log::LOG_IMPORTANT, "Loading \"%s\"...", filename);
 	}
@@ -44,10 +43,17 @@ bool ResourceManager::Init(const char* filename) {
 	if (filename != NULL && File::Exists(filename)) {
 		ResourceManager::Mount(filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
-	else if (ResourceManager::Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE)) {
-		Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
+	else {
+		VFSMountStatus status = vfsContainer->Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
 
-		ResourceManager::UsingDataFolder = true;
+		if (status == VFSMountStatus::MOUNTED) {
+			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
+
+			ResourceManager::UsingDataFolder = true;
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Could not access \"%s\" folder!", RESOURCES_PATH);
+		}
 	}
 
 	char modpacksString[1024];
@@ -62,7 +68,7 @@ bool ResourceManager::Init(const char* filename) {
 		}
 	}
 
-	if (LoadedVFS.size() == 0) {
+	if (vfsContainer->NumMounted() == 0) {
 		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
 
 		return false;
@@ -71,81 +77,31 @@ bool ResourceManager::Init(const char* filename) {
 	return true;
 }
 bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
-	VirtualFileSystem* vfs = nullptr;
+	VFSMountStatus status = vfsContainer->Mount(filename, mountPoint, type, flags);
 
-	if (mountPoint == nullptr) {
-		mountPoint = DEFAULT_MOUNT_POINT;
+	if (status == VFSMountStatus::NOT_FOUND) {
+		Log::Print(Log::LOG_ERROR, "Could not find resource \"%s\"!", filename);
+	}
+	else if (status != VFSMountStatus::MOUNTED) {
+		Log::Print(Log::LOG_ERROR, "Could not load resource \"%s\"!", filename);
 	}
 
-	if (type == VFSType::FILESYSTEM) {
-		FileSystemVFS* fsVfs = new FileSystemVFS(mountPoint, flags);
-		fsVfs->Open(filename);
-		vfs = fsVfs;
-	}
-	else {
-		SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
-		if (!stream) {
-			Log::Print(Log::LOG_ERROR, "Resource file \"%s\" not found!", filename);
-			return false;
-		}
-
-		switch (type) {
-		case VFSType::HATCH: {
-			HatchVFS *hatchVfs = new HatchVFS(mountPoint, flags);
-			hatchVfs->Open(stream);
-			vfs = hatchVfs;
-			break;
-		}
-		default:
-			stream->Close();
-			stream = nullptr;
-			break;
-		}
-	}
-
-	if (vfs == nullptr || !vfs->IsOpen()) {
-		Log::Print(Log::LOG_ERROR, "Could not read resource file \"%s\"!", filename);
-		return false;
-	}
-
-	LoadedVFS.push_front(vfs);
-
-	return true;
+	return status == VFSMountStatus::MOUNTED;
 }
+
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
-	char resourcePath[MAX_PATH_LENGTH];
-
-	for (size_t i = 0; i < LoadedVFS.size(); i++) {
-		VirtualFileSystem* vfs = LoadedVFS[i];
-
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		if (vfs->ReadFile(resourcePath, out, size)) {
-			return true;
-		}
+	if (vfsContainer) {
+		return vfsContainer->LoadFile(filename, out, size);
 	}
-
 	return false;
 }
 bool ResourceManager::ResourceExists(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
-
-	for (size_t i = 0; i < LoadedVFS.size(); i++) {
-		VirtualFileSystem* vfs = LoadedVFS[i];
-
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		if (vfs->HasFile(resourcePath)) {
-			return true;
-		}
+	if (vfsContainer) {
+		return vfsContainer->FileExists(filename);
 	}
-
 	return false;
 }
 void ResourceManager::Dispose() {
-	for (size_t i = 0; i < LoadedVFS.size(); i++) {
-		delete LoadedVFS[i];
-	}
-
-	LoadedVFS.clear();
+	delete vfsContainer;
+	vfsContainer = nullptr;
 }

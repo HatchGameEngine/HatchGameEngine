@@ -323,7 +323,9 @@ bool Path::FromURL(const char* filename, std::filesystem::path& result, PathLoca
 			return false;
 		}
 
-		if (!Create(pathForLocation.u8string().c_str())) {
+		// Create the directories recursively if they don't exist.
+		std::string pathForLocationString = pathForLocation.u8string();
+		if (!Create(pathForLocationString.c_str())) {
 			return false;
 		}
 

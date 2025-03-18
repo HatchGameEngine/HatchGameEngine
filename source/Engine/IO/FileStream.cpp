@@ -111,11 +111,15 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		return nullptr;
 	}
 
+	std::string resolvedPathString = resolvedPath.u8string();
+
+	const char* finalPath = resolvedPathString.c_str();
+
 	Stream* stream = nullptr;
 
 	switch (location) {
 	default:
-		stream = StandardIOStream::New(resolvedPath.u8string().c_str(), streamAccess);
+		stream = StandardIOStream::New(finalPath, streamAccess);
 		break;
 	}
 

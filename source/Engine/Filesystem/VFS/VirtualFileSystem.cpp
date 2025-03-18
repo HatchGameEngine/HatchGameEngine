@@ -6,6 +6,9 @@ VirtualFileSystem::VirtualFileSystem(const char *mountPoint, Uint16 flags) {
 	MountPoint = StringUtils::LexicallyNormalFormOfPath(mountPoint);
 	Flags = flags;
 }
+VirtualFileSystem::~VirtualFileSystem() {
+	Close();
+}
 
 bool VirtualFileSystem::IsOpen() {
 	return Opened;
@@ -36,11 +39,9 @@ void VirtualFileSystem::TransformFilename(const char* filename, char* dest, size
 bool VirtualFileSystem::HasFile(const char* filename) {
 	return false;
 }
-
 VFSEntry* VirtualFileSystem::FindFile(const char* filename) {
 	return nullptr;
 }
-
 bool VirtualFileSystem::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return false;
 }
@@ -48,15 +49,20 @@ bool VirtualFileSystem::ReadFile(const char* filename, Uint8** out, size_t* size
 bool VirtualFileSystem::PutFile(const char* filename, VFSEntry* entry) {
 	return false;
 }
-
 bool VirtualFileSystem::EraseFile(const char* filename) {
+	return false;
+}
+
+Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
+	return nullptr;
+}
+Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
+	return nullptr;
+}
+bool VirtualFileSystem::CloseStream(Stream* stream) {
 	return false;
 }
 
 void VirtualFileSystem::Close() {
 	Opened = false;
-}
-
-VirtualFileSystem::~VirtualFileSystem() {
-	Close();
 }

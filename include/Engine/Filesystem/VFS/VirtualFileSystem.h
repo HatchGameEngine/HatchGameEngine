@@ -14,8 +14,6 @@ enum VFSType {
 #define VFS_READABLE 1
 #define VFS_WRITABLE 2
 
-#define DEFAULT_MOUNT_POINT ""
-
 typedef std::unordered_map<std::string, VFSEntry*> VFSEntryMap;
 
 class VirtualFileSystem {
@@ -42,6 +40,9 @@ public:
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
+	virtual Stream* OpenReadStream(const char* filename);
+	virtual Stream* OpenWriteStream(const char* filename);
+	virtual bool CloseStream(Stream*);
 	virtual void Close();
 };
 

@@ -28,17 +28,12 @@ bool FileSystemVFS::HasFile(const char* filename) {
 		return false;
 	}
 
-	char resourcePath[MAX_PATH_LENGTH];
-	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
-		return false;
-	}
-
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	Stream* stream = OpenReadStream(filename);
 	if (!stream) {
 		return false;
 	}
 
-	stream->Close();
+	CloseStream(stream);
 
 	return true;
 }
@@ -48,12 +43,7 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 		return nullptr;
 	}
 
-	char resourcePath[MAX_PATH_LENGTH];
-	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
-		return nullptr;
-	}
-
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	Stream* stream = OpenReadStream(filename);
 	if (!stream) {
 		return nullptr;
 	}
@@ -73,7 +63,7 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 	entry->Size = stream->Length();
 	entry->CompressedSize = entry->Size;
 
-	stream->Close();
+	CloseStream(stream);
 
 	return entry;
 }
@@ -83,12 +73,7 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		return false;
 	}
 
-	char resourcePath[MAX_PATH_LENGTH];
-	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
-		return false;
-	}
-
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	Stream* stream = OpenReadStream(filename);
 	if (!stream) {
 		return false;
 	}
@@ -101,7 +86,8 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	}
 
 	stream->ReadBytes(memory, length);
-	stream->Close();
+
+	CloseStream(stream);
 
 	*out = memory;
 	*size = length;
@@ -114,18 +100,14 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 		return false;
 	}
 
-	char resourcePath[MAX_PATH_LENGTH];
-	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
-		return false;
-	}
-
-	FileStream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
+	Stream* stream = OpenWriteStream(filename);
 	if (!stream) {
 		return false;
 	}
 
 	stream->WriteBytes(entry->CachedData, entry->Size);
-	stream->Close();
+
+	CloseStream(stream);
 
 	return true;
 }
@@ -143,6 +125,34 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 	int success = remove(resourcePath);
 
 	return (success == 0);
+}
+
+Stream* FileSystemVFS::OpenReadStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return nullptr;
+	}
+
+	return FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+}
+
+Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return nullptr;
+	}
+
+	return FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
+}
+
+bool FileSystemVFS::CloseStream(Stream* stream) {
+	if (stream) {
+		stream->Close();
+
+		return true;
+	}
+
+	return false;
 }
 
 void FileSystemVFS::Close() {
