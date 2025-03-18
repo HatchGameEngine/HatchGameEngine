@@ -183,6 +183,7 @@
     <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSEntry.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\VFSProvider.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VirtualFileSystem.cpp" />
     <ClCompile Include="..\source\engine\FontFace.cpp" />
     <ClCompile Include="..\source\engine\Graphics.cpp" />

@@ -1,9 +1,9 @@
 #ifndef ENGINE_FILESYSTEM_VFS_FILESYSTEMVFS_H
 #define ENGINE_FILESYSTEM_VFS_FILESYSTEMVFS_H
 
-#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
+#include <Engine/Filesystem/VFS/VFSProvider.h>
 
-class FileSystemVFS : public VirtualFileSystem {
+class FileSystemVFS : public VFSProvider {
 private:
 	std::string ParentPath = "";
 	VFSEntryMap Cache;
@@ -11,7 +11,7 @@ private:
 	bool GetPath(const char* filename, char* path, size_t pathSize);
 
 public:
-	FileSystemVFS(const char *mountPoint, Uint16 flags) : VirtualFileSystem(mountPoint, flags) {};
+	FileSystemVFS(const char *mountPoint, Uint16 flags) : VFSProvider(mountPoint, flags) {};
 	virtual ~FileSystemVFS();
 
 	bool Open(const char* path);

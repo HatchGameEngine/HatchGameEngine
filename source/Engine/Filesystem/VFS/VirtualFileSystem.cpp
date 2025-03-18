@@ -1,68 +1,93 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
-#include <Engine/Utilities/StringUtils.h>
+#include <Engine/Filesystem/VFS/FileSystemVFS.h>
+#include <Engine/Filesystem/VFS/HatchVFS.h>
+#include <Engine/Filesystem/Path.h>
+#include <Engine/IO/SDLStream.h>
 
-VirtualFileSystem::VirtualFileSystem(const char *mountPoint, Uint16 flags) {
-	MountPoint = StringUtils::LexicallyNormalFormOfPath(mountPoint);
-	Flags = flags;
-}
-VirtualFileSystem::~VirtualFileSystem() {
-	Close();
-}
+VFSMountStatus VirtualFileSystem::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
+	VFSProvider* vfs = nullptr;
 
-bool VirtualFileSystem::IsOpen() {
-	return Opened;
-}
-
-bool VirtualFileSystem::IsReadable() {
-	return (Flags & VFS_READABLE) != 0;
-}
-
-bool VirtualFileSystem::IsWritable() {
-	return (Flags & VFS_WRITABLE) != 0;
-}
-
-const char* VirtualFileSystem::GetMountPoint() {
-	return MountPoint.c_str();
-}
-
-void VirtualFileSystem::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	size_t offset = 0;
-
-	if (StringUtils::StartsWith(filename, MountPoint.c_str())) {
-		offset = MountPoint.size();
+	if (mountPoint == nullptr) {
+		mountPoint = DEFAULT_MOUNT_POINT;
 	}
 
-	StringUtils::Copy(dest, filename + offset, destSize);
+	if (type == VFSType::FILESYSTEM) {
+		FileSystemVFS* fsVfs = new FileSystemVFS(mountPoint, flags);
+		fsVfs->Open(filename);
+		vfs = fsVfs;
+	}
+	else {
+		SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
+		if (!stream) {
+			return VFSMountStatus::NOT_FOUND;
+		}
+
+		switch (type) {
+		case VFSType::HATCH: {
+			HatchVFS *hatchVfs = new HatchVFS(mountPoint, flags);
+			hatchVfs->Open(stream);
+			vfs = hatchVfs;
+			break;
+		}
+		default:
+			stream->Close();
+			stream = nullptr;
+			break;
+		}
+	}
+
+	if (vfs == nullptr || !vfs->IsOpen()) {
+		return VFSMountStatus::COULD_NOT_MOUNT;
+	}
+
+	LoadedVFS.push_front(vfs);
+
+	return VFSMountStatus::MOUNTED;
+}
+int VirtualFileSystem::NumMounted() {
+	return LoadedVFS.size();
 }
 
-bool VirtualFileSystem::HasFile(const char* filename) {
+bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size) {
+	char resourcePath[MAX_PATH_LENGTH];
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
+
+		if (vfs->ReadFile(resourcePath, out, size)) {
+			return true;
+		}
+	}
+
 	return false;
 }
-VFSEntry* VirtualFileSystem::FindFile(const char* filename) {
-	return nullptr;
-}
-bool VirtualFileSystem::ReadFile(const char* filename, Uint8** out, size_t* size) {
+bool VirtualFileSystem::FileExists(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
+
+		if (vfs->HasFile(resourcePath)) {
+			return true;
+		}
+	}
+
 	return false;
 }
 
-bool VirtualFileSystem::PutFile(const char* filename, VFSEntry* entry) {
-	return false;
-}
-bool VirtualFileSystem::EraseFile(const char* filename) {
-	return false;
+void VirtualFileSystem::Dispose() {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		delete LoadedVFS[i];
+	}
+
+	LoadedVFS.clear();
 }
 
-Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
-	return nullptr;
-}
-Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
-	return nullptr;
-}
-bool VirtualFileSystem::CloseStream(Stream* stream) {
-	return false;
-}
-
-void VirtualFileSystem::Close() {
-	Opened = false;
+VirtualFileSystem::~VirtualFileSystem() {
+	Dispose();
 }

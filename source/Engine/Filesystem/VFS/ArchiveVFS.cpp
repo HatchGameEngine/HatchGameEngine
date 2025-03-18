@@ -122,7 +122,7 @@ void ArchiveVFS::Close() {
 
 	EntryNames.clear();
 
-	VirtualFileSystem::Close();
+	VFSProvider::Close();
 }
 
 ArchiveVFS::~ArchiveVFS() {

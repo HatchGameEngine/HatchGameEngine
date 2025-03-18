@@ -1,9 +1,9 @@
 #ifndef ENGINE_FILESYSTEM_VFS_ARCHIVEVFS_H
 #define ENGINE_FILESYSTEM_VFS_ARCHIVEVFS_H
 
-#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
+#include <Engine/Filesystem/VFS/VFSProvider.h>
 
-class ArchiveVFS : public VirtualFileSystem {
+class ArchiveVFS : public VFSProvider {
 protected:
 	VFSEntryMap Entries;
 	std::vector<std::string> EntryNames;
@@ -14,7 +14,7 @@ protected:
 	bool AddEntry(VFSEntry* entry);
 
 public:
-	ArchiveVFS(const char *mountPoint, Uint16 flags) : VirtualFileSystem(mountPoint, flags) {};
+	ArchiveVFS(const char *mountPoint, Uint16 flags) : VFSProvider(mountPoint, flags) {};
 	virtual ~ArchiveVFS();
 
 	virtual bool HasFile(const char* filename);

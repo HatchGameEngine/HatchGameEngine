@@ -66,6 +66,7 @@ CPPFILES := \
 	source/Engine/Filesystem/VFS/FileSystemVFS.cpp \
 	source/Engine/Filesystem/VFS/HatchVFS.cpp \
 	source/Engine/Filesystem/VFS/VFSEntry.cpp \
+	source/Engine/Filesystem/VFS/VFSProvider.cpp \
 	source/Engine/Filesystem/VFS/VirtualFileSystem.cpp \
 	source/Engine/FontFace.cpp \
 	source/Engine/Graphics.cpp \
@@ -279,6 +280,7 @@ PUBHFILES := \
 	include/Engine/Filesystem/VFS/FileSystemVFS.h \
 	include/Engine/Filesystem/VFS/HatchVFS.h \
 	include/Engine/Filesystem/VFS/VFSEntry.h \
+	include/Engine/Filesystem/VFS/VFSProvider.h \
 	include/Engine/Filesystem/VFS/VirtualFileSystem.h \
 	include/Engine/FontFace.h \
 	include/Engine/Graphics.h \

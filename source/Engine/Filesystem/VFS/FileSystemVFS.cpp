@@ -162,7 +162,7 @@ void FileSystemVFS::Close() {
 		delete it->second;
 	}
 
-	VirtualFileSystem::Close();
+	VFSProvider::Close();
 }
 
 FileSystemVFS::~FileSystemVFS() {

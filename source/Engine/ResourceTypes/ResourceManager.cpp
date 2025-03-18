@@ -2,12 +2,12 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/Filesystem/VFS/VFSContainer.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Filesystem/File.h>
 
 #define RESOURCES_PATH "Resources"
 
-VFSContainer* vfsContainer = nullptr;
+VirtualFileSystem* vfs = nullptr;
 
 bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
@@ -31,7 +31,7 @@ const char* FindDataFile() {
 }
 
 bool ResourceManager::Init(const char* filename) {
-	vfsContainer = new VFSContainer();
+	vfs = new VirtualFileSystem();
 
 	if (filename != NULL && File::Exists(filename)) {
 		Log::Print(Log::LOG_IMPORTANT, "Loading \"%s\"...", filename);
@@ -44,7 +44,7 @@ bool ResourceManager::Init(const char* filename) {
 		ResourceManager::Mount(filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 	else {
-		VFSMountStatus status = vfsContainer->Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
+		VFSMountStatus status = vfs->Mount(RESOURCES_PATH, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
 			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
@@ -68,7 +68,7 @@ bool ResourceManager::Init(const char* filename) {
 		}
 	}
 
-	if (vfsContainer->NumMounted() == 0) {
+	if (vfs->NumMounted() == 0) {
 		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
 
 		return false;
@@ -77,7 +77,7 @@ bool ResourceManager::Init(const char* filename) {
 	return true;
 }
 bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
-	VFSMountStatus status = vfsContainer->Mount(filename, mountPoint, type, flags);
+	VFSMountStatus status = vfs->Mount(filename, mountPoint, type, flags);
 
 	if (status == VFSMountStatus::NOT_FOUND) {
 		Log::Print(Log::LOG_ERROR, "Could not find resource \"%s\"!", filename);
@@ -90,18 +90,18 @@ bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSTyp
 }
 
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
-	if (vfsContainer) {
-		return vfsContainer->LoadFile(filename, out, size);
+	if (vfs) {
+		return vfs->LoadFile(filename, out, size);
 	}
 	return false;
 }
 bool ResourceManager::ResourceExists(const char* filename) {
-	if (vfsContainer) {
-		return vfsContainer->FileExists(filename);
+	if (vfs) {
+		return vfs->FileExists(filename);
 	}
 	return false;
 }
 void ResourceManager::Dispose() {
-	delete vfsContainer;
-	vfsContainer = nullptr;
+	delete vfs;
+	vfs = nullptr;
 }

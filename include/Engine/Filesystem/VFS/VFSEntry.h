@@ -36,4 +36,6 @@ public:
 	}
 };
 
+typedef std::unordered_map<std::string, VFSEntry*> VFSEntryMap;
+
 #endif /* ENGINE_FILESYSTEM_VFS_VFSENTRY_H */

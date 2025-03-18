@@ -70,7 +70,7 @@ bool HatchVFS::Open(Stream* stream) {
 }
 
 void HatchVFS::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	VirtualFileSystem::TransformFilename(filename, dest, destSize);
+	VFSProvider::TransformFilename(filename, dest, destSize);
 
 	snprintf(dest, destSize, "%08x", CRC32::EncryptString(dest));
 }
