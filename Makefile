@@ -89,6 +89,7 @@ CPPFILES := \
 	source/Engine/IO/StandardIOStream.cpp \
 	source/Engine/IO/Stream.cpp \
 	source/Engine/IO/TextStream.cpp \
+	source/Engine/IO/VirtualFileStream.cpp \
 	source/Engine/Input/Controller.cpp \
 	source/Engine/Input/InputAction.cpp \
 	source/Engine/Input/InputPlayer.cpp \
@@ -302,6 +303,7 @@ PUBHFILES := \
 	include/Engine/IO/Serializer.h \
 	include/Engine/IO/Stream.h \
 	include/Engine/IO/TextStream.h \
+	include/Engine/IO/VirtualFileStream.h \
 	include/Engine/Input/Controller.h \
 	include/Engine/Input/InputAction.h \
 	include/Engine/Input/InputPlayer.h \

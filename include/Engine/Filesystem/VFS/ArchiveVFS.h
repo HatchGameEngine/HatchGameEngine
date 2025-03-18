@@ -2,6 +2,7 @@
 #define ENGINE_FILESYSTEM_VFS_ARCHIVEVFS_H
 
 #include <Engine/Filesystem/VFS/VFSProvider.h>
+#include <Engine/IO/Stream.h>
 
 class ArchiveVFS : public VFSProvider {
 protected:

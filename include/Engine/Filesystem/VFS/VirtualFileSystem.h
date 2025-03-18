@@ -2,6 +2,7 @@
 #define ENGINE_FILESYSTEM_VFS_VIRTUALFILESYSTEM_H
 
 #include <Engine/Filesystem/VFS/VFSProvider.h>
+#include <Engine/IO/Stream.h>
 
 #define DEFAULT_MOUNT_POINT ""
 
@@ -27,6 +28,10 @@ public:
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
+
+	Stream* OpenReadStream(const char* filename);
+	Stream* OpenWriteStream(const char* filename);
+	bool CloseStream(Stream* stream);
 };
 
 #endif /* ENGINE_FILESYSTEM_VFS_VIRTUALFILESYSTEM_H */

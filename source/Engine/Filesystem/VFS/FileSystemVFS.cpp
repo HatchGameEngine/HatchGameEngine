@@ -133,7 +133,12 @@ Stream* FileSystemVFS::OpenReadStream(const char* filename) {
 		return nullptr;
 	}
 
-	return FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	Stream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+	if (stream != nullptr) {
+		OpenStreams.push_back(stream);
+	}
+
+	return stream;
 }
 
 Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
@@ -142,17 +147,12 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 		return nullptr;
 	}
 
-	return FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
-}
-
-bool FileSystemVFS::CloseStream(Stream* stream) {
-	if (stream) {
-		stream->Close();
-
-		return true;
+	Stream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
+	if (stream != nullptr) {
+		OpenStreams.push_back(stream);
 	}
 
-	return false;
+	return stream;
 }
 
 void FileSystemVFS::Close() {

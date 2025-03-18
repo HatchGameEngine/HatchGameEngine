@@ -16,9 +16,9 @@ public:
 	FILE* f;
 	size_t size;
 	enum {
-		READ_ACCESS = 0,
-		WRITE_ACCESS = 1,
-		APPEND_ACCESS = 2
+		READ_ACCESS,
+		WRITE_ACCESS,
+		APPEND_ACCESS
 	};
 
 	static StandardIOStream* New(const char* filename, Uint32 access);

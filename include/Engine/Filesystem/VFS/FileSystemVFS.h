@@ -23,7 +23,6 @@ public:
 	virtual bool EraseFile(const char* filename);
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
-	virtual bool CloseStream(Stream*);
 	virtual void Close();
 };
 

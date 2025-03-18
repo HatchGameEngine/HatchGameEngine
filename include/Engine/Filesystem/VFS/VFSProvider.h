@@ -21,6 +21,7 @@ private:
 
 protected:
 	bool Opened;
+	std::vector<Stream*> OpenStreams;
 
 public:
 	VFSProvider(const char *mountPoint, Uint16 flags);

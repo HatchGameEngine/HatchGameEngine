@@ -80,6 +80,50 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 	return false;
 }
 
+Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
+
+		Stream* stream = vfs->OpenReadStream(resourcePath);
+		if (stream) {
+			return stream;
+		}
+	}
+
+	return nullptr;
+}
+Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
+
+		Stream* stream = vfs->OpenWriteStream(resourcePath);
+		if (stream) {
+			return stream;
+		}
+	}
+
+	return nullptr;
+}
+bool VirtualFileSystem::CloseStream(Stream* stream) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		if (vfs->CloseStream(stream)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void VirtualFileSystem::Dispose() {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		delete LoadedVFS[i];

@@ -60,6 +60,16 @@ Stream* VFSProvider::OpenWriteStream(const char* filename) {
 	return nullptr;
 }
 bool VFSProvider::CloseStream(Stream* stream) {
+	for (size_t i = 0; i < OpenStreams.size(); i++) {
+		Stream* openStream = OpenStreams[i];
+
+		if (openStream == stream) {
+			stream->Close();
+			OpenStreams.erase(OpenStreams.begin() + i);
+			return true;
+		}
+	}
+
 	return false;
 }
 

@@ -192,6 +192,9 @@
     <ClCompile Include="..\source\engine\io\TextStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\io\VirtualFileStream.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -1,27 +1,27 @@
-#ifndef ENGINE_IO_SDLSTREAM_H
-#define ENGINE_IO_SDLSTREAM_H
+#ifndef ENGINE_IO_VIRTUALFILESTREAM_H
+#define ENGINE_IO_VIRTUALFILESTREAM_H
 
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
-class SDLStream : public Stream {
+class VirtualFileStream : public Stream {
 private:
 	std::string Filename;
 	Uint32 CurrentAccess;
 
-	static SDL_RWops* OpenFile(const char* filename, Uint32 access);
+	static Stream* OpenFile(VirtualFileSystem* vfs, const char* filename, Uint32 access);
 	bool Reopen(Uint32 newAccess);
 
 public:
-	SDL_RWops* f;
+	VirtualFileSystem* VFSPtr;
+	Stream* StreamPtr;
 	enum {
 		READ_ACCESS,
-		WRITE_ACCESS,
-		APPEND_ACCESS
+		WRITE_ACCESS
 	};
 
-	static SDLStream* New(const char* filename, Uint32 access);
+	static VirtualFileStream* New(VirtualFileSystem* vfs, const char* filename, Uint32 access);
 	bool IsReadable();
 	bool IsWritable();
 	bool MakeReadable(bool readable);
@@ -36,4 +36,4 @@ public:
 	size_t WriteBytes(void* data, size_t n);
 };
 
-#endif /* ENGINE_IO_SDLSTREAM_H */
+#endif /* ENGINE_IO_VIRTUALFILESTREAM_H */

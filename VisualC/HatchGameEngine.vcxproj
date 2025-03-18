@@ -210,6 +210,7 @@
     <ClCompile Include="..\source\engine\io\StandardIOStream.cpp" />
     <ClCompile Include="..\source\engine\io\Stream.cpp" />
     <ClCompile Include="..\source\engine\io\TextStream.cpp" />
+    <ClCompile Include="..\source\engine\io\VirtualFileStream.cpp" />
     <ClCompile Include="..\source\engine\Main.cpp" />
     <ClCompile Include="..\source\engine\math\Clipper.cpp" />
     <ClCompile Include="..\source\engine\math\Ease.cpp" />
