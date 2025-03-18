@@ -79,7 +79,7 @@ static void getAppName(char* buffer, int maxSize) {
 }
 #endif
 
-Stream* FileStream::OpenFile(const char* filename, Uint32 access) {
+Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs) {
 	Uint32 streamAccess = 0;
 	switch (access) {
 	case FileStream::READ_ACCESS:
@@ -97,21 +97,38 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access) {
 
 	PathLocation location = PathLocation::DEFAULT;
 
+	bool isPathValid = true;
 	if (!Path::FromURL(filename, resolvedPath, location)) {
+		isPathValid = false;
+	}
+
+	if (isPathValid && !allowURLs && location != PathLocation::DEFAULT) {
+		isPathValid = false;
+	}
+
+	if (!isPathValid) {
 		Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", filename);
 		return nullptr;
 	}
 
-	return StandardIOStream::New(resolvedPath.u8string().c_str(), streamAccess);
+	Stream* stream = nullptr;
+
+	switch (location) {
+	default:
+		stream = StandardIOStream::New(resolvedPath.u8string().c_str(), streamAccess);
+		break;
+	}
+
+	return stream;
 }
 
-FileStream* FileStream::New(const char* filename, Uint32 access) {
+FileStream* FileStream::New(const char* filename, Uint32 access, bool allowURLs) {
 	FileStream* stream = new (std::nothrow) FileStream;
 	if (!stream) {
 		return nullptr;
 	}
 
-	stream->StreamPtr = OpenFile(filename, access);
+	stream->StreamPtr = OpenFile(filename, access, allowURLs);
 
 	if (!stream->StreamPtr) {
 		goto FREE;
@@ -119,6 +136,7 @@ FileStream* FileStream::New(const char* filename, Uint32 access) {
 
 	stream->Filename = std::string(filename);
 	stream->CurrentAccess = access;
+	stream->UseURLs = allowURLs;
 
 	return stream;
 
@@ -126,13 +144,16 @@ FREE:
 	delete stream;
 	return nullptr;
 }
+FileStream* FileStream::New(const char* filename, Uint32 access) {
+	return New(filename, access, false);
+}
 
 bool FileStream::Reopen(Uint32 newAccess) {
 	if (CurrentAccess == newAccess) {
 		return true;
 	}
 
-	Stream* newStream = OpenFile(Filename.c_str(), newAccess);
+	Stream* newStream = OpenFile(Filename.c_str(), newAccess, UseURLs);
 	if (!newStream) {
 		return false;
 	}

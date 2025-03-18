@@ -55,7 +55,7 @@ bool File::Exists(const char* path) {
 
 size_t File::ReadAllBytes(const char* path, char** out) {
 	FileStream* stream;
-	if ((stream = FileStream::New(path, FileStream::READ_ACCESS))) {
+	if ((stream = FileStream::New(path, FileStream::READ_ACCESS, true))) {
 		size_t size = stream->Length();
 		*out = (char*)Memory::Malloc(size + 1);
 		if (!*out) {
@@ -81,7 +81,7 @@ bool File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
 	}
 
 	FileStream* stream;
-	if ((stream = FileStream::New(path, FileStream::WRITE_ACCESS))) {
+	if ((stream = FileStream::New(path, FileStream::WRITE_ACCESS, true))) {
 		stream->WriteBytes((char*)bytes, len);
 		stream->Close();
 		return true;

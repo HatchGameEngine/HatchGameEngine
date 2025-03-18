@@ -8,8 +8,9 @@ class FileStream : public Stream {
 private:
 	std::string Filename;
 	Uint32 CurrentAccess;
+	bool UseURLs;
 
-	static Stream* OpenFile(const char* filename, Uint32 access);
+	static Stream* OpenFile(const char* filename, Uint32 access, bool allowURLs);
 	bool Reopen(Uint32 newAccess);
 
 public:
@@ -28,6 +29,7 @@ public:
 	};
 
 	static FileStream* New(const char* filename, Uint32 access);
+	static FileStream* New(const char* filename, Uint32 access, bool allowURLs);
 	bool IsReadable();
 	bool IsWritable();
 	bool MakeReadable(bool readable);

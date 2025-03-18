@@ -33,7 +33,7 @@ bool FileSystemVFS::HasFile(const char* filename) {
 		return false;
 	}
 
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return false;
 	}
@@ -53,7 +53,7 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 		return nullptr;
 	}
 
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return nullptr;
 	}
@@ -88,7 +88,7 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		return false;
 	}
 
-	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS);
+	FileStream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return false;
 	}
@@ -119,7 +119,7 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 		return false;
 	}
 
-	FileStream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS);
+	FileStream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
 	if (!stream) {
 		return false;
 	}

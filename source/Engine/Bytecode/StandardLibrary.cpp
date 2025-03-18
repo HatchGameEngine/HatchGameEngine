@@ -6020,7 +6020,7 @@ VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	Stream* stream = FileStream::New(filePath, FileStream::READ_ACCESS);
+	Stream* stream = FileStream::New(filePath, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return NULL_VAL;
 	}
@@ -6051,7 +6051,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjString* text = AS_STRING(args[1]);
 
-		Stream* stream = FileStream::New(filePath, FileStream::WRITE_ACCESS);
+		Stream* stream = FileStream::New(filePath, FileStream::WRITE_ACCESS, true);
 		if (!stream) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(false);
@@ -15073,7 +15073,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		char* filename = GET_ARG(0, GetString);
 		int access = GET_ARG(1, GetInteger);
-		FileStream* streamPtr = FileStream::New(filename, access);
+		FileStream* streamPtr = FileStream::New(filename, access, true);
 		if (!streamPtr) {
 			ScriptManager::Unlock();
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
