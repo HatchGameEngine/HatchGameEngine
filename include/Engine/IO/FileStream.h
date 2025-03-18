@@ -15,11 +15,16 @@ private:
 public:
 	Stream* StreamPtr;
 	enum {
-		READ_ACCESS = 0,
-		WRITE_ACCESS = 1,
-		APPEND_ACCESS = 2,
-		SAVEGAME_ACCESS = 16,
-		PREFERENCES_ACCESS = 32,
+		// Read access to a file in the current directory.
+		READ_ACCESS,
+
+		// Write access a file in the current directory.
+		WRITE_ACCESS,
+
+		// Append access a file in the current directory.
+		// Note that the underlying stream might not support this
+		// access mode, so use with caution.
+		APPEND_ACCESS
 	};
 
 	static FileStream* New(const char* filename, Uint32 access);

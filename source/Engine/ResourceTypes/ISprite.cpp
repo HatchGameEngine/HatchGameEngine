@@ -316,7 +316,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	// Load textures
 	for (int i = 0; i < spritesheetCount; i++) {
-		char fullPath[4096];
+		char fullPath[MAX_PATH_LENGTH];
 
 		str = reader->ReadHeaderedString();
 

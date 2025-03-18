@@ -200,12 +200,7 @@ GIF* GIF::Load(const char* filename) {
 
 	Clock::Start();
 
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto GIF_Load_FAIL;

@@ -61,6 +61,7 @@ CPPFILES := \
 	source/Engine/Extensions/Discord.cpp \
 	source/Engine/Filesystem/Directory.cpp \
 	source/Engine/Filesystem/File.cpp \
+	source/Engine/Filesystem/Path.cpp \
 	source/Engine/Filesystem/VFS/ArchiveVFS.cpp \
 	source/Engine/Filesystem/VFS/FileSystemVFS.cpp \
 	source/Engine/Filesystem/VFS/HatchVFS.cpp \
@@ -273,6 +274,7 @@ PUBHFILES := \
 	include/Engine/Extensions/Discord.h \
 	include/Engine/Filesystem/Directory.h \
 	include/Engine/Filesystem/File.h \
+	include/Engine/Filesystem/Path.h \
 	include/Engine/Filesystem/VFS/ArchiveVFS.h \
 	include/Engine/Filesystem/VFS/FileSystemVFS.h \
 	include/Engine/Filesystem/VFS/HatchVFS.h \

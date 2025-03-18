@@ -265,7 +265,7 @@ ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* fil
 			}
 		}
 
-		char testFilename[4096];
+		char testFilename[MAX_PATH_LENGTH];
 		snprintf(testFilename,
 			sizeof testFilename,
 			"Fonts/%s_%d.bmp",

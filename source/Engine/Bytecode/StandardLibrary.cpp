@@ -6020,14 +6020,7 @@ VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	Stream* stream = NULL;
-	if (strncmp(filePath, "save://", 7) == 0) {
-		stream = FileStream::New(
-			filePath + 7, FileStream::SAVEGAME_ACCESS | FileStream::READ_ACCESS);
-	}
-	else {
-		stream = FileStream::New(filePath, FileStream::READ_ACCESS);
-	}
+	Stream* stream = FileStream::New(filePath, FileStream::READ_ACCESS);
 	if (!stream) {
 		return NULL_VAL;
 	}
@@ -6058,14 +6051,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjString* text = AS_STRING(args[1]);
 
-		Stream* stream = NULL;
-		if (strncmp(filePath, "save://", 7) == 0) {
-			stream = FileStream::New(filePath + 7,
-				FileStream::SAVEGAME_ACCESS | FileStream::WRITE_ACCESS);
-		}
-		else {
-			stream = FileStream::New(filePath, FileStream::WRITE_ACCESS);
-		}
+		Stream* stream = FileStream::New(filePath, FileStream::WRITE_ACCESS);
 		if (!stream) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(false);
@@ -6383,14 +6369,7 @@ int _HTTP_GetToFile(void* opaque) {
 	size_t length;
 	Uint8* data = NULL;
 	if (HTTP::GET(bundle->url, &data, &length, NULL)) {
-		Stream* stream = NULL;
-		if (strncmp(bundle->filename, "save://", 7) == 0) {
-			stream = FileStream::New(bundle->filename + 7,
-				FileStream::SAVEGAME_ACCESS | FileStream::WRITE_ACCESS);
-		}
-		else {
-			stream = FileStream::New(bundle->filename, FileStream::WRITE_ACCESS);
-		}
+		Stream* stream = FileStream::New(bundle->filename, FileStream::WRITE_ACCESS);
 		if (stream) {
 			stream->WriteBytes(data, length);
 			stream->Close();

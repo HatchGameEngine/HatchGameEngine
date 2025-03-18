@@ -113,7 +113,7 @@ bool ResourceManager::Mount(const char* filename, const char* mountPoint, VFSTyp
 	return true;
 }
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VirtualFileSystem* vfs = LoadedVFS[i];
@@ -128,7 +128,7 @@ bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* si
 	return false;
 }
 bool ResourceManager::ResourceExists(const char* filename) {
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VirtualFileSystem* vfs = LoadedVFS[i];

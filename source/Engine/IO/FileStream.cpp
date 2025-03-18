@@ -1,4 +1,5 @@
-#include <Engine/Filesystem/Directory.h>
+#include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/StandardIOStream.h>
 #include <Engine/Includes/StandardSDL2.h>
@@ -80,7 +81,7 @@ static void getAppName(char* buffer, int maxSize) {
 
 Stream* FileStream::OpenFile(const char* filename, Uint32 access) {
 	Uint32 streamAccess = 0;
-	switch (access & 15) {
+	switch (access) {
 	case FileStream::READ_ACCESS:
 		streamAccess = StandardIOStream::READ_ACCESS;
 		break;
@@ -92,94 +93,16 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access) {
 		break;
 	}
 
-	Stream* stream = nullptr;
+	std::filesystem::path resolvedPath = "";
 
-#if 0
-	printf("THIS SHOULDN'T HAPPEN\n");
-#elif defined(WIN32)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		// Saves in
-		// C:/Users/Username/.appdata/Roaming/TARGET_NAME/
-		const char* saveDataPath = "%appdata%/" TARGET_NAME "/Saves";
-		if (!Directory::Exists(saveDataPath)) {
-			Directory::Create(saveDataPath);
-		}
+	PathLocation location = PathLocation::DEFAULT;
 
-		char documentPath[4096];
-		snprintf(documentPath, sizeof documentPath, "%s/%s", saveDataPath, filename);
-		printf("documentPath: %s\n", documentPath);
-		file = fopen(documentPath, accessString);
-	}
-#elif defined(MACOSX)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		char documentPath[4096];
-		char appDirName[4096];
-		getAppName(appDirName, sizeof appDirName);
-		if (MacOS_GetApplicationSupportDirectory(documentPath, sizeof documentPath)) {
-			snprintf(documentPath, sizeof documentPath, "%s/" TARGET_NAME "/Saves", documentPath);
-			if (!Directory::Exists(documentPath)) {
-				Directory::Create(documentPath);
-			}
-
-			snprintf(documentPath, sizeof documentPath, "%s/%s", documentPath, filename);
-			file = fopen(documentPath, accessString);
-		}
-	}
-#elif defined(IOS)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		char* base_path = SDL_GetPrefPath("HatchGameEngine", TARGET_NAME);
-		if (base_path) {
-			char documentPath[4096];
-			snprintf(documentPath, sizeof documentPath, "%s%s", base_path, filename);
-			file = fopen(documentPath, accessString);
-		}
-	}
-	else if (access & FileStream::PREFERENCES_ACCESS) {
-		char* base_path = SDL_GetPrefPath("HatchGameEngine", TARGET_NAME);
-		if (base_path) {
-			char documentPath[4096];
-			snprintf(documentPath, sizeof documentPath, "%s%s", base_path, filename);
-			file = fopen(documentPath, accessString);
-		}
-	}
-#elif defined(ANDROID)
-	const char* internalStorage = SDL_AndroidGetInternalStoragePath();
-	if (internalStorage) {
-		char androidPath[4096];
-		if (access & FileStream::SAVEGAME_ACCESS) {
-			snprintf(androidPath, sizeof androidPath, "%s/Saves", internalStorage);
-			if (!Directory::Exists(androidPath)) {
-				Directory::Create(androidPath);
-			}
-
-			char documentPath[4096];
-			snprintf(documentPath, sizeof documentPath, "%s/%s", androidPath, filename);
-			file = fopen(documentPath, accessString);
-		}
-		else {
-			snprintf(androidPath, sizeof androidPath, "%s/%s", internalStorage, filename);
-			file = fopen(androidPath, accessString);
-		}
-	}
-#elif defined(SWITCH)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		// Saves in Saves/
-		const char* saveDataPath = "Saves";
-		if (!Directory::Exists(saveDataPath)) {
-			Directory::Create(saveDataPath);
-		}
-
-		char documentPath[4096];
-		snprintf(documentPath, sizeof documentPath, "%s/%s", saveDataPath, filename);
-		file = fopen(documentPath, accessString);
-	}
-#endif
-
-	if (!stream) {
-		stream = StandardIOStream::New(filename, streamAccess);
+	if (!Path::FromURL(filename, resolvedPath, location)) {
+		Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", filename);
+		return nullptr;
 	}
 
-	return stream;
+	return StandardIOStream::New(resolvedPath.u8string().c_str(), streamAccess);
 }
 
 FileStream* FileStream::New(const char* filename, Uint32 access) {

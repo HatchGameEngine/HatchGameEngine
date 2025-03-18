@@ -1,15 +1,13 @@
+#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #if WIN32
-#include <direct.h>
 #include <windows.h>
-#define MAX_PATH_SIZE 1024
 #else
 #include <dirent.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#define MAX_PATH_SIZE 4096
 #endif
 
 bool CompareFunction(char* i, char* j) {
@@ -35,18 +33,23 @@ bool Directory::Exists(const char* path) {
 	return false;
 }
 bool Directory::Create(const char* path) {
+	if (path[0] == '\0') {
+		return false;
+	}
+
 #if WIN32
 	return CreateDirectoryA(path, NULL);
 #else
-	return mkdir(path, 0777) == 0;
-#endif
-}
+	int result = mkdir(path, 0700);
+	if (result != 0) {
+		if (errno == EEXIST) {
+			return true;
+		}
 
-bool Directory::GetCurrentWorkingDirectory(char* out, size_t sz) {
-#if WIN32
-	return _getcwd(out, sz) != NULL;
-#else
-	return getcwd(out, sz) != NULL;
+		return false;
+	}
+
+	return true;
 #endif
 }
 
@@ -55,8 +58,8 @@ void Directory::GetFiles(vector<char*>* files,
 	const char* searchPattern,
 	bool allDirs) {
 #if WIN32
-	char winPath[MAX_PATH_SIZE];
-	snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
+	char winPath[MAX_PATH_LENGTH];
+	snprintf(winPath, MAX_PATH_LENGTH, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
 	for (char* i = winPath; *i; i++) {
 		if (*i == '/') {
@@ -68,7 +71,7 @@ void Directory::GetFiles(vector<char*>* files,
 	HANDLE hFind = FindFirstFile(winPath, &data);
 
 	int i;
-	char fullpath[MAX_PATH_SIZE];
+	char fullpath[MAX_PATH_LENGTH];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (data.cFileName[0] == '.' && data.cFileName[1] == 0) {
@@ -105,7 +108,7 @@ void Directory::GetFiles(vector<char*>* files,
 		FindClose(hFind);
 	}
 #else
-	char fullpath[MAX_PATH_SIZE];
+	char fullpath[MAX_PATH_LENGTH];
 	DIR* dir = opendir(path);
 	if (dir) {
 		size_t i;
@@ -155,8 +158,8 @@ void Directory::GetDirectories(vector<char*>* files,
 	const char* searchPattern,
 	bool allDirs) {
 #if WIN32
-	char winPath[MAX_PATH_SIZE];
-	snprintf(winPath, MAX_PATH_SIZE, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
+	char winPath[MAX_PATH_LENGTH];
+	snprintf(winPath, MAX_PATH_LENGTH, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
 	for (char* i = winPath; *i; i++) {
 		if (*i == '/') {
@@ -168,7 +171,7 @@ void Directory::GetDirectories(vector<char*>* files,
 	HANDLE hFind = FindFirstFile(winPath, &data);
 
 	int i;
-	char fullpath[MAX_PATH_SIZE];
+	char fullpath[MAX_PATH_LENGTH];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (data.cFileName[0] == '.' && !data.cFileName[1]) {
@@ -205,7 +208,7 @@ void Directory::GetDirectories(vector<char*>* files,
 		FindClose(hFind);
 	}
 #else
-	char fullpath[MAX_PATH_SIZE];
+	char fullpath[MAX_PATH_LENGTH];
 	DIR* dir = opendir(path);
 	if (dir) {
 		int i;

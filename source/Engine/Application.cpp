@@ -56,7 +56,7 @@ Platforms Application::Platform = Platforms::Unknown;
 vector<char*> Application::CmdLineArgs;
 
 INI* Application::Settings = NULL;
-char Application::SettingsFile[4096];
+char Application::SettingsFile[MAX_PATH_LENGTH];
 
 XMLNode* Application::GameConfig = NULL;
 
@@ -326,6 +326,30 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+// Returns a "safe" version of the developer's name (for e.g. file names)
+const char* Application::GetDeveloperIdentifier() {
+	// TODO: Implement!
+	return NULL;
+}
+
+// Returns  a "safe" version of the game's name (for e.g. file names)
+const char* Application::GetGameIdentifier() {
+	// TODO: Implement!
+	return "hatch";
+}
+
+// Returns the name of the saves directory
+const char* Application::GetSavesDir() {
+	// TODO: Implement!
+	return "saves";
+}
+
+// Returns the name of the preferences directory
+const char* Application::GetPreferencesDir() {
+	// TODO: Implement!
+	return NULL;
 }
 
 bool AutomaticPerformanceSnapshots = false;

@@ -60,13 +60,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	const char* altered = filename;
 
 	Uint32 magic = 0x000000;
-	Stream* stream;
-	if (strncmp(altered, "file://", 7) == 0) {
-		stream = FileStream::New(altered + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(altered);
-	}
+	Stream* stream = ResourceStream::New(altered);
 	if (stream) {
 		magic = stream->ReadUInt32();
 		stream->Close();

@@ -178,6 +178,7 @@
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
     <ClCompile Include="..\source\engine\filesystem\Directory.cpp" />
     <ClCompile Include="..\source\engine\filesystem\File.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\Path.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\ArchiveVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp" />

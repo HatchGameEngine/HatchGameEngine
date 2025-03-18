@@ -1,5 +1,5 @@
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
-
+#include <Engine/Filesystem/Path.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -22,7 +22,7 @@ bool FileSystemVFS::HasFile(const char* filename) {
 		return false;
 	}
 
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return false;
 	}
@@ -42,7 +42,7 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 		return nullptr;
 	}
 
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return nullptr;
 	}
@@ -77,7 +77,7 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		return false;
 	}
 
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return false;
 	}
@@ -108,7 +108,7 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 		return false;
 	}
 
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return false;
 	}
@@ -129,7 +129,7 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 		return false;
 	}
 
-	char resourcePath[4096];
+	char resourcePath[MAX_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return false;
 	}
