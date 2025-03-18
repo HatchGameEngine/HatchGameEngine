@@ -98,6 +98,7 @@ public:
 	static bool IsValidDefaultLocation(const char* filename);
 	// static std::filesystem::path FromURLSimple(const char* filename, PathLocation& location);
 	static bool FromURL(const char* filename, std::filesystem::path& result, PathLocation& location);
+	static std::filesystem::path StripURL(const char* filename);
 };
 
 #endif /* ENGINE_FILESYSTEM_PATH_H */

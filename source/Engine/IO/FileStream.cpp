@@ -1,5 +1,6 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/StandardIOStream.h>
 #include <Engine/Includes/StandardSDL2.h>
@@ -118,6 +119,16 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	Stream* stream = nullptr;
 
 	switch (location) {
+	case PathLocation::CACHE:
+		if (MemoryCache::Using) {
+			// Use the original filename instead of the resolved one.
+			resolvedPathString = Path::StripURL(filename);
+			finalPath = resolvedPathString.c_str();
+
+			stream = MemoryCache::OpenStream(finalPath, access);
+			break;
+		}
+		/* FALLTHRU */
 	default:
 		stream = StandardIOStream::New(finalPath, streamAccess);
 		break;

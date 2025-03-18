@@ -53,17 +53,27 @@ bool VFSProvider::EraseFile(const char* filename) {
 	return false;
 }
 
+void VFSProvider::AddOpenStream(VFSEntry* entry, Stream* stream) {
+	VFSOpenStream openStream;
+	openStream.EntryPtr = entry;
+	openStream.StreamPtr = stream;
+	OpenStreams.push_back(openStream);
+}
+
 Stream* VFSProvider::OpenReadStream(const char* filename) {
 	return nullptr;
 }
 Stream* VFSProvider::OpenWriteStream(const char* filename) {
 	return nullptr;
 }
+Stream* VFSProvider::OpenAppendStream(const char* filename) {
+	return nullptr;
+}
 bool VFSProvider::CloseStream(Stream* stream) {
 	for (size_t i = 0; i < OpenStreams.size(); i++) {
-		Stream* openStream = OpenStreams[i];
+		VFSOpenStream& openStream = OpenStreams[i];
 
-		if (openStream == stream) {
+		if (openStream.StreamPtr == stream) {
 			stream->Close();
 			OpenStreams.erase(OpenStreams.begin() + i);
 			return true;

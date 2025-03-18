@@ -38,16 +38,7 @@ bool FileSystemVFS::HasFile(const char* filename) {
 	return true;
 }
 
-VFSEntry* FileSystemVFS::FindFile(const char* filename) {
-	if (!IsReadable()) {
-		return nullptr;
-	}
-
-	Stream* stream = OpenReadStream(filename);
-	if (!stream) {
-		return nullptr;
-	}
-
+VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 	VFSEntry* entry = nullptr;
 	VFSEntryMap::iterator it = Cache.find(std::string(filename));
 	if (it != Cache.end()) {
@@ -63,9 +54,39 @@ VFSEntry* FileSystemVFS::FindFile(const char* filename) {
 	entry->Size = stream->Length();
 	entry->CompressedSize = entry->Size;
 
+	return entry;
+}
+
+VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
+	VFSEntryMap::iterator it = Cache.find(std::string(filename));
+	if (it != Cache.end()) {
+		return it->second;
+	}
+
+	return nullptr;
+}
+
+void FileSystemVFS::RemoveFromCache(const char* filename) {
+	VFSEntryMap::iterator it = Cache.find(std::string(filename));
+	if (it != Cache.end()) {
+		delete it->second;
+	}
+}
+
+VFSEntry* FileSystemVFS::FindFile(const char* filename) {
+	if (!IsReadable()) {
+		return nullptr;
+	}
+
+	// This caches the file entry, but not its data.
+	Stream* stream = OpenReadStream(filename);
+	if (!stream) {
+		return nullptr;
+	}
+
 	CloseStream(stream);
 
-	return entry;
+	return GetCachedEntry(filename);
 }
 
 bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
@@ -107,6 +128,8 @@ bool FileSystemVFS::PutFile(const char* filename, VFSEntry* entry) {
 
 	stream->WriteBytes(entry->CachedData, entry->Size);
 
+	CacheEntry(filename, stream);
+
 	CloseStream(stream);
 
 	return true;
@@ -123,8 +146,13 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 	}
 
 	int success = remove(resourcePath);
+	if (success == 0) {
+		RemoveFromCache(filename);
 
-	return (success == 0);
+		return true;
+	}
+
+	return false;
 }
 
 Stream* FileSystemVFS::OpenReadStream(const char* filename) {
@@ -135,7 +163,8 @@ Stream* FileSystemVFS::OpenReadStream(const char* filename) {
 
 	Stream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
 	if (stream != nullptr) {
-		OpenStreams.push_back(stream);
+		VFSEntry* entry = CacheEntry(filename, stream);
+		AddOpenStream(entry, stream);
 	}
 
 	return stream;
@@ -149,7 +178,23 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 
 	Stream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
 	if (stream != nullptr) {
-		OpenStreams.push_back(stream);
+		VFSEntry* entry = CacheEntry(filename, stream);
+		AddOpenStream(entry, stream);
+	}
+
+	return stream;
+}
+
+Stream* FileSystemVFS::OpenAppendStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
+		return nullptr;
+	}
+
+	Stream* stream = FileStream::New(resourcePath, FileStream::APPEND_ACCESS, true);
+	if (stream != nullptr) {
+		VFSEntry* entry = CacheEntry(filename, stream);
+		AddOpenStream(entry, stream);
 	}
 
 	return stream;

@@ -145,15 +145,20 @@ void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool dec
 	}
 }
 
-bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory) {
+bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
+	size_t copyLength = entry->Size;
+	if (copyLength > memSize) {
+		copyLength = memSize;
+	}
+
 	StreamPtr->Seek(entry->Offset);
-	StreamPtr->ReadBytes(memory, entry->Size);
+	StreamPtr->ReadBytes(memory, copyLength);
 
 	// Decrypt it if it's encrypted
 	if (entry->Flags & VFSE_ENCRYPTED) {
 		Uint32 filenameHash = (int)strtol(entry->Name.c_str(), NULL, 16);
 
-		CryptoXOR(memory, entry->Size, filenameHash, true);
+		CryptoXOR(memory, copyLength, filenameHash, true);
 	}
 
 	// Decompress it if it's compressed
@@ -164,16 +169,19 @@ bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory) {
 			return false;
 		}
 
-		size_t copyLength = entry->CompressedSize;
-		if (copyLength >= entry->Size) {
-			copyLength = entry->Size;
+		size_t compressedCopyLength = entry->CompressedSize;
+		if (compressedCopyLength > entry->Size) {
+			compressedCopyLength = entry->Size;
 		}
-		memcpy(compressedMemory, memory, copyLength);
+		memcpy(compressedMemory, memory, compressedCopyLength);
 
 		Uint8* srcData = memory;
 		size_t srcSize = (size_t)entry->Size;
 		Uint8* destData = compressedMemory;
 		size_t destSize = (size_t)entry->CompressedSize;
+		if (destSize > copyLength) {
+			destSize = copyLength;
+		}
 
 		if (!ZLibStream::Decompress(srcData, srcSize, destData, destSize)) {
 			Memory::Free(memory);
@@ -204,6 +212,32 @@ bool HatchVFS::EraseFile(const char* filename) {
 	}
 
 	return false;
+}
+
+Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {
+	if (entry == nullptr) {
+		return nullptr;
+	}
+
+	MemoryStream* memStream = MemoryStream::New(entry->Size);
+	if (memStream == nullptr) {
+		return nullptr;
+	}
+
+	Uint8* memory = memStream->pointer_start;
+
+	// Read cached data if available
+	if (entry->CachedData) {
+		memcpy(memory, entry->CachedData, entry->Size);
+	}
+	// Else, read from file
+	else if (!ReadEntryData(entry, memory, entry->Size)) {
+		memStream->Close();
+
+		return nullptr;
+	}
+
+	return (Stream*)memStream;
 }
 
 bool HatchVFS::Flush() {
@@ -257,9 +291,14 @@ bool HatchVFS::Flush() {
 			dataType = 2;
 		}
 
-		// Entry has cached data, but no in-file representation
-		if (entry->CachedData != nullptr && entry->CachedDataInFile == nullptr) {
+		// Entry has cached data, but possibly no in-file representation
+		if (entry->CachedData != nullptr) {
 			bool shouldCompressOrEncrypt = (entry->Flags & (VFSE_COMPRESSED | VFSE_ENCRYPTED)) != 0;
+
+			if (entry->CachedDataInFile) {
+				Memory::Free(entry->CachedDataInFile);
+				entry->CachedDataInFile = nullptr;
+			}
 
 			entry->CompressedSize = entry->Size;
 			entry->CachedDataInFile = entry->CachedData;

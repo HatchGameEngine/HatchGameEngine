@@ -2,6 +2,7 @@
 
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/Filesystem/VFS/HatchVFS.h>
+#include <Engine/Filesystem/VFS/MemoryVFS.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/IO/SDLStream.h>
 
@@ -16,6 +17,11 @@ VFSMountStatus VirtualFileSystem::Mount(const char* filename, const char* mountP
 		FileSystemVFS* fsVfs = new FileSystemVFS(mountPoint, flags);
 		fsVfs->Open(filename);
 		vfs = fsVfs;
+	}
+	else if (type == VFSType::MEMORY) {
+		MemoryVFS* memVfs = new MemoryVFS(mountPoint, flags);
+		memVfs->Open();
+		vfs = memVfs;
 	}
 	else {
 		SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
@@ -86,6 +92,10 @@ Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
+		if (!vfs->IsReadable()) {
+			continue;
+		}
+
 		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
 
 		Stream* stream = vfs->OpenReadStream(resourcePath);
@@ -102,9 +112,33 @@ Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
+		if (!vfs->IsWritable()) {
+			continue;
+		}
+
 		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
 
 		Stream* stream = vfs->OpenWriteStream(resourcePath);
+		if (stream) {
+			return stream;
+		}
+	}
+
+	return nullptr;
+}
+Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
+	char resourcePath[MAX_PATH_LENGTH];
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSProvider* vfs = LoadedVFS[i];
+
+		if (!vfs->IsWritable()) {
+			continue;
+		}
+
+		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
+
+		Stream* stream = vfs->OpenAppendStream(resourcePath);
 		if (stream) {
 			return stream;
 		}

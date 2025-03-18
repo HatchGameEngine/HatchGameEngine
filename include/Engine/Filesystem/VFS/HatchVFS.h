@@ -9,6 +9,9 @@ private:
 
 	static void CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool decrypt);
 
+protected:
+	Stream* OpenMemStreamForEntry(VFSEntry* entry);
+
 public:
 	HatchVFS(const char *mountPoint, Uint16 flags) : ArchiveVFS(mountPoint, flags) {};
 	virtual ~HatchVFS();
@@ -16,7 +19,7 @@ public:
 	bool Open(Stream* stream);
 
 	virtual void TransformFilename(const char* filename, char* dest, size_t destSize);
-	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory);
+	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual bool Flush();

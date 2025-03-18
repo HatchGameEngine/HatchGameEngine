@@ -31,6 +31,7 @@ public:
 
 	Stream* OpenReadStream(const char* filename);
 	Stream* OpenWriteStream(const char* filename);
+	Stream* OpenAppendStream(const char* filename);
 	bool CloseStream(Stream* stream);
 };
 

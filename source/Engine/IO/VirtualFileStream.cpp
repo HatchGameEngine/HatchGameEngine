@@ -3,11 +3,11 @@
 Stream* VirtualFileStream::OpenFile(VirtualFileSystem* vfs, const char* filename, Uint32 access) {
 	switch (access) {
 	case VirtualFileStream::READ_ACCESS:
-		vfs->OpenReadStream(filename);
-		break;
+		return vfs->OpenReadStream(filename);
 	case VirtualFileStream::WRITE_ACCESS:
-		vfs->OpenWriteStream(filename);
-		break;
+		return vfs->OpenWriteStream(filename);
+	case VirtualFileStream::APPEND_ACCESS:
+		return vfs->OpenAppendStream(filename);
 	}
 
 	return nullptr;

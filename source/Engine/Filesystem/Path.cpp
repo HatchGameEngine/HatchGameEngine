@@ -340,3 +340,9 @@ bool Path::FromURL(const char* filename, std::filesystem::path& result, PathLoca
 
 	return true;
 }
+
+std::filesystem::path Path::StripURL(const char* filename) {
+	PathLocation location = PathLocation::DEFAULT;
+
+	return StripLocationFromURL(filename, location);
+}

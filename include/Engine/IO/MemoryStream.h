@@ -5,6 +5,9 @@
 #include <Engine/Includes/Standard.h>
 
 class MemoryStream : public Stream {
+private:
+	bool Writable = true;
+
 public:
 	Uint8* pointer = NULL;
 	Uint8* pointer_start = NULL;

@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -221,6 +222,11 @@ void Application::Init(int argc, char* args[]) {
 	// Initialize subsystems
 	Math::Init();
 	Graphics::Init();
+
+#ifdef KEEP_FILE_CACHE_IN_MEMORY
+	MemoryCache::Init();
+#endif
+
 #ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
 	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
 		ResourceManager::Init(args[1]);
@@ -1362,6 +1368,7 @@ void Application::Cleanup() {
 		DEBUG_fontSprite = NULL;
 	}
 
+	MemoryCache::Dispose();
 	ResourceManager::Dispose();
 	AudioManager::Dispose();
 	InputManager::Dispose();

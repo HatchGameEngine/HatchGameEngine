@@ -42,12 +42,14 @@ bool MemoryStream::IsReadable() {
 	return true;
 }
 bool MemoryStream::IsWritable() {
-	return true;
+	return Writable;
 }
 bool MemoryStream::MakeReadable(bool readable) {
 	return true;
 }
 bool MemoryStream::MakeWritable(bool writable) {
+	Writable = writable;
+
 	return true;
 }
 
@@ -106,6 +108,7 @@ Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 }
 
 size_t MemoryStream::WriteBytes(void* data, size_t n) {
+	// For speed, this doesn't check IsWritable().
 	size_t pos = Position();
 	if (pos + n > size) {
 		size = pos + n;

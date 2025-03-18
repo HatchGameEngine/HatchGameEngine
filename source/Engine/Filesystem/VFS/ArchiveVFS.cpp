@@ -1,4 +1,5 @@
 #include <Engine/Filesystem/VFS/ArchiveVFS.h>
+#include <Engine/IO/MemoryStream.h>
 
 bool ArchiveVFS::AddEntry(VFSEntry* entry) {
 	VFSEntryMap::iterator it = Entries.find(entry->Name);
@@ -50,7 +51,7 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		memcpy(memory, entry->CachedData, entry->Size);
 	}
 	// Else, read from file
-	else if (!ReadEntryData(entry, memory)) {
+	else if (!ReadEntryData(entry, memory, entry->Size)) {
 		Memory::Free(memory);
 
 		return false;
@@ -62,7 +63,7 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return true;
 }
 
-bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory) {
+bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 	return false;
 }
 
@@ -98,6 +99,111 @@ bool ArchiveVFS::EraseFile(const char* filename) {
 			Entries.erase(it);
 			NumEntries--;
 
+			return true;
+		}
+	}
+
+	return false;
+}
+
+Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry* entry) {
+	if (entry == nullptr || entry->CachedData == nullptr) {
+		return nullptr;
+	}
+
+	MemoryStream* memStream = MemoryStream::New(entry->Size);
+	if (memStream == nullptr) {
+		return nullptr;
+	}
+
+	memset(memStream->pointer_start, 0x00, entry->Size);
+	memcpy(memStream->pointer_start, entry->CachedData, entry->Size);
+
+	return (Stream*)memStream;
+}
+
+Stream* ArchiveVFS::OpenReadStream(const char* filename) {
+	VFSEntry* entry = FindFile(filename);
+
+	Stream* memStream = OpenMemStreamForEntry(entry);
+	if (memStream) {
+		memStream->MakeWritable(false);
+		AddOpenStream(entry, memStream);
+	}
+
+	return memStream;
+}
+
+Stream* ArchiveVFS::OpenWriteStream(const char* filename) {
+	VFSEntry* entry = FindFile(filename);
+
+	// If the entry does not exist, create one
+	if (entry == nullptr) {
+		entry = new VFSEntry();
+		entry->Name = std::string(filename);
+		entry->CachedData = (Uint8*)Memory::Calloc(1, sizeof(Uint8));
+		PutFile(filename, entry);
+	}
+
+	Stream* memStream = OpenMemStreamForEntry(entry);
+	if (memStream) {
+		AddOpenStream(entry, memStream);
+	}
+
+	return memStream;
+}
+
+Stream* ArchiveVFS::OpenAppendStream(const char* filename) {
+	VFSEntry* entry = FindFile(filename);
+
+	Stream* memStream = OpenMemStreamForEntry(entry);
+	if (memStream) {
+		memStream->Seek(memStream->Length());
+		AddOpenStream(entry, memStream);
+	}
+
+	return memStream;
+}
+
+bool ArchiveVFS::CloseStream(Stream* stream) {
+	for (size_t i = 0; i < OpenStreams.size(); i++) {
+		VFSOpenStream& openStream = OpenStreams[i];
+
+		if (openStream.StreamPtr == stream) {
+			// Flush to archive
+			if (stream->IsWritable()) {
+				VFSEntry* entry = openStream.EntryPtr;
+
+				size_t newSize = stream->Length();
+				Uint8* newMemory = nullptr;
+				if (newSize != 0) {
+					newMemory = (Uint8*)Memory::Calloc(newSize, sizeof(Uint8));
+				}
+				else {
+					Memory::Free(entry->CachedData);
+
+					entry->CachedData = nullptr;
+					entry->Size = 0;
+
+					NeedsRepacking = true;
+				}
+
+				if (newMemory != nullptr) {
+					stream->Seek(0);
+					stream->ReadBytes(newMemory, newSize);
+
+					Memory::Free(entry->CachedData);
+
+					entry->CachedData = newMemory;
+					entry->Size = newSize;
+
+					NeedsRepacking = true;
+				}
+			}
+
+			stream->Close();
+
+			OpenStreams.erase(OpenStreams.begin() + i);
 			return true;
 		}
 	}
