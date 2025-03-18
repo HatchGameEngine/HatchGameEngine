@@ -4,7 +4,7 @@
 #include <Engine/Utilities/StringUtils.h>
 
 bool FileSystemVFS::Open(const char* path) {
-	ParentPath = StringUtils::Duplicate(path);
+	ParentPath = std::string(path);
 	Opened = true;
 
 	return true;
@@ -12,7 +12,13 @@ bool FileSystemVFS::Open(const char* path) {
 
 bool FileSystemVFS::GetPath(const char* filename, char* path, size_t pathSize) {
 	// TODO: Validate the path here.
-	snprintf(path, pathSize, "%s/%s", ParentPath, filename);
+	const char* parentPath = ParentPath.c_str();
+	if (parentPath[ParentPath.size() - 1] == '/') {
+		snprintf(path, pathSize, "%s%s", parentPath, filename);
+	}
+	else {
+		snprintf(path, pathSize, "%s/%s", parentPath, filename);
+	}
 
 	return true;
 }
@@ -140,11 +146,6 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 }
 
 void FileSystemVFS::Close() {
-	if (ParentPath) {
-		Memory::Free(ParentPath);
-		ParentPath = nullptr;
-	}
-
 	for (VFSEntryMap::iterator it = Cache.begin();
 		it != Cache.end();
 		it++) {

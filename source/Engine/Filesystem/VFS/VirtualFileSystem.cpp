@@ -24,12 +24,13 @@ const char* VirtualFileSystem::GetMountPoint() {
 }
 
 void VirtualFileSystem::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	std::filesystem::path filenamePath = std::filesystem::path(std::string(filename));
+	size_t offset = 0;
 
-	std::filesystem::path relative_path = std::filesystem::relative(
-		filenamePath.lexically_normal(), MountPoint);
+	if (StringUtils::StartsWith(filename, MountPoint.c_str())) {
+		offset = MountPoint.size();
+	}
 
-	StringUtils::Copy(dest, relative_path.u8string(), destSize);
+	StringUtils::Copy(dest, filename + offset, destSize);
 }
 
 bool VirtualFileSystem::HasFile(const char* filename) {

@@ -5,7 +5,7 @@
 
 class FileSystemVFS : public VirtualFileSystem {
 private:
-	char* ParentPath = nullptr;
+	std::string ParentPath = "";
 	VFSEntryMap Cache;
 
 	bool GetPath(const char* filename, char* path, size_t pathSize);
