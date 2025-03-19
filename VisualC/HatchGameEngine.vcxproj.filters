@@ -108,6 +108,12 @@
     <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\filesystem\vfs\MemoryCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\filesystem\vfs\MemoryVFS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSEntry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

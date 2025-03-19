@@ -182,6 +182,8 @@
     <ClCompile Include="..\source\engine\filesystem\vfs\ArchiveVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\MemoryCache.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\MemoryVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSEntry.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSProvider.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VirtualFileSystem.cpp" />
