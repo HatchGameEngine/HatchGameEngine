@@ -340,7 +340,7 @@ const char* Application::GetDeveloperIdentifier() {
 	return NULL;
 }
 
-// Returns  a "safe" version of the game's name (for e.g. file names)
+// Returns a "safe" version of the game's name (for e.g. file names)
 const char* Application::GetGameIdentifier() {
 	// TODO: Implement!
 	return "hatch";
