@@ -299,7 +299,7 @@ char* StringUtils::ReplacePathSeparators(const char* path) {
 	return newPath;
 }
 std::string StringUtils::LexicallyNormalFormOfPath(const char* path) {
-	std::filesystem::path fsPath = std::filesystem::path(std::string(path));
+	std::filesystem::path fsPath = std::filesystem::u8path(std::string(path));
 	return fsPath.lexically_normal().u8string();
 }
 char* StringUtils::NormalizePath(const char* path) {

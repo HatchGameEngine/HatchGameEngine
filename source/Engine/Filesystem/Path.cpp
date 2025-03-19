@@ -73,8 +73,8 @@ bool Path::IsInDir(const char* dirPath, const char* path) {
 		return false;
 	}
 
-	std::filesystem::path basePath = std::filesystem::path(std::string(dirPath));
-	std::filesystem::path fsPath = std::filesystem::path(std::string(path));
+	std::filesystem::path basePath = std::filesystem::u8path(std::string(dirPath));
+	std::filesystem::path fsPath = std::filesystem::u8path(std::string(path));
 
 	std::filesystem::path normBase = basePath.lexically_normal();
 	std::filesystem::path finalPath = (normBase / fsPath).lexically_normal();
@@ -111,7 +111,7 @@ std::filesystem::path Path::GetCombinedPrefPath(const char* suffix) {
 	std::filesystem::path path = "";
 
 	char* prefPath = SDL_GetPrefPath(devName, gameName);
-	path = std::filesystem::path(std::string(prefPath));
+	path = std::filesystem::u8path(std::string(prefPath));
 	if (suffix != nullptr) {
 		path = path / (std::string(suffix) + "/");
 	}
@@ -126,13 +126,18 @@ std::filesystem::path Path::GetXdgPath(const char* xdg_env, const char* fallback
 	if (!env_path) {
 		env_path = SDL_getenv("HOME");
 		if (env_path == nullptr) {
-			return std::filesystem::path(std::string(""));
+			return std::filesystem::u8path(std::string(""));
 		}
 
-		return std::filesystem::path(std::string(env_path)) / std::filesystem::path(std::string(fallback_path));
+		std::filesystem::path a = std::filesystem::u8path(std::string(env_path));
+		std::filesystem::path b = std::filesystem::u8path(std::string(fallback_path));
+
+		return a / b;
 	}
 	else {
-		return std::filesystem::path(std::string(env_path));
+		std::filesystem::path result = std::filesystem::u8path(std::string(env_path));
+
+		return result;
 	}
 }
 #endif
@@ -148,10 +153,10 @@ std::filesystem::path Path::GetGamePath() {
 	std::filesystem::path path = "";
 
 	if (devName != nullptr) {
-		path = path / std::filesystem::path(std::string(devName) + "/");
+		path = path / std::filesystem::u8path(std::string(devName) + "/");
 	}
 
-	return path / std::filesystem::path(std::string(gameName) + "/");
+	return path / std::filesystem::u8path(std::string(gameName) + "/");
 }
 
 std::filesystem::path Path::GetBaseLocalPath() {
@@ -269,15 +274,15 @@ std::filesystem::path Path::StripLocationFromURL(const char* filename, PathLocat
 	std::filesystem::path result = "";
 
 	if (location == PathLocation::DEFAULT) {
-		result = std::string(filename);
+		result = std::filesystem::u8path(std::string(filename));
 	}
 	else {
 		const char* pathAfterURL = filename + startingString.size();
 
-		result = std::string(pathAfterURL);
+		result = std::filesystem::u8path(std::string(pathAfterURL));
 	}
 
-	return std::filesystem::path(result);
+	return result;
 }
 
 #if 0
