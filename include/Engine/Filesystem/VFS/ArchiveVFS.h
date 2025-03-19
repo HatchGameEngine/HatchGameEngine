@@ -19,8 +19,7 @@ protected:
 	virtual VFSEntry* FindFile(const char* filename);
 
 public:
-	ArchiveVFS(const char *name, const char *mountPoint, Uint16 flags)
-		: VFSProvider(name, mountPoint, flags) {};
+	ArchiveVFS(Uint16 flags) : VFSProvider(flags) {};
 	virtual ~ArchiveVFS();
 
 	virtual bool HasFile(const char* filename);

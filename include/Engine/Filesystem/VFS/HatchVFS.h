@@ -13,8 +13,7 @@ protected:
 	Stream* OpenMemStreamForEntry(VFSEntry* entry);
 
 public:
-	HatchVFS(const char* name, const char *mountPoint, Uint16 flags)
-		: ArchiveVFS(name, mountPoint, flags) {};
+	HatchVFS(Uint16 flags) : ArchiveVFS(flags) {};
 	virtual ~HatchVFS();
 
 	bool Open(Stream* stream);

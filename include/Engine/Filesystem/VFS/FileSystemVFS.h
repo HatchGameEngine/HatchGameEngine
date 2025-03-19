@@ -17,8 +17,7 @@ protected:
 	virtual VFSEntry* FindFile(const char* filename);
 
 public:
-	FileSystemVFS(const char *name, const char *mountPoint, Uint16 flags)
-		: VFSProvider(name, mountPoint, flags) {};
+	FileSystemVFS(Uint16 flags) : VFSProvider(flags) {};
 	virtual ~FileSystemVFS();
 
 	bool Open(const char* path);

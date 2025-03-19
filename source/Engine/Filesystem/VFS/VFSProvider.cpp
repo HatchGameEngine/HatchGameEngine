@@ -1,18 +1,10 @@
 #include <Engine/Filesystem/VFS/VFSProvider.h>
 
-#include <Engine/Utilities/StringUtils.h>
-
-VFSProvider::VFSProvider(const char *name, const char *mountPoint, Uint16 flags) {
-	Name = std::string(name);
-	MountPoint = StringUtils::LexicallyNormalFormOfPath(mountPoint);
+VFSProvider::VFSProvider(Uint16 flags) {
 	Flags = flags;
 }
 VFSProvider::~VFSProvider() {
 	Close();
-}
-
-std::string VFSProvider::GetName() {
-	return Name;
 }
 
 bool VFSProvider::IsOpen() {
@@ -27,18 +19,8 @@ bool VFSProvider::IsWritable() {
 	return (Flags & VFS_WRITABLE) != 0;
 }
 
-const char* VFSProvider::GetMountPoint() {
-	return MountPoint.c_str();
-}
-
 std::string VFSProvider::TransformFilename(const char* filename) {
-	size_t offset = 0;
-
-	if (StringUtils::StartsWith(filename, MountPoint.c_str())) {
-		offset = MountPoint.size();
-	}
-
-	return std::string(filename + offset);
+	return std::string(filename);
 }
 
 bool VFSProvider::HasFile(const char* filename) {

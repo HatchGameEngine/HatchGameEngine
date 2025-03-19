@@ -22,7 +22,6 @@ struct VFSOpenStream {
 
 class VFSProvider {
 private:
-	std::string Name;
 	std::string MountPoint;
 	Uint16 Flags;
 
@@ -35,16 +34,12 @@ protected:
 	virtual VFSEntry* FindFile(const char* filename);
 
 public:
-	VFSProvider(const char *name, const char *mountPoint, Uint16 flags);
+	VFSProvider(Uint16 flags);
 	virtual ~VFSProvider();
-
-	std::string GetName();
 
 	bool IsOpen();
 	bool IsReadable();
 	bool IsWritable();
-
-	const char* GetMountPoint();
 
 	virtual std::string TransformFilename(const char* filename);
 	virtual bool HasFile(const char* filename);

@@ -7,16 +7,24 @@
 #define DEFAULT_MOUNT_POINT ""
 
 enum VFSMountStatus {
-	NOT_FOUND = -3,
-	COULD_NOT_MOUNT = -2,
-	COULD_NOT_UNMOUNT = -1,
+	NOT_FOUND = CHAR_MIN,
+	ALREADY_EXISTS,
+	COULD_NOT_MOUNT,
+	COULD_NOT_UNMOUNT,
+
 	UNMOUNTED = 0,
-	MOUNTED = 1
+	MOUNTED
+};
+
+struct VFSMount {
+	std::string Name;
+	std::string MountPoint;
+	VFSProvider* VFSPtr;
 };
 
 class VirtualFileSystem {
 private:
-	std::deque<VFSProvider*> LoadedVFS;
+	std::deque<VFSMount> LoadedVFS;
 
 	void Dispose();
 
@@ -24,9 +32,11 @@ public:
 	~VirtualFileSystem();
 
 	VFSProvider* Get(const char* name);
+	VFSProvider* Get(size_t index);
 	VFSMountStatus Mount(const char* name, const char* filename, const char* mountPoint,
 		VFSType type, Uint16 flags);
 	int NumMounted();
+	const char* GetFilename(VFSMount mount, const char* filename);
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);

@@ -5,8 +5,7 @@
 
 class MemoryVFS : public ArchiveVFS {
 public:
-	MemoryVFS(const char* name, const char *mountPoint, Uint16 flags)
-		: ArchiveVFS(name, mountPoint, flags) {};
+	MemoryVFS(Uint16 flags) : ArchiveVFS(flags) {};
 	virtual ~MemoryVFS();
 
 	bool Open();
