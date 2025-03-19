@@ -322,7 +322,8 @@ bool Path::FromURL(const char* filename, std::filesystem::path& result, PathLoca
 	if (location == PathLocation::DEFAULT) {
 		result = detectedPath;
 
-		if (!IsValidDefaultLocation(detectedPath.c_str())) {
+		std::string detectedPathString = detectedPath.u8string();
+		if (!IsValidDefaultLocation(detectedPathString.c_str())) {
 			return false;
 		}
 	}
