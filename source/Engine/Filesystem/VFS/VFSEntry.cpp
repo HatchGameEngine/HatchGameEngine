@@ -14,7 +14,7 @@ VFSEntry* VFSEntry::FromStream(const char* filename, Stream* stream) {
 	entry->Name = std::string(filename);
 	entry->Offset = 0;
 	entry->Size = length;
-	entry->Flags = 0;
+	entry->Flags = entry->FileFlags = 0;
 	entry->CompressedSize = entry->Size;
 
 	stream->CopyTo(memStream);

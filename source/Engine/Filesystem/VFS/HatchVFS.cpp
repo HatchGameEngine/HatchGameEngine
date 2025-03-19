@@ -55,7 +55,7 @@ bool HatchVFS::Open(Stream* stream) {
 		entry->Name = std::string(entryName);
 		entry->Offset = offset;
 		entry->Size = size;
-		entry->Flags = entryFlags;
+		entry->Flags = entry->FileFlags = entryFlags;
 		entry->CompressedSize = compressedSize;
 
 		if (!ArchiveVFS::AddEntry(entry)) {
@@ -287,9 +287,14 @@ bool HatchVFS::Flush() {
 
 		Uint32 hash = (int)strtol(entryName.c_str(), NULL, 16);
 
-		bool shouldCopy = false;
-		bool needsRewrite = false; // TODO: Implement
-		if (needsRewrite && entry->CachedData == nullptr) {
+		Uint8* cachedData = entry->CachedData;
+		Uint8* cachedDataInFile = entry->CachedDataInFile;
+
+		bool shouldFreeData = false;
+		bool shouldFreeDataInFile = false;
+
+		bool needsRewrite = entry->Flags != entry->FileFlags;
+		if (needsRewrite && cachedData == nullptr) {
 			Uint8* memory = (Uint8*)Memory::Malloc(entry->Size);
 			if (!memory) {
 				Log::Print(Log::LOG_ERROR, "Could not allocate memory for entry %s!", entry->Name.c_str());
@@ -303,88 +308,108 @@ bool HatchVFS::Flush() {
 				return false;
 			}
 
-			entry->CachedData = memory;
+			cachedData = memory;
+			shouldFreeData = true;
 		}
 
-		Uint8 dataType = 0;
-		if (entry->Flags & VFSE_ENCRYPTED) {
-			dataType = 2;
-		}
+		// The only flag that matters.
+		Uint8 dataType = (entry->Flags & VFSE_ENCRYPTED) ? 2 : 0;
 
-		// Entry has cached data, but possibly no in-file representation
-		if (entry->CachedData != nullptr) {
-			bool shouldCompressOrEncrypt = (entry->Flags & (VFSE_COMPRESSED | VFSE_ENCRYPTED)) != 0;
+		size_t compressedSize = entry->Size;
 
-			if (entry->CachedDataInFile) {
-				Memory::Free(entry->CachedDataInFile);
-				entry->CachedDataInFile = nullptr;
+		// Entry needs to be rewritten
+		if (cachedData != nullptr) {
+			// cachedDataInFile = cachedData, as if it was not compressed or encrypted
+			cachedDataInFile = cachedData;
+
+			if (entry->Flags & VFSE_COMPRESSED) {
+				void* compressed = nullptr;
+				size_t compSize = 0;
+
+				if (ZLibStream::Compress(cachedData, entry->Size, &compressed, &compSize)) {
+					cachedDataInFile = (Uint8 *)compressed;
+					compressedSize = compSize;
+					shouldFreeDataInFile = true;
+				}
+				else {
+					Log::Print(Log::LOG_ERROR,
+						"Could not compress entry %s!", entry->Name.c_str());
+				}
 			}
 
-			entry->CompressedSize = entry->Size;
-			entry->CachedDataInFile = entry->CachedData;
+			if (entry->Flags & VFSE_ENCRYPTED) {
+				bool didEncrypt = false;
 
-			if (shouldCompressOrEncrypt) {
-				if (entry->Flags & VFSE_COMPRESSED) {
-					void* compressedData = nullptr;
-					size_t compressedSize = 0;
+				Uint8* bufferToEncrypt = (Uint8 *)Memory::Malloc(compressedSize);
+				if (bufferToEncrypt != nullptr) {
+					memcpy(bufferToEncrypt, cachedDataInFile, compressedSize);
 
-					if (ZLibStream::Compress(entry->CachedData, entry->Size, &compressedData, &compressedSize)) {
-						entry->CachedDataInFile = (Uint8 *)compressedData;
-						entry->CompressedSize = compressedSize;
-					}
-					else {
-						Log::Print(Log::LOG_ERROR, "Could not compress entry %s!", entry->Name.c_str());
-					}
-				}
+					CryptoXOR(bufferToEncrypt, compressedSize, hash, false);
 
-				if (entry->Flags & VFSE_ENCRYPTED) {
-					if (entry->CachedDataInFile == entry->CachedData) {
-						entry->CachedDataInFile = (Uint8 *)Memory::Malloc(entry->Size);
-						if (entry->CachedDataInFile != nullptr) {
-							memcpy(entry->CachedDataInFile, entry->CachedData, entry->Size);
+					// They are the same, so allocate its own memory.
+					if (cachedDataInFile == cachedData) {
+						cachedDataInFile = (Uint8 *)Memory::Malloc(compressedSize);
+						if (cachedDataInFile != nullptr) {
+							shouldFreeDataInFile = true;
+							didEncrypt = true;
 						}
 					}
-
-					if (entry->CachedData != nullptr && entry->CachedDataInFile != nullptr) {
-						CryptoXOR(entry->CachedDataInFile, entry->CompressedSize, hash, false);
-					}
 					else {
-						Log::Print(Log::LOG_ERROR, "Could not encrypt entry %s!", entry->Name.c_str());
-
-						dataType = 0;
+						didEncrypt = true;
 					}
+
+					if (didEncrypt) {
+						memcpy(cachedDataInFile, bufferToEncrypt, compressedSize);
+					}
+
+					Memory::Free(bufferToEncrypt);
+				}
+
+				if (!didEncrypt) {
+					// Reset data flag so that the entry is not saved as encrypted
+					dataType = 0;
+
+					Log::Print(Log::LOG_ERROR,
+						"Could not encrypt entry %s!", entry->Name.c_str());
 				}
 			}
 		}
-		// Entry should be copied
-		else if (entry->CachedData == nullptr && entry->CachedDataInFile == nullptr) {
-			shouldCopy = true;
-		}
 
-		entry->Offset = tocEnd + offsetGLOB;
+		size_t entryOffset = tocEnd + offsetGLOB;
 
 		// Write into the table of contents
 		out->WriteUInt32(hash);
-		out->WriteUInt64(entry->Offset);
+		out->WriteUInt64(entryOffset);
 		out->WriteUInt64(entry->Size);
 		out->WriteUInt32(dataType);
-		out->WriteUInt64(entry->CompressedSize);
+		out->WriteUInt64(compressedSize);
 
 		// Write the file data
 		size_t lastPosition = out->Position();
-		out->Seek(entry->Offset);
-		if (shouldCopy) {
+		out->Seek(entryOffset);
+
+		// Entry wasn't modified, so copy directly from the .hatch file
+		if (cachedData == nullptr && cachedDataInFile == nullptr) {
+			// Note that this should be the entry's old offset,
+			// not the current one that will be written.
 			StreamPtr->Seek(entry->Offset);
 			StreamPtr->CopyTo(out, entry->Size);
 		}
 		else {
-			out->WriteBytes(entry->CachedDataInFile, entry->CompressedSize);
+			// Write the data that was created for this entry.
+			out->WriteBytes(cachedDataInFile, compressedSize);
 		}
+
 		out->Seek(lastPosition);
 
-		offsetGLOB += entry->CompressedSize;
+		if (shouldFreeData) {
+			Memory::Free(cachedData);
+		}
+		if (shouldFreeDataInFile) {
+			Memory::Free(cachedDataInFile);
+		}
 
-		entry->DeleteCache();
+		offsetGLOB += compressedSize;
 	}
 
 	// Finally write to the .hatch file
@@ -410,6 +435,22 @@ bool HatchVFS::Flush() {
 	}
 	else {
 		Log::Print(Log::LOG_ERROR, "Could not make HATCH file stream writable!");
+	}
+
+	// Actually commit the changes to the in-memory structures if everything went okay.
+	if (success) {
+		offsetGLOB = 0;
+
+		for (size_t i = 0; i < NumEntries; i++) {
+			VFSEntry* entry = Entries[EntryNames[i]];
+
+			entry->FileFlags = entry->Flags;
+			entry->Offset = tocEnd + offsetGLOB;
+
+			offsetGLOB += entry->CompressedSize;
+
+			entry->DeleteCache();
+		}
 	}
 
 	out->Close();

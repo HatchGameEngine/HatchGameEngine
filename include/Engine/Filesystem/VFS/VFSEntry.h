@@ -13,7 +13,8 @@ public:
 	std::string Name;
 	Uint64 Offset = 0;
 	Uint64 Size = 0;
-	Uint32 Flags = 0;
+	Uint8 Flags = 0;
+	Uint8 FileFlags = 0;
 	Uint64 CompressedSize = 0;
 	Uint8 *CachedData = nullptr;
 	Uint8 *CachedDataInFile = nullptr;
