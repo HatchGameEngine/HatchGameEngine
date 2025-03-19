@@ -174,7 +174,7 @@ void SourceFileMap::CheckForUpdate() {
 		const char* outFile = filenameForHash.c_str();
 
 		// If changed, then compile.
-		if (doRecompile || mainVfs->HasFile(outFile)) {
+		if (doRecompile || !mainVfs->HasFile(outFile)) {
 			Compiler::PrepareCompiling();
 
 			char* scriptFilename = list[i];
@@ -237,7 +237,7 @@ void SourceFileMap::CheckForUpdate() {
 			stream->Close();
 		}
 
-		stream = mainVfs->OpenWriteStream("Resources/Objects/Objects.hcm");
+		stream = mainVfs->OpenWriteStream(OBJECTS_HCM_NAME);
 		if (stream) {
 			stream->WriteUInt32(SourceFileMap::Magic);
 			stream->WriteByte(0x00); // Version
