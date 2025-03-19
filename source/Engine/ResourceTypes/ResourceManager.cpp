@@ -43,8 +43,19 @@ bool ResourceManager::Init(const char* filename) {
 		filename = FindDataFile();
 	}
 
+	Uint16 resourceFlags = VFS_READABLE;
+
+	// The main resource file is not writable by default.
+	// This can be enabled by using allowWritableResource.
+	bool allowWritableResource = false;
+	if (Application::Settings->GetBool("dev", "allowWritableResource", &allowWritableResource)) {
+		if (allowWritableResource == true) {
+			resourceFlags |= VFS_WRITABLE;
+		}
+	}
+
 	if (filename != NULL && File::Exists(filename)) {
-		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, resourceFlags);
 	}
 	else {
 		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_DIR_PATH, nullptr,
