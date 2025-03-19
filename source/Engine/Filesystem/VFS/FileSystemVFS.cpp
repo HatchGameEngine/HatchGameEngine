@@ -176,6 +176,9 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 		return nullptr;
 	}
 
+	// Recursively create the path directories if needed.
+	Path::Create(resourcePath);
+
 	Stream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
 	if (stream != nullptr) {
 		VFSEntry* entry = CacheEntry(filename, stream);

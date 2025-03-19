@@ -837,6 +837,11 @@ Uint32 ScriptManager::MakeFilenameHash(char* filename) {
 	}
 	return CombinedHash::EncryptData((const void*)filename, length);
 }
+std::string ScriptManager::GetBytecodeFilenameForHash(Uint32 filenameHash) {
+	char filename[sizeof(OBJECTS_DIR_NAME) + 12];
+	snprintf(filename, sizeof filename, "%s%08X.ibc", OBJECTS_DIR_NAME, filenameHash);
+	return std::string(filename);
+}
 BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
 	if (Sources->Exists(filenameHash)) {
 		return Sources->Get(filenameHash);
@@ -846,8 +851,8 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 	bytecode.Data = nullptr;
 	bytecode.Size = 0;
 
-	char filename[64];
-	snprintf(filename, sizeof filename, "Objects/%08X.ibc", filenameHash);
+	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
+	const char* filename = filenameForHash.c_str();
 
 	if (!ResourceManager::ResourceExists(filename)) {
 		return bytecode;

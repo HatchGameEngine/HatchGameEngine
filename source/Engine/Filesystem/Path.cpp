@@ -29,7 +29,12 @@ bool Path::Create(const char* path) {
 	if (work[0] == '/')
 		work++;
 
-	char* ptr = strchr(work, '/');
+	char* ptr = strrchr(work, '/');
+	if (ptr) {
+		ptr[1] = '\0';
+	}
+
+	ptr = strchr(work, '/');
 	while (ptr != nullptr) {
 		*ptr = '\0';
 

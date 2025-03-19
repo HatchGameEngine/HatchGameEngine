@@ -12,6 +12,8 @@
 
 #define SOURCEFILEMAP_NAME "cache://SourceFileMap.bin"
 
+#define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "Objects.hcm"
+
 bool SourceFileMap::Initialized = false;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
@@ -30,8 +32,8 @@ void SourceFileMap::CheckInit() {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
-	if (ResourceManager::ResourceExists("Objects/Objects.hcm")) {
-		ResourceStream* stream = ResourceStream::New("Objects/Objects.hcm");
+	if (ResourceManager::ResourceExists(OBJECTS_HCM_NAME)) {
+		ResourceStream* stream = ResourceStream::New(OBJECTS_HCM_NAME);
 		if (stream) {
 			Uint32 magic_got;
 			if ((magic_got = stream->ReadUInt32()) == SourceFileMap::Magic) {
@@ -82,6 +84,11 @@ void SourceFileMap::CheckInit() {
 void SourceFileMap::CheckForUpdate() {
 	SourceFileMap::CheckInit();
 
+	VFSProvider* mainVfs = ResourceManager::GetMainResource();
+	if (!mainVfs || !mainVfs->IsWritable()) {
+		return;
+	}
+
 #ifndef NO_SCRIPT_COMPILING
 	bool anyChanges = false;
 
@@ -101,11 +108,7 @@ void SourceFileMap::CheckForUpdate() {
 		return;
 	}
 
-	if (!Directory::Exists("Resources/Objects")) {
-		Directory::Create("Resources/Objects");
-		anyChanges = true;
-	}
-	if (!ResourceManager::ResourceExists("Objects/Objects.hcm")) {
+	if (!mainVfs->HasFile(OBJECTS_HCM_NAME)) {
 		anyChanges = true;
 	}
 
@@ -167,12 +170,11 @@ void SourceFileMap::CheckForUpdate() {
 		doRecompile = newChecksum != oldChecksum;
 		anyChanges |= doRecompile;
 
-		// TODO: Detect the main VFS used for resources and write into it
-		char outFile[35];
-		snprintf(outFile, sizeof outFile, "Resources/Objects/%08X.ibc", filenameHash);
+		std::string filenameForHash = ScriptManager::GetBytecodeFilenameForHash(filenameHash);
+		const char* outFile = filenameForHash.c_str();
 
 		// If changed, then compile.
-		if (doRecompile || !File::Exists(outFile)) {
+		if (doRecompile || mainVfs->HasFile(outFile)) {
 			Compiler::PrepareCompiling();
 
 			char* scriptFilename = list[i];
@@ -189,35 +191,26 @@ void SourceFileMap::CheckForUpdate() {
 				}
 			}
 
-			Compiler* compiler = new Compiler;
-			compiler->Compile(scriptFilename, source, outFile);
+			Compiler* compiler = nullptr;
+			bool didCompile = false;
+
+			Stream* stream = mainVfs->OpenWriteStream(outFile);
+			if (stream) {
+				compiler = new Compiler;
+
+				didCompile = compiler->Compile(scriptFilename, source, stream);
+
+				mainVfs->CloseStream(stream);
+			}
+			else {
+				Log::Print(Log::LOG_ERROR,
+					"Couldn't open file '%s' for writing compiled script!",
+					outFile);
+			}
 
 			// Add this file to the list
-			for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {
-				Uint32 classHash = compiler->ClassHashList[h];
-				Uint32 classExtended = compiler->ClassExtendedList[h];
-				if (SourceFileMap::ClassMap->Exists(classHash)) {
-					vector<Uint32>* filenameHashList =
-						SourceFileMap::ClassMap->Get(classHash);
-					if (std::count(filenameHashList->begin(),
-						    filenameHashList->end(),
-						    filenameHash) == 0) {
-						// NOTE: We need a better way of sorting
-						if (classExtended == 0) {
-							filenameHashList->insert(
-								filenameHashList->begin(),
-								filenameHash);
-						}
-						else if (classExtended == 1) {
-							filenameHashList->push_back(filenameHash);
-						}
-					}
-				}
-				else {
-					vector<Uint32>* filenameHashList = new vector<Uint32>();
-					filenameHashList->push_back(filenameHash);
-					SourceFileMap::ClassMap->Put(classHash, filenameHashList);
-				}
+			if (didCompile) {
+				AddToList(compiler, filenameHash);
 			}
 
 			delete compiler;
@@ -231,7 +224,7 @@ void SourceFileMap::CheckForUpdate() {
 	}
 
 	if (anyChanges) {
-		FileStream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
+		Stream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
 			Uint8* data = SourceFileMap::Checksums->GetBytes(true);
 			stream->WriteBytes(data,
@@ -244,8 +237,7 @@ void SourceFileMap::CheckForUpdate() {
 			stream->Close();
 		}
 
-		// TODO: Detect the main VFS used for resources and write into it
-		stream = FileStream::New("Resources/Objects/Objects.hcm", FileStream::WRITE_ACCESS);
+		stream = mainVfs->OpenWriteStream("Resources/Objects/Objects.hcm");
 		if (stream) {
 			stream->WriteUInt32(SourceFileMap::Magic);
 			stream->WriteByte(0x00); // Version
@@ -263,7 +255,7 @@ void SourceFileMap::CheckForUpdate() {
 					}
 				});
 
-			stream->Close();
+			mainVfs->CloseStream(stream);
 		}
 	}
 
@@ -271,6 +263,30 @@ void SourceFileMap::CheckForUpdate() {
 	list.shrink_to_fit();
 
 #endif
+}
+void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
+	for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {
+		Uint32 classHash = compiler->ClassHashList[h];
+		Uint32 classExtended = compiler->ClassExtendedList[h];
+		if (SourceFileMap::ClassMap->Exists(classHash)) {
+			vector<Uint32>* filenameHashList = SourceFileMap::ClassMap->Get(classHash);
+			if (std::count(filenameHashList->begin(), filenameHashList->end(),
+				filenameHash) == 0) {
+				// NOTE: We need a better way of sorting
+				if (classExtended == 0) {
+					filenameHashList->insert(filenameHashList->begin(), filenameHash);
+				}
+				else if (classExtended == 1) {
+					filenameHashList->push_back(filenameHash);
+				}
+			}
+		}
+		else {
+			vector<Uint32>* filenameHashList = new vector<Uint32>();
+			filenameHashList->push_back(filenameHash);
+			SourceFileMap::ClassMap->Put(classHash, filenameHashList);
+		}
+	}
 }
 
 void SourceFileMap::Dispose() {

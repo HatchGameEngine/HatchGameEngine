@@ -7,7 +7,7 @@
 
 #define RESOURCES_VFS_NAME "main"
 
-#define RESOURCES_PATH "Resources"
+#define RESOURCES_DIR_PATH "Resources"
 
 VirtualFileSystem* vfs = nullptr;
 VFSProvider* mainResource = nullptr;
@@ -47,16 +47,16 @@ bool ResourceManager::Init(const char* filename) {
 		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 	else {
-		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_PATH, nullptr,
-			VFSType::FILESYSTEM, VFS_READABLE);
+		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_DIR_PATH, nullptr,
+			VFSType::FILESYSTEM, VFS_READABLE | VFS_WRITABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
-			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_PATH);
+			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_DIR_PATH);
 
 			ResourceManager::UsingDataFolder = true;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Could not access \"%s\" folder!", RESOURCES_PATH);
+			Log::Print(Log::LOG_ERROR, "Could not access \"%s\" folder!", RESOURCES_DIR_PATH);
 		}
 	}
 
@@ -95,6 +95,10 @@ bool ResourceManager::Mount(const char* name, const char* filename, const char* 
 	}
 
 	return status == VFSMountStatus::MOUNTED;
+}
+
+VFSProvider* ResourceManager::GetMainResource() {
+	return mainResource;
 }
 
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {

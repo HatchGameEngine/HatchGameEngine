@@ -77,7 +77,6 @@ enum PathLocation {
 
 class Path {
 private:
-	static bool Create(const char* path);
 	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
 	static bool MatchPaths(std::filesystem::path base, std::filesystem::path path);
 	static PathLocation LocationFromURL(const char* filename);
@@ -93,6 +92,7 @@ private:
 	static std::filesystem::path StripLocationFromURL(const char* filename, PathLocation& location);
 
 public:
+	static bool Create(const char* path);
 	static bool IsInDir(const char* dirPath, const char* path);
 	static bool IsInCurrentDir(const char* path);
 	static bool IsValidDefaultLocation(const char* filename);
