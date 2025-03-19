@@ -122,7 +122,8 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	case PathLocation::CACHE:
 		if (MemoryCache::Using) {
 			// Use the original filename instead of the resolved one.
-			resolvedPathString = Path::StripURL(filename);
+			std::filesystem::path strippedPath = Path::StripURL(filename);
+			resolvedPathString = strippedPath.u8string();
 			finalPath = resolvedPathString.c_str();
 
 			stream = MemoryCache::OpenStream(finalPath, access);
