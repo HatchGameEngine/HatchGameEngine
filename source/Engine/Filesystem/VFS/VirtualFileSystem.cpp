@@ -69,14 +69,10 @@ int VirtualFileSystem::NumMounted() {
 }
 
 bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size) {
-	char resourcePath[MAX_PATH_LENGTH];
-
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		if (vfs->ReadFile(resourcePath, out, size)) {
+		if (vfs->ReadFile(filename, out, size)) {
 			return true;
 		}
 	}
@@ -84,14 +80,10 @@ bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size
 	return false;
 }
 bool VirtualFileSystem::FileExists(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
-
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		if (vfs->HasFile(resourcePath)) {
+		if (vfs->HasFile(filename)) {
 			return true;
 		}
 	}
@@ -100,8 +92,6 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 }
 
 Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
-
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
@@ -109,9 +99,7 @@ Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 			continue;
 		}
 
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		Stream* stream = vfs->OpenReadStream(resourcePath);
+		Stream* stream = vfs->OpenReadStream(filename);
 		if (stream) {
 			return stream;
 		}
@@ -120,8 +108,6 @@ Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 	return nullptr;
 }
 Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
-
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
@@ -129,9 +115,7 @@ Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
 			continue;
 		}
 
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		Stream* stream = vfs->OpenWriteStream(resourcePath);
+		Stream* stream = vfs->OpenWriteStream(filename);
 		if (stream) {
 			return stream;
 		}
@@ -140,8 +124,6 @@ Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
 	return nullptr;
 }
 Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
-
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSProvider* vfs = LoadedVFS[i];
 
@@ -149,9 +131,7 @@ Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
 			continue;
 		}
 
-		vfs->TransformFilename(filename, resourcePath, sizeof resourcePath);
-
-		Stream* stream = vfs->OpenAppendStream(resourcePath);
+		Stream* stream = vfs->OpenAppendStream(filename);
 		if (stream) {
 			return stream;
 		}

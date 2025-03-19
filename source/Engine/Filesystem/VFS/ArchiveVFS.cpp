@@ -2,6 +2,9 @@
 #include <Engine/IO/MemoryStream.h>
 
 bool ArchiveVFS::AddEntry(VFSEntry* entry) {
+	// This adds the entry directly, without doing any filename transformation
+	// or modifying the entry name.
+	// If a file with the same name already exists, it's not added.
 	VFSEntryMap::iterator it = Entries.find(entry->Name);
 	if (it != Entries.end()) {
 		return false;
@@ -16,7 +19,9 @@ bool ArchiveVFS::AddEntry(VFSEntry* entry) {
 
 bool ArchiveVFS::HasFile(const char* filename) {
 	if (IsReadable()) {
-		VFSEntryMap::iterator it = Entries.find(std::string(filename));
+		std::string entryName = TransformFilename(filename);
+
+		VFSEntryMap::iterator it = Entries.find(entryName);
 
 		return it != Entries.end();
 	}
@@ -26,7 +31,9 @@ bool ArchiveVFS::HasFile(const char* filename) {
 
 VFSEntry* ArchiveVFS::FindFile(const char* filename) {
 	if (IsReadable()) {
-		VFSEntryMap::iterator it = Entries.find(std::string(filename));
+		std::string entryName = TransformFilename(filename);
+
+		VFSEntryMap::iterator it = Entries.find(entryName);
 		if (it != Entries.end()) {
 			return it->second;
 		}
@@ -69,14 +76,17 @@ bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 
 bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 	if (IsWritable()) {
-		std::string fName = std::string(filename);
+		std::string entryName = TransformFilename(filename);
 
-		if (!HasFile(filename)) {
-			EntryNames.push_back(fName);
+		VFSEntryMap::iterator it = Entries.find(entryName);
+		if (it == Entries.end()) {
+			EntryNames.push_back(entryName);
 			NumEntries++;
 		}
 
-		Entries[fName] = entry;
+		entry->Name = entryName;
+
+		Entries[entryName] = entry;
 
 		return true;
 	}
@@ -86,12 +96,12 @@ bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 
 bool ArchiveVFS::EraseFile(const char* filename) {
 	if (IsWritable()) {
-		std::string fName = std::string(filename);
+		std::string entryName = TransformFilename(filename);
 
-		VFSEntryMap::iterator it = Entries.find(fName);
+		VFSEntryMap::iterator it = Entries.find(entryName);
 
 		if (it != Entries.end()) {
-			auto nameIt = std::find(EntryNames.begin(), EntryNames.end(), fName);
+			auto nameIt = std::find(EntryNames.begin(), EntryNames.end(), entryName);
 			if (nameIt != EntryNames.end()) {
 				EntryNames.erase(nameIt);
 			}
@@ -140,7 +150,6 @@ Stream* ArchiveVFS::OpenWriteStream(const char* filename) {
 	// If the entry does not exist, create one
 	if (entry == nullptr) {
 		entry = new VFSEntry();
-		entry->Name = std::string(filename);
 		entry->CachedData = (Uint8*)Memory::Calloc(1, sizeof(Uint8));
 		PutFile(filename, entry);
 	}

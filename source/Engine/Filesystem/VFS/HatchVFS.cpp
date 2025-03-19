@@ -69,10 +69,14 @@ bool HatchVFS::Open(Stream* stream) {
 	return true;
 }
 
-void HatchVFS::TransformFilename(const char* filename, char* dest, size_t destSize) {
-	VFSProvider::TransformFilename(filename, dest, destSize);
+std::string HatchVFS::TransformFilename(const char* filename) {
+	char transformedFilename[ENTRY_NAME_LENGTH + 1];
 
-	snprintf(dest, destSize, "%08x", CRC32::EncryptString(dest));
+	Uint32 crc32 = CRC32::EncryptString(filename);
+
+	snprintf(transformedFilename, sizeof transformedFilename, "%08x", crc32);
+
+	return std::string(transformedFilename);
 }
 
 void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool decrypt) {
@@ -282,9 +286,25 @@ bool HatchVFS::Flush() {
 		VFSEntry* entry = Entries[entryName];
 
 		Uint32 hash = (int)strtol(entryName.c_str(), NULL, 16);
-		entry->Offset = tocEnd + offsetGLOB;
 
 		bool shouldCopy = false;
+		bool needsRewrite = false; // TODO: Implement
+		if (needsRewrite && entry->CachedData == nullptr) {
+			Uint8* memory = (Uint8*)Memory::Malloc(entry->Size);
+			if (!memory) {
+				Log::Print(Log::LOG_ERROR, "Could not allocate memory for entry %s!", entry->Name.c_str());
+				out->Close();
+				return false;
+			}
+
+			if (!ReadEntryData(entry, memory, entry->Size)) {
+				Log::Print(Log::LOG_ERROR, "Could not read entry %s!", entry->Name.c_str());
+				out->Close();
+				return false;
+			}
+
+			entry->CachedData = memory;
+		}
 
 		Uint8 dataType = 0;
 		if (entry->Flags & VFSE_ENCRYPTED) {
@@ -319,11 +339,13 @@ bool HatchVFS::Flush() {
 
 				if (entry->Flags & VFSE_ENCRYPTED) {
 					if (entry->CachedDataInFile == entry->CachedData) {
-						entry->CachedDataInFile = (Uint8 *)Memory::Malloc(entry->CompressedSize);
-						memcpy(entry->CachedDataInFile, entry->CachedData, entry->CompressedSize);
+						entry->CachedDataInFile = (Uint8 *)Memory::Malloc(entry->Size);
+						if (entry->CachedDataInFile != nullptr) {
+							memcpy(entry->CachedDataInFile, entry->CachedData, entry->Size);
+						}
 					}
 
-					if (entry->CachedData != nullptr) {
+					if (entry->CachedData != nullptr && entry->CachedDataInFile != nullptr) {
 						CryptoXOR(entry->CachedDataInFile, entry->CompressedSize, hash, false);
 					}
 					else {
@@ -338,6 +360,8 @@ bool HatchVFS::Flush() {
 		else if (entry->CachedData == nullptr && entry->CachedDataInFile == nullptr) {
 			shouldCopy = true;
 		}
+
+		entry->Offset = tocEnd + offsetGLOB;
 
 		// Write into the table of contents
 		out->WriteUInt32(hash);

@@ -39,16 +39,17 @@ bool FileSystemVFS::HasFile(const char* filename) {
 }
 
 VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
+	std::string entryName = TransformFilename(filename);
+
 	VFSEntry* entry = nullptr;
-	VFSEntryMap::iterator it = Cache.find(std::string(filename));
+	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
 		entry = it->second;
 	}
 
 	if (entry == nullptr) {
 		entry = new VFSEntry();
-		entry->Name = std::string(filename);
-		Cache[entry->Name] = entry;
+		Cache[entryName] = entry;
 	}
 
 	entry->Size = stream->Length();
@@ -58,7 +59,8 @@ VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 }
 
 VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
-	VFSEntryMap::iterator it = Cache.find(std::string(filename));
+	std::string entryName = TransformFilename(filename);
+	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
 		return it->second;
 	}
@@ -67,7 +69,8 @@ VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
 }
 
 void FileSystemVFS::RemoveFromCache(const char* filename) {
-	VFSEntryMap::iterator it = Cache.find(std::string(filename));
+	std::string entryName = TransformFilename(filename);
+	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
 		delete it->second;
 	}

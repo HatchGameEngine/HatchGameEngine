@@ -31,14 +31,14 @@ const char* VFSProvider::GetMountPoint() {
 	return MountPoint.c_str();
 }
 
-void VFSProvider::TransformFilename(const char* filename, char* dest, size_t destSize) {
+std::string VFSProvider::TransformFilename(const char* filename) {
 	size_t offset = 0;
 
 	if (StringUtils::StartsWith(filename, MountPoint.c_str())) {
 		offset = MountPoint.size();
 	}
 
-	StringUtils::Copy(dest, filename + offset, destSize);
+	return std::string(filename + offset);
 }
 
 bool VFSProvider::HasFile(const char* filename) {

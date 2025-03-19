@@ -46,7 +46,7 @@ public:
 
 	const char* GetMountPoint();
 
-	virtual void TransformFilename(const char* filename, char* dest, size_t destSize);
+	virtual std::string TransformFilename(const char* filename);
 	virtual bool HasFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
