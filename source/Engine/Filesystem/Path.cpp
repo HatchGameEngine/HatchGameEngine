@@ -63,9 +63,12 @@ bool Path::GetCurrentWorkingDirectory(char* out, size_t sz) {
 }
 
 bool Path::MatchPaths(std::filesystem::path base, std::filesystem::path path) {
-	auto const last = std::prev(base.end());
+	std::string baseAsString = base.u8string();
+	std::string pathAsString = path.u8string();
 
-	return std::mismatch(base.begin(), last, path.begin()).first == last;
+	auto const last = std::prev(baseAsString.end());
+
+	return std::mismatch(baseAsString.begin(), last, pathAsString.begin()).first == last;
 }
 
 bool Path::IsInDir(const char* dirPath, const char* path) {
