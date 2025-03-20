@@ -75,7 +75,7 @@ public:
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallFunction(char* functionName);
 	static Entity* SpawnObject(const char* objectName);
-	static Uint32 MakeFilenameHash(char* filename);
+	static Uint32 MakeFilenameHash(const char* filename);
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);

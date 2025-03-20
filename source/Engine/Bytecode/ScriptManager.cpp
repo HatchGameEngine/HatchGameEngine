@@ -829,9 +829,9 @@ Entity* ScriptManager::SpawnObject(const char* objectName) {
 
 	return object;
 }
-Uint32 ScriptManager::MakeFilenameHash(char* filename) {
+Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	size_t length = strlen(filename);
-	char* dot = strrchr(filename, '.');
+	const char* dot = strrchr(filename, '.');
 	if (dot) {
 		length = dot - filename;
 	}

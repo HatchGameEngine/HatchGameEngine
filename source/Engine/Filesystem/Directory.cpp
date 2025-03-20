@@ -10,8 +10,11 @@
 #include <sys/stat.h>
 #endif
 
-bool CompareFunction(char* i, char* j) {
-	return strcmp(i, j) < 0;
+bool CompareFunction(std::filesystem::path i, std::filesystem::path j) {
+	std::string pathA = i.u8string();
+	std::string pathB = i.u8string();
+
+	return pathA.compare(pathB) < 0;
 }
 
 bool Directory::Exists(const char* path) {
@@ -53,19 +56,13 @@ bool Directory::Create(const char* path) {
 #endif
 }
 
-void Directory::GetFiles(vector<char*>* files,
+void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 	const char* path,
 	const char* searchPattern,
 	bool allDirs) {
 #if WIN32
 	char winPath[MAX_PATH_LENGTH];
 	snprintf(winPath, MAX_PATH_LENGTH, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
-
-	for (char* i = winPath; *i; i++) {
-		if (*i == '/') {
-			*i = '\\';
-		}
-	}
 
 	WIN32_FIND_DATA data;
 	HANDLE hFind = FindFirstFile(winPath, &data);
@@ -86,23 +83,24 @@ void Directory::GetFiles(vector<char*>* files,
 				if (allDirs) {
 					snprintf(fullpath,
 						sizeof fullpath,
-						"%s\\%s",
+						"%s/%s",
 						path,
 						data.cFileName);
 					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
 			}
 			else if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
-				i = strlen(data.cFileName) + strlen(path) + 1;
-				char* str = (char*)calloc(1, i + 1);
-				snprintf(str, i + 1, "%s/%s", path, data.cFileName);
-				str[i] = 0;
-				for (char* istr = str; *istr; istr++) {
-					if (*istr == '\\') {
-						*istr = '/';
-					}
-				}
-				files->push_back(str);
+				std::string entryName = std::string(data.cFileName);
+
+				std::filesystem::path pathFs = std::filesystem::path(std::string(path));
+				std::filesystem::path entryFs = std::filesystem::path(entryName);
+
+				std::string tempPath = (pathFs / entryFs).u8string();
+				std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
+
+				std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
+
+				files->push_back(finalPath);
 			}
 		} while (FindNextFile(hFind, &data));
 		FindClose(hFind);
@@ -133,12 +131,12 @@ void Directory::GetFiles(vector<char*>* files,
 				}
 			}
 			else if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
-				i = strlen(d->d_name) + strlen(path) + 1;
-				char* str = (char*)calloc(1, i + 1);
-				snprintf(str, i + 1, "%s/%s", path, d->d_name);
-				str[i] = 0;
+				std::string entryName = std::string(d->d_name);
 
-				files->push_back(str);
+				std::filesystem::path pathFs = std::filesystem::u8path(std::string(path));
+				std::filesystem::path entryFs = std::filesystem::u8path(entryName);
+
+				files->push_back(pathFs / entryFs);
 			}
 		}
 		closedir(dir);
@@ -147,25 +145,20 @@ void Directory::GetFiles(vector<char*>* files,
 	std::sort(files->begin(), files->end(), CompareFunction);
 #endif
 }
-vector<char*> Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
-	vector<char*> files;
+std::vector<std::filesystem::path> Directory::GetFiles(
+	const char* path, const char* searchPattern, bool allDirs) {
+	std::vector<std::filesystem::path> files;
 	Directory::GetFiles(&files, path, searchPattern, allDirs);
 	return files;
 }
 
-void Directory::GetDirectories(vector<char*>* files,
+void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 	const char* path,
 	const char* searchPattern,
 	bool allDirs) {
 #if WIN32
 	char winPath[MAX_PATH_LENGTH];
 	snprintf(winPath, MAX_PATH_LENGTH, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
-
-	for (char* i = winPath; *i; i++) {
-		if (*i == '/') {
-			*i = '\\';
-		}
-	}
 
 	WIN32_FIND_DATA data;
 	HANDLE hFind = FindFirstFile(winPath, &data);
@@ -184,21 +177,22 @@ void Directory::GetDirectories(vector<char*>* files,
 
 			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 				if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
-					i = strlen(data.cFileName) + strlen(path) + 1;
-					char* str = (char*)calloc(1, i + 1);
-					snprintf(str, i + 1, "%s/%s", path, data.cFileName);
-					str[i] = 0;
-					for (char* istr = str; *istr; istr++) {
-						if (*istr == '\\') {
-							*istr = '/';
-						}
-					}
-					files->push_back(str);
+					std::string entryName = std::string(data.cFileName);
+
+					std::filesystem::path pathFs = std::filesystem::path(std::string(path));
+					std::filesystem::path entryFs = std::filesystem::path(entryName);
+
+					std::string tempPath = (pathFs / entryFs).u8string();
+					std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
+
+					std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
+
+					files->push_back(finalPath);
 				}
 				if (allDirs) {
 					snprintf(fullpath,
 						sizeof fullpath,
-						"%s\\%s",
+						"%s/%s",
 						path,
 						data.cFileName);
 					Directory::GetFiles(files, fullpath, searchPattern, true);
@@ -224,11 +218,12 @@ void Directory::GetDirectories(vector<char*>* files,
 
 			if (d->d_type == DT_DIR) {
 				if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
-					i = strlen(d->d_name) + strlen(path) + 1;
-					char* str = (char*)calloc(1, i + 1);
-					snprintf(str, i + 1, "%s/%s", path, d->d_name);
-					str[i] = 0;
-					files->push_back(str);
+					std::string entryName = std::string(d->d_name);
+
+					std::filesystem::path pathFs = std::filesystem::u8path(std::string(path));
+					std::filesystem::path entryFs = std::filesystem::u8path(entryName);
+
+					files->push_back(pathFs / entryFs);
 				}
 				if (allDirs) {
 					snprintf(fullpath,
@@ -244,8 +239,9 @@ void Directory::GetDirectories(vector<char*>* files,
 	}
 #endif
 }
-vector<char*> Directory::GetDirectories(const char* path, const char* searchPattern, bool allDirs) {
-	vector<char*> files;
+std::vector<std::filesystem::path> Directory::GetDirectories(
+	const char* path, const char* searchPattern, bool allDirs) {
+	std::vector<std::filesystem::path> files;
 	Directory::GetDirectories(&files, path, searchPattern, allDirs);
 	return files;
 }

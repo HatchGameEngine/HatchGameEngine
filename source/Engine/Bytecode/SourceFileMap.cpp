@@ -99,7 +99,7 @@ void SourceFileMap::CheckForUpdate() {
 		return;
 	}
 
-	vector<char*> list;
+	vector<std::filesystem::path> list;
 	Directory::GetFiles(&list, scriptFolder, "*.hsl", true);
 
 	if (list.size() == 0) {
@@ -116,9 +116,11 @@ void SourceFileMap::CheckForUpdate() {
 
 	SourceFileMap::DirectoryChecksum = 0x0;
 	for (size_t i = 0; i < list.size(); i++) {
-		char* filename = list[i] + scriptFolderNameLen;
+		std::string asStr = list[i].u8string();
+		const char* listEntry = asStr.c_str();
+		const char* filename = listEntry + scriptFolderNameLen;
 		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
-			filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
+			filename, (Uint32)asStr.size(), SourceFileMap::DirectoryChecksum);
 	}
 
 	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum &&
@@ -140,17 +142,18 @@ void SourceFileMap::CheckForUpdate() {
 
 	std::string scriptFolderPathStr = std::string(scriptFolder) + "/";
 	const char* scriptFolderPath = scriptFolderPathStr.c_str();
-	size_t scriptFolderPathLen = strlen(scriptFolderPath);
+	size_t scriptFolderPathLen = scriptFolderPathStr.size();
 
 	for (size_t i = 0; i < list.size(); i++) {
-		char* filename = strrchr(list[i], '/');
+		std::string asStr = list[i].u8string();
+		const char* listEntry = asStr.c_str();
+		const char* filename = strrchr(listEntry, '/');
 		Uint32 filenameHash = 0;
 		if (filename) {
 			filenameHash =
-				ScriptManager::MakeFilenameHash(list[i] + scriptFolderNameLen + 1);
+				ScriptManager::MakeFilenameHash(listEntry + scriptFolderNameLen + 1);
 		}
 		if (!filenameHash) {
-			Memory::Free(list[i]);
 			continue;
 		}
 
@@ -159,7 +162,7 @@ void SourceFileMap::CheckForUpdate() {
 		bool doRecompile = false;
 
 		char* source;
-		File::ReadAllBytes(list[i], &source, false);
+		File::ReadAllBytes(listEntry, &source, false);
 		newChecksum = Murmur::EncryptString(source);
 
 		Memory::Track(source, "SourceFileMap::SourceText");
@@ -177,7 +180,7 @@ void SourceFileMap::CheckForUpdate() {
 		if (doRecompile || !mainVfs->HasFile(outFile)) {
 			Compiler::PrepareCompiling();
 
-			char* scriptFilename = list[i];
+			const char* scriptFilename = listEntry;
 			if (StringUtils::StartsWith(scriptFilename, scriptFolderPath)) {
 				scriptFilename += scriptFolderPathLen;
 			}
@@ -220,7 +223,6 @@ void SourceFileMap::CheckForUpdate() {
 		Memory::Free(source);
 
 		SourceFileMap::Checksums->Put(filenameHash, newChecksum);
-		Memory::Free(list[i]);
 	}
 
 	if (anyChanges) {
@@ -261,7 +263,6 @@ void SourceFileMap::CheckForUpdate() {
 
 	list.clear();
 	list.shrink_to_fit();
-
 #endif
 }
 void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {

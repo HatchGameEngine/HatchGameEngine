@@ -2278,7 +2278,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	char* pattern = GET_ARG(1, GetString);
 	int allDirs = GET_ARG(2, GetInteger);
 
-	vector<char*> fileList;
+	std::vector<std::filesystem::path> fileList;
 	Directory::GetFiles(&fileList, directory, pattern, allDirs);
 
 	if (ScriptManager::Lock()) {
@@ -2286,7 +2286,6 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 		for (size_t i = 0; i < fileList.size(); i++) {
 			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
-			free(fileList[i]);
 		}
 		ScriptManager::Unlock();
 	}
@@ -2309,7 +2308,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	char* pattern = GET_ARG(1, GetString);
 	int allDirs = GET_ARG(2, GetInteger);
 
-	vector<char*> fileList;
+	std::vector<std::filesystem::path> fileList;
 	Directory::GetDirectories(&fileList, directory, pattern, allDirs);
 
 	if (ScriptManager::Lock()) {
@@ -2317,7 +2316,6 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 		for (size_t i = 0; i < fileList.size(); i++) {
 			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
-			free(fileList[i]);
 		}
 		ScriptManager::Unlock();
 	}
