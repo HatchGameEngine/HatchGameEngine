@@ -149,9 +149,9 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 		}
 		closedir(dir);
 	}
+#endif
 
 	std::sort(files->begin(), files->end(), CompareFunction);
-#endif
 }
 std::vector<std::filesystem::path> Directory::GetFiles(
 	const char* path, const char* searchPattern, bool allDirs) {
@@ -246,6 +246,8 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 		closedir(dir);
 	}
 #endif
+
+	std::sort(files->begin(), files->end(), CompareFunction);
 }
 std::vector<std::filesystem::path> Directory::GetDirectories(
 	const char* path, const char* searchPattern, bool allDirs) {
