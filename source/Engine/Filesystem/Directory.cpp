@@ -41,7 +41,15 @@ bool Directory::Create(const char* path) {
 	}
 
 #if WIN32
-	return CreateDirectoryA(path, NULL);
+	BOOL result = CreateDirectoryA(path, NULL);
+	if (result == FALSE) {
+		DWORD err = GetLastError();
+		if (err == ERROR_ALREADY_EXISTS) {
+			return true;
+		}
+
+		return false;
+	}
 #else
 	int result = mkdir(path, 0700);
 	if (result != 0) {
@@ -51,9 +59,9 @@ bool Directory::Create(const char* path) {
 
 		return false;
 	}
+#endif
 
 	return true;
-#endif
 }
 
 void Directory::GetFiles(std::vector<std::filesystem::path>* files,
