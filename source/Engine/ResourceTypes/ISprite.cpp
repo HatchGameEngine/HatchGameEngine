@@ -34,11 +34,7 @@ ISprite::ISprite(const char* filename) {
 }
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
-	char* filename = StringUtils::NormalizePath(sheetFilename);
-
-	std::string sheetPath = std::string(filename);
-
-	Memory::Free(filename);
+	std::string sheetPath = Path::Normalize(sheetFilename);
 
 	for (size_t i = 0; i < SpritesheetFilenames.size(); i++) {
 		if (SpritesheetFilenames[i] == sheetPath) {
@@ -355,14 +351,9 @@ bool ISprite::LoadAnimation(const char* filename) {
 		}
 
 		if (shouldConcatSpritesPath) {
-			char* altered = StringUtils::ConcatPaths("Sprites", sheetName.c_str());
-			if (!altered) {
-				abort();
-			}
+			std::string altered = Path::Concat(std::string("Sprites"), sheetName);
 
-			AddSpriteSheet(altered);
-
-			Memory::Free(altered);
+			AddSpriteSheet(altered.c_str());
 		}
 		else {
 			AddSpriteSheet(sheetName.c_str());

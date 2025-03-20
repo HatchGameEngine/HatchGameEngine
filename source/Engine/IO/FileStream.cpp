@@ -94,7 +94,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		break;
 	}
 
-	std::filesystem::path resolvedPath = "";
+	std::string resolvedPath = "";
 
 	PathLocation location = PathLocation::DEFAULT;
 
@@ -112,9 +112,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		return nullptr;
 	}
 
-	std::string resolvedPathString = resolvedPath.u8string();
-
-	const char* finalPath = resolvedPathString.c_str();
+	const char* finalPath = resolvedPath.c_str();
 
 	Stream* stream = nullptr;
 
@@ -122,9 +120,8 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	case PathLocation::CACHE:
 		if (MemoryCache::Using) {
 			// Use the original filename instead of the resolved one.
-			std::filesystem::path strippedPath = Path::StripURL(filename);
-			resolvedPathString = strippedPath.u8string();
-			finalPath = resolvedPathString.c_str();
+			std::string resolvedPath = Path::StripURL(filename);
+			finalPath = resolvedPath.c_str();
 
 			stream = MemoryCache::OpenStream(finalPath, access);
 			break;

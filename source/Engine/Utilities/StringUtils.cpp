@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Utilities/StringUtils.h>
 
 char* StringUtils::Create(void* src, size_t length) {
@@ -7,7 +8,7 @@ char* StringUtils::Create(void* src, size_t length) {
 	string[length] = '\0';
 	return string;
 }
-char* StringUtils::Create(string src) {
+char* StringUtils::Create(std::string src) {
 	return StringUtils::Duplicate(src.c_str());
 }
 char* StringUtils::Create(Token token) {
@@ -66,6 +67,14 @@ bool StringUtils::StartsWith(const char* string, const char* compare) {
 	}
 
 	return memcmp(string, compare, cmpLen) == 0;
+}
+bool StringUtils::StartsWith(std::string string, std::string compare) {
+	size_t cmpLen = compare.size();
+	if (string.size() < cmpLen) {
+		return false;
+	}
+
+	return memcmp(string.c_str(), compare.c_str(), cmpLen) == 0;
 }
 char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
@@ -241,37 +250,6 @@ const char* StringUtils::GetExtension(const char* filename) {
 
 	return dot + 1;
 }
-char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
-	if (!pathA || !pathB) {
-		return nullptr;
-	}
-
-	size_t lenA = strlen(pathA);
-	size_t lenB = strlen(pathB) + 1;
-	size_t totalLen = lenA + lenB;
-
-	bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
-	if (!hasSep) {
-		totalLen++;
-	}
-
-	char* newPath = (char*)Memory::Malloc(totalLen);
-	char* out = newPath;
-	if (!newPath) {
-		return nullptr;
-	}
-
-	memcpy(newPath, pathA, lenA);
-	newPath += lenA;
-
-	if (!hasSep) {
-		newPath[0] = '/';
-		newPath++;
-	}
-
-	memcpy(newPath, pathB, lenB);
-	return out;
-}
 char* StringUtils::ReplacePathSeparators(const char* path) {
 	if (!path) {
 		return nullptr;
@@ -298,18 +276,14 @@ char* StringUtils::ReplacePathSeparators(const char* path) {
 
 	return newPath;
 }
-std::string StringUtils::LexicallyNormalFormOfPath(const char* path) {
-	std::filesystem::path fsPath = std::filesystem::u8path(std::string(path));
-	return fsPath.lexically_normal().u8string();
-}
 char* StringUtils::NormalizePath(const char* path) {
 	if (path == nullptr) {
 		return nullptr;
 	}
 
-	std::string fsNorm = LexicallyNormalFormOfPath(path);
+	std::string normalized = Path::Normalize(path);
 
-	char* normalizedPath = StringUtils::Create(fsNorm);
+	char* normalizedPath = StringUtils::Create(normalized);
 	if (normalizedPath != nullptr) {
 		StringUtils::ReplacePathSeparatorsInPlace(normalizedPath);
 	}
@@ -321,9 +295,9 @@ void StringUtils::NormalizePath(const char* path, char* dest, size_t destSize) {
 		return;
 	}
 
-	std::string fsNorm = LexicallyNormalFormOfPath(path);
+	std::string normalized = Path::Normalize(path);
 
-	snprintf(dest, destSize, "%s", fsNorm.c_str());
+	snprintf(dest, destSize, "%s", normalized.c_str());
 }
 void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
 	if (!path) {

@@ -120,7 +120,7 @@ void SourceFileMap::CheckForUpdate() {
 		const char* listEntry = asStr.c_str();
 		const char* filename = listEntry + scriptFolderNameLen;
 		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
-			filename, (Uint32)asStr.size(), SourceFileMap::DirectoryChecksum);
+			filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
 	}
 
 	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum &&

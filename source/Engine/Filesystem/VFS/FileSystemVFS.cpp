@@ -12,13 +12,21 @@ bool FileSystemVFS::Open(const char* path) {
 }
 
 bool FileSystemVFS::GetPath(const char* filename, char* path, size_t pathSize) {
-	// TODO: Validate the path here.
-	const char* parentPath = ParentPath.c_str();
-	if (parentPath[ParentPath.size() - 1] == '/') {
-		snprintf(path, pathSize, "%s%s", parentPath, filename);
+	std::string fullPath = Path::Concat(ParentPath, std::string(filename));
+
+	if (!StringUtils::StartsWith(fullPath, ParentPath)) {
+		return false;
 	}
-	else {
-		snprintf(path, pathSize, "%s/%s", parentPath, filename);
+
+	StringUtils::Copy(path, fullPath, pathSize);
+
+	if (strchr(path, '\\') != nullptr) {
+		// Nuh uh.
+		return false;
+	}
+
+	if (Path::HasRelativeComponents(path)) {
+		return false;
 	}
 
 	return true;
@@ -160,22 +168,31 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 }
 
 VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
-	std::filesystem::path fsPath = std::filesystem::u8path(ParentPath);
+	VFSEnumeration enumeration;
 
-	if (path != nullptr) {
+	std::string fullPath = ParentPath;
+
+	if (path != nullptr && path[0] != '\0') {
 		std::filesystem::path pathToEnumerate = std::filesystem::u8path(std::string(path));
 		pathToEnumerate = pathToEnumerate.lexically_normal();
 
-		fsPath = fsPath / pathToEnumerate;
+		fullPath = Path::Concat(fullPath, pathToEnumerate.u8string());
 	}
 
-	std::string fullPath = fsPath.u8string();
 	size_t fullPathLength = fullPath.size();
+	if (fullPathLength == 0 || Path::HasRelativeComponents(fullPath.c_str())) {
+		enumeration.Result = VFSEnumerationResult::INVALID_PATH;
+		return enumeration;
+	}
+
+	if (fullPath.back() != '/') {
+		fullPath += "/";
+		fullPathLength++;
+	}
 
 	std::vector<std::filesystem::path> results;
 	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
 
-	VFSEnumeration enumeration;
 	for (size_t i = 0; i < results.size(); i++) {
 		std::string filename = results[i].u8string();
 		const char* relPath = filename.c_str() + fullPathLength;
@@ -215,7 +232,9 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 	}
 
 	// Recursively create the path directories if needed.
-	Path::Create(resourcePath);
+	if (!Path::Create(resourcePath)) {
+		return nullptr;
+	}
 
 	Stream* stream = FileStream::New(resourcePath, FileStream::WRITE_ACCESS, true);
 	if (stream != nullptr) {

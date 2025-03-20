@@ -72,7 +72,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
 		return VFSMountStatus::COULD_NOT_MOUNT;
 	}
 
-	std::string mountPointPath = StringUtils::LexicallyNormalFormOfPath(mountPoint);
+	std::string mountPointPath = Path::Normalize(mountPoint);
 
 	LoadedVFS.push_front({ std::string(name), mountPointPath, vfs });
 

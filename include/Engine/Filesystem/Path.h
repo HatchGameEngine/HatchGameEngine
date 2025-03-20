@@ -77,28 +77,32 @@ enum PathLocation {
 
 class Path {
 private:
-	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
-	static bool MatchPaths(std::filesystem::path base, std::filesystem::path path);
+	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
-	static std::filesystem::path GetCombinedPrefPath(const char* suffix);
+	static std::string GetCombinedPrefPath(const char* suffix);
 #if LINUX
-	static std::filesystem::path GetXdgPath(const char* xdg_env, const char* fallback_path);
+	static std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
 #endif
-	static std::filesystem::path GetGamePath();
-	static std::filesystem::path GetBaseLocalPath();
-	static std::filesystem::path GetBaseConfigPath();
-	static std::filesystem::path GetCachePath();
-	static std::filesystem::path GetForLocation(PathLocation location);
-	static std::filesystem::path StripLocationFromURL(const char* filename, PathLocation& location);
+	static std::string GetGameNamePath();
+	static std::string GetBaseLocalPath();
+	static std::string GetBaseConfigPath();
+	static std::string GetCachePath();
+	static std::string GetForLocation(PathLocation location);
+	static std::string StripLocationFromURL(const char* filename, PathLocation& location);
 
 public:
 	static bool Create(const char* path);
+	static std::string Concat(std::string pathA, std::string pathB);
+	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
 	static bool IsInDir(const char* dirPath, const char* path);
 	static bool IsInCurrentDir(const char* path);
+	static bool HasRelativeComponents(const char* path);
+	static std::string Normalize(std::string path);
+	static std::string Normalize(const char* path);
 	static bool IsValidDefaultLocation(const char* filename);
-	// static std::filesystem::path FromURLSimple(const char* filename, PathLocation& location);
-	static bool FromURL(const char* filename, std::filesystem::path& result, PathLocation& location);
-	static std::filesystem::path StripURL(const char* filename);
+	// static std::string FromURLSimple(const char* filename, PathLocation& location);
+	static bool FromURL(const char* filename, std::string& result, PathLocation& location);
+	static std::string StripURL(const char* filename);
 };
 
 #endif /* ENGINE_FILESYSTEM_PATH_H */
