@@ -20,6 +20,19 @@ struct VFSOpenStream {
 	Stream* StreamPtr;
 };
 
+enum VFSEnumerationResult {
+	CANNOT_ENUMERATE = CHAR_MIN,
+	CANNOT_ENUMERATE_RELATIVELY,
+
+	NO_RESULTS = 0,
+	SUCCESS
+};
+
+struct VFSEnumeration {
+	VFSEnumerationResult Result;
+	std::vector<std::string> Entries;
+};
+
 class VFSProvider {
 private:
 	std::string MountPoint;
@@ -46,6 +59,7 @@ public:
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
+	virtual VFSEnumeration EnumerateFiles(const char* path);
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
 	virtual Stream* OpenAppendStream(const char* filename);

@@ -27,6 +27,7 @@ public:
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
+	virtual VFSEnumeration EnumerateFiles(const char* path);
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
 	virtual Stream* OpenAppendStream(const char* filename);

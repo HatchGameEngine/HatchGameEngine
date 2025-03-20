@@ -40,6 +40,14 @@ bool VFSProvider::EraseFile(const char* filename) {
 	return false;
 }
 
+// Note that this may return the transformed filenames, depending on the provider.
+VFSEnumeration VFSProvider::EnumerateFiles(const char* path) {
+	VFSEnumeration enumeration;
+	enumeration.Result = VFSEnumerationResult::NO_RESULTS;
+
+	return enumeration;
+}
+
 void VFSProvider::AddOpenStream(VFSEntry* entry, Stream* stream) {
 	VFSOpenStream openStream;
 	openStream.EntryPtr = entry;

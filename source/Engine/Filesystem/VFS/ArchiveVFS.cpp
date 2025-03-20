@@ -1,5 +1,6 @@
 #include <Engine/Filesystem/VFS/ArchiveVFS.h>
 #include <Engine/IO/MemoryStream.h>
+#include <Engine/Utilities/StringUtils.h>
 
 bool ArchiveVFS::AddEntry(VFSEntry* entry) {
 	// This adds the entry directly, without doing any filename transformation
@@ -114,6 +115,29 @@ bool ArchiveVFS::EraseFile(const char* filename) {
 	}
 
 	return false;
+}
+
+VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
+	VFSEnumeration enumeration;
+
+	if (NumEntries == 0) {
+		enumeration.Result = VFSEnumerationResult::NO_RESULTS;
+		return enumeration;
+	}
+
+	for (size_t i = 0; i < NumEntries; i++) {
+		std::string entryName = EntryNames[i];
+		if (path != nullptr && path[0] != '\0'
+		&& !StringUtils::StartsWith(entryName.c_str(), path)) {
+			continue;
+		}
+
+		enumeration.Entries.push_back(entryName);
+	}
+
+	enumeration.Result = VFSEnumerationResult::SUCCESS;
+
+	return enumeration;
 }
 
 Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry* entry) {

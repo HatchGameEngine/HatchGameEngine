@@ -218,6 +218,16 @@ bool HatchVFS::EraseFile(const char* filename) {
 	return false;
 }
 
+VFSEnumeration HatchVFS::EnumerateFiles(const char* path) {
+	if (path != nullptr && path[0] != '\0') {
+		VFSEnumeration enumeration;
+		enumeration.Result = VFSEnumerationResult::CANNOT_ENUMERATE_RELATIVELY;
+		return enumeration;
+	}
+
+	return ArchiveVFS::EnumerateFiles(path);
+}
+
 Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {
 	if (entry == nullptr) {
 		return nullptr;

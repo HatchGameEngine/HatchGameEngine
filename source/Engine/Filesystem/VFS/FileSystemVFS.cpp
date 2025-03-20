@@ -1,4 +1,5 @@
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
+#include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -156,6 +157,40 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 	}
 
 	return false;
+}
+
+VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
+	std::filesystem::path fsPath = std::filesystem::u8path(ParentPath);
+
+	if (path != nullptr) {
+		std::filesystem::path pathToEnumerate = std::filesystem::u8path(std::string(path));
+		pathToEnumerate = pathToEnumerate.lexically_normal();
+
+		fsPath = fsPath / pathToEnumerate;
+	}
+
+	std::string fullPath = fsPath.u8string();
+	size_t fullPathLength = fullPath.size();
+
+	std::vector<std::filesystem::path> results;
+	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
+
+	VFSEnumeration enumeration;
+	for (size_t i = 0; i < results.size(); i++) {
+		std::string filename = results[i].u8string();
+		const char* relPath = filename.c_str() + fullPathLength;
+
+		enumeration.Entries.push_back(std::string(relPath));
+	}
+
+	if (enumeration.Entries.size() > 0) {
+		enumeration.Result = VFSEnumerationResult::SUCCESS;
+	}
+	else {
+		enumeration.Result = VFSEnumerationResult::NO_RESULTS;
+	}
+
+	return enumeration;
 }
 
 Stream* FileSystemVFS::OpenReadStream(const char* filename) {
