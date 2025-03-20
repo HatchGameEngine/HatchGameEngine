@@ -12,7 +12,7 @@
 
 bool CompareFunction(std::filesystem::path i, std::filesystem::path j) {
 	std::string pathA = i.u8string();
-	std::string pathB = i.u8string();
+	std::string pathB = j.u8string();
 
 	return pathA.compare(pathB) < 0;
 }
