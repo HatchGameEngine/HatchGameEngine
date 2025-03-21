@@ -199,6 +199,9 @@ std::string Path::GetPrefPath() {
 	const char* gameName = Application::GetGameIdentifier();
 
 	char* prefPath = SDL_GetPrefPath(devName, gameName);
+	if (prefPath == nullptr) {
+		return "";
+	}
 
 	std::string path = std::string(prefPath);
 
