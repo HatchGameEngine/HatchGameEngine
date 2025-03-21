@@ -67,22 +67,6 @@ bool ResourceManager::Init(const char* filename) {
 		return false;
 	}
 
-#if 0
-	// TODO: Allow multiple modpacks!
-	char modpacksString[1024];
-	if (Application::Settings->GetString(
-		    "game", "modpacks", modpacksString, sizeof modpacksString)) {
-		if (File::Exists(modpacksString)) {
-			Log::Print(Log::LOG_IMPORTANT, "Loading modpack \"%s\"...", modpacksString);
-
-			if (ResourceManager::Mount("modpack", modpacksString, nullptr,
-				VFSType::HATCH, VFS_READABLE)) {
-				ResourceManager::UsingModPack = true;
-			}
-		}
-	}
-#endif
-
 	return true;
 }
 bool ResourceManager::Mount(const char* name, const char* filename, const char* mountPoint,
