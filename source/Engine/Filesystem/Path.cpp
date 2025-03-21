@@ -329,7 +329,7 @@ std::string Path::GetCachePath() {
 			return "";
 		}
 
-		return Concat(workingDir, "./cache/");
+		return Concat(workingDir, ".cache/");
 	}
 
 	std::string gamePath = GetGameNamePath();
