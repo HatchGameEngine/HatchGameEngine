@@ -112,12 +112,7 @@ JPEG* JPEG::Load(const char* filename) {
 	Uint32 Rmask, Gmask, Bmask, Amask;
 	bool doConvert;
 
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto JPEG_Load_FAIL;

@@ -61,6 +61,15 @@ CPPFILES := \
 	source/Engine/Extensions/Discord.cpp \
 	source/Engine/Filesystem/Directory.cpp \
 	source/Engine/Filesystem/File.cpp \
+	source/Engine/Filesystem/Path.cpp \
+	source/Engine/Filesystem/VFS/ArchiveVFS.cpp \
+	source/Engine/Filesystem/VFS/FileSystemVFS.cpp \
+	source/Engine/Filesystem/VFS/HatchVFS.cpp \
+	source/Engine/Filesystem/VFS/MemoryCache.cpp \
+	source/Engine/Filesystem/VFS/MemoryVFS.cpp \
+	source/Engine/Filesystem/VFS/VFSEntry.cpp \
+	source/Engine/Filesystem/VFS/VFSProvider.cpp \
+	source/Engine/Filesystem/VFS/VirtualFileSystem.cpp \
 	source/Engine/FontFace.cpp \
 	source/Engine/Graphics.cpp \
 	source/Engine/Hashing/CRC32.cpp \
@@ -79,7 +88,10 @@ CPPFILES := \
 	source/Engine/IO/ResourceStream.cpp \
 	source/Engine/IO/SDLStream.cpp \
 	source/Engine/IO/Serializer.cpp \
+	source/Engine/IO/StandardIOStream.cpp \
 	source/Engine/IO/Stream.cpp \
+	source/Engine/IO/TextStream.cpp \
+	source/Engine/IO/VirtualFileStream.cpp \
 	source/Engine/Input/Controller.cpp \
 	source/Engine/Input/InputAction.cpp \
 	source/Engine/Input/InputPlayer.cpp \
@@ -266,6 +278,15 @@ PUBHFILES := \
 	include/Engine/Extensions/Discord.h \
 	include/Engine/Filesystem/Directory.h \
 	include/Engine/Filesystem/File.h \
+	include/Engine/Filesystem/Path.h \
+	include/Engine/Filesystem/VFS/ArchiveVFS.h \
+	include/Engine/Filesystem/VFS/FileSystemVFS.h \
+	include/Engine/Filesystem/VFS/HatchVFS.h \
+	include/Engine/Filesystem/VFS/MemoryCache.h \
+	include/Engine/Filesystem/VFS/MemoryVFS.h \
+	include/Engine/Filesystem/VFS/VFSEntry.h \
+	include/Engine/Filesystem/VFS/VFSProvider.h \
+	include/Engine/Filesystem/VFS/VirtualFileSystem.h \
 	include/Engine/FontFace.h \
 	include/Engine/Graphics.h \
 	include/Engine/Hashing/CRC32.h \
@@ -285,6 +306,8 @@ PUBHFILES := \
 	include/Engine/IO/SDLStream.h \
 	include/Engine/IO/Serializer.h \
 	include/Engine/IO/Stream.h \
+	include/Engine/IO/TextStream.h \
+	include/Engine/IO/VirtualFileStream.h \
 	include/Engine/Input/Controller.h \
 	include/Engine/Input/InputAction.h \
 	include/Engine/Input/InputPlayer.h \

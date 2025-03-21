@@ -66,6 +66,11 @@ ObjString* CopyString(ObjString* string) {
 
 	return AllocateString(heapChars, string->Length, string->Hash);
 }
+ObjString* CopyString(std::filesystem::path path) {
+	std::string asStr = path.u8string();
+	const char* cStr = asStr.c_str();
+	return CopyString(cStr);
+}
 ObjString* AllocString(size_t length) {
 	char* heapChars = ALLOCATE(char, length + 1);
 	heapChars[length] = '\0';

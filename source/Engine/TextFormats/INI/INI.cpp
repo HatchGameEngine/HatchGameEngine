@@ -1,6 +1,6 @@
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/IO/SDLStream.h>
+#include <Engine/IO/FileStream.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -15,7 +15,7 @@ INI* INI::New(const char* filename) {
 INI* INI::Load(const char* filename) {
 	INI* ini = INI::New(filename);
 
-	SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
+	FileStream* stream = FileStream::New(filename, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		delete ini;
 		return nullptr;
@@ -33,7 +33,7 @@ INI* INI::Load(const char* filename) {
 	return ini;
 }
 bool INI::Reload() {
-	SDLStream* stream = SDLStream::New(Filename, SDLStream::READ_ACCESS);
+	FileStream* stream = FileStream::New(Filename, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return false;
 	}
@@ -49,7 +49,7 @@ bool INI::Reload() {
 	return true;
 }
 bool INI::Save(const char* filename) {
-	SDLStream* stream = SDLStream::New(filename, SDLStream::WRITE_ACCESS);
+	FileStream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS, true);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;

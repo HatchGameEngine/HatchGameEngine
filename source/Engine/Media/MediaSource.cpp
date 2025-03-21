@@ -57,7 +57,7 @@ void _AVLogCallback(void* ptr, int level, const char* fmt, va_list vargs) {
 		return;
 	}
 
-	char str[4096];
+	char str[MAX_PATH_LENGTH];
 	vsnprintf(str, sizeof str, fmt, vargs);
 	str[strlen(str) - 1] = 0;
 

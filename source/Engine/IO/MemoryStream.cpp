@@ -21,13 +21,14 @@ MemoryStream* MemoryStream::New(Stream* other) {
 	return stream;
 }
 MemoryStream* MemoryStream::New(void* data, size_t size) {
-	MemoryStream* stream = new (std::nothrow) MemoryStream;
-	if (!stream) {
-		return NULL;
+	MemoryStream* stream = nullptr;
+	if (!data) {
+		return nullptr;
 	}
 
-	if (!data) {
-		goto FREE;
+	stream = new (std::nothrow) MemoryStream;
+	if (!stream) {
+		return nullptr;
 	}
 
 	stream->pointer_start = (Uint8*)data;
@@ -35,10 +36,21 @@ MemoryStream* MemoryStream::New(void* data, size_t size) {
 	stream->size = size;
 
 	return stream;
+}
 
-FREE:
-	delete stream;
-	return NULL;
+bool MemoryStream::IsReadable() {
+	return true;
+}
+bool MemoryStream::IsWritable() {
+	return Writable;
+}
+bool MemoryStream::MakeReadable(bool readable) {
+	return true;
+}
+bool MemoryStream::MakeWritable(bool writable) {
+	Writable = writable;
+
+	return true;
 }
 
 void MemoryStream::Close() {
@@ -87,7 +99,7 @@ Uint32 MemoryStream::ReadCompressed(void* out) {
 }
 Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 	Uint32 compressed_size = ReadUInt32() - 4;
-	ReadUInt32BE(); // Uint32 uncompressed_size = ReadUInt32BE();
+	ReadUInt32BE();
 
 	ZLibStream::Decompress(out, outSz, pointer, compressed_size);
 	pointer += compressed_size;
@@ -96,9 +108,11 @@ Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 }
 
 size_t MemoryStream::WriteBytes(void* data, size_t n) {
-	if (Position() + n > size) {
-		size_t pos = Position();
-		pointer_start = (unsigned char*)Memory::Realloc(pointer_start, pos + n);
+	// For speed, this doesn't check IsWritable().
+	size_t pos = Position();
+	if (pos + n > size) {
+		size = pos + n;
+		pointer_start = (unsigned char*)Memory::Realloc(pointer_start, size);
 		pointer = pointer_start + pos;
 	}
 	memcpy(pointer, data, n);

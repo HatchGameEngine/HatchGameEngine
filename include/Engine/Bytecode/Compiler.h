@@ -217,7 +217,7 @@ public:
 	static void GetStandardConstants();
 	static void PrepareCompiling();
 	void Initialize(Compiler* enclosing, int scope, int type);
-	bool Compile(const char* filename, const char* source, const char* output);
+	bool Compile(const char* filename, const char* source, Stream* output);
 	void Finish();
 	virtual ~Compiler();
 	static void FinishCompiling();

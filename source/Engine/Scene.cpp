@@ -1673,7 +1673,7 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	char* filename = StringUtils::NormalizePath(sceneFilename);
 
-	char pathParent[4096];
+	char pathParent[MAX_PATH_LENGTH];
 	StringUtils::Copy(pathParent, filename, sizeof(pathParent));
 	for (char* i = pathParent + strlen(pathParent); i >= pathParent; i--) {
 		if (*i == '/') {
@@ -2762,13 +2762,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	MediaSource* Source = NULL;
 	MediaPlayer* Player = NULL;
 
-	Stream* stream = NULL;
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		delete resource;

@@ -36,9 +36,7 @@ Image* Material::TryLoadForModel(std::string imagePath, const char* parentDirect
 	std::string filename = imagePath;
 
 	if (parentDirectory) {
-		char* concat = StringUtils::ConcatPaths(parentDirectory, filename.c_str());
-		filename = std::string(concat);
-		Memory::Free(concat);
+		filename = Path::Concat(std::string(parentDirectory), filename);
 	}
 
 	int resourceID = Scene::LoadImageResource(filename.c_str(), SCOPE_SCENE);

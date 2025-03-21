@@ -2,7 +2,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/IO/MemoryStream.h>
+#include <Engine/IO/TextStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Includes/Token.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -514,13 +514,7 @@ XMLNode* XMLParser::Parse() {
 
 	return XMLRoot;
 }
-XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
-	// NOTE: This fixes the XML overread bug (unterminated string
-	// caused bad access/read)
-	stream->SeekEnd(0);
-	stream->WriteByte(0);
-	stream->Seek(0);
-
+XMLNode* XMLParser::ParseFromStream(TextStream* stream) {
 	scanner.Line = 1;
 	scanner.Start = (char*)stream->pointer;
 	scanner.Current = (char*)stream->pointer;
@@ -535,7 +529,7 @@ XMLNode* XMLParser::ParseFromStream(MemoryStream* stream) {
 	return xml;
 }
 XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
-	MemoryStream* stream = MemoryStream::New(streamSrc);
+	TextStream* stream = TextStream::New(streamSrc);
 	if (!stream) {
 		return NULL;
 	}
@@ -547,9 +541,14 @@ XMLNode* XMLParser::ParseFromResource(const char* filename) {
 		return NULL;
 	}
 
-	XMLNode* node = XMLParser::ParseFromStream(res);
+	TextStream* textStream = TextStream::New(res);
 	res->Close();
-	return node;
+
+	if (!textStream) {
+		return NULL;
+	}
+
+	return XMLParser::ParseFromStream(textStream);
 }
 
 char* XMLParser::TokenToString(Token tok) {

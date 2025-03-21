@@ -6,15 +6,20 @@
 
 class ZLibStream : public Stream {
 private:
-	void Decompress(void* in, size_t inLen);
+	bool Decompress(void* in, size_t inLen);
 
 public:
 	Stream* other_stream = NULL;
-	uint32_t mode = 0;
-	void* memory = NULL;
+	Uint8 mode = 0;
+	Uint8* memory = NULL;
+	Uint8* memory_start = NULL;
 	size_t memory_size = 0;
 
-	static ZLibStream* New(Stream* other_stream, uint32_t mode);
+	static ZLibStream* New(Stream* other_stream, Uint8 mode);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);
@@ -23,7 +28,8 @@ public:
 	size_t Length();
 	size_t ReadBytes(void* data, size_t n);
 	size_t WriteBytes(void* data, size_t n);
-	static void Decompress(void* dst, size_t dstLen, void* src, size_t srcLen);
+	static bool Decompress(void* dst, size_t dstLen, void* src, size_t srcLen);
+	static bool Compress(void* src, size_t srcLen, void** dst, size_t* dstLen);
 };
 
 #endif /* ENGINE_IO_COMPRESSION_ZLIBSTREAM_H */

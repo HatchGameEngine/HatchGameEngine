@@ -6,14 +6,16 @@
 
 class NetworkStream : public Stream {
 public:
-	FILE* f;
-	size_t size;
 	enum {
 		SERVER_SOCKET = 0,
 		CLIENT_SOCKET = 1,
 	};
 
 	static NetworkStream* New(const char* filename, Uint32 access);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

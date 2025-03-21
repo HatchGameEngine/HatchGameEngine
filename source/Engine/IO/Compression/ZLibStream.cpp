@@ -1,5 +1,6 @@
 #include <Engine/IO/Compression/CompressionEnums.h>
 #include <Engine/IO/Compression/ZLibStream.h>
+#include <Engine/IO/MemoryStream.h>
 
 #undef min
 #undef max
@@ -7,7 +8,9 @@
 #define MINIZ_HEADER_FILE_ONLY
 #include <Libraries/miniz.h>
 
-ZLibStream* ZLibStream::New(Stream* other_stream, uint32_t mode) {
+// TODO: Implement
+
+ZLibStream* ZLibStream::New(Stream* other_stream, Uint8 mode) {
 	ZLibStream* stream = new ZLibStream;
 	if (!stream) {
 		return NULL;
@@ -24,7 +27,7 @@ ZLibStream* ZLibStream::New(Stream* other_stream, uint32_t mode) {
 		size_t inSize = other_stream->Length() - 4;
 		void* inMem = Memory::Malloc(inSize);
 		stream->memory_size = other_stream->ReadUInt32BE();
-		stream->memory = Memory::Malloc(stream->memory_size);
+		stream->memory = (Uint8*)Memory::Malloc(stream->memory_size);
 
 		other_stream->ReadBytes(inMem, inSize);
 		stream->Decompress(inMem, inSize);
@@ -39,46 +42,64 @@ FREE:
 	return NULL;
 }
 
+bool ZLibStream::IsReadable() {
+	return mode == CompressionMode::DECOMPRESS;
+}
+bool ZLibStream::IsWritable() {
+	return mode == CompressionMode::COMPRESS;
+}
+bool ZLibStream::MakeReadable(bool readable) {
+	return readable == IsReadable();
+}
+bool ZLibStream::MakeWritable(bool writable) {
+	return writable == IsWritable();
+}
+
 void ZLibStream::Close() {
-	if (memory) {
-		Memory::Free(memory);
+	if (memory_start) {
+		Memory::Free(memory_start);
 		memory_size = 0;
-		memory = NULL;
+		memory_start = memory = nullptr;
 	}
 
 	Stream::Close();
 }
 void ZLibStream::Seek(Sint64 offset) {
-	// pointer = pointer_start + offset;
+
 }
 void ZLibStream::SeekEnd(Sint64 offset) {
-	// pointer = pointer_start + size - offset;
+
 }
 void ZLibStream::Skip(Sint64 offset) {
-	// pointer = pointer + offset;
+
 }
 size_t ZLibStream::Position() {
-	// return pointer - pointer_start;
 	return 0;
 }
 size_t ZLibStream::Length() {
-	// return pointer - pointer_start;
 	return 0;
 }
 
 size_t ZLibStream::ReadBytes(void* data, size_t n) {
-	memcpy(data, memory, n);
-	// pointer += n;
-	return n;
+	if (IsReadable()) {
+		memcpy(data, memory, n);
+		return n;
+	}
+
+	return 0;
 }
 
 size_t ZLibStream::WriteBytes(void* data, size_t n) {
-	// memcpy(pointer, data, n);
-	// pointer += n;
-	return n;
+	if (IsReadable()) {
+		memcpy(memory, data, n);
+		memory += n;
+		return n;
+	}
+
+	return 0;
 }
 
-void ZLibStream::Decompress(void* dst, size_t dstLen, void* src, size_t srcLen) {
+bool ZLibStream::Decompress(void* dst, size_t dstLen, void* src, size_t srcLen) {
 	z_stream infstream;
 	infstream.zalloc = Z_NULL;
 	infstream.zfree = Z_NULL;
@@ -92,9 +113,12 @@ void ZLibStream::Decompress(void* dst, size_t dstLen, void* src, size_t srcLen) 
 	inflateInit(&infstream);
 	inflate(&infstream, Z_NO_FLUSH);
 	inflateEnd(&infstream);
+
+	// TODO: Check for error
+	return true;
 }
 
-void ZLibStream::Decompress(void* in, size_t inLen) {
+bool ZLibStream::Decompress(void* in, size_t inLen) {
 	z_stream infstream;
 	infstream.zalloc = Z_NULL;
 	infstream.zfree = Z_NULL;
@@ -108,4 +132,51 @@ void ZLibStream::Decompress(void* in, size_t inLen) {
 	inflateInit(&infstream);
 	inflate(&infstream, Z_NO_FLUSH);
 	inflateEnd(&infstream);
+
+	// TODO: Check for error
+	return true;
+}
+
+#define CHUNK_SIZE 16384
+
+bool ZLibStream::Compress(void* src, size_t srcLen, void** dst, size_t* dstLen) {
+	MemoryStream* outStream = MemoryStream::New(CHUNK_SIZE);
+	if (outStream == nullptr) {
+		return false;
+	}
+
+	Uint8 chunk[CHUNK_SIZE];
+
+	z_stream defstream;
+	defstream.zalloc = Z_NULL;
+	defstream.zfree = Z_NULL;
+	defstream.opaque = Z_NULL;
+
+	deflateInit(&defstream, Z_DEFAULT_COMPRESSION);
+
+	defstream.next_in = (Bytef*)src;
+	defstream.avail_in = (int)srcLen;
+
+	do {
+		defstream.avail_out = CHUNK_SIZE;
+		defstream.next_out = (Bytef *)chunk;
+
+		int ret = deflate(&defstream, Z_FINISH);
+		if (ret == Z_STREAM_ERROR) {
+			outStream->Close();
+			deflateEnd(&defstream);
+			return false;
+		}
+
+		outStream->WriteBytes(chunk, CHUNK_SIZE - defstream.avail_out);
+	} while (defstream.avail_out == 0);
+
+	*dst = outStream->pointer_start;
+	*dstLen = outStream->Length();
+	outStream->owns_memory = false;
+	outStream->Close();
+
+	deflateEnd(&defstream);
+
+	return true;
 }
