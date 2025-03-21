@@ -57,6 +57,19 @@ enum PathLocation {
 	// The equivalent URL is "config://"
 	PREFERENCES,
 
+	// The logfile location.
+	// This is local storage (non-roaming) and the location varies on the system.
+	//
+	// On Windows, this is the same as PREFERENCES.
+	//
+	// On Unix, this follows the XDG Base Directory specification.
+	// Specifically, one of the following is used:
+	// * $XDG_STATE_HOME/GameDeveloper/GameName/
+	// * $XDG_STATE_HOME/GameName/
+	//
+	// In portable mode, this is the current directory.
+	LOGFILE,
+
 	// The cache location.
 	// This is local storage (non-roaming) and the location varies on the system.
 	//
@@ -86,9 +99,11 @@ private:
 	static std::string GetGameNamePath();
 	static std::string GetBaseLocalPath();
 	static std::string GetBaseConfigPath();
+	static std::string GetStatePath();
 	static std::string GetCachePath();
 	static std::string GetForLocation(PathLocation location);
 	static std::string StripLocationFromURL(const char* filename, PathLocation& location);
+	static bool ValidateForLocation(const char* path);
 
 public:
 	static bool Create(const char* path);
@@ -100,7 +115,7 @@ public:
 	static std::string Normalize(std::string path);
 	static std::string Normalize(const char* path);
 	static bool IsValidDefaultLocation(const char* filename);
-	// static std::string FromURLSimple(const char* filename, PathLocation& location);
+	static bool FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
 	static bool FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
 	static std::string StripURL(const char* filename);
 };

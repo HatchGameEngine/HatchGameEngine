@@ -131,15 +131,20 @@ void Application::Init(int argc, char* args[]) {
 
 	Application::MakeEngineVersion();
 
-	Log::Init();
-
-#ifdef GIT_COMMIT_HASH
-	Log::Print(Log::LOG_INFO,
-		"Hatch Game Engine %s (commit " GIT_COMMIT_HASH ")",
-		Application::EngineVersion);
-#else
-	Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+#ifdef MACOSX
+	// Set environment
+	char appSupportPath[MAX_PATH_LENGTH];
+	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
+	if (isBundle) {
+		strcat(appSupportPath, "/" TARGET_NAME);
+		if (!Directory::Exists(appSupportPath)) {
+			Directory::Create(appSupportPath);
+		}
+		chdir(appSupportPath);
+	}
 #endif
+
+	Log::Init();
 
 	MemoryPools::Init();
 
@@ -165,9 +170,6 @@ void Application::Init(int argc, char* args[]) {
 		Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
 	}
 
-	Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
-	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
-
 	SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
 	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
@@ -191,6 +193,14 @@ void Application::Init(int argc, char* args[]) {
 
 	Application::LoadGameConfig();
 	Application::ReloadSettings();
+
+	// Open the log file immediately after
+	Log::OpenFile(nullptr);
+
+	Application::LogEngineVersion();
+	Application::LogSystemInfo();
+
+	// Keep loading game stuff.
 	Application::LoadGameInfo();
 	Application::LoadSceneInfo();
 	Application::InitPlayerControls();
@@ -199,11 +209,32 @@ void Application::Init(int argc, char* args[]) {
 	// Needs to be done after the settings are read and before Graphics::Init()
 	Graphics::ChooseBackend();
 
-	// TODO: Remove?
-	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
-
+	// Note: The window is created hidden.
 	Application::CreateWindow();
 
+	// Continue initializing subsystems
+	Math::Init();
+	Graphics::Init();
+
+	bool useMemFileCache = false; // TODO: Implement!
+	if (useMemFileCache) {
+		MemoryCache::Init();
+	}
+
+	AudioManager::Init();
+
+	Running = true;
+}
+void Application::LogEngineVersion() {
+#ifdef GIT_COMMIT_HASH
+	Log::Print(Log::LOG_INFO,
+		"Hatch Game Engine %s (commit " GIT_COMMIT_HASH ")",
+		Application::EngineVersion);
+#else
+	Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+#endif
+}
+void Application::LogSystemInfo() {
 	const char* platform;
 	switch (Application::Platform) {
 	case Platforms::Windows:
@@ -235,19 +266,8 @@ void Application::Init(int argc, char* args[]) {
 		break;
 	}
 	Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
-
-	// Continue initializing subsystems
-	Math::Init();
-	Graphics::Init();
-
-	bool useMemFileCache = false; // TODO: Implement!
-	if (useMemFileCache) {
-		MemoryCache::Init();
-	}
-
-	AudioManager::Init();
-
-	Running = true;
+	Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
+	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
 }
 void Application::CreateWindow() {
 	bool allowRetina = false;
@@ -738,6 +758,7 @@ void Application::LoadKeyBinds() {
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
+	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
 	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);

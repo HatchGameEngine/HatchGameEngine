@@ -15,6 +15,8 @@
 class Application {
 private:
 	static void MakeEngineVersion();
+	static void LogEngineVersion();
+	static void LogSystemInfo();
 	static void Restart();
 	static void CreateWindow();
 	static void LoadVideoSettings();

@@ -202,7 +202,7 @@ std::string Path::GetXdgPath(const char* xdg_env, const char* fallback_path) {
 	if (!env_path) {
 		env_path = SDL_getenv("HOME");
 		if (env_path == nullptr) {
-			return std::filesystem::u8path(std::string(""));
+			return "";
 		}
 
 		return Concat(env_path, fallback_path);
@@ -242,7 +242,7 @@ std::string Path::GetBaseLocalPath() {
 #endif
 
 	if (path == "") {
-		return path;
+		return "";
 	}
 
 	return Concat(path, gamePath);
@@ -264,10 +264,28 @@ std::string Path::GetBaseConfigPath() {
 #endif
 
 	if (path == "") {
-		return path;
+		return "";
 	}
 
 	return Concat(path, gamePath);
+}
+
+std::string Path::GetStatePath() {
+#if LINUX
+	std::string gamePath = GetGameNamePath();
+	if (gamePath == "") {
+		return "";
+	}
+
+	std::string xdgPath = GetXdgPath("XDG_STATE_HOME", ".local/state");
+	if (xdgPath == "") {
+		return "";
+	}
+
+	return Concat(xdgPath, gamePath);
+#else
+	return GetBaseConfigPath();
+#endif
 }
 
 std::string Path::GetCachePath() {
@@ -286,7 +304,7 @@ std::string Path::GetCachePath() {
 #endif
 
 	if (path == "") {
-		return path;
+		return "";
 	}
 
 	return Concat(path, gamePath);
@@ -312,6 +330,9 @@ std::string Path::GetForLocation(PathLocation location) {
 				finalPath = Concat(finalPath, std::string(suffix));
 			}
 		}
+		break;
+	case PathLocation::LOGFILE:
+		finalPath = GetStatePath();
 		break;
 	case PathLocation::CACHE:
 		finalPath = GetCachePath();
@@ -356,22 +377,6 @@ std::string Path::StripLocationFromURL(const char* filename, PathLocation& locat
 	return std::string(pathAfterURL);
 }
 
-#if 0
-std::string Path::FromURLSimple(const char* filename, PathLocation& location) {
-	std::string path = StripLocationFromURL(filename, location);
-	if (location == PathLocation::DEFAULT) {
-		return path;
-	}
-
-	std::string parentPath = GetForLocation(location);
-	if (parentPath == "") {
-		return "";
-	}
-
-	return Concat(parentPath, path);
-}
-#endif
-
 bool Path::IsValidDefaultLocation(const char* filename) {
 	if (!IsInCurrentDir(filename)) {
 		return false;
@@ -386,66 +391,81 @@ bool Path::IsValidDefaultLocation(const char* filename) {
 	return true;
 }
 
-bool Path::FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs) {
-	std::string detectedPath = StripLocationFromURL(filename, location);
-	std::string finalPath = "";
+bool Path::ValidateForLocation(const char* path) {
+	// '\' is not allowed. Use '/' instead.
+	if (strchr(path, '\\') != nullptr) {
+		return false;
+	}
 
-	// Validate the path
+	// Result path cannot be relative
+	if (Path::HasRelativeComponents(path)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Path::FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs) {
 	if (location == PathLocation::DEFAULT) {
-		if (!IsValidDefaultLocation(detectedPath.c_str())) {
+		// Validate the path
+		if (path.size() == 0) {
 			return false;
 		}
 
-		finalPath = detectedPath;
+		// Set result
+		result = path;
+
+		const char* pathStr = path.c_str();
+		if (!IsValidDefaultLocation(pathStr)) {
+			return false;
+		}
+
+		return ValidateForLocation(pathStr);
 	}
-	else {
-		// Attempt to resolve the path
-		std::string pathForLocation = GetForLocation(location);
-		if (pathForLocation == "") {
-			return false;
-		}
 
-		// Create the directories recursively if they don't exist.
-		if (makeDirs && !Create(pathForLocation.c_str())) {
-			return false;
-		}
-
-		// Normalize both paths, and check for a mismatch
-		std::filesystem::path pathForLocationFs = std::filesystem::u8path(pathForLocation);
-		std::filesystem::path detectedPathFs = std::filesystem::u8path(detectedPath);
-
-		pathForLocationFs = pathForLocationFs.lexically_normal();
-		detectedPathFs = detectedPathFs.lexically_normal();
-
-		std::filesystem::path combined = pathForLocationFs / detectedPathFs;
-		finalPath = combined.lexically_normal().u8string();
-
-		if (!AreMatching(pathForLocationFs.u8string(), finalPath)) {
-			return false;
-		}
-
-#ifdef WIN32
-		std::replace(finalPath.begin(), finalPath.end(), '\\', '/');
-#endif
+	// Attempt to resolve the path
+	std::string pathForLocation = GetForLocation(location);
+	if (pathForLocation == "") {
+		return false;
 	}
+
+	// Normalize both paths, and check for a mismatch
+	std::filesystem::path pathForLocationFs = std::filesystem::u8path(pathForLocation);
+	std::filesystem::path detectedPathFs = std::filesystem::u8path(path);
+
+	pathForLocationFs = pathForLocationFs.lexically_normal();
+	detectedPathFs = detectedPathFs.lexically_normal();
+
+	std::filesystem::path combined = pathForLocationFs / detectedPathFs;
+	std::string finalPath = combined.lexically_normal().u8string();
 
 	if (finalPath.size() == 0) {
 		return false;
 	}
 
-	// '\' is not allowed (use '/' instead)
-	if (strchr(finalPath.c_str(), '\\') != nullptr) {
-		return false;
-	}
-
-	// Result path cannot be relative
-	if (Path::HasRelativeComponents(finalPath.c_str())) {
-		return false;
-	}
-
+	// Set result
 	result = finalPath;
 
-	return true;
+	// Create the directories recursively if they don't exist.
+	if (makeDirs && !Create(pathForLocation.c_str())) {
+		return false;
+	}
+
+	if (!AreMatching(pathForLocationFs.u8string(), finalPath)) {
+		return false;
+	}
+
+#ifdef WIN32
+	std::replace(finalPath.begin(), finalPath.end(), '\\', '/');
+#endif
+
+	return ValidateForLocation(finalPath.c_str());
+}
+
+bool Path::FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs) {
+	std::string detectedPath = StripLocationFromURL(filename, location);
+
+	return FromLocation(detectedPath, location, result, makeDirs);
 }
 
 std::string Path::StripURL(const char* filename) {

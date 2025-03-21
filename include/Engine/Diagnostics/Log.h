@@ -21,10 +21,10 @@ public:
 		LOG_IMPORTANT = 3,
 	};
 	static int LogLevel;
-	static const char* LogFilename;
 	static bool WriteToFile;
 
 	static void Init();
+	static void OpenFile(const char* filename);
 	static void Close();
 	static void SetLogLevel(int sev);
 	static void Print(int sev, const char* format, ...);
