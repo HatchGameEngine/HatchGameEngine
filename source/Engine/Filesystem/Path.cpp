@@ -7,6 +7,7 @@
 #if WIN32
 #include <direct.h>
 #include <windows.h>
+#include <shlobj.h>
 #else
 #include <unistd.h>
 #endif
@@ -30,8 +31,8 @@ bool Path::Create(const char* path) {
 		return false;
 	}
 
-#ifdef WIN32
-	// Ensure path separators are '/' and not '\' on Windows
+#if WIN32
+	// Ensure path separators are '/' on Windows
 	StringUtils::ReplacePathSeparatorsInPlace(buffer);
 #endif
 
@@ -76,7 +77,7 @@ std::string Path::Concat(std::string pathA, std::string pathB) {
 
 	std::string result = fsResult.u8string();
 
-#ifdef WIN32
+#if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
 #endif
 
@@ -140,7 +141,7 @@ bool Path::HasRelativeComponents(const char* path) {
 
 	std::string tempPath = std::string(path);
 
-#ifdef WIN32
+#if WIN32
 	std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 #endif
 
@@ -169,7 +170,7 @@ std::string Path::Normalize(std::string path) {
 
 	std::string result = fsPath.lexically_normal().u8string();
 
-#ifdef WIN32
+#if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
 #endif
 
@@ -189,31 +190,19 @@ PathLocation Path::LocationFromURL(const char* filename) {
 	return PathLocation::DEFAULT;
 }
 
-std::string Path::GetCombinedPrefPath(const char* suffix) {
-	std::string path;
-
+std::string Path::GetPrefPath() {
 	if (Application::PortableMode) {
-		std::string workingDir = GetPortableModePath();
-		if (workingDir == "") {
-			return "";
-		}
-
-		path = workingDir;
-	}
-	else {
-		const char* devName = Application::GetDeveloperIdentifier();
-		const char* gameName = Application::GetGameIdentifier();
-
-		char* prefPath = SDL_GetPrefPath(devName, gameName);
-
-		path = std::string(prefPath);
-
-		SDL_free(prefPath);
+		return GetPortableModePath();
 	}
 
-	if (suffix != nullptr) {
-		path = Concat(path, std::string(suffix));
-	}
+	const char* devName = Application::GetDeveloperIdentifier();
+	const char* gameName = Application::GetGameIdentifier();
+
+	char* prefPath = SDL_GetPrefPath(devName, gameName);
+
+	std::string path = std::string(prefPath);
+
+	SDL_free(prefPath);
 
 	return path;
 }
@@ -248,30 +237,24 @@ std::string Path::GetGameNamePath() {
 	return Concat(std::string(devName), std::string(gameName));
 }
 
-std::string Path::GetBaseLocalPath() {
+std::string Path::GetBaseUserPath() {
+	return GetPrefPath();
+}
+
+std::string Path::GetFallbackLocalPath(std::string suffix) {
+	std::string path;
 	if (Application::PortableMode) {
-		return GetPortableModePath();
+		path = GetPortableModePath();
 	}
-
-	std::string gamePath = GetGameNamePath();
-	if (gamePath == "") {
-		return "";
+	else {
+		path = GetBaseUserPath();
 	}
-
-#if WIN32
-	// TODO: Implement.
-	std::string path = "";
-#elif LINUX
-	std::string path = GetXdgPath("XDG_DATA_HOME", ".local/share");
-#else
-	std::string path = "";
-#endif
 
 	if (path == "") {
 		return "";
 	}
 
-	return Concat(path, gamePath);
+	return Concat(path, suffix);
 }
 
 std::string Path::GetBaseConfigPath() {
@@ -279,33 +262,54 @@ std::string Path::GetBaseConfigPath() {
 		return GetPortableModePath();
 	}
 
+#if WIN32
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
 	}
 
-#if WIN32
-	// TODO: Implement.
-	std::string path = "";
-#elif LINUX
-	std::string path = GetXdgPath("XDG_CONFIG_HOME", ".config");
-#else
-	std::string path = "";
-#endif
+	std::string basePath;
 
-	if (path == "") {
+	wchar_t* winPath = nullptr;
+	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &winPath) == S_OK) {
+		std::filesystem::path fsPath = std::filesystem::path(winPath);
+
+		basePath = fsPath.u8string();
+		std::replace(basePath.begin(), basePath.end(), '\\', '/');
+
+		CoTaskMemFree(winPath);
+	}
+	else {
 		return "";
 	}
 
-	return Concat(path, gamePath);
+	return Concat(basePath, gamePath);
+#elif LINUX
+	std::string gamePath = GetGameNamePath();
+	if (gamePath == "") {
+		return "";
+	}
+
+	std::string xdgPath = GetXdgPath("XDG_CONFIG_HOME", ".config");
+	if (xdgPath == "") {
+		return "";
+	}
+
+	return Concat(xdgPath, gamePath);
+#else
+	return GetFallbackLocalPath("config");
+#endif
 }
 
 std::string Path::GetStatePath() {
+#if WIN32
+	// Returns %LocalAppData%
+	return GetBaseConfigPath();
+#elif LINUX
 	if (Application::PortableMode) {
 		return GetPortableModePath();
 	}
 
-#if LINUX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -318,7 +322,7 @@ std::string Path::GetStatePath() {
 
 	return Concat(xdgPath, gamePath);
 #else
-	return GetBaseConfigPath();
+	return GetFallbackLocalPath("local");
 #endif
 }
 
@@ -329,28 +333,27 @@ std::string Path::GetCachePath() {
 			return "";
 		}
 
-		return Concat(workingDir, ".cache");
+		return Concat(workingDir, "cache");
 	}
 
+#if WIN32
+	// Returns %LocalAppData%
+	return GetBaseConfigPath();
+#elif LINUX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
 	}
 
-#if WIN32
-	// TODO: Implement.
-	std::string path = "";
-#elif LINUX
-	std::string path = GetXdgPath("XDG_CACHE_HOME", ".cache");
-#else
-	std::string path = "";
-#endif
-
-	if (path == "") {
+	std::string xdgPath = GetXdgPath("XDG_CACHE_HOME", ".cache");
+	if (xdgPath == "") {
 		return "";
 	}
 
-	return Concat(path, gamePath);
+	return Concat(xdgPath, gamePath);
+#else
+	return GetFallbackLocalPath("cache");
+#endif
 }
 
 std::string Path::GetForLocation(PathLocation location) {
@@ -359,12 +362,21 @@ std::string Path::GetForLocation(PathLocation location) {
 	const char* suffix = nullptr;
 
 	switch (location) {
+	// user://
 	case PathLocation::USER:
-		finalPath = GetCombinedPrefPath(nullptr);
+		finalPath = GetBaseUserPath();
 		break;
+	// save://
 	case PathLocation::SAVEGAME:
-		finalPath = GetCombinedPrefPath(Application::GetSavesDir());
+		finalPath = GetBaseUserPath();
+		if (finalPath != "") {
+			suffix = Application::GetSavesDir();
+			if (suffix != nullptr) {
+				finalPath = Concat(finalPath, std::string(suffix));
+			}
+		}
 		break;
+	// config://
 	case PathLocation::PREFERENCES:
 		finalPath = GetBaseConfigPath();
 		if (finalPath != "") {
@@ -374,9 +386,11 @@ std::string Path::GetForLocation(PathLocation location) {
 			}
 		}
 		break;
+	// Log file location (no URL)
 	case PathLocation::LOGFILE:
 		finalPath = GetStatePath();
 		break;
+	// cache://
 	case PathLocation::CACHE:
 		finalPath = GetCachePath();
 		break;
@@ -503,7 +517,7 @@ bool Path::FromLocation(std::string path, PathLocation location, std::string& re
 		return false;
 	}
 
-#ifdef WIN32
+#if WIN32
 	std::replace(finalPath.begin(), finalPath.end(), '\\', '/');
 #endif
 

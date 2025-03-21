@@ -4,9 +4,24 @@
 #include <Engine/Includes/Standard.h>
 
 #if WIN32
-#define MAX_PATH_LENGTH 1024
+// https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+#define MAX_PATH_LENGTH 260
+#elif LINUX
+#include <linux/limits.h>
+
+#define MAX_PATH_LENGTH PATH_MAX
+#define MAX_FILENAME_LENGTH NAME_MAX
+#elif MACOSX
+#include <sys/syslimits.h>
+
+#define MAX_PATH_LENGTH PATH_MAX
+#define MAX_FILENAME_LENGTH NAME_MAX
 #else
-#define MAX_PATH_LENGTH 4096
+#define MAX_PATH_LENGTH 256
+#endif
+
+#ifndef MAX_FILENAME_LENGTH
+#define MAX_FILENAME_LENGTH 256
 #endif
 
 enum PathLocation {
@@ -82,7 +97,7 @@ enum PathLocation {
 	// * $XDG_CACHE_HOME/GameDeveloper/GameName/
 	// * $XDG_CACHE_HOME/GameName/
 	//
-	// In portable mode, this is under ".cache/" in the current directory.
+	// In portable mode, this is under "cache/" in the current directory.
 	//
 	// The equivalent URL is "cache://"
 	CACHE
@@ -93,12 +108,13 @@ private:
 	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
 	static std::string GetPortableModePath();
-	static std::string GetCombinedPrefPath(const char* suffix);
+	static std::string GetPrefPath();
+	static std::string GetFallbackLocalPath(std::string suffix);
 #if LINUX
 	static std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
 #endif
 	static std::string GetGameNamePath();
-	static std::string GetBaseLocalPath();
+	static std::string GetBaseUserPath();
 	static std::string GetBaseConfigPath();
 	static std::string GetStatePath();
 	static std::string GetCachePath();
