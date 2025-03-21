@@ -1772,7 +1772,7 @@ void Application::ReadSettings() {
 void Application::ReloadSettings() {
 	// First time load
 	if (Application::Settings == nullptr) {
-		Application::InitSettings("config.ini");
+		Application::InitSettings("config://config.ini");
 	}
 
 	if (Application::Settings->Reload()) {
