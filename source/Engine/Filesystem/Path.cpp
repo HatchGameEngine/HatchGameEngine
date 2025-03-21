@@ -495,7 +495,7 @@ bool Path::FromLocation(std::string path, PathLocation location, std::string& re
 	result = finalPath;
 
 	// Create the directories recursively if they don't exist.
-	if (makeDirs && !Create(pathForLocation.c_str())) {
+	if (makeDirs && !Create(finalPath.c_str())) {
 		return false;
 	}
 
