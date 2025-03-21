@@ -99,6 +99,8 @@ bool Application::AllowCmdLineSceneLoad = false;
 char StartingScene[256];
 char LogFilename[MAX_PATH_LENGTH];
 
+bool UseMemoryFileCache = false;
+
 bool DevMenu = false;
 bool ShowFPS = false;
 bool TakeSnapshot = false;
@@ -218,8 +220,7 @@ void Application::Init(int argc, char* args[]) {
 	Math::Init();
 	Graphics::Init();
 
-	bool useMemFileCache = false; // TODO: Implement!
-	if (useMemFileCache) {
+	if (UseMemoryFileCache) {
 		MemoryCache::Init();
 	}
 
@@ -765,6 +766,7 @@ void Application::LoadDevSettings() {
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
+	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
 
 	int logLevel = 0;
 #ifdef DEBUG
