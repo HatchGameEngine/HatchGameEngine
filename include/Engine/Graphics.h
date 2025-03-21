@@ -23,6 +23,7 @@ class IModel;
 
 class Graphics {
 public:
+	static bool Initialized;
 	static HashMap<Texture*>* TextureMap;
 	static map<string, TextureReference*> SpriteSheetTextureMap;
 	static bool VsyncEnabled;

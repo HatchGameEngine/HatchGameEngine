@@ -16,6 +16,8 @@ class Application {
 private:
 	static void MakeEngineVersion();
 	static void Restart();
+	static void CreateWindow();
+	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();

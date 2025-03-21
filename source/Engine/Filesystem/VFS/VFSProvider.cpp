@@ -14,9 +14,17 @@ bool VFSProvider::IsOpen() {
 bool VFSProvider::IsReadable() {
 	return (Flags & VFS_READABLE) != 0;
 }
-
 bool VFSProvider::IsWritable() {
 	return (Flags & VFS_WRITABLE) != 0;
+}
+
+void VFSProvider::SetWritable(bool writable) {
+	if (writable) {
+		Flags |= VFS_WRITABLE;
+	}
+	else {
+		Flags &= ~VFS_WRITABLE;
+	}
 }
 
 std::string VFSProvider::TransformFilename(const char* filename) {

@@ -55,6 +55,8 @@ public:
 	bool IsReadable();
 	bool IsWritable();
 
+	void SetWritable(bool writable);
+
 	virtual std::string TransformFilename(const char* filename);
 	virtual bool HasFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);

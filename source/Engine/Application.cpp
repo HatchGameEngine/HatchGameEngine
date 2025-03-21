@@ -168,12 +168,86 @@ void Application::Init(int argc, char* args[]) {
 
 	SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
-	Application::InitSettings("config.ini");
+	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
 
+	for (int i = 1; i < argc; i++) {
+		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
+	}
+
+	// Initialize a few needed subsystems
+	InputManager::Init();
+	Clock::Init();
+
+	// Load game stuff.
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
+		ResourceManager::Init(args[1]);
+	}
+	else
+#endif
+		ResourceManager::Init(NULL);
+
+	Application::LoadGameConfig();
+	Application::ReloadSettings();
+	Application::LoadGameInfo();
+	Application::LoadSceneInfo();
+	Application::InitPlayerControls();
+	Application::DisposeGameConfig();
+
+	// Needs to be done after the settings are read and before Graphics::Init()
 	Graphics::ChooseBackend();
 
+	// TODO: Remove?
 	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
 
+	Application::CreateWindow();
+
+	const char* platform;
+	switch (Application::Platform) {
+	case Platforms::Windows:
+		platform = "Windows";
+		break;
+	case Platforms::MacOS:
+		platform = "MacOS";
+		break;
+	case Platforms::Linux:
+		platform = "Linux";
+		break;
+	case Platforms::Switch:
+		platform = "Nintendo Switch";
+		break;
+	case Platforms::PlayStation:
+		platform = "PlayStation";
+		break;
+	case Platforms::Xbox:
+		platform = "Xbox";
+		break;
+	case Platforms::Android:
+		platform = "Android";
+		break;
+	case Platforms::iOS:
+		platform = "iOS";
+		break;
+	default:
+		platform = "Unknown";
+		break;
+	}
+	Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
+
+	// Continue initializing subsystems
+	Math::Init();
+	Graphics::Init();
+
+	bool useMemFileCache = false; // TODO: Implement!
+	if (useMemFileCache) {
+		MemoryCache::Init();
+	}
+
+	AudioManager::Init();
+
+	Running = true;
+}
+void Application::CreateWindow() {
 	bool allowRetina = false;
 	Application::Settings->GetBool("display", "retina", &allowRetina);
 
@@ -215,72 +289,7 @@ void Application::Init(int argc, char* args[]) {
 		}
 	}
 
-	for (int i = 1; i < argc; i++) {
-		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
-	}
-
-	// Initialize subsystems
-	Math::Init();
-	Graphics::Init();
-
-#ifdef KEEP_FILE_CACHE_IN_MEMORY
-	MemoryCache::Init();
-#endif
-
-#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
-	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
-		ResourceManager::Init(args[1]);
-	}
-	else
-#endif
-		ResourceManager::Init(NULL);
-	AudioManager::Init();
-	InputManager::Init();
-	Clock::Init();
-
-	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
-	Application::LoadGameConfig();
-	Application::LoadGameInfo();
-	Application::LoadSceneInfo();
-	Application::ReadSettings();
-	Application::InitPlayerControls();
-	Application::DisposeGameConfig();
-
-	const char* platform;
-	switch (Application::Platform) {
-	case Platforms::Windows:
-		platform = "Windows";
-		break;
-	case Platforms::MacOS:
-		platform = "MacOS";
-		break;
-	case Platforms::Linux:
-		platform = "Linux";
-		break;
-	case Platforms::Switch:
-		platform = "Nintendo Switch";
-		break;
-	case Platforms::PlayStation:
-		platform = "PlayStation";
-		break;
-	case Platforms::Xbox:
-		platform = "Xbox";
-		break;
-	case Platforms::Android:
-		platform = "Android";
-		break;
-	case Platforms::iOS:
-		platform = "iOS";
-		break;
-	default:
-		platform = "Unknown";
-		break;
-	}
-	Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
-
 	Application::SetWindowTitle(Application::GameTitleShort);
-
-	Running = true;
 }
 
 void Application::SetTargetFrameRate(int targetFPS) {
@@ -612,6 +621,21 @@ void Application::Restart() {
 	FirstFrame = true;
 }
 
+void Application::LoadVideoSettings() {
+	bool vsyncEnabled;
+	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+
+	if (Graphics::Initialized) {
+		Graphics::SetVSync(vsyncEnabled);
+	}
+	else {
+		Graphics::VsyncEnabled = vsyncEnabled;
+
+		Application::Settings->GetInteger("display", "multisample", &Graphics::MultisamplingEnabled);
+		Application::Settings->GetInteger("display", "defaultMonitor", &Application::DefaultMonitor);
+	}
+}
+
 #define CLAMP_VOLUME(vol) \
 	if (vol < 0) \
 		vol = 0; \
@@ -716,6 +740,33 @@ void Application::LoadDevSettings() {
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
+
+	int logLevel = 0;
+#ifdef DEBUG
+	logLevel = -1;
+#endif
+#ifdef ANDROID
+	logLevel = -1;
+#endif
+	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
+	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
+	Log::SetLogLevel(logLevel);
+
+	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
+	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
+	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
+	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
+	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
+	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
+
+	// The main resource file is not writable by default.
+	// This can be enabled by using allowWritableResource.
+	bool allowWritableResource = false;
+	if (Application::Settings->GetBool("dev", "allowWritableResource", &allowWritableResource)) {
+		if (allowWritableResource) {
+			ResourceManager::SetMainResourceWritable(true);
+		}
+	}
 #endif
 }
 
@@ -1712,13 +1763,19 @@ bool Application::LoadSettings(const char* filename) {
 }
 
 void Application::ReadSettings() {
+	Application::LoadVideoSettings();
 	Application::LoadAudioSettings();
 	Application::LoadDevSettings();
 	Application::LoadKeyBinds();
 }
 
 void Application::ReloadSettings() {
-	if (Application::Settings && Application::Settings->Reload()) {
+	// First time load
+	if (Application::Settings == nullptr) {
+		Application::InitSettings("config.ini");
+	}
+
+	if (Application::Settings->Reload()) {
 		Application::ReadSettings();
 	}
 }
@@ -1730,43 +1787,13 @@ void Application::ReloadSettings(const char* filename) {
 }
 
 void Application::InitSettings(const char* filename) {
-	Application::LoadSettings(filename);
+	// Create settings with default values.
+	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 
-	// NOTE: If no settings could be loaded, create settings with
-	// default values.
-	if (!Application::Settings) {
-		StringUtils::Copy(
-			Application::SettingsFile, filename, sizeof(Application::SettingsFile));
+	Application::Settings = INI::New(Application::SettingsFile);
 
-		Application::Settings = INI::New(Application::SettingsFile);
-
-		Application::Settings->SetBool("display", "fullscreen", false);
-		Application::Settings->SetBool("display", "vsync", false);
-	}
-
-	int logLevel = 0;
-#ifdef DEBUG
-	logLevel = -1;
-#endif
-#ifdef ANDROID
-	logLevel = -1;
-#endif
-	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
-	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
-	Log::SetLogLevel(logLevel);
-
-	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
-	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
-	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
-	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
-	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
-	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
-
-	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
-	Application::Settings->GetInteger(
-		"display", "multisample", &Graphics::MultisamplingEnabled);
-	Application::Settings->GetInteger(
-		"display", "defaultMonitor", &Application::DefaultMonitor);
+	Application::Settings->SetBool("display", "fullscreen", false);
+	Application::Settings->SetBool("display", "vsync", false);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {

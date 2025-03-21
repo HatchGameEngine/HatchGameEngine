@@ -43,19 +43,8 @@ bool ResourceManager::Init(const char* filename) {
 		filename = FindDataFile();
 	}
 
-	Uint16 resourceFlags = VFS_READABLE;
-
-	// The main resource file is not writable by default.
-	// This can be enabled by using allowWritableResource.
-	bool allowWritableResource = false;
-	if (Application::Settings->GetBool("dev", "allowWritableResource", &allowWritableResource)) {
-		if (allowWritableResource == true) {
-			resourceFlags |= VFS_WRITABLE;
-		}
-	}
-
 	if (filename != NULL && File::Exists(filename)) {
-		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, resourceFlags);
+		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 	else {
 		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_DIR_PATH, nullptr,
@@ -78,6 +67,7 @@ bool ResourceManager::Init(const char* filename) {
 		return false;
 	}
 
+#if 0
 	// TODO: Allow multiple modpacks!
 	char modpacksString[1024];
 	if (Application::Settings->GetString(
@@ -91,6 +81,7 @@ bool ResourceManager::Init(const char* filename) {
 			}
 		}
 	}
+#endif
 
 	return true;
 }
@@ -110,6 +101,11 @@ bool ResourceManager::Mount(const char* name, const char* filename, const char* 
 
 VFSProvider* ResourceManager::GetMainResource() {
 	return mainResource;
+}
+void ResourceManager::SetMainResourceWritable(bool writable) {
+	if (mainResource != nullptr) {
+		mainResource->SetWritable(writable);
+	}
 }
 
 bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* size) {
