@@ -96,8 +96,6 @@ VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
 		return VFSMountStatus::COULD_NOT_UNMOUNT;
 	}
 
-	vfs->Close();
-
 	LoadedVFS.erase(LoadedVFS.begin() + index);
 
 	return VFSMountStatus::UNMOUNTED;
