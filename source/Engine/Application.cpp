@@ -68,6 +68,7 @@ float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
 bool Application::GameStart = false;
+bool Application::PortableMode = false;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];

@@ -91,6 +91,15 @@ bool Path::GetCurrentWorkingDirectory(char* out, size_t sz) {
 #endif
 }
 
+std::string Path::GetPortableModePath() {
+	char workingDir[MAX_PATH_LENGTH];
+	if (!GetCurrentWorkingDirectory(workingDir, sizeof workingDir)) {
+		return "";
+	}
+
+	return std::string(workingDir);
+}
+
 bool Path::AreMatching(std::string base, std::string path) {
 	auto const last = std::prev(base.end());
 
@@ -117,8 +126,9 @@ bool Path::IsInDir(const char* dirPath, const char* path) {
 
 bool Path::IsInCurrentDir(const char* path) {
 	char workingDir[MAX_PATH_LENGTH];
-
-	GetCurrentWorkingDirectory(workingDir, sizeof workingDir);
+	if (!GetCurrentWorkingDirectory(workingDir, sizeof workingDir)) {
+		return false;
+	}
 
 	return IsInDir(workingDir, path);
 }
@@ -180,18 +190,30 @@ PathLocation Path::LocationFromURL(const char* filename) {
 }
 
 std::string Path::GetCombinedPrefPath(const char* suffix) {
-	const char* devName = Application::GetDeveloperIdentifier();
-	const char* gameName = Application::GetGameIdentifier();
+	std::string path;
 
-	char* prefPath = SDL_GetPrefPath(devName, gameName);
+	if (Application::PortableMode) {
+		std::string workingDir = GetPortableModePath();
+		if (workingDir == "") {
+			return "";
+		}
 
-	std::string path = std::string(prefPath);
+		path = workingDir;
+	}
+	else {
+		const char* devName = Application::GetDeveloperIdentifier();
+		const char* gameName = Application::GetGameIdentifier();
+
+		char* prefPath = SDL_GetPrefPath(devName, gameName);
+
+		path = std::string(prefPath);
+
+		SDL_free(prefPath);
+	}
 
 	if (suffix != nullptr) {
 		path = Concat(path, std::string(suffix));
 	}
-
-	SDL_free(prefPath);
 
 	return path;
 }
@@ -227,6 +249,10 @@ std::string Path::GetGameNamePath() {
 }
 
 std::string Path::GetBaseLocalPath() {
+	if (Application::PortableMode) {
+		return GetPortableModePath();
+	}
+
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -249,6 +275,10 @@ std::string Path::GetBaseLocalPath() {
 }
 
 std::string Path::GetBaseConfigPath() {
+	if (Application::PortableMode) {
+		return GetPortableModePath();
+	}
+
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -271,6 +301,10 @@ std::string Path::GetBaseConfigPath() {
 }
 
 std::string Path::GetStatePath() {
+	if (Application::PortableMode) {
+		return GetPortableModePath();
+	}
+
 #if LINUX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
@@ -289,6 +323,15 @@ std::string Path::GetStatePath() {
 }
 
 std::string Path::GetCachePath() {
+	if (Application::PortableMode) {
+		std::string workingDir = GetPortableModePath();
+		if (workingDir == "") {
+			return "";
+		}
+
+		return Concat(workingDir, "./cache/");
+	}
+
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";

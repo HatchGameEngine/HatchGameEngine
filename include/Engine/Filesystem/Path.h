@@ -92,6 +92,7 @@ class Path {
 private:
 	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
+	static std::string GetPortableModePath();
 	static std::string GetCombinedPrefPath(const char* suffix);
 #if LINUX
 	static std::string GetXdgPath(const char* xdg_env, const char* fallback_path);

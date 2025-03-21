@@ -43,6 +43,7 @@ public:
 	static bool Running;
 	static bool FirstFrame;
 	static bool GameStart;
+	static bool PortableMode;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
 	static int WindowWidth;
