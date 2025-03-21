@@ -34,6 +34,8 @@ extern "C" {
 #include <windows.h>
 #endif
 
+#define DEFAULT_SETTINGS_FILENAME "config://config.ini"
+
 #if WIN32
 Platforms Application::Platform = Platforms::Windows;
 #elif MACOSX
@@ -1772,7 +1774,7 @@ void Application::ReadSettings() {
 void Application::ReloadSettings() {
 	// First time load
 	if (Application::Settings == nullptr) {
-		Application::InitSettings("config://config.ini");
+		Application::InitSettings(DEFAULT_SETTINGS_FILENAME);
 	}
 
 	if (Application::Settings->Reload()) {
