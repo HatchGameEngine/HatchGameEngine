@@ -445,6 +445,11 @@ bool Path::ValidateForLocation(const char* path) {
 		return false;
 	}
 
+	// Cannot have '://'
+	if (StringUtils::StrCaseStr(path, "://")) {
+		return false;
+	}
+
 	return true;
 }
 

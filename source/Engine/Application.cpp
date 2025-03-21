@@ -97,6 +97,7 @@ bool Application::DevConvertModels = false;
 bool Application::AllowCmdLineSceneLoad = false;
 
 char StartingScene[256];
+char LogFilename[MAX_PATH_LENGTH];
 
 bool DevMenu = false;
 bool ShowFPS = false;
@@ -196,7 +197,7 @@ void Application::Init(int argc, char* args[]) {
 	Application::ReloadSettings();
 
 	// Open the log file immediately after
-	Log::OpenFile(nullptr);
+	Log::OpenFile(LogFilename);
 
 	Application::LogEngineVersion();
 	Application::LogSystemInfo();
@@ -1479,6 +1480,16 @@ static char* ParseGameConfigText(XMLNode* parent, const char* option) {
 
 	return XMLParser::TokenToString(node->children[0]->name);
 }
+static bool ParseGameConfigText(XMLNode* parent, const char* option, char* buf, size_t bufSize) {
+	XMLNode* node = XMLParser::SearchNode(parent, option);
+	if (!node) {
+		return false;
+	}
+
+	XMLParser::CopyTokenToString(node->children[0]->name, buf, bufSize);
+
+	return true;
+}
 static bool ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
 	XMLNode* node = XMLParser::SearchNode(parent, option);
 	if (!node) {
@@ -1504,6 +1515,7 @@ static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 
 void Application::LoadGameConfig() {
 	StartingScene[0] = '\0';
+	LogFilename[0] = '\0';
 
 	Application::GameConfig = nullptr;
 
@@ -1531,6 +1543,9 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
+		ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
+		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 	}
 
 	// Read display defaults
