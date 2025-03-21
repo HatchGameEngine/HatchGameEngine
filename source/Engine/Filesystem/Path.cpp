@@ -18,29 +18,42 @@ std::pair<std::string, PathLocation> urlToLocationType[] = {
 	std::make_pair("cache://", PathLocation::CACHE)
 };
 
-// Creates a path recursively
+// Creates a path recursively.
+// The path MUST end with '/' if it's meant to create a path to a folder.
 bool Path::Create(const char* path) {
-	char* tempPath = StringUtils::Duplicate(path);
-	char* work = tempPath;
-	if (work == nullptr) {
+	if (path == nullptr || path[0] == '\0') {
 		return false;
 	}
 
-	if (work[0] == '/') {
-		work++;
+	char* buffer = StringUtils::Create(path);
+	if (buffer == nullptr) {
+		return false;
 	}
 
-	char* ptr = strrchr(work, '/');
+#ifdef WIN32
+	// Ensure path separators are '/' and not '\' on Windows
+	StringUtils::ReplacePathSeparatorsInPlace(buffer);
+#endif
+
+	// If path is absolute, start from the second character
+	// as if the path were relative
+	char* bufferPtr = buffer;
+	if (*bufferPtr == '/') {
+		bufferPtr++;
+	}
+
+	// Remove any potential filename from the path
+	char* ptr = strrchr(bufferPtr, '/');
 	if (ptr) {
 		ptr[1] = '\0';
 	}
 
-	ptr = strchr(work, '/');
+	ptr = strchr(bufferPtr, '/');
 	while (ptr != nullptr) {
 		*ptr = '\0';
 
-		if (!Directory::Create(tempPath)) {
-			Memory::Free(tempPath);
+		if (!Directory::Create(buffer)) {
+			Memory::Free(buffer);
 			return false;
 		}
 
@@ -48,9 +61,9 @@ bool Path::Create(const char* path) {
 		ptr = strchr(ptr + 1, '/');
 	}
 
-	bool success = Directory::Create(tempPath);
+	bool success = Directory::Create(buffer);
 
-	Memory::Free(tempPath);
+	Memory::Free(buffer);
 
 	return success;
 }
@@ -121,11 +134,6 @@ bool Path::HasRelativeComponents(const char* path) {
 	std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 #endif
 
-	// Ensure it ends in '/'
-	if (tempPath.back() != '/') {
-		tempPath += "/";
-	}
-
 	const char* component = tempPath.c_str();
 	const char* found = strchr(component, '/');
 	while (found != nullptr) {
@@ -136,6 +144,11 @@ bool Path::HasRelativeComponents(const char* path) {
 
 		component = found + 1;
 		found = strchr(component, '/');
+	}
+
+	if (component[0] == '.'
+	&& (component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
+		return true;
 	}
 
 	return false;
@@ -304,7 +317,16 @@ std::string Path::GetForLocation(PathLocation location) {
 		finalPath = GetCachePath();
 		break;
 	default:
+		break;
+	}
+
+	if (finalPath == "") {
 		return "";
+	}
+
+	// Ensure it ends in '/'
+	if (finalPath.back() != '/') {
+		finalPath += "/";
 	}
 
 	return finalPath;
@@ -364,16 +386,17 @@ bool Path::IsValidDefaultLocation(const char* filename) {
 	return true;
 }
 
-bool Path::FromURL(const char* filename, std::string& result, PathLocation& location) {
+bool Path::FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs) {
 	std::string detectedPath = StripLocationFromURL(filename, location);
+	std::string finalPath = "";
 
 	// Validate the path
 	if (location == PathLocation::DEFAULT) {
-		result = detectedPath;
-
 		if (!IsValidDefaultLocation(detectedPath.c_str())) {
 			return false;
 		}
+
+		finalPath = detectedPath;
 	}
 	else {
 		// Attempt to resolve the path
@@ -383,38 +406,44 @@ bool Path::FromURL(const char* filename, std::string& result, PathLocation& loca
 		}
 
 		// Create the directories recursively if they don't exist.
-		if (!Create(pathForLocation.c_str())) {
+		if (makeDirs && !Create(pathForLocation.c_str())) {
 			return false;
 		}
 
-		std::filesystem::path normBase = std::filesystem::u8path(pathForLocation);
+		// Normalize both paths, and check for a mismatch
+		std::filesystem::path pathForLocationFs = std::filesystem::u8path(pathForLocation);
 		std::filesystem::path detectedPathFs = std::filesystem::u8path(detectedPath);
 
-		normBase = normBase.lexically_normal();
+		pathForLocationFs = pathForLocationFs.lexically_normal();
 		detectedPathFs = detectedPathFs.lexically_normal();
 
-		std::filesystem::path pathResult = (normBase / detectedPathFs).lexically_normal();
+		std::filesystem::path combined = pathForLocationFs / detectedPathFs;
+		finalPath = combined.lexically_normal().u8string();
 
-		result = pathResult.u8string();
-
-#ifdef WIN32
-		std::replace(result.begin(), result.end(), '\\', '/');
-#endif
-
-		if (!AreMatching(normBase, pathResult.u8string())) {
+		if (!AreMatching(pathForLocationFs.u8string(), finalPath)) {
 			return false;
 		}
+
+#ifdef WIN32
+		std::replace(finalPath.begin(), finalPath.end(), '\\', '/');
+#endif
 	}
 
-	if (strchr(result.c_str(), '\\') != nullptr) {
-		// '\' is not allowed (use '/' instead)
+	if (finalPath.size() == 0) {
 		return false;
 	}
 
-	if (Path::HasRelativeComponents(result.c_str())) {
-		// Result path cannot be relative
+	// '\' is not allowed (use '/' instead)
+	if (strchr(finalPath.c_str(), '\\') != nullptr) {
 		return false;
 	}
+
+	// Result path cannot be relative
+	if (Path::HasRelativeComponents(finalPath.c_str())) {
+		return false;
+	}
+
+	result = finalPath;
 
 	return true;
 }

@@ -101,7 +101,7 @@ public:
 	static std::string Normalize(const char* path);
 	static bool IsValidDefaultLocation(const char* filename);
 	// static std::string FromURLSimple(const char* filename, PathLocation& location);
-	static bool FromURL(const char* filename, std::string& result, PathLocation& location);
+	static bool FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
 	static std::string StripURL(const char* filename);
 };
 

@@ -99,7 +99,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	PathLocation location = PathLocation::DEFAULT;
 
 	bool isPathValid = true;
-	if (!Path::FromURL(filename, resolvedPath, location)) {
+	if (!Path::FromURL(filename, resolvedPath, location, access != FileStream::READ_ACCESS)) {
 		isPathValid = false;
 	}
 
