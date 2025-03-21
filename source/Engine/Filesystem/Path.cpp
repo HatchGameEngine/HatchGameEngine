@@ -329,7 +329,7 @@ std::string Path::GetCachePath() {
 			return "";
 		}
 
-		return Concat(workingDir, ".cache/");
+		return Concat(workingDir, ".cache");
 	}
 
 	std::string gamePath = GetGameNamePath();
@@ -341,7 +341,7 @@ std::string Path::GetCachePath() {
 	// TODO: Implement.
 	std::string path = "";
 #elif LINUX
-	std::string path = GetXdgPath("XDG_CACHE_HOME", ".cache/");
+	std::string path = GetXdgPath("XDG_CACHE_HOME", ".cache");
 #else
 	std::string path = "";
 #endif
