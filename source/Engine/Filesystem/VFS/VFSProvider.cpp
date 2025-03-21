@@ -36,6 +36,13 @@ std::string VFSProvider::TransformFilename(const char* filename) {
 	return std::string(filename);
 }
 
+bool VFSProvider::SupportsCompression() {
+	return false;
+}
+bool VFSProvider::SupportsEncryption() {
+	return false;
+}
+
 bool VFSProvider::HasFile(const char* filename) {
 	return false;
 }

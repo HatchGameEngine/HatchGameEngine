@@ -79,6 +79,13 @@ std::string HatchVFS::TransformFilename(const char* filename) {
 	return std::string(transformedFilename);
 }
 
+bool HatchVFS::SupportsCompression() {
+	return true;
+}
+bool HatchVFS::SupportsEncryption() {
+	return true;
+}
+
 void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool decrypt) {
 	Uint8 keyA[16];
 	Uint8 keyB[16];
