@@ -259,6 +259,7 @@ void ArchiveVFS::Close() {
 		NumEntries = 0;
 	}
 
+	Entries.clear();
 	EntryNames.clear();
 
 	VFSProvider::Close();

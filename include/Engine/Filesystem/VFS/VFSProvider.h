@@ -54,6 +54,7 @@ public:
 	bool IsOpen();
 	bool IsReadable();
 	bool IsWritable();
+	bool CanUnmount();
 
 	void SetWritable(bool writable);
 

@@ -60,8 +60,7 @@ bool ResourceManager::Init(const char* filename) {
 		}
 	}
 
-	mainResource = vfs->Get(RESOURCES_VFS_NAME);
-	if (mainResource == nullptr) {
+	if (GetMainResource() == nullptr) {
 		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
 
 		return false;
@@ -82,13 +81,42 @@ bool ResourceManager::Mount(const char* name, const char* filename, const char* 
 
 	return status == VFSMountStatus::MOUNTED;
 }
+bool ResourceManager::Unmount(const char* name) {
+	if (vfs == nullptr) {
+		return false;
+	}
 
+	VFSProvider* provider = vfs->Get(name);
+	if (provider == nullptr) {
+		return false;
+	}
+
+	VFSMountStatus status = vfs->Unmount(name);
+	if (status == VFSMountStatus::UNMOUNTED) {
+		delete provider;
+
+		return true;
+	}
+
+	return false;
+}
+
+VirtualFileSystem* ResourceManager::GetVFS() {
+	return vfs;
+}
 VFSProvider* ResourceManager::GetMainResource() {
+	mainResource = vfs->Get(RESOURCES_VFS_NAME);
+
+	if (mainResource == nullptr || !mainResource->IsOpen()) {
+		return nullptr;
+	}
+
 	return mainResource;
 }
 void ResourceManager::SetMainResourceWritable(bool writable) {
-	if (mainResource != nullptr) {
-		mainResource->SetWritable(writable);
+	VFSProvider* provider = GetMainResource();
+	if (provider != nullptr) {
+		provider->SetWritable(writable);
 	}
 }
 

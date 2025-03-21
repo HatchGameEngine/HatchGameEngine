@@ -8,17 +8,24 @@
 #include <Engine/Utilities/StringUtils.h>
 
 VFSProvider* VirtualFileSystem::Get(const char* name) {
-	for (size_t i = 0; i < LoadedVFS.size(); i++) {
-		VFSMount& mount = LoadedVFS[i];
-
-		if (strcmp(mount.Name.c_str(), name) == 0) {
-			return mount.VFSPtr;
-		}
+	size_t index = GetIndex(name);
+	if (index != -1) {
+		return LoadedVFS[index].VFSPtr;
 	}
 
 	return nullptr;
 }
+size_t VirtualFileSystem::GetIndex(const char* name) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
 
+		if (strcmp(mount.Name.c_str(), name) == 0) {
+			return i;
+		}
+	}
+
+	return -1;
+}
 VFSProvider* VirtualFileSystem::Get(size_t index) {
 	if (index < LoadedVFS.size()) {
 		return LoadedVFS[index].VFSPtr;
@@ -77,6 +84,23 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
 	LoadedVFS.push_front({ std::string(name), mountPointPath, vfs });
 
 	return VFSMountStatus::MOUNTED;
+}
+VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
+	size_t index = GetIndex(name);
+	if (index == -1) {
+		return VFSMountStatus::NOT_FOUND;
+	}
+
+	VFSProvider* vfs = LoadedVFS[index].VFSPtr;
+	if (!vfs->CanUnmount()) {
+		return VFSMountStatus::COULD_NOT_UNMOUNT;
+	}
+
+	vfs->Close();
+
+	LoadedVFS.erase(LoadedVFS.begin() + index);
+
+	return VFSMountStatus::UNMOUNTED;
 }
 int VirtualFileSystem::NumMounted() {
 	return LoadedVFS.size();

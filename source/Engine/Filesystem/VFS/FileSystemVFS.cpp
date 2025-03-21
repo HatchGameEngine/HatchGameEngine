@@ -267,6 +267,8 @@ void FileSystemVFS::Close() {
 		delete it->second;
 	}
 
+	Cache.clear();
+
 	VFSProvider::Close();
 }
 

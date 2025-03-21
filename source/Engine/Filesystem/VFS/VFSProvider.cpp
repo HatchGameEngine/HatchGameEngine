@@ -4,7 +4,9 @@ VFSProvider::VFSProvider(Uint16 flags) {
 	Flags = flags;
 }
 VFSProvider::~VFSProvider() {
-	Close();
+	if (Opened) {
+		Close();
+	}
 }
 
 bool VFSProvider::IsOpen() {
@@ -16,6 +18,9 @@ bool VFSProvider::IsReadable() {
 }
 bool VFSProvider::IsWritable() {
 	return (Flags & VFS_WRITABLE) != 0;
+}
+bool VFSProvider::CanUnmount() {
+	return OpenStreams.size() == 0;
 }
 
 void VFSProvider::SetWritable(bool writable) {
@@ -87,5 +92,10 @@ bool VFSProvider::CloseStream(Stream* stream) {
 }
 
 void VFSProvider::Close() {
+	for (size_t i = 0; i < OpenStreams.size(); i++) {
+		VFSOpenStream& openStream = OpenStreams[i];
+		openStream.StreamPtr->Close();
+	}
+
 	Opened = false;
 }

@@ -13,6 +13,8 @@ public:
 	static bool Init(const char* filename);
 	static bool Mount(const char* name, const char* filename, const char *mountPoint, VFSType type,
 		Uint16 flags);
+	static bool Unmount(const char* name);
+	static VirtualFileSystem* GetVFS();
 	static VFSProvider* GetMainResource();
 	static void SetMainResourceWritable(bool writable);
 	static bool LoadResource(const char* filename, Uint8** out, size_t* size);
