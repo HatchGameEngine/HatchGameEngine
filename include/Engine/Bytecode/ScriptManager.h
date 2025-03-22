@@ -70,6 +70,7 @@ public:
 	static void GlobalConstDecimal(ObjClass* klass, const char* name, float value);
 	static ObjClass* GetClassParent(ObjClass* klass);
 	static VMValue GetClassMethod(ObjClass* klass, Uint32 hash);
+	static VMValue GetCallable(ObjClass* klass, const char* name);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
@@ -84,7 +85,7 @@ public:
 	static bool LoadScript(const char* filename);
 	static bool LoadScript(Uint32 hash);
 	static bool LoadObjectClass(const char* objectName, bool addNativeFunctions);
-	static void AddNativeObjectFunctions(ObjClass* klass);
+	static void AddNativeEntityFunctions(ObjClass* klass);
 	static ObjClass* GetObjectClass(const char* className);
 	static Entity* ObjectSpawnFunction(ObjectList* list);
 	static void LoadClasses();

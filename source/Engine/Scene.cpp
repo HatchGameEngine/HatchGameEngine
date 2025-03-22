@@ -1132,7 +1132,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				elapsed = Clock::GetTicks();
 
-				ent->Render(_vx, _vy);
+				ent->Render();
 
 				elapsed = Clock::GetTicks() - elapsed;
 

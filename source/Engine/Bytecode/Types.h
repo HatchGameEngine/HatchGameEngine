@@ -172,6 +172,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
 #define IS_MATERIAL(value) IsObjectType(value, OBJ_MATERIAL)
+#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -261,9 +262,7 @@ struct ObjClass {
 	ObjString* Name;
 	Uint32 Hash;
 	Table* Methods;
-	Table* Fields; // Keep this as a pointer, so that a new table
-	// isn't created when passing an ObjClass value
-	// around
+	Table* Fields;
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
 	StructGetFn ElementGet;

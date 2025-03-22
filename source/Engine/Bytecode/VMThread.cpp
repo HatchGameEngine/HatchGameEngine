@@ -2297,7 +2297,7 @@ void VMThread::InvokeForEntity(VMValue value, int argCount) {
 	FunctionToInvoke = value;
 	ReturnFrame = FrameCount;
 
-	if (CallValue(value, argCount)) {
+	if (CallForObject(value, argCount)) {
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_BOUND_METHOD:
 		case OBJ_FUNCTION:

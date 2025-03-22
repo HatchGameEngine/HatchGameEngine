@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
@@ -124,10 +125,11 @@ void ScriptManager::Init() {
 	ThreadCount = 1;
 
 	ArrayImpl::Init();
-	MapImpl::Init();
+	EntityImpl::Init();
 	FunctionImpl::Init();
-	StringImpl::Init();
+	MapImpl::Init();
 	MaterialImpl::Init();
+	StringImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -666,13 +668,7 @@ void ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32
 	thread->Pop();
 }
 void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
-	if (function == NULL) {
-		return;
-	}
-	if (klass == NULL) {
-		return;
-	}
-	if (name == NULL) {
+	if (function == NULL || klass == NULL || name == NULL) {
 		return;
 	}
 
@@ -749,6 +745,22 @@ VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
 	}
 	return NULL_VAL;
 }
+VMValue ScriptManager::GetCallable(ObjClass* klass, const char* name) {
+	VMValue value = NULL_VAL;
+	if (klass->Fields->GetIfExists(name, &value)) {
+		return value;
+	}
+	else if (klass->Methods->GetIfExists(name, &value)) {
+		return value;
+	}
+
+	ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+	if (parentClass) {
+		value = GetCallable(parentClass, name);
+	}
+
+	return value;
+}
 
 void ScriptManager::LinkStandardLibrary() {
 	StandardLibrary::Link();
@@ -809,13 +821,12 @@ bool ScriptManager::CallFunction(char* functionName) {
 		return false;
 	}
 
-	VMValue functionValue = Globals->Get(functionName);
-	if (!IS_FUNCTION(functionValue)) {
+	VMValue callable = Globals->Get(functionName);
+	if (!IS_CALLABLE(callable)) {
 		return false;
 	}
 
-	ObjFunction* function = AS_FUNCTION(functionValue);
-	Threads[0].RunEntityFunction(function, 0);
+	Threads[0].InvokeForEntity(callable, 0);
 	return true;
 }
 Entity* ScriptManager::SpawnObject(const char* objectName) {
@@ -961,42 +972,22 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 		// FIXME: Do this in a better way. Probably just remove
 		// CLASS_TYPE_EXTENDED to begin with.
 		if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
-			ScriptManager::AddNativeObjectFunctions(klass);
+			ScriptManager::AddNativeEntityFunctions(klass);
 		}
 		Classes->Put(objectName, klass);
 	}
 
 	return true;
 }
-void ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
-#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, ScriptEntity::VM_##name)
-	DEF_NATIVE(InView);
-	DEF_NATIVE(Animate);
-	DEF_NATIVE(ApplyPhysics);
-	DEF_NATIVE(SetAnimation);
-	DEF_NATIVE(ResetAnimation);
-	DEF_NATIVE(GetHitboxFromSprite);
-	DEF_NATIVE(ReturnHitbox);
-	DEF_NATIVE(AddToRegistry);
-	DEF_NATIVE(IsInRegistry);
-	DEF_NATIVE(RemoveFromRegistry);
-	DEF_NATIVE(CollidedWithObject);
-	DEF_NATIVE(CollideWithObject);
-	DEF_NATIVE(SolidCollideWithObject);
-	DEF_NATIVE(TopSolidCollideWithObject);
-	DEF_NATIVE(PropertyGet);
-	DEF_NATIVE(PropertyExists);
-	DEF_NATIVE(SetViewVisibility);
-	DEF_NATIVE(SetViewOverride);
-	DEF_NATIVE(AddToDrawGroup);
-	DEF_NATIVE(IsInDrawGroup);
-	DEF_NATIVE(RemoveFromDrawGroup);
-	DEF_NATIVE(GetIDWithinClass);
-	DEF_NATIVE(PlaySound);
-	DEF_NATIVE(LoopSound);
-	DEF_NATIVE(StopSound);
-	DEF_NATIVE(StopAllSounds);
-#undef DEF_NATIVE
+void ScriptManager::AddNativeEntityFunctions(ObjClass* klass) {
+	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
+	HashMap<VMValue>* destMethods = klass->Methods;
+
+	srcMethods->WithAll([destMethods](Uint32 key, VMValue value) -> void {
+		if (!destMethods->Exists(key)) {
+			destMethods->Put(key, value);
+		}
+	});
 }
 ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	VMValue value = Globals->Get(className);
