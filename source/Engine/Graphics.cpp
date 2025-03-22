@@ -15,6 +15,8 @@
 
 #include <Engine/Bytecode/ScriptManager.h>
 
+bool Graphics::Initialized = false;
+
 HashMap<Texture*>* Graphics::TextureMap = NULL;
 std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool Graphics::VsyncEnabled = true;
@@ -125,6 +127,8 @@ void Graphics::Init() {
 		"Max Texture Size: %d x %d",
 		Graphics::MaxTextureWidth,
 		Graphics::MaxTextureHeight);
+
+	Graphics::Initialized = true;
 }
 void Graphics::ChooseBackend() {
 	char renderer[64];

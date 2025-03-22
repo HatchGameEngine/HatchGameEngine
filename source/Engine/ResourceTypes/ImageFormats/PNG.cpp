@@ -53,12 +53,7 @@ PNG* PNG::Load(const char* filename) {
 	png_bytep* row_pointers = NULL;
 	Uint32 row_bytes;
 
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto PNG_Load_FAIL;
@@ -196,12 +191,7 @@ PNG_Load_Success:
 	size_t image_size;
 	int ret;
 
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto PNG_Load_FAIL;
@@ -325,12 +315,7 @@ PNG_Load_Success:
 	Uint8* buffer = NULL;
 	size_t buffer_len = 0;
 
-	if (strncmp(filename, "file://", 7) == 0) {
-		stream = FileStream::New(filename + 7, FileStream::READ_ACCESS);
-	}
-	else {
-		stream = ResourceStream::New(filename);
-	}
+	stream = ResourceStream::New(filename);
 	if (!stream) {
 		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
 		goto PNG_Load_FAIL;

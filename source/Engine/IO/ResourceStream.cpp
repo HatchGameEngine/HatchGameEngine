@@ -25,6 +25,19 @@ FREE:
 	return NULL;
 }
 
+bool ResourceStream::IsReadable() {
+	return true;
+}
+bool ResourceStream::IsWritable() {
+	return false;
+}
+bool ResourceStream::MakeReadable(bool readable) {
+	return readable;
+}
+bool ResourceStream::MakeWritable(bool writable) {
+	return !writable;
+}
+
 void ResourceStream::Close() {
 	Memory::Free(pointer_start);
 	Stream::Close();

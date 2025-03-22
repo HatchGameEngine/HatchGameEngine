@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Utilities/StringUtils.h>
 
 char* StringUtils::Create(void* src, size_t length) {
@@ -7,7 +8,7 @@ char* StringUtils::Create(void* src, size_t length) {
 	string[length] = '\0';
 	return string;
 }
-char* StringUtils::Create(string src) {
+char* StringUtils::Create(std::string src) {
 	return StringUtils::Duplicate(src.c_str());
 }
 char* StringUtils::Create(Token token) {
@@ -67,6 +68,14 @@ bool StringUtils::StartsWith(const char* string, const char* compare) {
 
 	return memcmp(string, compare, cmpLen) == 0;
 }
+bool StringUtils::StartsWith(std::string string, std::string compare) {
+	size_t cmpLen = compare.size();
+	if (string.size() < cmpLen) {
+		return false;
+	}
+
+	return memcmp(string.c_str(), compare.c_str(), cmpLen) == 0;
+}
 char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
 		return (char*)haystack;
@@ -121,6 +130,9 @@ size_t StringUtils::Copy(char* dst, const char* src, size_t sz) {
 	}
 
 	return s - src - 1; // count does not include NUL
+}
+size_t StringUtils::Copy(char* dst, std::string src, size_t sz) {
+	return Copy(dst, src.c_str(), sz);
 }
 size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
 	char* d = dst;
@@ -238,37 +250,6 @@ const char* StringUtils::GetExtension(const char* filename) {
 
 	return dot + 1;
 }
-char* StringUtils::ConcatPaths(const char* pathA, const char* pathB) {
-	if (!pathA || !pathB) {
-		return nullptr;
-	}
-
-	size_t lenA = strlen(pathA);
-	size_t lenB = strlen(pathB) + 1;
-	size_t totalLen = lenA + lenB;
-
-	bool hasSep = pathA[lenA - 1] == '/' || pathA[lenA - 1] == '\\';
-	if (!hasSep) {
-		totalLen++;
-	}
-
-	char* newPath = (char*)Memory::Malloc(totalLen);
-	char* out = newPath;
-	if (!newPath) {
-		return nullptr;
-	}
-
-	memcpy(newPath, pathA, lenA);
-	newPath += lenA;
-
-	if (!hasSep) {
-		newPath[0] = '/';
-		newPath++;
-	}
-
-	memcpy(newPath, pathB, lenB);
-	return out;
-}
 char* StringUtils::ReplacePathSeparators(const char* path) {
 	if (!path) {
 		return nullptr;
@@ -300,19 +281,23 @@ char* StringUtils::NormalizePath(const char* path) {
 		return nullptr;
 	}
 
-	std::filesystem::path fsPath = std::filesystem::path(std::string(path));
-	std::string fsNorm = fsPath.lexically_normal().u8string();
+	std::string normalized = Path::Normalize(path);
 
-	char* normalizedPath = StringUtils::Create(fsNorm);
-	if (normalizedPath == nullptr) {
-		return nullptr;
+	char* normalizedPath = StringUtils::Create(normalized);
+	if (normalizedPath != nullptr) {
+		StringUtils::ReplacePathSeparatorsInPlace(normalizedPath);
 	}
 
-	char* newPath = StringUtils::ReplacePathSeparators(normalizedPath);
+	return normalizedPath;
+}
+void StringUtils::NormalizePath(const char* path, char* dest, size_t destSize) {
+	if (path == nullptr || dest == nullptr) {
+		return;
+	}
 
-	Memory::Free(normalizedPath);
+	std::string normalized = Path::Normalize(path);
 
-	return newPath;
+	snprintf(dest, destSize, "%s", normalized.c_str());
 }
 void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
 	if (!path) {

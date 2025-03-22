@@ -6,6 +6,19 @@
 	type data = {}; \
 	ReadBytes(&data, sizeof(data));
 
+bool Stream::IsReadable() {
+	return false;
+}
+bool Stream::IsWritable() {
+	return false;
+}
+bool Stream::MakeReadable(bool readable) {
+	return false;
+}
+bool Stream::MakeWritable(bool writable) {
+	return false;
+}
+
 void Stream::Close() {
 	delete this;
 }
@@ -235,16 +248,20 @@ void Stream::WriteHeaderedString(const char* string) {
 	WriteBytes((void*)string, size);
 }
 
-void Stream::CopyTo(Stream* dest) {
-	size_t length = Length() - Position();
-	void* memory = Memory::Malloc(length);
+size_t Stream::CopyTo(Stream* dest, size_t n) {
+	void* memory = Memory::Malloc(n);
 
-	// Seek(0);
-	ReadBytes(memory, length);
-	dest->WriteBytes(memory, length);
-	// dest->Seek(0);
+	ReadBytes(memory, n);
+	size_t written = dest->WriteBytes(memory, n);
 
 	Memory::Free(memory);
+
+	return written;
+}
+size_t Stream::CopyTo(Stream* dest) {
+	size_t length = Length() - Position();
+
+	return CopyTo(dest, length);
 }
 
 Stream::~Stream() {}

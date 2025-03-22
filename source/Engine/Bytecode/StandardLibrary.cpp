@@ -2278,7 +2278,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	char* pattern = GET_ARG(1, GetString);
 	int allDirs = GET_ARG(2, GetInteger);
 
-	vector<char*> fileList;
+	std::vector<std::filesystem::path> fileList;
 	Directory::GetFiles(&fileList, directory, pattern, allDirs);
 
 	if (ScriptManager::Lock()) {
@@ -2286,7 +2286,6 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 		for (size_t i = 0; i < fileList.size(); i++) {
 			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
-			free(fileList[i]);
 		}
 		ScriptManager::Unlock();
 	}
@@ -2309,7 +2308,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	char* pattern = GET_ARG(1, GetString);
 	int allDirs = GET_ARG(2, GetInteger);
 
-	vector<char*> fileList;
+	std::vector<std::filesystem::path> fileList;
 	Directory::GetDirectories(&fileList, directory, pattern, allDirs);
 
 	if (ScriptManager::Lock()) {
@@ -2317,7 +2316,6 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 		for (size_t i = 0; i < fileList.size(); i++) {
 			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
-			free(fileList[i]);
 		}
 		ScriptManager::Unlock();
 	}
@@ -6008,7 +6006,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	return INTEGER_VAL(File::Exists(filePath));
+	return INTEGER_VAL(File::Exists(filePath, true));
 }
 /***
  * File.ReadAllText
@@ -6020,14 +6018,7 @@ VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	Stream* stream = NULL;
-	if (strncmp(filePath, "save://", 7) == 0) {
-		stream = FileStream::New(
-			filePath + 7, FileStream::SAVEGAME_ACCESS | FileStream::READ_ACCESS);
-	}
-	else {
-		stream = FileStream::New(filePath, FileStream::READ_ACCESS);
-	}
+	Stream* stream = FileStream::New(filePath, FileStream::READ_ACCESS, true);
 	if (!stream) {
 		return NULL_VAL;
 	}
@@ -6058,14 +6049,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjString* text = AS_STRING(args[1]);
 
-		Stream* stream = NULL;
-		if (strncmp(filePath, "save://", 7) == 0) {
-			stream = FileStream::New(filePath + 7,
-				FileStream::SAVEGAME_ACCESS | FileStream::WRITE_ACCESS);
-		}
-		else {
-			stream = FileStream::New(filePath, FileStream::WRITE_ACCESS);
-		}
+		Stream* stream = FileStream::New(filePath, FileStream::WRITE_ACCESS, true);
 		if (!stream) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(false);
@@ -6383,14 +6367,7 @@ int _HTTP_GetToFile(void* opaque) {
 	size_t length;
 	Uint8* data = NULL;
 	if (HTTP::GET(bundle->url, &data, &length, NULL)) {
-		Stream* stream = NULL;
-		if (strncmp(bundle->filename, "save://", 7) == 0) {
-			stream = FileStream::New(bundle->filename + 7,
-				FileStream::SAVEGAME_ACCESS | FileStream::WRITE_ACCESS);
-		}
-		else {
-			stream = FileStream::New(bundle->filename, FileStream::WRITE_ACCESS);
-		}
+		Stream* stream = FileStream::New(bundle->filename, FileStream::WRITE_ACCESS);
 		if (stream) {
 			stream->WriteBytes(data, length);
 			stream->Close();
@@ -15094,7 +15071,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		char* filename = GET_ARG(0, GetString);
 		int access = GET_ARG(1, GetInteger);
-		FileStream* streamPtr = FileStream::New(filename, access);
+		FileStream* streamPtr = FileStream::New(filename, access, true);
 		if (!streamPtr) {
 			ScriptManager::Unlock();
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);

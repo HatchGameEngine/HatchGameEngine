@@ -5,18 +5,35 @@
 #include <Engine/Includes/Standard.h>
 
 class FileStream : public Stream {
+private:
+	std::string Filename;
+	Uint32 CurrentAccess;
+	bool UseURLs;
+
+	static Stream* OpenFile(const char* filename, Uint32 access, bool allowURLs);
+	bool Reopen(Uint32 newAccess);
+
 public:
-	FILE* f;
-	size_t size;
+	Stream* StreamPtr;
 	enum {
-		READ_ACCESS = 0,
-		WRITE_ACCESS = 1,
-		APPEND_ACCESS = 2,
-		SAVEGAME_ACCESS = 16,
-		PREFERENCES_ACCESS = 32,
+		// Read access to a file in the current directory.
+		READ_ACCESS,
+
+		// Write access a file in the current directory.
+		WRITE_ACCESS,
+
+		// Append access a file in the current directory.
+		// Note that the underlying stream might not support this
+		// access mode, so use with caution.
+		APPEND_ACCESS
 	};
 
 	static FileStream* New(const char* filename, Uint32 access);
+	static FileStream* New(const char* filename, Uint32 access, bool allowURLs);
+	bool IsReadable();
+	bool IsWritable();
+	bool MakeReadable(bool readable);
+	bool MakeWritable(bool writable);
 	void Close();
 	void Seek(Sint64 offset);
 	void SeekEnd(Sint64 offset);

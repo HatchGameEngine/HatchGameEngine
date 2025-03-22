@@ -7,15 +7,15 @@ class Directory {
 public:
 	static bool Exists(const char* path);
 	static bool Create(const char* path);
-	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
-	static void
-	GetFiles(vector<char*>* files, const char* path, const char* searchPattern, bool allDirs);
-	static vector<char*> GetFiles(const char* path, const char* searchPattern, bool allDirs);
-	static void GetDirectories(vector<char*>* files,
+	static void GetFiles(std::vector<std::filesystem::path>* files, const char* path,
+		const char* searchPattern, bool allDirs);
+	static std::vector<std::filesystem::path> GetFiles(const char* path,
+		const char* searchPattern, bool allDirs);
+	static void GetDirectories(std::vector<std::filesystem::path>* files,
 		const char* path,
 		const char* searchPattern,
 		bool allDirs);
-	static vector<char*>
+	static std::vector<std::filesystem::path>
 	GetDirectories(const char* path, const char* searchPattern, bool allDirs);
 };
 

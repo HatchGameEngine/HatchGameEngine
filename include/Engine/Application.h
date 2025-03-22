@@ -2,6 +2,7 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
@@ -14,7 +15,11 @@
 class Application {
 private:
 	static void MakeEngineVersion();
+	static void LogEngineVersion();
+	static void LogSystemInfo();
 	static void Restart();
+	static void CreateWindow();
+	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
@@ -31,13 +36,14 @@ private:
 public:
 	static vector<char*> CmdLineArgs;
 	static INI* Settings;
-	static char SettingsFile[4096];
+	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
 	static int TargetFPS;
 	static float CurrentFPS;
 	static bool Running;
 	static bool FirstFrame;
 	static bool GameStart;
+	static bool PortableMode;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
 	static int WindowWidth;
@@ -63,6 +69,10 @@ public:
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
+	static const char* GetDeveloperIdentifier();
+	static const char* GetGameIdentifier();
+	static const char* GetSavesDir();
+	static const char* GetPreferencesDir();
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();

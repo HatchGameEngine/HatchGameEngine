@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -32,6 +33,8 @@ extern "C" {
 
 #include <windows.h>
 #endif
+
+#define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 
 #if WIN32
 Platforms Application::Platform = Platforms::Windows;
@@ -56,7 +59,7 @@ Platforms Application::Platform = Platforms::Unknown;
 vector<char*> Application::CmdLineArgs;
 
 INI* Application::Settings = NULL;
-char Application::SettingsFile[4096];
+char Application::SettingsFile[MAX_PATH_LENGTH];
 
 XMLNode* Application::GameConfig = NULL;
 
@@ -65,6 +68,7 @@ float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
 bool Application::GameStart = false;
+bool Application::PortableMode = false;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];
@@ -93,6 +97,9 @@ bool Application::DevConvertModels = false;
 bool Application::AllowCmdLineSceneLoad = false;
 
 char StartingScene[256];
+char LogFilename[MAX_PATH_LENGTH];
+
+bool UseMemoryFileCache = false;
 
 bool DevMenu = false;
 bool ShowFPS = false;
@@ -128,15 +135,20 @@ void Application::Init(int argc, char* args[]) {
 
 	Application::MakeEngineVersion();
 
-	Log::Init();
-
-#ifdef GIT_COMMIT_HASH
-	Log::Print(Log::LOG_INFO,
-		"Hatch Game Engine %s (commit " GIT_COMMIT_HASH ")",
-		Application::EngineVersion);
-#else
-	Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+#ifdef MACOSX
+	// Set environment
+	char appSupportPath[MAX_PATH_LENGTH];
+	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
+	if (isBundle) {
+		strcat(appSupportPath, "/" TARGET_NAME);
+		if (!Directory::Exists(appSupportPath)) {
+			Directory::Create(appSupportPath);
+		}
+		chdir(appSupportPath);
+	}
 #endif
+
+	Log::Init();
 
 	MemoryPools::Init();
 
@@ -162,17 +174,105 @@ void Application::Init(int argc, char* args[]) {
 		Log::Print(Log::LOG_INFO, "SDL_Init failed with error: %s", SDL_GetError());
 	}
 
-	Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
-	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
-
 	SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
-	Application::InitSettings("config.ini");
+	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
 
+	for (int i = 1; i < argc; i++) {
+		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
+	}
+
+	// Initialize a few needed subsystems
+	InputManager::Init();
+	Clock::Init();
+
+	// Load game stuff.
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
+		ResourceManager::Init(args[1]);
+	}
+	else
+#endif
+		ResourceManager::Init(NULL);
+
+	Application::LoadGameConfig();
+	Application::ReloadSettings();
+
+	// Open the log file immediately after
+	Log::OpenFile(LogFilename);
+
+	Application::LogEngineVersion();
+	Application::LogSystemInfo();
+
+	// Keep loading game stuff.
+	Application::LoadGameInfo();
+	Application::LoadSceneInfo();
+	Application::InitPlayerControls();
+	Application::DisposeGameConfig();
+
+	// Needs to be done after the settings are read and before Graphics::Init()
 	Graphics::ChooseBackend();
 
-	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
+	// Note: The window is created hidden.
+	Application::CreateWindow();
 
+	// Continue initializing subsystems
+	Math::Init();
+	Graphics::Init();
+
+	if (UseMemoryFileCache) {
+		MemoryCache::Init();
+	}
+
+	AudioManager::Init();
+
+	Running = true;
+}
+void Application::LogEngineVersion() {
+#ifdef GIT_COMMIT_HASH
+	Log::Print(Log::LOG_INFO,
+		"Hatch Game Engine %s (commit " GIT_COMMIT_HASH ")",
+		Application::EngineVersion);
+#else
+	Log::Print(Log::LOG_INFO, "Hatch Game Engine %s", Application::EngineVersion);
+#endif
+}
+void Application::LogSystemInfo() {
+	const char* platform;
+	switch (Application::Platform) {
+	case Platforms::Windows:
+		platform = "Windows";
+		break;
+	case Platforms::MacOS:
+		platform = "MacOS";
+		break;
+	case Platforms::Linux:
+		platform = "Linux";
+		break;
+	case Platforms::Switch:
+		platform = "Nintendo Switch";
+		break;
+	case Platforms::PlayStation:
+		platform = "PlayStation";
+		break;
+	case Platforms::Xbox:
+		platform = "Xbox";
+		break;
+	case Platforms::Android:
+		platform = "Android";
+		break;
+	case Platforms::iOS:
+		platform = "iOS";
+		break;
+	default:
+		platform = "Unknown";
+		break;
+	}
+	Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
+	Log::Print(Log::LOG_VERBOSE, "CPU Core Count: %d", SDL_GetCPUCount());
+	Log::Print(Log::LOG_INFO, "System Memory: %d MB", SDL_GetSystemRAM());
+}
+void Application::CreateWindow() {
 	bool allowRetina = false;
 	Application::Settings->GetBool("display", "retina", &allowRetina);
 
@@ -214,67 +314,7 @@ void Application::Init(int argc, char* args[]) {
 		}
 	}
 
-	for (int i = 1; i < argc; i++) {
-		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
-	}
-
-	// Initialize subsystems
-	Math::Init();
-	Graphics::Init();
-#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
-	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
-		ResourceManager::Init(args[1]);
-	}
-	else
-#endif
-		ResourceManager::Init(NULL);
-	AudioManager::Init();
-	InputManager::Init();
-	Clock::Init();
-
-	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
-	Application::LoadGameConfig();
-	Application::LoadGameInfo();
-	Application::LoadSceneInfo();
-	Application::ReadSettings();
-	Application::InitPlayerControls();
-	Application::DisposeGameConfig();
-
-	const char* platform;
-	switch (Application::Platform) {
-	case Platforms::Windows:
-		platform = "Windows";
-		break;
-	case Platforms::MacOS:
-		platform = "MacOS";
-		break;
-	case Platforms::Linux:
-		platform = "Linux";
-		break;
-	case Platforms::Switch:
-		platform = "Nintendo Switch";
-		break;
-	case Platforms::PlayStation:
-		platform = "PlayStation";
-		break;
-	case Platforms::Xbox:
-		platform = "Xbox";
-		break;
-	case Platforms::Android:
-		platform = "Android";
-		break;
-	case Platforms::iOS:
-		platform = "iOS";
-		break;
-	default:
-		platform = "Unknown";
-		break;
-	}
-	Log::Print(Log::LOG_INFO, "Current Platform: %s", platform);
-
 	Application::SetWindowTitle(Application::GameTitleShort);
-
-	Running = true;
 }
 
 void Application::SetTargetFrameRate(int targetFPS) {
@@ -326,6 +366,30 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+// Returns a "safe" version of the developer's name (for e.g. file names)
+const char* Application::GetDeveloperIdentifier() {
+	// TODO: Implement!
+	return NULL;
+}
+
+// Returns a "safe" version of the game's name (for e.g. file names)
+const char* Application::GetGameIdentifier() {
+	// TODO: Implement!
+	return "hatch";
+}
+
+// Returns the name of the saves directory
+const char* Application::GetSavesDir() {
+	// TODO: Implement!
+	return "saves";
+}
+
+// Returns the name of the preferences directory
+const char* Application::GetPreferencesDir() {
+	// TODO: Implement!
+	return NULL;
 }
 
 bool AutomaticPerformanceSnapshots = false;
@@ -582,6 +646,21 @@ void Application::Restart() {
 	FirstFrame = true;
 }
 
+void Application::LoadVideoSettings() {
+	bool vsyncEnabled;
+	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+
+	if (Graphics::Initialized) {
+		Graphics::SetVSync(vsyncEnabled);
+	}
+	else {
+		Graphics::VsyncEnabled = vsyncEnabled;
+
+		Application::Settings->GetInteger("display", "multisample", &Graphics::MultisamplingEnabled);
+		Application::Settings->GetInteger("display", "defaultMonitor", &Application::DefaultMonitor);
+	}
+}
+
 #define CLAMP_VOLUME(vol) \
 	if (vol < 0) \
 		vol = 0; \
@@ -682,10 +761,39 @@ void Application::LoadKeyBinds() {
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
+	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
 	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
+	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
+
+	int logLevel = 0;
+#ifdef DEBUG
+	logLevel = -1;
+#endif
+#ifdef ANDROID
+	logLevel = -1;
+#endif
+	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
+	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
+	Log::SetLogLevel(logLevel);
+
+	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
+	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
+	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
+	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
+	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
+	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
+
+	// The main resource file is not writable by default.
+	// This can be enabled by using allowWritableResource.
+	bool allowWritableResource = false;
+	if (Application::Settings->GetBool("dev", "allowWritableResource", &allowWritableResource)) {
+		if (allowWritableResource) {
+			ResourceManager::SetMainResourceWritable(true);
+		}
+	}
 #endif
 }
 
@@ -1338,6 +1446,7 @@ void Application::Cleanup() {
 		DEBUG_fontSprite = NULL;
 	}
 
+	MemoryCache::Dispose();
 	ResourceManager::Dispose();
 	AudioManager::Dispose();
 	InputManager::Dispose();
@@ -1373,6 +1482,16 @@ static char* ParseGameConfigText(XMLNode* parent, const char* option) {
 
 	return XMLParser::TokenToString(node->children[0]->name);
 }
+static bool ParseGameConfigText(XMLNode* parent, const char* option, char* buf, size_t bufSize) {
+	XMLNode* node = XMLParser::SearchNode(parent, option);
+	if (!node) {
+		return false;
+	}
+
+	XMLParser::CopyTokenToString(node->children[0]->name, buf, bufSize);
+
+	return true;
+}
 static bool ParseGameConfigInt(XMLNode* parent, const char* option, int& val) {
 	XMLNode* node = XMLParser::SearchNode(parent, option);
 	if (!node) {
@@ -1398,6 +1517,7 @@ static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 
 void Application::LoadGameConfig() {
 	StartingScene[0] = '\0';
+	LogFilename[0] = '\0';
 
 	Application::GameConfig = nullptr;
 
@@ -1425,6 +1545,9 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
+		ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
+		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 	}
 
 	// Read display defaults
@@ -1681,13 +1804,19 @@ bool Application::LoadSettings(const char* filename) {
 }
 
 void Application::ReadSettings() {
+	Application::LoadVideoSettings();
 	Application::LoadAudioSettings();
 	Application::LoadDevSettings();
 	Application::LoadKeyBinds();
 }
 
 void Application::ReloadSettings() {
-	if (Application::Settings && Application::Settings->Reload()) {
+	// First time load
+	if (Application::Settings == nullptr) {
+		Application::InitSettings(DEFAULT_SETTINGS_FILENAME);
+	}
+
+	if (Application::Settings->Reload()) {
 		Application::ReadSettings();
 	}
 }
@@ -1699,43 +1828,13 @@ void Application::ReloadSettings(const char* filename) {
 }
 
 void Application::InitSettings(const char* filename) {
-	Application::LoadSettings(filename);
+	// Create settings with default values.
+	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 
-	// NOTE: If no settings could be loaded, create settings with
-	// default values.
-	if (!Application::Settings) {
-		StringUtils::Copy(
-			Application::SettingsFile, filename, sizeof(Application::SettingsFile));
+	Application::Settings = INI::New(Application::SettingsFile);
 
-		Application::Settings = INI::New(Application::SettingsFile);
-
-		Application::Settings->SetBool("display", "fullscreen", false);
-		Application::Settings->SetBool("display", "vsync", false);
-	}
-
-	int logLevel = 0;
-#ifdef DEBUG
-	logLevel = -1;
-#endif
-#ifdef ANDROID
-	logLevel = -1;
-#endif
-	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
-	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
-	Log::SetLogLevel(logLevel);
-
-	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
-	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
-	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
-	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
-	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
-	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
-
-	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
-	Application::Settings->GetInteger(
-		"display", "multisample", &Graphics::MultisamplingEnabled);
-	Application::Settings->GetInteger(
-		"display", "defaultMonitor", &Application::DefaultMonitor);
+	Application::Settings->SetBool("display", "fullscreen", false);
+	Application::Settings->SetBool("display", "vsync", false);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {

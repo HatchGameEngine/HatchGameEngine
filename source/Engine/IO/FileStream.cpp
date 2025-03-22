@@ -1,5 +1,8 @@
-#include <Engine/Filesystem/Directory.h>
+#include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/Path.h>
+#include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/IO/FileStream.h>
+#include <Engine/IO/StandardIOStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
 #ifdef MACOSX
@@ -77,154 +80,151 @@ static void getAppName(char* buffer, int maxSize) {
 }
 #endif
 
-FileStream* FileStream::New(const char* filename, Uint32 access) {
-	FileStream* stream = new (std::nothrow) FileStream;
-	if (!stream) {
-		return NULL;
-	}
-
-	const char* accessString = NULL;
-	switch (access & 15) {
+Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs) {
+	Uint32 streamAccess = 0;
+	switch (access) {
 	case FileStream::READ_ACCESS:
-		accessString = "rb";
+		streamAccess = StandardIOStream::READ_ACCESS;
 		break;
 	case FileStream::WRITE_ACCESS:
-		accessString = "wb";
+		streamAccess = StandardIOStream::WRITE_ACCESS;
 		break;
 	case FileStream::APPEND_ACCESS:
-		accessString = "ab";
+		streamAccess = StandardIOStream::APPEND_ACCESS;
 		break;
 	}
 
-	stream->f = NULL;
+	std::string resolvedPath = "";
 
-#if 0
-	printf("THIS SHOULDN'T HAPPEN\n");
-#elif defined(WIN32)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		// Saves in
-		// C:/Users/Username/.appdata/Roaming/TARGET_NAME/
-		const char* saveDataPath = "%appdata%/" TARGET_NAME "/Saves";
-		if (!Directory::Exists(saveDataPath)) {
-			Directory::Create(saveDataPath);
-		}
+	PathLocation location = PathLocation::DEFAULT;
 
-		char documentPath[256];
-		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
-		printf("documentPath: %s\n", documentPath);
-		stream->f = fopen(documentPath, accessString);
-	}
-#elif defined(MACOSX)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		char documentPath[256];
-		char appDirName[256];
-		getAppName(appDirName, 256);
-		if (MacOS_GetApplicationSupportDirectory(documentPath, 256)) {
-			snprintf(documentPath, 256, "%s/" TARGET_NAME "/Saves", documentPath);
-			if (!Directory::Exists(documentPath)) {
-				Directory::Create(documentPath);
-			}
-
-			snprintf(documentPath, 256, "%s/%s", documentPath, filename);
-			stream->f = fopen(documentPath, accessString);
-		}
-	}
-#elif defined(IOS)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		char* base_path = SDL_GetPrefPath("aknetk", TARGET_NAME);
-		if (base_path) {
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s%s", base_path, filename);
-			stream->f = fopen(documentPath, accessString);
-		}
-	}
-	else if (access & FileStream::PREFERENCES_ACCESS) {
-		char* base_path = SDL_GetPrefPath("aknetk", TARGET_NAME);
-		if (base_path) {
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s%s", base_path, filename);
-			stream->f = fopen(documentPath, accessString);
-		}
-	}
-#elif defined(ANDROID)
-	const char* internalStorage = SDL_AndroidGetInternalStoragePath();
-	if (internalStorage) {
-		char androidPath[256];
-		if (access & FileStream::SAVEGAME_ACCESS) {
-			snprintf(androidPath, 256, "%s/Save", internalStorage);
-			if (!Directory::Exists(androidPath)) {
-				Directory::Create(androidPath);
-			}
-
-			char documentPath[256];
-			snprintf(documentPath, 256, "%s/%s", androidPath, filename);
-			stream->f = fopen(documentPath, accessString);
-		}
-		else {
-			snprintf(androidPath, 256, "%s/%s", internalStorage, filename);
-			stream->f = fopen(androidPath, accessString);
-		}
-	}
-#elif defined(SWITCH)
-	if (access & FileStream::SAVEGAME_ACCESS) {
-		// Saves in Saves/
-		const char* saveDataPath = "Saves";
-		if (!Directory::Exists(saveDataPath)) {
-			Directory::Create(saveDataPath);
-		}
-
-		char documentPath[256];
-		snprintf(documentPath, 256, "%s/%s", saveDataPath, filename);
-		stream->f = fopen(documentPath, accessString);
-	}
-#endif
-
-	if (!stream->f) {
-		stream->f = fopen(filename, accessString);
+	bool isPathValid = true;
+	if (!Path::FromURL(filename, resolvedPath, location, access != FileStream::READ_ACCESS)) {
+		isPathValid = false;
 	}
 
-	if (!stream->f) {
+	if (isPathValid && !allowURLs && location != PathLocation::DEFAULT) {
+		isPathValid = false;
+	}
+
+	if (!isPathValid) {
+		Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", filename);
+		return nullptr;
+	}
+
+	const char* finalPath = resolvedPath.c_str();
+
+	Stream* stream = nullptr;
+
+	switch (location) {
+	case PathLocation::CACHE:
+		if (MemoryCache::Using) {
+			// Use the original filename instead of the resolved one.
+			std::string resolvedPath = Path::StripURL(filename);
+			finalPath = resolvedPath.c_str();
+
+			stream = MemoryCache::OpenStream(finalPath, access);
+			break;
+		}
+		/* FALLTHRU */
+	default:
+		stream = StandardIOStream::New(finalPath, streamAccess);
+		break;
+	}
+
+	return stream;
+}
+
+FileStream* FileStream::New(const char* filename, Uint32 access, bool allowURLs) {
+	FileStream* stream = new (std::nothrow) FileStream;
+	if (!stream) {
+		return nullptr;
+	}
+
+	stream->StreamPtr = OpenFile(filename, access, allowURLs);
+
+	if (!stream->StreamPtr) {
 		goto FREE;
 	}
 
-	fseek(stream->f, 0, SEEK_END);
-	stream->size = ftell(stream->f);
-	fseek(stream->f, 0, SEEK_SET);
+	stream->Filename = std::string(filename);
+	stream->CurrentAccess = access;
+	stream->UseURLs = allowURLs;
 
 	return stream;
 
 FREE:
 	delete stream;
-	return NULL;
+	return nullptr;
+}
+FileStream* FileStream::New(const char* filename, Uint32 access) {
+	return New(filename, access, false);
+}
+
+bool FileStream::Reopen(Uint32 newAccess) {
+	if (CurrentAccess == newAccess) {
+		return true;
+	}
+
+	Stream* newStream = OpenFile(Filename.c_str(), newAccess, UseURLs);
+	if (!newStream) {
+		return false;
+	}
+
+	StreamPtr->Close();
+	StreamPtr = newStream;
+
+	CurrentAccess = newAccess;
+
+	return true;
+}
+
+bool FileStream::IsReadable() {
+	return CurrentAccess == FileStream::READ_ACCESS;
+}
+bool FileStream::IsWritable() {
+	return !IsReadable();
+}
+bool FileStream::MakeReadable(bool readable) {
+	if (!readable) {
+		return MakeWritable(true);
+	}
+
+	return Reopen(READ_ACCESS);
+}
+bool FileStream::MakeWritable(bool writable) {
+	if (!writable) {
+		return MakeReadable(true);
+	}
+
+	return Reopen(WRITE_ACCESS);
 }
 
 void FileStream::Close() {
-	fclose(f);
-	f = NULL;
+	StreamPtr->Close();
+	StreamPtr = nullptr;
 	Stream::Close();
 }
 void FileStream::Seek(Sint64 offset) {
-	fseek(f, offset, SEEK_SET);
+	StreamPtr->Seek(offset);
 }
 void FileStream::SeekEnd(Sint64 offset) {
-	fseek(f, offset, SEEK_END);
+	StreamPtr->SeekEnd(offset);
 }
 void FileStream::Skip(Sint64 offset) {
-	fseek(f, offset, SEEK_CUR);
+	StreamPtr->Skip(offset);
 }
 size_t FileStream::Position() {
-	return ftell(f);
+	return StreamPtr->Position();
 }
 size_t FileStream::Length() {
-	return size;
+	return StreamPtr->Length();
 }
 
 size_t FileStream::ReadBytes(void* data, size_t n) {
-	// if (!f) Log::Print(Log::LOG_ERROR, "Attempt to read from
-	// closed stream.")
-	return fread(data, 1, n, f);
+	return StreamPtr->ReadBytes(data, n);
 }
 
 size_t FileStream::WriteBytes(void* data, size_t n) {
-	return fwrite(data, 1, n, f);
+	return StreamPtr->WriteBytes(data, n);
 }

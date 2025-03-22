@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 
 #ifdef WIN32
@@ -20,9 +21,10 @@ extern "C" {
 
 #include <stdarg.h>
 
+#define DEFAULT_LOG_FILENAME TARGET_NAME ".log"
+
 int Log::LogLevel = -1;
-bool Log::WriteToFile = false;
-const char* Log::LogFilename = TARGET_NAME ".log";
+bool Log::WriteToFile = true;
 FILE* Log::File = nullptr;
 bool Log::Initialized = false;
 char* Log::Buffer = nullptr;
@@ -33,36 +35,40 @@ size_t Log::BufferSize = 0;
 #endif
 
 void Log::Init() {
-	if (Initialized) {
+	Initialized = true;
+}
+
+void Log::OpenFile(const char* filename) {
+	if (!Initialized || !WriteToFile) {
 		return;
 	}
 
-	// Set environment
-#ifdef MACOSX
-	char appSupportPath[1024];
-	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, 512);
-	if (isBundle) {
-		strcat(appSupportPath, "/" TARGET_NAME);
-		if (!Directory::Exists(appSupportPath)) {
-			Directory::Create(appSupportPath);
-		}
-		chdir(appSupportPath);
-	}
-#endif
+	std::string pathToLogFile;
+	bool pathIsValid;
 
-#if WIN32 || MACOSX || LINUX || SWITCH
-	WriteToFile = true;
-#endif
-
-	if (WriteToFile) {
-		File = fopen(LogFilename, "w");
-		if (!File) {
-			printf("Couldn't open log file '%s' for writing!\n", LogFilename);
-			WriteToFile = false;
-		}
+	const char* logFilename = filename;
+	if (logFilename == nullptr || logFilename[0] == '\0') {
+		logFilename = DEFAULT_LOG_FILENAME;
 	}
 
-	Initialized = true;
+	pathIsValid = Path::FromLocation(logFilename, PathLocation::LOGFILE, pathToLogFile, true);
+	if (pathToLogFile.size() > 0) {
+		logFilename = pathToLogFile.c_str();
+	}
+	else {
+		pathIsValid = false;
+	}
+
+	if (pathIsValid) {
+		Log::Print(Log::LOG_VERBOSE, "Log file: %s", logFilename);
+
+		File = fopen(logFilename, "w");
+	}
+
+	if (!File) {
+		Log::Print(Log::LOG_ERROR, "Couldn't open log file '%s' for writing!", logFilename);
+		WriteToFile = false;
+	}
 }
 
 void Log::SetLogLevel(int sev) {

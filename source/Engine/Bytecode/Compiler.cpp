@@ -4417,7 +4417,7 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		TokenMap->Clear();
 	}
 }
-bool Compiler::Compile(const char* filename, const char* source, const char* output) {
+bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
 	bool debugCompiler = false;
 	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
 
@@ -4429,10 +4429,6 @@ bool Compiler::Compile(const char* filename, const char* source, const char* out
 
 	parser.HadError = false;
 	parser.PanicMode = false;
-
-	if (debugCompiler) {
-		Log::PrintSimple("Compiling script into file %s\n", output);
-	}
 
 	Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
@@ -4477,17 +4473,9 @@ bool Compiler::Compile(const char* filename, const char* source, const char* out
 		}
 	}
 
-	Stream* stream = FileStream::New(output, FileStream::WRITE_ACCESS);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR,
-			"Couldn't open file '%s' for writing compiled script!",
-			output);
-		return false;
+	if (output) {
+		WriteBytecode(output, filename);
 	}
-
-	WriteBytecode(stream, filename);
-
-	stream->Close();
 
 	for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 		ObjFunction* func = Compiler::Functions[c];
