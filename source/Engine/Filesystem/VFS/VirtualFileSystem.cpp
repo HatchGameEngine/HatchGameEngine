@@ -1,9 +1,9 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/Filesystem/VFS/HatchVFS.h>
 #include <Engine/Filesystem/VFS/MemoryVFS.h>
-#include <Engine/Filesystem/Path.h>
 #include <Engine/IO/SDLStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -34,8 +34,11 @@ VFSProvider* VirtualFileSystem::Get(size_t index) {
 	return nullptr;
 }
 
-VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
-	const char* mountPoint, VFSType type, Uint16 flags) {
+VFSMountStatus VirtualFileSystem::Mount(const char* name,
+	const char* filename,
+	const char* mountPoint,
+	VFSType type,
+	Uint16 flags) {
 	VFSProvider* vfs = Get(name);
 	if (vfs != nullptr) {
 		return VFSMountStatus::ALREADY_EXISTS;
@@ -63,7 +66,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
 
 		switch (type) {
 		case VFSType::HATCH: {
-			HatchVFS *hatchVfs = new HatchVFS(flags);
+			HatchVFS* hatchVfs = new HatchVFS(flags);
 			hatchVfs->Open(stream);
 			vfs = hatchVfs;
 			break;
@@ -81,7 +84,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name, const char* filename,
 
 	std::string mountPointPath = Path::Normalize(mountPoint);
 
-	LoadedVFS.push_front({ std::string(name), mountPointPath, vfs });
+	LoadedVFS.push_front({std::string(name), mountPointPath, vfs});
 
 	return VFSMountStatus::MOUNTED;
 }

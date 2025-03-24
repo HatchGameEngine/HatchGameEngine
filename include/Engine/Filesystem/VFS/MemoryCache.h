@@ -1,8 +1,8 @@
 #ifndef ENGINE_FILESYSTEM_VFS_MEMORYCACHE_H
 #define ENGINE_FILESYSTEM_VFS_MEMORYCACHE_H
 
-#include <Engine/IO/Stream.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
+#include <Engine/IO/Stream.h>
 
 class MemoryCache {
 private:

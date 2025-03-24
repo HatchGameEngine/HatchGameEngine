@@ -150,8 +150,8 @@ void SourceFileMap::CheckForUpdate() {
 		const char* filename = strrchr(listEntry, '/');
 		Uint32 filenameHash = 0;
 		if (filename) {
-			filenameHash =
-				ScriptManager::MakeFilenameHash(listEntry + scriptFolderNameLen + 1);
+			filenameHash = ScriptManager::MakeFilenameHash(
+				listEntry + scriptFolderNameLen + 1);
 		}
 		if (!filenameHash) {
 			continue;
@@ -173,7 +173,8 @@ void SourceFileMap::CheckForUpdate() {
 		doRecompile = newChecksum != oldChecksum;
 		anyChanges |= doRecompile;
 
-		std::string filenameForHash = ScriptManager::GetBytecodeFilenameForHash(filenameHash);
+		std::string filenameForHash =
+			ScriptManager::GetBytecodeFilenameForHash(filenameHash);
 		const char* outFile = filenameForHash.c_str();
 
 		// If changed, then compile.
@@ -187,10 +188,14 @@ void SourceFileMap::CheckForUpdate() {
 
 			if (Compiler::DoLogging) {
 				if (doRecompile) {
-					Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", scriptFilename);
+					Log::Print(Log::LOG_VERBOSE,
+						"Recompiling %s...",
+						scriptFilename);
 				}
 				else {
-					Log::Print(Log::LOG_VERBOSE, "Compiling %s...", scriptFilename);
+					Log::Print(Log::LOG_VERBOSE,
+						"Compiling %s...",
+						scriptFilename);
 				}
 			}
 
@@ -226,7 +231,8 @@ void SourceFileMap::CheckForUpdate() {
 	}
 
 	if (anyChanges) {
-		Stream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
+		Stream* stream =
+			FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
 			Uint8* data = SourceFileMap::Checksums->GetBytes(true);
 			stream->WriteBytes(data,
@@ -271,11 +277,13 @@ void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 		Uint32 classExtended = compiler->ClassExtendedList[h];
 		if (SourceFileMap::ClassMap->Exists(classHash)) {
 			vector<Uint32>* filenameHashList = SourceFileMap::ClassMap->Get(classHash);
-			if (std::count(filenameHashList->begin(), filenameHashList->end(),
-				filenameHash) == 0) {
+			if (std::count(filenameHashList->begin(),
+				    filenameHashList->end(),
+				    filenameHash) == 0) {
 				// NOTE: We need a better way of sorting
 				if (classExtended == 0) {
-					filenameHashList->insert(filenameHashList->begin(), filenameHash);
+					filenameHashList->insert(
+						filenameHashList->begin(), filenameHash);
 				}
 				else if (classExtended == 1) {
 					filenameHashList->push_back(filenameHash);

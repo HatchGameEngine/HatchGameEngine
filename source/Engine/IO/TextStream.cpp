@@ -12,7 +12,7 @@ TextStream* TextStream::New(Stream* other) {
 
 	size_t source_length = other->Length() + 1;
 
-	Uint8* data = (Uint8 *)Memory::Calloc(source_length, sizeof(Uint8));
+	Uint8* data = (Uint8*)Memory::Calloc(source_length, sizeof(Uint8));
 	if (!data) {
 		goto FREE;
 	}
@@ -42,7 +42,7 @@ TextStream* TextStream::New(const char* text) {
 
 	size_t source_length = strlen(text) + 1;
 
-	Uint8* data = (Uint8 *)Memory::Calloc(source_length, sizeof(Uint8));
+	Uint8* data = (Uint8*)Memory::Calloc(source_length, sizeof(Uint8));
 	if (!data) {
 		goto FREE;
 	}

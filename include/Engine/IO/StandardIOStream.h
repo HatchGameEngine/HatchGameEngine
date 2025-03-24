@@ -15,11 +15,7 @@ private:
 public:
 	FILE* f;
 	size_t size;
-	enum {
-		READ_ACCESS,
-		WRITE_ACCESS,
-		APPEND_ACCESS
-	};
+	enum { READ_ACCESS, WRITE_ACCESS, APPEND_ACCESS };
 
 	static StandardIOStream* New(const char* filename, Uint32 access);
 	bool IsReadable();

@@ -1,6 +1,6 @@
-#include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -261,9 +261,7 @@ Stream* FileSystemVFS::OpenAppendStream(const char* filename) {
 }
 
 void FileSystemVFS::Close() {
-	for (VFSEntryMap::iterator it = Cache.begin();
-		it != Cache.end();
-		it++) {
+	for (VFSEntryMap::iterator it = Cache.begin(); it != Cache.end(); it++) {
 		delete it->second;
 	}
 

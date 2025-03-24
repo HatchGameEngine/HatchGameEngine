@@ -34,8 +34,11 @@ public:
 	size_t GetIndex(const char* name);
 	VFSProvider* Get(const char* name);
 	VFSProvider* Get(size_t index);
-	VFSMountStatus Mount(const char* name, const char* filename, const char* mountPoint,
-		VFSType type, Uint16 flags);
+	VFSMountStatus Mount(const char* name,
+		const char* filename,
+		const char* mountPoint,
+		VFSType type,
+		Uint16 flags);
 	VFSMountStatus Unmount(const char* name);
 	int NumMounted();
 	const char* GetFilename(VFSMount mount, const char* filename);

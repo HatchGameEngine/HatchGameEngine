@@ -100,7 +100,8 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 			else if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
 				std::string entryName = std::string(data.cFileName);
 
-				std::filesystem::path pathFs = std::filesystem::path(std::string(path));
+				std::filesystem::path pathFs =
+					std::filesystem::path(std::string(path));
 				std::filesystem::path entryFs = std::filesystem::path(entryName);
 
 				std::string tempPath = (pathFs / entryFs).u8string();
@@ -141,7 +142,8 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 			else if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
 				std::string entryName = std::string(d->d_name);
 
-				std::filesystem::path pathFs = std::filesystem::u8path(std::string(path));
+				std::filesystem::path pathFs =
+					std::filesystem::u8path(std::string(path));
 				std::filesystem::path entryFs = std::filesystem::u8path(entryName);
 
 				files->push_back(pathFs / entryFs);
@@ -153,8 +155,8 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 
 	std::sort(files->begin(), files->end(), CompareFunction);
 }
-std::vector<std::filesystem::path> Directory::GetFiles(
-	const char* path, const char* searchPattern, bool allDirs) {
+std::vector<std::filesystem::path>
+Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
 	std::vector<std::filesystem::path> files;
 	Directory::GetFiles(&files, path, searchPattern, allDirs);
 	return files;
@@ -187,13 +189,16 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 				if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
 					std::string entryName = std::string(data.cFileName);
 
-					std::filesystem::path pathFs = std::filesystem::path(std::string(path));
-					std::filesystem::path entryFs = std::filesystem::path(entryName);
+					std::filesystem::path pathFs =
+						std::filesystem::path(std::string(path));
+					std::filesystem::path entryFs =
+						std::filesystem::path(entryName);
 
 					std::string tempPath = (pathFs / entryFs).u8string();
 					std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 
-					std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
+					std::filesystem::path finalPath =
+						std::filesystem::u8path(tempPath);
 
 					files->push_back(finalPath);
 				}
@@ -228,8 +233,10 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 				if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
 					std::string entryName = std::string(d->d_name);
 
-					std::filesystem::path pathFs = std::filesystem::u8path(std::string(path));
-					std::filesystem::path entryFs = std::filesystem::u8path(entryName);
+					std::filesystem::path pathFs =
+						std::filesystem::u8path(std::string(path));
+					std::filesystem::path entryFs =
+						std::filesystem::u8path(entryName);
 
 					files->push_back(pathFs / entryFs);
 				}
@@ -249,8 +256,8 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 
 	std::sort(files->begin(), files->end(), CompareFunction);
 }
-std::vector<std::filesystem::path> Directory::GetDirectories(
-	const char* path, const char* searchPattern, bool allDirs) {
+std::vector<std::filesystem::path>
+Directory::GetDirectories(const char* path, const char* searchPattern, bool allDirs) {
 	std::vector<std::filesystem::path> files;
 	Directory::GetDirectories(&files, path, searchPattern, allDirs);
 	return files;

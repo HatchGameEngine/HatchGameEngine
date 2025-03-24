@@ -2,8 +2,8 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/IO/TextStream.h>
 #include <Engine/IO/ResourceStream.h>
+#include <Engine/IO/TextStream.h>
 #include <Engine/Includes/Token.h>
 #include <Engine/Utilities/StringUtils.h>
 

@@ -3,8 +3,8 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/CRC32.h>
-#include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/Compression/ZLibStream.h>
+#include <Engine/IO/MemoryStream.h>
 
 #define MAGIC_HATCH_SIZE 5
 
@@ -59,7 +59,9 @@ bool HatchVFS::Open(Stream* stream) {
 		entry->CompressedSize = compressedSize;
 
 		if (!ArchiveVFS::AddEntry(entry)) {
-			Log::Print(Log::LOG_WARN, "HATCH file has duplicate entry \"%s\", ignoring", entryName);
+			Log::Print(Log::LOG_WARN,
+				"HATCH file has duplicate entry \"%s\", ignoring",
+				entryName);
 		}
 	}
 
@@ -114,19 +116,23 @@ void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool dec
 	for (Uint32 x = 0; x < size; x++) {
 		Uint8 temp = data[x];
 
-		if (decrypt)
+		if (decrypt) {
 			temp ^= xorValue ^ keyB[indexKeyB++];
-		else
+		}
+		else {
 			temp ^= keyA[indexKeyA++];
+		}
 
 		if (swapNibbles) {
 			temp = (((temp & 0x0F) << 4) | ((temp & 0xF0) >> 4));
 		}
 
-		if (!decrypt)
+		if (!decrypt) {
 			temp ^= xorValue ^ keyB[indexKeyB++];
-		else
+		}
+		else {
 			temp ^= keyA[indexKeyA++];
+		}
 
 		data[x] = temp;
 
@@ -271,9 +277,7 @@ bool HatchVFS::Flush() {
 	// Calculate total length of all files and headers
 	size_t totalSize = 10 + (32 * NumEntries);
 
-	for (VFSEntryMap::iterator it = Entries.begin();
-		it != Entries.end();
-		it++) {
+	for (VFSEntryMap::iterator it = Entries.begin(); it != Entries.end(); it++) {
 		totalSize += it->second->CompressedSize;
 	}
 
@@ -314,13 +318,17 @@ bool HatchVFS::Flush() {
 		if (needsRewrite && cachedData == nullptr) {
 			Uint8* memory = (Uint8*)Memory::Malloc(entry->Size);
 			if (!memory) {
-				Log::Print(Log::LOG_ERROR, "Could not allocate memory for entry %s!", entry->Name.c_str());
+				Log::Print(Log::LOG_ERROR,
+					"Could not allocate memory for entry %s!",
+					entry->Name.c_str());
 				out->Close();
 				return false;
 			}
 
 			if (!ReadEntryData(entry, memory, entry->Size)) {
-				Log::Print(Log::LOG_ERROR, "Could not read entry %s!", entry->Name.c_str());
+				Log::Print(Log::LOG_ERROR,
+					"Could not read entry %s!",
+					entry->Name.c_str());
 				out->Close();
 				return false;
 			}
@@ -343,21 +351,23 @@ bool HatchVFS::Flush() {
 				void* compressed = nullptr;
 				size_t compSize = 0;
 
-				if (ZLibStream::Compress(cachedData, entry->Size, &compressed, &compSize)) {
-					cachedDataInFile = (Uint8 *)compressed;
+				if (ZLibStream::Compress(
+					    cachedData, entry->Size, &compressed, &compSize)) {
+					cachedDataInFile = (Uint8*)compressed;
 					compressedSize = compSize;
 					shouldFreeDataInFile = true;
 				}
 				else {
 					Log::Print(Log::LOG_ERROR,
-						"Could not compress entry %s!", entry->Name.c_str());
+						"Could not compress entry %s!",
+						entry->Name.c_str());
 				}
 			}
 
 			if (entry->Flags & VFSE_ENCRYPTED) {
 				bool didEncrypt = false;
 
-				Uint8* bufferToEncrypt = (Uint8 *)Memory::Malloc(compressedSize);
+				Uint8* bufferToEncrypt = (Uint8*)Memory::Malloc(compressedSize);
 				if (bufferToEncrypt != nullptr) {
 					memcpy(bufferToEncrypt, cachedDataInFile, compressedSize);
 
@@ -365,7 +375,8 @@ bool HatchVFS::Flush() {
 
 					// They are the same, so allocate its own memory.
 					if (cachedDataInFile == cachedData) {
-						cachedDataInFile = (Uint8 *)Memory::Malloc(compressedSize);
+						cachedDataInFile =
+							(Uint8*)Memory::Malloc(compressedSize);
 						if (cachedDataInFile != nullptr) {
 							shouldFreeDataInFile = true;
 							didEncrypt = true;
@@ -376,7 +387,9 @@ bool HatchVFS::Flush() {
 					}
 
 					if (didEncrypt) {
-						memcpy(cachedDataInFile, bufferToEncrypt, compressedSize);
+						memcpy(cachedDataInFile,
+							bufferToEncrypt,
+							compressedSize);
 					}
 
 					Memory::Free(bufferToEncrypt);
@@ -387,7 +400,8 @@ bool HatchVFS::Flush() {
 					dataType = 0;
 
 					Log::Print(Log::LOG_ERROR,
-						"Could not encrypt entry %s!", entry->Name.c_str());
+						"Could not encrypt entry %s!",
+						entry->Name.c_str());
 				}
 			}
 		}

@@ -2,8 +2,8 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Filesystem/File.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
 #define RESOURCES_VFS_NAME "main"
 
@@ -15,11 +15,7 @@ VFSProvider* mainResource = nullptr;
 bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
 
-const char* data_files[] = {
-	"Data.hatch",
-	"Game.hatch",
-	TARGET_NAME ".hatch"
-};
+const char* data_files[] = {"Data.hatch", "Game.hatch", TARGET_NAME ".hatch"};
 
 const char* FindDataFile() {
 	for (size_t i = 0; i < sizeof(data_files) / sizeof(data_files[0]); i++) {
@@ -44,11 +40,15 @@ bool ResourceManager::Init(const char* filename) {
 	}
 
 	if (filename != NULL && File::Exists(filename)) {
-		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		ResourceManager::Mount(
+			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 	else {
-		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, RESOURCES_DIR_PATH, nullptr,
-			VFSType::FILESYSTEM, VFS_READABLE | VFS_WRITABLE);
+		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
+			RESOURCES_DIR_PATH,
+			nullptr,
+			VFSType::FILESYSTEM,
+			VFS_READABLE | VFS_WRITABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
 			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_DIR_PATH);
@@ -56,7 +56,9 @@ bool ResourceManager::Init(const char* filename) {
 			ResourceManager::UsingDataFolder = true;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Could not access \"%s\" folder!", RESOURCES_DIR_PATH);
+			Log::Print(Log::LOG_ERROR,
+				"Could not access \"%s\" folder!",
+				RESOURCES_DIR_PATH);
 		}
 	}
 
@@ -68,8 +70,11 @@ bool ResourceManager::Init(const char* filename) {
 
 	return true;
 }
-bool ResourceManager::Mount(const char* name, const char* filename, const char* mountPoint,
-	VFSType type, Uint16 flags) {
+bool ResourceManager::Mount(const char* name,
+	const char* filename,
+	const char* mountPoint,
+	VFSType type,
+	Uint16 flags) {
 	VFSMountStatus status = vfs->Mount(name, filename, mountPoint, type, flags);
 
 	if (status == VFSMountStatus::NOT_FOUND) {

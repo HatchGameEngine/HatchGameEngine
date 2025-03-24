@@ -64,15 +64,9 @@ void ZLibStream::Close() {
 
 	Stream::Close();
 }
-void ZLibStream::Seek(Sint64 offset) {
-
-}
-void ZLibStream::SeekEnd(Sint64 offset) {
-
-}
-void ZLibStream::Skip(Sint64 offset) {
-
-}
+void ZLibStream::Seek(Sint64 offset) {}
+void ZLibStream::SeekEnd(Sint64 offset) {}
+void ZLibStream::Skip(Sint64 offset) {}
 size_t ZLibStream::Position() {
 	return 0;
 }
@@ -159,7 +153,7 @@ bool ZLibStream::Compress(void* src, size_t srcLen, void** dst, size_t* dstLen) 
 
 	do {
 		defstream.avail_out = CHUNK_SIZE;
-		defstream.next_out = (Bytef *)chunk;
+		defstream.next_out = (Bytef*)chunk;
 
 		int ret = deflate(&defstream, Z_FINISH);
 		if (ret == Z_STREAM_ERROR) {

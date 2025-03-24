@@ -13,7 +13,8 @@ Stream* VirtualFileStream::OpenFile(VirtualFileSystem* vfs, const char* filename
 	return nullptr;
 }
 
-VirtualFileStream* VirtualFileStream::New(VirtualFileSystem* vfs, const char* filename, Uint32 access) {
+VirtualFileStream*
+VirtualFileStream::New(VirtualFileSystem* vfs, const char* filename, Uint32 access) {
 	VirtualFileStream* stream = new (std::nothrow) VirtualFileStream;
 	if (!stream) {
 		return nullptr;

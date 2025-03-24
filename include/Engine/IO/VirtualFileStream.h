@@ -1,9 +1,9 @@
 #ifndef ENGINE_IO_VIRTUALFILESTREAM_H
 #define ENGINE_IO_VIRTUALFILESTREAM_H
 
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
 class VirtualFileStream : public Stream {
 private:
@@ -16,11 +16,7 @@ private:
 public:
 	VirtualFileSystem* VFSPtr;
 	Stream* StreamPtr;
-	enum {
-		READ_ACCESS,
-		WRITE_ACCESS,
-		APPEND_ACCESS
-	};
+	enum { READ_ACCESS, WRITE_ACCESS, APPEND_ACCESS };
 
 	static VirtualFileStream* New(VirtualFileSystem* vfs, const char* filename, Uint32 access);
 	bool IsReadable();

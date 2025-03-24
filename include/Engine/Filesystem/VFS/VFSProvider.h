@@ -3,14 +3,10 @@
 
 #include <Engine/Filesystem/VFS/VFSEntry.h>
 
-#include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Includes/Standard.h>
 
-enum VFSType {
-	FILESYSTEM,
-	HATCH,
-	MEMORY
-};
+enum VFSType { FILESYSTEM, HATCH, MEMORY };
 
 #define VFS_READABLE 1
 #define VFS_WRITABLE 2

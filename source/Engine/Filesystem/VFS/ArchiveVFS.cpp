@@ -127,8 +127,8 @@ VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
 
 	for (size_t i = 0; i < NumEntries; i++) {
 		std::string entryName = EntryNames[i];
-		if (path != nullptr && path[0] != '\0'
-		&& !StringUtils::StartsWith(entryName.c_str(), path)) {
+		if (path != nullptr && path[0] != '\0' &&
+			!StringUtils::StartsWith(entryName.c_str(), path)) {
 			continue;
 		}
 
@@ -250,9 +250,7 @@ bool ArchiveVFS::Flush() {
 
 void ArchiveVFS::Close() {
 	if (NumEntries != 0) {
-		for (VFSEntryMap::iterator it = Entries.begin();
-			it != Entries.end();
-			it++) {
+		for (VFSEntryMap::iterator it = Entries.begin(); it != Entries.end(); it++) {
 			delete it->second;
 		}
 

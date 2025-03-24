@@ -1,13 +1,13 @@
 #include <Engine/Application.h>
-#include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #if WIN32
 #include <direct.h>
-#include <windows.h>
 #include <shlobj.h>
+#include <windows.h>
 #else
 #include <unistd.h>
 #endif
@@ -16,8 +16,7 @@ std::pair<std::string, PathLocation> urlToLocationType[] = {
 	std::make_pair("user://", PathLocation::USER),
 	std::make_pair("save://", PathLocation::SAVEGAME),
 	std::make_pair("config://", PathLocation::PREFERENCES),
-	std::make_pair("cache://", PathLocation::CACHE)
-};
+	std::make_pair("cache://", PathLocation::CACHE)};
 
 // Creates a path recursively.
 // The path MUST end with '/' if it's meant to create a path to a folder.
@@ -148,8 +147,8 @@ bool Path::HasRelativeComponents(const char* path) {
 	const char* component = tempPath.c_str();
 	const char* found = strchr(component, '/');
 	while (found != nullptr) {
-		if (component[0] == '.'
-		&& (component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
+		if (component[0] == '.' &&
+			(component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
 			return true;
 		}
 
@@ -157,8 +156,8 @@ bool Path::HasRelativeComponents(const char* path) {
 		found = strchr(component, '/');
 	}
 
-	if (component[0] == '.'
-	&& (component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
+	if (component[0] == '.' &&
+		(component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
 		return true;
 	}
 
@@ -212,7 +211,7 @@ std::string Path::GetPrefPath() {
 
 #if LINUX
 std::string Path::GetXdgPath(const char* xdg_env, const char* fallback_path) {
-	const char *env_path = SDL_getenv(xdg_env);
+	const char* env_path = SDL_getenv(xdg_env);
 	if (!env_path) {
 		env_path = SDL_getenv("HOME");
 		if (env_path == nullptr) {
@@ -442,9 +441,8 @@ bool Path::IsValidDefaultLocation(const char* filename) {
 		return false;
 	}
 
-	if (filename[0] == '/'
-	|| StringUtils::StartsWith(&filename[1], ":\\")
-	|| StringUtils::StartsWith(&filename[1], ":/")) {
+	if (filename[0] == '/' || StringUtils::StartsWith(&filename[1], ":\\") ||
+		StringUtils::StartsWith(&filename[1], ":/")) {
 		return false;
 	}
 
@@ -470,7 +468,10 @@ bool Path::ValidateForLocation(const char* path) {
 	return true;
 }
 
-bool Path::FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs) {
+bool Path::FromLocation(std::string path,
+	PathLocation location,
+	std::string& result,
+	bool makeDirs) {
 	if (location == PathLocation::DEFAULT) {
 		// Validate the path
 		if (path.size() == 0) {
@@ -527,7 +528,10 @@ bool Path::FromLocation(std::string path, PathLocation location, std::string& re
 	return ValidateForLocation(finalPath.c_str());
 }
 
-bool Path::FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs) {
+bool Path::FromURL(const char* filename,
+	std::string& result,
+	PathLocation& location,
+	bool makeDirs) {
 	std::string detectedPath = StripLocationFromURL(filename, location);
 
 	return FromLocation(detectedPath, location, result, makeDirs);

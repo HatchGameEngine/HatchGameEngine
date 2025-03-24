@@ -2,8 +2,8 @@
 #define ENGINE_TEXTFORMATS_XML_XMLPARSER_H
 
 #include <Engine/Bytecode/CompilerEnums.h>
-#include <Engine/IO/TextStream.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/IO/TextStream.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/TextFormats/XML/XMLNode.h>

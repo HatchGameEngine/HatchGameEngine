@@ -661,8 +661,10 @@ void Application::LoadVideoSettings() {
 	else {
 		Graphics::VsyncEnabled = vsyncEnabled;
 
-		Application::Settings->GetInteger("display", "multisample", &Graphics::MultisamplingEnabled);
-		Application::Settings->GetInteger("display", "defaultMonitor", &Application::DefaultMonitor);
+		Application::Settings->GetInteger(
+			"display", "multisample", &Graphics::MultisamplingEnabled);
+		Application::Settings->GetInteger(
+			"display", "defaultMonitor", &Application::DefaultMonitor);
 	}
 }
 
@@ -794,7 +796,8 @@ void Application::LoadDevSettings() {
 	// The main resource file is not writable by default.
 	// This can be enabled by using allowWritableResource.
 	bool allowWritableResource = false;
-	if (Application::Settings->GetBool("dev", "allowWritableResource", &allowWritableResource)) {
+	if (Application::Settings->GetBool(
+		    "dev", "allowWritableResource", &allowWritableResource)) {
 		if (allowWritableResource) {
 			ResourceManager::SetMainResourceWritable(true);
 		}
