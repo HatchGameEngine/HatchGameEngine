@@ -26,6 +26,11 @@ extern "C" {
 }
 #endif
 
+#ifdef MACOSX
+#include <Engine/Platforms/MacOS/Filesystem.h>
+#include <unistd.h>
+#endif
+
 #ifdef MSYS
 #if !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
