@@ -90,6 +90,7 @@ char Application::GameVersion[256];
 char Application::GameDescription[256];
 
 int Application::UpdatesPerFrame = 1;
+int Application::FrameSkip = DEFUALT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
 bool Application::Step = false;
 
@@ -656,6 +657,10 @@ void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
 	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
 	Application::Settings->GetInteger("display", "frame_skip", &Application::FrameSkip);
+
+	if (Application::FrameSkip > DEFUALT_MAX_FRAMESKIP){
+		Application::FrameSkip = DEFUALT_MAX_FRAMESKIP;
+	}
 
 	if (Graphics::Initialized) {
 		Graphics::SetVSync(vsyncEnabled);
@@ -1405,7 +1410,9 @@ void Application::Run(int argc, char* args[]) {
 			if (FrameSkip > 0){
 				// Compensate for lag
 				int lagFrames = ( (int) round(timeTaken / FrameTimeDesired) ) - 1;
-				lagFrames = FrameSkip < DEFUALT_MAX_FRAMESKIP ? FrameSkip : DEFUALT_MAX_FRAMESKIP;
+				if (lagFrames > Application::FrameSkip){
+					lagFrames = Application::FrameSkip;
+				}
 
 				if (!FirstFrame && lagFrames > 0) {
 					updateFrames += lagFrames;
