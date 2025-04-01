@@ -40,7 +40,7 @@ extern "C" {
 #endif
 
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
-#define DEFUALT_MAX_FRAMESKIP 15
+#define DEFAULT_MAX_FRAMESKIP 15
 
 #if WIN32
 Platforms Application::Platform = Platforms::Windows;
@@ -90,7 +90,7 @@ char Application::GameVersion[256];
 char Application::GameDescription[256];
 
 int Application::UpdatesPerFrame = 1;
-int Application::FrameSkip = DEFUALT_MAX_FRAMESKIP;
+int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
 bool Application::Step = false;
 
@@ -658,8 +658,8 @@ void Application::LoadVideoSettings() {
 	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
-	if (Application::FrameSkip > DEFUALT_MAX_FRAMESKIP){
-		Application::FrameSkip = DEFUALT_MAX_FRAMESKIP;
+	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP){
+		Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 	}
 
 	if (Graphics::Initialized) {
@@ -1851,7 +1851,7 @@ void Application::InitSettings(const char* filename) {
 
 	Application::Settings->SetBool("display", "fullscreen", false);
 	Application::Settings->SetBool("display", "vsync", false);
-	Application::Settings->SetInteger("display", "frameSkip", DEFUALT_MAX_FRAMESKIP);
+	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {
