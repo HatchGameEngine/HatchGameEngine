@@ -56,6 +56,7 @@ public:
 	static char GameVersion[256];
 	static char GameDescription[256];
 	static int UpdatesPerFrame;
+	static int FrameSkip;
 	static bool Stepper;
 	static bool Step;
 	static int MasterVolume;
