@@ -656,7 +656,7 @@ void Application::Restart() {
 void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
 	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
-	Application::Settings->GetInteger("display", "frame_skip", &Application::FrameSkip);
+	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
 	if (Application::FrameSkip > DEFUALT_MAX_FRAMESKIP){
 		Application::FrameSkip = DEFUALT_MAX_FRAMESKIP;
@@ -1407,17 +1407,16 @@ void Application::Run(int argc, char* args[]) {
 
 		int updateFrames = UpdatesPerFrame;
 		if (updateFrames == 1) {
-			if (FrameSkip > 0){
-				// Compensate for lag
-				int lagFrames = ( (int) round(timeTaken / FrameTimeDesired) ) - 1;
-				if (lagFrames > Application::FrameSkip){
-					lagFrames = Application::FrameSkip;
-				}
-
-				if (!FirstFrame && lagFrames > 0) {
-					updateFrames += lagFrames;
-				}
+			// Compensate for lag
+			int lagFrames = ( (int) round(timeTaken / FrameTimeDesired) ) - 1;
+			if (lagFrames > Application::FrameSkip){
+				lagFrames = Application::FrameSkip;
 			}
+
+			if (!FirstFrame && lagFrames > 0) {
+				updateFrames += lagFrames;
+			}
+
 		}
 
 		if (BenchmarkFrameCount == 0) {
@@ -1852,7 +1851,7 @@ void Application::InitSettings(const char* filename) {
 
 	Application::Settings->SetBool("display", "fullscreen", false);
 	Application::Settings->SetBool("display", "vsync", false);
-	Application::Settings->SetInteger("display", "frame_skip", DEFUALT_MAX_FRAMESKIP);
+	Application::Settings->SetInteger("display", "frameSkip", DEFUALT_MAX_FRAMESKIP);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {
