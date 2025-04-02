@@ -40,6 +40,7 @@ extern "C" {
 #endif
 
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
+#define DEFAULT_MAX_FRAMESKIP 15
 
 #if WIN32
 Platforms Application::Platform = Platforms::Windows;
@@ -89,6 +90,7 @@ char Application::GameVersion[256];
 char Application::GameDescription[256];
 
 int Application::UpdatesPerFrame = 1;
+int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
 bool Application::Step = false;
 
@@ -654,6 +656,11 @@ void Application::Restart() {
 void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
 	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
+
+	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP){
+		Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
+	}
 
 	if (Graphics::Initialized) {
 		Graphics::SetVSync(vsyncEnabled);
@@ -1401,14 +1408,15 @@ void Application::Run(int argc, char* args[]) {
 		int updateFrames = UpdatesPerFrame;
 		if (updateFrames == 1) {
 			// Compensate for lag
-			int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
-			if (lagFrames > 15) {
-				lagFrames = 15;
+			int lagFrames = ( (int) round(timeTaken / FrameTimeDesired) ) - 1;
+			if (lagFrames > Application::FrameSkip){
+				lagFrames = Application::FrameSkip;
 			}
 
 			if (!FirstFrame && lagFrames > 0) {
 				updateFrames += lagFrames;
 			}
+
 		}
 
 		if (BenchmarkFrameCount == 0) {
@@ -1843,6 +1851,7 @@ void Application::InitSettings(const char* filename) {
 
 	Application::Settings->SetBool("display", "fullscreen", false);
 	Application::Settings->SetBool("display", "vsync", false);
+	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {
@@ -1891,3 +1900,4 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 		return 1;
 	}
 }
+
