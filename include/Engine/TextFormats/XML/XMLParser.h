@@ -8,19 +8,19 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 
-class XMLParser {
-public:
-	static bool MatchToken(Token tok, const char* string);
-	static float TokenToNumber(Token tok);
-	static XMLNode* Parse();
-	static XMLNode* ParseFromStream(TextStream* stream);
-	static XMLNode* ParseFromStream(Stream* streamSrc);
-	static XMLNode* ParseFromResource(const char* filename);
-	static char* TokenToString(Token tok);
-	static std::string TokenToStdString(Token tok);
-	static void CopyTokenToString(Token tok, char* buffer, size_t size);
-	static XMLNode* SearchNode(XMLNode* root, const char* search);
-	static void Free(XMLNode* root);
+namespace XMLParser {
+//public:
+	bool MatchToken(Token tok, const char* string);
+	float TokenToNumber(Token tok);
+	XMLNode* Parse();
+	XMLNode* ParseFromStream(TextStream* stream);
+	XMLNode* ParseFromStream(Stream* streamSrc);
+	XMLNode* ParseFromResource(const char* filename);
+	char* TokenToString(Token tok);
+	std::string TokenToStdString(Token tok);
+	void CopyTokenToString(Token tok, char* buffer, size_t size);
+	XMLNode* SearchNode(XMLNode* root, const char* search);
+	void Free(XMLNode* root);
 };
 
 #endif /* ENGINE_TEXTFORMATS_XML_XMLPARSER_H */

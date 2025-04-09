@@ -5,21 +5,26 @@
 #include <Engine/Rendering/Material.h>
 #include <Engine/ResourceTypes/IModel.h>
 
-class ModelImporter {
-private:
-	static Mesh* LoadMesh(IModel* imodel, struct aiMesh* amesh);
-	static Material* LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i);
-	static ModelNode* LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode);
-	static Skeleton* LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
-	static SkeletalAnim*
-	LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim);
-	static bool DoConversion(const struct aiScene* scene, IModel* imodel);
+struct aiMesh;
+struct aiMaterial;
+struct aiNode;
+struct aiScene;
+struct aiAnimation;
 
-public:
-	static vector<int> MeshIDs;
-	static char* ParentDirectory;
+namespace ModelImporter {
+//private:
+	Mesh* LoadMesh(IModel* imodel, struct aiMesh* amesh);
+	Material* LoadMaterial(IModel* imodel, struct aiMaterial* mat, unsigned i);
+	ModelNode* LoadNode(IModel* imodel, ModelNode* parent, const struct aiNode* anode);
+	Skeleton* LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
+	SkeletalAnim* LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim);
+	bool DoConversion(const struct aiScene* scene, IModel* imodel);
 
-	static bool Convert(IModel* model, Stream* stream, const char* path);
+//public:
+	extern vector<int> MeshIDs;
+	extern char* ParentDirectory;
+
+	bool Convert(IModel* model, Stream* stream, const char* path);
 };
 
 #endif /* ENGINE_RESOURCETYPES_MODELFORMATS_IMPORTER_H */

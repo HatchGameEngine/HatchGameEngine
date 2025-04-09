@@ -1066,7 +1066,7 @@ void ScriptEntity::Dispose() {
 // Events/methods called from VM
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
-	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
+	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 #define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, threadID))
 ScriptEntity* GetScriptEntity(Obj* object) {
 	ObjInstance* entity = (ObjInstance*)object;

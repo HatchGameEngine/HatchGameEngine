@@ -103,40 +103,40 @@ enum PathLocation {
 	CACHE
 };
 
-class Path {
-private:
-	static bool AreMatching(std::string base, std::string path);
-	static PathLocation LocationFromURL(const char* filename);
-	static std::string GetPortableModePath();
-	static std::string GetPrefPath();
-	static std::string GetFallbackLocalPath(std::string suffix);
+namespace Path {
+//private:
+	bool AreMatching(std::string base, std::string path);
+	PathLocation LocationFromURL(const char* filename);
+	std::string GetPortableModePath();
+	std::string GetPrefPath();
+	std::string GetFallbackLocalPath(std::string suffix);
 #if LINUX
-	static std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
+	std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
 #endif
-	static std::string GetGameNamePath();
-	static std::string GetBaseUserPath();
-	static std::string GetBaseConfigPath();
-	static std::string GetStatePath();
-	static std::string GetCachePath();
-	static std::string GetForLocation(PathLocation location);
-	static std::string StripLocationFromURL(const char* filename, PathLocation& location);
-	static bool ValidateForLocation(const char* path);
+	std::string GetGameNamePath();
+	std::string GetBaseUserPath();
+	std::string GetBaseConfigPath();
+	std::string GetStatePath();
+	std::string GetCachePath();
+	std::string GetForLocation(PathLocation location);
+	std::string StripLocationFromURL(const char* filename, PathLocation& location);
+	bool ValidateForLocation(const char* path);
 
-public:
-	static bool Create(const char* path);
-	static std::string Concat(std::string pathA, std::string pathB);
-	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
-	static bool IsInDir(const char* dirPath, const char* path);
-	static bool IsInCurrentDir(const char* path);
-	static bool HasRelativeComponents(const char* path);
-	static std::string Normalize(std::string path);
-	static std::string Normalize(const char* path);
-	static bool IsValidDefaultLocation(const char* filename);
-	static bool
+//public:
+	bool Create(const char* path);
+	std::string Concat(std::string pathA, std::string pathB);
+	bool GetCurrentWorkingDirectory(char* out, size_t sz);
+	bool IsInDir(const char* dirPath, const char* path);
+	bool IsInCurrentDir(const char* path);
+	bool HasRelativeComponents(const char* path);
+	std::string Normalize(std::string path);
+	std::string Normalize(const char* path);
+	bool IsValidDefaultLocation(const char* filename);
+	bool
 	FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
-	static bool
+	bool
 	FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
-	static std::string StripURL(const char* filename);
+	std::string StripURL(const char* filename);
 };
 
 #endif /* ENGINE_FILESYSTEM_PATH_H */

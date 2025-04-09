@@ -3,21 +3,21 @@
 
 #include <Engine/Includes/Standard.h>
 
-class Directory {
-public:
-	static bool Exists(const char* path);
-	static bool Create(const char* path);
-	static void GetFiles(std::vector<std::filesystem::path>* files,
+namespace Directory {
+//public:
+	bool Exists(const char* path);
+	bool Create(const char* path);
+	void GetFiles(std::vector<std::filesystem::path>* files,
 		const char* path,
 		const char* searchPattern,
 		bool allDirs);
-	static std::vector<std::filesystem::path>
+	std::vector<std::filesystem::path>
 	GetFiles(const char* path, const char* searchPattern, bool allDirs);
-	static void GetDirectories(std::vector<std::filesystem::path>* files,
+	void GetDirectories(std::vector<std::filesystem::path>* files,
 		const char* path,
 		const char* searchPattern,
 		bool allDirs);
-	static std::vector<std::filesystem::path>
+	std::vector<std::filesystem::path>
 	GetDirectories(const char* path, const char* searchPattern, bool allDirs);
 };
 

@@ -1,13 +1,13 @@
 #ifndef ENGINE_DIAGNOSTICS_REMOTEDEBUG_H
 #define ENGINE_DIAGNOSTICS_REMOTEDEBUG_H
 
-class RemoteDebug {
-public:
-	static bool Initialized;
-	static bool UsingRemoteDebug;
+namespace RemoteDebug {
+//public:
+	extern bool Initialized;
+	extern bool UsingRemoteDebug;
 
-	static void Init();
-	static bool AwaitResponse();
+	void Init();
+	bool AwaitResponse();
 };
 
 #endif /* ENGINE_DIAGNOSTICS_REMOTEDEBUG_H */

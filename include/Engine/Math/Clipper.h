@@ -4,25 +4,25 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 
-class Clipper {
-private:
-	static void AddPoint(VertexAttribute* buf,
+namespace Clipper {
+//private:
+	void AddPoint(VertexAttribute* buf,
 		VertexAttribute* v1,
 		VertexAttribute* v2,
 		Vector4 p1,
 		Vector4 p2,
 		Sint64 t);
-	static bool ClipEdge(Frustum frustum,
+	bool ClipEdge(Frustum frustum,
 		VertexAttribute* v1,
 		VertexAttribute* v2,
 		PolygonClipBuffer* output);
-	static int ClipPolygon(Frustum frustum,
+	int ClipPolygon(Frustum frustum,
 		PolygonClipBuffer* output,
 		VertexAttribute* input,
 		int vertexCount);
 
-public:
-	static int FrustumClip(PolygonClipBuffer* output,
+//public:
+	int FrustumClip(PolygonClipBuffer* output,
 		Frustum* frustum,
 		int num,
 		VertexAttribute* input,

@@ -14,13 +14,13 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
-class SoftwareRenderer {
-private:
-	static void SetColor(Uint32 color);
-	static Uint32 GetBlendColor();
-	static bool SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
-	static void InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount);
-	static void RasterizeCircle(int ccx,
+namespace SoftwareRenderer {
+//private:
+	void SetColor(Uint32 color);
+	Uint32 GetBlendColor();
+	bool SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	void InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount);
+	void RasterizeCircle(int ccx,
 		int ccy,
 		int dst_x1,
 		int dst_y1,
@@ -28,8 +28,8 @@ private:
 		int dst_y2,
 		float rad,
 		Contour* contourBuffer);
-	static void StrokeThickCircle(float x, float y, float rad, float thickness);
-	static void DrawShapeTextured(Texture* texturePtr,
+	void StrokeThickCircle(float x, float y, float rad, float thickness);
+	void DrawShapeTextured(Texture* texturePtr,
 		unsigned numPoints,
 		float* px,
 		float* py,
@@ -37,194 +37,194 @@ private:
 		float* pu,
 		float* pv);
 
-public:
-	static GraphicsFunctions BackendFunctions;
-	static Uint32 CompareColor;
-	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
-	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
-	static bool UseSpriteDeform;
-	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-	static int MultTable[0x10000];
-	static int MultTableInv[0x10000];
-	static int MultSubTable[0x10000];
+//public:
+	extern GraphicsFunctions BackendFunctions;
+	extern Uint32 CompareColor;
+	extern TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+	extern Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
+	extern bool UseSpriteDeform;
+	extern Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
+	extern int MultTable[0x10000];
+	extern int MultTableInv[0x10000];
+	extern int MultSubTable[0x10000];
 
-	static void Init();
-	static Uint32 GetWindowFlags();
-	static void SetGraphicsFunctions();
-	static void Dispose();
-	static void RenderStart();
-	static void RenderEnd();
-	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static int LockTexture(Texture* texture, void** pixels, int* pitch);
-	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
-	static void UnlockTexture(Texture* texture);
-	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
-	static void ReadFramebuffer(void* pixels, int width, int height);
-	static void UpdateWindowSize(int width, int height);
-	static void UpdateViewport();
-	static void UpdateClipRect();
-	static void UpdateOrtho(float left, float top, float right, float bottom);
-	static void UpdatePerspective(float fovy, float aspect, float nearv, float farv);
-	static void UpdateProjectionMatrix();
-	static void
+	void Init();
+	Uint32 GetWindowFlags();
+	void SetGraphicsFunctions();
+	void Dispose();
+	void RenderStart();
+	void RenderEnd();
+	Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	int LockTexture(Texture* texture, void** pixels, int* pitch);
+	int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
+	void UnlockTexture(Texture* texture);
+	void DisposeTexture(Texture* texture);
+	void SetRenderTarget(Texture* texture);
+	void ReadFramebuffer(void* pixels, int width, int height);
+	void UpdateWindowSize(int width, int height);
+	void UpdateViewport();
+	void UpdateClipRect();
+	void UpdateOrtho(float left, float top, float right, float bottom);
+	void UpdatePerspective(float fovy, float aspect, float nearv, float farv);
+	void UpdateProjectionMatrix();
+	void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
-	static void SetFilter(int filter);
-	static void Clear();
-	static void Present();
-	static void SetBlendColor(float r, float g, float b, float a);
-	static void SetBlendMode(int srcC, int dstC, int srcA, int dstA);
-	static void SetTintColor(float r, float g, float b, float a);
-	static void SetTintMode(int mode);
-	static void SetTintEnabled(bool enabled);
-	static void Resize(int width, int height);
-	static void SetClip(float x, float y, float width, float height);
-	static void ClearClip();
-	static void Save();
-	static void Translate(float x, float y, float z);
-	static void Rotate(float x, float y, float z);
-	static void Scale(float x, float y, float z);
-	static void Restore();
-	static int ConvertBlendMode(int blendMode);
-	static BlendState GetBlendState();
-	static bool AlterBlendState(BlendState& state);
-	static void PixelNoFiltSetOpaque(Uint32* src,
+	void UseShader(void* shader);
+	void SetUniformF(int location, int count, float* values);
+	void SetUniformI(int location, int count, int* values);
+	void SetUniformTexture(Texture* texture, int uniform_index, int slot);
+	void SetFilter(int filter);
+	void Clear();
+	void Present();
+	void SetBlendColor(float r, float g, float b, float a);
+	void SetBlendMode(int srcC, int dstC, int srcA, int dstA);
+	void SetTintColor(float r, float g, float b, float a);
+	void SetTintMode(int mode);
+	void SetTintEnabled(bool enabled);
+	void Resize(int width, int height);
+	void SetClip(float x, float y, float width, float height);
+	void ClearClip();
+	void Save();
+	void Translate(float x, float y, float z);
+	void Rotate(float x, float y, float z);
+	void Scale(float x, float y, float z);
+	void Restore();
+	int ConvertBlendMode(int blendMode);
+	BlendState GetBlendState();
+	bool AlterBlendState(BlendState& state);
+	void PixelNoFiltSetOpaque(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelNoFiltSetTransparent(Uint32* src,
+	void PixelNoFiltSetTransparent(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelNoFiltSetAdditive(Uint32* src,
+	void PixelNoFiltSetAdditive(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelNoFiltSetSubtract(Uint32* src,
+	void PixelNoFiltSetSubtract(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelNoFiltSetMatchEqual(Uint32* src,
+	void PixelNoFiltSetMatchEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelNoFiltSetMatchNotEqual(Uint32* src,
+	void PixelNoFiltSetMatchNotEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetOpaque(Uint32* src,
+	void PixelTintSetOpaque(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetTransparent(Uint32* src,
+	void PixelTintSetTransparent(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetAdditive(Uint32* src,
+	void PixelTintSetAdditive(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetSubtract(Uint32* src,
+	void PixelTintSetSubtract(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetMatchEqual(Uint32* src,
+	void PixelTintSetMatchEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelTintSetMatchNotEqual(Uint32* src,
+	void PixelTintSetMatchNotEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void SetTintFunction(int blendFlags);
-	static void SetStencilEnabled(bool enabled);
-	static bool IsStencilEnabled();
-	static void SetStencilTestFunc(int stencilTest);
-	static void SetStencilPassFunc(int stencilOp);
-	static void SetStencilFailFunc(int stencilOp);
-	static void SetStencilValue(int value);
-	static void SetStencilMask(int mask);
-	static void ClearStencil();
-	static void PixelStencil(Uint32* src,
+	void SetTintFunction(int blendFlags);
+	void SetStencilEnabled(bool enabled);
+	bool IsStencilEnabled();
+	void SetStencilTestFunc(int stencilTest);
+	void SetStencilPassFunc(int stencilOp);
+	void SetStencilFailFunc(int stencilOp);
+	void SetStencilValue(int value);
+	void SetStencilMask(int mask);
+	void ClearStencil();
+	void PixelStencil(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void SetDotMask(int mask);
-	static void SetDotMaskH(int mask);
-	static void SetDotMaskV(int mask);
-	static void SetDotMaskOffsetH(int offset);
-	static void SetDotMaskOffsetV(int offset);
-	static void PixelDotMaskH(Uint32* src,
+	void SetDotMask(int mask);
+	void SetDotMaskH(int mask);
+	void SetDotMaskV(int mask);
+	void SetDotMaskOffsetH(int offset);
+	void SetDotMaskOffsetV(int offset);
+	void PixelDotMaskH(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelDotMaskV(Uint32* src,
+	void PixelDotMaskV(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelDotMaskHV(Uint32* src,
+	void PixelDotMaskHV(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void BindVertexBuffer(Uint32 vertexBufferIndex);
-	static void UnbindVertexBuffer();
-	static void BindScene3D(Uint32 sceneIndex);
-	static void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
-	static void DrawPolygon3D(void* data,
+	void BindVertexBuffer(Uint32 vertexBufferIndex);
+	void UnbindVertexBuffer();
+	void BindScene3D(Uint32 sceneIndex);
+	void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
+	void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
 		Texture* texture,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawSceneLayer3D(void* layer,
+	void DrawSceneLayer3D(void* layer,
 		int sx,
 		int sy,
 		int sw,
 		int sh,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawModel(void* model,
+	void DrawModel(void* model,
 		Uint16 animation,
 		Uint32 frame,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawModelSkinned(void* model,
+	void DrawModelSkinned(void* model,
 		Uint16 armature,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void
+	void
 	DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
-	static PixelFunction GetPixelFunction(int blendFlag);
-	static void SetLineWidth(float n);
-	static void StrokeLine(float x1, float y1, float x2, float y2);
-	static void StrokeCircle(float x, float y, float rad, float thickness);
-	static void StrokeEllipse(float x, float y, float w, float h);
-	static void StrokeRectangle(float x, float y, float w, float h);
-	static void FillCircle(float x, float y, float rad);
-	static void FillEllipse(float x, float y, float w, float h);
-	static void FillRectangle(float x, float y, float w, float h);
-	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillTriangleBlend(float x1,
+	PixelFunction GetPixelFunction(int blendFlag);
+	void SetLineWidth(float n);
+	void StrokeLine(float x1, float y1, float x2, float y2);
+	void StrokeCircle(float x, float y, float rad, float thickness);
+	void StrokeEllipse(float x, float y, float w, float h);
+	void StrokeRectangle(float x, float y, float w, float h);
+	void FillCircle(float x, float y, float rad);
+	void FillEllipse(float x, float y, float w, float h);
+	void FillRectangle(float x, float y, float w, float h);
+	void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	void FillTriangleBlend(float x1,
 		float y1,
 		float x2,
 		float y2,
@@ -233,9 +233,9 @@ public:
 		int c1,
 		int c2,
 		int c3);
-	static void
+	void
 	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-	static void FillQuadBlend(float x1,
+	void FillQuadBlend(float x1,
 		float y1,
 		float x2,
 		float y2,
@@ -247,7 +247,7 @@ public:
 		int c2,
 		int c3,
 		int c4);
-	static void DrawTriangleTextured(Texture* texturePtr,
+	void DrawTriangleTextured(Texture* texturePtr,
 		float x1,
 		float y1,
 		float x2,
@@ -263,7 +263,7 @@ public:
 		float v2,
 		float u3,
 		float v3);
-	static void DrawQuadTextured(Texture* texturePtr,
+	void DrawQuadTextured(Texture* texturePtr,
 		float x1,
 		float y1,
 		float x2,
@@ -284,7 +284,7 @@ public:
 		float v3,
 		float u4,
 		float v4);
-	static void DrawTexture(Texture* texture,
+	void DrawTexture(Texture* texture,
 		float sx,
 		float sy,
 		float sw,
@@ -293,7 +293,7 @@ public:
 		float y,
 		float w,
 		float h);
-	static void DrawSprite(ISprite* sprite,
+	void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
 		int x,
@@ -304,7 +304,7 @@ public:
 		float scaleH,
 		float rotation,
 		unsigned paletteID);
-	static void DrawSpritePart(ISprite* sprite,
+	void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
 		int sx,
@@ -319,16 +319,16 @@ public:
 		float scaleH,
 		float rotation,
 		unsigned paletteID);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
-	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer(SceneLayer* layer,
+	void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+	void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,
 		bool useCustomFunction);
-	static void MakeFrameBufferID(ISprite* sprite);
+	void MakeFrameBufferID(ISprite* sprite);
 };
 
 #endif /* ENGINE_RENDERING_SOFTWARE_SOFTWARERENDERER_H */

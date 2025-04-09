@@ -3,39 +3,39 @@
 
 #include <Engine/Includes/Standard.h>
 
-class Ease {
-public:
-	static float InSine(float t);
-	static float OutSine(float t);
-	static float InOutSine(float t);
-	static float InQuad(float t);
-	static float OutQuad(float t);
-	static float InOutQuad(float t);
-	static float InCubic(float t);
-	static float OutCubic(float t);
-	static float InOutCubic(float t);
-	static float InQuart(float t);
-	static float OutQuart(float t);
-	static float InOutQuart(float t);
-	static float InQuint(float t);
-	static float OutQuint(float t);
-	static float InOutQuint(float t);
-	static float InExpo(float t);
-	static float OutExpo(float t);
-	static float InOutExpo(float t);
-	static float InCirc(float t);
-	static float OutCirc(float t);
-	static float InOutCirc(float t);
-	static float InBack(float t);
-	static float OutBack(float t);
-	static float InOutBack(float t);
-	static float InElastic(float t);
-	static float OutElastic(float t);
-	static float InOutElastic(float t);
-	static float InBounce(float t);
-	static float OutBounce(float t);
-	static float InOutBounce(float t);
-	static float Triangle(float t);
+namespace Ease {
+//public:
+	float InSine(float t);
+	float OutSine(float t);
+	float InOutSine(float t);
+	float InQuad(float t);
+	float OutQuad(float t);
+	float InOutQuad(float t);
+	float InCubic(float t);
+	float OutCubic(float t);
+	float InOutCubic(float t);
+	float InQuart(float t);
+	float OutQuart(float t);
+	float InOutQuart(float t);
+	float InQuint(float t);
+	float OutQuint(float t);
+	float InOutQuint(float t);
+	float InExpo(float t);
+	float OutExpo(float t);
+	float InOutExpo(float t);
+	float InCirc(float t);
+	float OutCirc(float t);
+	float InOutCirc(float t);
+	float InBack(float t);
+	float OutBack(float t);
+	float InOutBack(float t);
+	float InElastic(float t);
+	float OutElastic(float t);
+	float InOutElastic(float t);
+	float InBounce(float t);
+	float OutBounce(float t);
+	float InOutBounce(float t);
+	float Triangle(float t);
 };
 
 #endif /* ENGINE_MATH_EASE_H */

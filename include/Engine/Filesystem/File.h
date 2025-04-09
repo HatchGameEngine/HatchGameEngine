@@ -3,12 +3,12 @@
 
 #include <Engine/Includes/Standard.h>
 
-class File {
-public:
-	static bool Exists(const char* path, bool allowURLs);
-	static bool Exists(const char* path);
-	static size_t ReadAllBytes(const char* path, char** out, bool allowURLs);
-	static bool WriteAllBytes(const char* path, const char* bytes, size_t len, bool allowURLs);
+namespace File {
+//public:
+	bool Exists(const char* path, bool allowURLs);
+	bool Exists(const char* path);
+	size_t ReadAllBytes(const char* path, char** out, bool allowURLs);
+	bool WriteAllBytes(const char* path, const char* bytes, size_t len, bool allowURLs);
 };
 
 #endif /* ENGINE_FILESYSTEM_FILE_H */

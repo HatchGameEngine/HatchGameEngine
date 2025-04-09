@@ -463,3 +463,5 @@ lint/tmp/
 # Android Profiling
 *.hprof
 compile_commands.json
+/CMakeFiles
+CMakeCache.txt

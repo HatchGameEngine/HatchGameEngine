@@ -5,24 +5,24 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/Includes/Standard.h>
 
-class ResourceManager {
-public:
-	static bool UsingDataFolder;
-	static bool UsingModPack;
+namespace ResourceManager {
+//public:
+	extern bool UsingDataFolder;
+	extern bool UsingModPack;
 
-	static bool Init(const char* filename);
-	static bool Mount(const char* name,
+	bool Init(const char* filename);
+	bool Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,
 		VFSType type,
 		Uint16 flags);
-	static bool Unmount(const char* name);
-	static VirtualFileSystem* GetVFS();
-	static VFSProvider* GetMainResource();
-	static void SetMainResourceWritable(bool writable);
-	static bool LoadResource(const char* filename, Uint8** out, size_t* size);
-	static bool ResourceExists(const char* filename);
-	static void Dispose();
+	bool Unmount(const char* name);
+	VirtualFileSystem* GetVFS();
+	VFSProvider* GetMainResource();
+	void SetMainResourceWritable(bool writable);
+	bool LoadResource(const char* filename, Uint8** out, size_t* size);
+	bool ResourceExists(const char* filename);
+	void Dispose();
 };
 
 #endif /* ENGINE_RESOURCETYPES_RESOURCEMANAGER_H */

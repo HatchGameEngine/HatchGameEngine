@@ -37,21 +37,26 @@ public:
 	Uint32 ReturnFrame;
 	VMValue FunctionToInvoke;
 	VMValue InterpretResult;
+
 	enum ThreadState {
 		CREATED = 0,
 		RUNNING = 1,
 		WAITING = 2,
 		CLOSED = 3,
 	};
+
 	char Name[THREAD_NAME_MAX];
 	Uint32 ID;
 	bool DebugInfo;
 	Uint32 BranchLimit;
+
 	static bool InstructionIgnoreMap[0x100];
 	static std::jmp_buf JumpBuffer;
 
 	static char* GetToken(Uint32 hash);
 	static char* GetVariableOrMethodName(Uint32 hash);
+
+
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
 	void PrintStack();

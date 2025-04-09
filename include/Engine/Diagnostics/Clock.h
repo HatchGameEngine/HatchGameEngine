@@ -3,13 +3,13 @@
 
 #include <Engine/Includes/Standard.h>
 
-class Clock {
-public:
-	static void Init();
-	static void Start();
-	static double GetTicks();
-	static double End();
-	static void Delay(double milliseconds);
+namespace Clock {
+//public:
+	void Init();
+	void Start();
+	double GetTicks();
+	double End();
+	void Delay(double milliseconds);
 };
 
 #endif /* ENGINE_DIAGNOSTICS_CLOCK_H */

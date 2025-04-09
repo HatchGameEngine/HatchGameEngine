@@ -7,9 +7,9 @@
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
-class FontFace {
-public:
-	static ISprite* SpriteFromFont(Stream* stream, int pixelSize, const char* filename);
+namespace FontFace {
+//public:
+	ISprite* SpriteFromFont(Stream* stream, int pixelSize, const char* filename);
 };
 
 #endif /* ENGINE_FONTFACE_H */

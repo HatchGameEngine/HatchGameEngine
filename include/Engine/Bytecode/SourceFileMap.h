@@ -5,21 +5,21 @@
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Includes/HashMap.h>
 
-class SourceFileMap {
-private:
-	static void AddToList(Compiler* compiler, Uint32 filenameHash);
+namespace SourceFileMap {
+//private:
+	void AddToList(Compiler* compiler, Uint32 filenameHash);
 
-public:
-	static bool Initialized;
-	static HashMap<Uint32>* Checksums;
-	static HashMap<vector<Uint32>*>* ClassMap;
-	static Uint32 DirectoryChecksum;
-	static Uint32 Magic;
-	static bool DoLogging;
+//public:
+	extern bool Initialized;
+	extern HashMap<Uint32>* Checksums;
+	extern HashMap<vector<Uint32>*>* ClassMap;
+	extern Uint32 DirectoryChecksum;
+	extern Uint32 Magic;
+	extern bool DoLogging;
 
-	static void CheckInit();
-	static void CheckForUpdate();
-	static void Dispose();
+	void CheckInit();
+	void CheckForUpdate();
+	void Dispose();
 };
 
 #endif /* ENGINE_BYTECODE_SOURCEFILEMAP_H */

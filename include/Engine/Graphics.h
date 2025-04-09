@@ -21,78 +21,78 @@ class IModel;
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
-class Graphics {
-public:
-	static bool Initialized;
-	static HashMap<Texture*>* TextureMap;
-	static map<string, TextureReference*> SpriteSheetTextureMap;
-	static bool VsyncEnabled;
-	static int MultisamplingEnabled;
-	static int FontDPI;
-	static bool SupportsBatching;
-	static bool TextureBlend;
-	static bool TextureInterpolate;
-	static Uint32 PreferredPixelFormat;
-	static Uint32 MaxTextureWidth;
-	static Uint32 MaxTextureHeight;
-	static Texture* TextureHead;
-	static vector<VertexBuffer*> VertexBuffers;
-	static Scene3D Scene3Ds[MAX_3D_SCENES];
-	static stack<GraphicsState> StateStack;
-	static Matrix4x4 MatrixStack[MATRIX_STACK_SIZE];
-	static size_t MatrixStackID;
-	static Matrix4x4* ModelViewMatrix;
-	static Viewport CurrentViewport;
-	static Viewport BackupViewport;
-	static ClipArea CurrentClip;
-	static ClipArea BackupClip;
-	static View* CurrentView;
-	static float BlendColors[4];
-	static float TintColors[4];
-	static int BlendMode;
-	static int TintMode;
-	static int StencilTest;
-	static int StencilOpPass;
-	static int StencilOpFail;
-	static void* FramebufferPixels;
-	static size_t FramebufferSize;
-	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
-	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
-	static bool PaletteUpdated;
-	static Texture* PaletteTexture;
-	static Texture* CurrentRenderTarget;
-	static Sint32 CurrentScene3D;
-	static Sint32 CurrentVertexBuffer;
-	static void* CurrentShader;
-	static bool SmoothFill;
-	static bool SmoothStroke;
-	static float PixelOffset;
-	static bool NoInternalTextures;
-	static bool UsePalettes;
-	static bool UsePaletteIndexLines;
-	static bool UseTinting;
-	static bool UseDepthTesting;
-	static bool UseSoftwareRenderer;
-	static unsigned CurrentFrame;
+namespace Graphics {
+//public:
+	extern bool Initialized;
+	extern HashMap<Texture*>* TextureMap;
+	extern map<string, TextureReference*> SpriteSheetTextureMap;
+	extern bool VsyncEnabled;
+	extern int MultisamplingEnabled;
+	extern int FontDPI;
+	extern bool SupportsBatching;
+	extern bool TextureBlend;
+	extern bool TextureInterpolate;
+	extern Uint32 PreferredPixelFormat;
+	extern Uint32 MaxTextureWidth;
+	extern Uint32 MaxTextureHeight;
+	extern Texture* TextureHead;
+	extern vector<VertexBuffer*> VertexBuffers;
+	extern Scene3D Scene3Ds[MAX_3D_SCENES];
+	extern stack<GraphicsState> StateStack;
+	extern Matrix4x4 MatrixStack[MATRIX_STACK_SIZE];
+	extern size_t MatrixStackID;
+	extern Matrix4x4* ModelViewMatrix;
+	extern Viewport CurrentViewport;
+	extern Viewport BackupViewport;
+	extern ClipArea CurrentClip;
+	extern ClipArea BackupClip;
+	extern View* CurrentView;
+	extern float BlendColors[4];
+	extern float TintColors[4];
+	extern int BlendMode;
+	extern int TintMode;
+	extern int StencilTest;
+	extern int StencilOpPass;
+	extern int StencilOpFail;
+	extern void* FramebufferPixels;
+	extern size_t FramebufferSize;
+	extern Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
+	extern Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+	extern bool PaletteUpdated;
+	extern Texture* PaletteTexture;
+	extern Texture* CurrentRenderTarget;
+	extern Sint32 CurrentScene3D;
+	extern Sint32 CurrentVertexBuffer;
+	extern void* CurrentShader;
+	extern bool SmoothFill;
+	extern bool SmoothStroke;
+	extern float PixelOffset;
+	extern bool NoInternalTextures;
+	extern bool UsePalettes;
+	extern bool UsePaletteIndexLines;
+	extern bool UseTinting;
+	extern bool UseDepthTesting;
+	extern bool UseSoftwareRenderer;
+	extern unsigned CurrentFrame;
 	// Rendering functions
-	static GraphicsFunctions Internal;
-	static GraphicsFunctions* GfxFunctions;
-	static const char* Renderer;
+	extern GraphicsFunctions Internal;
+	extern GraphicsFunctions* GfxFunctions;
+	extern const char* Renderer;
 
-	static void Init();
-	static void ChooseBackend();
-	static Uint32 GetWindowFlags();
-	static void SetVSync(bool enabled);
-	static void Reset();
-	static void Dispose();
-	static Point ProjectToScreen(float x, float y, float z);
-	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static Texture*
+	void Init();
+	void ChooseBackend();
+	Uint32 GetWindowFlags();
+	void SetVSync(bool enabled);
+	void Reset();
+	void Dispose();
+	Point ProjectToScreen(float x, float y, float z);
+	Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	Texture*
 	CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch);
-	static Texture* CreateTextureFromSurface(SDL_Surface* surface);
-	static int LockTexture(Texture* texture, void** pixels, int* pitch);
-	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
-	static int UpdateYUVTexture(Texture* texture,
+	Texture* CreateTextureFromSurface(SDL_Surface* surface);
+	int LockTexture(Texture* texture, void** pixels, int* pitch);
+	int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
+	int UpdateYUVTexture(Texture* texture,
 		SDL_Rect* src,
 		Uint8* pixelsY,
 		int pitchY,
@@ -100,27 +100,27 @@ public:
 		int pitchU,
 		Uint8* pixelsV,
 		int pitchV);
-	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
-	static int ConvertTextureToRGBA(Texture* texture);
-	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
-	static void UnlockTexture(Texture* texture);
-	static void DisposeTexture(Texture* texture);
-	static TextureReference* GetSpriteSheet(string sheetPath);
-	static TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
-	static void DisposeSpriteSheet(string sheetPath);
-	static void DeleteSpriteSheetMap();
-	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
-	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
-	static void UseShader(void* shader);
-	static void SetTextureInterpolation(bool interpolate);
-	static void Clear();
-	static void Present();
-	static void SoftwareStart();
-	static void SoftwareEnd();
-	static void UpdateGlobalPalette();
-	static void UnloadSceneData();
-	static void SetRenderTarget(Texture* texture);
-	static void CopyScreen(int source_x,
+	int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
+	int ConvertTextureToRGBA(Texture* texture);
+	int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	void UnlockTexture(Texture* texture);
+	void DisposeTexture(Texture* texture);
+	TextureReference* GetSpriteSheet(string sheetPath);
+	TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
+	void DisposeSpriteSheet(string sheetPath);
+	void DeleteSpriteSheetMap();
+	Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
+	void DeleteVertexBuffer(Uint32 vertexBufferIndex);
+	void UseShader(void* shader);
+	void SetTextureInterpolation(bool interpolate);
+	void Clear();
+	void Present();
+	void SoftwareStart();
+	void SoftwareEnd();
+	void UpdateGlobalPalette();
+	void UnloadSceneData();
+	void SetRenderTarget(Texture* texture);
+	void CopyScreen(int source_x,
 		int source_y,
 		int source_w,
 		int source_h,
@@ -129,46 +129,46 @@ public:
 		int dest_w,
 		int dest_h,
 		Texture* texture);
-	static void UpdateOrtho(float width, float height);
-	static void UpdateOrthoFlipped(float width, float height);
-	static void UpdatePerspective(float fovy, float aspect, float nearv, float farv);
-	static void UpdateProjectionMatrix();
-	static void
+	void UpdateOrtho(float width, float height);
+	void UpdateOrthoFlipped(float width, float height);
+	void UpdatePerspective(float fovy, float aspect, float nearv, float farv);
+	void UpdateProjectionMatrix();
+	void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void CalculateMVPMatrix(Matrix4x4* output,
+	void CalculateMVPMatrix(Matrix4x4* output,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* viewMatrix,
 		Matrix4x4* projMatrix);
-	static void SetViewport(float x, float y, float w, float h);
-	static void ResetViewport();
-	static void Resize(int width, int height);
-	static void SetClip(int x, int y, int width, int height);
-	static void ClearClip();
-	static void Save();
-	static void Translate(float x, float y, float z);
-	static void Rotate(float x, float y, float z);
-	static void Scale(float x, float y, float z);
-	static void Restore();
-	static BlendState GetBlendState();
-	static void PushState();
-	static void PopState();
-	static void SetBlendColor(float r, float g, float b, float a);
-	static void SetBlendMode(int blendMode);
-	static void SetBlendMode(int srcC, int dstC, int srcA, int dstA);
-	static void SetTintColor(float r, float g, float b, float a);
-	static void SetTintMode(int mode);
-	static void SetTintEnabled(bool enabled);
-	static void SetLineWidth(float n);
-	static void StrokeLine(float x1, float y1, float x2, float y2);
-	static void StrokeCircle(float x, float y, float rad, float thickness);
-	static void StrokeEllipse(float x, float y, float w, float h);
-	static void StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void StrokeRectangle(float x, float y, float w, float h);
-	static void FillCircle(float x, float y, float rad);
-	static void FillEllipse(float x, float y, float w, float h);
-	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillRectangle(float x, float y, float w, float h);
-	static void DrawTexture(Texture* texture,
+	void SetViewport(float x, float y, float w, float h);
+	void ResetViewport();
+	void Resize(int width, int height);
+	void SetClip(int x, int y, int width, int height);
+	void ClearClip();
+	void Save();
+	void Translate(float x, float y, float z);
+	void Rotate(float x, float y, float z);
+	void Scale(float x, float y, float z);
+	void Restore();
+	BlendState GetBlendState();
+	void PushState();
+	void PopState();
+	void SetBlendColor(float r, float g, float b, float a);
+	void SetBlendMode(int blendMode);
+	void SetBlendMode(int srcC, int dstC, int srcA, int dstA);
+	void SetTintColor(float r, float g, float b, float a);
+	void SetTintMode(int mode);
+	void SetTintEnabled(bool enabled);
+	void SetLineWidth(float n);
+	void StrokeLine(float x1, float y1, float x2, float y2);
+	void StrokeCircle(float x, float y, float rad, float thickness);
+	void StrokeEllipse(float x, float y, float w, float h);
+	void StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	void StrokeRectangle(float x, float y, float w, float h);
+	void FillCircle(float x, float y, float rad);
+	void FillEllipse(float x, float y, float w, float h);
+	void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	void FillRectangle(float x, float y, float w, float h);
+	void DrawTexture(Texture* texture,
 		float sx,
 		float sy,
 		float sw,
@@ -177,7 +177,7 @@ public:
 		float y,
 		float w,
 		float h);
-	static void DrawSprite(ISprite* sprite,
+	void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
 		int x,
@@ -188,7 +188,7 @@ public:
 		float scaleH,
 		float rotation,
 		unsigned paletteID);
-	static void DrawSpritePart(ISprite* sprite,
+	void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
 		int sx,
@@ -203,7 +203,7 @@ public:
 		float scaleH,
 		float rotation,
 		unsigned paletteID);
-	static void DrawSprite(ISprite* sprite,
+	void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
 		int x,
@@ -213,7 +213,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
-	static void DrawSpritePart(ISprite* sprite,
+	void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
 		int sx,
@@ -227,47 +227,47 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
-	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer(SceneLayer* layer,
+	void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+	void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
+	void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,
 		bool useCustomFunction);
-	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
-	static void DrawPolygon3D(void* data,
+	void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
+	void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
 		Texture* texture,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawSceneLayer3D(void* layer,
+	void DrawSceneLayer3D(void* layer,
 		int sx,
 		int sy,
 		int sw,
 		int sh,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawModel(void* model,
+	void DrawModel(void* model,
 		Uint16 animation,
 		Uint32 frame,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void DrawModelSkinned(void* model,
+	void DrawModelSkinned(void* model,
 		Uint16 armature,
 		Matrix4x4* modelMatrix,
 		Matrix4x4* normalMatrix);
-	static void
+	void
 	DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
-	static void BindVertexBuffer(Uint32 vertexBufferIndex);
-	static void UnbindVertexBuffer();
-	static void BindScene3D(Uint32 sceneIndex);
-	static void ClearScene3D(Uint32 sceneIndex);
-	static void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
-	static Uint32 CreateScene3D(int unloadPolicy);
-	static void DeleteScene3D(Uint32 sceneIndex);
-	static void InitScene3D(Uint32 sceneIndex, Uint32 numVertices);
-	static void MakeSpritePolygon(VertexAttribute data[4],
+	void BindVertexBuffer(Uint32 vertexBufferIndex);
+	void UnbindVertexBuffer();
+	void BindScene3D(Uint32 sceneIndex);
+	void ClearScene3D(Uint32 sceneIndex);
+	void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
+	Uint32 CreateScene3D(int unloadPolicy);
+	void DeleteScene3D(Uint32 sceneIndex);
+	void InitScene3D(Uint32 sceneIndex, Uint32 numVertices);
+	void MakeSpritePolygon(VertexAttribute data[4],
 		float x,
 		float y,
 		float z,
@@ -280,7 +280,7 @@ public:
 		int frameY,
 		int frameW,
 		int frameH);
-	static void MakeSpritePolygonUVs(VertexAttribute data[4],
+	void MakeSpritePolygonUVs(VertexAttribute data[4],
 		int flipX,
 		int flipY,
 		Texture* texture,
@@ -288,20 +288,20 @@ public:
 		int frameY,
 		int frameW,
 		int frameH);
-	static void MakeFrameBufferID(ISprite* sprite);
-	static void DeleteFrameBufferID(ISprite* sprite);
-	static void SetDepthTesting(bool enabled);
-	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
-	static void ConvertFromARGBtoNative(Uint32* argb, int count);
-	static void ConvertFromNativeToARGB(Uint32* argb, int count);
-	static void SetStencilEnabled(bool enabled);
-	static bool GetStencilEnabled();
-	static void SetStencilTestFunc(int stencilTest);
-	static void SetStencilPassFunc(int stencilOp);
-	static void SetStencilFailFunc(int stencilOp);
-	static void SetStencilValue(int value);
-	static void SetStencilMask(int mask);
-	static void ClearStencil();
+	void MakeFrameBufferID(ISprite* sprite);
+	void DeleteFrameBufferID(ISprite* sprite);
+	void SetDepthTesting(bool enabled);
+	bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
+	void ConvertFromARGBtoNative(Uint32* argb, int count);
+	void ConvertFromNativeToARGB(Uint32* argb, int count);
+	void SetStencilEnabled(bool enabled);
+	bool GetStencilEnabled();
+	void SetStencilTestFunc(int stencilTest);
+	void SetStencilPassFunc(int stencilOp);
+	void SetStencilFailFunc(int stencilOp);
+	void SetStencilValue(int value);
+	void SetStencilMask(int mask);
+	void ClearStencil();
 };
 
 #endif /* ENGINE_GRAPHICS_H */

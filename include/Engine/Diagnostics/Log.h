@@ -3,16 +3,16 @@
 
 #include <Engine/Includes/Standard.h>
 
-class Log {
-private:
-	static FILE* File;
-	static bool Initialized;
-	static char* Buffer;
-	static size_t BufferSize;
+namespace Log {
+//private:
+	extern FILE* File;
+	extern bool Initialized;
+	extern char* Buffer;
+	extern size_t BufferSize;
 
-	static bool ResizeBuffer(int written_chars);
+	bool ResizeBuffer(int written_chars);
 
-public:
+//public:
 	enum LogLevels {
 		LOG_VERBOSE = -1,
 		LOG_INFO = 0,
@@ -20,15 +20,15 @@ public:
 		LOG_ERROR = 2,
 		LOG_IMPORTANT = 3,
 	};
-	static int LogLevel;
-	static bool WriteToFile;
+	extern int LogLevel;
+	extern bool WriteToFile;
 
-	static void Init();
-	static void OpenFile(const char* filename);
-	static void Close();
-	static void SetLogLevel(int sev);
-	static void Print(int sev, const char* format, ...);
-	static void PrintSimple(const char* format, ...);
+	void Init();
+	void OpenFile(const char* filename);
+	void Close();
+	void SetLogLevel(int sev);
+	void Print(int sev, const char* format, ...);
+	void PrintSimple(const char* format, ...);
 };
 
 #endif /* ENGINE_DIAGNOSTICS_LOG_H */

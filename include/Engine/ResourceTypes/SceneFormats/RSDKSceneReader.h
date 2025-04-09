@@ -4,22 +4,22 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Types/Entity.h>
 
-class RSDKSceneReader {
-private:
-	static void LoadObjectList();
-	static void LoadPropertyList();
-	static SceneLayer ReadLayer(Stream* r);
-	static bool LoadTileset(const char* parentFolder);
+namespace RSDKSceneReader {
+//private:
+	void LoadObjectList();
+	void LoadPropertyList();
+	SceneLayer ReadLayer(Stream* r);
+	bool LoadTileset(const char* parentFolder);
 
-public:
-	static Uint32 Magic;
-	static bool Initialized;
+//public:
+	extern Uint32 Magic;
+	extern bool Initialized;
 
-	static void StageConfig_GetColors(const char* filename);
-	static void GameConfig_GetColors(const char* filename);
-	static bool Read(const char* filename, const char* parentFolder);
-	static bool ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots);
-	static bool Read(Stream* r, const char* parentFolder);
+	void StageConfig_GetColors(const char* filename);
+	void GameConfig_GetColors(const char* filename);
+	bool Read(const char* filename, const char* parentFolder);
+	bool ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots);
+	bool Read(Stream* r, const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H */

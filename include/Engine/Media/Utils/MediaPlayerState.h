@@ -3,19 +3,19 @@
 
 #include <Engine/Includes/Standard.h>
 
-class MediaPlayerState {
-public:
-	static Uint32 InitFlags;
-	static Uint32 ThreadCount;
-	static Uint32 FontHinting;
-	static Uint32 VideoBufFrames;
-	static Uint32 AudioBufFrames;
-	static Uint32 SubtitleBufFrames;
-	static void* LibassHandle;
-	static void* AssSharedObjectHandle;
+namespace MediaPlayerState {
+//public:
+	extern Uint32 InitFlags;
+	extern Uint32 ThreadCount;
+	extern Uint32 FontHinting;
+	extern Uint32 VideoBufFrames;
+	extern Uint32 AudioBufFrames;
+	extern Uint32 SubtitleBufFrames;
+	extern void* LibassHandle;
+	extern void* AssSharedObjectHandle;
 
-	static double GetSystemTime();
-	static bool AttachmentIsFont(void* p);
+	double GetSystemTime();
+	bool AttachmentIsFont(void* p);
 };
 
 #endif /* ENGINE_MEDIA_UTILS_MEDIAPLAYERSTATE_H */

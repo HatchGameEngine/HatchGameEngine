@@ -4,16 +4,16 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/Stream.h>
 
-class MemoryCache {
-private:
-	static VirtualFileSystem* CacheVFS;
+namespace MemoryCache {
+//private:
+	extern VirtualFileSystem* CacheVFS;
 
-public:
-	static bool Using;
+//public:
+	extern bool Using;
 
-	static Stream* OpenStream(const char* filename, Uint32 access);
-	static bool Init();
-	static void Dispose();
+	Stream* OpenStream(const char* filename, Uint32 access);
+	bool Init();
+	void Dispose();
 };
 
 #endif /* ENGINE_FILESYSTEM_VFS_MEMORYCACHE_H */
