@@ -76,7 +76,7 @@ std::jmp_buf VMThread::JumpBuffer;
 		return ERROR_RES_CONTINUE; \
 	}
 
-string VMThread::GetFunctionName(ObjFunction* function) {
+string VMThread::GetFunctionName(const ObjFunction* function) const {
 	std::string functionName(GetToken(function->NameHash));
 
 	if (functionName == "main") {
@@ -95,7 +95,7 @@ string VMThread::GetFunctionName(ObjFunction* function) {
 	return functionName;
 }
 
-char* VMThread::GetToken(Uint32 hash) {
+char* VMThread::GetToken(Uint32 hash){
 	static char GetTokenBuffer[256];
 
 	if (__Tokens__ && __Tokens__->Exists(hash)) {

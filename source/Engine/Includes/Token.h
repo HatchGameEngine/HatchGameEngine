@@ -1,6 +1,8 @@
 #ifndef ENGINE_TOKEN_H
 #define ENGINE_TOKEN_H
 
+#include <string>
+
 struct Token {
 	int Type;
 	char* Start;

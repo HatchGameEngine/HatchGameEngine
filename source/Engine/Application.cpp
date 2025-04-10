@@ -202,6 +202,10 @@ void Application::Init(int argc, char* args[]) {
 #endif
 		ResourceManager::Init(NULL);
 
+#ifdef DEVELOPER_MODE
+
+#endif
+
 	Application::LoadGameConfig();
 	Application::ReloadSettings();
 

@@ -105,11 +105,11 @@ enum PathLocation {
 
 namespace Path {
 //private:
-	bool AreMatching(std::string base, std::string path);
+	bool AreMatching(const std::string &base, const std::string &path);
 	PathLocation LocationFromURL(const char* filename);
 	std::string GetPortableModePath();
 	std::string GetPrefPath();
-	std::string GetFallbackLocalPath(std::string suffix);
+	std::string GetFallbackLocalPath(const std::string &suffix);
 #if LINUX
 	std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
 #endif
@@ -124,16 +124,16 @@ namespace Path {
 
 //public:
 	bool Create(const char* path);
-	std::string Concat(std::string pathA, std::string pathB);
+	std::string Concat(const std::string &pathA, const std::string &pathB);
 	bool GetCurrentWorkingDirectory(char* out, size_t sz);
 	bool IsInDir(const char* dirPath, const char* path);
 	bool IsInCurrentDir(const char* path);
 	bool HasRelativeComponents(const char* path);
-	std::string Normalize(std::string path);
+	std::string Normalize(const std::string &path);
 	std::string Normalize(const char* path);
 	bool IsValidDefaultLocation(const char* filename);
 	bool
-	FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
+	FromLocation(const std::string &path, PathLocation location, std::string& result, bool makeDirs);
 	bool
 	FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
 	std::string StripURL(const char* filename);

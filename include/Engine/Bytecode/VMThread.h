@@ -7,7 +7,7 @@
 
 class VMThread {
 private:
-	string GetFunctionName(ObjFunction* function);
+	string GetFunctionName(const ObjFunction *function) const;
 	void PrintStackTrace(PrintBuffer* buffer, const char* errorString);
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);

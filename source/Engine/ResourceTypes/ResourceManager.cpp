@@ -39,7 +39,7 @@ bool ResourceManager::Init(const char* filename) {
 		filename = FindDataFile();
 	}
 
-	if (filename != NULL && File::Exists(filename)) {
+	if (filename != NULL) {
 		ResourceManager::Mount(
 			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
@@ -70,6 +70,7 @@ bool ResourceManager::Init(const char* filename) {
 
 	return true;
 }
+
 bool ResourceManager::Mount(const char* name,
 	const char* filename,
 	const char* mountPoint,

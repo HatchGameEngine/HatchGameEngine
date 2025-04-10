@@ -1,6 +1,8 @@
 #ifndef ENGINE_SCENE_TILESPRITEINFO_H
 #define ENGINE_SCENE_TILESPRITEINFO_H
 
+#include "Engine/ResourceTypes/ISprite.h"
+
 class TileSpriteInfo {
 public:
 	ISprite* Sprite;

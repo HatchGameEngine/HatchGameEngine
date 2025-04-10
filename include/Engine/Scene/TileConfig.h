@@ -1,6 +1,8 @@
 #ifndef ENGINE_SCENE_TILECONFIG_H
 #define ENGINE_SCENE_TILECONFIG_H
 
+#include "Engine/Includes/Standard.h"
+
 class TileConfig {
 public:
 	Uint8 CollisionTop[16];

@@ -465,3 +465,4 @@ lint/tmp/
 compile_commands.json
 /CMakeFiles
 CMakeCache.txt
+*.kate-swp

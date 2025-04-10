@@ -68,7 +68,7 @@ bool Path::Create(const char* path) {
 	return success;
 }
 
-std::string Path::Concat(std::string pathA, std::string pathB) {
+std::string Path::Concat(const std::string &pathA, const std::string &pathB) {
 	std::filesystem::path fsPathA = std::filesystem::u8path(pathA);
 	std::filesystem::path fsPathB = std::filesystem::u8path(pathB);
 
@@ -100,7 +100,7 @@ std::string Path::GetPortableModePath() {
 	return std::string(workingDir);
 }
 
-bool Path::AreMatching(std::string base, std::string path) {
+bool Path::AreMatching(const std::string &base, const std::string &path) {
 	auto const last = std::prev(base.end());
 
 	return std::mismatch(base.begin(), last, path.begin()).first == last;
@@ -164,7 +164,7 @@ bool Path::HasRelativeComponents(const char* path) {
 	return false;
 }
 
-std::string Path::Normalize(std::string path) {
+std::string Path::Normalize(const std::string &path) {
 	std::filesystem::path fsPath = std::filesystem::u8path(path);
 
 	std::string result = fsPath.lexically_normal().u8string();
@@ -243,7 +243,7 @@ std::string Path::GetBaseUserPath() {
 	return GetPrefPath();
 }
 
-std::string Path::GetFallbackLocalPath(std::string suffix) {
+std::string Path::GetFallbackLocalPath(const std::string &suffix) {
 	std::string path;
 	if (Application::PortableMode) {
 		path = GetPortableModePath();
@@ -468,7 +468,7 @@ bool Path::ValidateForLocation(const char* path) {
 	return true;
 }
 
-bool Path::FromLocation(std::string path,
+bool Path::FromLocation(const std::string &path,
 	PathLocation location,
 	std::string& result,
 	bool makeDirs) {
