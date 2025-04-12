@@ -25,14 +25,14 @@ bool MemoryVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return true;
 }
 
-bool MemoryVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
-	if (entry->CachedData) {
-		size_t copyLength = entry->Size;
+bool MemoryVFS::ReadEntryData(VFSEntry &entry, Uint8 *memory, size_t memSize){
+	if (entry.CachedData) {
+		size_t copyLength = entry.Size;
 		if (copyLength > memSize) {
 			copyLength = memSize;
 		}
 
-		memcpy(entry->CachedData, memory, copyLength);
+		memcpy(entry.CachedData, memory, copyLength);
 
 		return true;
 	}

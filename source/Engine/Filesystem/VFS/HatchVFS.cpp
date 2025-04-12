@@ -162,40 +162,40 @@ void HatchVFS::CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool dec
 	}
 }
 
-bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
-	size_t copyLength = entry->Size;
+bool HatchVFS::ReadEntryData(VFSEntry &entry, Uint8 *memory, size_t memSize){
+	size_t copyLength = entry.Size;
 	if (copyLength > memSize) {
 		copyLength = memSize;
 	}
 
-	StreamPtr->Seek(entry->Offset);
+	StreamPtr->Seek(entry.Offset);
 	StreamPtr->ReadBytes(memory, copyLength);
 
 	// Decrypt it if it's encrypted
-	if (entry->Flags & VFSE_ENCRYPTED) {
-		Uint32 filenameHash = (int)strtol(entry->Name.c_str(), NULL, 16);
+	if (entry.Flags & VFSE_ENCRYPTED) {
+		Uint32 filenameHash = (int)strtol(entry.Name.c_str(), NULL, 16);
 
 		CryptoXOR(memory, copyLength, filenameHash, true);
 	}
 
 	// Decompress it if it's compressed
-	if (entry->Flags & VFSE_COMPRESSED) {
-		Uint8* compressedMemory = (Uint8*)Memory::Malloc(entry->CompressedSize);
+	if (entry.Flags & VFSE_COMPRESSED) {
+		Uint8* compressedMemory = (Uint8*)Memory::Malloc(entry.CompressedSize);
 		if (!compressedMemory) {
-			Memory::Free(memory);
+			Memory::Free(&memory);
 			return false;
 		}
 
-		size_t compressedCopyLength = entry->CompressedSize;
-		if (compressedCopyLength > entry->Size) {
-			compressedCopyLength = entry->Size;
+		size_t compressedCopyLength = entry.CompressedSize;
+		if (compressedCopyLength > entry.Size) {
+			compressedCopyLength = entry.Size;
 		}
 		memcpy(compressedMemory, memory, compressedCopyLength);
 
 		Uint8* srcData = memory;
-		size_t srcSize = (size_t)entry->Size;
+		size_t srcSize = (size_t)entry.Size;
 		Uint8* destData = compressedMemory;
-		size_t destSize = (size_t)entry->CompressedSize;
+		size_t destSize = (size_t)entry.CompressedSize;
 		if (destSize > copyLength) {
 			destSize = copyLength;
 		}
@@ -241,12 +241,8 @@ VFSEnumeration HatchVFS::EnumerateFiles(const char* path) {
 	return ArchiveVFS::EnumerateFiles(path);
 }
 
-Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {
-	if (entry == nullptr) {
-		return nullptr;
-	}
-
-	MemoryStream* memStream = MemoryStream::New(entry->Size);
+Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry &entry) {
+	MemoryStream* memStream = MemoryStream::New(entry.Size);
 	if (memStream == nullptr) {
 		return nullptr;
 	}
@@ -254,11 +250,11 @@ Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {
 	Uint8* memory = memStream->pointer_start;
 
 	// Read cached data if available
-	if (entry->CachedData) {
-		memcpy(memory, entry->CachedData, entry->Size);
+	if (entry.CachedData) {
+		memcpy(memory, entry.CachedData, entry.Size);
 	}
 	// Else, read from file
-	else if (!ReadEntryData(entry, memory, entry->Size)) {
+	else if (!ReadEntryData(entry, memory, entry.Size)) {
 		memStream->Close();
 
 		return nullptr;
@@ -325,7 +321,7 @@ bool HatchVFS::Flush() {
 				return false;
 			}
 
-			if (!ReadEntryData(entry, memory, entry->Size)) {
+			if (!ReadEntryData(*entry, memory, entry->Size)) {
 				Log::Print(Log::LOG_ERROR,
 					"Could not read entry %s!",
 					entry->Name.c_str());

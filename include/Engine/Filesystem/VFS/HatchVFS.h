@@ -10,7 +10,7 @@ private:
 	static void CryptoXOR(Uint8* data, size_t size, Uint32 filenameHash, bool decrypt);
 
 protected:
-	Stream* OpenMemStreamForEntry(VFSEntry* entry);
+	Stream* OpenMemStreamForEntry(VFSEntry &entry);
 
 public:
 	HatchVFS(Uint16 flags) : ArchiveVFS(flags) {};
@@ -21,7 +21,7 @@ public:
 	virtual std::string TransformFilename(const char* filename);
 	virtual bool SupportsCompression();
 	virtual bool SupportsEncryption();
-	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
+	virtual bool ReadEntryData(VFSEntry &entry, Uint8 *memory, size_t memSize);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual VFSEnumeration EnumerateFiles(const char* path);

@@ -59,7 +59,7 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 		memcpy(memory, entry->CachedData, entry->Size);
 	}
 	// Else, read from file
-	else if (!ReadEntryData(entry, memory, entry->Size)) {
+	else if (!ReadEntryData(*entry, memory, entry->Size)) {
 		Memory::Free(memory);
 
 		return false;
@@ -71,7 +71,7 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return true;
 }
 
-bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
+bool ArchiveVFS::ReadEntryData(VFSEntry &entry, Uint8 *memory, size_t memSize) {
 	return false;
 }
 
@@ -140,26 +140,29 @@ VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
 	return enumeration;
 }
 
-Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry* entry) {
-	if (entry == nullptr || entry->CachedData == nullptr) {
+Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry &entry) {
+	if (entry.CachedData == nullptr) {
 		return nullptr;
 	}
 
-	MemoryStream* memStream = MemoryStream::New(entry->Size);
+	MemoryStream* memStream = MemoryStream::New(entry.Size);
 	if (memStream == nullptr) {
 		return nullptr;
 	}
 
-	memset(memStream->pointer_start, 0x00, entry->Size);
-	memcpy(memStream->pointer_start, entry->CachedData, entry->Size);
+	memset(memStream->pointer_start, 0x00, entry.Size);
+	memcpy(memStream->pointer_start, entry.CachedData, entry.Size);
 
 	return (Stream*)memStream;
 }
 
 Stream* ArchiveVFS::OpenReadStream(const char* filename) {
 	VFSEntry* entry = FindFile(filename);
+	if (entry == nullptr){
+		return nullptr;
+	}
 
-	Stream* memStream = OpenMemStreamForEntry(entry);
+	Stream* memStream = OpenMemStreamForEntry(*entry);
 	if (memStream) {
 		memStream->MakeWritable(false);
 		AddOpenStream(entry, memStream);
@@ -178,7 +181,7 @@ Stream* ArchiveVFS::OpenWriteStream(const char* filename) {
 		PutFile(filename, entry);
 	}
 
-	Stream* memStream = OpenMemStreamForEntry(entry);
+	Stream* memStream = OpenMemStreamForEntry(*entry);
 	if (memStream) {
 		AddOpenStream(entry, memStream);
 	}
@@ -188,8 +191,11 @@ Stream* ArchiveVFS::OpenWriteStream(const char* filename) {
 
 Stream* ArchiveVFS::OpenAppendStream(const char* filename) {
 	VFSEntry* entry = FindFile(filename);
+	if (entry == nullptr){
+		return nullptr;
+	}
 
-	Stream* memStream = OpenMemStreamForEntry(entry);
+	Stream* memStream = OpenMemStreamForEntry(*entry);
 	if (memStream) {
 		memStream->Seek(memStream->Length());
 		AddOpenStream(entry, memStream);
