@@ -22,6 +22,8 @@ inline Uint32 TranslateHashMapIndex(Uint32 index) {
 	return index;
 }
 
+using HashFuncPtr =  Uint32 (*)(const void*, size_t);
+
 template<typename T>
 struct HashMapElement {
 	Uint32 Key;
@@ -37,9 +39,9 @@ public:
 	int Capacity = 0;
 	HashMapElement<T>* Data = NULL;
 
-	Uint32 (*HashFunction)(const void*, size_t) = NULL;
+	HashFuncPtr HashFunction = NULL;
 
-	HashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = NULL, int capacity = 16) {
+	HashMap<T>(HashFuncPtr hashFunc = NULL, int capacity = 16) {
 		HashFunction = hashFunc;
 		if (HashFunction == NULL) {
 			HashFunction = Murmur::EncryptData;
@@ -47,7 +49,7 @@ public:
 
 		Count = 0;
 		Capacity = capacity;
-		CapacityMask = Capacity - 1;
+		CapacityMask = capacity - 1;
 
 		Data = (HashMapElement<T>*)Memory::TrackedCalloc(
 			"HashMap::Data", Capacity, sizeof(HashMapElement<T>));
