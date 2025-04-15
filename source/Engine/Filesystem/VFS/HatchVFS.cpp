@@ -5,6 +5,7 @@
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
+#include <Engine/Utilities/StringUtils.h>
 
 #define MAGIC_HATCH_SIZE 5
 
@@ -173,9 +174,13 @@ bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 
 	// Decrypt it if it's encrypted
 	if (entry->Flags & VFSE_ENCRYPTED) {
-		Uint32 filenameHash = (int)strtol(entry->Name.c_str(), NULL, 16);
+		// Get decryption hash from filename
+		Uint32 hash = 0;
 
-		CryptoXOR(memory, copyLength, filenameHash, true);
+		// Result doesn't need to be checked because it's guaranteed to be valid.
+		StringUtils::HexToUint32(&hash, entry->Name.c_str());
+
+		CryptoXOR(memory, copyLength, hash, true);
 	}
 
 	// Decompress it if it's compressed
@@ -306,7 +311,11 @@ bool HatchVFS::Flush() {
 		std::string entryName = EntryNames[i];
 		VFSEntry* entry = Entries[entryName];
 
-		Uint32 hash = (int)strtol(entryName.c_str(), NULL, 16);
+		// Get filename hash to write
+		Uint32 hash = 0;
+
+		// Result doesn't need to be checked because it's guaranteed to be valid.
+		StringUtils::HexToUint32(&hash, entryName.c_str());
 
 		Uint8* cachedData = entry->CachedData;
 		Uint8* cachedDataInFile = entry->CachedDataInFile;
