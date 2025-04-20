@@ -3,26 +3,8 @@
 
 #include <Engine/Includes/Standard.h>
 
-#if WIN32
-// https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-#define MAX_PATH_LENGTH 260
-#elif LINUX
-#include <linux/limits.h>
-
-#define MAX_PATH_LENGTH PATH_MAX
-#define MAX_FILENAME_LENGTH NAME_MAX
-#elif MACOSX
-#include <sys/syslimits.h>
-
-#define MAX_PATH_LENGTH PATH_MAX
-#define MAX_FILENAME_LENGTH NAME_MAX
-#else
-#define MAX_PATH_LENGTH 256
-#endif
-
-#ifndef MAX_FILENAME_LENGTH
+#define MAX_PATH_LENGTH 4096
 #define MAX_FILENAME_LENGTH 256
-#endif
 
 enum PathLocation {
 	// The default location.
