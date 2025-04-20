@@ -152,6 +152,7 @@ void Application::Init(int argc, char* args[]) {
 			Directory::Create(appSupportPath);
 		}
 		chdir(appSupportPath);
+		PortableMode = true;
 	}
 #endif
 
