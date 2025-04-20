@@ -155,6 +155,10 @@ void Application::Init(int argc, char* args[]) {
 	}
 #endif
 
+#ifdef PORTABLE_MODE
+	PortableMode = true;
+#endif
+
 	Log::Init();
 
 	MemoryPools::Init();
