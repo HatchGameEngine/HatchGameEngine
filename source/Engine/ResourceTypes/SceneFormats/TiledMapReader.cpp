@@ -291,7 +291,7 @@ ObjArray* TiledMapReader::ParsePolyPoints(XMLNode* node) {
 }
 
 Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
-	char imagePath[MAX_PATH_LENGTH];
+	char imagePath[MAX_RESOURCE_PATH_LENGTH];
 
 	Token image_source = node->attributes.Get("source");
 	snprintf(imagePath,
@@ -415,7 +415,7 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	XMLNode* tilesetXML = NULL;
 	XMLNode* tilesetNode = NULL;
 
-	char tilesetXMLPath[MAX_PATH_LENGTH];
+	char tilesetXMLPath[MAX_RESOURCE_PATH_LENGTH];
 
 	// If this is an external tileset, read the XML from that file.
 	if (tileset->attributes.Exists("source")) {

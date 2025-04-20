@@ -152,7 +152,7 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 		return false;
 	}
 
-	char resourcePath[MAX_PATH_LENGTH];
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return false;
 	}
@@ -211,7 +211,7 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 }
 
 Stream* FileSystemVFS::OpenReadStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return nullptr;
 	}
@@ -226,7 +226,7 @@ Stream* FileSystemVFS::OpenReadStream(const char* filename) {
 }
 
 Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return nullptr;
 	}
@@ -246,7 +246,7 @@ Stream* FileSystemVFS::OpenWriteStream(const char* filename) {
 }
 
 Stream* FileSystemVFS::OpenAppendStream(const char* filename) {
-	char resourcePath[MAX_PATH_LENGTH];
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 	if (!GetPath(filename, resourcePath, sizeof resourcePath)) {
 		return nullptr;
 	}

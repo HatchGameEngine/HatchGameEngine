@@ -6,6 +6,8 @@
 #define MAX_PATH_LENGTH 4096
 #define MAX_FILENAME_LENGTH 256
 
+#define MAX_RESOURCE_PATH_LENGTH 1024
+
 enum PathLocation {
 	// The default location.
 	// This is usually the current directory, but it may not be

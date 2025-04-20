@@ -1673,7 +1673,7 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	char* filename = StringUtils::NormalizePath(sceneFilename);
 
-	char pathParent[MAX_PATH_LENGTH];
+	char pathParent[MAX_RESOURCE_PATH_LENGTH];
 	StringUtils::Copy(pathParent, filename, sizeof(pathParent));
 	for (char* i = pathParent + strlen(pathParent); i >= pathParent; i--) {
 		if (*i == '/') {
