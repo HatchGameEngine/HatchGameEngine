@@ -14,11 +14,12 @@
 
 class Application {
 private:
-	static void MakeEngineVersion();
 	static void LogEngineVersion();
 	static void LogSystemInfo();
-	static void Restart();
+	static void MakeEngineVersion();
+	static bool DetectEnvironmentRestriction();
 	static void CreateWindow();
+	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -70,6 +71,7 @@ public:
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
+	static bool IsEnvironmentRestricted();
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();

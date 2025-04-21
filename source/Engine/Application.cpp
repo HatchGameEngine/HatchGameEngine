@@ -142,22 +142,10 @@ void Application::Init(int argc, char* args[]) {
 
 	Application::MakeEngineVersion();
 
-#ifdef MACOSX
-	// Set environment
-	char appSupportPath[MAX_PATH_LENGTH];
-	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
-	if (isBundle) {
-		strcat(appSupportPath, "/" TARGET_NAME);
-		if (!Directory::Exists(appSupportPath)) {
-			Directory::Create(appSupportPath);
-		}
-		chdir(appSupportPath);
+#ifdef PORTABLE_MODE
+	if (!Application::IsEnvironmentRestricted()) {
 		PortableMode = true;
 	}
-#endif
-
-#ifdef PORTABLE_MODE
-	PortableMode = true;
 #endif
 
 	Log::Init();
@@ -378,6 +366,39 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+// A "restricted environment" just means that the system may restrict file operations to happen
+// under a specific path in the filesystem, possibly blocking any access outside of it.
+// Android, iOS, and macOS app bundles are "restricted" in one way or another, but
+// a Windows .exe or a non-sandboxed Linux executable isn't.
+bool Application::IsEnvironmentRestricted() {
+	// This may be an expensive call, so we cache the result.
+	static int isRestricted = -1;
+	if (isRestricted == -1) {
+		isRestricted = Application::DetectEnvironmentRestriction() ? 1 : 0;
+	}
+
+	return (isRestricted == 1) ? true : false;
+}
+
+// Should only be called once
+bool Application::DetectEnvironmentRestriction() {
+#ifdef MACOSX
+	char appSupportPath[MAX_PATH_LENGTH];
+	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
+	if (isBundle) {
+		// Actually, don't change the current directory.
+		// If you're not using PathLocation, you're on your own.
+		return true;
+	}
+#elif defined(ANDROID) || defined(IOS) || defined(SWITCH) || defined(XBOX) || defined(PLAYSTATION)
+	return true;
+#endif
+
+	// TODO: Flatpak and Snap on Linux.
+
+	return false;
 }
 
 // Returns a "safe" version of the developer's name (for e.g. file names)
@@ -1567,7 +1588,9 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
 #ifndef PORTABLE_MODE
-		ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+		if (!Application::IsEnvironmentRestricted()) {
+			ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+		}
 #endif
 		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
 		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
