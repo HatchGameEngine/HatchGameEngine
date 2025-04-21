@@ -394,11 +394,10 @@ bool Application::DetectEnvironmentRestriction() {
 	}
 #elif defined(ANDROID) || defined(IOS) || defined(SWITCH) || defined(XBOX) || defined(PLAYSTATION)
 	return true;
-#endif
-
+#else
 	// TODO: Flatpak and Snap on Linux.
-
 	return false;
+#endif
 }
 
 // Returns a "safe" version of the developer's name (for e.g. file names)
