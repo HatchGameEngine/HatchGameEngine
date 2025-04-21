@@ -1566,7 +1566,9 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
+#ifndef PORTABLE_MODE
 		ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+#endif
 		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
 		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 	}
