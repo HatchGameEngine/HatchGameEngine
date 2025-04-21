@@ -32,6 +32,7 @@ struct HashMapElement {
 	bool Used;
 	T Data;
 };
+
 template<typename T>
 class HashMap {
 public:

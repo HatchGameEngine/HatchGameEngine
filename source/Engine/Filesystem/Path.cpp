@@ -74,7 +74,7 @@ std::string Path::Concat(const std::string &pathA, const std::string &pathB) {
 
 	std::filesystem::path fsResult = fsPathA / fsPathB;
 
-	std::string result = fsResult.u8string();
+	std::string result = fsResult.string();
 
 #if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
@@ -117,7 +117,7 @@ bool Path::IsInDir(const char* dirPath, const char* path) {
 	std::filesystem::path normBase = basePath.lexically_normal();
 	std::filesystem::path finalPath = (normBase / fsPath).lexically_normal();
 
-	if (!AreMatching(normBase.u8string(), finalPath.u8string())) {
+	if (!AreMatching(normBase.string(), finalPath.string())) {
 		return false;
 	}
 
@@ -167,7 +167,7 @@ bool Path::HasRelativeComponents(const char* path) {
 std::string Path::Normalize(const std::string &path) {
 	std::filesystem::path fsPath = std::filesystem::u8path(path);
 
-	std::string result = fsPath.lexically_normal().u8string();
+	std::string result = fsPath.lexically_normal().string();
 
 #if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
@@ -276,7 +276,7 @@ std::string Path::GetBaseConfigPath() {
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &winPath) == S_OK) {
 		std::filesystem::path fsPath = std::filesystem::path(winPath);
 
-		basePath = fsPath.u8string();
+		basePath = fsPath.string();
 		std::replace(basePath.begin(), basePath.end(), '\\', '/');
 
 		CoTaskMemFree(winPath);
@@ -503,7 +503,7 @@ bool Path::FromLocation(const std::string &path,
 	detectedPathFs = detectedPathFs.lexically_normal();
 
 	std::filesystem::path combined = pathForLocationFs / detectedPathFs;
-	std::string finalPath = combined.lexically_normal().u8string();
+	std::string finalPath = combined.lexically_normal().string();
 
 	if (finalPath.size() == 0) {
 		return false;
@@ -517,7 +517,7 @@ bool Path::FromLocation(const std::string &path,
 		return false;
 	}
 
-	if (!AreMatching(pathForLocationFs.u8string(), finalPath)) {
+	if (!AreMatching(pathForLocationFs.string(), finalPath)) {
 		return false;
 	}
 

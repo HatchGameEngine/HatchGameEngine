@@ -116,7 +116,7 @@ void SourceFileMap::CheckForUpdate() {
 
 	SourceFileMap::DirectoryChecksum = 0x0;
 	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = list[i].u8string();
+		std::string asStr = list[i].string();
 		const char* listEntry = asStr.c_str();
 		const char* filename = listEntry + scriptFolderNameLen;
 		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
@@ -145,7 +145,7 @@ void SourceFileMap::CheckForUpdate() {
 	size_t scriptFolderPathLen = scriptFolderPathStr.size();
 
 	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = list[i].u8string();
+		std::string asStr = list[i].string();
 		const char* listEntry = asStr.c_str();
 		const char* filename = strrchr(listEntry, '/');
 		Uint32 filenameHash = 0;

@@ -11,8 +11,8 @@
 #endif
 
 bool CompareFunction(std::filesystem::path i, std::filesystem::path j) {
-	std::string pathA = i.u8string();
-	std::string pathB = j.u8string();
+	std::string pathA = i.string();
+	std::string pathB = j.string();
 
 	return pathA.compare(pathB) < 0;
 }
@@ -104,7 +104,7 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 					std::filesystem::path(std::string(path));
 				std::filesystem::path entryFs = std::filesystem::path(entryName);
 
-				std::string tempPath = (pathFs / entryFs).u8string();
+				std::string tempPath = (pathFs / entryFs).string();
 				std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 
 				std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
@@ -194,7 +194,7 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 					std::filesystem::path entryFs =
 						std::filesystem::path(entryName);
 
-					std::string tempPath = (pathFs / entryFs).u8string();
+					std::string tempPath = (pathFs / entryFs).string();
 					std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 
 					std::filesystem::path finalPath =
