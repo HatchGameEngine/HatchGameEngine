@@ -373,6 +373,9 @@ bool Application::IsMobile() {
 // Android, iOS, and macOS app bundles are "restricted" in one way or another, but
 // a Windows .exe or a non-sandboxed Linux executable isn't.
 bool Application::IsEnvironmentRestricted() {
+#if defined(ANDROID) || defined(IOS) || defined(SWITCH) || defined(XBOX) || defined(PLAYSTATION)
+	return true;
+#else
 	// This may be an expensive call, so we cache the result.
 	static int isRestricted = -1;
 	if (isRestricted == -1) {
@@ -380,6 +383,7 @@ bool Application::IsEnvironmentRestricted() {
 	}
 
 	return (isRestricted == 1) ? true : false;
+#endif
 }
 
 // Should only be called once
@@ -392,12 +396,22 @@ bool Application::DetectEnvironmentRestriction() {
 		// If you're not using PathLocation, you're on your own.
 		return true;
 	}
-#elif defined(ANDROID) || defined(IOS) || defined(SWITCH) || defined(XBOX) || defined(PLAYSTATION)
-	return true;
-#else
-	// TODO: Flatpak and Snap on Linux.
-	return false;
+#elif LINUX
+	// Flatpak sets this... allegedly.
+	if (SDL_getenv("container") != nullptr) {
+		return true;
+	}
+	// Snap (see https://snapcraft.io/docs/environment-variables)
+	else if (SDL_getenv("SNAP_DATA") != nullptr) {
+		return true;
+	}
+	// AppImage (see https://docs.appimage.org/packaging-guide/environment-variables.html)
+	else if (SDL_getenv("APPIMAGE") != nullptr) {
+		return true;
+	}
 #endif
+
+	return false;
 }
 
 // Returns a "safe" version of the developer's name (for e.g. file names)
