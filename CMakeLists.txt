@@ -9,16 +9,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
-else()
-  set(HATCH_OPT_FLAGS "-Ofast")
-  #set(HATCH_OPT_FLAGS "-Ofast -fanalyzer")
+
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(HATCH_OPT_FLAGS "-Ofast")
+    #set(HATCH_OPT_FLAGS "-Ofast -fanalyzer")
+  else()
+    #-0fast is depreciated in clang
+    set(HATCH_OPT_FLAGS "-O3 -ffast-math")
+  endif()
+
+
   if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
     set(HATCH_OPT_FLAGS "${HATCH_OPT_FLAGS} -march=nocona")
   endif()
+
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${HATCH_OPT_FLAGS}")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${HATCH_OPT_FLAGS}")
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${HATCH_OPT_FLAGS}")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${HATCH_OPT_FLAGS}")
+
+else()
+  message(WARNING "The compiler you are using (" ${CMAKE_CXX_COMPILER_ID} ") does not have implemented configurations for building Hatch Engine!")
 endif()
 
 # Set up CMake modules path
@@ -129,7 +142,7 @@ endif()
 
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 
-set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE}-${CMAKE_CXX_COMPILER_ID})
 
 # Change executable name
 if(EXECUTABLE_NAME)
