@@ -362,7 +362,7 @@ void HatchSceneReader::FreeClasses() {
 bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	int curTileCount = (int)Scene::TileSpriteInfos.size();
 
-	char tilesetFile[MAX_PATH_LENGTH];
+	char tilesetFile[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(tilesetFile, sizeof(tilesetFile), "%s/Tileset.png", parentFolder);
 
 	ISprite* tileSprite = new ISprite();

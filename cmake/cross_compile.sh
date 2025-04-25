@@ -26,6 +26,9 @@ CMAKE_GENERATOR="Unix Makefiles"
 # Developer mode
 DEVELOPER_MODE=OFF
 
+# Portable mode
+PORTABLE_MODE=OFF
+
 # Allow loading .hatch resource files from the command line parameters
 ALLOW_COMMAND_LINE_RESOURCE_LOAD=OFF
 
@@ -40,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     -g|--cmake-generator) CMAKE_GENERATOR="$2"; shift; shift ;;
     -v|--enable-vm-debugging) ENABLE_VM_DEBUGGING="$2"; shift; shift ;;
     -d|--developer-mode) DEVELOPER_MODE=ON; shift ;;
+    -p|--portable-mode) PORTABLE_MODE=ON; shift ;;
     -h|--allow-command-line-resource-load) ALLOW_COMMAND_LINE_RESOURCE_LOAD=ON; shift ;;
     -*|--*) echo "Unknown option $1"; exit 1 ;;
     *) POSITIONAL_ARGS+=("$1"); shift ;;
@@ -55,6 +59,7 @@ cmake  \
   -DENABLE_VM_DEBUGGING=${ENABLE_VM_DEBUGGING} \
   -DEXECUTABLE_NAME=${EXECUTABLE_NAME} \
   -DDEVELOPER_MODE=${DEVELOPER_MODE} \
+  -DPORTABLE_MODE=${PORTABLE_MODE} \
   -DALLOW_COMMAND_LINE_RESOURCE_LOAD=${ALLOW_COMMAND_LINE_RESOURCE_LOAD} \
   -DTARGET_NAME=${TARGET_NAME} \
   -DRESOURCE_FILE=${RESOURCE_FILE} \

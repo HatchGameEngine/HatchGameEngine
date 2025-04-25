@@ -73,6 +73,7 @@ endif()
 option(ENABLE_VM_DEBUGGING "Enable VM debugging" ${DEBUG_FEATURES_DEFAULT})
 option(DEVELOPER_MODE "Developer mode" ${DEBUG_FEATURES_DEFAULT})
 option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ${DEBUG_FEATURES_DEFAULT})
+option(PORTABLE_MODE "Portable mode" OFF)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
@@ -120,6 +121,10 @@ endif()
 
 if(DEVELOPER_MODE)
   add_definitions(-DDEVELOPER_MODE)
+endif()
+
+if(PORTABLE_MODE)
+  add_definitions(-DPORTABLE_MODE)
 endif()
 
 if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)

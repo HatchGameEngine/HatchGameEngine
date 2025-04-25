@@ -652,7 +652,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	}
 
 	// Load StageConfig palettes
-	char stageConfigFilename[MAX_PATH_LENGTH];
+	char stageConfigFilename[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(
 		stageConfigFilename, sizeof stageConfigFilename, "%sStageConfig.bin", parentFolder);
 	if (ResourceManager::ResourceExists(stageConfigFilename)) {
@@ -667,7 +667,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 	Graphics::UsePalettes = true;
 
-	char filename16x16Tiles[MAX_PATH_LENGTH];
+	char filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(filename16x16Tiles, sizeof(filename16x16Tiles), "%s16x16Tiles.gif", parentFolder);
 	{
 		GIF* gif;

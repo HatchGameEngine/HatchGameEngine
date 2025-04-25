@@ -142,16 +142,9 @@ void Application::Init(int argc, char* args[]) {
 
 	Application::MakeEngineVersion();
 
-#ifdef MACOSX
-	// Set environment
-	char appSupportPath[MAX_PATH_LENGTH];
-	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
-	if (isBundle) {
-		strcat(appSupportPath, "/" TARGET_NAME);
-		if (!Directory::Exists(appSupportPath)) {
-			Directory::Create(appSupportPath);
-		}
-		chdir(appSupportPath);
+#ifdef PORTABLE_MODE
+	if (!Application::IsEnvironmentRestricted()) {
+		PortableMode = true;
 	}
 #endif
 
@@ -373,6 +366,52 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+// A "restricted environment" just means that the system may restrict file operations to happen
+// under a specific path in the filesystem, possibly blocking any access outside of it.
+// Android, iOS, and macOS app bundles are "restricted" in one way or another, but
+// a Windows .exe or a non-sandboxed Linux executable isn't.
+bool Application::IsEnvironmentRestricted() {
+#if defined(ANDROID) || defined(IOS) || defined(SWITCH) || defined(XBOX) || defined(PLAYSTATION)
+	return true;
+#else
+	// This may be an expensive call, so we cache the result.
+	static int isRestricted = -1;
+	if (isRestricted == -1) {
+		isRestricted = Application::DetectEnvironmentRestriction() ? 1 : 0;
+	}
+
+	return (isRestricted == 1) ? true : false;
+#endif
+}
+
+// Should only be called once
+bool Application::DetectEnvironmentRestriction() {
+#ifdef MACOSX
+	char appSupportPath[MAX_PATH_LENGTH];
+	int isBundle = MacOS_GetApplicationSupportDirectory(appSupportPath, sizeof appSupportPath);
+	if (isBundle) {
+		// Actually, don't change the current directory.
+		// If you're not using PathLocation, you're on your own.
+		return true;
+	}
+#elif LINUX
+	// Flatpak sets this... allegedly.
+	if (SDL_getenv("container") != nullptr) {
+		return true;
+	}
+	// Snap (see https://snapcraft.io/docs/environment-variables)
+	else if (SDL_getenv("SNAP_DATA") != nullptr) {
+		return true;
+	}
+	// AppImage (see https://docs.appimage.org/packaging-guide/environment-variables.html)
+	else if (SDL_getenv("APPIMAGE") != nullptr) {
+		return true;
+	}
+#endif
+
+	return false;
 }
 
 // Returns a "safe" version of the developer's name (for e.g. file names)
@@ -1561,7 +1600,11 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
-		ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+#ifndef PORTABLE_MODE
+		if (!Application::IsEnvironmentRestricted()) {
+			ParseGameConfigBool(node, "portableMode", Application::PortableMode);
+		}
+#endif
 		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
 		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 	}

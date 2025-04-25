@@ -199,6 +199,38 @@ bool StringUtils::ToNumber(int* dst, string src) {
 bool StringUtils::ToDecimal(double* dst, string src) {
 	return ToDecimal(dst, src.c_str());
 }
+bool StringUtils::HexToUint32(Uint32* dst, const char* hexstr) {
+	if (hexstr == nullptr || *hexstr == '\0') {
+		return false;
+	}
+
+	Uint32 result = 0;
+
+	do {
+		char chr = *hexstr;
+		unsigned val;
+
+		if (chr >= '0' && chr <= '9') {
+			val = chr - '0';
+		}
+		else if (chr >= 'A' && chr <= 'F') {
+			val = chr - 'A' + 10;
+		}
+		else if (chr >= 'a' && chr <= 'f') {
+			val = chr - 'a' + 10;
+		}
+		else {
+			return false;
+		}
+
+		result = (result << 4) | (val & 0xF);
+		hexstr++;
+	} while (*hexstr != '\0');
+
+	*dst = result;
+
+	return true;
+}
 char* StringUtils::GetPath(const char* filename) {
 	if (!filename) {
 		return nullptr;
