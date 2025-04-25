@@ -173,12 +173,12 @@ bool HatchVFS::ReadEntryData(VFSEntry &entry, Uint8 *memory, size_t memSize){
 	StreamPtr->ReadBytes(memory, copyLength);
 
 	// Decrypt it if it's encrypted
-	if (entry->Flags & VFSE_ENCRYPTED) {
+	if (entry.Flags & VFSE_ENCRYPTED) {
 		// Get decryption hash from filename
 		Uint32 hash = 0;
 
 		// Result doesn't need to be checked because it's guaranteed to be valid.
-		StringUtils::HexToUint32(&hash, entry->Name.c_str());
+		StringUtils::HexToUint32(&hash, entry.Name.c_str());
 
 		CryptoXOR(memory, copyLength, hash, true);
 	}

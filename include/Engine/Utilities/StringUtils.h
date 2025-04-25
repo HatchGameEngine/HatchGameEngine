@@ -23,6 +23,7 @@ namespace StringUtils {
 	bool ToDecimal(double* dst, const char* src);
 	bool ToNumber(int* dst, string src);
 	bool ToDecimal(double* dst, string src);
+	bool HexToUint32(Uint32* dst, const char* hexstr);
 	char* GetPath(const char* filename);
 	const char* GetFilename(const char* filename);
 	const char* GetExtension(const char* filename);
