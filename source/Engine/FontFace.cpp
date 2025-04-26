@@ -257,7 +257,7 @@ ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* fil
 	bool exportFonts = false;
 	Application::Settings->GetBool("dev", "exportFonts", &exportFonts);
 	if (exportFonts) {
-		char* filenameJustName = filename + strlen(filename) - 1;
+		const char* filenameJustName = filename + strlen(filename) - 1;
 		for (; filenameJustName > filename; filenameJustName--) {
 			if (*filenameJustName == '/') {
 				filenameJustName++;
