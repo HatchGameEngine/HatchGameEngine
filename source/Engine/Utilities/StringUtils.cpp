@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -200,9 +201,10 @@ bool StringUtils::ToDecimal(double* dst, string src) {
 	return ToDecimal(dst, src.c_str());
 }
 bool StringUtils::HexToUint32(Uint32* dst, const char* hexstr) {
-	if (hexstr == nullptr || *hexstr == '\0') {
-		return false;
-	}
+	ERROR_RET_VAL(hexstr != nullptr && *hexstr != '\0', false);
+	//if (hexstr == nullptr || *hexstr == '\0') {
+	//	return false;
+	//}
 
 	Uint32 result = 0;
 

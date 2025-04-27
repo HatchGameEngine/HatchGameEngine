@@ -95,10 +95,11 @@ void MD3Model::ReadVertexIndices(Sint32* indices, Sint32 triangleCount, Stream* 
 
 Mesh* MD3Model::ReadSurface(IModel* model, Stream* stream, size_t surfaceDataOffset) {
 	Sint32 magic = stream->ReadUInt32BE();
-	if (magic != MD3_MODEL_MAGIC) {
-		Log::Print(Log::LOG_ERROR, "Invalid magic for MD3 surface!");
-		return nullptr;
-	}
+	ERROR_RET_VAL(magic == MD3_MODEL_MAGIC, nullptr, "Invalid magic for MD3 surface!");
+// 	if (magic != MD3_MODEL_MAGIC) {
+// 		Log::Print(Log::LOG_ERROR, "Invalid magic for MD3 surface!");
+// 		return nullptr;
+// 	}
 
 	// Read mesh data
 	Mesh* mesh = new Mesh;

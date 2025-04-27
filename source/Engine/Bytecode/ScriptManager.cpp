@@ -817,10 +817,11 @@ bool ScriptManager::CallFunction(char* functionName) {
 }
 Entity* ScriptManager::SpawnObject(const char* objectName) {
 	ObjClass* klass = GetObjectClass(objectName);
-	if (!klass) {
-		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
-		return nullptr;
-	}
+	ERROR_RET_VAL(klass, nullptr, "Could not find class of %s!", objectName);
+// 	if (!klass) {
+// 		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
+// 		return nullptr;
+// 	}
 
 	ScriptEntity* object = new ScriptEntity;
 

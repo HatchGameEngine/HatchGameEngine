@@ -31,10 +31,11 @@ struct VideoPacket {
 
 // Lifecycle functions
 VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
-	if (stream_index < 0) {
-		Log::Print(Log::LOG_ERROR, "stream_index < 0");
-		return;
-	}
+	ERROR_RET_VOID(stream_index >= 0, "stream_index < 0");
+// 	if (stream_index < 0) {
+// 		Log::Print(Log::LOG_ERROR, "stream_index < 0");
+// 		return;
+// 	}
 
 	Decoder::Create(src,
 		stream_index,

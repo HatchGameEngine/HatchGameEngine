@@ -62,11 +62,13 @@ bool ResourceManager::Init(const char* filename) {
 		}
 	}
 
-	if (GetMainResource() == nullptr) {
-		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
+	ERROR_RET_VAL(GetMainResource != nullptr, false, "No resource files loaded!");
 
-		return false;
-	}
+// 	if (GetMainResource() == nullptr) {
+// 		Log::Print(Log::LOG_ERROR, "No resource files loaded!");
+//
+// 		return false;
+// 	}
 
 	return true;
 }
