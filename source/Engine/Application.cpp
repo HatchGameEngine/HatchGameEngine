@@ -87,6 +87,7 @@ char Application::GameTitle[256];
 char Application::GameTitleShort[256];
 char Application::GameVersion[256];
 char Application::GameDescription[256];
+char Application::GameDeveloper[256];
 
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
@@ -521,6 +522,17 @@ char* Application::GenerateIdentifier(const char* string) {
 	buf[i] = '\0';
 
 	return (char*)Memory::Realloc(buf, i + 1);
+}
+
+bool Application::ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize) {
+	if (Application::ValidateIdentifier(id)) {
+		StringUtils::Copy(dest, id, destSize);
+		return true;
+	}
+
+	Log::Print(Log::LOG_WARN, "Not a valid %s: %s", name, id);
+
+	return false;
 }
 
 // Returns a "safe" version of the developer's name (for e.g. file names)
@@ -1835,7 +1847,8 @@ void Application::LoadGameInfo() {
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
 
-	bool setName = false;
+	bool shouldSetGameId = false;
+	bool shouldSetGameDevId = false;
 
 	if (GameConfig) {
 		XMLNode* root = GameConfig->children[0];
@@ -1848,14 +1861,14 @@ void Application::LoadGameInfo() {
 		if (node) {
 			XMLParser::CopyTokenToString(node->children[0]->name, GameTitle, sizeof(GameTitle));
 			StringUtils::Copy(GameTitleShort, GameTitle, sizeof(GameTitleShort));
-			setName = true;
+			shouldSetGameId = true;
 		}
 
 		node = XMLParser::SearchNode(root, "shortTitle");
 		if (node) {
 			XMLParser::CopyTokenToString(node->children[0]->name, GameTitleShort,
 				sizeof(GameTitleShort));
-			setName = true;
+			shouldSetGameId = true;
 		}
 
 		node = XMLParser::SearchNode(root, "version");
@@ -1871,13 +1884,67 @@ void Application::LoadGameInfo() {
 			XMLParser::CopyTokenToString(node->children[0]->name, GameDescription,
 				sizeof(GameDescription));
 		}
+
+		node = XMLParser::SearchNode(root, "developer");
+		if (node) {
+			XMLParser::CopyTokenToString(node->children[0]->name, GameDeveloper,
+				sizeof(GameDeveloper));
+			shouldSetGameDevId = true;
+		}
+
+		node = XMLParser::SearchNode(root, "gameIdentifier");
+		if (node) {
+			char *id = XMLParser::TokenToString(node->children[0]->name);
+			if (ValidateAndSetIdentifier("game identifier", id, GameIdentifier,
+				sizeof(GameIdentifier))) {
+				shouldSetGameId = false;
+			}
+
+			Memory::Free(id);
+		}
+
+		node = XMLParser::SearchNode(root, "developerIdentifier");
+		if (node) {
+			char *id = XMLParser::TokenToString(node->children[0]->name);
+			if (ValidateAndSetIdentifier("developer identifier", id, DeveloperIdentifier,
+				sizeof(DeveloperIdentifier))) {
+				shouldSetGameDevId = false;
+			}
+
+			Memory::Free(id);
+		}
+
+		ParseGameConfigBool(root, "useDeveloperIdentifierInPaths", shouldSetGameDevId);
+
+		node = XMLParser::SearchNode(root, "savesDir");
+		if (node) {
+			char *id = XMLParser::TokenToString(node->children[0]->name);
+			ValidateAndSetIdentifier("saves directory", id, SavesDir, sizeof(SavesDir));
+			Memory::Free(id);
+		}
+
+		node = XMLParser::SearchNode(root, "preferencesDir");
+		if (node) {
+			char *id = XMLParser::TokenToString(node->children[0]->name);
+			ValidateAndSetIdentifier("preferences directory", id, PreferencesDir,
+				sizeof(PreferencesDir));
+			Memory::Free(id);
+		}
 	}
 
-	if (setName) {
-		char* identifier = Application::GenerateIdentifier(GameTitleShort);
-		if (identifier != nullptr) {
-			StringUtils::Copy(GameIdentifier, identifier, sizeof(GameIdentifier));
-			Memory::Free(identifier);
+	if (shouldSetGameId) {
+		char* id = Application::GenerateIdentifier(GameTitleShort);
+		if (id != nullptr) {
+			StringUtils::Copy(GameIdentifier, id, sizeof(GameIdentifier));
+			Memory::Free(id);
+		}
+	}
+
+	if (shouldSetGameDevId) {
+		char* id = Application::GenerateIdentifier(GameDeveloper);
+		if (id != nullptr) {
+			StringUtils::Copy(DeveloperIdentifier, id, sizeof(DeveloperIdentifier));
+			Memory::Free(id);
 		}
 	}
 }

@@ -33,12 +33,16 @@ private:
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
 	static bool DetectEnvironmentRestriction();
+	static bool ValidateIdentifier(const char* string);
+	static char* GenerateIdentifier(const char* string);
+	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
 	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
+	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
 	static void RunFrameCallback(void* p);
@@ -71,6 +75,7 @@ public:
 	static char GameTitleShort[256];
 	static char GameVersion[256];
 	static char GameDescription[256];
+	static char GameDeveloper[256];
 	static int UpdatesPerFrame;
 	static int FrameSkip;
 	static bool Stepper;
@@ -87,8 +92,6 @@ public:
 	static bool IsPC();
 	static bool IsMobile();
 	static bool IsEnvironmentRestricted();
-	static bool ValidateIdentifier(const char* string);
-	static char* GenerateIdentifier(const char* string);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
