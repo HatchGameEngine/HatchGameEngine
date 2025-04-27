@@ -12,8 +12,23 @@
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
+#define DEFAULT_GAME_TITLE "Hatch Game Engine"
+#define DEFAULT_GAME_SHORT_TITLE DEFAULT_GAME_TITLE
+#define DEFAULT_GAME_VERSION "1.0"
+#define DEFAULT_GAME_DESCRIPTION "Cluck cluck I'm a chicken"
+#define DEFAULT_GAME_IDENTIFIER "hatch"
+
+#define DEFAULT_SETTINGS_FILENAME "config://config.ini"
+
+#define DEFAULT_SAVES_DIR "saves"
+
 class Application {
 private:
+	static char GameIdentifier[256];
+	static char DeveloperIdentifier[256];
+	static char SavesDir[256];
+	static char PreferencesDir[256];
+
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
@@ -72,6 +87,8 @@ public:
 	static bool IsPC();
 	static bool IsMobile();
 	static bool IsEnvironmentRestricted();
+	static bool ValidateIdentifier(const char* string);
+	static char* GenerateIdentifier(const char* string);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();

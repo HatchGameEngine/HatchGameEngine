@@ -39,7 +39,6 @@ extern "C" {
 #include <windows.h>
 #endif
 
-#define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 #define DEFAULT_MAX_FRAMESKIP 15
 
 #if WIN32
@@ -88,6 +87,11 @@ char Application::GameTitle[256];
 char Application::GameTitleShort[256];
 char Application::GameVersion[256];
 char Application::GameDescription[256];
+
+char Application::GameIdentifier[256];
+char Application::DeveloperIdentifier[256];
+char Application::SavesDir[256];
+char Application::PreferencesDir[256];
 
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
@@ -196,6 +200,7 @@ void Application::Init(int argc, char* args[]) {
 		ResourceManager::Init(NULL);
 
 	Application::LoadGameConfig();
+	Application::LoadGameInfo();
 	Application::ReloadSettings();
 
 	// Open the log file immediately after
@@ -205,7 +210,6 @@ void Application::Init(int argc, char* args[]) {
 	Application::LogSystemInfo();
 
 	// Keep loading game stuff.
-	Application::LoadGameInfo();
 	Application::LoadSceneInfo();
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
@@ -414,28 +418,145 @@ bool Application::DetectEnvironmentRestriction() {
 	return false;
 }
 
+bool IsIdentifierBody(char c) {
+	switch (c) {
+	case '.':
+	case '-':
+	case '_':
+	case ' ':
+	case '\'':
+	case '!':
+	case '@':
+	case '&':
+		return true;
+	default:
+		return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+	}
+}
+
+bool Application::ValidateIdentifier(const char* string) {
+	if (string == nullptr || string[0] == '\0') {
+		return false;
+	}
+
+	// Cannot start with a dot, a hyphen, or space
+	if (string[0] == '.' || string[0] == '-' || string[0] == ' ') {
+		return false;
+	}
+
+	const char* ptr = string;
+	while (*ptr != '\0') {
+		char c = *ptr;
+
+		if (IsIdentifierBody(c)) {
+			ptr++;
+			continue;
+		}
+
+		return false;
+	}
+
+	// Cannot end with a space
+	if ((unsigned char)(*(ptr - 1)) == ' ') {
+		return false;
+	}
+
+	// Prohibit '..'
+	if (strcmp(string, "..") == 0) {
+		return false;
+	}
+
+	return true;
+}
+
+char* Application::GenerateIdentifier(const char* string) {
+	if (string == nullptr || string[0] == '\0') {
+		return nullptr;
+	}
+
+	// Prohibit '.' or '..'
+	if (strcmp(string, ".") == 0 || strcmp(string, "..") == 0) {
+		return nullptr;
+	}
+
+	char* buf = (char *)Memory::Malloc(strlen(string) + 1);
+	size_t i = 0;
+
+	const char* ptr = string;
+	if (*ptr == '-' || *ptr == ' ') {
+		ptr++;
+	}
+	else {
+		while (*ptr == '.') {
+			ptr++;
+		}
+	}
+
+	while (*ptr != '\0') {
+		char c = *ptr;
+		if (IsIdentifierBody(c)) {
+			buf[i++] = c;
+		}
+		ptr++;
+	}
+
+	if (i == 0) {
+		Memory::Free(buf);
+		return nullptr;
+	}
+
+	// Cannot end with a space
+	i--;
+
+	while (buf[i] == ' ') {
+		if (i == 0) {
+			Memory::Free(buf);
+			return nullptr;
+		}
+		i--;
+	}
+
+	i++;
+
+	buf[i] = '\0';
+
+	return (char*)Memory::Realloc(buf, i + 1);
+}
+
 // Returns a "safe" version of the developer's name (for e.g. file names)
 const char* Application::GetDeveloperIdentifier() {
-	// TODO: Implement!
-	return NULL;
+	if (DeveloperIdentifier[0] == '\0') {
+		return nullptr;
+	}
+
+	return DeveloperIdentifier;
 }
 
 // Returns a "safe" version of the game's name (for e.g. file names)
 const char* Application::GetGameIdentifier() {
-	// TODO: Implement!
-	return "hatch";
+	if (GameIdentifier[0] == '\0') {
+		return nullptr;
+	}
+
+	return GameIdentifier;
 }
 
 // Returns the name of the saves directory
 const char* Application::GetSavesDir() {
-	// TODO: Implement!
-	return "saves";
+	if (SavesDir[0] == '\0') {
+		return nullptr;
+	}
+
+	return SavesDir;
 }
 
 // Returns the name of the preferences directory
 const char* Application::GetPreferencesDir() {
-	// TODO: Implement!
-	return NULL;
+	if (PreferencesDir[0] == '\0') {
+		return nullptr;
+	}
+
+	return PreferencesDir;
 }
 
 bool AutomaticPerformanceSnapshots = false;
@@ -685,8 +806,8 @@ void Application::Restart() {
 
 	Application::LoadGameConfig();
 	Application::LoadGameInfo();
-	Application::LoadSceneInfo();
 	Application::ReloadSettings();
+	Application::LoadSceneInfo();
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
@@ -1706,54 +1827,57 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 }
 
 void Application::LoadGameInfo() {
-	StringUtils::Copy(
-		Application::GameTitle, "Hatch Game Engine", sizeof(Application::GameTitle));
-	StringUtils::Copy(Application::GameTitleShort,
-		Application::GameTitle,
-		sizeof(Application::GameTitleShort));
-	StringUtils::Copy(Application::GameVersion, "1.0", sizeof(Application::GameVersion));
-	StringUtils::Copy(Application::GameDescription,
-		"Cluck cluck I'm a chicken",
-		sizeof(Application::GameDescription));
+	StringUtils::Copy(GameTitle, DEFAULT_GAME_TITLE, sizeof(GameTitle));
+	StringUtils::Copy(GameTitleShort, DEFAULT_GAME_SHORT_TITLE, sizeof(GameTitleShort));
+	StringUtils::Copy(GameVersion, DEFAULT_GAME_VERSION, sizeof(GameVersion));
+	StringUtils::Copy(GameDescription, DEFAULT_GAME_DESCRIPTION, sizeof(GameDescription));
 
-	if (Application::GameConfig) {
-		XMLNode* root = Application::GameConfig->children[0];
+	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
+	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+
+	bool setName = false;
+
+	if (GameConfig) {
+		XMLNode* root = GameConfig->children[0];
 
 		XMLNode* node = XMLParser::SearchNode(root, "gameTitle");
 		if (node == nullptr) {
 			node = XMLParser::SearchNode(root, "name");
 		}
+
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name,
-				Application::GameTitle,
-				sizeof(Application::GameTitle));
-			StringUtils::Copy(Application::GameTitleShort,
-				Application::GameTitle,
-				sizeof(Application::GameTitleShort));
+			XMLParser::CopyTokenToString(node->children[0]->name, GameTitle, sizeof(GameTitle));
+			StringUtils::Copy(GameTitleShort, GameTitle, sizeof(GameTitleShort));
+			setName = true;
 		}
 
 		node = XMLParser::SearchNode(root, "shortTitle");
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name,
-				Application::GameTitleShort,
-				sizeof(Application::GameTitleShort));
+			XMLParser::CopyTokenToString(node->children[0]->name, GameTitleShort,
+				sizeof(GameTitleShort));
+			setName = true;
 		}
 
 		node = XMLParser::SearchNode(root, "version");
 		if (node) {
-			std::string versionText = Application::ParseGameVersion(node);
+			std::string versionText = ParseGameVersion(node);
 			if (versionText.size() > 0) {
-				StringUtils::Copy(Application::GameVersion,
-					versionText.c_str(),
-					sizeof(Application::GameVersion));
+				StringUtils::Copy(GameVersion, versionText.c_str(), sizeof(GameVersion));
 			}
 		}
 
 		node = XMLParser::SearchNode(root, "description");
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name,
-				Application::GameDescription,
-				sizeof(Application::GameDescription));
+			XMLParser::CopyTokenToString(node->children[0]->name, GameDescription,
+				sizeof(GameDescription));
+		}
+	}
+
+	if (setName) {
+		char* identifier = Application::GenerateIdentifier(GameTitleShort);
+		if (identifier != nullptr) {
+			StringUtils::Copy(GameIdentifier, identifier, sizeof(GameIdentifier));
+			Memory::Free(identifier);
 		}
 	}
 }
