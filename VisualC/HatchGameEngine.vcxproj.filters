@@ -565,7 +565,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\meta\win\icon.rc">
+    <ResourceCompile Include="..\meta\win\HatchGameEngine.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
