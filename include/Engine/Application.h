@@ -12,18 +12,37 @@
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
+#define DEFAULT_GAME_TITLE "Hatch Game Engine"
+#define DEFAULT_GAME_SHORT_TITLE DEFAULT_GAME_TITLE
+#define DEFAULT_GAME_VERSION "1.0"
+#define DEFAULT_GAME_DESCRIPTION "Cluck cluck I'm a chicken"
+#define DEFAULT_GAME_IDENTIFIER "hatch"
+
+#define DEFAULT_SETTINGS_FILENAME "config://config.ini"
+
+#define DEFAULT_SAVES_DIR "saves"
+
 class Application {
 private:
+	static char GameIdentifier[256];
+	static char DeveloperIdentifier[256];
+	static char SavesDir[256];
+	static char PreferencesDir[256];
+
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
 	static bool DetectEnvironmentRestriction();
+	static bool ValidateIdentifier(const char* string);
+	static char* GenerateIdentifier(const char* string);
+	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
 	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
+	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
 	static void RunFrameCallback(void* p);
@@ -56,6 +75,7 @@ public:
 	static char GameTitleShort[256];
 	static char GameVersion[256];
 	static char GameDescription[256];
+	static char GameDeveloper[256];
 	static int UpdatesPerFrame;
 	static int FrameSkip;
 	static bool Stepper;
