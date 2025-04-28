@@ -462,11 +462,6 @@ bool Application::ValidateIdentifier(const char* string) {
 		return false;
 	}
 
-	// Prohibit '..'
-	if (strcmp(string, "..") == 0) {
-		return false;
-	}
-
 	return true;
 }
 
