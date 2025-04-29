@@ -1663,6 +1663,8 @@ void Scene::Unload() {
 		Scene::Layers[i].Dispose();
 	}
 	Scene::Layers.clear();
+
+	Scene::Loaded = false;
 }
 void Scene::Prepare() {
 	Scene::TileWidth = Scene::TileHeight = 16;
@@ -1671,8 +1673,6 @@ void Scene::Prepare() {
 	Scene::InitObjectListsAndRegistries();
 
 	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
-
-	Scene::Loaded = false;
 }
 void Scene::LoadScene(const char* sceneFilename) {
 	Scene::Unload();
