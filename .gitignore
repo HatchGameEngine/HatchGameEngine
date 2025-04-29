@@ -464,3 +464,4 @@ lint/tmp/
 *.hprof
 compile_commands.json
 desktop.ini
+*.kate-swp
