@@ -37,7 +37,6 @@ private:
 	static void RemoveNonPersistentObjects(Entity** first, Entity** last, int* count);
 	static void DeleteAllObjects();
 	static void ReadSceneFile(const char* filename);
-	static void AddStaticClass();
 	static void SpawnStaticObject(const char* objectName);
 	static void ReadRSDKTile(TileConfig* tile, Uint8* line);
 	static void LoadRSDKTileConfig(int tilesetID, Stream* tileColReader);
@@ -157,8 +156,10 @@ public:
 	static void Render();
 	static void AfterScene();
 	static void Restart();
+	static void Unload();
 	static void Prepare();
 	static void LoadScene(const char* filename);
+	static void AddStaticClass();
 	static void CallGameStart();
 	static void ProcessSceneTimer();
 	static ObjectList* NewObjectList(const char* objectName);

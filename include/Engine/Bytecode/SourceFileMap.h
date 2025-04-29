@@ -18,7 +18,7 @@ public:
 	static bool DoLogging;
 
 	static void CheckInit();
-	static void CheckForUpdate();
+	static bool CheckForUpdate();
 	static void Dispose();
 };
 

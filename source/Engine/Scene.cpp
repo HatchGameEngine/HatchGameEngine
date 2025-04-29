@@ -629,7 +629,10 @@ void Scene::Init() {
 
 	Compiler::GetStandardConstants();
 
-	SourceFileMap::CheckForUpdate();
+	if (SourceFileMap::CheckForUpdate()) {
+		// Force garbage collect
+		ScriptManager::ForceGarbageCollection();
+	}
 
 	Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
@@ -1596,7 +1599,7 @@ void Scene::DeleteAllObjects() {
 		});
 	}
 }
-void Scene::Prepare() {
+void Scene::Unload() {
 	// Remove non-persistent objects from lists
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1653,6 +1656,27 @@ void Scene::Prepare() {
 	}
 	Scene::Properties = NULL;
 
+	Scene::UnloadTilesets();
+	Scene::FreePriorityLists();
+
+	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Scene::Layers[i].Dispose();
+	}
+	Scene::Layers.clear();
+}
+void Scene::Prepare() {
+	Scene::TileWidth = Scene::TileHeight = 16;
+	Scene::EmptyTile = 0;
+
+	Scene::InitObjectListsAndRegistries();
+
+	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
+
+	Scene::Loaded = false;
+}
+void Scene::LoadScene(const char* sceneFilename) {
+	Scene::Unload();
+
 	// Force garbage collect
 	ScriptManager::ResetStack();
 	ScriptManager::ForceGarbageCollection();
@@ -1663,29 +1687,6 @@ void Scene::Prepare() {
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
 #endif
 
-	Scene::UnloadTilesets();
-
-	Scene::TileWidth = Scene::TileHeight = 16;
-	Scene::EmptyTile = 0;
-
-	Scene::InitObjectListsAndRegistries();
-	Scene::FreePriorityLists();
-
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		Scene::Layers[i].Dispose();
-	}
-	Scene::Layers.clear();
-
-	// Load Static class
-	if (Application::GameStart) {
-		Scene::AddStaticClass();
-	}
-
-	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
-
-	Scene::Loaded = false;
-}
-void Scene::LoadScene(const char* sceneFilename) {
 	Scene::Prepare();
 
 	if (sceneFilename == nullptr || sceneFilename[0] == '\0') {
@@ -1795,7 +1796,7 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 	return objectList;
 }
 void Scene::AddStaticClass() {
-	if (StaticObject != nullptr) {
+	if (StaticObject != nullptr || !ScriptManager::ClassExists("Static")) {
 		return;
 	}
 

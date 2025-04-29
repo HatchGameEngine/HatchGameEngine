@@ -1530,6 +1530,11 @@ void Application::Run(int argc, char* args[]) {
 		ScriptManager::LoadClasses();
 	}
 
+	// Load Static class
+	if (Application::GameStart) {
+		Scene::AddStaticClass();
+	}
+
 	if (argc > 1 && AllowCmdLineSceneLoad) {
 		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
 		if (pathStart == NULL) {
@@ -1551,7 +1556,8 @@ void Application::Run(int argc, char* args[]) {
 				args[1]);
 		}
 	}
-	else {
+	else if (StartingScene[0] != '\0') {
+		// Don't prepare the scene twice if there is no scene to load.
 		Scene::LoadScene(StartingScene);
 	}
 

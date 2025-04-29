@@ -81,22 +81,22 @@ void SourceFileMap::CheckInit() {
 
 	SourceFileMap::Initialized = true;
 }
-void SourceFileMap::CheckForUpdate() {
+bool SourceFileMap::CheckForUpdate() {
 	SourceFileMap::CheckInit();
 
+#ifndef NO_SCRIPT_COMPILING
 	VFSProvider* mainVfs = ResourceManager::GetMainResource();
 	if (!mainVfs || !mainVfs->IsWritable()) {
-		return;
+		return false;
 	}
 
-#ifndef NO_SCRIPT_COMPILING
 	bool anyChanges = false;
 
 	const char* scriptFolder = "Scripts";
 	size_t scriptFolderNameLen = strlen(scriptFolder);
 
 	if (!Directory::Exists(scriptFolder)) {
-		return;
+		return false;
 	}
 
 	vector<std::filesystem::path> list;
@@ -105,7 +105,7 @@ void SourceFileMap::CheckForUpdate() {
 	if (list.size() == 0) {
 		list.clear();
 		list.shrink_to_fit();
-		return;
+		return false;
 	}
 
 	if (!mainVfs->HasFile(OBJECTS_HCM_NAME)) {
@@ -269,6 +269,10 @@ void SourceFileMap::CheckForUpdate() {
 
 	list.clear();
 	list.shrink_to_fit();
+
+	return anyChanges;
+#else
+	return false;
 #endif
 }
 void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
