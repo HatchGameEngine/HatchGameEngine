@@ -36,8 +36,8 @@ private:
 	static void DeleteObjects(Entity** first, Entity** last, int* count);
 	static void RemoveNonPersistentObjects(Entity** first, Entity** last, int* count);
 	static void DeleteAllObjects();
+	static void ReadSceneFile(const char* filename);
 	static void AddStaticClass();
-	static void CallGameStart();
 	static void SpawnStaticObject(const char* objectName);
 	static void ReadRSDKTile(TileConfig* tile, Uint8* line);
 	static void LoadRSDKTileConfig(int tilesetID, Stream* tileColReader);
@@ -97,8 +97,8 @@ public:
 	static int ObjectViewRenderFlag;
 	static int TileViewRenderFlag;
 	static Perf_ViewRender PERF_ViewRender[MAX_SCENE_VIEWS];
-	static char NextScene[256];
-	static char CurrentScene[256];
+	static char NextScene[MAX_RESOURCE_PATH_LENGTH];
+	static char CurrentScene[MAX_RESOURCE_PATH_LENGTH];
 	static bool DoRestart;
 	static bool NoPersistency;
 	static int TimeEnabled;
@@ -157,7 +157,9 @@ public:
 	static void Render();
 	static void AfterScene();
 	static void Restart();
+	static void Prepare();
 	static void LoadScene(const char* filename);
+	static void CallGameStart();
 	static void ProcessSceneTimer();
 	static ObjectList* NewObjectList(const char* objectName);
 	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);

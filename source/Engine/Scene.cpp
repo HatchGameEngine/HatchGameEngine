@@ -94,8 +94,8 @@ int Scene::ObjectViewRenderFlag;
 int Scene::TileViewRenderFlag;
 Perf_ViewRender Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 
-char Scene::NextScene[256];
-char Scene::CurrentScene[256];
+char Scene::NextScene[MAX_RESOURCE_PATH_LENGTH];
+char Scene::CurrentScene[MAX_RESOURCE_PATH_LENGTH];
 bool Scene::DoRestart = false;
 bool Scene::NoPersistency = false;
 
@@ -662,14 +662,6 @@ void Scene::Init() {
 
 	Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
 	Scene::TileViewRenderFlag = 0xFFFFFFFF;
-
-	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
-
-	ScriptManager::LoadScript("init.hsl");
-
-	if (ScriptManager::LoadAllClasses) {
-		ScriptManager::LoadClasses();
-	}
 }
 void Scene::InitObjectListsAndRegistries() {
 	if (Scene::ObjectLists == NULL) {
@@ -1604,7 +1596,7 @@ void Scene::DeleteAllObjects() {
 		});
 	}
 }
-void Scene::LoadScene(const char* sceneFilename) {
+void Scene::Prepare() {
 	// Remove non-persistent objects from lists
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
@@ -1671,19 +1663,6 @@ void Scene::LoadScene(const char* sceneFilename) {
     MemoryPools::RunGC(MemoryPools::MEMPOOL_SUBOBJECT);
 #endif
 
-	char* filename = StringUtils::NormalizePath(sceneFilename);
-
-	char pathParent[MAX_RESOURCE_PATH_LENGTH];
-	StringUtils::Copy(pathParent, filename, sizeof(pathParent));
-	for (char* i = pathParent + strlen(pathParent); i >= pathParent; i--) {
-		if (*i == '/') {
-			*++i = 0;
-			break;
-		}
-	}
-
-	memmove(Scene::CurrentScene, filename, strlen(filename) + 1);
-
 	Scene::UnloadTilesets();
 
 	Scene::TileWidth = Scene::TileHeight = 16;
@@ -1702,8 +1681,47 @@ void Scene::LoadScene(const char* sceneFilename) {
 		Scene::AddStaticClass();
 	}
 
-	// Read the scene file
+	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
+
+	Scene::Loaded = false;
+}
+void Scene::LoadScene(const char* sceneFilename) {
+	Scene::Prepare();
+
+	if (sceneFilename == nullptr || sceneFilename[0] == '\0') {
+		return;
+	}
+
+	char* filename = StringUtils::NormalizePath(sceneFilename);
+	size_t filenameLength = strlen(filename);
+	if (filenameLength >= MAX_RESOURCE_PATH_LENGTH) {
+		Log::Print(Log::LOG_ERROR, "Path '%s' is too long! (%d bytes, maximum is %d)",
+			filename, filenameLength, MAX_RESOURCE_PATH_LENGTH);
+		Memory::Free(filename);
+		return;
+	}
+
+	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
+
+	Scene::ReadSceneFile(filename);
+
+	Memory::Free(filename);
+}
+void Scene::ReadSceneFile(const char* filename) {
 	Log::Print(Log::LOG_INFO, "Starting scene \"%s\"...", filename);
+
+	// Get parent path of scene filename
+	// TODO: Just move this to the functions that actually read the scene file?
+	char pathParent[MAX_RESOURCE_PATH_LENGTH];
+	const char* sep = strrchr(filename, '/');
+	if (sep != nullptr) {
+		size_t length = (sep - filename) + 1;
+		memcpy(pathParent, filename, length);
+		pathParent[length] = '\0';
+	}
+	else {
+		memcpy(pathParent, filename, strlen(filename) + 1);
+	}
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
@@ -1745,16 +1763,6 @@ void Scene::LoadScene(const char* sceneFilename) {
 	else {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 	}
-
-	// Call Static's GameStart here
-	if (Application::GameStart) {
-		Scene::CallGameStart();
-		Application::GameStart = false;
-	}
-
-	Scene::Loaded = false;
-
-	Memory::Free(filename);
 }
 
 void Scene::ProcessSceneTimer() {
@@ -1787,6 +1795,10 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 	return objectList;
 }
 void Scene::AddStaticClass() {
+	if (StaticObject != nullptr) {
+		return;
+	}
+
 	StaticObjectList = Scene::NewObjectList("Static");
 	if (!StaticObjectList->SpawnFunction) {
 		return;
@@ -2159,7 +2171,13 @@ void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
 	Memory::Free(tileData);
 }
 void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
-	if (!Scene::Tilesets.size() || tilesetID >= Scene::Tilesets.size()) {
+	if (!Scene::Tilesets.size()) {
+		Log::Print(Log::LOG_ERROR, "Cannot load tile collisions because there are no tilesets!");
+		return;
+	}
+
+	if (tilesetID >= Scene::Tilesets.size()) {
+		Log::Print(Log::LOG_ERROR, "Invalid tileset ID %d when trying to load tile collisions!", tilesetID);
 		return;
 	}
 
@@ -2510,12 +2528,13 @@ void Scene::SetTileCount(size_t tileCount) {
 }
 void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
 	if (!ResourceManager::ResourceExists(filename)) {
-		Log::Print(Log::LOG_WARN, "Could not find tile collision file \"%s\"!", filename);
+		Log::Print(Log::LOG_ERROR, "Could not find tile collision file \"%s\"!", filename);
 		return;
 	}
 
 	Stream* tileColReader = ResourceStream::New(filename);
 	if (!tileColReader) {
+		Log::Print(Log::LOG_ERROR, "Could not load tile collision file \"%s\"!", filename);
 		return;
 	}
 
@@ -2529,7 +2548,7 @@ void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
 		Scene::LoadHCOLTileConfig(tilesetID, tileColReader);
 	}
 	else {
-		Log::Print(Log::LOG_ERROR, "Invalid magic for TileCollisions! %X", magic);
+		Log::Print(Log::LOG_ERROR, "Unknown tile collision format! (%X)", magic);
 	}
 
 	tileColReader->Close();
