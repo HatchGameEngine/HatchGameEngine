@@ -948,6 +948,7 @@ void Application::LoadDevSettings() {
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
 	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
+	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
 
 	int logLevel = 0;
 #ifdef DEBUG
@@ -1066,9 +1067,7 @@ void Application::PollEvents() {
 					Application::Restart();
 
 					Scene::Init();
-					if (*StartingScene) {
-						Scene::LoadScene(StartingScene);
-					}
+					Scene::LoadScene(StartingScene);
 					Scene::Restart();
 					Application::UpdateWindowTitle();
 					break;
@@ -1103,12 +1102,12 @@ void Application::PollEvents() {
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
 					Application::Restart();
 
-					char temp[256];
-					memcpy(temp, Scene::CurrentScene, 256);
+					char temp[MAX_RESOURCE_PATH_LENGTH];
+					memcpy(temp, Scene::CurrentScene, MAX_RESOURCE_PATH_LENGTH);
 
 					Scene::Init();
 
-					memcpy(Scene::CurrentScene, temp, 256);
+					memcpy(Scene::CurrentScene, temp, MAX_RESOURCE_PATH_LENGTH);
 					Scene::LoadScene(Scene::CurrentScene);
 
 					Scene::Restart();
@@ -1523,6 +1522,18 @@ void Application::Run(int argc, char* args[]) {
 	}
 
 	Scene::Init();
+	Scene::Prepare();
+
+	ScriptManager::LoadScript("init.hsl");
+
+	if (ScriptManager::LoadAllClasses) {
+		ScriptManager::LoadClasses();
+	}
+
+	// Load Static class
+	if (Application::GameStart) {
+		Scene::AddStaticClass();
+	}
 
 	if (argc > 1 && AllowCmdLineSceneLoad) {
 		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
@@ -1545,8 +1556,15 @@ void Application::Run(int argc, char* args[]) {
 				args[1]);
 		}
 	}
-	else if (*StartingScene) {
+	else if (StartingScene[0] != '\0') {
+		// Don't prepare the scene twice if there is no scene to load.
 		Scene::LoadScene(StartingScene);
+	}
+
+	// Call Static's GameStart here
+	if (Application::GameStart) {
+		Scene::CallGameStart();
+		Application::GameStart = false;
 	}
 
 	Scene::Restart();
