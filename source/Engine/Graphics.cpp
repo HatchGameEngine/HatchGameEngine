@@ -196,9 +196,11 @@ void Graphics::SetVSync(bool enabled) {
 	Graphics::GfxFunctions->SetVSync(enabled);
 }
 void Graphics::Reset() {
-	Graphics::UseSoftwareRenderer = false;
-	Graphics::UsePalettes = false;
-	Graphics::UsePaletteIndexLines = false;
+	if (Graphics::Initialized) {
+		Graphics::UseSoftwareRenderer = false;
+		Graphics::UsePalettes = false;
+		Graphics::UsePaletteIndexLines = false;
+	}
 
 	Graphics::BlendColors[0] = Graphics::BlendColors[1] = Graphics::BlendColors[2] =
 		Graphics::BlendColors[3] = 1.0;
