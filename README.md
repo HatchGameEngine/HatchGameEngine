@@ -1,6 +1,6 @@
 # Hatch Game Engine
 
-![Hatch](https://cdn.tohoku.ac/hatchbg.jpg)
+![Hatch](https://cdn.tohoku.ac/hatchbg2.jpg)
 
 Multiplatform engine powering projects and making ideas into reality.
 
