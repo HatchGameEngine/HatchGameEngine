@@ -167,11 +167,11 @@ void ScriptManager::Dispose() {
 	ClassImplList.clear();
 	AllNamespaces.clear();
 
-	FreeModules();
-
 	Threads[0].FrameCount = 0;
 	Threads[0].ResetStack();
 	ForceGarbageCollection();
+
+	FreeModules();
 
 	FreedGlobals.clear();
 
@@ -266,6 +266,9 @@ void ScriptManager::FreeFunction(ObjFunction* function) {
 	FREE_OBJ(function, ObjFunction);
 }
 void ScriptManager::FreeModule(ObjModule* module) {
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		FreeFunction((*module->Functions)[i]);
+	}
 	delete module->Functions;
 	delete module->Locals;
 }
