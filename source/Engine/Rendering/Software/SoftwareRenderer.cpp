@@ -95,7 +95,7 @@ int CosTable[TRIG_TABLE_SIZE];
 PolygonRenderer polygonRenderer;
 
 constexpr void FilterInvertCalc(int *table, int table_size){
-	for (int a = 0; a < 0x8000; a++) {
+	for (int a = 0; a < table_size; a++) {
 		int r = (a >> 10) & 0x1F;
 		int g = (a >> 5) & 0x1F;
 		int b = (a) & 0x1F;
@@ -107,7 +107,7 @@ constexpr void FilterInvertCalc(int *table, int table_size){
 }
 
 constexpr void FilterBlackAndWhiteCalc(int *table, int table_size){
-	for (int a = 0; a < 0x8000; a++) {
+	for (int a = 0; a < table_size; a++) {
 		int r = (a >> 10) & 0x1F;
 		int g = (a >> 5) & 0x1F;
 		int b = (a) & 0x1F;
@@ -119,8 +119,9 @@ constexpr void FilterBlackAndWhiteCalc(int *table, int table_size){
 }
 
 int FilterCurrent[0x8000];
-int FilterInvert[0x8000];
-int FilterBlackAndWhite[0x8000];
+CompTimeTable<0x8000, FilterInvertCalc> FilterInvert = CompTimeTable<0x8000, FilterInvertCalc>();
+CompTimeTable<0x8000, FilterBlackAndWhiteCalc> FilterBlackAndWhite = CompTimeTable<0x8000, FilterBlackAndWhiteCalc>();
+
 
 // Initialization and disposal functions
 void SoftwareRenderer::Init() {
@@ -143,16 +144,16 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 		CosTable[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
 	}
 
-	for (int a = 0; a < 0x8000; a++) {
-		int r = (a >> 10) & 0x1F;
-		int g = (a >> 5) & 0x1F;
-		int b = (a) & 0x1F;
-
-		int bw = ((r + g + b) / 3) << 3;
-		int hex = r << 19 | g << 11 | b << 3;
-		FilterBlackAndWhite[a] = bw << 16 | bw << 8 | bw | 0xFF000000U;
-		FilterInvert[a] = (hex ^ 0xFFFFFF) | 0xFF000000U;
-	}
+// 	for (int a = 0; a < 0x8000; a++) {
+// 		int r = (a >> 10) & 0x1F;
+// 		int g = (a >> 5) & 0x1F;
+// 		int b = (a) & 0x1F;
+//
+// 		int bw = ((r + g + b) / 3) << 3;
+// 		int hex = r << 19 | g << 11 | b << 3;
+// 		FilterBlackAndWhite[a] = bw << 16 | bw << 8 | bw | 0xFF000000U;
+// 		FilterInvert[a] = (hex ^ 0xFFFFFF) | 0xFF000000U;
+// 	}
 
 	CurrentBlendState.Mode = BlendMode_NORMAL;
 	CurrentBlendState.Opacity = 0xFF;
@@ -391,10 +392,10 @@ void SoftwareRenderer::SetFilter(int filter) {
 		CurrentBlendState.FilterTable = nullptr;
 		break;
 	case Filter_BLACK_AND_WHITE:
-		CurrentBlendState.FilterTable = &FilterBlackAndWhite[0];
+		CurrentBlendState.FilterTable = &FilterBlackAndWhite.table[0];
 		break;
 	case Filter_INVERT:
-		CurrentBlendState.FilterTable = &FilterInvert[0];
+		CurrentBlendState.FilterTable = &FilterInvert.table[0];
 		break;
 	}
 }
