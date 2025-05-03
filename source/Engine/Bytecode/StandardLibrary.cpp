@@ -8441,28 +8441,6 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 /***
- * Math.ToFixed
- * \desc Converts a decimal number to its fixed-point equivalent.
- * \param n (Number): Number value.
- * \return Returns the converted fixed-point Number value.
- * \ns Math
- */
-VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0f));
-}
-/***
- * Math.FromFixed
- * \desc Converts a fixed-point number to its decimal equivalent.
- * \param n (Number): Number value.
- * \return Returns the converted decimal Number value.
- * \ns Math
- */
-VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0f);
-}
-/***
  * Math.Sign
  * \desc Gets the sign associated with a Decimal value.
  * \param n (Number): Number value.
@@ -8845,6 +8823,28 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL((float)(GET_ARG(0, GetInteger) * M_PI / 256.0));
+}
+/***
+ * RSDK.Math.ToFixed
+ * \desc Converts a decimal number to its fixed-point equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted fixed-point Number value.
+ * \ns Math
+ */
+VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0f));
+}
+/***
+ * RSDK.Math.FromFixed
+ * \desc Converts a fixed-point number to its decimal equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted decimal Number value.
+ * \ns Math
+ */
+VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0f);
 }
 // #endregion
 
@@ -18986,8 +18986,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Math, Min);
 	DEF_NATIVE(Math, Max);
 	DEF_NATIVE(Math, Clamp);
-	DEF_NATIVE(Math, ToFixed);
-	DEF_NATIVE(Math, FromFixed);
 	DEF_NATIVE(Math, Sign);
 	DEF_NATIVE(Math, Random);
 	DEF_NATIVE(Math, RandomMax);
@@ -19022,6 +19020,8 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Math, ATan2);
 	DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
 	DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
+	DEF_NAMESPACED_NATIVE(Math, ToFixed);
+	DEF_NAMESPACED_NATIVE(Math, FromFixed);
 	DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, SetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, RandomInteger);
