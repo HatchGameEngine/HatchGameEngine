@@ -181,6 +181,14 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_DEC(Alpha);
 	/***
+	* \field BlendMode
+	* \type Integer
+	* \default BlendMode_NORMAL
+	* \ns Instance
+	* \desc A field that may be used in <linkto ref="instance.Render"></linkto> for changing the BlendMode of a sprite.
+	*/
+	LINK_INT(BlendMode);
+	/***
     * \field Priority
     * \type Integer
     * \default 0

@@ -8,6 +8,7 @@ class DrawGroupList;
 #include <Engine/Graphics.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Rendering/Enums.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene.h>
 #include <Engine/Types/EntityTypes.h>
@@ -55,6 +56,7 @@ public:
 	float ScaleY = 1.0;
 	float Rotation = 0.0;
 	float Alpha = 1.0;
+	int BlendMode = BlendMode_NORMAL;
 	int AutoPhysics = false;
 	int Priority = 0;
 	int PriorityListIndex = -1;
