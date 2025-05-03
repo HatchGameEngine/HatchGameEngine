@@ -8790,6 +8790,18 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
 /***
+  * RSDK.Math.ATan2
+  * \desc Returns the arc tangent of a position.
+  * \param x (Decimal): X value of the position.
+  * \param y (Decimal): Y value of the position.
+  * \return The arc tangent of the position.
+  * \ns RSDK.Math
+  */
+VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f), (int)(GET_ARG(1, GetDecimal) * 65536.0f)));
+}
+/***
  * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
  * \param radian (Decimal): Radian value to convert.
@@ -18966,6 +18978,7 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Math, Tan256);
 	DEF_NAMESPACED_NATIVE(Math, ASin256);
 	DEF_NAMESPACED_NATIVE(Math, ACos256);
+	DEF_NAMESPACED_NATIVE(Math, ATan2);
 	DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
 	DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
 	DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
