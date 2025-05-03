@@ -6,10 +6,10 @@
 class Math {
 public:
 	static void Init();
-	constexpr static float Cos(float n){
+	static float Cos(float n){
 		return std::cos(n);
 	}
-	constexpr static float Sin(float n){
+	static float Sin(float n){
 		return std::sin(n);
 	}
 	static float Tan(float n);

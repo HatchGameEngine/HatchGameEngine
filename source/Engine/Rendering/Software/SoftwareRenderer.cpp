@@ -75,19 +75,19 @@ int DotMaskOffsetV = 0;
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
 #define TRIG_TABLE_HALF (TRIG_TABLE_SIZE >> 1)
 
-constexpr void SinCalc(int *table, int table_size){
-	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
-		float ang = a * M_PI / TRIG_TABLE_HALF;
-		table[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
-	}
-}
-
-constexpr void CosCalc(int *table, int table_size){
-	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
-		float ang = a * M_PI / TRIG_TABLE_HALF;
-		table[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
-	}
-}
+// constexpr void SinCalc(int *table, int table_size){
+// 	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+// 		float ang = a * M_PI / TRIG_TABLE_HALF;
+// 		table[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
+// 	}
+// }
+//
+// constexpr void CosCalc(int *table, int table_size){
+// 	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+// 		float ang = a * M_PI / TRIG_TABLE_HALF;
+// 		table[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
+// 	}
+// }
 
 int SinTable[TRIG_TABLE_SIZE];
 int CosTable[TRIG_TABLE_SIZE];
