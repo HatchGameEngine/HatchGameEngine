@@ -620,8 +620,6 @@ void Scene::Init() {
 
 	Compiler::Init();
 
-	Application::GameStart = true;
-
 	ScriptManager::Init();
 	ScriptManager::ResetStack();
 	ScriptManager::LinkStandardLibrary();

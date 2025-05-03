@@ -72,7 +72,6 @@ int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
-bool Application::GameStart = false;
 bool Application::PortableMode = false;
 
 SDL_Window* Application::Window = NULL;
@@ -1055,20 +1054,12 @@ void Application::PollEvents() {
 				// Quit game (dev)
 				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
 					Running = false;
-					// Application::DevMenuActivated
-					// ^= 1;
-					// Log::Print(Log::LOG_VERBOSE,
-					// "Dev Menu Activated: %d",
-					// DevMenuActivated);
 					break;
 				}
 				// Restart application (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
 					Application::Restart();
-
-					Scene::Init();
-					Scene::LoadScene(StartingScene);
-					Scene::Restart();
+					Application::StartGame(StartingScene);
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1100,17 +1091,11 @@ void Application::PollEvents() {
 				}
 				// Recompile and restart scene (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
+					char lastScene[MAX_RESOURCE_PATH_LENGTH];
+					memcpy(lastScene, Scene::CurrentScene, MAX_RESOURCE_PATH_LENGTH);
+
 					Application::Restart();
-
-					char temp[MAX_RESOURCE_PATH_LENGTH];
-					memcpy(temp, Scene::CurrentScene, MAX_RESOURCE_PATH_LENGTH);
-
-					Scene::Init();
-
-					memcpy(Scene::CurrentScene, temp, MAX_RESOURCE_PATH_LENGTH);
-					Scene::LoadScene(Scene::CurrentScene);
-
-					Scene::Restart();
+					Application::StartGame(lastScene);
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1515,15 +1500,11 @@ void Application::DelayFrame() {
 			;
 	}
 }
-void Application::Run(int argc, char* args[]) {
-	Application::Init(argc, args);
-	if (!Running) {
-		return;
-	}
-
+void Application::StartGame(const char* startingScene) {
 	Scene::Init();
 	Scene::Prepare();
 
+	// Load initial scripts
 	ScriptManager::LoadScript("init.hsl");
 
 	if (ScriptManager::LoadAllClasses) {
@@ -1531,10 +1512,29 @@ void Application::Run(int argc, char* args[]) {
 	}
 
 	// Load Static class
-	if (Application::GameStart) {
-		Scene::AddStaticClass();
+	Scene::AddStaticClass();
+
+	// Don't prepare the scene twice if there is no scene to load.
+	if (startingScene[0] != '\0') {
+		Scene::LoadScene(startingScene);
 	}
 
+	// Call Static's GameStart here
+	Scene::CallGameStart();
+
+	// Start scene
+	Scene::Restart();
+}
+void Application::Run(int argc, char* args[]) {
+	Application::Init(argc, args);
+	if (!Running) {
+		return;
+	}
+
+	char scenePath[MAX_RESOURCE_PATH_LENGTH];
+	StringUtils::Copy(scenePath, StartingScene, sizeof scenePath);
+
+	// Run scene from command line argument
 	if (argc > 1 && AllowCmdLineSceneLoad) {
 		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
 		if (pathStart == NULL) {
@@ -1542,13 +1542,8 @@ void Application::Run(int argc, char* args[]) {
 		}
 
 		if (pathStart) {
-			char* tmxPath = pathStart + strlen("/Resources/");
-			for (char* i = tmxPath; *i; i++) {
-				if (*i == '\\') {
-					*i = '/';
-				}
-			}
-			Scene::LoadScene(tmxPath);
+			StringUtils::Copy(scenePath, pathStart + strlen("/Resources/"), sizeof scenePath);
+			StringUtils::ReplacePathSeparatorsInPlace(scenePath);
 		}
 		else {
 			Log::Print(Log::LOG_WARN,
@@ -1556,18 +1551,8 @@ void Application::Run(int argc, char* args[]) {
 				args[1]);
 		}
 	}
-	else if (StartingScene[0] != '\0') {
-		// Don't prepare the scene twice if there is no scene to load.
-		Scene::LoadScene(StartingScene);
-	}
 
-	// Call Static's GameStart here
-	if (Application::GameStart) {
-		Scene::CallGameStart();
-		Application::GameStart = false;
-	}
-
-	Scene::Restart();
+	Application::StartGame(scenePath);
 	Application::UpdateWindowTitle();
 	Application::SetWindowSize(Application::WindowWidth, Application::WindowHeight);
 

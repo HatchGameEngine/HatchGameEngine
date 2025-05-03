@@ -47,6 +47,7 @@ private:
 	static void RunFrame(int runFrames);
 	static void RunFrameCallback(void* p);
 	static void DelayFrame();
+	static void StartGame(const char* startingScene);
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
@@ -62,7 +63,6 @@ public:
 	static float CurrentFPS;
 	static bool Running;
 	static bool FirstFrame;
-	static bool GameStart;
 	static bool PortableMode;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
