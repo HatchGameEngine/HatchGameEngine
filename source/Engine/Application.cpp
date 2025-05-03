@@ -1632,6 +1632,10 @@ void Application::Cleanup() {
 		DEBUG_fontSprite = NULL;
 	}
 
+	if (Application::Settings) {
+		Application::Settings->Dispose();
+	}
+
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
 	AudioManager::Dispose();
