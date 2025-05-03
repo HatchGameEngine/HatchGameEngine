@@ -236,10 +236,11 @@ void RSDKSceneReader::LoadPropertyList() {
 }
 bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
-	if (!r) {
-		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
-		return false;
-	}
+	ERROR_RET_VAL(r, false, "Couldn't open file '%s'!", filename);
+// 	if (!r) {
+// 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+// 		return false;
+// 	}
 
 	return RSDKSceneReader::Read(r, parentFolder);
 }
