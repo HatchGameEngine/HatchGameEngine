@@ -14,18 +14,18 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
-typedef int (*MultCalcFunc)(int x, int y);
+#define MULT_TABLE_ALPHA 0x100
+#define MULT_TABLE_COLOR 0x100
+#define MULT_TABLE_SIZE MULT_TABLE_ALPHA * MULT_TABLE_COLOR
 
-template<MultCalcFunc comp_func>
-struct MulTable {
-	int table[0x10000];
+typedef void (*CompTimeCalc)(int *table, int table_size);
 
-	constexpr MulTable<comp_func>(): table() {
-		for (int alpha = 0; alpha < 0x100; alpha++) {
-			for (int color = 0; color < 0x100; color++) {
-				table[alpha << 8 | color] = comp_func(alpha, color);
-			}
-		}
+template<int size, CompTimeCalc comp_func>
+struct CompTimeTable {
+	int table[size];
+
+	constexpr CompTimeTable<size, comp_func>(): table() {
+		comp_func(table, size);
 	}
 
     constexpr int operator[](int i) const {
@@ -36,16 +36,28 @@ struct MulTable {
     }
 };
 
-constexpr int RegCalc(int alpha, int color){
-	return (alpha * color) >> 8;
+constexpr void MultTableRegCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = (alpha * color) >> 8;
+		}
+	}
 }
 
-constexpr int InvCalc(int alpha, int color){
-    return ((alpha ^ 0xFF) * color) >> 8;
+constexpr void MultTableInvCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = ((alpha ^ 0xFF) * color) >> 8;
+		}
+	}
 }
 
-constexpr int SubCalc(int alpha, int color){
-    return (alpha * -(color ^ 0xFF)) >> 8;
+constexpr void MultTableSubCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = (alpha * -(color ^ 0xFF)) >> 8;
+		}
+	}
 }
 
 class SoftwareRenderer {
@@ -78,9 +90,10 @@ public:
 	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static bool UseSpriteDeform;
 	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-	constexpr static MulTable<RegCalc> MultTable = MulTable<RegCalc>();
-	constexpr static MulTable<InvCalc> MultTableInv = MulTable<InvCalc>();
-	constexpr static MulTable<SubCalc> MultSubTable = MulTable<SubCalc>();
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableRegCalc> MultTable = CompTimeTable<MULT_TABLE_SIZE, MultTableRegCalc>();
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableInvCalc> MultTableInv = CompTimeTable<MULT_TABLE_SIZE, MultTableInvCalc>();
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableSubCalc> MultSubTable = CompTimeTable<MULT_TABLE_SIZE, MultTableSubCalc>();
+
 
 	static void Init();
 	static Uint32 GetWindowFlags();

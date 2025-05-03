@@ -75,32 +75,48 @@ int DotMaskOffsetV = 0;
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
 #define TRIG_TABLE_HALF (TRIG_TABLE_SIZE >> 1)
 
-typedef float (*TrigFunction)(float);
-
-template<TrigFunction comp_func>
-struct SWRendererMathTable {
-	int table[TRIG_TABLE_SIZE];
-
-	constexpr SWRendererMathTable<comp_func>(): table() {
-		for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
-			float ang = a * M_PI / TRIG_TABLE_HALF;
-			table[a] = (int)(comp_func(ang) * TRIG_TABLE_SIZE);
-		}
+constexpr void SinCalc(int *table, int table_size){
+	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+		float ang = a * M_PI / TRIG_TABLE_HALF;
+		table[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
 	}
+}
 
-    constexpr int operator[](int i) const {
-        if (i > 0 && i < sizeof table){
-            return table[i];
-        }
-        return 0;
-    }
-};
-// SWRendererMathTable<Math::Sin> SinTable = SWRendererMathTable<Math::Sin>();
-// SWRendererMathTable<Math::Cos> CosTable = SWRendererMathTable<Math::Cos>();
+constexpr void CosCalc(int *table, int table_size){
+	for (int a = 0; a < TRIG_TABLE_SIZE; a++) {
+		float ang = a * M_PI / TRIG_TABLE_HALF;
+		table[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
+	}
+}
+
 int SinTable[TRIG_TABLE_SIZE];
 int CosTable[TRIG_TABLE_SIZE];
 
 PolygonRenderer polygonRenderer;
+
+constexpr void FilterInvertCalc(int *table, int table_size){
+	for (int a = 0; a < 0x8000; a++) {
+		int r = (a >> 10) & 0x1F;
+		int g = (a >> 5) & 0x1F;
+		int b = (a) & 0x1F;
+
+		int bw = ((r + g + b) / 3) << 3;
+		int hex = r << 19 | g << 11 | b << 3;
+		table[a] = (hex ^ 0xFFFFFF) | 0xFF000000U;
+	}
+}
+
+constexpr void FilterBlackAndWhiteCalc(int *table, int table_size){
+	for (int a = 0; a < 0x8000; a++) {
+		int r = (a >> 10) & 0x1F;
+		int g = (a >> 5) & 0x1F;
+		int b = (a) & 0x1F;
+
+		int bw = ((r + g + b) / 3) << 3;
+		int hex = r << 19 | g << 11 | b << 3;
+		table[a] = bw << 16 | bw << 8 | bw | 0xFF000000U;
+	}
+}
 
 int FilterCurrent[0x8000];
 int FilterInvert[0x8000];
