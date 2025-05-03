@@ -4432,10 +4432,8 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Graphics::SetClip((int)GET_ARG(0, GetDecimal),
-		(int)GET_ARG(1, GetDecimal),
-		(int)GET_ARG(2, GetDecimal),
-		(int)GET_ARG(3, GetDecimal));
+	if (GET_ARG(2, GetDecimal) > 0.0 && GET_ARG(3, GetDecimal) > 0.0)
+		Graphics::SetClip((int)GET_ARG(0, GetDecimal), (int)GET_ARG(1, GetDecimal), (int)GET_ARG(2, GetDecimal), (int)GET_ARG(3, GetDecimal));
 	return NULL_VAL;
 }
 /***
@@ -4447,6 +4445,46 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	Graphics::ClearClip();
 	return NULL_VAL;
+}
+/***
+  * Draw.GetClipX
+  * \desc Gets the X position in which drawing starts to occur.
+  * \return The X position if clipping is enabled, else 0.
+  * \ns Draw
+  */
+VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X) : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipY
+ * \desc Gets the Y position in which drawing starts to occur.
+ * \return The Y position if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y) : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipWidth
+ * \desc Gets the width in which drawing occurs.
+ * \return The width if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width) : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipHeight
+ * \desc Gets the height in which drawing occurs.
+ * \return The height if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL(0);
 }
 
 /***
@@ -16866,6 +16904,48 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.AdjustX
+ * \desc Adjusts the x - axis position of the camera for the specified view by an amount.
+ * \param viewIndex(Integer) : Index of the view.
+ * \param x(Number) : Desired X adjust amount.
+ * \ns View
+ */
+VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].X += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustY
+* \desc Adjusts the y-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param y (Number): Desired Y adjust amount.
+* \ns View
+*/
+VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Y += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustX
+* \desc Adjusts the z-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param z (Number): Desired Z adjust amount.
+* \ns View
+*/
+VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Z += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
@@ -18096,63 +18176,63 @@ void StandardLibrary::Link() {
 
 	// #region Weekdays
 	/***
-    * \enum Weekday_SUNDAY
-    * \desc The first day of the week.
-    */
-	DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
+	* \enum WEEKDAY_SUNDAY
+	* \desc The first day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SUNDAY", (int)Weekday::SUNDAY);
 	/***
-    * \enum Weekday_MONDAY
-    * \desc The second day of the week.
-    */
-	DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
+	* \enum WEEKDAY_MONDAY
+	* \desc The second day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_MONDAY", (int)Weekday::MONDAY);
 	/***
-    * \enum Weekday_TUESDAY
-    * \desc The third day of the week.
-    */
-	DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
+	* \enum WEEKDAY_TUESDAY
+	* \desc The third day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_TUESDAY", (int)Weekday::TUESDAY);
 	/***
-    * \enum Weekday_WEDNESDAY
-    * \desc The fourth day of the week.
-    */
-	DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
+	* \enum WEEKDAY_WEDNESDAY
+	* \desc The fourth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_WEDNESDAY", (int)Weekday::WEDNESDAY);
 	/***
-    * \enum Weekday_THURSDAY
-    * \desc The fifth day of the week.
-    */
-	DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
+	* \enum WEEKDAY_THURSDAY
+	* \desc The fifth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_THURSDAY", (int)Weekday::THURSDAY);
 	/***
-    * \enum Weekday_FRIDAY
-    * \desc The sixth day of the week.
-    */
-	DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
+	* \enum WEEKDAY_FRIDAY
+	* \desc The sixth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_FRIDAY", (int)Weekday::FRIDAY);
 	/***
-    * \enum Weekday_SATURDAY
-    * \desc The seventh day of the week.
-    */
-	DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
+	* \enum WEEKDAY_SATURDAY
+	* \desc The seventh day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SATURDAY", (int)Weekday::SATURDAY);
 	// #endregion
 
 	// #region TimesOfDay
 	/***
-    * \enum TimeOfDay_MORNING
-    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
+	* \enum TIMEOFDAY_MORNING
+	* \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MORNING", (int)TimeOfDay::MORNING);
 	/***
-    * \enum TimeOfDay_MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
+	* \enum TIMEOFDAY_MIDDAY
+	* \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MIDDAY", (int)TimeOfDay::MIDDAY);
 	/***
-    * \enum TimeOfDay_EVENING
-    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
-    */
-	DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
+	* \enum TIMEOFDAY_EVENING
+	* \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_EVENING", (int)TimeOfDay::EVENING);
 	/***
-    * \enum TimeOfDay_NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
-    */
-	DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
+	* \enum TIMEOFDAY_NIGHT
+	* \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_NIGHT", (int)TimeOfDay::NIGHT);
 	// #endregion
 	// #endregion
 
@@ -18296,6 +18376,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, UseStrokeSmoothing);
 	DEF_NATIVE(Draw, SetClip);
 	DEF_NATIVE(Draw, ClearClip);
+	DEF_NATIVE(Draw, GetClipX);
+	DEF_NATIVE(Draw, GetClipY);
+	DEF_NATIVE(Draw, GetClipWidth);
+	DEF_NATIVE(Draw, GetClipHeight);
 	DEF_NATIVE(Draw, Save);
 	DEF_NATIVE(Draw, Scale);
 	DEF_NATIVE(Draw, Rotate);
@@ -19497,6 +19581,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, SetY);
 	DEF_NATIVE(View, SetZ);
 	DEF_NATIVE(View, SetPosition);
+	DEF_NATIVE(View, AdjustX);
+	DEF_NATIVE(View, AdjustY);
+	DEF_NATIVE(View, AdjustZ);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);
@@ -19691,25 +19778,25 @@ void StandardLibrary::Link() {
 
 	// #region Hitbox Sides
 	/***
-    * \enum HitboxSide_LEFT
+    * \enum HITBOX_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_LEFT);
+	DEF_ENUM(HITBOX_LEFT);
 	/***
-    * \enum HitboxSide_TOP
+    * \enum HITBOX_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_TOP);
+	DEF_ENUM(HITBOX_TOP);
 	/***
-    * \enum HitboxSide_RIGHT
+    * \enum HITBOX_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_RIGHT);
+	DEF_ENUM(HITBOX_RIGHT);
 	/***
-    * \enum HitboxSide_BOTTOM
+    * \enum HITBOX_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_BOTTOM);
+	DEF_ENUM(HITBOX_BOTTOM);
 	// #endregion
 
 	/***
