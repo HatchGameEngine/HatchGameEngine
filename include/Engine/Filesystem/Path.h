@@ -8,14 +8,26 @@
 
 #define MAX_RESOURCE_PATH_LENGTH 1024
 
+#define PATHLOCATION_GAME_URL "game://"
+#define PATHLOCATION_USER_URL "user://"
+#define PATHLOCATION_SAVEGAME_URL "save://"
+#define PATHLOCATION_PREFERENCES_URL "config://"
+#define PATHLOCATION_CACHE_URL "cache://"
+
 enum PathLocation {
 	// The default location.
 	// This is usually the current directory, but it may not be
 	// accessible depending on the system.
 	DEFAULT,
 
+	// The location of game data.
+	// The path varies on the system, and may be the current directory.
+	//
+	// The equivalent URL is "game://"
+	GAME,
+
 	// The user location.
-	// This is persistent storage and the location varies on the system.
+	// This is persistent storage, and the path varies on the system.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Roaming/GameDeveloper/GameName/
@@ -32,7 +44,7 @@ enum PathLocation {
 	USER,
 
 	// The saves location.
-	// This is persistent storage and varies on the system.
+	// This is persistent storage, and the path varies on the system.
 	//
 	// Typically, the path used is "user://saves/"
 	//
@@ -40,7 +52,7 @@ enum PathLocation {
 	SAVEGAME,
 
 	// The preferences location.
-	// This is local storage (non-roaming) and the location varies on the system.
+	// This is non-roaming storage, and the path varies on the system.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Local/GameDeveloper/GameName/
@@ -57,7 +69,7 @@ enum PathLocation {
 	PREFERENCES,
 
 	// The logfile location.
-	// This is local storage (non-roaming) and the location varies on the system.
+	// This is non-roaming storage, and the path varies on the system.
 	//
 	// On Windows, this is the same as PREFERENCES.
 	//
@@ -70,7 +82,7 @@ enum PathLocation {
 	LOGFILE,
 
 	// The cache location.
-	// This is local storage (non-roaming) and the location varies on the system.
+	// This is non-roaming storage, and the path varies on the system.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Local/GameDeveloper/GameName/cache/
@@ -92,6 +104,7 @@ private:
 	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
 	static std::string GetPortableModePath();
+	static std::string GetBasePath();
 	static std::string GetPrefPath();
 	static std::string GetFallbackLocalPath(std::string suffix);
 #if LINUX
@@ -120,6 +133,7 @@ public:
 	FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
 	static bool
 	FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
+	static bool FromURL(const char* filename, std::string& result);
 	static std::string StripURL(const char* filename);
 };
 
