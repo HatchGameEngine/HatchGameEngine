@@ -3882,6 +3882,10 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
 	static vector<unsigned> paletteIDs;
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
 	srcStrides.reserve(Scene::TileSpriteInfos.size());
 	tileSources.reserve(Scene::TileSpriteInfos.size());
 	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
@@ -3962,10 +3966,10 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		srcStrides[i] = srcStride = texture->Width;
-		tileSources[i] = (&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]);
-		isPalettedSources[i] = Graphics::UsePalettes && texture->Paletted;
-		paletteIDs[i] = Scene::Tilesets[info.TilesetID].PaletteID;
+		srcStrides.push_back(srcStride = texture->Width);
+		tileSources.push_back((&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
 	Uint32 DRAW_COLLISION = 0;
@@ -4501,6 +4505,10 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
 	static vector<unsigned> paletteIDs;
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
 	srcStrides.reserve(Scene::TileSpriteInfos.size());
 	tileSources.reserve(Scene::TileSpriteInfos.size());
 	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
@@ -4556,10 +4564,10 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		srcStrides[i] = srcStride = texture->Width;
-		tileSources[i] = (&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]);
-		isPalettedSources[i] = Graphics::UsePalettes && texture->Paletted;
-		paletteIDs[i] = Scene::Tilesets[info.TilesetID].PaletteID;
+		srcStrides.push_back(srcStride = texture->Width);
+		tileSources.push_back((&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;

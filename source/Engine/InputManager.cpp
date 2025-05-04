@@ -1277,4 +1277,8 @@ void InputManager::Dispose() {
 
 	InputManager::ClearPlayers();
 	InputManager::ClearInputs();
+
+	delete NameMap::Keys;
+	delete NameMap::Buttons;
+	delete NameMap::Axes;
 }

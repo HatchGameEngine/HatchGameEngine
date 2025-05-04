@@ -80,6 +80,7 @@ void Log::Close() {
 		fclose(File);
 		File = nullptr;
 	}
+	free(Buffer);
 }
 
 bool Log::ResizeBuffer(int written_chars) {
