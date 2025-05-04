@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Includes/CompTimeTable.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Math/Clipper.h>
 #include <Engine/Math/Matrix4x4.h>
@@ -17,24 +18,6 @@
 #define MULT_TABLE_ALPHA 0x100
 #define MULT_TABLE_COLOR 0x100
 #define MULT_TABLE_SIZE MULT_TABLE_ALPHA * MULT_TABLE_COLOR
-
-typedef void (*CompTimeCalc)(int *table, int table_size);
-
-template<int size, CompTimeCalc comp_func>
-struct CompTimeTable {
-	int table[size];
-
-	constexpr CompTimeTable<size, comp_func>(): table() {
-		comp_func(table, size);
-	}
-
-    constexpr int operator[](int i) const {
-        if (i > 0 && i < sizeof table){
-            return table[i];
-        }
-        return 0;
-    }
-};
 
 constexpr void MultTableRegCalc(int *table, int table_size){
 	for (int alpha = 0; alpha < 0x100; alpha++) {
