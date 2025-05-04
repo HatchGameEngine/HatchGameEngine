@@ -32,7 +32,6 @@ private:
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
-	static bool DetectEnvironmentRestriction();
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
@@ -63,7 +62,6 @@ public:
 	static float CurrentFPS;
 	static bool Running;
 	static bool FirstFrame;
-	static bool PortableMode;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
 	static int WindowWidth;
@@ -91,7 +89,6 @@ public:
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
-	static bool IsEnvironmentRestricted();
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();

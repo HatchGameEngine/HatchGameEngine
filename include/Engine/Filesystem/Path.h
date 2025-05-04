@@ -26,8 +26,6 @@ enum PathLocation {
 	// * $XDG_DATA_HOME/GameDeveloper/GameName/
 	// * $XDG_DATA_HOME/GameName/
 	//
-	// In portable mode, this is the current directory.
-	//
 	// The equivalent URL is "user://"
 	USER,
 
@@ -51,8 +49,6 @@ enum PathLocation {
 	// * $XDG_CONFIG_HOME/GameDeveloper/GameName/
 	// * $XDG_CONFIG_HOME/GameName/
 	//
-	// In portable mode, this is the current directory.
-	//
 	// The equivalent URL is "config://"
 	PREFERENCES,
 
@@ -65,8 +61,6 @@ enum PathLocation {
 	// Specifically, one of the following is used:
 	// * $XDG_STATE_HOME/GameDeveloper/GameName/
 	// * $XDG_STATE_HOME/GameName/
-	//
-	// In portable mode, this is the current directory.
 	LOGFILE,
 
 	// The cache location.
@@ -81,8 +75,6 @@ enum PathLocation {
 	// * $XDG_CACHE_HOME/GameDeveloper/GameName/
 	// * $XDG_CACHE_HOME/GameName/
 	//
-	// In portable mode, this is under "cache/" in the current directory.
-	//
 	// The equivalent URL is "cache://"
 	CACHE
 };
@@ -91,7 +83,9 @@ class Path {
 private:
 	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
+#ifdef PORTABLE_MODE
 	static std::string GetPortableModePath();
+#endif
 	static std::string GetPrefPath();
 	static std::string GetFallbackLocalPath(std::string suffix);
 #if LINUX

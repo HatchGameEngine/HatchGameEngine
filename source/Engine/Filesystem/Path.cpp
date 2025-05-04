@@ -91,6 +91,7 @@ bool Path::GetCurrentWorkingDirectory(char* out, size_t sz) {
 #endif
 }
 
+#ifdef PORTABLE_MODE
 std::string Path::GetPortableModePath() {
 	char workingDir[MAX_PATH_LENGTH];
 	if (!GetCurrentWorkingDirectory(workingDir, sizeof workingDir)) {
@@ -99,6 +100,7 @@ std::string Path::GetPortableModePath() {
 
 	return std::string(workingDir);
 }
+#endif
 
 bool Path::AreMatching(std::string base, std::string path) {
 	auto const last = std::prev(base.end());
@@ -190,10 +192,9 @@ PathLocation Path::LocationFromURL(const char* filename) {
 }
 
 std::string Path::GetPrefPath() {
-	if (Application::PortableMode) {
-		return GetPortableModePath();
-	}
-
+#ifdef PORTABLE_MODE
+	return GetPortableModePath();
+#else
 	const char* devName = Application::GetDeveloperIdentifier();
 	const char* gameName = Application::GetGameIdentifier();
 
@@ -207,6 +208,7 @@ std::string Path::GetPrefPath() {
 	SDL_free(prefPath);
 
 	return path;
+#endif
 }
 
 #if LINUX
@@ -244,13 +246,11 @@ std::string Path::GetBaseUserPath() {
 }
 
 std::string Path::GetFallbackLocalPath(std::string suffix) {
-	std::string path;
-	if (Application::PortableMode) {
-		path = GetPortableModePath();
-	}
-	else {
-		path = GetBaseUserPath();
-	}
+#ifdef PORTABLE_MODE
+	std::string path = GetPortableModePath();
+#else
+	std::string path = GetBaseUserPath();
+#endif
 
 	if (path == "") {
 		return "";
@@ -260,11 +260,9 @@ std::string Path::GetFallbackLocalPath(std::string suffix) {
 }
 
 std::string Path::GetBaseConfigPath() {
-	if (Application::PortableMode) {
-		return GetPortableModePath();
-	}
-
-#if WIN32
+#ifdef PORTABLE_MODE
+	return GetPortableModePath();
+#elif WIN32
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -304,14 +302,12 @@ std::string Path::GetBaseConfigPath() {
 }
 
 std::string Path::GetStatePath() {
-#if WIN32
+#ifdef PORTABLE_MODE
+	return GetPortableModePath();
+#elif WIN32
 	// Returns %LocalAppData%
 	return GetBaseConfigPath();
 #elif LINUX
-	if (Application::PortableMode) {
-		return GetPortableModePath();
-	}
-
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -329,16 +325,14 @@ std::string Path::GetStatePath() {
 }
 
 std::string Path::GetCachePath() {
-	if (Application::PortableMode) {
-		std::string workingDir = GetPortableModePath();
-		if (workingDir == "") {
-			return "";
-		}
-
-		return Concat(workingDir, "cache");
+#ifdef PORTABLE_MODE
+	std::string workingDir = GetPortableModePath();
+	if (workingDir == "") {
+		return "";
 	}
 
-#if WIN32
+	return Concat(workingDir, "cache");
+#elif WIN32
 	// Returns %LocalAppData%
 	return GetBaseConfigPath();
 #elif LINUX
