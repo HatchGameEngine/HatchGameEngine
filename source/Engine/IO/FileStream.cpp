@@ -1,8 +1,8 @@
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/IO/FileStream.h>
-#include <Engine/IO/StandardIOStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
 #ifdef MACOSX
@@ -81,19 +81,7 @@ static void getAppName(char* buffer, int maxSize) {
 #endif
 
 Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs) {
-	Uint32 streamAccess = 0;
-	switch (access) {
-	case FileStream::READ_ACCESS:
-		streamAccess = StandardIOStream::READ_ACCESS;
-		break;
-	case FileStream::WRITE_ACCESS:
-		streamAccess = StandardIOStream::WRITE_ACCESS;
-		break;
-	case FileStream::APPEND_ACCESS:
-		streamAccess = StandardIOStream::APPEND_ACCESS;
-		break;
-	}
-
+	// Resolve the path if needed
 	std::string resolvedPath = "";
 
 	PathLocation location = PathLocation::DEFAULT;
@@ -103,6 +91,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		isPathValid = false;
 	}
 
+	// If using an URL, but they aren't allowed, then the path is invalid.
 	if (isPathValid && !allowURLs && location != PathLocation::DEFAULT) {
 		isPathValid = false;
 	}
@@ -112,27 +101,32 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		return nullptr;
 	}
 
-	const char* finalPath = resolvedPath.c_str();
+	// If using a cache:// URL, and the in-memory cache is enabled:
+	if (location == PathLocation::CACHE && MemoryCache::Using) {
+		// Use the original filename instead of the resolved one.
+		resolvedPath = Path::StripURL(filename);
 
-	Stream* stream = nullptr;
-
-	switch (location) {
-	case PathLocation::CACHE:
-		if (MemoryCache::Using) {
-			// Use the original filename instead of the resolved one.
-			std::string resolvedPath = Path::StripURL(filename);
-			finalPath = resolvedPath.c_str();
-
-			stream = MemoryCache::OpenStream(finalPath, access);
-			break;
-		}
-		/* FALLTHRU */
-	default:
-		stream = StandardIOStream::New(finalPath, streamAccess);
-		break;
+		return MemoryCache::OpenStream(resolvedPath.c_str(), access);
 	}
 
-	return stream;
+	// Open the stream
+	Uint32 streamAccess;
+	switch (access) {
+	case FileStream::READ_ACCESS:
+		streamAccess = File::READ_ACCESS;
+		break;
+	case FileStream::WRITE_ACCESS:
+		streamAccess = File::WRITE_ACCESS;
+		break;
+	case FileStream::APPEND_ACCESS:
+		streamAccess = File::APPEND_ACCESS;
+		break;
+	default:
+		return nullptr;
+	}
+
+	// May return nullptr, which is okay.
+	return File::Open(resolvedPath.c_str(), streamAccess);
 }
 
 FileStream* FileStream::New(const char* filename, Uint32 access, bool allowURLs) {

@@ -16,13 +16,13 @@ private:
 public:
 	Stream* StreamPtr;
 	enum {
-		// Read access to a file in the current directory.
+		// Read access to a file.
 		READ_ACCESS,
 
-		// Write access a file in the current directory.
+		// Write access to a file.
 		WRITE_ACCESS,
 
-		// Append access a file in the current directory.
+		// Append access to a file.
 		// Note that the underlying stream might not support this
 		// access mode, so use with caution.
 		APPEND_ACCESS

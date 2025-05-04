@@ -1,10 +1,10 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/Filesystem/VFS/HatchVFS.h>
 #include <Engine/Filesystem/VFS/MemoryVFS.h>
-#include <Engine/IO/SDLStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
 VFSProvider* VirtualFileSystem::Get(const char* name) {
@@ -59,7 +59,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 		vfs = memVfs;
 	}
 	else {
-		SDLStream* stream = SDLStream::New(filename, SDLStream::READ_ACCESS);
+		Stream* stream = File::Open(filename, File::READ_ACCESS);
 		if (!stream) {
 			return VFSMountStatus::NOT_FOUND;
 		}

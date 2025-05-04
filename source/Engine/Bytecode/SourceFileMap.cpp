@@ -69,7 +69,7 @@ void SourceFileMap::CheckInit() {
 	}
 
 #ifndef NO_SCRIPT_COMPILING
-	if (File::Exists(SOURCEFILEMAP_NAME, true)) {
+	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
 		char* bytes;
 		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
 		SourceFileMap::Checksums->FromBytes(

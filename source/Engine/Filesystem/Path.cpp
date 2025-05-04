@@ -13,10 +13,11 @@
 #endif
 
 std::pair<std::string, PathLocation> urlToLocationType[] = {
-	std::make_pair("user://", PathLocation::USER),
-	std::make_pair("save://", PathLocation::SAVEGAME),
-	std::make_pair("config://", PathLocation::PREFERENCES),
-	std::make_pair("cache://", PathLocation::CACHE)};
+	std::make_pair(PATHLOCATION_GAME_URL, PathLocation::GAME),
+	std::make_pair(PATHLOCATION_USER_URL, PathLocation::USER),
+	std::make_pair(PATHLOCATION_SAVEGAME_URL, PathLocation::SAVEGAME),
+	std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES),
+	std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
 
 // Creates a path recursively.
 // The path MUST end with '/' if it's meant to create a path to a folder.
@@ -191,6 +192,19 @@ PathLocation Path::LocationFromURL(const char* filename) {
 	return PathLocation::DEFAULT;
 }
 
+std::string Path::GetBasePath() {
+	char* basePath = SDL_GetBasePath();
+	if (basePath == nullptr) {
+		return "";
+	}
+
+	std::string path = std::string(basePath);
+
+	SDL_free(basePath);
+
+	return path;
+}
+
 std::string Path::GetPrefPath() {
 #ifdef PORTABLE_MODE
 	return GetPortableModePath();
@@ -358,6 +372,10 @@ std::string Path::GetForLocation(PathLocation location) {
 	const char* suffix = nullptr;
 
 	switch (location) {
+	// game://
+	case PathLocation::GAME:
+		finalPath = GetBasePath();
+		break;
 	// user://
 	case PathLocation::USER:
 		finalPath = GetBaseUserPath();
@@ -529,6 +547,14 @@ bool Path::FromURL(const char* filename,
 	std::string detectedPath = StripLocationFromURL(filename, location);
 
 	return FromLocation(detectedPath, location, result, makeDirs);
+}
+
+bool Path::FromURL(const char* filename, std::string& result) {
+	PathLocation location;
+
+	std::string detectedPath = StripLocationFromURL(filename, location);
+
+	return FromLocation(detectedPath, location, result, false);
 }
 
 std::string Path::StripURL(const char* filename) {
