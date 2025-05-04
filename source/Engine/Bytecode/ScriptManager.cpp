@@ -973,7 +973,7 @@ void ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
 	DEF_NATIVE(SetAnimation);
 	DEF_NATIVE(ResetAnimation);
 	DEF_NATIVE(GetHitboxFromSprite);
-	DEF_NATIVE(ReturnHitboxFromSprite);
+	DEF_NATIVE(ReturnHitbox);
 	DEF_NATIVE(AddToRegistry);
 	DEF_NATIVE(IsInRegistry);
 	DEF_NATIVE(RemoveFromRegistry);

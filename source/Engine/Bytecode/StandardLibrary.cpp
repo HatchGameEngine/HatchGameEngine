@@ -4425,7 +4425,7 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	if (GET_ARG(2, GetDecimal) > 0.0 && GET_ARG(3, GetDecimal) > 0.0)
+	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0)
 		Graphics::SetClip((int)GET_ARG(0, GetDecimal), (int)GET_ARG(1, GetDecimal), (int)GET_ARG(2, GetDecimal), (int)GET_ARG(3, GetDecimal));
 	return NULL_VAL;
 }
@@ -4467,7 +4467,7 @@ VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width) : INTEGER_VAL(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width) : INTEGER_VAL((int)Graphics::CurrentView->Width);
 }
 /***
  * Draw.GetClipHeight
@@ -4477,7 +4477,7 @@ VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL((int)Graphics::CurrentView->Width);
 }
 
 /***
@@ -15012,55 +15012,35 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
- * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
- * \param sprite (Integer): The sprite index to check (if an entity is not provided).
- * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
- * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
+ * \desc Gets the hitbox of an animation and frame of a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	ISprite* sprite;
-	int animationID, frameID, hitboxID;
-
-	if (argCount == 2 && IS_INSTANCE(args[0])) {
-		ObjInstance* instance = GET_ARG(0, GetInstance);
-		Entity* entity = (Entity*)instance->EntityPtr;
-		hitboxID = GET_ARG(1, GetInteger);
-
-		sprite = GetSpriteIndex(entity->Sprite, threadID);
-		animationID = entity->CurrentAnimation;
-		frameID = entity->CurrentFrame;
-	}
-	else {
-		CHECK_ARGCOUNT(4);
-		sprite = GET_ARG(0, GetSprite);
-		animationID = GET_ARG(1, GetInteger);
-		frameID = GET_ARG(2, GetInteger);
-		hitboxID = GET_ARG(3, GetInteger);
-	}
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int hitboxID = GET_ARG(3, GetInteger);
 
 	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++) {
-		array->Values->push_back(DECIMAL_VAL(0.0f));
-	}
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
 
 	if (sprite && animationID >= 0 && frameID >= 0) {
 		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount))
 			return OBJECT_VAL(array);
-		}
 
 		CollisionBox box = frame.Boxes[hitboxID];
 		ObjArray* hitbox = NewArray();
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Top));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Left));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Right));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 		return OBJECT_VAL(hitbox);
 	}
 	else {
@@ -16936,7 +16916,7 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.AdjustX
- * \desc Adjusts the x - axis position of the camera for the specified view by an amount.
+ * \desc Adjusts the x-axis position of the camera for the specified view by an amount.
  * \param viewIndex(Integer) : Index of the view.
  * \param x(Number) : Desired X adjust amount.
  * \ns View
@@ -16963,7 +16943,7 @@ VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
-* View.AdjustX
+* View.AdjustZ
 * \desc Adjusts the z-axis position of the camera for the specified view by an amount.
 * \param viewIndex (Integer): Index of the view.
 * \param z (Number): Desired Z adjust amount.

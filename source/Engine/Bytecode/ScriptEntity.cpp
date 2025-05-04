@@ -1511,52 +1511,71 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32
 	return NULL_VAL;
 }
 /***
- * \method ReturnHitboxFromSprite
- * \desc Gets the hitbox in the specified sprite's animation, frame and hitbox ID.
- * \param sprite (Sprite): The sprite.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index.
- * \param hitbox (Integer): The hitbox ID.
- * \return Returns an array containing the hitbox top, left, right and bottom sides in that order.
- * \ns Instance
+ * \method ReturnHitbox
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
+ * \ns Sprite
  */
-VMValue ScriptEntity::VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 5);
-	ScriptEntity* self = GET_ENTITY(0);
-	ISprite* sprite = GET_ARG(1, GetSprite);
-	int animation = GET_ARG(2, GetInteger);
-	int frame = GET_ARG(3, GetInteger);
-	int hitbox = GET_ARG(4, GetInteger);
+VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ISprite* sprite;
+	int animationID, frameID, hitboxID;
 
-	if (!IsValidEntity(self) || !sprite) {
-		return NULL_VAL;
+	if (argCount == 2) {
+		ScriptEntity* self = GET_ENTITY(0);
+		if (!IsValidEntity(self))
+			return NULL_VAL;
+		hitboxID = GET_ARG(1, GetInteger);
+
+		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
+			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite index \"%d\" outside bounds of list.", self->Sprite) == ERROR_RES_CONTINUE)
+				ScriptManager::Threads[threadID].ReturnFromNative();
+
+			return NULL_VAL;
+		}
+
+		if (!Scene::SpriteList[self->Sprite])
+			return NULL_VAL;
+
+		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+		animationID = self->CurrentAnimation;
+		frameID = self->CurrentFrame;
+	}
+	else {
+		StandardLibrary::CheckArgCount(argCount, 4);
+		sprite = GET_ARG(0, GetSprite);
+		animationID = GET_ARG(1, GetInteger);
+		frameID = GET_ARG(2, GetInteger);
+		hitboxID = GET_ARG(3, GetInteger);
 	}
 
-	if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Animation %d is not in bounds of sprite.", animation);
-		return NULL_VAL;
-	}
-	if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Frame %d is not in bounds of animation %d.", frame, animation);
-		return NULL_VAL;
-	}
-
-	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
-
-	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
-		// ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
-		return NULL_VAL;
-	}
-
-	CollisionBox box = frameO.Boxes[hitbox];
 	ObjArray* array = NewArray();
-	array->Values->push_back(DECIMAL_VAL((float)box.Left));
-	array->Values->push_back(DECIMAL_VAL((float)box.Top));
-	array->Values->push_back(DECIMAL_VAL((float)box.Right));
-	array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
-	return OBJECT_VAL(array);
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
+
+	if (sprite && animationID >= 0 && frameID >= 0) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			return OBJECT_VAL(array);
+		}
+
+		CollisionBox box = frame.Boxes[hitboxID];
+		ObjArray* hitbox = NewArray();
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+		return OBJECT_VAL(hitbox);
+	}
+	else {
+		return OBJECT_VAL(array);
+	}
 }
 
 /***
