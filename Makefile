@@ -408,5 +408,8 @@ CXXFLAGS := \
 # the linker has to care about this too, unfortunately
 LDFLAGS := -std=c++17
 
+# Hatch uses meta/ instead of etc/
+FMTFLAGS := -style=file:meta/clang-format.yml
+
 # this defines all our usual targets
 include meta/epilogue.mk
