@@ -1522,36 +1522,38 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32
  * \ns Sprite
  */
 VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (!IsValidEntity(self))
+		return NULL_VAL;
+
 	ISprite* sprite;
-	int animationID, frameID, hitboxID;
+	int animationID = 0, frameID = 0, hitboxID = 0;
 
-	if (argCount == 2) {
-		ScriptEntity* self = GET_ENTITY(0);
-		if (!IsValidEntity(self))
-			return NULL_VAL;
-		hitboxID = GET_ARG(1, GetInteger);
+	switch (argCount) {
+		case 1:
+		case 2:
+			if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
+				if (ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite index \"%d\" outside bounds of list.", self->Sprite) == ERROR_RES_CONTINUE)
+					ScriptManager::Threads[threadID].ReturnFromNative();
 
-		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite index \"%d\" outside bounds of list.", self->Sprite) == ERROR_RES_CONTINUE)
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				return NULL_VAL;
+			}
 
-			return NULL_VAL;
-		}
+			if (!Scene::SpriteList[self->Sprite])
+				return NULL_VAL;
 
-		if (!Scene::SpriteList[self->Sprite])
-			return NULL_VAL;
-
-		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
-		animationID = self->CurrentAnimation;
-		frameID = self->CurrentFrame;
-	}
-	else {
-		StandardLibrary::CheckArgCount(argCount, 4);
-		sprite = GET_ARG(0, GetSprite);
-		animationID = GET_ARG(1, GetInteger);
-		frameID = GET_ARG(2, GetInteger);
-		hitboxID = GET_ARG(3, GetInteger);
+			sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+			animationID = self->CurrentAnimation;
+			frameID = self->CurrentFrame;
+			hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
+			break;
+		default:
+			StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+			sprite = GET_ARG(1, GetSprite);
+			animationID = GET_ARG(2, GetInteger);
+			frameID = GET_ARG(3, GetInteger);
+			hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
+			break;
 	}
 
 	ObjArray* array = NewArray();

@@ -4477,7 +4477,7 @@ VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL((int)Graphics::CurrentView->Width);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
 
 /***
