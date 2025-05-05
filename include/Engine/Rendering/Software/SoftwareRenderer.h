@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Includes/CompTimeTable.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Math/Clipper.h>
 #include <Engine/Math/Matrix4x4.h>
@@ -13,6 +14,34 @@
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
+
+#define MULT_TABLE_ALPHA 0x100
+#define MULT_TABLE_COLOR 0x100
+#define MULT_TABLE_SIZE MULT_TABLE_ALPHA * MULT_TABLE_COLOR
+
+constexpr void MultTableRegCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = (alpha * color) >> 8;
+		}
+	}
+}
+
+constexpr void MultTableInvCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = ((alpha ^ 0xFF) * color) >> 8;
+		}
+	}
+}
+
+constexpr void MultTableSubCalc(int *table, int table_size){
+	for (int alpha = 0; alpha < 0x100; alpha++) {
+		for (int color = 0; color < 0x100; color++) {
+			table[alpha << 8 | color] = (alpha * -(color ^ 0xFF)) >> 8;
+		}
+	}
+}
 
 class SoftwareRenderer {
 private:
@@ -44,9 +73,10 @@ public:
 	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static bool UseSpriteDeform;
 	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
-	static int MultTable[0x10000];
-	static int MultTableInv[0x10000];
-	static int MultSubTable[0x10000];
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableRegCalc> MultTable = CompTimeTable<MULT_TABLE_SIZE, MultTableRegCalc>();
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableInvCalc> MultTableInv = CompTimeTable<MULT_TABLE_SIZE, MultTableInvCalc>();
+	constexpr static CompTimeTable<MULT_TABLE_SIZE, MultTableSubCalc> MultSubTable = CompTimeTable<MULT_TABLE_SIZE, MultTableSubCalc>();
+
 
 	static void Init();
 	static Uint32 GetWindowFlags();
@@ -95,63 +125,63 @@ public:
 	static void PixelNoFiltSetOpaque(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelNoFiltSetTransparent(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelNoFiltSetAdditive(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelNoFiltSetSubtract(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelNoFiltSetMatchEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelNoFiltSetMatchNotEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetOpaque(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetTransparent(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetAdditive(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetSubtract(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetMatchEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelTintSetMatchNotEqual(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void SetTintFunction(int blendFlags);
 	static void SetStencilEnabled(bool enabled);
 	static bool IsStencilEnabled();
@@ -164,8 +194,8 @@ public:
 	static void PixelStencil(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void SetDotMask(int mask);
 	static void SetDotMaskH(int mask);
 	static void SetDotMaskV(int mask);
@@ -174,18 +204,18 @@ public:
 	static void PixelDotMaskH(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelDotMaskV(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void PixelDotMaskHV(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
-		int* multTableAt,
-		int* multSubTableAt);
+		int multTableAt,
+		int multSubTableAt);
 	static void BindVertexBuffer(Uint32 vertexBufferIndex);
 	static void UnbindVertexBuffer();
 	static void BindScene3D(Uint32 sceneIndex);

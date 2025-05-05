@@ -30,12 +30,6 @@ void Math::Init() {
 	Math::CalculateTrigAngles();
 }
 // Trig functions
-float Math::Cos(float n) {
-	return std::cos(n);
-}
-float Math::Sin(float n) {
-	return std::sin(n);
-}
 float Math::Tan(float n) {
 	return std::tan(n);
 }
