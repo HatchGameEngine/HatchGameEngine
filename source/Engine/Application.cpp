@@ -421,7 +421,7 @@ char* Application::GenerateIdentifier(const char* string) {
 		return nullptr;
 	}
 
-	char* buf = (char *)Memory::Malloc(strlen(string) + 1);
+	char* buf = (char*)Memory::Malloc(strlen(string) + 1);
 	size_t i = 0;
 
 	const char* ptr = string;
@@ -465,7 +465,10 @@ char* Application::GenerateIdentifier(const char* string) {
 	return (char*)Memory::Realloc(buf, i + 1);
 }
 
-bool Application::ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize) {
+bool Application::ValidateAndSetIdentifier(const char* name,
+	const char* id,
+	char* dest,
+	size_t destSize) {
 	if (Application::ValidateIdentifier(id)) {
 		StringUtils::Copy(dest, id, destSize);
 		return true;
@@ -771,7 +774,7 @@ void Application::LoadVideoSettings() {
 	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
-	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP){
+	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {
 		Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 	}
 
@@ -1039,7 +1042,9 @@ void Application::PollEvents() {
 				// Recompile and restart scene (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
 					char lastScene[MAX_RESOURCE_PATH_LENGTH];
-					memcpy(lastScene, Scene::CurrentScene, MAX_RESOURCE_PATH_LENGTH);
+					memcpy(lastScene,
+						Scene::CurrentScene,
+						MAX_RESOURCE_PATH_LENGTH);
 
 					Application::Restart();
 					Application::StartGame(lastScene);
@@ -1489,7 +1494,8 @@ void Application::Run(int argc, char* args[]) {
 		}
 
 		if (pathStart) {
-			StringUtils::Copy(scenePath, pathStart + strlen("/Resources/"), sizeof scenePath);
+			StringUtils::Copy(
+				scenePath, pathStart + strlen("/Resources/"), sizeof scenePath);
 			StringUtils::ReplacePathSeparatorsInPlace(scenePath);
 		}
 		else {
@@ -1525,15 +1531,14 @@ void Application::Run(int argc, char* args[]) {
 		int updateFrames = UpdatesPerFrame;
 		if (updateFrames == 1) {
 			// Compensate for lag
-			int lagFrames = ( (int) round(timeTaken / FrameTimeDesired) ) - 1;
-			if (lagFrames > Application::FrameSkip){
+			int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
+			if (lagFrames > Application::FrameSkip) {
 				lagFrames = Application::FrameSkip;
 			}
 
 			if (!FirstFrame && lagFrames > 0) {
 				updateFrames += lagFrames;
 			}
-
 		}
 
 		if (BenchmarkFrameCount == 0) {
@@ -1803,15 +1808,16 @@ void Application::LoadGameInfo() {
 		}
 
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name, GameTitle, sizeof(GameTitle));
+			XMLParser::CopyTokenToString(
+				node->children[0]->name, GameTitle, sizeof(GameTitle));
 			StringUtils::Copy(GameTitleShort, GameTitle, sizeof(GameTitleShort));
 			shouldSetGameId = true;
 		}
 
 		node = XMLParser::SearchNode(root, "shortTitle");
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name, GameTitleShort,
-				sizeof(GameTitleShort));
+			XMLParser::CopyTokenToString(
+				node->children[0]->name, GameTitleShort, sizeof(GameTitleShort));
 			shouldSetGameId = true;
 		}
 
@@ -1819,28 +1825,31 @@ void Application::LoadGameInfo() {
 		if (node) {
 			std::string versionText = ParseGameVersion(node);
 			if (versionText.size() > 0) {
-				StringUtils::Copy(GameVersion, versionText.c_str(), sizeof(GameVersion));
+				StringUtils::Copy(
+					GameVersion, versionText.c_str(), sizeof(GameVersion));
 			}
 		}
 
 		node = XMLParser::SearchNode(root, "description");
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name, GameDescription,
-				sizeof(GameDescription));
+			XMLParser::CopyTokenToString(
+				node->children[0]->name, GameDescription, sizeof(GameDescription));
 		}
 
 		node = XMLParser::SearchNode(root, "developer");
 		if (node) {
-			XMLParser::CopyTokenToString(node->children[0]->name, GameDeveloper,
-				sizeof(GameDeveloper));
+			XMLParser::CopyTokenToString(
+				node->children[0]->name, GameDeveloper, sizeof(GameDeveloper));
 			shouldSetGameDevId = true;
 		}
 
 		node = XMLParser::SearchNode(root, "gameIdentifier");
 		if (node) {
-			char *id = XMLParser::TokenToString(node->children[0]->name);
-			if (ValidateAndSetIdentifier("game identifier", id, GameIdentifier,
-				sizeof(GameIdentifier))) {
+			char* id = XMLParser::TokenToString(node->children[0]->name);
+			if (ValidateAndSetIdentifier("game identifier",
+				    id,
+				    GameIdentifier,
+				    sizeof(GameIdentifier))) {
 				shouldSetGameId = false;
 			}
 
@@ -1849,9 +1858,11 @@ void Application::LoadGameInfo() {
 
 		node = XMLParser::SearchNode(root, "developerIdentifier");
 		if (node) {
-			char *id = XMLParser::TokenToString(node->children[0]->name);
-			if (ValidateAndSetIdentifier("developer identifier", id, DeveloperIdentifier,
-				sizeof(DeveloperIdentifier))) {
+			char* id = XMLParser::TokenToString(node->children[0]->name);
+			if (ValidateAndSetIdentifier("developer identifier",
+				    id,
+				    DeveloperIdentifier,
+				    sizeof(DeveloperIdentifier))) {
 				shouldSetGameDevId = false;
 			}
 
@@ -1862,15 +1873,17 @@ void Application::LoadGameInfo() {
 
 		node = XMLParser::SearchNode(root, "savesDir");
 		if (node) {
-			char *id = XMLParser::TokenToString(node->children[0]->name);
+			char* id = XMLParser::TokenToString(node->children[0]->name);
 			ValidateAndSetIdentifier("saves directory", id, SavesDir, sizeof(SavesDir));
 			Memory::Free(id);
 		}
 
 		node = XMLParser::SearchNode(root, "preferencesDir");
 		if (node) {
-			char *id = XMLParser::TokenToString(node->children[0]->name);
-			ValidateAndSetIdentifier("preferences directory", id, PreferencesDir,
+			char* id = XMLParser::TokenToString(node->children[0]->name);
+			ValidateAndSetIdentifier("preferences directory",
+				id,
+				PreferencesDir,
 				sizeof(PreferencesDir));
 			Memory::Free(id);
 		}
@@ -2078,4 +2091,3 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 		return 1;
 	}
 }
-

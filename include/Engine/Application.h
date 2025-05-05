@@ -34,7 +34,8 @@ private:
 	static void MakeEngineVersion();
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
-	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
+	static bool
+	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
 	static void Restart();
 	static void LoadVideoSettings();

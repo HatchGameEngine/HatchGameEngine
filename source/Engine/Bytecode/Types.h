@@ -262,8 +262,8 @@ struct ObjClass {
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields; // Keep this as a pointer, so that a new table
-		// isn't created when passing an ObjClass value
-		// around
+	// isn't created when passing an ObjClass value
+	// around
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
 	StructGetFn ElementGet;

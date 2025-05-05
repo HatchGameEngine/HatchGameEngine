@@ -3967,7 +3967,8 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
 		srcStrides.push_back(srcStride = texture->Width);
-		tileSources.push_back((&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+		tileSources.push_back(
+			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
@@ -4565,7 +4566,8 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
 		srcStrides.push_back(srcStride = texture->Width);
-		tileSources.push_back((&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+		tileSources.push_back(
+			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}

@@ -1,8 +1,8 @@
 #ifndef ENGINE_FILESYSTEM_FILE_H
 #define ENGINE_FILESYSTEM_FILE_H
 
-#include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Includes/Standard.h>
 
 class File {
 public:

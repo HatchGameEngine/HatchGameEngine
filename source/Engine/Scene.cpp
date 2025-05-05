@@ -740,7 +740,7 @@ void Scene::Update() {
 #ifdef USING_FFMPEG
 	AudioManager::Lock();
 	Uint8 audio_buffer[0x8000]; // <-- Should be larger than
-		// AudioManager::AudioQueueMaxSize
+	// AudioManager::AudioQueueMaxSize
 	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
 	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
 		if (!Scene::MediaList[i]) {
@@ -1694,8 +1694,11 @@ void Scene::LoadScene(const char* sceneFilename) {
 	char* filename = StringUtils::NormalizePath(sceneFilename);
 	size_t filenameLength = strlen(filename);
 	if (filenameLength >= MAX_RESOURCE_PATH_LENGTH) {
-		Log::Print(Log::LOG_ERROR, "Path '%s' is too long! (%d bytes, maximum is %d)",
-			filename, filenameLength, MAX_RESOURCE_PATH_LENGTH);
+		Log::Print(Log::LOG_ERROR,
+			"Path '%s' is too long! (%d bytes, maximum is %d)",
+			filename,
+			filenameLength,
+			MAX_RESOURCE_PATH_LENGTH);
 		Memory::Free(filename);
 		return;
 	}
@@ -2171,12 +2174,15 @@ void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
 }
 void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 	if (!Scene::Tilesets.size()) {
-		Log::Print(Log::LOG_ERROR, "Cannot load tile collisions because there are no tilesets!");
+		Log::Print(Log::LOG_ERROR,
+			"Cannot load tile collisions because there are no tilesets!");
 		return;
 	}
 
 	if (tilesetID >= Scene::Tilesets.size()) {
-		Log::Print(Log::LOG_ERROR, "Invalid tileset ID %d when trying to load tile collisions!", tilesetID);
+		Log::Print(Log::LOG_ERROR,
+			"Invalid tileset ID %d when trying to load tile collisions!",
+			tilesetID);
 		return;
 	}
 

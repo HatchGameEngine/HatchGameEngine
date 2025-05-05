@@ -16,8 +16,7 @@ VFSProvider* mainResource = nullptr;
 bool ResourceManager::UsingDataFolder = false;
 bool ResourceManager::UsingModPack = false;
 
-const char* data_files[] = {
-	PATHLOCATION_GAME_URL "Data.hatch",
+const char* data_files[] = {PATHLOCATION_GAME_URL "Data.hatch",
 	PATHLOCATION_GAME_URL "Game.hatch",
 	PATHLOCATION_GAME_URL TARGET_NAME ".hatch"};
 
@@ -125,7 +124,8 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 #ifdef DEVELOPER_MODE
 		if (!useResourcesFolder && candidates.size() > 0) {
-			Log::Print(Log::LOG_ERROR, "Ensure the data file is in one of the following paths:");
+			Log::Print(Log::LOG_ERROR,
+				"Ensure the data file is in one of the following paths:");
 
 			for (size_t i = 0; i < candidates.size(); i++) {
 				Log::Print(Log::LOG_ERROR, "* %s", candidates[i].Path.c_str());

@@ -1009,7 +1009,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		SCANLINE_GET_MAPZ(); \
 		SCANLINE_GET_INVZ(); \
 		if (dpR(iz)) { \
-			DRAW_PERSP_GET(contU* mapZ, contV* mapZ); \
+			DRAW_PERSP_GET(contU * mapZ, contV * mapZ); \
 			placePixelMacro(dpW); \
 		} \
 		SCANLINE_STEP_Z(); \

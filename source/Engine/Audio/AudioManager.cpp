@@ -48,7 +48,7 @@ float mZyF[2 * 2]; // 2 per channel
 
 void AudioManager::CalculateCoeffs() {
 	double theta = 2.0 * M_PI * mNormalizedFreq; // normalized frequency has been
-		// precalculated as fc/fs
+	// precalculated as fc/fs
 	double d = 0.5 * (1.0 / mQuality) * sin(theta);
 	double beta = 0.5 * ((1.0 - d) / (1.0 + d));
 	double gamma = (0.5 + beta) * cos(theta);
@@ -651,7 +651,7 @@ bool AudioManager::HandleFading(AudioChannel* audio) {
 			audio->FadeTimer = 1.0;
 			audio->FadeTimerMax = 1.0;
 			audio->Fading = MusicFade_None; // Stop fading
-				// in audio.
+			// in audio.
 		}
 	}
 	return false;

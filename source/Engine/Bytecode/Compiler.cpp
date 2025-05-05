@@ -1278,7 +1278,7 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 			EmitCopy(1);
 			EmitByte(OP_SAVE_VALUE); // Save value. (value)
 			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-				// (value - 1, this)
+			// (value - 1, this)
 
 			EmitSetOperation(setOp, arg, name);
 			EmitByte(OP_POP);
@@ -1514,17 +1514,17 @@ void Compiler::GetDot(bool canAssign) {
 			assignmentToken.Type == TOKEN_DECREMENT) {
 			// (this)
 			EmitCopy(1); // Copy property holder. (this,
-				// this)
+			// this)
 			EmitGetOperation(OP_GET_PROPERTY, -1,
 				nameToken); // Pops a property holder.
 			// (value, this)
 
 			EmitCopy(1); // Copy value. (value, value,
-				// this)
+			// this)
 			EmitByte(OP_SAVE_VALUE); // Save value.
-				// (value, this)
+			// (value, this)
 			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-				// (value - 1, this)
+			// (value - 1, this)
 
 			EmitSetOperation(OP_SET_PROPERTY, -1, nameToken);
 			// Pops the value and then pops the instance,
@@ -1575,12 +1575,12 @@ void Compiler::GetElement(bool canAssign) {
 			// (value)
 
 			EmitCopy(1); // Copy value. (value, value,
-				// index)
+			// index)
 			EmitByte(OP_SAVE_VALUE); // Save value.
-				// (value, index)
+			// (value, index)
 			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-				// (value - 1,
-				// index)
+			// (value - 1,
+			// index)
 
 			EmitSetOperation(OP_SET_ELEMENT, -1, blank);
 			// Pops the value and then pops the instance,
@@ -2085,15 +2085,15 @@ void Compiler::GetRepeatStatement() {
 		remaining = AddHiddenLocal("$remaining", 11);
 	}
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
-		// to decrement it, so we can cheat
-		// continue
+	// to decrement it, so we can cheat
+	// continue
 
 	if (variableToken.Type != TOKEN_ERROR) {
 		EmitConstant(INTEGER_VAL(-1));
 		AddLocal(variableToken);
 		MarkInitialized();
 		Locals[LocalCount - 1].Constant = true; // trick the compiler into ensuring it
-			// doesn't get modified
+		// doesn't get modified
 	}
 
 	int loopStart = CurrentChunk()->Count;
@@ -2432,7 +2432,7 @@ void Compiler::GetWithStatement() {
 	if (useOtherSlot) {
 		EmitByte(WITH_STATE_INIT_SLOTTED);
 		EmitByte(otherSlot); // Store the slot where the
-			// receiver will land
+		// receiver will land
 	}
 	else {
 		EmitByte(WITH_STATE_INIT);
@@ -2661,7 +2661,7 @@ void Compiler::GetIfStatement() {
 
 	PatchJump(thenJump);
 	EmitByte(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
-		// doesn't pop
+	// doesn't pop
 
 	if (MatchToken(TOKEN_ELSE)) {
 		GetStatement();
