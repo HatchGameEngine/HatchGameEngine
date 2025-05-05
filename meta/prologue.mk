@@ -12,12 +12,7 @@
 ## This Makefile prologue provides multi-platform build normalisation.
 ## It explicates paths for toolchain executables, libraries, utility
 ## programs, and platform-specific errata for an exaustive matrix of
-## compilation hosts and targets. It also provides 'synthetic
-## definitions', or syndefs for short, that expose platform-specific
-## details in a portable way to C code in projects using Inbound. It
-## also provides a similar mechanism for 'configuration options', or
-## cfgopts, which allow the user building the project to modify the
-## compilation in a fully declarative way.
+## compilation hosts and targets.
 ##
 ## Inbound was originally the v2.0 rewrite of the Slick Makefiles, a
 ## proof-of-concept created to show that meta-build tools such as CMake,
@@ -928,38 +923,40 @@ ASFLAGS.WINNT64  := -march=x86-64 -mtune=x86-64
 # C compiler flags.
 # Form: CFLAGS.<RECIPE>.<TP>
 
+.K_CFLAGS_W := -Wpendantic -Wno-long-long -Wno-empty-translation-unit
+
 CFLAGS.ANY.AGBHB    := -ansi -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic \
-	-Wno-builtin-declaration-mismatch -Wno-long-long -x c
+	-mcpu=arm7tdmi -mthumb-interwork -pipe \
+	-Wno-builtin-declaration-mismatch $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.AGBSP    := -ansi -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -Wno-long-long -x c
+	$(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWIN86 := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWINM1 := -ansi -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -Wno-long-long -x c
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.FREEBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.IBMPC    := -2 -aa -ecw -ml -zA -zastd=c89 -zku8 -zl -zld \
 	-zls -zp2 -zu
 CFLAGS.ANY.ILLUMOS  := -ansi -fPIC -frandom-seed=69420 -mcpu=v9 \
-	-mtune=niagara -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=niagara -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX32  := -ansi -fPIC -frandom-seed=69420 -march=i686 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.OPENBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.PCDOS    := -2 -aa -bt=dos -ecp -ml -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CFLAGS.ANY.WIN311   := -2 -aa -bt=windows -ecp -ml -zastd=c89 -zku8 \
 	-zl -zld -zls -zp2 -zu -zW -zw -zws
 CFLAGS.ANY.WIN95    := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i486 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=i486 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i686 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=i686 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
 
 CFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
 CFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
@@ -1295,7 +1292,7 @@ SYNDEFS.WINNT32  := WINDOWS IA32 WINNT LILENDIAN PTRSZ_32 HAVE_I64 \
 SYNDEFS.WINNT64  := WINDOWS AMD64 WINNT LILENDIAN PTRSZ_64 HAVE_I64 \
 	HAVE_I32 HAVE_FP FP_SOFT LONGSZ_32
 
-FMTFLAGS := -style=file:meta/clang-format.yml
+FMTFLAGS := -style=file:etc/clang-format.yml
 
 # Make builds deterministic when using LLVM or GNU C/C++ compilers.
 # These are the environment variables necessary; see CFLAGS and
