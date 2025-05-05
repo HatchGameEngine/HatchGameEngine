@@ -906,24 +906,24 @@ override EXE := $(EXE.O_$(.O_EXE))
 
 ASFLAGS.AGBHB    := -EL -march=armv4t -mcpu=arm7tdmi -mthumb-interwork
 ASFLAGS.AGBSP    := -EL -march=armv4t -mcpu=arm7tdmi
-ASFLAGS.DARWIN86 := -march=x86-64 -mtune=x86-64
+ASFLAGS.DARWIN86 := -march=x86-64 -mtune=k8
 ASFLAGS.DARWINM1 := -march=armv8.4-a -mcpu=apple-m1
-ASFLAGS.FREEBSD  := -march=x86-64 -mtune=x86-64
+ASFLAGS.FREEBSD  := -march=x86-64 -mtune=k8
 ASFLAGS.IBMPC    := -2
 ASFLAGS.ILLUMOS  := -mcpu=v9 -mtune=niagara
-ASFLAGS.LINUX32  := -march=i686 -mtune=x86-64
-ASFLAGS.LINUX64  := -march=x86-64 -mtune=x86-64
-ASFLAGS.OPENBSD  := -march=x86-64 -mtune=x86-64
+ASFLAGS.LINUX32  := -march=i686 -mtune=k8
+ASFLAGS.LINUX64  := -march=x86-64 -mtune=k8
+ASFLAGS.OPENBSD  := -march=x86-64 -mtune=k8
 ASFLAGS.PCDOS    := -2 -bt=dos
 ASFLAGS.WIN311   := -2p -bt=windows
 ASFLAGS.WIN95    := -march=i386 -mtune=i486
 ASFLAGS.WINNT32  := -march=i386 -mtune=i686
-ASFLAGS.WINNT64  := -march=x86-64 -mtune=x86-64
+ASFLAGS.WINNT64  := -march=x86-64 -mtune=k8
 
 # C compiler flags.
 # Form: CFLAGS.<RECIPE>.<TP>
 
-.K_CFLAGS_W := -Wpendantic -Wno-long-long -Wno-empty-translation-unit
+.K_CFLAGS_W := -Wpedantic -Wno-long-long -Wno-empty-translation-unit
 
 CFLAGS.ANY.AGBHB    := -ansi -frandom-seed=69420 -march=armv4t \
 	-mcpu=arm7tdmi -mthumb-interwork -pipe \
@@ -932,21 +932,21 @@ CFLAGS.ANY.AGBSP    := -ansi -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
 	$(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWIN86 := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWINM1 := -ansi -fPIC -frandom-seed=69420 \
 	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.FREEBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.IBMPC    := -2 -aa -ecw -ml -zA -zastd=c89 -zku8 -zl -zld \
 	-zls -zp2 -zu
 CFLAGS.ANY.ILLUMOS  := -ansi -fPIC -frandom-seed=69420 -mcpu=v9 \
 	-mtune=niagara -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX32  := -ansi -fPIC -frandom-seed=69420 -march=i686 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.OPENBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.PCDOS    := -2 -aa -bt=dos -ecp -ml -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CFLAGS.ANY.WIN311   := -2 -aa -bt=windows -ecp -ml -zastd=c89 -zku8 \
@@ -956,7 +956,7 @@ CFLAGS.ANY.WIN95    := -ansi -fPIC -frandom-seed=69420 -march=i386 \
 CFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
 	-mtune=i686 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe $(.K_CFLAGS_W) -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 
 CFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
 CFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
@@ -1009,37 +1009,39 @@ CFLAGS.CHECK.WINNT64  := -E -Wextra -Werror -Wno-unused-variable
 # C++ compiler flags.
 # Form: CXXFLAGS.<RECIPE>.<TP>
 
+.K_CXXFLAGS_W := -Wpedantic -Wno-long-long
+
 CXXFLAGS.ANY.AGBHB    := -std=c++11 -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic -x c++
+	-mcpu=arm7tdmi -mthumb-interwork -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.AGBSP    := -std=c++11 -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -x c++
+	$(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.DARWIN86 := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.DARWINM1 := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -x c++
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.FREEBSD  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.IBMPC    := -2 -aa -ecw -ml -zA -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CXXFLAGS.ANY.ILLUMOS  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-mcpu=v9 -mtune=niagara -pipe -Wpedantic -x c++
+	-mcpu=v9 -mtune=niagara -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.LINUX32  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i686 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=i686 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.LINUX64  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.OPENBSD  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.PCDOS    := -2 -aa -bt=dos -ecp -ml -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CXXFLAGS.ANY.WIN311   := -2 -aa -bt=windows -ecp -ml -zastd=c89 -zku8 \
 	-zl -zld -zls -zp2 -zu -zW -zw -zws
 CXXFLAGS.ANY.WIN95    := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i386 -mtune=i486 -pipe -Wpedantic -x c++
+	-march=i386 -mtune=i486 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.WINNT32  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i386 -mtune=i686 -pipe -Wpedantic -x c++
+	-march=i386 -mtune=i686 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.WINNT64  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 
 CXXFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
 CXXFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
@@ -1092,31 +1094,35 @@ CXXFLAGS.CHECK.WINNT64  := -E -Wextra -Werror -Wno-unused-variable
 # Objective-C compiler flags.
 # Form: OBJCFLAGS.<RECIPE>.<TP>
 
+.K_OBJCFLAGS_W := -Wpedantic -Wno-long-long
+
 OBJCFLAGS.ANY.AGBHB    := -ansi -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic -x objective-c
+	-mcpu=arm7tdmi -mthumb-interwork -pipe $(.K_OBJCFLAGS_W) \
+	-x objective-c
 OBJCFLAGS.ANY.AGBSP    := -ansi -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -x objective-c
+	$(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.DARWIN86 := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.DARWINM1 := -ansi -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -x objective-c
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_OBJCFLAGS_W) \
+	-x objective-c
 OBJCFLAGS.ANY.FREEBSD  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.ILLUMOS  := -ansi -fPIC -frandom-seed=69420 -mcpu=v9 \
-	-mtune=niagara -pipe -Wpedantic -x objective-c
+	-mtune=niagara -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.LINUX32  := -ansi -fPIC -frandom-seed=69420 -march=i686 \
-	-mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.LINUX64  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.OPENBSD  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WIN95    := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i486 -pipe -Wpedantic -x objective-c
+	-mtune=i486 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i686 -pipe -Wpedantic -x objective-c
+	-mtune=i686 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 
 OBJCFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
 OBJCFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
