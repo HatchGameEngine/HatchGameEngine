@@ -4,6 +4,8 @@
 
 Multiplatform engine powering projects and making ideas into reality.
 
+[![](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine](https://github.com/XAMPPRocky/tokei).
+
 ## Building
 ### Microsoft Windows
 Included in `/VisualC` is a Visual Studio 2019 solution. You'll need the
