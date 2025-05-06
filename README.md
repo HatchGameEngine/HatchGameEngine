@@ -4,7 +4,7 @@
 
 Multiplatform engine powering projects and making ideas into reality.
 
-[![](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine](https://github.com/XAMPPRocky/tokei).
+[![HatchGameEngine](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine?category=lines)](https://github.com/XAMPPRocky/tokei).
 
 ## Building
 ### Microsoft Windows
