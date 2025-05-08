@@ -48,6 +48,10 @@ bool Path::Create(const char* path) {
 	if (ptr) {
 		ptr[1] = '\0';
 	}
+	else {
+		// No folder afterwards, must be at the root "/"
+		return true;
+	}
 
 	ptr = strchr(bufferPtr, '/');
 	while (ptr != nullptr) {
@@ -412,9 +416,12 @@ std::string Path::GetForLocation(PathLocation location) {
 		break;
 	}
 
+// FIXME: If using root "/" as current working directory, this fails to find files
+#ifndef SWITCH
 	if (finalPath == "") {
 		return "";
 	}
+#endif
 
 	// Ensure it ends in '/'
 	if (finalPath.back() != '/') {
