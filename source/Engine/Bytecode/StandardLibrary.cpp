@@ -769,6 +769,8 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
 	return INTEGER_VAL(animator->Sprite);
 }
 /***
@@ -780,7 +782,10 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->CurrentAnimation);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->CurrentAnimation);
 }
 /***
  * Animator.GetCurrentFrame
@@ -791,7 +796,10 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->CurrentFrame);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
  * Animator.GetHitbox
@@ -841,7 +849,10 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->PrevAnimation);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->PrevAnimation);
 }
 /***
  * Animator.GetAnimationSpeed
@@ -852,7 +863,10 @@ VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->AnimationSpeed);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->AnimationSpeed);
 }
 /***
  * Animator.GetAnimationTimer
@@ -863,7 +877,10 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->AnimationTimer);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->AnimationTimer);
 }
 /***
  * Animator.GetDuration
@@ -874,7 +891,10 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->Duration);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->Duration);
 }
 /***
  * Animator.GetFrameCount
@@ -885,7 +905,10 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->FrameCount);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->FrameCount);
 }
 /***
  * Animator.GetLoopIndex
@@ -896,7 +919,10 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->LoopIndex);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->LoopIndex);
 }
 /***
  * Animator.GetRotationStyle
@@ -907,7 +933,10 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(GET_ARG(0, GetAnimator)->RotationStyle);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return INTEGER_VAL(0);
+	return INTEGER_VAL(animator->RotationStyle);
 }
 /***
  * Animator.SetSprite
@@ -918,7 +947,10 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->Sprite = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->Sprite = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -930,7 +962,10 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->CurrentAnimation = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->CurrentAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -942,7 +977,10 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->CurrentFrame = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->CurrentFrame = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -954,7 +992,10 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->PrevAnimation = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->PrevAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -966,7 +1007,10 @@ VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->AnimationSpeed = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->AnimationSpeed = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -978,7 +1022,10 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->AnimationTimer = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->AnimationTimer = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -990,7 +1037,10 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->Duration = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->Duration = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1002,7 +1052,10 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->FrameCount = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->FrameCount = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1014,7 +1067,10 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->LoopIndex = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->LoopIndex = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1026,7 +1082,10 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->RotationStyle = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->RotationStyle = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1038,7 +1097,10 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->CurrentAnimation += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->CurrentAnimation += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1050,7 +1112,10 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
  */
 VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->CurrentFrame += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->CurrentFrame += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1062,7 +1127,10 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->AnimationSpeed += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->AnimationSpeed += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1074,7 +1142,10 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->AnimationTimer += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->AnimationTimer += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1086,7 +1157,10 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->Duration += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->Duration += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1098,7 +1172,10 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->FrameCount += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->FrameCount += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1110,7 +1187,10 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	GET_ARG(0, GetAnimator)->LoopIndex += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator)
+		return NULL_VAL;
+	animator->LoopIndex += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 // #endregion
