@@ -161,6 +161,8 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
 	static vector<AnimFrame> animFrames;
 	static vector<Texture*> textureSources;
+	animFrames.clear();
+	textureSources.clear();
 	animFrames.reserve(Scene::TileSpriteInfos.size());
 	textureSources.reserve(Scene::TileSpriteInfos.size());
 
@@ -183,9 +185,9 @@ void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw
 
 	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
 		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
-		animFrames[i] =
-			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-		textureSources[i] = info.Sprite->Spritesheets[animFrames[i].SheetNumber];
+		animFrames.push_back(
+			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex]);
+		textureSources.push_back(info.Sprite->Spritesheets[animFrames[i].SheetNumber]);
 	}
 
 	Uint32 totalVertexCount = 0;
