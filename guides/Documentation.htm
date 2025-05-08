@@ -791,14 +791,11 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Music_Play">Music.Play</a></li>
-                    <li><a href="#Reference_functions_Music_PlayAtTime">Music.PlayAtTime</a></li>
                     <li><a href="#Reference_functions_Music_Stop">Music.Stop</a></li>
                     <li><a href="#Reference_functions_Music_StopWithFadeOut">Music.StopWithFadeOut</a></li>
                     <li><a href="#Reference_functions_Music_Pause">Music.Pause</a></li>
                     <li><a href="#Reference_functions_Music_Resume">Music.Resume</a></li>
                     <li><a href="#Reference_functions_Music_Clear">Music.Clear</a></li>
-                    <li><a href="#Reference_functions_Music_Loop">Music.Loop</a></li>
-                    <li><a href="#Reference_functions_Music_LoopAtTime">Music.LoopAtTime</a></li>
                     <li><a href="#Reference_functions_Music_IsPlaying">Music.IsPlaying</a></li>
                     <li><a href="#Reference_functions_Music_GetPosition">Music.GetPosition</a></li>
                     <li><a href="#Reference_functions_Music_Alter">Music.Alter</a></li>
@@ -5948,29 +5945,17 @@
         </p>
         <p id="Reference_functions_Music_Play">
         <h2 style="margin-bottom: 8px;">Music.Play</h2>
-        <code>Music.Play(music[, panning, speed, volume, fadeInAfterFinished])</code>
+        <code>Music.Play(music[, loopPoint, panning, speed, volume, startPoint, fadeInAfterFinished])</code>
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to play.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Music_PlayAtTime">
-        <h2 style="margin-bottom: 8px;">Music.PlayAtTime</h2>
-        <code>Music.PlayAtTime(music, startPoint[, panning, speed, volume, fadeInAfterFinished])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it at a time (in seconds).</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
-        <li>startPoint (Decimal): The time (in seconds) to start the music at.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)</li>
+        <li>loopPoint (Integer): The sample index to loop back to, or <code>-1</code> if the music should only play once. (-1 is the default).</li>
+        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).</li>
+        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).</li>
+        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default).</li>
+        <li>startPoint (Decimal): The time (in seconds) to start the music at. (0.0 is the default).</li>
+        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 is the default, which disables it).</li>
         </ul>
         </p>
         <p id="Reference_functions_Music_Stop">
@@ -6005,37 +5990,6 @@
         <h2 style="margin-bottom: 8px;">Music.Clear</h2>
         <code>Music.Clear()</code>
         <div style="margin-top: 8px; font-size: 14px;">Completely clears the music stack, stopping all music.</div>
-        </p>
-        <p id="Reference_functions_Music_Loop">
-        <h2 style="margin-bottom: 8px;">Music.Loop</h2>
-        <code>Music.Loop(music, loop, loopPoint[, panning, speed, volume, fadeInAfterFinished])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
-        <li>loop (Boolean): Unused.</li>
-        <li>loopPoint (Integer): The sample index to loop back to.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Music_LoopAtTime">
-        <h2 style="margin-bottom: 8px;">Music.LoopAtTime</h2>
-        <code>Music.LoopAtTime(music, startPoint, loop, loopPoint[, panning, speed, volume, fadeInAfterFinished])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
-        <li>startPoint (Decimal): The time (in seconds) to start the music at.</li>
-        <li>loop (Boolean): Unused.</li>
-        <li>loopPoint (Integer): The sample index to loop back to.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        <li>fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)</li>
-        </ul>
         </p>
         <p id="Reference_functions_Music_IsPlaying">
         <h2 style="margin-bottom: 8px;">Music.IsPlaying</h2>
@@ -10167,7 +10121,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>732 out of 791 functions have descriptions. </p>
+        <p>729 out of 788 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
