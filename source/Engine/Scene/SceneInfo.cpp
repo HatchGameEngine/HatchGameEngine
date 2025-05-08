@@ -299,8 +299,6 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 	entry.Properties->Put("folder", entry.Folder);
 	entry.Properties->Put("id", entry.ID);
 	entry.Properties->Put("resourceFolder", entry.ResourceFolder);
-	entry.Properties->Put("spriteFolder",
-		StringUtils::Duplicate(entry.ResourceFolder)); // backwards compat
 	entry.Properties->Put("fileExtension", entry.Filetype);
 
 	FillAttributesHashMap(&node->attributes, entry.Properties);
