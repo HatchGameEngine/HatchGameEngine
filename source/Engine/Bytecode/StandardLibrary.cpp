@@ -18913,14 +18913,11 @@ void StandardLibrary::Link() {
 	// #region Music
 	INIT_CLASS(Music);
 	DEF_NATIVE(Music, Play);
-	DEF_NATIVE(Music, PlayAtTime);
 	DEF_NATIVE(Music, Stop);
 	DEF_NATIVE(Music, StopWithFadeOut);
 	DEF_NATIVE(Music, Pause);
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
-	DEF_NATIVE(Music, Loop);
-	DEF_NATIVE(Music, LoopAtTime);
 	DEF_NATIVE(Music, IsPlaying);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
