@@ -2386,7 +2386,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 #endif
 
-	glPointSize(scene->PointSize);
+	// glPointSize(scene->PointSize);
 
 	Matrix4x4 projMat = scene->ProjectionMatrix;
 	Matrix4x4 viewMat = scene->ViewMatrix;
@@ -2595,7 +2595,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 #endif
 
-	glPointSize(1.0f);
+	// glPointSize(1.0f);
 	glDisable(GL_CULL_FACE);
 	glDepthMask(GL_TRUE);
 	glFrontFace(GL_CCW);
