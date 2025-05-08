@@ -768,7 +768,8 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	return INTEGER_VAL(animator->Sprite);
 }
 /***
  * Animator.GetCurrentAnimation
@@ -779,7 +780,7 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL((int)Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->CurrentAnimation);
 }
 /***
  * Animator.GetCurrentFrame
@@ -790,27 +791,32 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->CurrentFrame);
 }
 /***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \param hitboxID (Integer): The index number of the hitbox.
+ * \paramOpt hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.
  * \return Returns a reference value to a hitbox array.
  * \ns Animator
  */
 VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	Animator* animator = Scene::AnimatorList[GET_ARG(0, GetInteger)];
-	int hitboxID = GET_ARG(1, GetInteger);
-	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
-		animator->CurrentFrame >= 0) {
-		AnimFrame frame = Scene::SpriteList[animator->Sprite]
-					  ->AsSprite->Animations[animator->CurrentAnimation]
-					  .Frames[animator->CurrentFrame];
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
+	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
+	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+		if (animator->CurrentAnimation > Scene::SpriteList[animator->Sprite]->AsSprite->Animations.size())
+			return NULL_VAL;
+
+		if (animator->CurrentFrame > Scene::SpriteList[animator->Sprite]->AsSprite->Animations[animator->CurrentFrame].Frames.size())
+			return NULL_VAL;
+
+		AnimFrame frame = Scene::SpriteList[animator->Sprite]->AsSprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame];
 
 		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, animator->CurrentFrame);
 			return NULL_VAL;
 		}
 
@@ -835,7 +841,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->PrevAnimation);
 }
 /***
  * Animator.GetAnimationSpeed
@@ -846,7 +852,7 @@ VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->AnimationSpeed);
 }
 /***
  * Animator.GetAnimationTimer
@@ -857,7 +863,7 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->AnimationTimer);
 }
 /***
  * Animator.GetDuration
@@ -868,7 +874,7 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->Duration);
 }
 /***
  * Animator.GetFrameCount
@@ -879,7 +885,7 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->FrameCount);
 }
 /***
  * Animator.GetLoopIndex
@@ -890,7 +896,7 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->LoopIndex);
 }
 /***
  * Animator.GetRotationStyle
@@ -901,7 +907,7 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle);
+	return INTEGER_VAL(GET_ARG(0, GetAnimator)->RotationStyle);
 }
 /***
  * Animator.SetSprite
@@ -912,7 +918,7 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->Sprite = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -924,7 +930,7 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->CurrentAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -936,7 +942,7 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->CurrentFrame = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -948,7 +954,7 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->PrevAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -960,7 +966,7 @@ VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->AnimationSpeed = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -972,7 +978,7 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->AnimationTimer = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -984,7 +990,7 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->Duration = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -996,7 +1002,7 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->FrameCount = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1008,7 +1014,7 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->LoopIndex = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1020,7 +1026,7 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle = GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->RotationStyle = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1032,7 +1038,7 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->CurrentAnimation += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1044,7 +1050,7 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
  */
 VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->CurrentFrame += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1056,7 +1062,7 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->AnimationSpeed += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1068,7 +1074,7 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->AnimationTimer += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1080,7 +1086,7 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->Duration += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1092,7 +1098,7 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->FrameCount += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1104,7 +1110,7 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex += GET_ARG(1, GetInteger);
+	GET_ARG(0, GetAnimator)->LoopIndex += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 // #endregion
@@ -15016,36 +15022,33 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (Integer): The sprite index to check.
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frame (Integer): The frame index of the animation to check.
+ * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
 	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG(3, GetInteger);
+	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
 
-	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++)
-		array->Values->push_back(INTEGER_VAL(0));
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
-	if (sprite && animationID >= 0 && frameID >= 0) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount))
-			return OBJECT_VAL(array);
-
-		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* hitbox = NewArray();
-		hitbox->Values->push_back(INTEGER_VAL(box.Top));
-		hitbox->Values->push_back(INTEGER_VAL(box.Left));
-		hitbox->Values->push_back(INTEGER_VAL(box.Right));
-		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(hitbox);
+	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		return NULL_VAL;
 	}
-	else {
-		return OBJECT_VAL(array);
-	}
+
+	CollisionBox box = frame.Boxes[hitboxID];
+	ObjArray* hitbox = NewArray();
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
+	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Right));
+	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+	return OBJECT_VAL(hitbox);
 }
 /***
  * Sprite.MakePalettized
