@@ -2393,25 +2393,25 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
+				case ROTSTYLE_NONE:
+					rot = 0;
+					break;
+				case ROTSTYLE_FULL:
+					rot = rot & 0x1FF;
+					break;
+				case ROTSTYLE_45DEG:
+					rot = (rot + 0x20) & 0x1C0;
+					break;
+				case ROTSTYLE_90DEG:
+					rot = (rot + 0x40) & 0x180;
+					break;
+				case ROTSTYLE_180DEG:
+					rot = (rot + 0x80) & 0x100;
+					break;
+				case ROTSTYLE_STATICFRAMES:
+					break;
+				default:
+					break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
@@ -2448,25 +2448,25 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
 		switch (sprite->Animations[entity->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2521,25 +2521,25 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)rotation;
 		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2591,25 +2591,25 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)rotation;
 		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2673,25 +2673,25 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
+				case ROTSTYLE_NONE:
+					rot = 0;
+					break;
+				case ROTSTYLE_FULL:
+					rot = rot & 0x1FF;
+					break;
+				case ROTSTYLE_45DEG:
+					rot = (rot + 0x20) & 0x1C0;
+					break;
+				case ROTSTYLE_90DEG:
+					rot = (rot + 0x40) & 0x180;
+					break;
+				case ROTSTYLE_180DEG:
+					rot = (rot + 0x80) & 0x100;
+					break;
+				case ROTSTYLE_STATICFRAMES:
+					break;
+				default:
+					break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
@@ -3099,27 +3099,20 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Uint32 id = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal) + 8;
 	int y = (int)GET_ARG(2, GetDecimal) + 8;
 	int flipX = GET_ARG(3, GetInteger);
 	int flipY = GET_ARG(4, GetInteger);
+	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
+	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
 
 	TileSpriteInfo info;
 	if (id < Scene::TileSpriteInfos.size() &&
 		(info = Scene::TileSpriteInfos[id]).Sprite != NULL) {
-		Graphics::DrawSprite(info.Sprite,
-			info.AnimationIndex,
-			info.FrameIndex,
-			x,
-			y,
-			flipX,
-			flipY,
-			1.0f,
-			1.0f,
-			0.0f);
+		Graphics::DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, scaleX, scaleY, 0.0f);
 	}
 	return NULL_VAL;
 }
@@ -4432,10 +4425,8 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Graphics::SetClip((int)GET_ARG(0, GetDecimal),
-		(int)GET_ARG(1, GetDecimal),
-		(int)GET_ARG(2, GetDecimal),
-		(int)GET_ARG(3, GetDecimal));
+	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0)
+		Graphics::SetClip((int)GET_ARG(0, GetDecimal), (int)GET_ARG(1, GetDecimal), (int)GET_ARG(2, GetDecimal), (int)GET_ARG(3, GetDecimal));
 	return NULL_VAL;
 }
 /***
@@ -4447,6 +4438,46 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	Graphics::ClearClip();
 	return NULL_VAL;
+}
+/***
+  * Draw.GetClipX
+  * \desc Gets the X position in which drawing starts to occur.
+  * \return The X position if clipping is enabled, else 0.
+  * \ns Draw
+  */
+VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X) : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipY
+ * \desc Gets the Y position in which drawing starts to occur.
+ * \return The Y position if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y) : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipWidth
+ * \desc Gets the width in which drawing occurs.
+ * \return The width if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width) : INTEGER_VAL((int)Graphics::CurrentView->Width);
+}
+/***
+ * Draw.GetClipHeight
+ * \desc Gets the height in which drawing occurs.
+ * \return The height if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
 
 /***
@@ -8353,12 +8384,7 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	if (IS_INTEGER(args[0])) {
-		return INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetInteger)));
-	}
-	else {
-		return DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
-	}
+	return IS_INTEGER(args[0]) ? INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetDecimal))) : DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
 }
 /***
  * Math.Min
@@ -8370,12 +8396,10 @@ VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
 		return INTEGER_VAL((int)Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	}
-	else {
+	else
 		return DECIMAL_VAL(Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	}
 }
 /***
  * Math.Max
@@ -8387,12 +8411,10 @@ VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
 		return INTEGER_VAL((int)Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	}
-	else {
+	else
 		return DECIMAL_VAL(Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	}
 }
 /***
  * Math.Clamp
@@ -8405,15 +8427,12 @@ VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2])) {
-		return INTEGER_VAL((int)Math::Clamp(
-			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
-	}
-	else {
-		return DECIMAL_VAL(Math::Clamp(
-			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
-	}
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2]))
+		return INTEGER_VAL((int)Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+	else
+		return DECIMAL_VAL(Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
 }
+
 /***
  * Math.Sign
  * \desc Gets the sign associated with a Decimal value.
@@ -8765,6 +8784,18 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
 /***
+  * RSDK.Math.ATan2
+  * \desc Returns the arc tangent of a position.
+  * \param x (Decimal): X value of the position.
+  * \param y (Decimal): Y value of the position.
+  * \return The arc tangent of the position.
+  * \ns RSDK.Math
+  */
+VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f), (int)(GET_ARG(1, GetDecimal) * 65536.0f)));
+}
+/***
  * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
  * \param radian (Decimal): Radian value to convert.
@@ -8777,7 +8808,7 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Math.IntegerToRadian
- * \desc Gets the radia Decimal conversion of an integer, based on 256.
+ * \desc Gets the radian Decimal conversion of an integer, based on 256.
  * \param integer (Integer): Integer value to convert.
  * \return A radia Decimal value of the converted integer.
  * \ns RSDK.Math
@@ -8785,6 +8816,28 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL((float)(GET_ARG(0, GetInteger) * M_PI / 256.0));
+}
+/***
+ * RSDK.Math.ToFixed
+ * \desc Converts a decimal number to its fixed-point equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted fixed-point Number value.
+ * \ns Math
+ */
+VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0f));
+}
+/***
+ * RSDK.Math.FromFixed
+ * \desc Converts a fixed-point number to its decimal equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted decimal Number value.
+ * \ns Math
+ */
+VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0f);
 }
 // #endregion
 
@@ -14958,16 +15011,14 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
- * Sprite.GetFrameHitbox
+ * Sprite.GetHitbox
  * \desc Gets the hitbox of an animation and frame of a sprite.
  * \param sprite (Integer): The sprite index to check.
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frame (Integer): The frame index of the animation to check.
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
@@ -14975,23 +15026,21 @@ VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	int hitboxID = GET_ARG(3, GetInteger);
 
 	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++) {
-		array->Values->push_back(DECIMAL_VAL(0.0f));
-	}
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
 
 	if (sprite && animationID >= 0 && frameID >= 0) {
 		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount))
 			return OBJECT_VAL(array);
-		}
 
 		CollisionBox box = frame.Boxes[hitboxID];
 		ObjArray* hitbox = NewArray();
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Top));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Left));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Right));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 		return OBJECT_VAL(hitbox);
 	}
 	else {
@@ -16866,6 +16915,48 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.AdjustX
+ * \desc Adjusts the x-axis position of the camera for the specified view by an amount.
+ * \param viewIndex(Integer) : Index of the view.
+ * \param x(Number) : Desired X adjust amount.
+ * \ns View
+ */
+VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].X += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustY
+* \desc Adjusts the y-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param y (Number): Desired Y adjust amount.
+* \ns View
+*/
+VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Y += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustZ
+* \desc Adjusts the z-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param z (Number): Desired Z adjust amount.
+* \ns View
+*/
+VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Z += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
@@ -18096,63 +18187,63 @@ void StandardLibrary::Link() {
 
 	// #region Weekdays
 	/***
-    * \enum Weekday_SUNDAY
-    * \desc The first day of the week.
-    */
-	DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
+	* \enum WEEKDAY_SUNDAY
+	* \desc The first day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SUNDAY", (int)Weekday::SUNDAY);
 	/***
-    * \enum Weekday_MONDAY
-    * \desc The second day of the week.
-    */
-	DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
+	* \enum WEEKDAY_MONDAY
+	* \desc The second day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_MONDAY", (int)Weekday::MONDAY);
 	/***
-    * \enum Weekday_TUESDAY
-    * \desc The third day of the week.
-    */
-	DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
+	* \enum WEEKDAY_TUESDAY
+	* \desc The third day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_TUESDAY", (int)Weekday::TUESDAY);
 	/***
-    * \enum Weekday_WEDNESDAY
-    * \desc The fourth day of the week.
-    */
-	DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
+	* \enum WEEKDAY_WEDNESDAY
+	* \desc The fourth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_WEDNESDAY", (int)Weekday::WEDNESDAY);
 	/***
-    * \enum Weekday_THURSDAY
-    * \desc The fifth day of the week.
-    */
-	DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
+	* \enum WEEKDAY_THURSDAY
+	* \desc The fifth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_THURSDAY", (int)Weekday::THURSDAY);
 	/***
-    * \enum Weekday_FRIDAY
-    * \desc The sixth day of the week.
-    */
-	DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
+	* \enum WEEKDAY_FRIDAY
+	* \desc The sixth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_FRIDAY", (int)Weekday::FRIDAY);
 	/***
-    * \enum Weekday_SATURDAY
-    * \desc The seventh day of the week.
-    */
-	DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
+	* \enum WEEKDAY_SATURDAY
+	* \desc The seventh day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SATURDAY", (int)Weekday::SATURDAY);
 	// #endregion
 
 	// #region TimesOfDay
 	/***
-    * \enum TimeOfDay_MORNING
-    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
+	* \enum TIMEOFDAY_MORNING
+	* \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MORNING", (int)TimeOfDay::MORNING);
 	/***
-    * \enum TimeOfDay_MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
+	* \enum TIMEOFDAY_MIDDAY
+	* \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MIDDAY", (int)TimeOfDay::MIDDAY);
 	/***
-    * \enum TimeOfDay_EVENING
-    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
-    */
-	DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
+	* \enum TIMEOFDAY_EVENING
+	* \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_EVENING", (int)TimeOfDay::EVENING);
 	/***
-    * \enum TimeOfDay_NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
-    */
-	DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
+	* \enum TIMEOFDAY_NIGHT
+	* \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_NIGHT", (int)TimeOfDay::NIGHT);
 	// #endregion
 	// #endregion
 
@@ -18296,6 +18387,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, UseStrokeSmoothing);
 	DEF_NATIVE(Draw, SetClip);
 	DEF_NATIVE(Draw, ClearClip);
+	DEF_NATIVE(Draw, GetClipX);
+	DEF_NATIVE(Draw, GetClipY);
+	DEF_NATIVE(Draw, GetClipWidth);
+	DEF_NATIVE(Draw, GetClipHeight);
 	DEF_NATIVE(Draw, Save);
 	DEF_NATIVE(Draw, Scale);
 	DEF_NATIVE(Draw, Rotate);
@@ -18895,8 +18990,11 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Math, Tan256);
 	DEF_NAMESPACED_NATIVE(Math, ASin256);
 	DEF_NAMESPACED_NATIVE(Math, ACos256);
+	DEF_NAMESPACED_NATIVE(Math, ATan2);
 	DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
 	DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
+	DEF_NAMESPACED_NATIVE(Math, ToFixed);
+	DEF_NAMESPACED_NATIVE(Math, FromFixed);
 	DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, SetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, RandomInteger);
@@ -19320,7 +19418,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameID);
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
-	DEF_NATIVE(Sprite, GetFrameHitbox);
+	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
@@ -19497,6 +19595,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, SetY);
 	DEF_NATIVE(View, SetZ);
 	DEF_NATIVE(View, SetPosition);
+	DEF_NATIVE(View, AdjustX);
+	DEF_NATIVE(View, AdjustY);
+	DEF_NATIVE(View, AdjustZ);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);
@@ -19691,25 +19792,25 @@ void StandardLibrary::Link() {
 
 	// #region Hitbox Sides
 	/***
-    * \enum HitboxSide_LEFT
+    * \enum HITBOX_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_LEFT);
+	DEF_ENUM(HITBOX_LEFT);
 	/***
-    * \enum HitboxSide_TOP
+    * \enum HITBOX_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_TOP);
+	DEF_ENUM(HITBOX_TOP);
 	/***
-    * \enum HitboxSide_RIGHT
+    * \enum HITBOX_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_RIGHT);
+	DEF_ENUM(HITBOX_RIGHT);
 	/***
-    * \enum HitboxSide_BOTTOM
+    * \enum HITBOX_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_BOTTOM);
+	DEF_ENUM(HITBOX_BOTTOM);
 	// #endregion
 
 	/***

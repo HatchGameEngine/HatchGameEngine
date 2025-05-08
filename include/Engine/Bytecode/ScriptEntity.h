@@ -52,7 +52,7 @@ public:
 	static VMValue VM_InView(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ReturnHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID);

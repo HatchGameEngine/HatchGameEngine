@@ -414,6 +414,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(ScaleY);
 	COPY(Rotation);
 	COPY(Alpha);
+	COPY(BlendMode);
 	COPY(AutoPhysics);
 
 	COPY(Priority);
