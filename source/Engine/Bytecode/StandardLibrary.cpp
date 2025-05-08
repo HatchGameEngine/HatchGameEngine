@@ -10762,6 +10762,30 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(result);
 }
 /***
+ * Resources.LoadDynamicSprite
+ * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
+ * \param fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.
+ * \param name (String): Name of the animation file within the resource folder.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return Returns the index of the Resource.
+ * \ns Resources
+ */
+VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	char* fallbackFolder = GET_ARG(0, GetString);
+	char* name = GET_ARG(1, GetString);
+	int unloadPolicy = GET_ARG(2, GetInteger);
+
+	char filename[4096];
+	snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", Scene::CurrentResourceFolder, name);
+	if (!ResourceManager::ResourceExists(filename))
+		snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", fallbackFolder, name);
+
+	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
+
+	return INTEGER_VAL(result);
+}
+/***
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
  * \param filename (String): Filename of the resource.
@@ -11227,41 +11251,6 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	Scene::NoPersistency = noPersistency;
-
-	return NULL_VAL;
-}
-/***
- * Scene.LoadNoPersistency
- * \desc Changes active scene to the one in the specified resource file, without keeping any persistent objects. (Deprecated; use <linkto ref="Scene.Load"></linkto> instead.)
- * \param filename (String): Filename of scene.
- * \ns Scene
- */
-VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	char* filename = GET_ARG(0, GetString);
-
-	strcpy(Scene::NextScene, filename);
-	Scene::NextScene[strlen(filename)] = 0;
-	Scene::NoPersistency = true;
-
-	return NULL_VAL;
-}
-/***
- * Scene.LoadPosition
- * \desc Loads the scene located in the scene list's position slot, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.Load"></linkto> instead.)
- * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
- * \ns Scene
- */
-VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
-	if (!SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
-		return NULL_VAL;
-	}
-
-	std::string path = SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList);
-
-	StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
-
-	Scene::NoPersistency = !!GET_ARG_OPT(1, GetInteger, false);
 
 	return NULL_VAL;
 }
@@ -11859,16 +11848,6 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
 }
 /***
- * Scene.GetListPos
- * \desc Gets the current list position of the scene. (Deprecated; use <linkto ref="Scene_ListPos"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Scene::CurrentSceneInList);
-}
-/***
  * Scene.GetCurrentFolder
  * \desc Gets the current folder of the scene.
  * \return Returns a String value.
@@ -11899,16 +11878,6 @@ VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threa
 	return ReturnString(Scene::CurrentResourceFolder);
 }
 /***
- * Scene.GetCurrentSpriteFolder
- * \desc Gets the current sprite folder of the scene. (Deprecated; use <linkto ref="Scene.GetCurrentResourceFolder"></linkto> instead.)
- * \return Returns a String value.
- * \ns Scene
- */
-VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentResourceFolder);
-}
-/***
  * Scene.GetCurrentCategory
  * \desc Gets the current category name of the scene.
  * \return Returns a String value.
@@ -11917,36 +11886,6 @@ VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadI
 VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return ReturnString(Scene::CurrentCategory);
-}
-/***
- * Scene.GetActiveCategory
- * \desc Gets the current category number of the scene. (Deprecated; use <linkto ref="Scene_ActiveCategory"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Scene::ActiveCategory);
-}
-/***
- * Scene.GetCategoryCount
- * \desc Gets the amount of categories in the scene list. (Deprecated; use <linkto ref="SceneList.GetCategoryCount"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL((int)SceneInfo::Categories.size());
-}
-/***
- * Scene.GetStageCount
- * \desc Gets the amount of stages in the scene list. (Deprecated; use <linkto ref="SceneList.GetSceneCount"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(SceneInfo::NumTotalScenes);
 }
 /***
  * Scene.GetDebugMode
@@ -12221,35 +12160,6 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(false);
 }
 /***
- * Scene.CheckValidScene
- * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsCurrentEntryValid"></linkto> instead.)
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsCurrentEntryValid(argCount, args, threadID);
-}
-/***
- * Scene.CheckSceneFolder
- * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsUsingFolder"></linkto> instead.)
- * \param folder (String): Folder name to compare.
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsUsingFolder(argCount, args, threadID);
-}
-/***
- * Scene.CheckSceneID
- * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsUsingID"></linkto> instead.)
- * \param id (String): ID to compare.
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsUsingID(argCount, args, threadID);
-}
-/***
  * Scene.IsPaused
  * \desc Gets whether or not the scene is paused.
  * \return Returns a Boolean value.
@@ -12257,28 +12167,6 @@ VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)Scene::Paused);
-}
-/***
- * Scene.SetListPos
- * \desc Sets the current list position of the scene. (Deprecated; use <linkto ref="Scene_ListPos"></linkto> instead.)
- * \param sceneNum (Integer): Scene number to use.
- * \ns Scene
- */
-VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	Scene::CurrentSceneInList = GET_ARG(0, GetInteger);
-	return NULL_VAL;
-}
-/***
- * Scene.SetActiveCategory
- * \desc Sets the current category number of the scene. (Deprecated; use <linkto ref="Scene_ActiveCategory"></linkto> instead.)
- * \param categoryNum (Integer): Scene category number to use.
- * \ns Scene
- */
-VMValue Scene_SetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	Scene::ActiveCategory = GET_ARG(0, GetInteger);
-	return NULL_VAL;
 }
 /***
  * Scene.SetDebugMode
@@ -12289,16 +12177,6 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Scene::DebugMode = GET_ARG(0, GetInteger);
 	return NULL_VAL;
-}
-/***
- * Scene.SetScene
- * \desc Sets the scene if the category and scene names exist within the scene list. (Deprecated; use <linkto ref="Scene.Change"></linkto> instead.)
- * \param category (String): Category name.
- * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
- * \ns Scene
- */
-VMValue Scene_SetScene(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_Change(argCount, args, threadID);
 }
 /***
  * Scene.SetTile
@@ -19185,6 +19063,7 @@ void StandardLibrary::Link() {
 	// #region Resources
 	INIT_CLASS(Resources);
 	DEF_NATIVE(Resources, LoadSprite);
+	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
@@ -19216,9 +19095,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, CheckObjectCollisionBox);
 	DEF_NATIVE(Scene, CheckObjectCollisionPlatform);
 	DEF_NATIVE(Scene, Load);
-	DEF_NATIVE(Scene, LoadNoPersistency); // deprecated
 	DEF_NATIVE(Scene, Change);
-	DEF_NATIVE(Scene, LoadPosition); // deprecated
 	DEF_NATIVE(Scene, LoadTileCollisions);
 	DEF_NATIVE(Scene, AreTileCollisionsLoaded);
 	DEF_NATIVE(Scene, AddTileset);
@@ -19259,15 +19136,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetTilesetPaletteIndex);
 	DEF_NATIVE(Scene, GetDrawGroupCount);
 	DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
-	DEF_NATIVE(Scene, GetListPos); // deprecated
 	DEF_NATIVE(Scene, GetCurrentFolder);
 	DEF_NATIVE(Scene, GetCurrentID);
 	DEF_NATIVE(Scene, GetCurrentResourceFolder);
-	DEF_NATIVE(Scene, GetCurrentSpriteFolder); // deprecated
 	DEF_NATIVE(Scene, GetCurrentCategory);
-	DEF_NATIVE(Scene, GetActiveCategory);
-	DEF_NATIVE(Scene, GetCategoryCount); // deprecated
-	DEF_NATIVE(Scene, GetStageCount); // deprecated
 	DEF_NATIVE(Scene, GetDebugMode);
 	DEF_NATIVE(Scene, GetFirstInstance);
 	DEF_NATIVE(Scene, GetLastInstance);
@@ -19283,14 +19155,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, IsCurrentEntryValid);
 	DEF_NATIVE(Scene, IsUsingFolder);
 	DEF_NATIVE(Scene, IsUsingID);
-	DEF_NATIVE(Scene, CheckValidScene); // deprecated
-	DEF_NATIVE(Scene, CheckSceneFolder); // deprecated
-	DEF_NATIVE(Scene, CheckSceneID); // deprecated
 	DEF_NATIVE(Scene, IsPaused);
-	DEF_NATIVE(Scene, SetListPos); // deprecated
-	DEF_NATIVE(Scene, SetActiveCategory); // deprecated
 	DEF_NATIVE(Scene, SetDebugMode);
-	DEF_NATIVE(Scene, SetScene); // deprecated
 	DEF_NATIVE(Scene, SetTile);
 	DEF_NATIVE(Scene, SetTileCollisionSides);
 	DEF_NATIVE(Scene, SetPaused);

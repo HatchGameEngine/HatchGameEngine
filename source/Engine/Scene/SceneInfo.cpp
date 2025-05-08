@@ -271,12 +271,6 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 		entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
 	}
 
-	// Sprite folder (backwards compat)
-	if (node->attributes.Exists("spriteFolder")) {
-		entry.ResourceFolder =
-			XMLParser::TokenToString(node->attributes.Get("spriteFolder"));
-	}
-
 	// Filetype
 	if (node->attributes.Exists("fileExtension")) {
 		entry.Filetype = XMLParser::TokenToString(node->attributes.Get("fileExtension"));
