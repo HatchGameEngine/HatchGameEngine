@@ -2393,25 +2393,25 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
+				case ROTSTYLE_NONE:
+					rot = 0;
+					break;
+				case ROTSTYLE_FULL:
+					rot = rot & 0x1FF;
+					break;
+				case ROTSTYLE_45DEG:
+					rot = (rot + 0x20) & 0x1C0;
+					break;
+				case ROTSTYLE_90DEG:
+					rot = (rot + 0x40) & 0x180;
+					break;
+				case ROTSTYLE_180DEG:
+					rot = (rot + 0x80) & 0x100;
+					break;
+				case ROTSTYLE_STATICFRAMES:
+					break;
+				default:
+					break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
@@ -2448,25 +2448,25 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
 		switch (sprite->Animations[entity->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2521,25 +2521,25 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)rotation;
 		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2591,25 +2591,25 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)rotation;
 		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-		case ROTSTYLE_NONE:
-			rot = 0;
-			break;
-		case ROTSTYLE_FULL:
-			rot = rot & 0x1FF;
-			break;
-		case ROTSTYLE_45DEG:
-			rot = (rot + 0x20) & 0x1C0;
-			break;
-		case ROTSTYLE_90DEG:
-			rot = (rot + 0x40) & 0x180;
-			break;
-		case ROTSTYLE_180DEG:
-			rot = (rot + 0x80) & 0x100;
-			break;
-		case ROTSTYLE_STATICFRAMES:
-			break;
-		default:
-			break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2673,25 +2673,25 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
+				case ROTSTYLE_NONE:
+					rot = 0;
+					break;
+				case ROTSTYLE_FULL:
+					rot = rot & 0x1FF;
+					break;
+				case ROTSTYLE_45DEG:
+					rot = (rot + 0x20) & 0x1C0;
+					break;
+				case ROTSTYLE_90DEG:
+					rot = (rot + 0x40) & 0x180;
+					break;
+				case ROTSTYLE_180DEG:
+					rot = (rot + 0x80) & 0x100;
+					break;
+				case ROTSTYLE_STATICFRAMES:
+					break;
+				default:
+					break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}

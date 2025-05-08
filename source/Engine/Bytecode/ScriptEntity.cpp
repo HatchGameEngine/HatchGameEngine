@@ -1556,28 +1556,34 @@ VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 thread
 			break;
 	}
 
-	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++)
-		array->Values->push_back(INTEGER_VAL(0));
-
-	if (sprite && animationID >= 0 && frameID >= 0) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			return OBJECT_VAL(array);
-		}
-
-		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* hitbox = NewArray();
-		hitbox->Values->push_back(INTEGER_VAL(box.Top));
-		hitbox->Values->push_back(INTEGER_VAL(box.Left));
-		hitbox->Values->push_back(INTEGER_VAL(box.Right));
-		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(hitbox);
+	if (!sprite) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", self->Sprite);
+		return NULL_VAL;
 	}
-	else {
-		return OBJECT_VAL(array);
+
+	if (!(animationID >= 0 && (Uint32)animationID < sprite->Animations.size())) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animationID);
+		return NULL_VAL;
 	}
+	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].Frames.size())) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
+		return NULL_VAL;
+	}
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		return NULL_VAL;
+	}
+
+	CollisionBox box = frame.Boxes[hitboxID];
+	ObjArray* hitbox = NewArray();
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
+	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Right));
+	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+	return OBJECT_VAL(hitbox);
 }
 
 /***
