@@ -69,7 +69,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	r->ReadUInt32(); // Editor background color 1
 	r->ReadUInt32(); // Editor background color 2
 	if (verPatch >= 1) {
-		r->ReadByte(); // ?
+		r->ReadByte(); // completely unused value
 	}
 
 	// Unused (number of kits)

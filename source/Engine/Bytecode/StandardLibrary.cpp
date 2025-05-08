@@ -1467,102 +1467,6 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 }
 // #endregion
 
-// #region Audio
-/***
- * Audio.GetMasterVolume
- * \desc Gets the master volume of the audio mixer.
- * \return The master volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::MasterVolume);
-}
-/***
- * Audio.GetMusicVolume
- * \desc Gets the music volume of the audio mixer.
- * \return The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::MusicVolume);
-}
-/***
- * Audio.GetSoundVolume
- * \desc Gets the sound effect volume of the audio mixer.
- * \return The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::SoundVolume);
-}
-/***
- * Audio.SetMasterVolume
- * \desc Sets the master volume of the audio mixer.
- * \param volume (Integer): The master volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetMasterVolume(volume);
-	}
-
-	return NULL_VAL;
-}
-/***
- * Audio.SetMusicVolume
- * \desc Sets the music volume of the audio mixer.
- * \param volume (Integer): The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetMusicVolume(volume);
-	}
-
-	return NULL_VAL;
-}
-/***
- * Audio.SetSoundVolume
- * \desc Sets the sound effect volume of the audio mixer.
- * \param volume (Integer): The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetSoundVolume(volume);
-	}
-
-	return NULL_VAL;
-}
-// #endregion
-
 // #region Array
 /***
  * Array.Create
@@ -1860,6 +1764,102 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 
 		ScriptManager::Unlock();
 	}
+	return NULL_VAL;
+}
+// #endregion
+
+// #region Audio
+/***
+ * Audio.GetMasterVolume
+ * \desc Gets the master volume of the audio mixer.
+ * \return The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::MasterVolume);
+}
+/***
+ * Audio.GetMusicVolume
+ * \desc Gets the music volume of the audio mixer.
+ * \return The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::MusicVolume);
+}
+/***
+ * Audio.GetSoundVolume
+ * \desc Gets the sound effect volume of the audio mixer.
+ * \return The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::SoundVolume);
+}
+/***
+ * Audio.SetMasterVolume
+ * \desc Sets the master volume of the audio mixer.
+ * \param volume (Integer): The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetMasterVolume(volume);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Audio.SetMusicVolume
+ * \desc Sets the music volume of the audio mixer.
+ * \param volume (Integer): The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetMusicVolume(volume);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Audio.SetSoundVolume
+ * \desc Sets the sound effect volume of the audio mixer.
+ * \param volume (Integer): The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetSoundVolume(volume);
+	}
+
 	return NULL_VAL;
 }
 // #endregion
@@ -17840,16 +17840,6 @@ void StandardLibrary::Link() {
 	DEF_ENUM_CLASS(KeyBind, DevQuit);
 	// #endregion
 
-	// #region Audio
-	INIT_CLASS(Audio);
-	DEF_NATIVE(Audio, GetMasterVolume);
-	DEF_NATIVE(Audio, GetMusicVolume);
-	DEF_NATIVE(Audio, GetSoundVolume);
-	DEF_NATIVE(Audio, SetMasterVolume);
-	DEF_NATIVE(Audio, SetMusicVolume);
-	DEF_NATIVE(Audio, SetSoundVolume);
-	// #endregion
-
 	// #region Array
 	INIT_CLASS(Array);
 	DEF_NATIVE(Array, Create);
@@ -17863,6 +17853,16 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Array, SetAll);
 	DEF_NATIVE(Array, Reverse);
 	DEF_NATIVE(Array, Sort);
+	// #endregion
+
+	// #region Audio
+	INIT_CLASS(Audio);
+	DEF_NATIVE(Audio, GetMasterVolume);
+	DEF_NATIVE(Audio, GetMusicVolume);
+	DEF_NATIVE(Audio, GetSoundVolume);
+	DEF_NATIVE(Audio, SetMasterVolume);
+	DEF_NATIVE(Audio, SetMusicVolume);
+	DEF_NATIVE(Audio, SetSoundVolume);
 	// #endregion
 
 	// #region Controller
