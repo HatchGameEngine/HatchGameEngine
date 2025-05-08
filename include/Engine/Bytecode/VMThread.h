@@ -79,7 +79,7 @@ public:
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(Uint32 hash, int argCount, bool isSuper);
+	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount, bool isSuper);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();

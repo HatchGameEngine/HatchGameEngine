@@ -35,6 +35,7 @@
 class EntityImpl {
 public:
 	static ObjClass* Class;
+	static Table* NativeMethods;
 
 	static void Init();
 };

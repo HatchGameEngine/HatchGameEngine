@@ -1902,7 +1902,9 @@ int VMThread::RunInstruction() {
 		VMValue receiver = Peek(argCount);
 		VMValue result;
 		if (IS_INSTANCE(receiver)) {
-			if (!InvokeForInstance(hash, argCount, isSuper)) {
+			ObjInstance* instance = AS_INSTANCE(receiver);
+			ObjClass* klass = instance->Object.Class;
+			if (!InvokeForInstance(instance, klass, hash, argCount, isSuper)) {
 				if (ThrowRuntimeError(false,
 					    "Could not invoke %s!",
 					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
@@ -2654,30 +2656,40 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 	}
 	return false;
 }
-bool VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
-	ObjInstance* instance = AS_INSTANCE(Peek(argCount));
-	ObjClass* klass = instance->Object.Class;
+bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount, bool isSuper) {
+	VMValue callable;
+	bool exists = false;
 
 	if (!isSuper) {
 		// First look for a field which may shadow a method.
-		VMValue value;
-		bool exists = false;
 		if (ScriptManager::Lock()) {
-			exists = instance->Fields->GetIfExists(hash, &value);
+			exists = instance->Fields->GetIfExists(hash, &callable);
 			ScriptManager::Unlock();
 		}
 		if (exists) {
-			return CallValue(value, argCount);
+			return CallForObject(callable, argCount);
 		}
 	}
 	else {
 		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
 		if (parentClass) {
-			return InvokeFromClass(parentClass, hash, argCount);
+			// Invoke on a method of the parent
+			return InvokeForInstance(instance, parentClass, hash, argCount, true);
 		}
 		else {
-			ThrowRuntimeError(false,
-				"Instance's class does not have a parent to call method from.");
+			// Call native Entity method as if that were its parent
+			if (instance->EntityPtr && ScriptManager::Lock()) {
+				exists = ScriptEntity::GetClassMethod(hash, &callable);
+				ScriptManager::Unlock();
+			}
+
+			if (exists) {
+				return CallForObject(callable, argCount);
+			}
+			else {
+				ThrowRuntimeError(false,
+					"Instance's class does not have a parent to call method from.");
+			}
 		}
 		return false;
 	}

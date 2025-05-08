@@ -61,6 +61,7 @@ public:
 	void GameStart();
 	void Remove();
 	void Dispose();
+	static bool GetClassMethod(Uint32 hash, VMValue* callable);
 	static bool VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
 	static bool VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);

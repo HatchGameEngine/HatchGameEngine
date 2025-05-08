@@ -1106,6 +1106,9 @@ bool TestEntityCollision(Entity* other, Entity* self) {
 
 	return self->CollideWithObject(other);
 }
+bool ScriptEntity::GetClassMethod(Uint32 hash, VMValue* callable) {
+    return EntityImpl::NativeMethods->GetIfExists(hash, callable);
+}
 bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	Entity* self = GetScriptEntity(object);
 	if (self == nullptr) {

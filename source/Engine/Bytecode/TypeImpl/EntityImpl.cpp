@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 
 ObjClass* EntityImpl::Class = nullptr;
+Table* EntityImpl::NativeMethods = nullptr;
 
 void EntityImpl::Init() {
 	const char* name = "Entity";
@@ -11,7 +12,13 @@ void EntityImpl::Init() {
 	Class = NewClass(Murmur::EncryptString(name));
 	Class->Name = CopyString(name);
 
-#define ENTITY_NATIVE_FN(name) ScriptManager::DefineNative(Class, #name, ScriptEntity::VM_##name);
+	NativeMethods = new Table(NULL, 32);
+
+#define ENTITY_NATIVE_FN(name) { \
+	ObjNative* native = NewNative(ScriptEntity::VM_##name); \
+	Class->Methods->Put(#name, OBJECT_VAL(native)); \
+	NativeMethods->Put(#name, OBJECT_VAL(native)); \
+}
 	ENTITY_NATIVE_FN_LIST
 #undef ENTITY_NATIVE_FN
 
