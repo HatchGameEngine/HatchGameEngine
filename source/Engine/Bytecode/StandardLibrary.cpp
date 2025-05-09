@@ -9803,7 +9803,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	if (fadeInAfterFinished < 0.f)
 		fadeInAfterFinished = 0.f;
 	if (audio)
-		AudioManager::PushMusicAt(audio, startPoint, (loopPoint >= 0) ? true : false, loopPoint, panning, speed, volume, fadeInAfterFinished);
+		AudioManager::PushMusicAt(audio, startPoint, (loopPoint >= 0), loopPoint, panning, speed, volume, fadeInAfterFinished);
 	return NULL_VAL;
 }
 /***
@@ -14284,8 +14284,9 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 // #region Sound
 /***
  * Sound.Play
- * \desc Plays a sound once.
+ * \desc Plays a sound either once or in a loop.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14295,39 +14296,14 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.Loop
- * \desc Plays a sound, looping back when it ends.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = GET_ARG_OPT(1, GetInteger, -1);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
 	if (audio) {
 		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio, (loopPoint >= 0), (loopPoint >= 0) ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -14420,8 +14396,9 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.PlayMultiple
- * \desc Plays a sound once, without interrupting channels playing the same sound.
+ * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14431,45 +14408,22 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.LoopMultiple
- * \desc Plays a sound, looping back when it ends, without interrupting channels playing the same sound.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = GET_ARG_OPT(1, GetInteger, -1);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
 	if (audio) {
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio, (loopPoint >= 0), (loopPoint >= 0) ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
 /***
  * Sound.PlayAtChannel
- * \desc Plays a sound at the specified channel.
+ * \desc Plays or loops a sound at the specified channel.
  * \param channel (Integer): The channel index.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14480,43 +14434,8 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
 	ISound* audio = GET_ARG(1, GetSound);
-	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	if (channel < 0) {
-		THROW_ERROR("Invalid channel index %d.", channel);
-		return NULL_VAL;
-	}
-	if (audio) {
-		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
-			audio,
-			false,
-			0,
-			panning,
-			speed,
-			volume,
-			nullptr);
-	}
-	return NULL_VAL;
-}
-/***
- * Sound.LoopAtChannel
- * \desc Plays a sound at the specified channel, looping back when it ends.
- * \param channel (Integer): The channel index.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return
- * \ns Sound
- */
-VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	int channel = GET_ARG(0, GetInteger);
-	ISound* audio = GET_ARG(1, GetSound);
-	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
-	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
+	int loopPoint = GET_ARG_OPT(2, GetInteger, -1);
+	float panning = GET_ARG_OPT(3, GetDecimal, 0.0);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
 	if (channel < 0) {
@@ -14524,14 +14443,7 @@ VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	if (audio) {
-		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
-			audio,
-			true,
-			loopPoint,
-			panning,
-			speed,
-			volume,
-			nullptr);
+		AudioManager::SetSound(channel & AudioManager::SoundArrayLength, audio, (loopPoint >= 0), (loopPoint >= 0) ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return NULL_VAL;
 }
@@ -19235,7 +19147,6 @@ void StandardLibrary::Link() {
 	// #region Sound
 	INIT_CLASS(Sound);
 	DEF_NATIVE(Sound, Play);
-	DEF_NATIVE(Sound, Loop);
 	DEF_NATIVE(Sound, Stop);
 	DEF_NATIVE(Sound, Pause);
 	DEF_NATIVE(Sound, Resume);
@@ -19244,9 +19155,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sound, ResumeAll);
 	DEF_NATIVE(Sound, IsPlaying);
 	DEF_NATIVE(Sound, PlayMultiple);
-	DEF_NATIVE(Sound, LoopMultiple);
 	DEF_NATIVE(Sound, PlayAtChannel);
-	DEF_NATIVE(Sound, LoopAtChannel);
 	DEF_NATIVE(Sound, StopChannel);
 	DEF_NATIVE(Sound, PauseChannel);
 	DEF_NATIVE(Sound, ResumeChannel);

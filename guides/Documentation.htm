@@ -1128,7 +1128,6 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Sound_Play">Sound.Play</a></li>
-                    <li><a href="#Reference_functions_Sound_Loop">Sound.Loop</a></li>
                     <li><a href="#Reference_functions_Sound_Stop">Sound.Stop</a></li>
                     <li><a href="#Reference_functions_Sound_Pause">Sound.Pause</a></li>
                     <li><a href="#Reference_functions_Sound_Resume">Sound.Resume</a></li>
@@ -1137,9 +1136,7 @@
                     <li><a href="#Reference_functions_Sound_ResumeAll">Sound.ResumeAll</a></li>
                     <li><a href="#Reference_functions_Sound_IsPlaying">Sound.IsPlaying</a></li>
                     <li><a href="#Reference_functions_Sound_PlayMultiple">Sound.PlayMultiple</a></li>
-                    <li><a href="#Reference_functions_Sound_LoopMultiple">Sound.LoopMultiple</a></li>
                     <li><a href="#Reference_functions_Sound_PlayAtChannel">Sound.PlayAtChannel</a></li>
-                    <li><a href="#Reference_functions_Sound_LoopAtChannel">Sound.LoopAtChannel</a></li>
                     <li><a href="#Reference_functions_Sound_StopChannel">Sound.StopChannel</a></li>
                     <li><a href="#Reference_functions_Sound_PauseChannel">Sound.PauseChannel</a></li>
                     <li><a href="#Reference_functions_Sound_ResumeChannel">Sound.ResumeChannel</a></li>
@@ -8407,26 +8404,12 @@
         </p>
         <p id="Reference_functions_Sound_Play">
         <h2 style="margin-bottom: 8px;">Sound.Play</h2>
-        <code>Sound.Play(sound[, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound once.</div>
+        <code>Sound.Play(sound[, loopPoint, panning, speed, volume])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Plays a sound either once or in a loop.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
-        </p>
-        <p id="Reference_functions_Sound_Loop">
-        <h2 style="margin-bottom: 8px;">Sound.Loop</h2>
-        <code>Sound.Loop(sound[, loopPoint, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound, looping back when it ends.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples.</li>
+        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -8489,26 +8472,12 @@
         </p>
         <p id="Reference_functions_Sound_PlayMultiple">
         <h2 style="margin-bottom: 8px;">Sound.PlayMultiple</h2>
-        <code>Sound.PlayMultiple(sound[, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound once, without interrupting channels playing the same sound.</div>
+        <code>Sound.PlayMultiple(sound[, loopPoint, panning, speed, volume])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Plays a sound once or loops it, without interrupting channels playing the same sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
-        </p>
-        <p id="Reference_functions_Sound_LoopMultiple">
-        <h2 style="margin-bottom: 8px;">Sound.LoopMultiple</h2>
-        <code>Sound.LoopMultiple(sound[, loopPoint, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound, looping back when it ends, without interrupting channels playing the same sound.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples.</li>
+        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -8518,26 +8487,13 @@
         </p>
         <p id="Reference_functions_Sound_PlayAtChannel">
         <h2 style="margin-bottom: 8px;">Sound.PlayAtChannel</h2>
-        <code>Sound.PlayAtChannel(channel, sound[, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound at the specified channel.</div>
+        <code>Sound.PlayAtChannel(channel, sound[, loopPoint, panning, speed, volume])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Plays or loops a sound at the specified channel.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>channel (Integer): The channel index.</li>
         <li>sound (Integer): The sound index to play.</li>
-        <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
-        <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
-        <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Sound_LoopAtChannel">
-        <h2 style="margin-bottom: 8px;">Sound.LoopAtChannel</h2>
-        <code>Sound.LoopAtChannel(channel, sound[, loopPoint, panning, speed, volume])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Plays a sound at the specified channel, looping back when it ends.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>channel (Integer): The channel index.</li>
-        <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples.</li>
+        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -10121,7 +10077,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>729 out of 788 functions have descriptions. </p>
+        <p>726 out of 785 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
