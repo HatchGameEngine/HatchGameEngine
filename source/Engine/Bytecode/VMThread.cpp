@@ -83,8 +83,8 @@ string VMThread::GetFunctionName(ObjFunction* function) {
 		return "top-level function";
 	}
 	else if (functionName != "<anonymous-fn>") {
-		if (function->ClassName) {
-			return "method " + std::string(function->ClassName->Chars) +
+		if (function->Class) {
+			return "method " + std::string(function->Class->Name->Chars) +
 				"::" + functionName;
 		}
 		else {
@@ -1902,7 +1902,22 @@ int VMThread::RunInstruction() {
 		VMValue receiver = Peek(argCount);
 		VMValue result;
 		if (IS_INSTANCE(receiver)) {
-			if (!InvokeForInstance(hash, argCount, isSuper)) {
+			ObjInstance* instance = AS_INSTANCE(receiver);
+			ObjClass* klass;
+			bool wasCalled;
+
+			// If doing a super call...
+			if (isSuper) {
+				// Must be the class of the method being executed, so that super chains can work.
+				klass = Frames[FrameCount - 1].Function->Class;
+				wasCalled = DoSuperInvocation(instance, klass, hash, argCount);
+			}
+			else {
+				klass = instance->Object.Class;
+				wasCalled = InvokeForInstance(instance, klass, hash, argCount);
+			}
+
+			if (!wasCalled) {
 				if (ThrowRuntimeError(false,
 					    "Could not invoke %s!",
 					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
@@ -2297,7 +2312,7 @@ void VMThread::InvokeForEntity(VMValue value, int argCount) {
 	FunctionToInvoke = value;
 	ReturnFrame = FrameCount;
 
-	if (CallValue(value, argCount)) {
+	if (CallForObject(value, argCount)) {
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_BOUND_METHOD:
 		case OBJ_FUNCTION:
@@ -2379,7 +2394,7 @@ bool VMThread::GetProperty(Obj* object,
 			return true;
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+		ObjClass* parentClass = ScriptManager::GetClassParent(object, klass);
 		if (parentClass) {
 			ScriptManager::Unlock();
 			return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
@@ -2515,10 +2530,8 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 
 			VMValue returnValue = NULL_VAL;
 			try {
-				// Calling a native function for an
-				// object needs to correctly pass the
-				// receiver, which is the reason these
-				// +1 and -1 are here.
+				// Calling a native function for an object needs to correctly pass the receiver,
+				// which is the reason these +1 and -1 are here.
 				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
 			} catch (const char* err) {
 				(void)err;
@@ -2654,34 +2667,52 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 	}
 	return false;
 }
-bool VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
-	ObjInstance* instance = AS_INSTANCE(Peek(argCount));
-	ObjClass* klass = instance->Object.Class;
+bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
+	VMValue callable;
 
-	if (!isSuper) {
-		// First look for a field which may shadow a method.
-		VMValue value;
-		bool exists = false;
-		if (ScriptManager::Lock()) {
-			exists = instance->Fields->GetIfExists(hash, &value);
-			ScriptManager::Unlock();
-		}
-		if (exists) {
-			return CallValue(value, argCount);
-		}
-	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			return InvokeFromClass(parentClass, hash, argCount);
-		}
-		else {
-			ThrowRuntimeError(false,
-				"Instance's class does not have a parent to call method from.");
-		}
+	if (!ScriptManager::Lock()) {
 		return false;
 	}
-	return InvokeFromClass(klass, hash, argCount);
+
+	// Look for a field in the instance which may shadow a method.
+	if (instance->Fields->GetIfExists(hash, &callable)) {
+		ScriptManager::Unlock();
+		return CallForObject(callable, argCount);
+	}
+
+	// There is no field with that name, so look for methods in the class.
+	if (klass->Methods->GetIfExists(hash, &callable)) {
+		ScriptManager::Unlock();
+		return CallForObject(callable, argCount);
+	}
+
+	// No method found, so look in the parent class.
+	// Walk up the inheritance chain and get the expected method.
+	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
+		ScriptManager::Unlock();
+
+		// Call it, finally.
+		return CallForObject(callable, argCount);
+	}
+
+	ScriptManager::Unlock();
+
+	return false;
+}
+bool VMThread::DoSuperInvocation(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
+	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	if (!parentClass) {
+		ThrowRuntimeError(false, "Class %s does not have a parent!", klass->Name->Chars);
+		return false;
+	}
+
+	VMValue callable;
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
+		return CallForObject(callable, argCount);
+	}
+
+	return false;
 }
 bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
 	ObjClass* src = AS_CLASS(value);
@@ -2714,7 +2745,7 @@ bool VMThread::Import(VMValue value) {
 			char* className = AS_CSTRING(value);
 			if (ScriptManager::ClassExists(className)) {
 				if (!ScriptManager::Classes->Exists(className)) {
-					ScriptManager::LoadObjectClass(className, true);
+					ScriptManager::LoadObjectClass(className);
 				}
 				result = true;
 			}

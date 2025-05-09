@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
@@ -124,10 +125,11 @@ void ScriptManager::Init() {
 	ThreadCount = 1;
 
 	ArrayImpl::Init();
-	MapImpl::Init();
+	EntityImpl::Init();
 	FunctionImpl::Init();
-	StringImpl::Init();
+	MapImpl::Init();
 	MaterialImpl::Init();
+	StringImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -252,9 +254,6 @@ void ScriptManager::FreeFunction(ObjFunction* function) {
 	//*/
 	if (function->Name != NULL) {
 		FreeValue(OBJECT_VAL(function->Name));
-	}
-	if (function->ClassName != NULL) {
-		FreeValue(OBJECT_VAL(function->ClassName));
 	}
 
 	for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
@@ -661,18 +660,12 @@ void ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32
 		klass->Initializer = methodValue;
 	}
 
-	function->ClassName = CopyString(klass->Name);
+	function->Class = klass;
 
 	thread->Pop();
 }
 void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
-	if (function == NULL) {
-		return;
-	}
-	if (klass == NULL) {
-		return;
-	}
-	if (name == NULL) {
+	if (function == NULL || klass == NULL || name == NULL) {
 		return;
 	}
 
@@ -727,6 +720,8 @@ void ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float 
 	}
 }
 ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
+	// TODO: Throw an error if a class with a parent is loaded, but the parent itself is not.
+	// Then this won't be needed and we can assume the chain won't be broken.
 	if (!klass->Parent && klass->ParentHash) {
 		VMValue parent;
 		if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) &&
@@ -736,18 +731,55 @@ ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
 	}
 	return klass->Parent;
 }
-VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
-	VMValue method;
-	if (klass->Methods->GetIfExists(hash, &method)) {
-		return method;
+bool ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (klass->Fields->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = GetClassParent(klass);
 	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			return GetClassMethod(parentClass, hash);
+
+	return false;
+}
+bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (klass->Fields->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = GetClassParent(object, klass);
+	}
+
+	return false;
+}
+ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
+	ObjClass* parentClass = GetClassParent(klass);
+	if (parentClass == nullptr && IS_INSTANCE(OBJECT_VAL(object))) {
+		ObjInstance* instance = (ObjInstance*)object;
+		if (instance->EntityPtr && klass != EntityImpl::ParentClass) {
+			return EntityImpl::Class;
 		}
 	}
-	return NULL_VAL;
+	return parentClass;
+}
+bool ScriptManager::ClassHasMethod(ObjClass* klass, Uint32 hash) {
+	VMValue callable;
+	return GetClassMethod(klass, hash, &callable);
 }
 
 void ScriptManager::LinkStandardLibrary() {
@@ -809,13 +841,12 @@ bool ScriptManager::CallFunction(char* functionName) {
 		return false;
 	}
 
-	VMValue functionValue = Globals->Get(functionName);
-	if (!IS_FUNCTION(functionValue)) {
+	VMValue callable = Globals->Get(functionName);
+	if (!IS_CALLABLE(callable)) {
 		return false;
 	}
 
-	ObjFunction* function = AS_FUNCTION(functionValue);
-	Threads[0].RunEntityFunction(function, 0);
+	Threads[0].InvokeForEntity(callable, 0);
 	return true;
 }
 Entity* ScriptManager::SpawnObject(const char* objectName) {
@@ -905,7 +936,7 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 
 	return true;
 }
-bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
+bool ScriptManager::LoadObjectClass(const char* objectName) {
 	if (!objectName || !*objectName) {
 		return false;
 	}
@@ -958,45 +989,10 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 			return false;
 		}
-		// FIXME: Do this in a better way. Probably just remove
-		// CLASS_TYPE_EXTENDED to begin with.
-		if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
-			ScriptManager::AddNativeObjectFunctions(klass);
-		}
 		Classes->Put(objectName, klass);
 	}
 
 	return true;
-}
-void ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
-#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, ScriptEntity::VM_##name)
-	DEF_NATIVE(InView);
-	DEF_NATIVE(Animate);
-	DEF_NATIVE(ApplyPhysics);
-	DEF_NATIVE(SetAnimation);
-	DEF_NATIVE(ResetAnimation);
-	DEF_NATIVE(GetHitboxFromSprite);
-	DEF_NATIVE(ReturnHitbox);
-	DEF_NATIVE(AddToRegistry);
-	DEF_NATIVE(IsInRegistry);
-	DEF_NATIVE(RemoveFromRegistry);
-	DEF_NATIVE(CollidedWithObject);
-	DEF_NATIVE(CollideWithObject);
-	DEF_NATIVE(SolidCollideWithObject);
-	DEF_NATIVE(TopSolidCollideWithObject);
-	DEF_NATIVE(PropertyGet);
-	DEF_NATIVE(PropertyExists);
-	DEF_NATIVE(SetViewVisibility);
-	DEF_NATIVE(SetViewOverride);
-	DEF_NATIVE(AddToDrawGroup);
-	DEF_NATIVE(IsInDrawGroup);
-	DEF_NATIVE(RemoveFromDrawGroup);
-	DEF_NATIVE(GetIDWithinClass);
-	DEF_NATIVE(PlaySound);
-	DEF_NATIVE(LoopSound);
-	DEF_NATIVE(StopSound);
-	DEF_NATIVE(StopAllSounds);
-#undef DEF_NATIVE
 }
 ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	VMValue value = Globals->Get(className);

@@ -1,32 +1,26 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Scene.h>
 
 bool ScriptEntity::DisableAutoAnimate = false;
+
+bool SavedHashes = false;
 
 #define LINK_INT(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 #define LINK_DEC(VAR) Instance->Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
 #define LINK_BOOL(VAR) Instance->Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 
-bool SavedHashes = false;
-Uint32 Hash_Create = 0;
-Uint32 Hash_PostCreate = 0;
-Uint32 Hash_Update = 0;
-Uint32 Hash_UpdateLate = 0;
-Uint32 Hash_UpdateEarly = 0;
-Uint32 Hash_RenderEarly = 0;
-Uint32 Hash_Render = 0;
-Uint32 Hash_RenderLate = 0;
-Uint32 Hash_OnAnimationFinish = 0;
-Uint32 Hash_OnSceneLoad = 0;
-Uint32 Hash_OnSceneRestart = 0;
-Uint32 Hash_GameStart = 0;
-Uint32 Hash_Dispose = 0;
-Uint32 Hash_HitboxLeft = 0;
-Uint32 Hash_HitboxTop = 0;
-Uint32 Hash_HitboxRight = 0;
-Uint32 Hash_HitboxBottom = 0;
+#define ENTITY_FIELD(name) name,
+enum EntityField {
+	ENTITY_FIELDS_LIST
+};
+#undef ENTITY_FIELD
+
+#define ENTITY_FIELD(name) Uint32 Hash_##name = 0;
+ENTITY_FIELDS_LIST
+#undef ENTITY_FIELD
 
 void ScriptEntity::Link(ObjInstance* instance) {
 	Instance = instance;
@@ -34,23 +28,9 @@ void ScriptEntity::Link(ObjInstance* instance) {
 	Properties = new HashMap<VMValue>(NULL, 4);
 
 	if (!SavedHashes) {
-		Hash_Create = Murmur::EncryptString("Create");
-		Hash_PostCreate = Murmur::EncryptString("PostCreate");
-		Hash_Update = Murmur::EncryptString("Update");
-		Hash_UpdateLate = Murmur::EncryptString("UpdateLate");
-		Hash_UpdateEarly = Murmur::EncryptString("UpdateEarly");
-		Hash_RenderEarly = Murmur::EncryptString("RenderEarly");
-		Hash_Render = Murmur::EncryptString("Render");
-		Hash_RenderLate = Murmur::EncryptString("RenderLate");
-		Hash_OnAnimationFinish = Murmur::EncryptString("OnAnimationFinish");
-		Hash_OnSceneLoad = Murmur::EncryptString("OnSceneLoad");
-		Hash_OnSceneRestart = Murmur::EncryptString("OnSceneRestart");
-		Hash_GameStart = Murmur::EncryptString("GameStart");
-		Hash_Dispose = Murmur::EncryptString("Dispose");
-		Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
-		Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
-		Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
-		Hash_HitboxBottom = Murmur::EncryptString("HitboxBottom");
+#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
+		ENTITY_FIELDS_LIST
+#undef ENTITY_FIELD
 
 		SavedHashes = true;
 	}
@@ -59,6 +39,7 @@ void ScriptEntity::Link(ObjInstance* instance) {
 	instance->PropertySet = VM_Setter;
 
 	LinkFields();
+	AddEntityClassMethods();
 }
 
 void ScriptEntity::LinkFields() {
@@ -707,35 +688,34 @@ void ScriptEntity::LinkFields() {
 #undef LINK_DEC
 #undef LINK_BOOL
 
+// This copies Entity's methods into the instance's fields.
+// If there is a method in the class with the same name, it's not copied.
+void ScriptEntity::AddEntityClassMethods() {
+	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
+
+	srcMethods->WithAll([this](Uint32 methodHash, VMValue value) -> void {
+		if (!ScriptManager::ClassHasMethod(Instance->Object.Class, methodHash)) {
+			Instance->Fields->Put(methodHash, value);
+		}
+	});
+}
+
 bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
-	// First look for a field which may shadow a method.
 	VMValue result;
+
+	// Look for a field in the instance which may shadow a method.
 	if (Instance->Fields->GetIfExists(hash, &result)) {
 		value = result;
 		return true;
 	}
 
 	ObjClass* klass = Instance->Object.Class;
-	if (klass->Methods->GetIfExists(hash, &result)) {
+	if (ScriptManager::GetClassMethod((Obj*)Instance, klass, hash, &result)) {
 		value = result;
 		return true;
 	}
-	else {
-		value = ScriptManager::GetClassMethod(klass, hash);
-		if (!IS_NULL(value)) {
-			return true;
-		}
-	}
 
 	return false;
-}
-ObjFunction* ScriptEntity::GetCallableFunction(Uint32 hash) {
-	ObjClass* klass = Instance->Object.Class;
-	VMValue result;
-	if (klass->Methods->GetIfExists(hash, &result)) {
-		return AS_FUNCTION(result);
-	}
-	return NULL;
 }
 bool ScriptEntity::RunFunction(Uint32 hash) {
 	if (!Instance) {
@@ -745,43 +725,38 @@ bool ScriptEntity::RunFunction(Uint32 hash) {
 	// NOTE:
 	// If the function doesn't exist, this is not an error VM side,
 	// treat whatever we call from C++ as a virtual-like function.
-	VMValue value;
-	if (!ScriptEntity::GetCallableValue(hash, value)) {
-		return true;
+	VMValue callable;
+	if (!GetCallableValue(hash, callable)) {
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
-
 	VMValue* stackTop = thread->StackTop;
 
 	thread->Push(OBJECT_VAL(Instance));
-	thread->InvokeForEntity(value, 0);
+	thread->InvokeForEntity(callable, 0);
 
 	thread->StackTop = stackTop;
 
 	return true;
 }
 bool ScriptEntity::RunCreateFunction(VMValue flag) {
-	// NOTE:
-	// If the function doesn't exist, this is not an error VM side,
-	// treat whatever we call from C++ as a virtual-like function.
-	ObjFunction* func = ScriptEntity::GetCallableFunction(Hash_Create);
-	if (!func) {
-		return true;
+	VMValue callable;
+	if (!GetCallableValue(Hash_Create, callable)) {
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
-
 	VMValue* stackTop = thread->StackTop;
-
 	thread->Push(OBJECT_VAL(Instance));
 
-	if (func->Arity == 0) {
-		thread->RunEntityFunction(func, 0);
+	// Create cannot be a native currently, but when it can, this IS_FUNCTION check will be needed.
+	if (IS_FUNCTION(callable) && AS_FUNCTION(callable)->Arity == 0) {
+		thread->InvokeForEntity(callable, 0);
 	}
 	else {
 		thread->Push(flag);
-		thread->RunEntityFunction(func, 1);
+		thread->InvokeForEntity(callable, 1);
 	}
 
 	thread->StackTop = stackTop;
@@ -797,8 +772,8 @@ bool ScriptEntity::RunInitializer() {
 
 	VMValue* stackTop = thread->StackTop;
 
-	thread->Push(OBJECT_VAL(
-		Instance)); // Pushes this instance into the stack so that 'this' can work
+	// Pushes this instance into the stack so that 'this' can work
+	thread->Push(OBJECT_VAL(Instance));
 	thread->CallInitializer(Instance->Object.Class->Initializer);
 	thread->Pop(); // Pops it
 
@@ -813,7 +788,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 	}
 
 	if (!ScriptManager::Classes->Exists(className) &&
-		!ScriptManager::LoadObjectClass(className, true)) {
+		!ScriptManager::LoadObjectClass(className)) {
 		return false;
 	}
 
@@ -879,6 +854,9 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 	// Link the built-in fields again, since they have been removed
 	other->LinkFields();
+
+	// Also re-add Entity's methods
+	other->AddEntityClassMethods();
 }
 
 // Events called from C++
@@ -1012,7 +990,7 @@ void ScriptEntity::RenderEarly() {
 
 	RunFunction(Hash_RenderEarly);
 }
-void ScriptEntity::Render(int CamX, int CamY) {
+void ScriptEntity::Render() {
 	if (!Active) {
 		return;
 	}
@@ -1028,6 +1006,40 @@ void ScriptEntity::RenderLate() {
 
 	RunFunction(Hash_RenderLate);
 }
+#define CAN_CALL_ENTITY_IMPL(fnName)\
+	(!GetCallableValue(Hash_##fnName, callable)\
+		|| (IS_NATIVE(callable) && AS_NATIVE(callable) == VM_##fnName))
+void ScriptEntity::SetAnimation(int animation, int frame) {
+	VMValue callable;
+	if (CAN_CALL_ENTITY_IMPL(SetAnimation)) {
+		Entity::SetAnimation(animation, frame);
+		return;
+	}
+
+	VMThread* thread = ScriptManager::Threads + 0;
+	VMValue* stackTop = thread->StackTop;
+	thread->Push(OBJECT_VAL(Instance));
+	thread->Push(INTEGER_VAL(animation));
+	thread->Push(INTEGER_VAL(frame));
+	thread->InvokeForEntity(callable, 2);
+	thread->StackTop = stackTop;
+}
+void ScriptEntity::ResetAnimation(int animation, int frame) {
+	VMValue callable;
+	if (CAN_CALL_ENTITY_IMPL(ResetAnimation)) {
+		Entity::ResetAnimation(animation, frame);
+		return;
+	}
+
+	VMThread* thread = ScriptManager::Threads + 0;
+	VMValue* stackTop = thread->StackTop;
+	thread->Push(OBJECT_VAL(Instance));
+	thread->Push(INTEGER_VAL(animation));
+	thread->Push(INTEGER_VAL(frame));
+	thread->InvokeForEntity(callable, 2);
+	thread->StackTop = stackTop;
+}
+#undef CAN_CALL_ENTITY_IMPL
 void ScriptEntity::OnAnimationFinish() {
 	RunFunction(Hash_OnAnimationFinish);
 }
@@ -1212,7 +1224,7 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	self->SetAnimation(animation, frame);
+	self->Entity::SetAnimation(animation, frame);
 	return NULL_VAL;
 }
 /***
@@ -1257,7 +1269,7 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thre
 		return NULL_VAL;
 	}
 
-	self->ResetAnimation(animation, frame);
+	self->Entity::ResetAnimation(animation, frame);
 	return NULL_VAL;
 }
 /***

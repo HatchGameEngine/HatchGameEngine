@@ -87,7 +87,7 @@ ObjFunction* NewFunction() {
 	function->UpvalueCount = 0;
 	function->Module = NULL;
 	function->Name = NULL;
-	function->ClassName = NULL;
+	function->Class = NULL;
 	function->Chunk.Init();
 	return function;
 }
