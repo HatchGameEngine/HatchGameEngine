@@ -693,9 +693,9 @@ void ScriptEntity::LinkFields() {
 void ScriptEntity::AddEntityClassMethods() {
 	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
 
-	srcMethods->WithAll([this](Uint32 key, VMValue value) -> void {
-		if (!Instance->Object.Class->Methods->Exists(key)) {
-			Instance->Fields->Put(key, value);
+	srcMethods->WithAll([this](Uint32 methodHash, VMValue value) -> void {
+		if (!ScriptManager::InstanceHasMethod(Instance, methodHash)) {
+			Instance->Fields->Put(methodHash, value);
 		}
 	});
 }

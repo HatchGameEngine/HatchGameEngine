@@ -759,6 +759,13 @@ bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VM
 
 	return false;
 }
+bool ScriptManager::GetClassMethod(ObjInstance* instance, Uint32 hash, VMValue* callable) {
+	return GetClassMethod((Obj*)instance, instance->Object.Class, hash, callable);
+}
+bool ScriptManager::InstanceHasMethod(ObjInstance* instance, Uint32 hash) {
+	VMValue callable;
+	return GetClassMethod(instance, hash, &callable);
+}
 
 void ScriptManager::LinkStandardLibrary() {
 	StandardLibrary::Link();
