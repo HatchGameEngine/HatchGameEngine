@@ -714,7 +714,7 @@ bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value, bool allowShado
 		value = result;
 		return true;
 	}
-	else if (ScriptManager::GetClassMethod(Instance, klass, hash, allowShadowing, &result)) {
+	else if (ScriptManager::GetClassMethod((Obj*)Instance, klass, hash, allowShadowing, &result)) {
 		value = result;
 		return true;
 	}

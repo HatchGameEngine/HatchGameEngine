@@ -741,20 +741,20 @@ ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
 	}
 	return parentClass;
 }
-bool ScriptManager::GetClassMethod(ObjInstance* instance, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* method) {
-	// Look for a field which may shadow a method.
-	if (allowShadowing && klass->Fields->GetIfExists(hash, method)) {
-		return true;
-	}
-
-	if (klass->Methods->GetIfExists(hash, method)) {
-		return true;
-	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
-		if (parentClass) {
-			return GetClassMethod(instance, parentClass, hash, allowShadowing, method);
+bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (allowShadowing && klass->Fields->GetIfExists(hash, callable)) {
+			return true;
 		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = GetClassParent(object, klass);
 	}
 
 	return false;

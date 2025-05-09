@@ -2530,10 +2530,8 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 
 			VMValue returnValue = NULL_VAL;
 			try {
-				// Calling a native function for an
-				// object needs to correctly pass the
-				// receiver, which is the reason these
-				// +1 and -1 are here.
+				// Calling a native function for an object needs to correctly pass the receiver,
+				// which is the reason these +1 and -1 are here.
 				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
 			} catch (const char* err) {
 				(void)err;
@@ -2671,48 +2669,34 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 }
 bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
 	VMValue callable;
-	bool exists = false;
 
-	if (ScriptManager::Lock()) {
-		// Look for a field in the instance which may shadow a method.
-		exists = instance->Fields->GetIfExists(hash, &callable);
-
-		// There is no field with that name, so look for methods.
-		if (!exists) {
-			exists = klass->Methods->GetIfExists(hash, &callable);
-		}
-
-		ScriptManager::Unlock();
+	if (!ScriptManager::Lock()) {
+		return false;
 	}
 
-	// Call it, if it was found.
-	if (exists) {
+	// Look for a field in the instance which may shadow a method.
+	if (instance->Fields->GetIfExists(hash, &callable)) {
+		ScriptManager::Unlock();
 		return CallForObject(callable, argCount);
 	}
 
-	// No method found in the instance or the class, so try doing the same in the parent class.
-	klass = ScriptManager::GetClassParent((Obj*)instance, klass);
-	while (klass != nullptr) {
-		if (ScriptManager::Lock()) {
-			// Look for a field in the class which may shadow a method.
-			exists = klass->Fields->GetIfExists(hash, &callable);
+	// There is no field with that name, so look for methods in the class.
+	if (klass->Methods->GetIfExists(hash, &callable)) {
+		ScriptManager::Unlock();
+		return CallForObject(callable, argCount);
+	}
 
-			// There is no field with that name, so look for methods.
-			if (!exists) {
-				exists = klass->Methods->GetIfExists(hash, &callable);
-			}
-
-			ScriptManager::Unlock();
-		}
+	// No method found, so look in the parent class.
+	// Walk up the inheritance chain and get the expected method.
+	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, true, &callable)) {
+		ScriptManager::Unlock();
 
 		// Call it, finally.
-		if (exists) {
-			return CallForObject(callable, argCount);
-		}
-
-		// Otherwise, walk up the inheritance chain until we find the method.
-		klass = ScriptManager::GetClassParent((Obj*)instance, klass);
+		return CallForObject(callable, argCount);
 	}
+
+	ScriptManager::Unlock();
 
 	return false;
 }
@@ -2724,7 +2708,7 @@ bool VMThread::DoSuperInvocation(ObjInstance* instance, ObjClass* klass, Uint32 
 	}
 
 	VMValue callable;
-	if (ScriptManager::GetClassMethod(instance, parentClass, hash, true, &callable)) {
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, true, &callable)) {
 		return CallForObject(callable, argCount);
 	}
 

@@ -70,7 +70,7 @@ public:
 	static void GlobalConstDecimal(ObjClass* klass, const char* name, float value);
 	static ObjClass* GetClassParent(ObjClass* klass);
 	static ObjClass* GetClassParent(Obj* object, ObjClass* klass);
-	static bool GetClassMethod(ObjInstance* instance, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* method);
+	static bool GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* callable);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
