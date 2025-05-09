@@ -1903,8 +1903,21 @@ int VMThread::RunInstruction() {
 		VMValue result;
 		if (IS_INSTANCE(receiver)) {
 			ObjInstance* instance = AS_INSTANCE(receiver);
-			ObjClass* klass = instance->Object.Class;
-			if (!InvokeForInstance(instance, klass, hash, argCount, isSuper)) {
+			ObjClass* klass;
+			bool wasCalled;
+
+			// If doing a super call...
+			if (isSuper) {
+				// Must be the class of the method being executed, so that super chains can work.
+				klass = Frames[FrameCount - 1].Function->Class;
+				wasCalled = DoSuperInvocation(instance, klass, hash, argCount);
+			}
+			else {
+				klass = instance->Object.Class;
+				wasCalled = InvokeForInstance(instance, klass, hash, argCount);
+			}
+
+			if (!wasCalled) {
 				if (ThrowRuntimeError(false,
 					    "Could not invoke %s!",
 					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
@@ -2656,29 +2669,10 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 	}
 	return false;
 }
-bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount, bool isSuper) {
+bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
 	VMValue callable;
-
-	// If doing a super call...
-	if (isSuper) {
-		// Must be the class of the method being executed, so that super chains can work.
-		ObjClass* currentClass = Frames[FrameCount - 1].Function->Class;
-		ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, currentClass);
-		if (!parentClass) {
-			ThrowRuntimeError(false,
-				"Class %s does not have a parent!",
-				currentClass->Name->Chars);
-			return false;
-		}
-
-		if (ScriptManager::GetClassMethod(instance, parentClass, hash, true, &callable)) {
-			return CallForObject(callable, argCount);
-		}
-
-		return false;
-	}
-
 	bool exists = false;
+
 	if (ScriptManager::Lock()) {
 		// Look for a field in the instance which may shadow a method.
 		exists = instance->Fields->GetIfExists(hash, &callable);
@@ -2718,6 +2712,20 @@ bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 
 
 		// Otherwise, walk up the inheritance chain until we find the method.
 		klass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	}
+
+	return false;
+}
+bool VMThread::DoSuperInvocation(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
+	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	if (!parentClass) {
+		ThrowRuntimeError(false, "Class %s does not have a parent!", klass->Name->Chars);
+		return false;
+	}
+
+	VMValue callable;
+	if (ScriptManager::GetClassMethod(instance, parentClass, hash, true, &callable)) {
+		return CallForObject(callable, argCount);
 	}
 
 	return false;
