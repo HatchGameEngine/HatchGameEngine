@@ -70,9 +70,9 @@ public:
 	static void GlobalConstDecimal(ObjClass* klass, const char* name, float value);
 	static ObjClass* GetClassParent(ObjClass* klass);
 	static ObjClass* GetClassParent(Obj* object, ObjClass* klass);
+	static bool GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable);
 	static bool GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable);
-	static bool GetClassMethod(ObjInstance* instance, Uint32 hash, VMValue* callable);
-	static bool InstanceHasMethod(ObjInstance* instance, Uint32 hash);
+	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);

@@ -731,15 +731,23 @@ ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
 	}
 	return klass->Parent;
 }
-ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
-	ObjClass* parentClass = GetClassParent(klass);
-	if (parentClass == nullptr && IS_INSTANCE(OBJECT_VAL(object))) {
-		ObjInstance* instance = (ObjInstance*)object;
-		if (instance->EntityPtr && klass != EntityImpl::ParentClass) {
-			return EntityImpl::Class;
+bool ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (klass->Fields->GetIfExists(hash, callable)) {
+			return true;
 		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = GetClassParent(klass);
 	}
-	return parentClass;
+
+	return false;
 }
 bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable) {
 	while (klass != nullptr) {
@@ -759,12 +767,19 @@ bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VM
 
 	return false;
 }
-bool ScriptManager::GetClassMethod(ObjInstance* instance, Uint32 hash, VMValue* callable) {
-	return GetClassMethod((Obj*)instance, instance->Object.Class, hash, callable);
+ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
+	ObjClass* parentClass = GetClassParent(klass);
+	if (parentClass == nullptr && IS_INSTANCE(OBJECT_VAL(object))) {
+		ObjInstance* instance = (ObjInstance*)object;
+		if (instance->EntityPtr && klass != EntityImpl::ParentClass) {
+			return EntityImpl::Class;
+		}
+	}
+	return parentClass;
 }
-bool ScriptManager::InstanceHasMethod(ObjInstance* instance, Uint32 hash) {
+bool ScriptManager::ClassHasMethod(ObjClass* klass, Uint32 hash) {
 	VMValue callable;
-	return GetClassMethod(instance, hash, &callable);
+	return GetClassMethod(klass, hash, &callable);
 }
 
 void ScriptManager::LinkStandardLibrary() {

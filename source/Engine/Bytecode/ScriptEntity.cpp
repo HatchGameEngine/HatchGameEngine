@@ -694,7 +694,7 @@ void ScriptEntity::AddEntityClassMethods() {
 	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
 
 	srcMethods->WithAll([this](Uint32 methodHash, VMValue value) -> void {
-		if (!ScriptManager::InstanceHasMethod(Instance, methodHash)) {
+		if (!ScriptManager::ClassHasMethod(Instance->Object.Class, methodHash)) {
 			Instance->Fields->Put(methodHash, value);
 		}
 	});
