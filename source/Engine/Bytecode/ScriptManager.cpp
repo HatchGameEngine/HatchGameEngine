@@ -255,9 +255,6 @@ void ScriptManager::FreeFunction(ObjFunction* function) {
 	if (function->Name != NULL) {
 		FreeValue(OBJECT_VAL(function->Name));
 	}
-	if (function->ClassName != NULL) {
-		FreeValue(OBJECT_VAL(function->ClassName));
-	}
 
 	for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 		FreeValue((*function->Chunk.Constants)[i]);
@@ -663,7 +660,7 @@ void ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32
 		klass->Initializer = methodValue;
 	}
 
-	function->ClassName = CopyString(klass->Name);
+	function->Class = klass;
 
 	thread->Pop();
 }
@@ -723,6 +720,8 @@ void ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float 
 	}
 }
 ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
+	// TODO: Throw an error if a class with a parent is loaded, but the parent itself is not.
+	// Then this won't be needed and we can assume the chain won't be broken.
 	if (!klass->Parent && klass->ParentHash) {
 		VMValue parent;
 		if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) &&
@@ -732,34 +731,33 @@ ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
 	}
 	return klass->Parent;
 }
-VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
-	VMValue method;
-	if (klass->Methods->GetIfExists(hash, &method)) {
-		return method;
-	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			return GetClassMethod(parentClass, hash);
+ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
+	ObjClass* parentClass = GetClassParent(klass);
+	if (IS_INSTANCE(OBJECT_VAL(object))) {
+		ObjInstance* instance = (ObjInstance*)object;
+		if (instance->EntityPtr && parentClass == nullptr && klass != EntityImpl::ParentClass) {
+			return EntityImpl::Class;
 		}
 	}
-	return NULL_VAL;
+	return parentClass;
 }
-VMValue ScriptManager::GetCallable(ObjClass* klass, const char* name) {
-	VMValue value = NULL_VAL;
-	if (klass->Fields->GetIfExists(name, &value)) {
-		return value;
-	}
-	else if (klass->Methods->GetIfExists(name, &value)) {
-		return value;
+bool ScriptManager::GetClassMethod(ObjInstance* instance, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* method) {
+	// Look for a field which may shadow a method.
+	if (allowShadowing && klass->Fields->GetIfExists(hash, method)) {
+		return true;
 	}
 
-	ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-	if (parentClass) {
-		value = GetCallable(parentClass, name);
+	if (klass->Methods->GetIfExists(hash, method)) {
+		return true;
+	}
+	else {
+		ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+		if (parentClass) {
+			return GetClassMethod(instance, parentClass, hash, allowShadowing, method);
+		}
 	}
 
-	return value;
+	return false;
 }
 
 void ScriptManager::LinkStandardLibrary() {
@@ -916,7 +914,7 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 
 	return true;
 }
-bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
+bool ScriptManager::LoadObjectClass(const char* objectName) {
 	if (!objectName || !*objectName) {
 		return false;
 	}
@@ -969,25 +967,10 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 			return false;
 		}
-		// FIXME: Do this in a better way. Probably just remove
-		// CLASS_TYPE_EXTENDED to begin with.
-		if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
-			ScriptManager::AddNativeEntityFunctions(klass);
-		}
 		Classes->Put(objectName, klass);
 	}
 
 	return true;
-}
-void ScriptManager::AddNativeEntityFunctions(ObjClass* klass) {
-	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
-	HashMap<VMValue>* destMethods = klass->Methods;
-
-	srcMethods->WithAll([destMethods](Uint32 key, VMValue value) -> void {
-		if (!destMethods->Exists(key)) {
-			destMethods->Put(key, value);
-		}
-	});
 }
 ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	VMValue value = Globals->Get(className);

@@ -238,7 +238,7 @@ struct ObjFunction {
 	struct Chunk Chunk;
 	ObjModule* Module;
 	ObjString* Name;
-	ObjString* ClassName;
+	struct ObjClass* Class;
 	Uint32 NameHash;
 };
 struct ObjNative {

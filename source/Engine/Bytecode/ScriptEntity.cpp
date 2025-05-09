@@ -39,6 +39,7 @@ void ScriptEntity::Link(ObjInstance* instance) {
 	instance->PropertySet = VM_Setter;
 
 	LinkFields();
+	AddEntityClassMethods();
 }
 
 void ScriptEntity::LinkFields() {
@@ -687,6 +688,18 @@ void ScriptEntity::LinkFields() {
 #undef LINK_DEC
 #undef LINK_BOOL
 
+// This copies Entity's methods into the instance's fields.
+// If there is a method in the class with the same name, it's not copied.
+void ScriptEntity::AddEntityClassMethods() {
+	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
+
+	srcMethods->WithAll([this](Uint32 key, VMValue value) -> void {
+		if (!Instance->Object.Class->Methods->Exists(key)) {
+			Instance->Fields->Put(key, value);
+		}
+	});
+}
+
 bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value, bool allowShadowing) {
 	VMValue result;
 
@@ -701,11 +714,9 @@ bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value, bool allowShado
 		value = result;
 		return true;
 	}
-	else {
-		value = ScriptManager::GetClassMethod(klass, hash);
-		if (!IS_NULL(value)) {
-			return true;
-		}
+	else if (ScriptManager::GetClassMethod(Instance, klass, hash, allowShadowing, &result)) {
+		value = result;
+		return true;
 	}
 
 	return false;
@@ -720,7 +731,7 @@ bool ScriptEntity::RunFunction(Uint32 hash) {
 	// treat whatever we call from C++ as a virtual-like function.
 	VMValue callable;
 	if (!ScriptEntity::GetCallableValue(hash, callable, true)) {
-		return true;
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
@@ -781,7 +792,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 	}
 
 	if (!ScriptManager::Classes->Exists(className) &&
-		!ScriptManager::LoadObjectClass(className, true)) {
+		!ScriptManager::LoadObjectClass(className)) {
 		return false;
 	}
 
@@ -847,6 +858,9 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 	// Link the built-in fields again, since they have been removed
 	other->LinkFields();
+
+	// Also re-add Entity's methods
+	other->AddEntityClassMethods();
 }
 
 // Events called from C++
@@ -1105,13 +1119,6 @@ bool TestEntityCollision(Entity* other, Entity* self) {
 	}
 
 	return self->CollideWithObject(other);
-}
-bool ScriptEntity::GetClassMethod(Uint32 hash, VMValue* callable) {
-    bool exists = EntityImpl::NativeMethods->GetIfExists(hash, callable);
-    if (!exists) {
-        exists = EntityImpl::Class->Methods->GetIfExists(hash, callable);
-    }
-    return exists;
 }
 bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	Entity* self = GetScriptEntity(object);

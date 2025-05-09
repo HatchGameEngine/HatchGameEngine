@@ -83,8 +83,8 @@ string VMThread::GetFunctionName(ObjFunction* function) {
 		return "top-level function";
 	}
 	else if (functionName != "<anonymous-fn>") {
-		if (function->ClassName) {
-			return "method " + std::string(function->ClassName->Chars) +
+		if (function->Class) {
+			return "method " + std::string(function->Class->Name->Chars) +
 				"::" + functionName;
 		}
 		else {
@@ -2381,7 +2381,7 @@ bool VMThread::GetProperty(Obj* object,
 			return true;
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+		ObjClass* parentClass = ScriptManager::GetClassParent(object, klass);
 		if (parentClass) {
 			ScriptManager::Unlock();
 			return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
@@ -2658,42 +2658,69 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 }
 bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount, bool isSuper) {
 	VMValue callable;
-	bool exists = false;
 
-	if (!isSuper) {
-		// First look for a field which may shadow a method.
+	// If doing a super call...
+	if (isSuper) {
+		// Must be the class of the method being executed, so that super chains can work.
+		ObjClass* currentClass = Frames[FrameCount - 1].Function->Class;
+		ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, currentClass);
+		if (!parentClass) {
+			ThrowRuntimeError(false,
+				"Class %s does not have a parent!",
+				currentClass->Name->Chars);
+			return false;
+		}
+
+		if (ScriptManager::GetClassMethod(instance, parentClass, hash, true, &callable)) {
+			return CallForObject(callable, argCount);
+		}
+
+		return false;
+	}
+
+	bool exists = false;
+	if (ScriptManager::Lock()) {
+		// Look for a field in the instance which may shadow a method.
+		exists = instance->Fields->GetIfExists(hash, &callable);
+
+		// There is no field with that name, so look for methods.
+		if (!exists) {
+			exists = klass->Methods->GetIfExists(hash, &callable);
+		}
+
+		ScriptManager::Unlock();
+	}
+
+	// Call it, if it was found.
+	if (exists) {
+		return CallForObject(callable, argCount);
+	}
+
+	// No method found in the instance or the class, so try doing the same in the parent class.
+	klass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	while (klass != nullptr) {
 		if (ScriptManager::Lock()) {
-			exists = instance->Fields->GetIfExists(hash, &callable);
+			// Look for a field in the class which may shadow a method.
+			exists = klass->Fields->GetIfExists(hash, &callable);
+
+			// There is no field with that name, so look for methods.
+			if (!exists) {
+				exists = klass->Methods->GetIfExists(hash, &callable);
+			}
+
 			ScriptManager::Unlock();
 		}
+
+		// Call it, finally.
 		if (exists) {
 			return CallForObject(callable, argCount);
 		}
-	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			// Invoke on a method of the parent
-			return InvokeForInstance(instance, parentClass, hash, argCount, true);
-		}
-		else {
-			// Call native Entity method as if that were its parent
-			if (instance->EntityPtr && ScriptManager::Lock()) {
-				exists = ScriptEntity::GetClassMethod(hash, &callable);
-				ScriptManager::Unlock();
-			}
 
-			if (exists) {
-				return CallForObject(callable, argCount);
-			}
-			else {
-				ThrowRuntimeError(false,
-					"Instance's class does not have a parent to call method from.");
-			}
-		}
-		return false;
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = ScriptManager::GetClassParent((Obj*)instance, klass);
 	}
-	return InvokeFromClass(klass, hash, argCount);
+
+	return false;
 }
 bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
 	ObjClass* src = AS_CLASS(value);
@@ -2726,7 +2753,7 @@ bool VMThread::Import(VMValue value) {
 			char* className = AS_CSTRING(value);
 			if (ScriptManager::ClassExists(className)) {
 				if (!ScriptManager::Classes->Exists(className)) {
-					ScriptManager::LoadObjectClass(className, true);
+					ScriptManager::LoadObjectClass(className);
 				}
 				result = true;
 			}
