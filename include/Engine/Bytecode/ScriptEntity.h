@@ -27,7 +27,7 @@
 
 class ScriptEntity : public Entity {
 private:
-	bool GetCallableValue(Uint32 hash, VMValue& value, bool allowShadowing);
+	bool GetCallableValue(Uint32 hash, VMValue& value);
 
 public:
 	static bool DisableAutoAnimate;

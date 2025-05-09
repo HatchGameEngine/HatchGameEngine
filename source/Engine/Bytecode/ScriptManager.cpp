@@ -733,18 +733,18 @@ ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
 }
 ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
 	ObjClass* parentClass = GetClassParent(klass);
-	if (IS_INSTANCE(OBJECT_VAL(object))) {
+	if (parentClass == nullptr && IS_INSTANCE(OBJECT_VAL(object))) {
 		ObjInstance* instance = (ObjInstance*)object;
-		if (instance->EntityPtr && parentClass == nullptr && klass != EntityImpl::ParentClass) {
+		if (instance->EntityPtr && klass != EntityImpl::ParentClass) {
 			return EntityImpl::Class;
 		}
 	}
 	return parentClass;
 }
-bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, bool allowShadowing, VMValue* callable) {
+bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable) {
 	while (klass != nullptr) {
 		// Look for a field in the class which may shadow a method.
-		if (allowShadowing && klass->Fields->GetIfExists(hash, callable)) {
+		if (klass->Fields->GetIfExists(hash, callable)) {
 			return true;
 		}
 

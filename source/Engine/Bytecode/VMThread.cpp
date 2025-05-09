@@ -2689,7 +2689,7 @@ bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 
 	// No method found, so look in the parent class.
 	// Walk up the inheritance chain and get the expected method.
 	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
-	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, true, &callable)) {
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
 		ScriptManager::Unlock();
 
 		// Call it, finally.
@@ -2708,7 +2708,7 @@ bool VMThread::DoSuperInvocation(ObjInstance* instance, ObjClass* klass, Uint32 
 	}
 
 	VMValue callable;
-	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, true, &callable)) {
+	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
 		return CallForObject(callable, argCount);
 	}
 

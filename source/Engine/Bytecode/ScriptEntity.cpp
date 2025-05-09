@@ -700,21 +700,17 @@ void ScriptEntity::AddEntityClassMethods() {
 	});
 }
 
-bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value, bool allowShadowing) {
+bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 	VMValue result;
 
-	// Look for a field which may shadow a method.
-	if (allowShadowing && Instance->Fields->GetIfExists(hash, &result)) {
+	// Look for a field in the instance which may shadow a method.
+	if (Instance->Fields->GetIfExists(hash, &result)) {
 		value = result;
 		return true;
 	}
 
 	ObjClass* klass = Instance->Object.Class;
-	if (klass->Methods->GetIfExists(hash, &result)) {
-		value = result;
-		return true;
-	}
-	else if (ScriptManager::GetClassMethod((Obj*)Instance, klass, hash, allowShadowing, &result)) {
+	if (ScriptManager::GetClassMethod((Obj*)Instance, klass, hash, &result)) {
 		value = result;
 		return true;
 	}
@@ -730,7 +726,7 @@ bool ScriptEntity::RunFunction(Uint32 hash) {
 	// If the function doesn't exist, this is not an error VM side,
 	// treat whatever we call from C++ as a virtual-like function.
 	VMValue callable;
-	if (!ScriptEntity::GetCallableValue(hash, callable, true)) {
+	if (!GetCallableValue(hash, callable)) {
 		return false;
 	}
 
@@ -746,15 +742,15 @@ bool ScriptEntity::RunFunction(Uint32 hash) {
 }
 bool ScriptEntity::RunCreateFunction(VMValue flag) {
 	VMValue callable;
-	if (!ScriptEntity::GetCallableValue(Hash_Create, callable, false)) {
-		return true;
+	if (!GetCallableValue(Hash_Create, callable)) {
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
 	VMValue* stackTop = thread->StackTop;
 	thread->Push(OBJECT_VAL(Instance));
 
-	// Create can never be a native, so this check is not needed, but better safe than sorry.
+	// Create cannot be a native currently, but when it can, this IS_FUNCTION check will be needed.
 	if (IS_FUNCTION(callable) && AS_FUNCTION(callable)->Arity == 0) {
 		thread->InvokeForEntity(callable, 0);
 	}
@@ -1011,7 +1007,7 @@ void ScriptEntity::RenderLate() {
 	RunFunction(Hash_RenderLate);
 }
 #define CAN_CALL_ENTITY_IMPL(fnName)\
-	(!ScriptEntity::GetCallableValue(Hash_##fnName, callable, false)\
+	(!GetCallableValue(Hash_##fnName, callable)\
 		|| (IS_NATIVE(callable) && AS_NATIVE(callable) == VM_##fnName))
 void ScriptEntity::SetAnimation(int animation, int frame) {
 	VMValue callable;
