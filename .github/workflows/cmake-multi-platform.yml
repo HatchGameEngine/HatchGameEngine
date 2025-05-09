@@ -1,4 +1,4 @@
-name: CMake (Linux and Windows)
+name: CMake
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set reusable strings
       id: strings
@@ -74,3 +74,40 @@ jobs:
         name: HatchGameEngine-Windows-${{ matrix.build_type }}-${{ github.sha }}
         path: build/${{ matrix.build_type }}/HatchGameEngine-${{ matrix.build_type }}.exe
         retention-days: 7
+
+  # Duplicated from above, no simple way to add Switch to the matrix
+  switch-build:
+    runs-on: ubuntu-22.04
+    container: devkitpro/devkita64:latest
+    strategy:
+      fail-fast: false
+
+      matrix:
+        build_type: [Release, Debug]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # github.workspace doesn't work on container workflows so we use $GITHUB_WORKSPACE instead
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${GITHUB_WORKSPACE}/build" >> "$GITHUB_OUTPUT"
+
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake
+          -S ${GITHUB_WORKSPACE}
+
+      - name: Build
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+      - name: Upload Switch build
+        uses: actions/upload-artifact@v4
+        with:
+          name: HatchGameEngine-Switch-${{ matrix.build_type }}-${{ github.sha }}
+          path: build/*.nro
+          retention-days: 7
