@@ -7,7 +7,8 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/FileStream.h>
 
@@ -3487,7 +3488,7 @@ int Compiler::FindConstant(VMValue value) {
 	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
 		VMValue constant = (*CurrentChunk()->Constants)[i];
 		if (IS_STRING(constant) && IS_STRING(value) &&
-			ScriptManager::ValuesSortaEqual(constant, value)) {
+			Value::SortaEqual(constant, value)) {
 			return (int)i;
 		}
 		if (ValuesEqual(value, constant)) {
@@ -3670,12 +3671,12 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		VMValue out;
 
 		switch (opB) {
-			// Numeric Operations
+		// Numeric Operations
 		case OP_ADD: {
 			if (IS_STRING(a) || IS_STRING(b)) {
-				VMValue str_b = ScriptManager::CastValueAsString(b);
-				VMValue str_a = ScriptManager::CastValueAsString(a);
-				out = ScriptManager::Concatenate(str_a, str_b);
+				VMValue str_b = Value::CastAsString(b);
+				VMValue str_a = Value::CastAsString(a);
+				out = Value::Concatenate(str_a, str_b);
 				break;
 			}
 			else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
@@ -3683,8 +3684,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d + b_d);
 			}
 			else {
@@ -3701,8 +3702,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d - b_d);
 			}
 			else {
@@ -3719,8 +3720,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d * b_d);
 			}
 			else {
@@ -3737,8 +3738,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 
 				if (b_d == 0) {
 					return preConstant;
@@ -3763,8 +3764,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(fmod(a_d, b_d));
 			}
 			else {
@@ -3775,16 +3776,16 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 			break;
 		}
-			// Bitwise Operations
+		// Bitwise Operations
 		case OP_BITSHIFT_LEFT: {
 			if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
 				return preConstant;
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d << b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3800,9 +3801,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d >> b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3818,9 +3819,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d | b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3836,9 +3837,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d & b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3854,9 +3855,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d ^ b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3866,10 +3867,10 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 			break;
 		}
-			// Equality and Comparison Operators
+		// Equality and Comparison Operators
 		case OP_EQUAL_NOT:
 		case OP_EQUAL: {
-			bool equal = ScriptManager::ValuesSortaEqual(a, b);
+			bool equal = Value::SortaEqual(a, b);
 			if (opB == OP_EQUAL_NOT) {
 				equal = !equal;
 			}
@@ -3882,8 +3883,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d > b_d);
 			}
 			else {
@@ -3900,8 +3901,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d >= b_d);
 			}
 			else {
@@ -3918,8 +3919,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d < b_d);
 			}
 			else {
@@ -3936,8 +3937,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d <= b_d);
 			}
 			else {
@@ -3957,8 +3958,6 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		if (checkConstantB >= preConstant && checkConstantA != checkConstantB) {
 			CurrentChunk()->Constants->pop_back();
 		}
-		// Log::PrintSimple("Constants eaten: %d %d\n",
-		// checkConstantA, checkConstantB);
 
 		preConstant = CurrentChunk()->Constants->size();
 		EmitConstant(out);
@@ -3968,13 +3967,6 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 	}
 
-	///////////
-	// printf("------AFTER : @ %d %d\n", preCount,
-	// CurrentChunk()->Constants->size()); for (int i = preCount; i
-	// < CurrentChunk()->Count;)
-	//     i = DebugInstruction(CurrentChunk(), i);
-	// printf("----------------- @ %d\n", preCount);
-	///////////
 	return preConstant;
 }
 
@@ -4099,7 +4091,7 @@ int Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 		value = (*chunk->Constants)[constant];
 		Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
 	}
-	Values::PrintValue(NULL, value);
+	ValuePrinter::Print(value);
 	Log::PrintSimple("'\n");
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
@@ -4268,7 +4260,7 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		offset++;
 		uint8_t constant = chunk->Code[offset++];
 		Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
-		Values::PrintValue(NULL, (*chunk->Constants)[constant]);
+		ValuePrinter::Print((*chunk->Constants)[constant]);
 		Log::PrintSimple("\n");
 
 		ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
@@ -4319,7 +4311,7 @@ void Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxA
 	Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
 	for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
 		Log::PrintSimple(" %2d '", (int)i);
-		Values::PrintValue(NULL, (*chunk->Constants)[i]);
+		ValuePrinter::Print((*chunk->Constants)[i]);
 		Log::PrintSimple("'\n");
 	}
 }

@@ -48,15 +48,6 @@ public:
 	static void Dispose();
 	static void FreeString(ObjString* string);
 	static void FreeGlobalValue(Uint32 hash, VMValue value);
-	static VMValue CastValueAsString(VMValue v, bool prettyPrint);
-	static VMValue CastValueAsString(VMValue v);
-	static VMValue CastValueAsInteger(VMValue v);
-	static VMValue CastValueAsDecimal(VMValue v);
-	static VMValue Concatenate(VMValue va, VMValue vb);
-	static bool ValuesSortaEqual(VMValue a, VMValue b);
-	static bool ValuesEqual(VMValue a, VMValue b);
-	static bool ValueFalsey(VMValue a);
-	static VMValue DelinkValue(VMValue val);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
 	static void FreeValue(VMValue value);
