@@ -4352,7 +4352,7 @@ void Compiler::Init() {
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
 		Compiler::StandardConstants =
-			new HashMap<VMValue>(NULL, ScriptManager::Constants->Capacity);
+			new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
 	}
 	Compiler::StandardConstants->Clear();
 
