@@ -2,8 +2,8 @@
 #define ENGINE_BYTECODE_VMTHREAD_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/PrintBuffer.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Utilities/PrintBuffer.h>
 
 class VMThread {
 private:
