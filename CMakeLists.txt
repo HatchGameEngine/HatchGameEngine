@@ -75,6 +75,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   endif()
 endif()
 
+# Force enable PORTABLE_MODE on Switch
+if(NINTENDO_SWITCH)
+  set(PORTABLE_MODE ON)
+endif()
+
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
 option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
 
