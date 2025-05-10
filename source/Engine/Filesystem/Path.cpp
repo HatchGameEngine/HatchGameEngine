@@ -197,6 +197,9 @@ PathLocation Path::LocationFromURL(const char* filename) {
 }
 
 std::string Path::GetBasePath() {
+#if defined(SWITCH_ROMFS)
+	return std::string("romfs:/");
+#else
 	char* basePath = SDL_GetBasePath();
 	if (basePath == nullptr) {
 		return "";
@@ -207,6 +210,7 @@ std::string Path::GetBasePath() {
 	SDL_free(basePath);
 
 	return path;
+#endif
 }
 
 std::string Path::GetPrefPath() {
