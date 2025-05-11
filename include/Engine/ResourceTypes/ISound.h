@@ -7,8 +7,8 @@
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
-#define AUDIO_LOOP_NONE -2
-#define AUDIO_LOOP_DEFAULT -1
+#define AUDIO_LOOP_NONE (-2)
+#define AUDIO_LOOP_DEFAULT (-1)
 
 class ISound {
 public:
