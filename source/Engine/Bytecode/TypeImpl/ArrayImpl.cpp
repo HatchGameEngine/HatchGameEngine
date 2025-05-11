@@ -5,15 +5,21 @@
 ObjClass* ArrayImpl::Class = nullptr;
 
 void ArrayImpl::Init() {
-	const char* name = "$$ArrayImpl";
-
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(CLASS_ARRAY);
 
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
 
 	ScriptManager::ClassImplList.push_back(Class);
+}
+
+void ArrayImpl::Dispose(Obj* object) {
+	ObjArray* array = (ObjArray*)object;
+
+	// An array does not own its values, so it's not allowed to free them.
+	array->Values->clear();
+
+	delete array->Values;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

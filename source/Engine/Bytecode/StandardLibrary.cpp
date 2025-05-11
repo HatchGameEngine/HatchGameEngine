@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Values.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Filesystem/Directory.h>
@@ -250,12 +251,12 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	ObjStream* value = NULL;
 	if (ScriptManager::Lock()) {
 		if (IS_STREAM(args[index])) {
-			value = (ObjStream*)(AS_OBJECT(args[index]));
+			value = AS_STREAM(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    GetObjectTypeString(OBJ_STREAM),
+				    "Stream", // TODO: Don't do this
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
@@ -15344,7 +15345,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, false);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -15369,7 +15370,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -17947,17 +17948,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
-ObjClass* InitClass(const char* className) {
-	ObjClass* klass = NewClass(Murmur::EncryptString(className));
-	klass->Name = CopyString(className);
-	return klass;
-}
-ObjNamespace* InitNamespace(const char* nsName) {
-	ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
-	ns->Name = CopyString(nsName);
-	return ns;
-}
-
 void StandardLibrary::Link() {
 	ObjClass* klass;
 
@@ -17981,7 +17971,7 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 
 #define INIT_CLASS(className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
@@ -17989,11 +17979,11 @@ void StandardLibrary::Link() {
 	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
-	ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
 	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)

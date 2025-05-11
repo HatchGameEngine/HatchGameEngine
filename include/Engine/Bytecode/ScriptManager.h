@@ -15,21 +15,15 @@ class ScriptEntity;
 
 class ScriptManager {
 private:
+#ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
-	static void RemoveNonGlobalableValue(Uint32 hash, VMValue value);
-	static void FreeNativeValue(Uint32 hash, VMValue value);
-	static void FreeFunction(ObjFunction* function);
-	static void FreeModule(ObjModule* module);
-	static void FreeClass(ObjClass* klass);
-	static void FreeEnumeration(ObjEnum* enumeration);
-	static void FreeNamespace(ObjNamespace* ns);
+#endif
 	static void FreeModules();
 
 public:
 	static bool LoadAllClasses;
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
-	static std::set<Obj*> FreedGlobals;
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
@@ -40,14 +34,17 @@ public:
 	static vector<ObjClass*> ClassImplList;
 	static SDL_mutex* GlobalLock;
 
+	static void DestroyObject(Obj* object);
+	static void FreeFunction(Obj* object);
+	static void FreeModule(Obj* object);
+	static void FreeClass(Obj* object);
+	static void FreeEnumeration(Obj* object);
+	static void FreeNamespace(Obj* object);
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();
 	static void ResetStack();
 	static void Init();
-	static void DisposeGlobalValueTable(HashMap<VMValue>* globals);
 	static void Dispose();
-	static void FreeString(ObjString* string);
-	static void FreeGlobalValue(Uint32 hash, VMValue value);
 	static VMValue CastValueAsString(VMValue v, bool prettyPrint);
 	static VMValue CastValueAsString(VMValue v);
 	static VMValue CastValueAsInteger(VMValue v);
@@ -59,7 +56,6 @@ public:
 	static VMValue DelinkValue(VMValue val);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
-	static void FreeValue(VMValue value);
 	static bool Lock();
 	static void Unlock();
 	static void DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash);

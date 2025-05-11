@@ -5,16 +5,28 @@
 ObjClass* MapImpl::Class = nullptr;
 
 void MapImpl::Init() {
-	const char* name = "$$MapImpl";
-
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(CLASS_MAP);
 
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
 	ScriptManager::ClassImplList.push_back(Class);
+}
+
+void MapImpl::Dispose(Obj* object) {
+	ObjMap* map = (ObjMap*)object;
+
+	// Free keys
+	map->Keys->WithAll([](Uint32, char* ptr) -> void {
+		Memory::Free(ptr);
+	});
+
+	// Free Keys table
+	delete map->Keys;
+
+	// Free Values table
+	delete map->Values;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

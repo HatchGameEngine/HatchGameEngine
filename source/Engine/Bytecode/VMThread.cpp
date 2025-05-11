@@ -198,7 +198,7 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 		PrintStackTrace(buffer, errorString);
 	}
 	else if (IS_OBJECT(FunctionToInvoke)) {
-		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE) {
+		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE_FUNCTION) {
 			buffer_printf(
 				buffer, "While calling native function:\n\n    %s\n", errorString);
 		}
@@ -2603,7 +2603,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 		case OBJ_FUNCTION:
 			result = Call(AS_FUNCTION(callee), argCount);
 			break;
-		case OBJ_NATIVE: {
+		case OBJ_NATIVE_FUNCTION: {
 			NativeFn nativeFn = AS_NATIVE(callee);
 
 			VMValue returnValue = NULL_VAL;
@@ -2633,7 +2633,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 bool VMThread::CallForObject(VMValue callee, int argCount) {
 	if (ScriptManager::Lock()) {
 		// Special case for native functions
-		if (OBJECT_TYPE(callee) == OBJ_NATIVE) {
+		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
 			NativeFn native = AS_NATIVE(callee);
 
 			VMValue returnValue = NULL_VAL;
@@ -3259,8 +3259,11 @@ VMValue VMThread::Value_TypeOf() {
 		case OBJ_INSTANCE:
 			valueType = "instance";
 			break;
-		case OBJ_NATIVE:
-			valueType = "native";
+		case OBJ_NATIVE_FUNCTION:
+			valueType = "native function";
+			break;
+		case OBJ_NATIVE_INSTANCE:
+			valueType = "native instance";
 			break;
 		case OBJ_STRING:
 			valueType = "string";
@@ -3274,9 +3277,6 @@ VMValue VMThread::Value_TypeOf() {
 		case OBJ_MAP:
 			valueType = "map";
 			break;
-		case OBJ_STREAM:
-			valueType = "stream";
-			break;
 		case OBJ_NAMESPACE:
 			valueType = "namespace";
 			break;
@@ -3285,9 +3285,6 @@ VMValue VMThread::Value_TypeOf() {
 			break;
 		case OBJ_MODULE:
 			valueType = "module";
-			break;
-		case OBJ_MATERIAL:
-			valueType = "material";
 			break;
 		}
 	}

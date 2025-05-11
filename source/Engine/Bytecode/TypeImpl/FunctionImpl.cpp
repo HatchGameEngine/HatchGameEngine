@@ -5,10 +5,7 @@
 ObjClass* FunctionImpl::Class = nullptr;
 
 void FunctionImpl::Init() {
-	const char* name = "$$FunctionImpl";
-
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(CLASS_FUNCTION);
 
 	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 

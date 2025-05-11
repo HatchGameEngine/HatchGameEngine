@@ -6,8 +6,10 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Values.h>
 #include <Engine/Diagnostics/Log.h>
@@ -26,8 +28,6 @@ Uint32 ScriptManager::ThreadCount = 1;
 
 HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
-
-std::set<Obj*> ScriptManager::FreedGlobals;
 
 vector<ObjModule*> ScriptManager::ModuleList;
 
@@ -124,10 +124,12 @@ void ScriptManager::Init() {
 	ThreadCount = 1;
 
 	ArrayImpl::Init();
-	MapImpl::Init();
 	FunctionImpl::Init();
-	StringImpl::Init();
+	InstanceImpl::Init();
 	MaterialImpl::Init();
+	MapImpl::Init();
+	StreamImpl::Init();
+	StringImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -149,20 +151,14 @@ Uint32 ScriptManager::GetBranchLimit() {
 	return (Uint32)branchLimit;
 }
 #endif
-void ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
-	globals->ForAll(FreeGlobalValue);
-	globals->Clear();
-	delete globals;
-}
 void ScriptManager::Dispose() {
-	// NOTE: Remove GC-able values from these tables so they may be
-	// cleaned up.
-	if (Globals) {
-		Globals->ForAll(RemoveNonGlobalableValue);
-	}
-	if (Constants) {
-		Constants->ForAll(RemoveNonGlobalableValue);
-	}
+	Globals->Clear();
+	Globals = nullptr;
+	delete Globals;
+
+	Constants->Clear();
+	Constants = nullptr;
+	delete Constants;
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
@@ -170,24 +166,6 @@ void ScriptManager::Dispose() {
 	Threads[0].FrameCount = 0;
 	Threads[0].ResetStack();
 	ForceGarbageCollection();
-
-	FreeModules();
-
-	FreedGlobals.clear();
-
-	if (Globals) {
-		Log::Print(Log::LOG_VERBOSE, "Freeing values in Globals list...");
-		DisposeGlobalValueTable(Globals);
-		Log::Print(Log::LOG_VERBOSE, "Done!");
-		Globals = NULL;
-	}
-
-	if (Constants) {
-		Log::Print(Log::LOG_VERBOSE, "Freeing values in Constants list...");
-		DisposeGlobalValueTable(Constants);
-		Log::Print(Log::LOG_VERBOSE, "Done!");
-		Constants = NULL;
-	}
 
 	if (Sources) {
 		Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
@@ -213,169 +191,45 @@ void ScriptManager::Dispose() {
 
 	SDL_DestroyMutex(GlobalLock);
 }
-void ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_CLASS:
-		case OBJ_ENUM:
-		case OBJ_FUNCTION:
-		case OBJ_NATIVE:
-		case OBJ_NAMESPACE:
-		case OBJ_MODULE:
-			break;
-		default:
-			if (hash) {
-				Globals->Remove(hash);
-			}
-			break;
-		}
-	}
-}
-void ScriptManager::FreeNativeValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_NATIVE:
-			FREE_OBJ(AS_OBJECT(value), ObjNative);
-			break;
+void ScriptManager::FreeFunction(Obj* object) {
+	ObjFunction* function = (ObjFunction*)object;
 
-		default:
-			break;
-		}
-	}
-}
-void ScriptManager::FreeFunction(ObjFunction* function) {
-	/*
-	printf("OBJ_FUNCTION: %p (%s)\n", function,
-	    function->Name ?
-	        (function->Name->Chars ? function->Name->Chars :
-	"NULL") : "NULL");
-	//*/
-	if (function->Name != NULL) {
-		FreeValue(OBJECT_VAL(function->Name));
-	}
-	if (function->ClassName != NULL) {
-		FreeValue(OBJECT_VAL(function->ClassName));
-	}
-
-	for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
-		FreeValue((*function->Chunk.Constants)[i]);
-	}
-	function->Chunk.Constants->clear();
 	function->Chunk.Free();
-
-	FREE_OBJ(function, ObjFunction);
 }
-void ScriptManager::FreeModule(ObjModule* module) {
+void ScriptManager::FreeModule(Obj* object) {
+	ObjModule* module = (ObjModule*)object;
+
 	for (size_t i = 0; i < module->Functions->size(); i++) {
-		FreeFunction((*module->Functions)[i]);
+		FreeFunction((Obj*)(*module->Functions)[i]);
 	}
+
 	delete module->Functions;
 	delete module->Locals;
 }
-void ScriptManager::FreeClass(ObjClass* klass) {
-	// Subfunctions are already freed as a byproduct of the
-	// ModuleList, so just do natives.
-	klass->Methods->ForAll(FreeNativeValue);
+void ScriptManager::FreeClass(Obj* object) {
+	ObjClass* klass = (ObjClass*)object;
+
 	delete klass->Methods;
-
-	// A class does not own its values, so it's not allowed
-	// to free them.
 	delete klass->Fields;
-
-	if (klass->Name) {
-		FreeValue(OBJECT_VAL(klass->Name));
-	}
-
-	FREE_OBJ(klass, ObjClass);
 }
-void ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
-	// An enumeration does not own its values, so it's not allowed
-	// to free them.
+void ScriptManager::FreeEnumeration(Obj* object) {
+	ObjEnum* enumeration = (ObjEnum*)object;
+
 	delete enumeration->Fields;
-
-	if (enumeration->Name) {
-		FreeValue(OBJECT_VAL(enumeration->Name));
-	}
-
-	FREE_OBJ(enumeration, ObjEnum);
 }
-void ScriptManager::FreeNamespace(ObjNamespace* ns) {
-	// A namespace does not own its values, so it's not allowed
-	// to free them.
+void ScriptManager::FreeNamespace(Obj* object) {
+	ObjNamespace* ns = (ObjNamespace*)object;
+
 	delete ns->Fields;
-
-	if (ns->Name) {
-		FreeValue(OBJECT_VAL(ns->Name));
-	}
-
-	FREE_OBJ(ns, ObjNamespace);
-}
-void ScriptManager::FreeString(ObjString* string) {
-	if (string->Chars != NULL) {
-		Memory::Free(string->Chars);
-	}
-	string->Chars = NULL;
-
-	FREE_OBJ(string, ObjString);
-}
-void ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		Obj* object = AS_OBJECT(value);
-		if (FreedGlobals.find(object) != FreedGlobals.end()) {
-			return;
-		}
-
-#ifdef DEBUG_FREE_GLOBALS
-		if (Tokens->Get(hash)) {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freeing global %s, type %s",
-				Tokens->Get(hash),
-				GetValueTypeString(value));
-		}
-		else {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freeing global %08X, type %s",
-				hash,
-				GetValueTypeString(value));
-		}
-#endif
-
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_CLASS: {
-			ObjClass* klass = AS_CLASS(value);
-			FreeClass(klass);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_ENUM: {
-			ObjEnum* enumeration = AS_ENUM(value);
-			FreeEnumeration(enumeration);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_NAMESPACE: {
-			ObjNamespace* ns = AS_NAMESPACE(value);
-			FreeNamespace(ns);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_NATIVE: {
-			FREE_OBJ(AS_OBJECT(value), ObjNative);
-			FreedGlobals.insert(object);
-			break;
-		}
-		default:
-			break;
-		}
-	}
 }
 void ScriptManager::FreeModules() {
-	Log::Print(Log::LOG_VERBOSE, "Freeing %d modules...", ModuleList.size());
+	// All this does is clear the Functions table in all modules,
+	// so that they are properly GC'd.
 	for (size_t i = 0; i < ModuleList.size(); i++) {
-		FreeModule(ModuleList[i]);
+		ObjModule* module = ModuleList[i];
+		module->Functions->clear();
 	}
 	ModuleList.clear();
-	Log::Print(Log::LOG_VERBOSE, "Done!");
 }
 // #endregion
 
@@ -561,79 +415,12 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 	return true;
 }
 
-void ScriptManager::FreeValue(VMValue value) {
-	if (IS_OBJECT(value)) {
-		Obj* objectPointer = AS_OBJECT(value);
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_BOUND_METHOD: {
-			FREE_OBJ(objectPointer, ObjBoundMethod);
-			break;
-		}
-		case OBJ_INSTANCE: {
-			ObjInstance* instance = AS_INSTANCE(value);
-
-			// An instance does not own its values, so it's
-			// not allowed to free them.
-			delete instance->Fields;
-
-			FREE_OBJ(instance, ObjInstance);
-			break;
-		}
-		case OBJ_STRING: {
-			ObjString* string = AS_STRING(value);
-			FreeString(string);
-			break;
-		}
-		case OBJ_ARRAY: {
-			ObjArray* array = AS_ARRAY(value);
-
-			// An array does not own its values, so it's
-			// not allowed to free them.
-			array->Values->clear();
-			delete array->Values;
-
-			FREE_OBJ(array, ObjArray);
-			break;
-		}
-		case OBJ_MAP: {
-			ObjMap* map = AS_MAP(value);
-
-			// Free keys
-			map->Keys->WithAll([](Uint32, char* ptr) -> void {
-				Memory::Free(ptr);
-			});
-
-			// Free Keys table
-			delete map->Keys;
-
-			// Free Values table
-			delete map->Values;
-
-			FREE_OBJ(map, ObjMap);
-			break;
-		}
-		case OBJ_STREAM: {
-			ObjStream* stream = AS_STREAM(value);
-
-			if (!stream->Closed) {
-				stream->StreamPtr->Close();
-			}
-
-			FREE_OBJ(stream, ObjStream);
-			break;
-		}
-		case OBJ_MATERIAL: {
-			ObjMaterial* material = AS_MATERIAL(value);
-
-			Material::Remove(material->MaterialPtr);
-
-			FREE_OBJ(material, ObjMaterial);
-			break;
-		}
-		default:
-			break;
-		}
+void ScriptManager::DestroyObject(Obj* object) {
+	if (object->Destructor != nullptr) {
+		object->Destructor(object);
 	}
+
+	FREE_OBJ(object);
 }
 // #endregion
 

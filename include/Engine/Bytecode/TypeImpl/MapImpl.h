@@ -9,6 +9,9 @@ public:
 	static ObjClass* Class;
 
 	static void Init();
+
+	static void Dispose(Obj* object);
+
 	static VMValue VM_GetKeys(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Iterate(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID);

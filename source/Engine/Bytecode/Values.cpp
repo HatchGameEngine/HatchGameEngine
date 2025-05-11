@@ -72,19 +72,11 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
 				? AS_INSTANCE(value)->Object.Class->Name->Chars
 				: "(null)");
 		break;
-	case OBJ_NATIVE:
+	case OBJ_NATIVE_FUNCTION:
 		buffer_printf(buffer, "<native fn>");
 		break;
-	case OBJ_STREAM:
-		buffer_printf(buffer, "<stream>");
-		break;
-	case OBJ_MATERIAL:
-		buffer_printf(buffer,
-			"<material %s>",
-			(AS_MATERIAL(value)->MaterialPtr != nullptr &&
-				AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
-				? AS_MATERIAL(value)->MaterialPtr->Name
-				: "(null)");
+	case OBJ_NATIVE_INSTANCE:
+		buffer_printf(buffer, "<native instance>");
 		break;
 	case OBJ_NAMESPACE:
 		buffer_printf(buffer,

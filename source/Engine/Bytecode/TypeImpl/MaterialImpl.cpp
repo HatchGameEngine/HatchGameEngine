@@ -1,5 +1,6 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Rendering/Material.h>
 
@@ -34,11 +35,8 @@ Uint32 MaterialImpl::Hash_EmissiveTexture = 0;
 #endif
 
 void MaterialImpl::Init() {
-	const char* className = "Material";
-
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
-	Class->NewFn = VM_New;
+	Class = NewClass(CLASS_MATERIAL);
+	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 	Class->PropertyGet = VM_PropertyGet;
 	Class->PropertySet = VM_PropertySet;
@@ -73,13 +71,27 @@ void MaterialImpl::Init() {
 
 	ScriptManager::ClassImplList.push_back(Class);
 
-	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
+	ScriptManager::Globals->Put(CLASS_MATERIAL, OBJECT_VAL(Class));
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-Obj* MaterialImpl::VM_New() {
-	return (Obj*)NewMaterial(Material::Create(nullptr));
+Obj* MaterialImpl::New() {
+	Material* materialPtr = Material::Create(nullptr);
+	return (Obj*)New((void*)materialPtr);
+}
+ObjMaterial* MaterialImpl::New(void* materialPtr) {
+	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
+	Memory::Track(material, "NewMaterial");
+	material->Object.Class = Class;
+	material->Object.Destructor = Dispose;
+	material->MaterialPtr = (Material*)materialPtr;
+	return material;
+}
+void MaterialImpl::Dispose(Obj* object) {
+	ObjMaterial* material = (ObjMaterial*)object;
+
+	Material::Remove(material->MaterialPtr);
 }
 
 VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {

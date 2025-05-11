@@ -120,7 +120,7 @@ void GarbageCollector::Collect() {
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeValue(OBJECT_VAL(unreached));
+			GarbageCollector::FreeObject(unreached);
 		}
 		else {
 			// This object was reached, so unmark it (for
@@ -151,44 +151,28 @@ void GarbageCollector::Collect() {
 
 void GarbageCollector::CollectResources() {
 	// Mark model materials
-	for (size_t i = 0; i < Scene::ModelList.size(); i++) {
-		if (!Scene::ModelList[i]) {
-			continue;
-		}
-
-		IModel* model = Scene::ModelList[i]->AsModel;
-		if (!model) {
-			continue;
-		}
-
-		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
-			GrayObject(model->Materials[ii]->Object);
-		}
+	for (size_t i = 0; i < Material::List.size(); i++) {
+		GrayObject(Material::List[i]->Object);
 	}
 }
 
-void GarbageCollector::FreeValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
-	}
-
+void GarbageCollector::FreeObject(Obj* object) {
 	// If this object is an instance associated with an entity,
 	// then delete the latter
-	if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
-		ObjInstance* instance = AS_INSTANCE(value);
+	if (object->Type == OBJ_INSTANCE) {
+		ObjInstance* instance = (ObjInstance*)object;
 		if (instance->EntityPtr) {
 			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
 		}
 	}
 
-	ScriptManager::FreeValue(value);
+	ScriptManager::DestroyObject(object);
 }
 
 void GarbageCollector::GrayValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
+	if (IS_OBJECT(value)) {
+		GrayObject(AS_OBJECT(value));
 	}
-	GrayObject(AS_OBJECT(value));
 }
 void GarbageCollector::GrayObject(void* obj) {
 	if (obj == NULL) {

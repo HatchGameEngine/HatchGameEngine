@@ -5,8 +5,10 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -22,8 +24,10 @@ static Obj* AllocateObject(size_t size, ObjType type) {
 	GarbageCollector::GarbageSize += size;
 
 	Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
+	object->Size = size;
 	object->Type = type;
 	object->Class = nullptr;
+	object->Destructor = nullptr;
 	object->IsDark = false;
 	object->Next = GarbageCollector::RootObject;
 	GarbageCollector::RootObject = object;
@@ -34,6 +38,7 @@ static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
 	ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
 	Memory::Track(string, "NewString");
 	string->Object.Class = StringImpl::Class;
+	string->Object.Destructor = StringImpl::Dispose;
 	string->Length = length;
 	string->Chars = chars;
 	string->Hash = hash;
@@ -92,7 +97,7 @@ ObjFunction* NewFunction() {
 	return function;
 }
 ObjNative* NewNative(NativeFn function) {
-	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
+	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE_FUNCTION);
 	Memory::Track(native, "NewNative");
 	native->Function = function;
 	return native;
@@ -119,6 +124,7 @@ ObjClosure* NewClosure(ObjFunction* function) {
 ObjClass* NewClass(Uint32 hash) {
 	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
 	Memory::Track(klass, "NewClass");
+	klass->Object.Destructor = ScriptManager::FreeClass;
 	klass->Name = NULL;
 	klass->Hash = hash;
 	klass->Methods = new Table(NULL, 4);
@@ -133,10 +139,16 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Parent = NULL;
 	return klass;
 }
+ObjClass* NewClass(const char* className) {
+	ObjClass* klass = NewClass(GetClassHash(className));
+	klass->Name = CopyString(className);
+	return klass;
+}
 ObjInstance* NewInstance(ObjClass* klass) {
 	ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
 	Memory::Track(instance, "NewInstance");
 	instance->Object.Class = klass;
+	instance->Object.Destructor = InstanceImpl::Dispose;
 	instance->Fields = new Table(NULL, 16);
 	instance->EntityPtr = NULL;
 	instance->PropertyGet = NULL;
@@ -154,6 +166,7 @@ ObjArray* NewArray() {
 	ObjArray* array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
 	Memory::Track(array, "NewArray");
 	array->Object.Class = ArrayImpl::Class;
+	array->Object.Destructor = ArrayImpl::Dispose;
 	array->Values = new vector<VMValue>();
 	return array;
 }
@@ -161,30 +174,30 @@ ObjMap* NewMap() {
 	ObjMap* map = ALLOCATE_OBJ(ObjMap, OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = MapImpl::Class;
+	map->Object.Destructor = MapImpl::Dispose;
 	map->Values = new HashMap<VMValue>(NULL, 4);
 	map->Keys = new HashMap<char*>(NULL, 4);
 	return map;
 }
-ObjStream* NewStream(Stream* streamPtr, bool writable) {
-	ObjStream* stream = ALLOCATE_OBJ(ObjStream, OBJ_STREAM);
-	Memory::Track(stream, "NewStream");
-	stream->StreamPtr = streamPtr;
-	stream->Writable = writable;
-	stream->Closed = false;
-	return stream;
-}
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
 	Memory::Track(ns, "NewNamespace");
+	ns->Object.Destructor = ScriptManager::FreeNamespace;
 	ns->Name = NULL;
 	ns->Hash = hash;
 	ns->Fields = new Table(NULL, 16);
 	ns->InUse = false;
 	return ns;
 }
+ObjNamespace* NewNamespace(const char* nsName) {
+	ObjNamespace* ns = NewNamespace(GetClassHash(nsName));
+	ns->Name = CopyString(nsName);
+	return ns;
+}
 ObjEnum* NewEnum(Uint32 hash) {
 	ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
 	Memory::Track(enumeration, "NewEnum");
+	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
 	enumeration->Name = NULL;
 	enumeration->Hash = hash;
 	enumeration->Fields = new Table(NULL, 16);
@@ -193,17 +206,20 @@ ObjEnum* NewEnum(Uint32 hash) {
 ObjModule* NewModule() {
 	ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
 	Memory::Track(module, "NewModule");
+	module->Object.Destructor = ScriptManager::FreeModule;
 	module->Functions = new vector<ObjFunction*>();
 	module->Locals = new vector<VMValue>();
 	module->SourceFilename = NULL;
 	return module;
 }
-ObjMaterial* NewMaterial(Material* materialPtr) {
-	ObjMaterial* material = ALLOCATE_OBJ(ObjMaterial, OBJ_MATERIAL);
-	Memory::Track(material, "NewMaterial");
-	material->Object.Class = MaterialImpl::Class;
-	material->MaterialPtr = materialPtr;
-	return material;
+Obj* NewNativeInstance(size_t size) {
+	Obj* obj = (Obj*)AllocateObject(size, OBJ_NATIVE_INSTANCE);
+	Memory::Track(obj, "NewNativeInstance");
+	return obj;
+}
+
+Uint32 GetClassHash(const char* name) {
+	return Murmur::EncryptString(name);
 }
 
 bool ValuesEqual(VMValue a, VMValue b) {
@@ -251,8 +267,10 @@ const char* GetObjectTypeString(Uint32 type) {
 		return "Closure";
 	case OBJ_INSTANCE:
 		return "Instance";
-	case OBJ_NATIVE:
-		return "Native";
+	case OBJ_NATIVE_FUNCTION:
+		return "Native Function";
+	case OBJ_NATIVE_INSTANCE:
+		return "Native Instance";
 	case OBJ_STRING:
 		return "String";
 	case OBJ_UPVALUE:
@@ -261,14 +279,10 @@ const char* GetObjectTypeString(Uint32 type) {
 		return "Array";
 	case OBJ_MAP:
 		return "Map";
-	case OBJ_STREAM:
-		return "Stream";
 	case OBJ_NAMESPACE:
 		return "Namespace";
 	case OBJ_MODULE:
 		return "Module";
-	case OBJ_MATERIAL:
-		return "Material";
 	}
 	return "Unknown Object Type";
 }
