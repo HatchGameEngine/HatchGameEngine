@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -210,52 +211,20 @@ ObjMaterial* NewMaterial(Material* materialPtr) {
 const char* GetTypeString(Uint32 type) {
 	switch (type) {
 	case VAL_NULL:
-		return "Null";
+		return "null";
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		return "Integer";
+		return "integer";
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
-		return "Decimal";
+		return "decimal";
 	case VAL_OBJECT:
-		return "Object";
+		return "object";
 	}
-	return "Unknown Type";
+	return "unknown type";
 }
 const char* GetObjectTypeString(Uint32 type) {
-	switch (type) {
-	case OBJ_BOUND_METHOD:
-		return "Bound Method";
-	case OBJ_FUNCTION:
-		return "Function";
-	case OBJ_CLASS:
-		return "Class";
-	case OBJ_ENUM:
-		return "Enumeration";
-	case OBJ_CLOSURE:
-		return "Closure";
-	case OBJ_INSTANCE:
-		return "Instance";
-	case OBJ_NATIVE:
-		return "Native";
-	case OBJ_STRING:
-		return "String";
-	case OBJ_UPVALUE:
-		return "Upvalue";
-	case OBJ_ARRAY:
-		return "Array";
-	case OBJ_MAP:
-		return "Map";
-	case OBJ_STREAM:
-		return "Stream";
-	case OBJ_NAMESPACE:
-		return "Namespace";
-	case OBJ_MODULE:
-		return "Module";
-	case OBJ_MATERIAL:
-		return "Material";
-	}
-	return "Unknown Object Type";
+	return Value::GetObjectTypeName(type);
 }
 const char* GetValueTypeString(VMValue value) {
 	if (value.Type == VAL_OBJECT) {

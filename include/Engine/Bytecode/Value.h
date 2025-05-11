@@ -9,6 +9,7 @@ class Value {
 public:
 	static const char* GetPrintableObjectName(VMValue value);
 	static const char* GetObjectTypeName(VMValue value);
+	static const char* GetObjectTypeName(Uint32 type);
 
 	static VMValue CastAsString(VMValue v);
 	static VMValue CastAsInteger(VMValue v);

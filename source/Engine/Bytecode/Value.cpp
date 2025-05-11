@@ -1,8 +1,8 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 
-const char* Value::GetObjectTypeName(VMValue value) {
-	switch (OBJECT_TYPE(value)) {
+const char* Value::GetObjectTypeName(Uint32 type) {
+	switch (type) {
 	case OBJ_FUNCTION:
 		return "function";
 	case OBJ_BOUND_METHOD:
@@ -36,6 +36,10 @@ const char* Value::GetObjectTypeName(VMValue value) {
 	}
 
 	return "unknown object type";
+}
+
+const char* Value::GetObjectTypeName(VMValue value) {
+	return GetObjectTypeName(OBJECT_TYPE(value));
 }
 
 const char* Value::GetPrintableObjectName(VMValue value) {
