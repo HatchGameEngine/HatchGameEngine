@@ -7,10 +7,14 @@
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
+#define MUSIC_LOOP_NONE -2
+#define MUSIC_LOOP_DEFAULT -1
+
 class ISound {
 public:
 	SDL_AudioSpec Format;
 	int BytesPerSample;
+	int LoopPoint = MUSIC_LOOP_NONE;
 	SoundFormat* SoundData = NULL;
 	char* Filename = NULL;
 	bool LoadFailed = false;

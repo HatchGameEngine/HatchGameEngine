@@ -127,6 +127,7 @@
             <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Key_*">Key_*</a></li>
+            <li><a href="#Reference_MUSIC_*">MUSIC_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
@@ -799,6 +800,8 @@
                     <li><a href="#Reference_functions_Music_IsPlaying">Music.IsPlaying</a></li>
                     <li><a href="#Reference_functions_Music_GetPosition">Music.GetPosition</a></li>
                     <li><a href="#Reference_functions_Music_Alter">Music.Alter</a></li>
+                    <li><a href="#Reference_functions_Music_GetLoopPoint">Music.GetLoopPoint</a></li>
+                    <li><a href="#Reference_functions_Music_SetLoopPoint">Music.SetLoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Number">
@@ -1894,6 +1897,13 @@
                     <li><a href="#Reference_enums_Key_RSHIFT">Key_RSHIFT</a></li>
                     <li><a href="#Reference_enums_Key_RALT">Key_RALT</a></li>
                     <li><a href="#Reference_enums_Key_RGUI">Key_RGUI</a></li>
+                </ul>
+            </p>
+            <p id="Reference_MUSIC_*">
+                <h2><code>MUSIC_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_MUSIC_LOOP_NONE">MUSIC_LOOP_NONE</a></li>
+                    <li><a href="#Reference_enums_MUSIC_LOOP_DEFAULT">MUSIC_LOOP_DEFAULT</a></li>
                 </ul>
             </p>
             <p id="Reference_Persistence_*">
@@ -6021,6 +6031,27 @@
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Music_GetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Music.GetLoopPoint</h2>
+        <code>Music.GetLoopPoint(music)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a music index, if it has one.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>music (Integer): The music index to get the loop point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Music_SetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
+        <code>Music.SetLoopPoint(music, loopPoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a music index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>music (Integer): The music index to set the loop point.</li>
+        <li>loopPoint (Integer): The loop point, in samples.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Number_ToString">
         <h2 style="margin-bottom: 8px;">Number.ToString</h2>
         <code>Number.ToString(n[, base])</code>
@@ -10077,7 +10108,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>726 out of 785 functions have descriptions. </p>
+        <p>728 out of 787 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -11803,6 +11834,14 @@
         <h3 style="margin-bottom: 8px;"><code>Key_RGUI</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right GUI key.</div>
         </p>
+        <p id="Reference_enums_MUSIC_LOOP_NONE">
+        <h3 style="margin-bottom: 8px;"><code>MUSIC_LOOP_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Will not loop a currently playing music index.</div>
+        </p>
+        <p id="Reference_enums_MUSIC_LOOP_DEFAULT">
+        <h3 style="margin-bottom: 8px;"><code>MUSIC_LOOP_DEFAULT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Uses the loop point defined in the metadata of a music index.</div>
+        </p>
         <p id="Reference_enums_Persistence_NONE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Doesn't persist between scenes.</div>
@@ -12011,7 +12050,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>298 out of 298 enums have descriptions. </p>
+        <p>300 out of 300 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

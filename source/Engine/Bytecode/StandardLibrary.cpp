@@ -9794,16 +9794,25 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, -1);
+	int loopPoint = IS_NULL(args[1]) ? MUSIC_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, MUSIC_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	double startPoint = GET_ARG_OPT(5, GetDecimal, 0.0);
 	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
+
 	if (fadeInAfterFinished < 0.f)
 		fadeInAfterFinished = 0.f;
+
+	if (loopPoint < MUSIC_LOOP_NONE)
+		loopPoint = MUSIC_LOOP_NONE;
+
+	if (loopPoint == MUSIC_LOOP_DEFAULT)
+		loopPoint = (audio->LoopPoint >= 0 ? audio->LoopPoint : -1);
+
 	if (audio)
-		AudioManager::PushMusicAt(audio, startPoint, (loopPoint >= 0), loopPoint, panning, speed, volume, fadeInAfterFinished);
+		AudioManager::PushMusicAt(audio, startPoint, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, fadeInAfterFinished);
+
 	return NULL_VAL;
 }
 /***
@@ -9920,6 +9929,38 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 	float volume = GET_ARG(2, GetDecimal);
 
 	AudioManager::AlterMusic(panning, speed, volume);
+	return NULL_VAL;
+}
+/***
+ * Music.GetLoopPoint
+ * \desc Gets the loop point of a music index, if it has one.
+ * \param music (Integer): The music index to get the loop point.
+ * \return Returns an Integer value.
+ * \ns Music
+ */
+VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Music.SetLoopPoint
+ * \desc Sets the loop point of a music index.
+ * \param music (Integer): The music index to set the loop point.
+ * \param loopPoint (Integer): The loop point, in samples.
+ * \ns Music
+ */
+VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	int loopPoint = GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	audio->LoopPoint = loopPoint;
 	return NULL_VAL;
 }
 // #endregion
@@ -18833,6 +18874,18 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Music, IsPlaying);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
+	DEF_NATIVE(Music, GetLoopPoint);
+	DEF_NATIVE(Music, SetLoopPoint);
+	/***
+	* \enum MUSIC_LOOP_NONE
+	* \desc Will not loop a currently playing music index.
+	*/
+	DEF_CONST_INT("MUSIC_LOOP_NONE", MUSIC_LOOP_NONE);
+	/***
+	* \enum MUSIC_LOOP_DEFAULT
+	* \desc Uses the loop point defined in the metadata of a music index.
+	*/
+	DEF_CONST_INT("MUSIC_LOOP_DEFAULT", MUSIC_LOOP_DEFAULT);
 	// #endregion
 
 	// #region Number
