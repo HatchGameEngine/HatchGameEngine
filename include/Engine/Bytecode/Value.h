@@ -16,6 +16,7 @@ public:
 	static VMValue Concatenate(VMValue va, VMValue vb);
 	static bool SortaEqual(VMValue a, VMValue b);
 	static bool Equal(VMValue a, VMValue b);
+	static bool ExactlyEqual(VMValue a, VMValue b);
 	static bool Falsey(VMValue a);
 	static VMValue Delink(VMValue val);
 };

@@ -843,7 +843,7 @@ int VMThread::RunInstruction() {
 				// Can't do that UNLESS it's the same
 				// exact value, in which case we do
 				// nothing
-				else if (!ValuesEqual(value, originalValue)) {
+				else if (!Value::ExactlyEqual(value, originalValue)) {
 					ThrowRuntimeError(false,
 						"Cannot redefine constant %s!",
 						GetVariableOrMethodName(hash));

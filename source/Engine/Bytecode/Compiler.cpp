@@ -3491,7 +3491,7 @@ int Compiler::FindConstant(VMValue value) {
 			Value::SortaEqual(constant, value)) {
 			return (int)i;
 		}
-		if (ValuesEqual(value, constant)) {
+		if (Value::ExactlyEqual(value, constant)) {
 			return (int)i;
 		}
 	}

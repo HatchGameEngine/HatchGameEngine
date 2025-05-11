@@ -154,7 +154,7 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
 		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return ValuesEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
+		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
 	}
 
 	return Value::Equal(a, b);
@@ -182,6 +182,21 @@ bool Value::Equal(VMValue a, VMValue b) {
 		return true;
 	}
 
+	return false;
+}
+bool Value::ExactlyEqual(VMValue a, VMValue b) {
+	if (a.Type != b.Type) {
+		return false;
+	}
+
+	switch (a.Type) {
+	case VAL_INTEGER:
+		return AS_INTEGER(a) == AS_INTEGER(b);
+	case VAL_DECIMAL:
+		return AS_DECIMAL(a) == AS_DECIMAL(b);
+	case VAL_OBJECT:
+		return AS_OBJECT(a) == AS_OBJECT(b);
+	}
 	return false;
 }
 bool Value::Falsey(VMValue a) {

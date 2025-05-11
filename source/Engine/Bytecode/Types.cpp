@@ -207,22 +207,6 @@ ObjMaterial* NewMaterial(Material* materialPtr) {
 	return material;
 }
 
-bool ValuesEqual(VMValue a, VMValue b) {
-	if (a.Type != b.Type) {
-		return false;
-	}
-
-	switch (a.Type) {
-	case VAL_INTEGER:
-		return AS_INTEGER(a) == AS_INTEGER(b);
-	case VAL_DECIMAL:
-		return AS_DECIMAL(a) == AS_DECIMAL(b);
-	case VAL_OBJECT:
-		return AS_OBJECT(a) == AS_OBJECT(b);
-	}
-	return false;
-}
-
 const char* GetTypeString(Uint32 type) {
 	switch (type) {
 	case VAL_NULL:
