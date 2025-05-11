@@ -130,7 +130,6 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->NewFn = NULL;
 	klass->Type = CLASS_TYPE_NORMAL;
-	klass->ParentHash = 0;
 	klass->Parent = NULL;
 	return klass;
 }

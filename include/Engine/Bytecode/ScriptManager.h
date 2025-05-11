@@ -79,6 +79,7 @@ public:
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);
+	static bool ClassExists(Uint32 hash);
 	static bool IsStandardLibraryClass(const char* className);
 	static bool LoadScript(char* filename);
 	static bool LoadScript(const char* filename);
