@@ -14618,6 +14618,38 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return INTEGER_VAL(AudioManager::AudioIsPlaying(channel % AudioManager::SoundArrayLength));
 }
+/***
+ * Sound.GetLoopPoint
+ * \desc Gets the loop point of a sound index, if it has one.
+ * \param sound (Integer): The sound index to get the loop point.
+ * \return Returns the loop point in samples, as an Integer value.
+ * \ns Music
+ */
+VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Music.SetLoopPoint
+ * \desc Sets the loop point of a sound index.
+ * \param sound (Integer): The sound index to set the loop point.
+ * \param loopPoint (Integer): The loop point, in samples.
+ * \ns Music
+ */
+VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	int loopPoint = GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	audio->LoopPoint = loopPoint;
+	return NULL_VAL;
+}
 // #endregion
 
 // #region Sprite
@@ -19245,6 +19277,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sound, AlterChannel);
 	DEF_NATIVE(Sound, GetFreeChannel);
 	DEF_NATIVE(Sound, IsChannelFree);
+	DEF_NATIVE(Sound, GetLoopPoint);
+	DEF_NATIVE(Sound, SetLoopPoint);
 	// #endregion
 
 	// #region Sprite

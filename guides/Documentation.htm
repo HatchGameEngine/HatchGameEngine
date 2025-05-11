@@ -802,6 +802,8 @@
                     <li><a href="#Reference_functions_Music_Alter">Music.Alter</a></li>
                     <li><a href="#Reference_functions_Music_GetLoopPoint">Music.GetLoopPoint</a></li>
                     <li><a href="#Reference_functions_Music_SetLoopPoint">Music.SetLoopPoint</a></li>
+                    <li><a href="#Reference_functions_Sound_GetLoopPoint">Sound.GetLoopPoint</a></li>
+                    <li><a href="#Reference_functions_Music_SetLoopPoint">Music.SetLoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Number">
@@ -6052,6 +6054,27 @@
         <li>loopPoint (Integer): The loop point, in samples.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Sound_GetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Sound.GetLoopPoint</h2>
+        <code>Sound.GetLoopPoint(sound)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a sound index, if it has one.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sound (Integer): The sound index to get the loop point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Music_SetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
+        <code>Music.SetLoopPoint(sound, loopPoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a sound index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sound (Integer): The sound index to set the loop point.</li>
+        <li>loopPoint (Integer): The loop point, in samples.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Number_ToString">
         <h2 style="margin-bottom: 8px;">Number.ToString</h2>
         <code>Number.ToString(n[, base])</code>
@@ -10108,7 +10131,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>728 out of 787 functions have descriptions. </p>
+        <p>730 out of 789 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
