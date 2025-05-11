@@ -235,7 +235,7 @@ SoundFormat* OGG::Load(const char* filename) {
 		for (int i = 0; i < comment.comment_list_length; i++) {
 			const char* entry = (const char*)comment.comment_list[i];
 
-			if (strncmp(entry, "LOOPPOINT=", 10) == 0) {
+			if (StringUtils::StartsWith(entry, "LOOPPOINT=")) {
 				const char* valueStr = entry + 10;
 
 				int loopPoint = -1;
@@ -245,7 +245,7 @@ SoundFormat* OGG::Load(const char* filename) {
 
 				break;
 			}
-			if (strncmp(entry, "Loop Point=", 11) == 0) {
+			if (StringUtils::StartsWith(entry, "Loop Point=")) {
 				const char* valueStr = entry + 11;
 
 				int loopPoint = -1;

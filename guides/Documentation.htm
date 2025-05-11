@@ -106,6 +106,7 @@
         <h3>Enums</h3>
         <ul>
             <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
+            <li><a href="#Reference_AUDIO_*">AUDIO_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
             <li><a href="#Reference_BlendFactor_*">BlendFactor_*</a></li>
             <li><a href="#Reference_BlendMode_*">BlendMode_*</a></li>
@@ -127,7 +128,6 @@
             <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Key_*">Key_*</a></li>
-            <li><a href="#Reference_MUSIC_*">MUSIC_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
@@ -1556,6 +1556,13 @@
                     <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                 </ul>
             </p>
+            <p id="Reference_AUDIO_*">
+                <h2><code>AUDIO_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></li>
+                    <li><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></li>
+                </ul>
+            </p>
             <p id="Reference_Axis_*">
                 <h2><code>Axis_*</code></h2>
                 <ul>
@@ -1897,13 +1904,6 @@
                     <li><a href="#Reference_enums_Key_RSHIFT">Key_RSHIFT</a></li>
                     <li><a href="#Reference_enums_Key_RALT">Key_RALT</a></li>
                     <li><a href="#Reference_enums_Key_RGUI">Key_RGUI</a></li>
-                </ul>
-            </p>
-            <p id="Reference_MUSIC_*">
-                <h2><code>MUSIC_*</code></h2>
-                <ul>
-                    <li><a href="#Reference_enums_MUSIC_LOOP_NONE">MUSIC_LOOP_NONE</a></li>
-                    <li><a href="#Reference_enums_MUSIC_LOOP_DEFAULT">MUSIC_LOOP_DEFAULT</a></li>
                 </ul>
             </p>
             <p id="Reference_Persistence_*">
@@ -5957,7 +5957,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to play.</li>
-        <li>loopPoint (Integer): The sample index to loop back to, or <code>-1</code> if the music should only play once. (-1 is the default).</li>
+        <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the track once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default).</li>
@@ -6040,7 +6040,7 @@
         <li>music (Integer): The music index to get the loop point.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value.</div>
         </p>
         <p id="Reference_functions_Music_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
@@ -8440,7 +8440,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
+        <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -8508,7 +8508,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
+        <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -8524,7 +8524,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>channel (Integer): The channel index.</li>
         <li>sound (Integer): The sound index to play.</li>
-        <li>loopPoint (Integer): Loop point in samples. (-1 is the default, will not loop.)</li>
+        <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
         <li>volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)</li>
@@ -10882,6 +10882,14 @@
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_RBOUNDS</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity updates within a radius. (uses UpdateRegionW)</div>
         </p>
+        <p id="Reference_enums_AUDIO_LOOP_NONE">
+        <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">When used as the `loopPoint` argument in <code><a href="#Reference_functions_Music_Play">Music.Play</a></code> or <code><a href="#Reference_functions_Sound_Play">Sound.Play</a></code>, specifies that the audio should not loop, even if the audio file has a loop point.</div>
+        </p>
+        <p id="Reference_enums_AUDIO_LOOP_DEFAULT">
+        <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_DEFAULT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">When used as the `loopPoint` argument in <code><a href="#Reference_functions_Music_Play">Music.Play</a></code> or <code><a href="#Reference_functions_Sound_Play">Sound.Play</a></code>, specifies that the audio should use loop point defined in the metadata of the audio file.</div>
+        </p>
         <p id="Reference_enums_Axis_LEFTX">
         <h3 style="margin-bottom: 8px;"><code>Axis_LEFTX</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Left controller stick X.</div>
@@ -11833,14 +11841,6 @@
         <p id="Reference_enums_Key_RGUI">
         <h3 style="margin-bottom: 8px;"><code>Key_RGUI</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right GUI key.</div>
-        </p>
-        <p id="Reference_enums_MUSIC_LOOP_NONE">
-        <h3 style="margin-bottom: 8px;"><code>MUSIC_LOOP_NONE</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Will not loop a currently playing music index.</div>
-        </p>
-        <p id="Reference_enums_MUSIC_LOOP_DEFAULT">
-        <h3 style="margin-bottom: 8px;"><code>MUSIC_LOOP_DEFAULT</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Uses the loop point defined in the metadata of a music index.</div>
         </p>
         <p id="Reference_enums_Persistence_NONE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_NONE</code></h2>
