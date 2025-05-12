@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
@@ -124,6 +125,7 @@ void ScriptManager::Init() {
 	ThreadCount = 1;
 
 	ArrayImpl::Init();
+	EntityImpl::Init();
 	FunctionImpl::Init();
 	InstanceImpl::Init();
 	MaterialImpl::Init();
@@ -604,8 +606,8 @@ Entity* ScriptManager::SpawnObject(const char* objectName) {
 
 	ScriptEntity* object = new ScriptEntity;
 
-	ObjInstance* instance = NewInstance(klass);
-	object->Link(instance);
+	ObjEntity* entity = NewEntity(klass);
+	object->Link(entity);
 
 	return object;
 }

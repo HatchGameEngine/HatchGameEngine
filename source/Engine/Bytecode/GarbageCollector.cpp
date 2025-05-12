@@ -157,15 +157,6 @@ void GarbageCollector::CollectResources() {
 }
 
 void GarbageCollector::FreeObject(Obj* object) {
-	// If this object is an instance associated with an entity,
-	// then delete the latter
-	if (object->Type == OBJ_INSTANCE) {
-		ObjInstance* instance = (ObjInstance*)object;
-		if (instance->EntityPtr) {
-			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
-		}
-	}
-
 	ScriptManager::DestroyObject(object);
 }
 
@@ -247,7 +238,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		}
 		break;
 	}
-	case OBJ_INSTANCE: {
+	case OBJ_INSTANCE:
+	case OBJ_ENTITY: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
 		break;

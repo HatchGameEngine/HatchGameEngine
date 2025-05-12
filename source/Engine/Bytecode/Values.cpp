@@ -66,6 +66,7 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
 							 : "(null)");
 		break;
 	case OBJ_INSTANCE:
+	case OBJ_ENTITY:
 		buffer_printf(buffer,
 			"<class %s> instance",
 			AS_INSTANCE(value)->Object.Class->Name

@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
@@ -150,10 +151,19 @@ ObjInstance* NewInstance(ObjClass* klass) {
 	instance->Object.Class = klass;
 	instance->Object.Destructor = InstanceImpl::Dispose;
 	instance->Fields = new Table(NULL, 16);
-	instance->EntityPtr = NULL;
 	instance->PropertyGet = NULL;
 	instance->PropertySet = NULL;
 	return instance;
+}
+ObjEntity* NewEntity(ObjClass* klass) {
+	ObjEntity* entity = ALLOCATE_OBJ(ObjEntity, OBJ_ENTITY);
+	Memory::Track(entity, "NewEntity");
+	entity->Object.Class = klass;
+	entity->Object.Destructor = EntityImpl::Dispose;
+	entity->InstanceObj.Fields = new Table(NULL, 16);
+	entity->InstanceObj.PropertyGet = NULL;
+	entity->InstanceObj.PropertySet = NULL;
+	return entity;
 }
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
@@ -267,6 +277,8 @@ const char* GetObjectTypeString(Uint32 type) {
 		return "Closure";
 	case OBJ_INSTANCE:
 		return "Instance";
+	case OBJ_ENTITY:
+		return "Entity";
 	case OBJ_NATIVE_FUNCTION:
 		return "Native Function";
 	case OBJ_NATIVE_INSTANCE:

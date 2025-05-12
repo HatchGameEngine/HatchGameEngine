@@ -171,6 +171,7 @@ enum ObjType {
 	OBJ_NAMESPACE,
 	OBJ_ENUM,
 	OBJ_INSTANCE,
+	OBJ_ENTITY,
 	OBJ_NATIVE_FUNCTION,
 	OBJ_NATIVE_INSTANCE,
 
@@ -178,6 +179,7 @@ enum ObjType {
 };
 
 #define CLASS_ARRAY "$$ArrayImpl"
+#define CLASS_ENTITY "$$EntityImpl"
 #define CLASS_FUNCTION "$$FunctionImpl"
 #define CLASS_INSTANCE "$$InstanceImpl"
 #define CLASS_MAP "$$MapImpl"
@@ -191,7 +193,7 @@ enum ObjType {
 #define IS_CLOSURE(value) IsObjectType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) IsObjectType(value, OBJ_FUNCTION)
 #define IS_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_NATIVE_FUNCTION)
-#define IS_INSTANCE(value) IsObjectType(value, OBJ_INSTANCE)
+#define IS_INSTANCE(value) (IsObjectType(value, OBJ_INSTANCE) || IsObjectType(value, OBJ_ENTITY))
 #define IS_STRING(value) IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value) IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value) IsObjectType(value, OBJ_MAP)
@@ -199,6 +201,7 @@ enum ObjType {
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
+#define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_STREAM(value) IsNativeInstance(value, CLASS_STREAM)
 #define IS_MATERIAL(value) IsNativeInstance(value, CLASS_MATERIAL)
 
@@ -212,10 +215,11 @@ enum ObjType {
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value) ((ObjMap*)AS_OBJECT(value))
-#define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 #define AS_NAMESPACE(value) ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
+#define AS_ENTITY(value) ((ObjEntity*)AS_OBJECT(value))
+#define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 #define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
 
 typedef HashMap<VMValue> Table;
@@ -285,7 +289,6 @@ struct ObjClass {
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
-	void* EntityPtr;
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
 };
@@ -303,12 +306,6 @@ struct ObjMap {
 	HashMap<VMValue>* Values;
 	HashMap<char*>* Keys;
 };
-struct ObjStream {
-	Obj Object;
-	Stream* StreamPtr;
-	bool Writable;
-	bool Closed;
-};
 struct ObjNamespace {
 	Obj Object;
 	ObjString* Name;
@@ -321,6 +318,23 @@ struct ObjEnum {
 	ObjString* Name;
 	Uint32 Hash;
 	Table* Fields;
+};
+struct ObjEntity {
+	union {
+		// An entity is an instance, so it has all of ObjInstance's fields and may
+		// be freely casted into it.
+		ObjInstance InstanceObj;
+
+		// Every object struct has an Obj, and so does ObjInstance.
+		Obj Object;
+	};
+	void* EntityPtr;
+};
+struct ObjStream {
+	Obj Object;
+	Stream* StreamPtr;
+	bool Writable;
+	bool Closed;
 };
 struct ObjMaterial {
 	Obj Object;
@@ -341,6 +355,7 @@ ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
 ObjClass* NewClass(const char* className);
 ObjInstance* NewInstance(ObjClass* klass);
+ObjEntity* NewEntity(ObjClass* klass);
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray* NewArray();
 ObjMap* NewMap();
@@ -361,17 +376,24 @@ Uint32 GetClassHash(const char* name);
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
-static inline bool IsNativeInstance(VMValue value, const char* className) {
-	if (!IS_NATIVE_INSTANCE(value)) {
+static inline bool IsNativeInstance(Obj* object, const char* className) {
+	if (object->Type != OBJ_NATIVE_INSTANCE) {
 		return false;
 	}
 
-	ObjClass* klass = AS_OBJECT(value)->Class;
+	ObjClass* klass = object->Class;
 	if (klass != nullptr && klass->Hash == GetClassHash(className)) {
 		return true;
 	}
 
 	return false;
+}
+static inline bool IsNativeInstance(VMValue value, const char* className) {
+	if (!IS_OBJECT(value)) {
+		return false;
+	}
+
+	return IsNativeInstance(AS_OBJECT(value), className);
 }
 static inline bool HasInitializer(ObjClass* klass) {
 	return !IS_NULL(klass->Initializer);

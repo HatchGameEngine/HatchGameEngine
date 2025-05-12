@@ -3256,7 +3256,10 @@ VMValue VMThread::Value_TypeOf() {
 		case OBJ_CLOSURE:
 			valueType = "closure";
 			break;
+		// As far as we are concerned, those two are the "same" thing.
+		// There are better ways the scripter can inspect if an instance is an entity.
 		case OBJ_INSTANCE:
+		case OBJ_ENTITY:
 			valueType = "instance";
 			break;
 		case OBJ_NATIVE_FUNCTION:
