@@ -197,8 +197,13 @@ PathLocation Path::LocationFromURL(const char* filename) {
 }
 
 std::string Path::GetBasePath() {
+#ifdef SWITCH
 #if defined(SWITCH_ROMFS)
 	return std::string("romfs:/");
+#else
+	// Fallback to user path (which should be cwd)
+	return GetBaseUserPath();
+#endif
 #else
 	char* basePath = SDL_GetBasePath();
 	if (basePath == nullptr) {
