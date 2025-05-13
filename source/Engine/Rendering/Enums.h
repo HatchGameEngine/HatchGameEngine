@@ -137,7 +137,11 @@ struct BlendState {
 	int* FilterTable;
 };
 
-typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
+typedef void (*PixelFunction)(Uint32* src,
+	Uint32* dst,
+	BlendState& state,
+	int multTableAt,
+	int multSubTableAt);
 typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
 typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
 typedef void (*StencilOpFunction)(Uint8*, Uint8);
