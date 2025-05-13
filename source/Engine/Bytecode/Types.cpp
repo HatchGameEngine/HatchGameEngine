@@ -20,30 +20,21 @@
 
 #define GROW_CAPACITY(val) ((val) < 8 ? 8 : val << 1)
 
-static Obj* AllocateObject(size_t size, ObjType type) {
+Obj* AllocateObject(size_t size, ObjType type) {
 	// Only do this when allocating more memory
 	GarbageCollector::GarbageSize += size;
 
-	Obj* object = (Obj*)Memory::TrackedMalloc("AllocateObject", size);
+	Obj* object = (Obj*)Memory::TrackedCalloc("AllocateObject", 1, size);
 	object->Size = size;
 	object->Type = type;
-	object->Class = nullptr;
-	object->Destructor = nullptr;
-	object->IsDark = false;
 	object->Next = GarbageCollector::RootObject;
 	GarbageCollector::RootObject = object;
 
 	return object;
 }
+
 static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
-	ObjString* string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
-	Memory::Track(string, "NewString");
-	string->Object.Class = StringImpl::Class;
-	string->Object.Destructor = StringImpl::Dispose;
-	string->Length = length;
-	string->Chars = chars;
-	string->Hash = hash;
-	return string;
+	return (ObjString*)StringImpl::New(chars, length, hash);
 }
 
 ObjString* TakeString(char* chars, size_t length) {
@@ -85,17 +76,7 @@ ObjString* AllocString(size_t length) {
 }
 
 ObjFunction* NewFunction() {
-	ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
-	Memory::Track(function, "NewFunction");
-	function->Object.Class = FunctionImpl::Class;
-	function->Arity = 0;
-	function->MinArity = 0;
-	function->UpvalueCount = 0;
-	function->Module = NULL;
-	function->Name = NULL;
-	function->ClassName = NULL;
-	function->Chunk.Init();
-	return function;
+	return (ObjFunction*)FunctionImpl::New();
 }
 ObjNative* NewNative(NativeFn function) {
 	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE_FUNCTION);
@@ -107,7 +88,6 @@ ObjUpvalue* NewUpvalue(VMValue* slot) {
 	ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
 	upvalue->Closed = NULL_VAL;
 	upvalue->Value = slot;
-	upvalue->Next = NULL;
 	return upvalue;
 }
 ObjClosure* NewClosure(ObjFunction* function) {
@@ -126,18 +106,11 @@ ObjClass* NewClass(Uint32 hash) {
 	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
 	Memory::Track(klass, "NewClass");
 	klass->Object.Destructor = ScriptManager::FreeClass;
-	klass->Name = NULL;
 	klass->Hash = hash;
 	klass->Methods = new Table(NULL, 4);
 	klass->Fields = new Table(NULL, 16);
-	klass->PropertyGet = NULL;
-	klass->PropertySet = NULL;
-	klass->ElementGet = NULL;
-	klass->ElementSet = NULL;
 	klass->Initializer = NULL_VAL;
-	klass->NewFn = NULL;
 	klass->Type = CLASS_TYPE_NORMAL;
-	klass->Parent = NULL;
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
@@ -146,24 +119,12 @@ ObjClass* NewClass(const char* className) {
 	return klass;
 }
 ObjInstance* NewInstance(ObjClass* klass) {
-	ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
-	Memory::Track(instance, "NewInstance");
+	ObjInstance* instance = (ObjInstance*)InstanceImpl::New(sizeof(ObjInstance), OBJ_INSTANCE);
 	instance->Object.Class = klass;
-	instance->Object.Destructor = InstanceImpl::Dispose;
-	instance->Fields = new Table(NULL, 16);
-	instance->PropertyGet = NULL;
-	instance->PropertySet = NULL;
 	return instance;
 }
 ObjEntity* NewEntity(ObjClass* klass) {
-	ObjEntity* entity = ALLOCATE_OBJ(ObjEntity, OBJ_ENTITY);
-	Memory::Track(entity, "NewEntity");
-	entity->Object.Class = klass;
-	entity->Object.Destructor = EntityImpl::Dispose;
-	entity->InstanceObj.Fields = new Table(NULL, 16);
-	entity->InstanceObj.PropertyGet = NULL;
-	entity->InstanceObj.PropertySet = NULL;
-	return entity;
+	return (ObjEntity*)EntityImpl::New(klass);
 }
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
@@ -173,30 +134,17 @@ ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
 	return bound;
 }
 ObjArray* NewArray() {
-	ObjArray* array = ALLOCATE_OBJ(ObjArray, OBJ_ARRAY);
-	Memory::Track(array, "NewArray");
-	array->Object.Class = ArrayImpl::Class;
-	array->Object.Destructor = ArrayImpl::Dispose;
-	array->Values = new vector<VMValue>();
-	return array;
+	return (ObjArray*)ArrayImpl::New();
 }
 ObjMap* NewMap() {
-	ObjMap* map = ALLOCATE_OBJ(ObjMap, OBJ_MAP);
-	Memory::Track(map, "NewMap");
-	map->Object.Class = MapImpl::Class;
-	map->Object.Destructor = MapImpl::Dispose;
-	map->Values = new HashMap<VMValue>(NULL, 4);
-	map->Keys = new HashMap<char*>(NULL, 4);
-	return map;
+	return (ObjMap*)MapImpl::New();
 }
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
 	Memory::Track(ns, "NewNamespace");
 	ns->Object.Destructor = ScriptManager::FreeNamespace;
-	ns->Name = NULL;
 	ns->Hash = hash;
 	ns->Fields = new Table(NULL, 16);
-	ns->InUse = false;
 	return ns;
 }
 ObjNamespace* NewNamespace(const char* nsName) {
@@ -208,7 +156,6 @@ ObjEnum* NewEnum(Uint32 hash) {
 	ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
 	Memory::Track(enumeration, "NewEnum");
 	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
-	enumeration->Name = NULL;
 	enumeration->Hash = hash;
 	enumeration->Fields = new Table(NULL, 16);
 	return enumeration;
@@ -219,11 +166,10 @@ ObjModule* NewModule() {
 	module->Object.Destructor = ScriptManager::FreeModule;
 	module->Functions = new vector<ObjFunction*>();
 	module->Locals = new vector<VMValue>();
-	module->SourceFilename = NULL;
 	return module;
 }
 Obj* NewNativeInstance(size_t size) {
-	Obj* obj = (Obj*)AllocateObject(size, OBJ_NATIVE_INSTANCE);
+	Obj* obj = InstanceImpl::New(size, OBJ_NATIVE_INSTANCE);
 	Memory::Track(obj, "NewNativeInstance");
 	return obj;
 }

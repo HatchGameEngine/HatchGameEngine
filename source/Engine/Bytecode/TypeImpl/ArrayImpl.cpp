@@ -13,6 +13,15 @@ void ArrayImpl::Init() {
 	ScriptManager::ClassImplList.push_back(Class);
 }
 
+Obj* ArrayImpl::New() {
+	ObjArray* array = (ObjArray*)AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
+	Memory::Track(array, "NewArray");
+	array->Object.Class = Class;
+	array->Object.Destructor = Dispose;
+	array->Values = new vector<VMValue>();
+	return (Obj*)array;
+}
+
 void ArrayImpl::Dispose(Obj* object) {
 	ObjArray* array = (ObjArray*)object;
 

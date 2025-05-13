@@ -14,6 +14,16 @@ void MapImpl::Init() {
 	ScriptManager::ClassImplList.push_back(Class);
 }
 
+Obj* MapImpl::New() {
+	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
+	Memory::Track(map, "NewMap");
+	map->Object.Class = Class;
+	map->Object.Destructor = Dispose;
+	map->Values = new HashMap<VMValue>(NULL, 4);
+	map->Keys = new HashMap<char*>(NULL, 4);
+	return (Obj*)map;
+}
+
 void MapImpl::Dispose(Obj* object) {
 	ObjMap* map = (ObjMap*)object;
 

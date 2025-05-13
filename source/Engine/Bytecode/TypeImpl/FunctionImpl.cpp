@@ -12,6 +12,14 @@ void FunctionImpl::Init() {
 	ScriptManager::ClassImplList.push_back(Class);
 }
 
+Obj* FunctionImpl::New() {
+	ObjFunction* function = (ObjFunction*)AllocateObject(sizeof(ObjFunction), OBJ_FUNCTION);
+	Memory::Track(function, "NewFunction");
+	function->Object.Class = Class;
+	function->Chunk.Init();
+	return (Obj*)function;
+}
+
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
 VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {

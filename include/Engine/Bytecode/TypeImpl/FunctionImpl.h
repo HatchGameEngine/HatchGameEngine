@@ -10,6 +10,8 @@ public:
 
 	static void Init();
 
+	static Obj* New();
+
 	static VMValue VM_Bind(int argCount, VMValue* args, Uint32 threadID);
 };
 

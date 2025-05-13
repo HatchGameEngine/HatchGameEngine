@@ -232,7 +232,7 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_INSTANCE(args[index])) {
+		if (IS_INSTANCEABLE(args[index])) {
 			value = AS_INSTANCE(args[index]);
 		}
 		else {

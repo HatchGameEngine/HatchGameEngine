@@ -6,9 +6,20 @@ ObjClass* StringImpl::Class = nullptr;
 
 void StringImpl::Init() {
 	Class = NewClass(CLASS_STRING);
-	Class->ElementGet = StringImpl::VM_ElementGet;
 
 	ScriptManager::ClassImplList.push_back(Class);
+}
+
+Obj* StringImpl::New(char* chars, size_t length, Uint32 hash) {
+	ObjString* string = (ObjString*)AllocateObject(sizeof(ObjString), OBJ_STRING);
+	Memory::Track(string, "NewString");
+	string->Object.Class = Class;
+	string->Object.ElementGet = VM_ElementGet;
+	string->Object.Destructor = Dispose;
+	string->Length = length;
+	string->Chars = chars;
+	string->Hash = hash;
+	return (Obj*)string;
 }
 
 void StringImpl::Dispose(Obj* object) {

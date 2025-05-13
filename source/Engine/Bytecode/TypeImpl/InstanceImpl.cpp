@@ -10,6 +10,14 @@ void InstanceImpl::Init() {
 	ScriptManager::ClassImplList.push_back(Class);
 }
 
+Obj* InstanceImpl::New(size_t size, ObjType type) {
+	ObjInstance* instance = (ObjInstance*)AllocateObject(size, type);
+	Memory::Track(instance, "NewInstance");
+	instance->Fields = new Table(NULL, 16);
+	instance->Object.Destructor = Dispose;
+	return (Obj*)instance;
+}
+
 void InstanceImpl::Dispose(Obj* object) {
 	ObjInstance* instance = (ObjInstance*)object;
 

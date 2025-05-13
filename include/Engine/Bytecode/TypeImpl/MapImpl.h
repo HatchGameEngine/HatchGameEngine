@@ -10,6 +10,7 @@ public:
 
 	static void Init();
 
+	static Obj* New();
 	static void Dispose(Obj* object);
 
 	static VMValue VM_GetKeys(int argCount, VMValue* args, Uint32 threadID);

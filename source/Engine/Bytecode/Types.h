@@ -193,7 +193,7 @@ enum ObjType {
 #define IS_CLOSURE(value) IsObjectType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) IsObjectType(value, OBJ_FUNCTION)
 #define IS_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_NATIVE_FUNCTION)
-#define IS_INSTANCE(value) (IsObjectType(value, OBJ_INSTANCE) || IsObjectType(value, OBJ_ENTITY))
+#define IS_INSTANCE(value) IsObjectType(value, OBJ_INSTANCE)
 #define IS_STRING(value) IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value) IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value) IsObjectType(value, OBJ_MAP)
@@ -202,8 +202,7 @@ enum ObjType {
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
-#define IS_STREAM(value) IsNativeInstance(value, CLASS_STREAM)
-#define IS_MATERIAL(value) IsNativeInstance(value, CLASS_MATERIAL)
+#define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -219,8 +218,6 @@ enum ObjType {
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
 #define AS_ENTITY(value) ((ObjEntity*)AS_OBJECT(value))
-#define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
-#define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
 
 typedef HashMap<VMValue> Table;
 
@@ -229,6 +226,10 @@ struct Obj {
 	size_t Size;
 	bool IsDark;
 	struct ObjClass* Class;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
 	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
@@ -277,10 +278,6 @@ struct ObjClass {
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
 	VMValue Initializer;
 	ClassNewFn NewFn;
 	Uint8 Type;
@@ -289,8 +286,6 @@ struct ObjClass {
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
 };
 struct ObjBoundMethod {
 	Obj Object;
@@ -319,28 +314,31 @@ struct ObjEnum {
 	Uint32 Hash;
 	Table* Fields;
 };
-struct ObjEntity {
-	union {
-		// An entity is an instance, so it has all of ObjInstance's fields and may
-		// be freely casted into it.
-		ObjInstance InstanceObj;
 
-		// Every object struct has an Obj, and so does ObjInstance.
-		Obj Object;
-	};
+#define UNION_INSTANCEABLE \
+	union { \
+		ObjInstance InstanceObj; \
+		Obj Object; \
+	}
+
+struct ObjEntity {
+	UNION_INSTANCEABLE;
 	void* EntityPtr;
 };
 struct ObjStream {
-	Obj Object;
+	UNION_INSTANCEABLE;
 	Stream* StreamPtr;
 	bool Writable;
 	bool Closed;
 };
 struct ObjMaterial {
-	Obj Object;
+	UNION_INSTANCEABLE;
 	Material* MaterialPtr;
 };
 
+#undef UNION_INSTANCEABLE
+
+Obj* AllocateObject(size_t size, ObjType type);
 ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);

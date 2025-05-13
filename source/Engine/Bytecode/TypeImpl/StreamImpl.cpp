@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/IO/Stream.h>
 
@@ -29,4 +30,6 @@ void StreamImpl::Dispose(Obj* object) {
 	if (!stream->Closed) {
 		stream->StreamPtr->Close();
 	}
+
+	InstanceImpl::Dispose(object);
 }
