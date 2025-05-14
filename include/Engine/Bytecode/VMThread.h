@@ -74,12 +74,14 @@ public:
 	void RunInstructionSet();
 	void RunValue(VMValue value, int argCount);
 	void RunFunction(ObjFunction* func, int argCount);
+	int Invoke(VMValue receiver, Uint8 argCount, Uint32 hash);
+	int SuperInvoke(VMValue receiver, Uint8 argCount, Uint32 hash);
 	void InvokeForEntity(VMValue value, int argCount);
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(Uint32 hash, int argCount, bool isSuper);
+	bool InvokeForInstance(ObjInstance* instance, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();
@@ -125,7 +127,7 @@ public:
 	VM_ADD_OPFUNC(OP_CLASS);
 	VM_ADD_OPFUNC(OP_CALL);
 	VM_ADD_OPFUNC(OP_SUPER);
-	VM_ADD_OPFUNC(OP_INVOKE);
+	VM_ADD_OPFUNC(OP_INVOKE_V3);
 	VM_ADD_OPFUNC(OP_JUMP);
 	VM_ADD_OPFUNC(OP_JUMP_IF_FALSE);
 	VM_ADD_OPFUNC(OP_JUMP_BACK);
@@ -186,6 +188,8 @@ public:
 	VM_ADD_OPFUNC(OP_DEFINE_CONSTANT);
 	VM_ADD_OPFUNC(OP_INTEGER);
 	VM_ADD_OPFUNC(OP_DECIMAL);
+	VM_ADD_OPFUNC(OP_INVOKE);
+	VM_ADD_OPFUNC(OP_SUPER_INVOKE);
 #endif
 };
 

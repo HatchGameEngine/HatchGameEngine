@@ -11,6 +11,12 @@
 
 // #define VM_DEBUG_INSTRUCTIONS
 
+enum {
+	INVOKE_OK,
+	INVOKE_FAIL,
+	INVOKE_RUNTIME_ERROR,
+};
+
 // Locks are only in 3 places:
 // Heap, which contains object memory and globals
 // Bytecode area, which contains function bytecode
@@ -575,6 +581,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_DEFINE_CONSTANT),
 		VM_ADD_DISPATCH(OP_INTEGER),
 		VM_ADD_DISPATCH(OP_DECIMAL),
+		VM_ADD_DISPATCH(OP_INVOKE),
+		VM_ADD_DISPATCH(OP_SUPER_INVOKE),
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -624,7 +632,7 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_CLASS)
 			PRINT_CASE(OP_CALL)
 			PRINT_CASE(OP_SUPER)
-			PRINT_CASE(OP_INVOKE)
+			PRINT_CASE(OP_INVOKE_V3)
 			PRINT_CASE(OP_JUMP)
 			PRINT_CASE(OP_JUMP_IF_FALSE)
 			PRINT_CASE(OP_JUMP_BACK)
@@ -683,6 +691,8 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_DEFINE_CONSTANT)
 			PRINT_CASE(OP_INTEGER)
 			PRINT_CASE(OP_DECIMAL)
+			PRINT_CASE(OP_INVOKE)
+			PRINT_CASE(OP_SUPER_INVOKE)
 
 		default:
 			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
@@ -1888,94 +1898,67 @@ int VMThread::RunInstruction() {
 			}
 			return INTERPRET_RUNTIME_ERROR;
 		}
+#ifndef USING_VM_FUNCPTRS
 		frame = &Frames[FrameCount - 1];
-		VM_BREAK;
-
+#endif
 	FAIL_OP_CALL:
 		VM_BREAK;
 	}
 	VM_CASE(OP_INVOKE) {
-		Uint32 argCount = ReadByte(frame);
+		Uint8 argCount = ReadByte(frame);
 		Uint32 hash = ReadUInt32(frame);
-		Uint32 isSuper = ReadByte(frame);
 
-		VMValue receiver = Peek(argCount);
-		VMValue result;
-		if (IS_INSTANCE(receiver)) {
-			if (!InvokeForInstance(hash, argCount, isSuper)) {
-				if (ThrowRuntimeError(false,
-					    "Could not invoke %s!",
-					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
-					goto FAIL_OP_INVOKE;
-				}
-
-				return INTERPRET_RUNTIME_ERROR;
-			}
-
+		int status = Invoke(Peek(argCount), argCount, hash);
+		if (status == INVOKE_OK) {
+#ifndef USING_VM_FUNCPTRS
 			frame = &Frames[FrameCount - 1];
-			VM_BREAK;
+#endif
 		}
-		else if (IS_CLASS(receiver)) {
-			ObjClass* klass = AS_CLASS(receiver);
-			if (klass->Methods->GetIfExists(hash, &result)) {
-				if (!CallValue(result, argCount)) {
-					if (ThrowRuntimeError(false,
-						    "Could not invoke %s!",
-						    GetVariableOrMethodName(hash)) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_INVOKE;
-					}
-
-					return INTERPRET_RUNTIME_ERROR;
-				}
-			}
-			else {
-				if (ThrowRuntimeError(false,
-					    "Method %s does not exist in class %s.",
-					    GetVariableOrMethodName(hash),
-					    klass->Name ? klass->Name->Chars
-							: GetToken(klass->Hash)) ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_INVOKE;
-				}
-
-				return INTERPRET_RUNTIME_ERROR;
-			}
+		else if (status == INVOKE_RUNTIME_ERROR) {
+			return INTERPRET_RUNTIME_ERROR;
 		}
-		else if (IS_OBJECT(receiver)) {
-			ObjClass* klass = AS_OBJECT(receiver)->Class;
-			if (!klass) {
-				ThrowRuntimeError(false, "Method %s does not exist in object.");
-				goto FAIL_OP_INVOKE;
-			}
 
-			if (klass->Methods->GetIfExists(hash, &result)) {
-				if (!CallForObject(result, argCount)) {
-					if (ThrowRuntimeError(false,
-						    "Could not invoke %s!",
-						    GetVariableOrMethodName(hash)) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_INVOKE;
-					}
+		VM_BREAK;
+	}
+	VM_CASE(OP_SUPER_INVOKE) {
+		Uint8 argCount = ReadByte(frame);
+		Uint32 hash = ReadUInt32(frame);
 
-					return INTERPRET_RUNTIME_ERROR;
-				}
-			}
-			else {
-				if (ThrowRuntimeError(false,
-					    "Method %s does not exist in object.",
-					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
-					goto FAIL_OP_INVOKE;
-				}
+		int status = SuperInvoke(Peek(argCount), argCount, hash);
+		if (status == INVOKE_OK) {
+#ifndef USING_VM_FUNCPTRS
+			frame = &Frames[FrameCount - 1];
+#endif
+		}
+		else if (status == INVOKE_RUNTIME_ERROR) {
+			return INTERPRET_RUNTIME_ERROR;
+		}
 
-				return INTERPRET_RUNTIME_ERROR;
-			}
+		VM_BREAK;
+	}
+	VM_CASE(OP_INVOKE_V3) {
+		Uint8 argCount = ReadByte(frame);
+		Uint32 hash = ReadUInt32(frame);
+		Uint8 isSuper = ReadByte(frame);
+		VMValue receiver = Peek(argCount);
+		int status;
+
+		if (isSuper) {
+			status = SuperInvoke(receiver, argCount, hash);
 		}
 		else {
-			ThrowRuntimeError(false, "Only instances and classes have methods.");
+			status = Invoke(receiver, argCount, hash);
 		}
 
-	FAIL_OP_INVOKE:
+		if (status == INVOKE_OK) {
+#ifndef USING_VM_FUNCPTRS
+			frame = &Frames[FrameCount - 1];
+#endif
+		}
+		else if (status == INVOKE_RUNTIME_ERROR) {
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
 		VM_BREAK;
 	}
 	VM_CASE(OP_CLASS) {
@@ -2011,7 +1994,9 @@ int VMThread::RunInstruction() {
 			}
 			return INTERPRET_RUNTIME_ERROR;
 		}
+#ifndef USING_VM_FUNCPTRS
 		frame = &Frames[FrameCount - 1];
+#endif
 	FAIL_OP_NEW:
 		VM_BREAK;
 	}
@@ -2139,9 +2124,8 @@ int VMThread::RunInstruction() {
 				VM_BREAK;
 			}
 			else {
-				ThrowRuntimeError(false,
-					"Class '%s' has no superclass!",
-					klass->Name ? klass->Name->Chars : GetToken(klass->Hash));
+				ThrowRuntimeError(
+					false, "Class '%s' has no superclass!", klass->Name->Chars);
 			}
 		}
 
@@ -2289,6 +2273,120 @@ void VMThread::RunFunction(ObjFunction* func, int argCount) {
 
 	ReturnFrame = lastReturnFrame;
 	StackTop = lastStackTop;
+}
+int VMThread::Invoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
+	if (IS_INSTANCE(receiver)) {
+		if (InvokeForInstance(AS_INSTANCE(receiver), hash, argCount)) {
+			return INVOKE_OK;
+		}
+
+		if (ThrowRuntimeError(false,
+			    "Could not invoke %s!",
+			    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
+			return INVOKE_FAIL;
+		}
+
+		return INVOKE_RUNTIME_ERROR;
+	}
+	else if (IS_CLASS(receiver)) {
+		VMValue result;
+		ObjClass* klass = AS_CLASS(receiver);
+		if (klass->Methods->GetIfExists(hash, &result)) {
+			if (CallValue(result, argCount)) {
+				return INVOKE_OK;
+			}
+
+			if (ThrowRuntimeError(false,
+				    "Could not invoke %s!",
+				    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
+				return INVOKE_FAIL;
+			}
+
+			return INVOKE_RUNTIME_ERROR;
+		}
+
+		if (ThrowRuntimeError(false,
+			    "Method %s does not exist in class '%s'!",
+			    GetVariableOrMethodName(hash),
+			    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+			return INVOKE_FAIL;
+		}
+
+		return INVOKE_RUNTIME_ERROR;
+	}
+	else if (IS_OBJECT(receiver)) {
+		ObjClass* klass = AS_OBJECT(receiver)->Class;
+		if (klass != nullptr) {
+			VMValue result;
+			if (klass->Methods->GetIfExists(hash, &result)) {
+				if (CallForObject(result, argCount)) {
+					return INVOKE_OK;
+				}
+
+				if (ThrowRuntimeError(false,
+					    "Could not invoke %s!",
+					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
+					return INVOKE_FAIL;
+				}
+
+				return INVOKE_RUNTIME_ERROR;
+			}
+		}
+
+		if (ThrowRuntimeError(false,
+			    "Method %s does not exist in object.",
+			    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
+			return INVOKE_FAIL;
+		}
+
+		return INVOKE_RUNTIME_ERROR;
+	}
+
+	if (ThrowRuntimeError(false, "Only instances and classes have methods.") ==
+		ERROR_RES_CONTINUE) {
+		return INVOKE_FAIL;
+	}
+
+	return INVOKE_RUNTIME_ERROR;
+}
+int VMThread::SuperInvoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
+	ObjClass* baseClass = nullptr;
+
+	if (IS_CLASS(receiver)) {
+		baseClass = AS_CLASS(receiver);
+	}
+	else if (IS_OBJECT(receiver)) {
+		baseClass = AS_OBJECT(receiver)->Class;
+	}
+	else {
+		if (ThrowRuntimeError(false,
+			    "Cannot invoke %s in value of type %s!",
+			    GetVariableOrMethodName(hash),
+			    GetValueTypeString(receiver)) == ERROR_RES_CONTINUE) {
+			return INVOKE_FAIL;
+		}
+
+		return INVOKE_RUNTIME_ERROR;
+	}
+
+	ObjClass* parentClass = ScriptManager::GetClassParent(baseClass);
+	if (parentClass == nullptr) {
+		ThrowRuntimeError(false,
+			"Class '%s' does not have a parent to call method from!",
+			baseClass->Name->Chars);
+		return false;
+	}
+
+	if (InvokeFromClass(parentClass, hash, argCount)) {
+		return INVOKE_OK;
+	}
+
+	if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) ==
+		ERROR_RES_CONTINUE) {
+		return INVOKE_FAIL;
+	}
+
+	return INVOKE_RUNTIME_ERROR;
 }
 void VMThread::InvokeForEntity(VMValue value, int argCount) {
 	VMValue* lastStackTop = StackTop;
@@ -2654,34 +2752,20 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 	}
 	return false;
 }
-bool VMThread::InvokeForInstance(Uint32 hash, int argCount, bool isSuper) {
-	ObjInstance* instance = AS_INSTANCE(Peek(argCount));
-	ObjClass* klass = instance->Object.Class;
-
-	if (!isSuper) {
-		// First look for a field which may shadow a method.
+bool VMThread::InvokeForInstance(ObjInstance* instance, Uint32 hash, int argCount) {
+	// First look for a field which may shadow a method.
+	if (ScriptManager::Lock()) {
 		VMValue value;
-		bool exists = false;
-		if (ScriptManager::Lock()) {
-			exists = instance->Fields->GetIfExists(hash, &value);
+		if (instance->Fields->GetIfExists(hash, &value)) {
 			ScriptManager::Unlock();
-		}
-		if (exists) {
 			return CallValue(value, argCount);
 		}
+
+		ScriptManager::Unlock();
 	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			return InvokeFromClass(parentClass, hash, argCount);
-		}
-		else {
-			ThrowRuntimeError(false,
-				"Instance's class does not have a parent to call method from.");
-		}
-		return false;
-	}
-	return InvokeFromClass(klass, hash, argCount);
+
+	// Didn't find one, so look in the class.
+	return InvokeFromClass(instance->Object.Class, hash, argCount);
 }
 bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc) {
 	ObjClass* src = AS_CLASS(value);
