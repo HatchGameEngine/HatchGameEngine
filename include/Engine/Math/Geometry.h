@@ -5,14 +5,6 @@
 #include <Engine/Math/GeometryTypes.h>
 
 class Geometry {
-private:
-	static bool CheckEar(vector<FVector2>& input,
-		unsigned count,
-		unsigned prev,
-		unsigned curr,
-		unsigned next);
-	static int GetPointForTriangulation(int point, unsigned count);
-
 public:
 	static vector<Polygon2D>* Triangulate(Polygon2D& input, vector<Polygon2D> holes);
 	static vector<Polygon2D>* Intersect(unsigned clipType,
