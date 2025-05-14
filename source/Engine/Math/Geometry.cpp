@@ -6,55 +6,6 @@
 #include <Libraries/Clipper2/clipper.h>
 #include <Libraries/poly2tri/poly2tri.h>
 
-bool Geometry::CheckEar(vector<FVector2>& input,
-	unsigned count,
-	unsigned prev,
-	unsigned curr,
-	unsigned next) {
-	FVector2& a = input[prev];
-	FVector2& b = input[curr];
-	FVector2& c = input[next];
-
-	FVector2 ab = b - a;
-	FVector2 bc = c - b;
-	FVector2 ca = a - c;
-
-	if (FVector2::Determinant(ab, bc) < 0) {
-		return false;
-	}
-
-	float da = FVector2::Determinant(ab, a);
-	float db = FVector2::Determinant(bc, b);
-	float dc = FVector2::Determinant(ca, c);
-
-	unsigned i = (next + 1) % count;
-	while (i != prev) {
-		FVector2& point = input[i];
-
-		if (FVector2::Determinant(ab, point) > da &&
-			FVector2::Determinant(bc, point) > db &&
-			FVector2::Determinant(ca, point) > dc) {
-			return false;
-		}
-
-		i = (i + 1) % count;
-	}
-
-	return true;
-}
-
-int Geometry::GetPointForTriangulation(int point, unsigned count) {
-	if (point < 0) {
-		return point + count;
-	}
-	else if (point >= count) {
-		return point % count;
-	}
-	else {
-		return point;
-	}
-}
-
 static std::vector<p2t::Point*> GetP2TPoints(Polygon2D& input) {
 	std::vector<p2t::Point*> points;
 
