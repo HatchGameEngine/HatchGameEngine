@@ -38,9 +38,14 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
    -DNO_LIBAV
   )
   if(NINTENDO_SWITCH)
-    add_definitions(-DSWITCH)
+    add_definitions(-DSWITCH -DCONSOLE_FILESYSTEM)
   else()
     add_definitions(-DLINUX)
+  endif()
+
+  set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
+  if(NOT CONSOLE_BASE_PATH STREQUAL "")
+    add_definitions(-DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
   endif()
 else()
   # Cross compiling a Windows executable
