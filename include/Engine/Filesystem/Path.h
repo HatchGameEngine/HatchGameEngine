@@ -95,8 +95,10 @@ class Path {
 private:
 	static bool AreMatching(std::string base, std::string path);
 	static PathLocation LocationFromURL(const char* filename);
-#ifdef PORTABLE_MODE
 	static std::string GetPortableModePath();
+#ifdef CONSOLE_FILESYSTEM
+	static std::string GetConsoleBasePath();
+	static std::string GetConsolePrefPath();
 #endif
 	static std::string GetBasePath();
 	static std::string GetPrefPath();
