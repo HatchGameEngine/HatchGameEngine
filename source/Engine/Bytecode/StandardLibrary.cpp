@@ -9836,7 +9836,7 @@ VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Integer): The music index to play.
+ * \param music (Integer): The music index to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
