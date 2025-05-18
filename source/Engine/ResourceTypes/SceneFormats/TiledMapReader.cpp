@@ -629,6 +629,9 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->Filter = filter;
 			Scene::AddStatic(objectList, obj);
 
+			if (!object->attributes.Exists("filter"))
+				obj->Properties->Put("filter", INTEGER_VAL(filter));
+
 			if (object->attributes.Exists("id")) {
 				obj->SlotID =
 					(int)XMLParser::TokenToNumber(object->attributes.Get("id"));
