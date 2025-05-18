@@ -9805,7 +9805,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 		fadeInAfterFinished = 0.f;
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop value cannot be lower than -2, received %d", loopPoint);
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
 		return NULL_VAL;
 	}
 
@@ -9937,13 +9937,13 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
  * Music.GetLoopPoint
  * \desc Gets the loop point of a music index, if it has one.
  * \param music (Integer): The music index to get the loop point.
- * \return Returns the loop point in samples, as an Integer value.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the index does not have one.
  * \ns Music
  */
 VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	if (!audio) {
+	if (!audio || audio->LoopPoint == -1) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
@@ -9952,17 +9952,18 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * Music.SetLoopPoint
  * \desc Sets the loop point of a music index.
  * \param music (Integer): The music index to set the loop point.
- * \param loopPoint (Integer): The loop point, in samples.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the index's loop point.
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	int loopPoint = GET_ARG(1, GetInteger);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
 		return NULL_VAL;
 	}
-	audio->LoopPoint = loopPoint;
+	if (loopPoint > 0)
+		audio->LoopPoint = loopPoint;
 	return NULL_VAL;
 }
 // #endregion
@@ -14346,7 +14347,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	int channel = -1;
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop value cannot be lower than -2, received %d", loopPoint);
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
 		return NULL_VAL;
 	}
 
@@ -14467,7 +14468,7 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	int channel = -1;
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop value cannot be lower than -2, received %d", loopPoint);
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
 		return NULL_VAL;
 	}
 
@@ -14506,7 +14507,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop value cannot be lower than -2, received %d", loopPoint);
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
 		return NULL_VAL;
 	}
 
@@ -14622,13 +14623,13 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
  * Sound.GetLoopPoint
  * \desc Gets the loop point of a sound index, if it has one.
  * \param sound (Integer): The sound index to get the loop point.
- * \return Returns the loop point in samples, as an Integer value.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the index does not have one.
  * \ns Music
  */
 VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	if (!audio) {
+	if (!audio || audio->LoopPoint == -1) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
@@ -14637,17 +14638,18 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * Music.SetLoopPoint
  * \desc Sets the loop point of a sound index.
  * \param sound (Integer): The sound index to set the loop point.
- * \param loopPoint (Integer): The loop point, in samples.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the index's loop point.
  * \ns Music
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG(1, GetInteger);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
 		return NULL_VAL;
 	}
-	audio->LoopPoint = loopPoint;
+	if (loopPoint > 0)
+		audio->LoopPoint = loopPoint;
 	return NULL_VAL;
 }
 // #endregion
