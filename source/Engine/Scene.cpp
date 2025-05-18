@@ -1708,6 +1708,8 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	Scene::ReadSceneFile(filename);
 
+	Scene::Filter = SceneInfo::GetFilter(Scene::ActiveCategory, Scene::CurrentSceneInList);
+
 	Memory::Free(filename);
 }
 void Scene::ReadSceneFile(const char* filename) {

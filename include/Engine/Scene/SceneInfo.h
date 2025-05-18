@@ -31,6 +31,7 @@ public:
 	static std::string GetName(int categoryID, int entryID);
 	static std::string GetFolder(int categoryID, int entryID);
 	static std::string GetID(int categoryID, int entryID);
+	static int GetFilter(int categoryID, int entryID);
 	static std::string GetTileConfigFilename(int categoryID, int entryID);
 	static char* GetEntryProperty(int categoryID, int entryID, char* property);
 	static char* GetCategoryProperty(int categoryID, char* property);

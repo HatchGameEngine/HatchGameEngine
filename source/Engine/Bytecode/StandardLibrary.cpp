@@ -11519,6 +11519,16 @@ VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Scene::SceneType);
 }
 /***
+ * Scene.GetFilter
+ * \desc Gets the filter of the active scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetFilter(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::Filter);
+}
+/***
  * Scene.GetWidth
  * \desc Gets the width of the scene (in tiles).
  * \return Returns an Integer value.
@@ -19125,6 +19135,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, LayerPropertyExists);
 	DEF_NATIVE(Scene, GetName);
 	DEF_NATIVE(Scene, GetType);
+	DEF_NATIVE(Scene, GetFilter);
 	DEF_NATIVE(Scene, GetWidth);
 	DEF_NATIVE(Scene, GetHeight);
 	DEF_NATIVE(Scene, GetLayerWidth);
@@ -19854,12 +19865,6 @@ void StandardLibrary::Link() {
     * \desc The milliseconds value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
-	/***
-    * \global Scene_Filter
-    * \type Integer
-    * \desc The scene's entity filter value.
-    */
-	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
 	/***
     * \global Scene_ListPos
     * \type Integer

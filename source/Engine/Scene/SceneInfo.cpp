@@ -190,6 +190,16 @@ std::string SceneInfo::GetID(int categoryID, int entryID) {
 	return std::string(entry.ID);
 }
 
+int SceneInfo::GetFilter(int categoryID, int entryID) {
+	if (!SceneInfo::IsEntryValid(categoryID, entryID)) {
+		return 0xFF;
+	}
+
+	SceneListEntry& entry = Categories[categoryID].Entries[entryID];
+
+	return entry.Filter;
+}
+
 std::string SceneInfo::GetTileConfigFilename(int categoryID, int entryID) {
 	return GetParentPath(categoryID, entryID) + "TileConfig.bin";
 }
@@ -269,6 +279,11 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 	}
 	else if (entry.Folder) {
 		entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
+	}
+
+	// Filter
+	if (node->attributes.Exists("filter")) {
+		entry.Filter = XMLParser::TokenToNumber(node->attributes.Get("filter"));
 	}
 
 	// Filetype
