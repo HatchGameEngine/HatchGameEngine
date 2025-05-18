@@ -96,6 +96,7 @@ Perf_ViewRender Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 
 char Scene::NextScene[MAX_RESOURCE_PATH_LENGTH];
 char Scene::CurrentScene[MAX_RESOURCE_PATH_LENGTH];
+int Scene::SceneType = SCENETYPE_NONE;
 bool Scene::DoRestart = false;
 bool Scene::NoPersistency = false;
 
@@ -1353,6 +1354,7 @@ void Scene::AfterScene() {
 	if (Scene::NextScene[0]) {
 		ScriptManager::ForceGarbageCollection();
 
+		Scene::SceneType = SCENETYPE_NONE;
 		Scene::LoadScene(Scene::NextScene);
 		Scene::NextScene[0] = '\0';
 

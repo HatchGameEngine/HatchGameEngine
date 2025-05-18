@@ -129,6 +129,7 @@
             <li><a href="#Reference_Key_*">Key_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
+            <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
@@ -941,6 +942,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerDeformOffsetB">Scene.GetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_functions_Scene_LayerPropertyExists">Scene.LayerPropertyExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetName">Scene.GetName</a></li>
+                    <li><a href="#Reference_functions_Scene_GetType">Scene.GetType</a></li>
                     <li><a href="#Reference_functions_Scene_GetWidth">Scene.GetWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetHeight">Scene.GetHeight</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerWidth">Scene.GetLayerWidth</a></li>
@@ -1922,6 +1924,15 @@
                     <li><a href="#Reference_enums_Platform_Android">Platform_Android</a></li>
                     <li><a href="#Reference_enums_Platform_iOS">Platform_iOS</a></li>
                     <li><a href="#Reference_enums_Platform_Unknown">Platform_Unknown</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SCENETYPE_*">
+                <h2><code>SCENETYPE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SCENETYPE_NONE">SCENETYPE_NONE</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_HATCH">SCENETYPE_HATCH</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_TILED">SCENETYPE_TILED</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_NONE">SCENETYPE_NONE</a></li>
                 </ul>
             </p>
             <p id="Reference_SCOPE_*">
@@ -7064,6 +7075,13 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the name of the active scene.</div>
         </p>
+        <p id="Reference_functions_Scene_GetType">
+        <h2 style="margin-bottom: 8px;">Scene.GetType</h2>
+        <code>Scene.GetType()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the type of the active scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the type of the active scene, see <code><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></code>.</div>
+        </p>
         <p id="Reference_functions_Scene_GetWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetWidth</h2>
         <code>Scene.GetWidth()</code>
@@ -10167,7 +10185,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>732 out of 791 functions have descriptions. </p>
+        <p>733 out of 792 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -11941,6 +11959,22 @@
         <h3 style="margin-bottom: 8px;"><code>Platform_Unknown</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Unknown platform.</div>
         </p>
+        <p id="Reference_enums_SCENETYPE_NONE">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is not a scene.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_HATCH">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_HATCH</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is a Hatch scene.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_TILED">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_TILED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is a Tiled map.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_NONE">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is an RSDK scene.</div>
+        </p>
         <p id="Reference_enums_SCOPE_SCENE">
         <h3 style="margin-bottom: 8px;"><code>SCOPE_SCENE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Scene scope.</div>
@@ -12101,7 +12135,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>298 out of 298 enums have descriptions. </p>
+        <p>302 out of 302 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

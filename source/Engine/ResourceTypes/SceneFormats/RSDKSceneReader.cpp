@@ -566,6 +566,8 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_RSDK;
+
 	Scene::TileCount = 0x400;
 	Scene::EmptyTile = 0x3FF;
 

@@ -11509,6 +11509,16 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 	return ReturnString(Scene::CurrentScene);
 }
 /***
+ * Scene.GetType
+ * \desc Gets the type of the active scene.
+ * \return Returns the type of the active scene, see <linkto ref="SCENETYPE_*"></linkto>.
+ * \ns Scene
+ */
+VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::SceneType);
+}
+/***
  * Scene.GetWidth
  * \desc Gets the width of the scene (in tiles).
  * \return Returns an Integer value.
@@ -19114,6 +19124,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerDeformOffsetB);
 	DEF_NATIVE(Scene, LayerPropertyExists);
 	DEF_NATIVE(Scene, GetName);
+	DEF_NATIVE(Scene, GetType);
 	DEF_NATIVE(Scene, GetWidth);
 	DEF_NATIVE(Scene, GetHeight);
 	DEF_NATIVE(Scene, GetLayerWidth);
@@ -19199,6 +19210,26 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetTileViewRender);
 
 	/***
+	* \enum SCENETYPE_NONE
+	* \desc The current scene loaded in the game is not a scene.
+	*/
+	DEF_ENUM(SCENETYPE_NONE);
+	/***
+	* \enum SCENETYPE_HATCH
+	* \desc The current scene loaded in the game is a Hatch scene.
+	*/
+	DEF_ENUM(SCENETYPE_HATCH);
+	/***
+	* \enum SCENETYPE_TILED
+	* \desc The current scene loaded in the game is a Tiled map.
+	*/
+	DEF_ENUM(SCENETYPE_TILED);
+	/***
+	* \enum SCENETYPE_NONE
+	* \desc The current scene loaded in the game is an RSDK scene.
+	*/
+	DEF_ENUM(SCENETYPE_RSDK);
+	/***
     * \enum DrawBehavior_HorizontalParallax
     * \desc Horizontal parallax.
     */
@@ -19215,7 +19246,7 @@ void StandardLibrary::Link() {
 	DEF_ENUM(DrawBehavior_CustomTileScanLines);
 	// #endregion
 
-	// #region Scene
+	// #region SceneList
 	INIT_CLASS(SceneList);
 	DEF_NATIVE(SceneList, Get);
 	DEF_NATIVE(SceneList, GetEntryID);

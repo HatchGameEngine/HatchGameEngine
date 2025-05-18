@@ -46,6 +46,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_HATCH;
+
 	// Read scene version
 	Uint8 verMajor = r->ReadByte();
 	Uint8 verMinor = r->ReadByte();

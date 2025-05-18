@@ -23,6 +23,8 @@ class Entity;
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/Tileset.h>
 
+enum { SCENETYPE_NONE = 0, SCENETYPE_HATCH = 1, SCENETYPE_TILED = 2, SCENETYPE_RSDK = 3 };
+
 class Scene {
 private:
 	static void RemoveObject(Entity* obj);
@@ -98,6 +100,7 @@ public:
 	static Perf_ViewRender PERF_ViewRender[MAX_SCENE_VIEWS];
 	static char NextScene[MAX_RESOURCE_PATH_LENGTH];
 	static char CurrentScene[MAX_RESOURCE_PATH_LENGTH];
+	static int SceneType;
 	static bool DoRestart;
 	static bool NoPersistency;
 	static int TimeEnabled;

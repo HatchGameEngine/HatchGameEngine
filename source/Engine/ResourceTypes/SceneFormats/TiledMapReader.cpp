@@ -741,6 +741,8 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 		return;
 	}
 
+	Scene::SceneType = SCENETYPE_TILED;
+
 	Scene::EmptyTile = 0;
 	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
 	Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
