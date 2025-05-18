@@ -466,6 +466,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
+		if (!(filter & Scene::Filter)) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 		if (objectList->SpawnFunction) {
@@ -484,6 +489,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
+			obj->Filter = filter;
 			obj->Properties->Put("filter", INTEGER_VAL(filter));
 
 			// Add all properties

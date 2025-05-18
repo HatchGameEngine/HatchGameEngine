@@ -610,6 +610,10 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
 
+		int filter = object->attributes.Exists("filter") ? (int)XMLParser::TokenToNumber(object->attributes.Get("filter")) : 0xFF;
+		if (!(filter & Scene::Filter))
+			continue;
+
 		ObjectList* objectList = Scene::GetStaticObjectList(object_type.ToString().c_str());
 		if (objectList->SpawnFunction) {
 			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
@@ -622,6 +626,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->InitialX = obj->X;
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
+			obj->Filter = filter;
 			Scene::AddStatic(objectList, obj);
 
 			if (object->attributes.Exists("id")) {

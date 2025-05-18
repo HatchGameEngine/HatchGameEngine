@@ -38,6 +38,7 @@ static HashMap<const char*>* ObjectHashes = NULL;
 static HashMap<const char*>* PropertyHashes = NULL;
 
 static Uint32 HACK_PlayerNameHash = 0;
+static Uint32 FilterHash = 0;
 
 void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
 	MemoryStream* memoryReader;
@@ -231,6 +232,7 @@ void RSDKSceneReader::LoadPropertyList() {
 		nameHead++;
 	}
 	PropertyHashes->Put(nameStart, nameStart);
+	FilterHash = PropertyHashes->HashFunction("filter", 6);
 
 	r->Close();
 }
@@ -428,17 +430,6 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			obj->List = objectList;
 			obj->SlotID = SlotID;
 
-			// HACK: This is so Player ends up in the
-			// current SlotID,
-			//       since this currently cannot be changed
-			//       during runtime.
-			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
-			}
-			else if (doAdd) {
-				objSlots[SlotID] = obj;
-			}
-
 			for (int a = 1; a < argumentCount; a++) {
 				VMValue val = NULL_VAL;
 				switch (argumentTypes[a]) {
@@ -499,6 +490,22 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 							PropertyHashes->Get(argumentHashes[a]),
 							val);
 				}
+			}
+
+			if (PropertyHashes->Exists(FilterHash))
+				obj->Filter = ((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
+			else
+				obj->Filter = 0xFF;
+
+			if (!(obj->Filter & Scene::Filter))
+				doAdd = false;
+
+			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
+			if (objectNameHash2 == HACK_PlayerNameHash) {
+				Scene::AddStatic(obj->List, obj);
+			}
+			else if (doAdd) {
+				objSlots[SlotID] = obj;
 			}
 		}
 		else {

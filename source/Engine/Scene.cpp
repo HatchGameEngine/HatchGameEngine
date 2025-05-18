@@ -1706,9 +1706,9 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
 
-	Scene::ReadSceneFile(filename);
-
 	Scene::Filter = SceneInfo::GetFilter(Scene::ActiveCategory, Scene::CurrentSceneInList);
+
+	Scene::ReadSceneFile(filename);
 
 	Memory::Free(filename);
 }

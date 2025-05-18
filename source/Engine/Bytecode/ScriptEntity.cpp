@@ -574,6 +574,15 @@ void ScriptEntity::LinkFields() {
 	LINK_INT(SlotID);
 
 	/***
+	* \field Filter
+	* \type Integer
+	* \default 0xFF
+	* \ns Instance
+	* \desc If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. Defaults to <code>0xFF</code>.
+	*/
+	LINK_INT(Filter);
+
+	/***
     * \field ZDepth
     * \type Decimal
     * \default 0.0
