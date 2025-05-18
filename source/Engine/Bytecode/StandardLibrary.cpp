@@ -19225,7 +19225,7 @@ void StandardLibrary::Link() {
 	*/
 	DEF_ENUM(SCENETYPE_TILED);
 	/***
-	* \enum SCENETYPE_NONE
+	* \enum SCENETYPE_RSDK
 	* \desc The current scene loaded in the game is an RSDK scene.
 	*/
 	DEF_ENUM(SCENETYPE_RSDK);
