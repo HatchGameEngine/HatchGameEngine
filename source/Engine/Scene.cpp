@@ -1354,7 +1354,6 @@ void Scene::AfterScene() {
 	if (Scene::NextScene[0]) {
 		ScriptManager::ForceGarbageCollection();
 
-		Scene::SceneType = SCENETYPE_NONE;
 		Scene::LoadScene(Scene::NextScene);
 		Scene::NextScene[0] = '\0';
 
@@ -1726,6 +1725,8 @@ void Scene::ReadSceneFile(const char* filename) {
 	else {
 		memcpy(pathParent, filename, strlen(filename) + 1);
 	}
+
+	Scene::SceneType = SCENETYPE_NONE;
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
