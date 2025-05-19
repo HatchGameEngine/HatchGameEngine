@@ -610,9 +610,12 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
 
-		int filter = object->attributes.Exists("filter") ? (int)XMLParser::TokenToNumber(object->attributes.Get("filter")) : 0xFF;
-		if (!(filter & Scene::Filter))
+		int filter = object->attributes.Exists("filter")
+			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
+			: 0xFF;
+		if (!(filter & Scene::Filter)) {
 			continue;
+		}
 
 		ObjectList* objectList = Scene::GetStaticObjectList(object_type.ToString().c_str());
 		if (objectList->SpawnFunction) {
@@ -629,11 +632,15 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->Filter = filter;
 			Scene::AddStatic(objectList, obj);
 
-			if (!object->attributes.Exists("filter"))
+			if (!object->attributes.Exists("filter")) {
 				obj->Properties->Put("filter", INTEGER_VAL(filter));
+			}
 
-			if (object->attributes.Exists("id"))
-				obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id")) + Scene::ReservedSlotIDs;
+			if (object->attributes.Exists("id")) {
+				obj->SlotID = (int)XMLParser::TokenToNumber(
+						      object->attributes.Get("id")) +
+					Scene::ReservedSlotIDs;
+			}
 
 			if (object->attributes.Exists("width") &&
 				object->attributes.Exists("height")) {

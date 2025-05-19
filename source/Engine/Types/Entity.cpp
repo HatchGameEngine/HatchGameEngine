@@ -103,8 +103,9 @@ void Entity::ResetAnimation(int animation, int frame) {
 	AnimationSpeed = sprite->Animations[CurrentAnimation].AnimationSpeed;
 	AnimationLoopIndex = sprite->Animations[CurrentAnimation].FrameToLoop;
 	RotationStyle = sprite->Animations[CurrentAnimation].Flags;
-	if (RotationStyle == ROTSTYLE_STATICFRAMES)
+	if (RotationStyle == ROTSTYLE_STATICFRAMES) {
 		CurrentFrameCount >>= 1;
+	}
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
 	float otherHitboxW = other->Hitbox.Width;

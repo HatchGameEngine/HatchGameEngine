@@ -1549,57 +1549,66 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32
  */
 VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	ScriptEntity* self = GET_ENTITY(0);
-	if (!IsValidEntity(self))
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
+	}
 
 	ISprite* sprite;
 	int animationID = 0, frameID = 0, hitboxID = 0;
 
 	switch (argCount) {
-		case 1:
-		case 2:
-			if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-				if (ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite index \"%d\" outside bounds of list.", self->Sprite) == ERROR_RES_CONTINUE)
-					ScriptManager::Threads[threadID].ReturnFromNative();
-
-				return NULL_VAL;
+	case 1:
+	case 2:
+		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
+			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+				    "Sprite index \"%d\" outside bounds of list.",
+				    self->Sprite) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
 
-			if (!Scene::SpriteList[self->Sprite])
-				return NULL_VAL;
+			return NULL_VAL;
+		}
 
-			sprite = Scene::SpriteList[self->Sprite]->AsSprite;
-			animationID = self->CurrentAnimation;
-			frameID = self->CurrentFrame;
-			hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
-			break;
-		default:
-			StandardLibrary::CheckAtLeastArgCount(argCount, 4);
-			sprite = GET_ARG(1, GetSprite);
-			animationID = GET_ARG(2, GetInteger);
-			frameID = GET_ARG(3, GetInteger);
-			hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
-			break;
+		if (!Scene::SpriteList[self->Sprite]) {
+			return NULL_VAL;
+		}
+
+		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+		animationID = self->CurrentAnimation;
+		frameID = self->CurrentFrame;
+		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
+		break;
+	default:
+		StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+		sprite = GET_ARG(1, GetSprite);
+		animationID = GET_ARG(2, GetInteger);
+		frameID = GET_ARG(3, GetInteger);
+		hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
+		break;
 	}
 
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", self->Sprite);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	if (!(animationID >= 0 && (Uint32)animationID < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animationID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
 	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
 	}
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
 	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
 		return NULL_VAL;
 	}
 

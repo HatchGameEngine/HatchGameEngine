@@ -258,90 +258,91 @@ void UpdateObject(Entity* ent) {
 	}
 
 	switch (ent->Activity) {
-		default:
-		case ACTIVE_DISABLED: break;
+	default:
+	case ACTIVE_DISABLED:
+		break;
 
-		case ACTIVE_NEVER:
-		case ACTIVE_PAUSED:
-			ent->InRange = false;
-			break;
+	case ACTIVE_NEVER:
+	case ACTIVE_PAUSED:
+		ent->InRange = false;
+		break;
 
-		case ACTIVE_ALWAYS:
-		case ACTIVE_NORMAL:
-			ent->InRange = true;
-			break;
+	case ACTIVE_ALWAYS:
+	case ACTIVE_NORMAL:
+		ent->InRange = true;
+		break;
 
-		case ACTIVE_BOUNDS:
-			ent->InRange = false;
+	case ACTIVE_BOUNDS:
+		ent->InRange = false;
 
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenX && onScreenY) {
-					break;
-				}
-				if (!onScreenX) {
-					onScreenX = entX2 >= Scene::Views[i].X &&
-						entX1 < Scene::Views[i].X + Scene::Views[i].Width;
-				}
-				if (!onScreenY) {
-					onScreenY = entY2 >= Scene::Views[i].Y &&
-						entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
-				}
-			}
-
+		for (int i = 0; i < Scene::ViewsActive; i++) {
 			if (onScreenX && onScreenY) {
-				ent->InRange = true;
+				break;
 			}
-
-			break;
-
-		case ACTIVE_XBOUNDS:
-			ent->InRange = false;
-
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenX) {
-					break;
-				}
+			if (!onScreenX) {
 				onScreenX = entX2 >= Scene::Views[i].X &&
 					entX1 < Scene::Views[i].X + Scene::Views[i].Width;
 			}
-
-			if (onScreenX) {
-				ent->InRange = true;
-			}
-
-			break;
-
-		case ACTIVE_YBOUNDS:
-			ent->InRange = false;
-
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenY) {
-					break;
-				}
+			if (!onScreenY) {
 				onScreenY = entY2 >= Scene::Views[i].Y &&
 					entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
 			}
+		}
 
+		if (onScreenX && onScreenY) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_XBOUNDS:
+		ent->InRange = false;
+
+		for (int i = 0; i < Scene::ViewsActive; i++) {
+			if (onScreenX) {
+				break;
+			}
+			onScreenX = entX2 >= Scene::Views[i].X &&
+				entX1 < Scene::Views[i].X + Scene::Views[i].Width;
+		}
+
+		if (onScreenX) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_YBOUNDS:
+		ent->InRange = false;
+
+		for (int i = 0; i < Scene::ViewsActive; i++) {
 			if (onScreenY) {
+				break;
+			}
+			onScreenY = entY2 >= Scene::Views[i].Y &&
+				entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
+		}
+
+		if (onScreenY) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_RBOUNDS:
+		ent->InRange = false;
+
+		// TODO: Double check this works properly
+		for (int v = 0; v < Scene::ViewsActive; v++) {
+			float sx = abs(ent->X - Scene::Views[v].X);
+			float sy = abs(ent->Y - Scene::Views[v].Y);
+
+			if (sx * sx + sy * sy <= ent->OnScreenHitboxW || onScreenX || onScreenY) {
 				ent->InRange = true;
+				break;
 			}
-
-			break;
-
-		case ACTIVE_RBOUNDS:
-			ent->InRange = false;
-
-			// TODO: Double check this works properly
-			for (int v = 0; v < Scene::ViewsActive; v++) {
-				float sx = abs(ent->X - Scene::Views[v].X);
-				float sy = abs(ent->Y - Scene::Views[v].Y);
-
-				if (sx * sx + sy * sy <= ent->OnScreenHitboxW || onScreenX || onScreenY) {
-					ent->InRange = true;
-					break;
-				}
-			}
-			break;
+		}
+		break;
 	}
 
 	if (ent->InRange) {

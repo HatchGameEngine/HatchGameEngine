@@ -709,8 +709,9 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->PrevAnimation = animator->CurrentAnimation;
 	animator->CurrentAnimation = animationID;
 
-	if (animator->RotationStyle == ROTSTYLE_STATICFRAMES)
+	if (animator->RotationStyle == ROTSTYLE_STATICFRAMES) {
 		animator->FrameCount >>= 1;
+	}
 
 	return NULL_VAL;
 }
@@ -772,8 +773,9 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->Sprite);
 }
 /***
@@ -786,8 +788,9 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->CurrentAnimation);
 }
 /***
@@ -800,8 +803,9 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
 VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
@@ -817,21 +821,29 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
 	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
-	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+		animator->CurrentFrame >= 0) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (!sprite)
+		if (!sprite) {
 			return NULL_VAL;
+		}
 
-		if (animator->CurrentAnimation > sprite->Animations.size())
+		if (animator->CurrentAnimation > sprite->Animations.size()) {
 			return NULL_VAL;
+		}
 
-		if (animator->CurrentFrame > sprite->Animations[animator->CurrentFrame].Frames.size())
+		if (animator->CurrentFrame >
+			sprite->Animations[animator->CurrentFrame].Frames.size()) {
 			return NULL_VAL;
+		}
 
-		AnimFrame frame = sprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame];
+		AnimFrame frame = sprite->Animations[animator->CurrentAnimation]
+					  .Frames[animator->CurrentFrame];
 
 		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, animator->CurrentFrame);
+			THROW_ERROR("Hitbox %d is not in bounds of frame %d.",
+				hitboxID,
+				animator->CurrentFrame);
 			return NULL_VAL;
 		}
 
@@ -857,8 +869,9 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->PrevAnimation);
 }
 /***
@@ -871,8 +884,9 @@ VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->AnimationSpeed);
 }
 /***
@@ -885,8 +899,9 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->AnimationTimer);
 }
 /***
@@ -899,8 +914,9 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->Duration);
 }
 /***
@@ -913,8 +929,9 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->FrameCount);
 }
 /***
@@ -927,8 +944,9 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->LoopIndex);
 }
 /***
@@ -941,8 +959,9 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(animator->RotationStyle);
 }
 /***
@@ -955,8 +974,9 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->Sprite = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -970,8 +990,9 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->CurrentAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -985,8 +1006,9 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
 VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->CurrentFrame = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1000,8 +1022,9 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->PrevAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1015,8 +1038,9 @@ VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->AnimationSpeed = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1030,8 +1054,9 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->AnimationTimer = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1045,8 +1070,9 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->Duration = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1060,8 +1086,9 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->FrameCount = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1075,8 +1102,9 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->LoopIndex = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1090,8 +1118,9 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->RotationStyle = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1105,8 +1134,9 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->CurrentAnimation += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1120,8 +1150,9 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
 VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->CurrentFrame += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1135,8 +1166,9 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
 VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->AnimationSpeed += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1150,8 +1182,9 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
 VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->AnimationTimer += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1165,8 +1198,9 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->Duration += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1180,8 +1214,9 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->FrameCount += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1195,8 +1230,9 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator)
+	if (!animator) {
 		return NULL_VAL;
+	}
 	animator->LoopIndex += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
@@ -1880,7 +1916,7 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \param inner (Array): Array containing the inner hitbox.
  * \ns Collision
  */
-VMValue Collision_ProcessObjectMovement(int argCount, VMValue * args, Uint32 threadID) {
+VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	ObjInstance* entity = GET_ARG(0, GetInstance);
 	ObjArray* outer = GET_ARG(1, GetArray);
@@ -2758,18 +2794,40 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-				case ROTSTYLE_NONE: rot = 0; break;
-				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
-				default: break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break; // Not implemented here because it requires extra fields from an entity
+			default:
+				break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
 
-		Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, (unsigned)paletteID);
+		Graphics::DrawSprite(sprite,
+			animation,
+			frame,
+			x,
+			y,
+			flipX,
+			flipY,
+			scaleX,
+			scaleY,
+			rotation,
+			(unsigned)paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2795,67 +2853,85 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		int rot = (int)entity->Rotation;
 		int frame = entity->CurrentFrame;
 		switch (entity->RotationStyle) {
-			case ROTSTYLE_NONE: rot = 0; break;
-			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-			case ROTSTYLE_STATICFRAMES:
-				if (rot >= 0x100)
-					rot = 0x08 - ((0x214 - rot) >> 6);
-				else
-					rot = (rot + 20) >> 6;
+		case ROTSTYLE_NONE:
+			rot = 0;
+			break;
+		case ROTSTYLE_FULL:
+			rot = rot & 0x1FF;
+			break;
+		case ROTSTYLE_45DEG:
+			rot = (rot + 0x20) & 0x1C0;
+			break;
+		case ROTSTYLE_90DEG:
+			rot = (rot + 0x40) & 0x180;
+			break;
+		case ROTSTYLE_180DEG:
+			rot = (rot + 0x80) & 0x100;
+			break;
+		case ROTSTYLE_STATICFRAMES:
+			if (rot >= 0x100) {
+				rot = 0x08 - ((0x214 - rot) >> 6);
+			}
+			else {
+				rot = (rot + 20) >> 6;
+			}
 
-				switch (rot) {
-					case 0: // 0 degrees
-					case 8: // 360 degrees
-						rot = 0x00;
-						break;
+			switch (rot) {
+			case 0: // 0 degrees
+			case 8: // 360 degrees
+				rot = 0x00;
+				break;
 
-					case 1: // 45 degrees
-						rot = 0x80;
-						frame += entity->CurrentFrameCount;
-						if (entity->Direction)
-							rot = 0x00;
-						break;
-
-					case 2: // 90 degrees
-						rot = 0x80;
-						break;
-
-					case 3: // 135 degrees
-						rot = 0x100;
-						frame += entity->CurrentFrameCount;
-						if (entity->Direction)
-							rot = 0x80;
-						break;
-
-					case 4: // 180 degrees
-						rot = 0x100;
-						break;
-
-					case 5: // 225 degrees
-						rot = 0x180;
-						frame += entity->CurrentFrameCount;
-						if (entity->Direction)
-							rot = 0x100;
-						break;
-
-					case 6: // 270 degrees
-						rot = 0x180;
-						break;
-
-					case 7: // 315 degrees
-						rot = 0x180;
-						frame += entity->CurrentFrameCount;
-						if (!entity->Direction)
-							rot = 0x00;
-						break;
-
-					default: break;
+			case 1: // 45 degrees
+				rot = 0x80;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x00;
 				}
 				break;
-			default: break;
+
+			case 2: // 90 degrees
+				rot = 0x80;
+				break;
+
+			case 3: // 135 degrees
+				rot = 0x100;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x80;
+				}
+				break;
+
+			case 4: // 180 degrees
+				rot = 0x100;
+				break;
+
+			case 5: // 225 degrees
+				rot = 0x180;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x100;
+				}
+				break;
+
+			case 6: // 270 degrees
+				rot = 0x180;
+				break;
+
+			case 7: // 315 degrees
+				rot = 0x180;
+				frame += entity->CurrentFrameCount;
+				if (!entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
 		}
 		rotation = rot * M_PI / 256.0;
 
@@ -2910,17 +2986,38 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)rotation;
 		switch (animator->RotationStyle) {
-			case ROTSTYLE_NONE: rot = 0; break;
-				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
-				default: break;
-			}
+		case ROTSTYLE_NONE:
+			rot = 0;
+			break;
+		case ROTSTYLE_FULL:
+			rot = rot & 0x1FF;
+			break;
+		case ROTSTYLE_45DEG:
+			rot = (rot + 0x20) & 0x1C0;
+			break;
+		case ROTSTYLE_90DEG:
+			rot = (rot + 0x40) & 0x180;
+			break;
+		case ROTSTYLE_180DEG:
+			rot = (rot + 0x80) & 0x100;
+			break;
+		case ROTSTYLE_STATICFRAMES:
+			break; // Not implemented here because it requires extra fields from an entity
+		default:
+			break;
+		}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, flipX, flipY, scaleX, scaleY, rotation);
+		Graphics::DrawSprite(sprite,
+			animator->CurrentAnimation,
+			animator->CurrentFrame,
+			x,
+			y,
+			flipX,
+			flipY,
+			scaleX,
+			scaleY,
+			rotation);
 	}
 	return NULL_VAL;
 }
@@ -2947,79 +3044,108 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+		animator->CurrentFrame >= 0) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (!sprite)
+		if (!sprite) {
 			return NULL_VAL;
+		}
 
 		int rot = (int)entity->Rotation;
 		int frame = animator->CurrentFrame;
 		switch (animator->RotationStyle) {
-			case ROTSTYLE_NONE: rot = 0; break;
-			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
-			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
-			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
-			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
-			case ROTSTYLE_STATICFRAMES:
-				if (rot >= 0x100)
-					rot = 0x08 - ((0x214 - rot) >> 6);
-				else
-					rot = (rot + 20) >> 6;
+		case ROTSTYLE_NONE:
+			rot = 0;
+			break;
+		case ROTSTYLE_FULL:
+			rot = rot & 0x1FF;
+			break;
+		case ROTSTYLE_45DEG:
+			rot = (rot + 0x20) & 0x1C0;
+			break;
+		case ROTSTYLE_90DEG:
+			rot = (rot + 0x40) & 0x180;
+			break;
+		case ROTSTYLE_180DEG:
+			rot = (rot + 0x80) & 0x100;
+			break;
+		case ROTSTYLE_STATICFRAMES:
+			if (rot >= 0x100) {
+				rot = 0x08 - ((0x214 - rot) >> 6);
+			}
+			else {
+				rot = (rot + 20) >> 6;
+			}
 
-				switch (rot) {
-					case 0: // 0 degrees
-					case 8: // 360 degrees
-						rot = 0x00;
-						break;
+			switch (rot) {
+			case 0: // 0 degrees
+			case 8: // 360 degrees
+				rot = 0x00;
+				break;
 
-					case 1: // 45 degrees
-						rot = 0x80;
-						frame += animator->FrameCount;
-						if (entity->Direction)
-							rot = 0x00;
-						break;
-
-					case 2: // 90 degrees
-						rot = 0x80;
-						break;
-
-					case 3: // 135 degrees
-						rot = 0x100;
-						frame += animator->FrameCount;
-						if (entity->Direction)
-							rot = 0x80;
-						break;
-
-					case 4: // 180 degrees
-						rot = 0x100;
-						break;
-
-					case 5: // 225 degrees
-						rot = 0x180;
-						frame += animator->FrameCount;
-						if (entity->Direction)
-							rot = 0x100;
-						break;
-
-					case 6: // 270 degrees
-						rot = 0x180;
-						break;
-
-					case 7: // 315 degrees
-						rot = 0x180;
-						frame += animator->FrameCount;
-						if (!entity->Direction)
-							rot = 0x00;
-						break;
-
-					default: break;
+			case 1: // 45 degrees
+				rot = 0x80;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x00;
 				}
 				break;
-			default: break;
+
+			case 2: // 90 degrees
+				rot = 0x80;
+				break;
+
+			case 3: // 135 degrees
+				rot = 0x100;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x80;
+				}
+				break;
+
+			case 4: // 180 degrees
+				rot = 0x100;
+				break;
+
+			case 5: // 225 degrees
+				rot = 0x180;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x100;
+				}
+				break;
+
+			case 6: // 270 degrees
+				rot = 0x180;
+				break;
+
+			case 7: // 315 degrees
+				rot = 0x180;
+				frame += animator->FrameCount;
+				if (!entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
 		}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite, animator->CurrentAnimation, frame, x, y, entity->Direction & FLIP_X, entity->Direction & FLIP_Y, entity->ScaleX, entity->ScaleY, rotation);
+		Graphics::DrawSprite(sprite,
+			animator->CurrentAnimation,
+			frame,
+			x,
+			y,
+			entity->Direction & FLIP_X,
+			entity->Direction & FLIP_Y,
+			entity->ScaleX,
+			entity->ScaleY,
+			rotation);
 	}
 	return NULL_VAL;
 }
@@ -3070,25 +3196,25 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-				case ROTSTYLE_NONE:
-					rot = 0;
-					break;
-				case ROTSTYLE_FULL:
-					rot = rot & 0x1FF;
-					break;
-				case ROTSTYLE_45DEG:
-					rot = (rot + 0x20) & 0x1C0;
-					break;
-				case ROTSTYLE_90DEG:
-					rot = (rot + 0x40) & 0x180;
-					break;
-				case ROTSTYLE_180DEG:
-					rot = (rot + 0x80) & 0x100;
-					break;
-				case ROTSTYLE_STATICFRAMES:
-					break;
-				default:
-					break;
+			case ROTSTYLE_NONE:
+				rot = 0;
+				break;
+			case ROTSTYLE_FULL:
+				rot = rot & 0x1FF;
+				break;
+			case ROTSTYLE_45DEG:
+				rot = (rot + 0x20) & 0x1C0;
+				break;
+			case ROTSTYLE_90DEG:
+				rot = (rot + 0x40) & 0x180;
+				break;
+			case ROTSTYLE_180DEG:
+				rot = (rot + 0x80) & 0x100;
+				break;
+			case ROTSTYLE_STATICFRAMES:
+				break;
+			default:
+				break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
@@ -3511,7 +3637,16 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 	TileSpriteInfo info;
 	if (id < Scene::TileSpriteInfos.size() &&
 		(info = Scene::TileSpriteInfos[id]).Sprite != NULL) {
-		Graphics::DrawSprite(info.Sprite, info.AnimationIndex, info.FrameIndex, x, y, flipX, flipY, scaleX, scaleY, 0.0f);
+		Graphics::DrawSprite(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			x,
+			y,
+			flipX,
+			flipY,
+			scaleX,
+			scaleY,
+			0.0f);
 	}
 	return NULL_VAL;
 }
@@ -4824,8 +4959,12 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0)
-		Graphics::SetClip((int)GET_ARG(0, GetDecimal), (int)GET_ARG(1, GetDecimal), (int)GET_ARG(2, GetDecimal), (int)GET_ARG(3, GetDecimal));
+	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0) {
+		Graphics::SetClip((int)GET_ARG(0, GetDecimal),
+			(int)GET_ARG(1, GetDecimal),
+			(int)GET_ARG(2, GetDecimal),
+			(int)GET_ARG(3, GetDecimal));
+	}
 	return NULL_VAL;
 }
 /***
@@ -4846,7 +4985,8 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
   */
 VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X) : INTEGER_VAL(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X)
+					     : INTEGER_VAL(0);
 }
 /***
  * Draw.GetClipY
@@ -4856,7 +4996,8 @@ VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y) : INTEGER_VAL(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y)
+					     : INTEGER_VAL(0);
 }
 /***
  * Draw.GetClipWidth
@@ -4866,7 +5007,8 @@ VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width) : INTEGER_VAL((int)Graphics::CurrentView->Width);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width)
+					     : INTEGER_VAL((int)Graphics::CurrentView->Width);
 }
 /***
  * Draw.GetClipHeight
@@ -4876,7 +5018,8 @@ VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height) : INTEGER_VAL((int)Graphics::CurrentView->Height);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height)
+					     : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
 
 /***
@@ -8165,8 +8308,9 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	if (IS_NULL(args[0]))
+	if (IS_NULL(args[0])) {
 		return INTEGER_VAL(false);
+	}
 
 	ObjInstance* instance = GET_ARG(0, GetInstance);
 	char* objectName = GET_ARG(1, GetString);
@@ -8789,7 +8933,8 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return IS_INTEGER(args[0]) ? INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetDecimal))) : DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
+	return IS_INTEGER(args[0]) ? INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetDecimal)))
+				   : DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
 }
 /***
  * Math.Min
@@ -8801,10 +8946,12 @@ VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
 		return INTEGER_VAL((int)Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	else
+	}
+	else {
 		return DECIMAL_VAL(Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+	}
 }
 /***
  * Math.Max
@@ -8816,10 +8963,12 @@ VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]))
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
 		return INTEGER_VAL((int)Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
-	else
+	}
+	else {
 		return DECIMAL_VAL(Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+	}
 }
 /***
  * Math.Clamp
@@ -8832,10 +8981,14 @@ VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2]))
-		return INTEGER_VAL((int)Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
-	else
-		return DECIMAL_VAL(Math::Clamp(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2])) {
+		return INTEGER_VAL((int)Math::Clamp(
+			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+	}
+	else {
+		return DECIMAL_VAL(Math::Clamp(
+			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
+	}
 }
 
 /***
@@ -9242,7 +9395,8 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
   */
 VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f), (int)(GET_ARG(1, GetDecimal) * 65536.0f)));
+	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f),
+		(int)(GET_ARG(1, GetDecimal) * 65536.0f)));
 }
 /***
  * RSDK.Math.RadianToInteger
@@ -10157,26 +10311,39 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	double startPoint = GET_ARG_OPT(5, GetDecimal, 0.0);
 	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (fadeInAfterFinished < 0.f)
+	if (fadeInAfterFinished < 0.f) {
 		fadeInAfterFinished = 0.f;
+	}
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT)
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
+	}
 
-	if (audio)
-		AudioManager::PushMusicAt(audio, startPoint, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, fadeInAfterFinished);
+	if (audio) {
+		AudioManager::PushMusicAt(audio,
+			startPoint,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			fadeInAfterFinished);
+	}
 
 	return NULL_VAL;
 }
@@ -11090,9 +11257,14 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 	int unloadPolicy = GET_ARG(2, GetInteger);
 
 	char filename[4096];
-	snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", Scene::CurrentResourceFolder, name);
-	if (!ResourceManager::ResourceExists(filename))
+	snprintf(filename,
+		sizeof(filename),
+		"Sprites/%s/%s.bin",
+		Scene::CurrentResourceFolder,
+		name);
+	if (!ResourceManager::ResourceExists(filename)) {
 		snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", fallbackFolder, name);
+	}
 
 	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
 
@@ -14476,23 +14648,33 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT)
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
+	}
 
 	if (audio) {
 		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -14597,22 +14779,32 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT)
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
+	}
 
 	if (audio) {
-		channel = AudioManager::PlaySound(audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -14632,7 +14824,8 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
 	ISound* audio = GET_ARG(1, GetSound);
-	int loopPoint = IS_NULL(args[2]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(2, GetInteger, AUDIO_LOOP_DEFAULT);
+	int loopPoint = IS_NULL(args[2]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(2, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(3, GetDecimal, 0.0);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
@@ -14643,15 +14836,25 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (loopPoint < AUDIO_LOOP_NONE) {
-		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
 		return NULL_VAL;
 	}
 
-	if (loopPoint == AUDIO_LOOP_DEFAULT)
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
 		loopPoint = audio->LoopPoint;
+	}
 
 	if (audio) {
-		AudioManager::SetSound(channel & AudioManager::SoundArrayLength, audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
+		AudioManager::SetSound(channel & AudioManager::SoundArrayLength,
+			audio,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			nullptr);
 	}
 	return NULL_VAL;
 }
@@ -14873,9 +15076,11 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
-	if (!sprite)
+	if (!sprite) {
 		return INTEGER_VAL(false);
-	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) && (frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
+	}
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) &&
+		(frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
 }
 /***
  * Sprite.GetFrameLoopIndex

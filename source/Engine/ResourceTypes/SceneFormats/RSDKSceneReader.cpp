@@ -492,13 +492,17 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				}
 			}
 
-			if (PropertyHashes->Exists(FilterHash))
-				obj->Filter = ((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
-			else
+			if (PropertyHashes->Exists(FilterHash)) {
+				obj->Filter =
+					((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
+			}
+			else {
 				obj->Filter = 0xFF;
+			}
 
-			if (!(obj->Filter & Scene::Filter))
+			if (!(obj->Filter & Scene::Filter)) {
 				doAdd = false;
+			}
 
 			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
 			if (objectNameHash2 == HACK_PlayerNameHash) {
