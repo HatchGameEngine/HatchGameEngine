@@ -3217,16 +3217,18 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the tile.
  * \param flipX (Integer): Whether or not to flip the tile horizontally.
  * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt scaleX (Number): Scale multiplier of the tile horizontally.
+ * \paramOpt scaleY (Number): Scale multiplier of the tile vertically.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Uint32 id = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal) + 8;
 	int y = (int)GET_ARG(2, GetDecimal) + 8;
-	int flipX = GET_ARG(3, GetInteger);
-	int flipY = GET_ARG(4, GetInteger);
+	int flipX = GET_ARG_OPT(3, GetInteger, false);
+	int flipY = GET_ARG_OPT(4, GetInteger, false);
 	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
 
