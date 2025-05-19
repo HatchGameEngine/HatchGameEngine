@@ -93,6 +93,7 @@ public:
 	int CollisionPlane = 0;
 	int CollisionMode = 0;
 	int SlotID = -1;
+	int Filter = 0xFF;
 	bool Removed = false;
 	Entity* PrevEntity = NULL;
 	Entity* NextEntity = NULL;

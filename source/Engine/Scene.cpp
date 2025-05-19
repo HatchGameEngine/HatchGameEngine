@@ -62,6 +62,8 @@ HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
 
 HashMap<ObjectList*>* Scene::StaticObjectLists = NULL;
 
+int Scene::ReservedSlotIDs = 0;
+
 int Scene::StaticObjectCount = 0;
 Entity* Scene::StaticObjectFirst = NULL;
 Entity* Scene::StaticObjectLast = NULL;
@@ -96,6 +98,7 @@ Perf_ViewRender Scene::PERF_ViewRender[MAX_SCENE_VIEWS];
 
 char Scene::NextScene[MAX_RESOURCE_PATH_LENGTH];
 char Scene::CurrentScene[MAX_RESOURCE_PATH_LENGTH];
+int Scene::SceneType = SCENETYPE_NONE;
 bool Scene::DoRestart = false;
 bool Scene::NoPersistency = false;
 
@@ -615,6 +618,8 @@ void Scene::SetInfoFromCurrentID() {
 void Scene::Init() {
 	Scene::NextScene[0] = '\0';
 	Scene::CurrentScene[0] = '\0';
+
+	Scene::ReservedSlotIDs = 0;
 
 	GarbageCollector::Init();
 
@@ -1705,6 +1710,8 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
 
+	Scene::Filter = SceneInfo::GetFilter(Scene::ActiveCategory, Scene::CurrentSceneInList);
+
 	Scene::ReadSceneFile(filename);
 
 	Memory::Free(filename);
@@ -1724,6 +1731,8 @@ void Scene::ReadSceneFile(const char* filename) {
 	else {
 		memcpy(pathParent, filename, strlen(filename) + 1);
 	}
+
+	Scene::SceneType = SCENETYPE_NONE;
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {

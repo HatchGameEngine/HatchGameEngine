@@ -50,6 +50,7 @@
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
+            <li><a href="#Reference_Collision">Collision</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
             <li><a href="#Reference_Device">Device</a></li>
@@ -131,6 +132,7 @@
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
+            <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
@@ -177,7 +179,6 @@
                     <li><a href="#Reference_globals_Scene_Minutes">Scene_Minutes</a></li>
                     <li><a href="#Reference_globals_Scene_Seconds">Scene_Seconds</a></li>
                     <li><a href="#Reference_globals_Scene_Milliseconds">Scene_Milliseconds</a></li>
-                    <li><a href="#Reference_globals_Scene_Filter">Scene_Filter</a></li>
                     <li><a href="#Reference_globals_Scene_ListPos">Scene_ListPos</a></li>
                     <li><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></li>
                     <li><a href="#Reference_globals_Scene_DebugMode">Scene_DebugMode</a></li>
@@ -278,6 +279,19 @@
                     <li><a href="#Reference_functions_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Collision">
+                <h2>Collision</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Collision_ProcessObjectMovement">Collision.ProcessObjectMovement</a></li>
+                    <li><a href="#Reference_functions_Collision_ObjectTileCollision">Collision.ObjectTileCollision</a></li>
+                    <li><a href="#Reference_functions_Collision_ObjectTileGrip">Collision.ObjectTileGrip</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionTouch">Collision.CheckObjectCollisionTouch</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionCircle">Collision.CheckObjectCollisionCircle</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionBox">Collision.CheckObjectCollisionBox</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionPlatform">Collision.CheckObjectCollisionPlatform</a></li>
                 </ul>
             </p>
             <p id="Reference_Controller">
@@ -699,6 +713,7 @@
                     <li><a href="#Reference_fields_instance_Direction">instance.Direction</a></li>
                     <li><a href="#Reference_fields_instance_OnGround">instance.OnGround</a></li>
                     <li><a href="#Reference_fields_instance_SlotID">instance.SlotID</a></li>
+                    <li><a href="#Reference_fields_instance_Filter">instance.Filter</a></li>
                     <li><a href="#Reference_fields_instance_ZDepth">instance.ZDepth</a></li>
                     <li><a href="#Reference_fields_instance_CollisionLayers">instance.CollisionLayers</a></li>
                     <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
@@ -742,6 +757,10 @@
                     <li><a href="#Reference_functions_Math_Max">Math.Max</a></li>
                     <li><a href="#Reference_functions_Math_Clamp">Math.Clamp</a></li>
                     <li><a href="#Reference_functions_Math_Sign">Math.Sign</a></li>
+                    <li><a href="#Reference_functions_Math_Uint8">Math.Uint8</a></li>
+                    <li><a href="#Reference_functions_Math_Uint16">Math.Uint16</a></li>
+                    <li><a href="#Reference_functions_Math_Uint32">Math.Uint32</a></li>
+                    <li><a href="#Reference_functions_Math_Uint64">Math.Uint64</a></li>
                     <li><a href="#Reference_functions_Math_Random">Math.Random</a></li>
                     <li><a href="#Reference_functions_Math_RandomMax">Math.RandomMax</a></li>
                     <li><a href="#Reference_functions_Math_RandomRange">Math.RandomRange</a></li>
@@ -916,13 +935,6 @@
                 <h2>Scene</h2>
                 <i>Class methods:</i>
                 <ul>
-                    <li><a href="#Reference_functions_Scene_ProcessObjectMovement">Scene.ProcessObjectMovement</a></li>
-                    <li><a href="#Reference_functions_Scene_ObjectTileCollision">Scene.ObjectTileCollision</a></li>
-                    <li><a href="#Reference_functions_Scene_ObjectTileGrip">Scene.ObjectTileGrip</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckObjectCollisionTouch">Scene.CheckObjectCollisionTouch</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckObjectCollisionCircle">Scene.CheckObjectCollisionCircle</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckObjectCollisionBox">Scene.CheckObjectCollisionBox</a></li>
-                    <li><a href="#Reference_functions_Scene_CheckObjectCollisionPlatform">Scene.CheckObjectCollisionPlatform</a></li>
                     <li><a href="#Reference_functions_Scene_Load">Scene.Load</a></li>
                     <li><a href="#Reference_functions_Scene_Change">Scene.Change</a></li>
                     <li><a href="#Reference_functions_Scene_LoadTileCollisions">Scene.LoadTileCollisions</a></li>
@@ -943,6 +955,8 @@
                     <li><a href="#Reference_functions_Scene_GetLayerDeformOffsetB">Scene.GetLayerDeformOffsetB</a></li>
                     <li><a href="#Reference_functions_Scene_LayerPropertyExists">Scene.LayerPropertyExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetName">Scene.GetName</a></li>
+                    <li><a href="#Reference_functions_Scene_GetType">Scene.GetType</a></li>
+                    <li><a href="#Reference_functions_Scene_GetFilter">Scene.GetFilter</a></li>
                     <li><a href="#Reference_functions_Scene_GetWidth">Scene.GetWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetHeight">Scene.GetHeight</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerWidth">Scene.GetLayerWidth</a></li>
@@ -972,6 +986,7 @@
                     <li><a href="#Reference_functions_Scene_GetDebugMode">Scene.GetDebugMode</a></li>
                     <li><a href="#Reference_functions_Scene_GetFirstInstance">Scene.GetFirstInstance</a></li>
                     <li><a href="#Reference_functions_Scene_GetLastInstance">Scene.GetLastInstance</a></li>
+                    <li><a href="#Reference_functions_Scene_GetReservedSlotIDs">Scene.GetReservedSlotIDs</a></li>
                     <li><a href="#Reference_functions_Scene_GetInstanceCount">Scene.GetInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetStaticInstanceCount">Scene.GetStaticInstanceCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetDynamicInstanceCount">Scene.GetDynamicInstanceCount</a></li>
@@ -985,6 +1000,7 @@
                     <li><a href="#Reference_functions_Scene_IsUsingFolder">Scene.IsUsingFolder</a></li>
                     <li><a href="#Reference_functions_Scene_IsUsingID">Scene.IsUsingID</a></li>
                     <li><a href="#Reference_functions_Scene_IsPaused">Scene.IsPaused</a></li>
+                    <li><a href="#Reference_functions_Scene_SetReservedSlotIDs">Scene.SetReservedSlotIDs</a></li>
                     <li><a href="#Reference_functions_Scene_SetDebugMode">Scene.SetDebugMode</a></li>
                     <li><a href="#Reference_functions_Scene_SetTile">Scene.SetTile</a></li>
                     <li><a href="#Reference_functions_Scene_SetTileCollisionSides">Scene.SetTileCollisionSides</a></li>
@@ -1504,6 +1520,7 @@
                     <li><a href="#Reference_fields_instance_Direction">instance.Direction</a></li>
                     <li><a href="#Reference_fields_instance_OnGround">instance.OnGround</a></li>
                     <li><a href="#Reference_fields_instance_SlotID">instance.SlotID</a></li>
+                    <li><a href="#Reference_fields_instance_Filter">instance.Filter</a></li>
                     <li><a href="#Reference_fields_instance_ZDepth">instance.ZDepth</a></li>
                     <li><a href="#Reference_fields_instance_CollisionLayers">instance.CollisionLayers</a></li>
                     <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
@@ -1942,6 +1959,15 @@
                     <li><a href="#Reference_enums_ROTSTYLE_90DEG">ROTSTYLE_90DEG</a></li>
                     <li><a href="#Reference_enums_ROTSTYLE_180DEG">ROTSTYLE_180DEG</a></li>
                     <li><a href="#Reference_enums_ROTSTYLE_STATICFRAMES">ROTSTYLE_STATICFRAMES</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SCENETYPE_*">
+                <h2><code>SCENETYPE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SCENETYPE_NONE">SCENETYPE_NONE</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_HATCH">SCENETYPE_HATCH</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_TILED">SCENETYPE_TILED</a></li>
+                    <li><a href="#Reference_enums_SCENETYPE_RSDK">SCENETYPE_RSDK</a></li>
                 </ul>
             </p>
             <p id="Reference_SCOPE_*">
@@ -2699,6 +2725,109 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>volume (Integer): The sound effect volume, from 0 to 100.</li>
         </ul>
+        </p>
+        <p id="Reference_functions_Collision_ProcessObjectMovement">
+        <h2 style="margin-bottom: 8px;">Collision.ProcessObjectMovement</h2>
+        <code>Collision.ProcessObjectMovement(entity, outer, inner)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Processes movement of an instance with an outer hitbox and an inner hitboxes.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to move.</li>
+        <li>outer (Array): Array containing the outer hitbox.</li>
+        <li>inner (Array): Array containing the inner hitbox.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Collision_ObjectTileCollision">
+        <h2 style="margin-bottom: 8px;">Collision.ObjectTileCollision</h2>
+        <code>Collision.ObjectTileCollision(entity, cLayers, cMode, cPlane, xOffset, yOffset, setPos)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks tile collision based on where an instance should check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to base the values on.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
+        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
+        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
+        <li>xOffset (Number): How far from the entity's X value to start from.</li>
+        <li>yOffset (Number): How far from the entity's Y value to start from.</li>
+        <li>setPos (Boolean): Whether to set the entity's position if collision is found.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the instance has collided with a tile.</div>
+        </p>
+        <p id="Reference_functions_Collision_ObjectTileGrip">
+        <h2 style="margin-bottom: 8px;">Collision.ObjectTileGrip</h2>
+        <code>Collision.ObjectTileGrip(entity, cLayers, cMode, cPlane, xOffset, yOffset, tolerance)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Keeps an instance gripped to tile collision based on where an instance should check.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Instance): The instance to move.</li>
+        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
+        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
+        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
+        <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
+        <li>yOffset (Decimal): How far from the entity's Y value to start from.</li>
+        <li>tolerance (Decimal): How far of a tolerance the entity should check for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether to grip the instance.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionTouch">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionTouch</h2>
+        <code>Collision.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEntity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionCircle">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionCircle</h2>
+        <code>Collision.CheckObjectCollisionCircle(thisEnity, thisRadius, otherEntity, otherRadius)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with within their respective radii.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisRadius (Decimal): Radius of the first entity to check.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherRadius (Array): Radius of the other entity to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionBox">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionBox</h2>
+        <code>Collision.CheckObjectCollisionBox(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the side the entities are colliding on.</div>
+        </p>
+        <p id="Reference_functions_Collision_CheckObjectCollisionPlatform">
+        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionPlatform</h2>
+        <code>Collision.CheckObjectCollisionPlatform(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>thisEnity (Instance): The first instance to check.</li>
+        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>otherEntity (Instance): The other instance to check whether it is on top of the first instance.</li>
+        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
         </p>
         <p id="Reference_functions_Controller_GetCount">
         <h2 style="margin-bottom: 8px;">Controller.GetCount</h2>
@@ -5606,6 +5735,50 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>-1</code> if <code>n</code> is negative, <code>1</code> if positive, and <code>0</code> if otherwise.</div>
         </p>
+        <p id="Reference_functions_Math_Uint8">
+        <h2 style="margin-bottom: 8px;">Math.Uint8</h2>
+        <code>Math.Uint8(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to an 8-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint16">
+        <h2 style="margin-bottom: 8px;">Math.Uint16</h2>
+        <code>Math.Uint16(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 16-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint32">
+        <h2 style="margin-bottom: 8px;">Math.Uint32</h2>
+        <code>Math.Uint32(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 32-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
+        <p id="Reference_functions_Math_Uint64">
+        <h2 style="margin-bottom: 8px;">Math.Uint64</h2>
+        <code>Math.Uint64(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts an integer to a 64-bit unsigned value.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Integer): Integer value to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted value.</div>
+        </p>
         <p id="Reference_functions_Math_Random">
         <h2 style="margin-bottom: 8px;">Math.Random</h2>
         <code>Math.Random()</code>
@@ -6762,109 +6935,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns all the text in the resource as a String value if it can be read, otherwise it returns a <code>null</code> value if it cannot be read.</div>
         </p>
-        <p id="Reference_functions_Scene_ProcessObjectMovement">
-        <h2 style="margin-bottom: 8px;">Scene.ProcessObjectMovement</h2>
-        <code>Scene.ProcessObjectMovement(entity, outer, inner)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Processes movement of an instance with an outer hitbox and an inner hitboxe.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>entity (Instance): The instance to move.</li>
-        <li>outer (Array): Array containing the outer hitbox.</li>
-        <li>inner (Array): Array containing the inner hitbox.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Scene_ObjectTileCollision">
-        <h2 style="margin-bottom: 8px;">Scene.ObjectTileCollision</h2>
-        <code>Scene.ObjectTileCollision(entity, cLayers, cMode, cPlane, xOffset, yOffset, setPos)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks tile collision based on where an instance should check.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>entity (Instance): The instance to base the values on.</li>
-        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
-        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
-        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
-        <li>xOffset (Number): How far from the entity's X value to start from.</li>
-        <li>yOffset (Number): How far from the entity's Y value to start from.</li>
-        <li>setPos (Boolean): Whether to set the entity's position if collision is found.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether the instance has collided with a tile.</div>
-        </p>
-        <p id="Reference_functions_Scene_ObjectTileGrip">
-        <h2 style="margin-bottom: 8px;">Scene.ObjectTileGrip</h2>
-        <code>Scene.ObjectTileGrip(entity, cLayers, cMode, cPlane, xOffset, yOffset, tolerance)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Keeps an instance gripped to tile collision based on where an instance should check.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>entity (Instance): The instance to move.</li>
-        <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
-        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
-        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
-        <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
-        <li>yOffset (Decimal): How far from the entity's Y value to start from.</li>
-        <li>tolerance (Decimal): How far of a tolerance the entity should check for.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether to grip the instance.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckObjectCollisionTouch">
-        <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionTouch</h2>
-        <code>Scene.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEntity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
-        <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckObjectCollisionCircle">
-        <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionCircle</h2>
-        <code>Scene.CheckObjectCollisionCircle(thisEnity, thisRadius, otherEntity, otherRadius)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with within their respective radii.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisRadius (Decimal): Radius of the first entity to check.</li>
-        <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherRadius (Array): Radius of the other entity to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckObjectCollisionBox">
-        <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionBox</h2>
-        <code>Scene.CheckObjectCollisionBox(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
-        <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
-        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the side the entities are colliding on.</div>
-        </p>
-        <p id="Reference_functions_Scene_CheckObjectCollisionPlatform">
-        <h2 style="margin-bottom: 8px;">Scene.CheckObjectCollisionPlatform</h2>
-        <code>Scene.CheckObjectCollisionPlatform(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
-        <li>otherEntity (Instance): The other instance to check whether it is on top of the first instance.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
-        <li>setValues (Boolean): Whether to set the values of the other entity.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
-        </p>
         <p id="Reference_functions_Scene_Load">
         <h2 style="margin-bottom: 8px;">Scene.Load</h2>
         <code>Scene.Load([filename, persistency])</code>
@@ -7065,6 +7135,20 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the active scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the name of the active scene.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetType">
+        <h2 style="margin-bottom: 8px;">Scene.GetType</h2>
+        <code>Scene.GetType()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the type of the active scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the type of the active scene, see <code><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></code>.</div>
+        </p>
+        <p id="Reference_functions_Scene_GetFilter">
+        <h2 style="margin-bottom: 8px;">Scene.GetFilter</h2>
+        <code>Scene.GetFilter()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the filter of the active scene.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetWidth</h2>
@@ -7323,6 +7407,13 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the last active instance in the scene, or <code>null</code> if there are no instances in the scene.</div>
         </p>
+        <p id="Reference_functions_Scene_GetReservedSlotIDs">
+        <h2 style="margin-bottom: 8px;">Scene.GetReservedSlotIDs</h2>
+        <code>Scene.GetReservedSlotIDs()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the number of reserved slot IDs to account for before creating instances.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns how many reserved slot IDs are being used.</div>
+        </p>
         <p id="Reference_functions_Scene_GetInstanceCount">
         <h2 style="margin-bottom: 8px;">Scene.GetInstanceCount</h2>
         <code>Scene.GetInstanceCount()</code>
@@ -7441,6 +7532,15 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the scene is paused.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Scene_SetReservedSlotIDs">
+        <h2 style="margin-bottom: 8px;">Scene.SetReservedSlotIDs</h2>
+        <code>Scene.SetReservedSlotIDs(amount)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the number of reserved slot IDs to account for before creating instances.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>amount (Integer): How many reserved slot IDs to use.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Scene_SetDebugMode">
         <h2 style="margin-bottom: 8px;">Scene.SetDebugMode</h2>
@@ -10149,7 +10249,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>730 out of 789 functions have descriptions. </p>
+        <p>738 out of 797 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10802,6 +10902,12 @@
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">If this entity was spawned from a scene file, this field contains the slot ID in which it was placed. If not, this field contains the default value of <code>-1</code>.</div>
         </p>
+        <p id="Reference_fields_instance_Filter">
+        <h3 style="margin-bottom: 8px;"><code>instance.Filter</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>0xFF</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. Defaults to <code>0xFF</code>.</div>
+        </p>
         <p id="Reference_fields_instance_ZDepth">
         <h3 style="margin-bottom: 8px;"><code>instance.ZDepth</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
@@ -10894,7 +11000,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>76 out of 80 fields have descriptions. </p>
+        <p>77 out of 81 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -11961,6 +12067,22 @@
         <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_STATICFRAMES</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Uses extra frames to rotate the sprite in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code> and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
         </p>
+        <p id="Reference_enums_SCENETYPE_NONE">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is not a scene.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_HATCH">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_HATCH</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is a Hatch scene.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_TILED">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_TILED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is a Tiled map.</div>
+        </p>
+        <p id="Reference_enums_SCENETYPE_RSDK">
+        <h3 style="margin-bottom: 8px;"><code>SCENETYPE_RSDK</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene loaded in the game is an RSDK scene.</div>
+        </p>
         <p id="Reference_enums_SCOPE_SCENE">
         <h3 style="margin-bottom: 8px;"><code>SCOPE_SCENE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Scene scope.</div>
@@ -12121,7 +12243,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>306 out of 306 enums have descriptions. </p>
+        <p>310 out of 310 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
@@ -12275,10 +12397,6 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_Milliseconds</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The milliseconds value of the scene timer.</div>
         </p>
-        <p id="Reference_globals_Scene_Filter">
-        <h3 style="margin-bottom: 8px;"><code>Scene_Filter</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The scene's entity filter value.</div>
-        </p>
         <p id="Reference_globals_Scene_ListPos">
         <h3 style="margin-bottom: 8px;"><code>Scene_ListPos</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The position of the current scene in the scene list.</div>
@@ -12291,7 +12409,7 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
         </p>
-        <p>14 out of 14 globals have descriptions. </p>
+        <p>13 out of 13 globals have descriptions. </p>
         <hr/>
     </body>
 </html>

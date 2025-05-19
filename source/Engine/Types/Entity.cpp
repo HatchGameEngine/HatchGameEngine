@@ -461,6 +461,8 @@ void Entity::CopyFields(Entity* other) {
 
 	COPY(SlotID);
 
+	COPY(Filter);
+
 	COPY(Removed);
 #undef COPY
 }
