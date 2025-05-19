@@ -1982,7 +1982,32 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_INHERIT) {
 		ObjClass* klass = AS_CLASS(Peek(0));
 		Uint32 hashSuper = ReadUInt32(frame);
-		klass->ParentHash = hashSuper;
+
+		if (!ScriptManager::ClassExists(hashSuper)) {
+			const char* className = GetVariableOrMethodName(hashSuper);
+			if (ThrowRuntimeError(false, "Class %s does not exist!", className) ==
+				ERROR_RES_CONTINUE) {
+				goto FAIL_OP_INHERIT;
+			}
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
+		VMValue parent;
+		if (ScriptManager::Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
+			klass->Parent = AS_CLASS(parent);
+		}
+		else {
+			const char* className = GetVariableOrMethodName(hashSuper);
+			if (ThrowRuntimeError(false,
+				    "Class %s must be imported before \"%s\" can inherit it!",
+				    className,
+				    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+				goto FAIL_OP_INHERIT;
+			}
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
+	FAIL_OP_INHERIT:
 		VM_BREAK;
 	}
 	VM_CASE(OP_NEW) {

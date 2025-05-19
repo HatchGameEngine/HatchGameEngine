@@ -727,13 +727,6 @@ void ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float 
 	}
 }
 ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
-	if (!klass->Parent && klass->ParentHash) {
-		VMValue parent;
-		if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) &&
-			IS_CLASS(parent)) {
-			klass->Parent = AS_CLASS(parent);
-		}
-	}
 	return klass->Parent;
 }
 VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
@@ -878,6 +871,9 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 }
 bool ScriptManager::ClassExists(const char* objectName) {
 	return SourceFileMap::ClassMap->Exists(objectName);
+}
+bool ScriptManager::ClassExists(Uint32 hash) {
+	return SourceFileMap::ClassMap->Exists(hash);
 }
 bool ScriptManager::IsStandardLibraryClass(const char* className) {
 	return IS_CLASS(Constants->Get(className));
