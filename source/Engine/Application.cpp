@@ -2152,7 +2152,11 @@ Uint16* Application::UTF8toUTF16(const char* utf8String) {
 }
 
 int Application::LoadDevFont(const char* fileName) {
-	return Scene::LoadSpriteResource(fileName, SCOPE_GAME);
+	bool paletteStore = Graphics::UsePalettes;
+	Graphics::UsePalettes = false;
+	int index = Scene::LoadSpriteResource(fileName, SCOPE_GAME);
+	Graphics::UsePalettes = paletteStore;
+	return index;
 }
 
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
