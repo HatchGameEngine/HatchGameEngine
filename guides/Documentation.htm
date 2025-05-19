@@ -804,8 +804,6 @@
                     <li><a href="#Reference_functions_Music_Alter">Music.Alter</a></li>
                     <li><a href="#Reference_functions_Music_GetLoopPoint">Music.GetLoopPoint</a></li>
                     <li><a href="#Reference_functions_Music_SetLoopPoint">Music.SetLoopPoint</a></li>
-                    <li><a href="#Reference_functions_Sound_GetLoopPoint">Sound.GetLoopPoint</a></li>
-                    <li><a href="#Reference_functions_Music_SetLoopPoint">Music.SetLoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Number">
@@ -1150,6 +1148,8 @@
                     <li><a href="#Reference_functions_Sound_AlterChannel">Sound.AlterChannel</a></li>
                     <li><a href="#Reference_functions_Sound_GetFreeChannel">Sound.GetFreeChannel</a></li>
                     <li><a href="#Reference_functions_Sound_IsChannelFree">Sound.IsChannelFree</a></li>
+                    <li><a href="#Reference_functions_Sound_GetLoopPoint">Sound.GetLoopPoint</a></li>
+                    <li><a href="#Reference_functions_Sound_SetLoopPoint">Sound.SetLoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Sprite">
@@ -6058,7 +6058,7 @@
         <li>music (Integer): The music index to get the loop point.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the index does not have one.</div>
+        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
         </p>
         <p id="Reference_functions_Music_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
@@ -6067,28 +6067,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>music (Integer): The music index to set the loop point.</li>
-        <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the index's loop point.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Sound_GetLoopPoint">
-        <h2 style="margin-bottom: 8px;">Sound.GetLoopPoint</h2>
-        <code>Sound.GetLoopPoint(sound)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a sound index, if it has one.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to get the loop point.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the index does not have one.</div>
-        </p>
-        <p id="Reference_functions_Music_SetLoopPoint">
-        <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
-        <code>Music.SetLoopPoint(sound, loopPoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a sound index.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to set the loop point.</li>
-        <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the index's loop point.</li>
+        <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
         <p id="Reference_functions_Number_ToString">
@@ -8622,6 +8601,27 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The channel index.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Sound_GetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Sound.GetLoopPoint</h2>
+        <code>Sound.GetLoopPoint(sound)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a sound index, if it has one.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sound (Integer): The sound index to get the loop point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
+        </p>
+        <p id="Reference_functions_Sound_SetLoopPoint">
+        <h2 style="margin-bottom: 8px;">Sound.SetLoopPoint</h2>
+        <code>Sound.SetLoopPoint(sound, loopPoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a sound index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sound (Integer): The sound index to set the loop point.</li>
+        <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sprite_GetAnimationCount">
