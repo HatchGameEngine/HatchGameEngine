@@ -15,6 +15,7 @@ public:
 	size_t SampleIndex = 0;
 	int TotalPossibleSamples;
 	Uint8* SampleBuffer = NULL;
+	int LoopPoint = -1;
 
 	virtual int LoadSamples(size_t count);
 	virtual int GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex);
