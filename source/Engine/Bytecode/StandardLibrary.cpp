@@ -709,6 +709,9 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->PrevAnimation = animator->CurrentAnimation;
 	animator->CurrentAnimation = animationID;
 
+	if (animator->RotationStyle == ROTSTYLE_STATICFRAMES)
+		animator->FrameCount >>= 1;
+
 	return NULL_VAL;
 }
 /***
@@ -2647,7 +2650,8 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param animator (Animator): The animator to draw.
  * \param instance (Instance): The instance to pull other values from.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -2656,59 +2660,87 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 	Animator* animator = GET_ARG(0, GetAnimator);
 	ObjInstance* instance = GET_ARG(1, GetInstance);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite =
-		(argCount > 2) ? GET_ARG(2, GetSprite) : GetSpriteIndex(animator->Sprite, threadID);
+	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
 	float rotation = 0.0f;
 
 	if (!animator || !animator->Frames.size()) {
 		return NULL_VAL;
 	}
 
-	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
-		animator->CurrentFrame >= 0) {
-		ISprite* animatorSprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (animatorSprite) {
-			sprite = animatorSprite;
-		}
-
-		if (!sprite) {
+	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		if (!sprite)
 			return NULL_VAL;
-		}
 
-		int rot = (int)rotation;
+		int rot = (int)entity->Rotation;
+		int frame = animator->CurrentFrame;
 		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
+			case ROTSTYLE_NONE: rot = 0; break;
+			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
 			case ROTSTYLE_STATICFRAMES:
+				if (rot >= 0x100)
+					rot = 0x08 - ((0x214 - rot) >> 6);
+				else
+					rot = (rot + 20) >> 6;
+
+				switch (rot) {
+					case 0: // 0 degrees
+					case 8: // 360 degrees
+						rot = 0x00;
+						break;
+
+					case 1: // 45 degrees
+						rot = 0x80;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x00;
+						break;
+
+					case 2: // 90 degrees
+						rot = 0x80;
+						break;
+
+					case 3: // 135 degrees
+						rot = 0x100;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x80;
+						break;
+
+					case 4: // 180 degrees
+						rot = 0x100;
+						break;
+
+					case 5: // 225 degrees
+						rot = 0x180;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x100;
+						break;
+
+					case 6: // 270 degrees
+						rot = 0x180;
+						break;
+
+					case 7: // 315 degrees
+						rot = 0x180;
+						frame += animator->FrameCount;
+						if (!entity->Direction)
+							rot = 0x00;
+						break;
+
+					default: break;
+				}
 				break;
-			default:
-				break;
+			default: break;
 		}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite,
-			animator->CurrentAnimation,
-			animator->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
-			entity->Direction & 1,
-			entity->Direction & 2,
-			entity->ScaleX,
-			entity->ScaleY,
-			rotation);
+		Graphics::DrawSprite(sprite, animator->CurrentAnimation, frame, x, y, entity->Direction & FLIP_X, entity->Direction & FLIP_Y, entity->ScaleX, entity->ScaleY, rotation);
 	}
 	return NULL_VAL;
 }
