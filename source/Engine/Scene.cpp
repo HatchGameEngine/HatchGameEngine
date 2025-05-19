@@ -62,6 +62,8 @@ HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
 
 HashMap<ObjectList*>* Scene::StaticObjectLists = NULL;
 
+int Scene::ReservedSlotIDs = 0;
+
 int Scene::StaticObjectCount = 0;
 Entity* Scene::StaticObjectFirst = NULL;
 Entity* Scene::StaticObjectLast = NULL;
@@ -616,6 +618,8 @@ void Scene::SetInfoFromCurrentID() {
 void Scene::Init() {
 	Scene::NextScene[0] = '\0';
 	Scene::CurrentScene[0] = '\0';
+
+	Scene::ReservedSlotIDs = 0;
 
 	GarbageCollector::Init();
 

@@ -55,6 +55,7 @@ public:
 	static HashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
 	static HashMap<ObjectList*>* StaticObjectLists;
+	static int ReservedSlotIDs;
 	static int StaticObjectCount;
 	static Entity* StaticObjectFirst;
 	static Entity* StaticObjectLast;

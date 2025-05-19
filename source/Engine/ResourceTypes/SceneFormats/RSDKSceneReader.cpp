@@ -428,7 +428,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			obj->InitialX = obj->X;
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
-			obj->SlotID = SlotID;
+			obj->SlotID = SlotID + Scene::ReservedSlotIDs;
 
 			for (int a = 1; a < argumentCount; a++) {
 				VMValue val = NULL_VAL;

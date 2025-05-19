@@ -485,7 +485,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			obj->InitialX = posX;
 			obj->InitialY = posY;
 			obj->List = objectList;
-			obj->SlotID = (int)i;
+			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
