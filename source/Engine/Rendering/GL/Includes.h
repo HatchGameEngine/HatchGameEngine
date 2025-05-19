@@ -6,9 +6,7 @@
 #include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
 #elif SWITCH
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <SDL2/SDL_opengl.h>
+#include <SDL_opengles2.h>
 #elif IOS
 #include <OpenGLES/ES3/gl.h>
 #include <OpenGLES/ES3/glext.h>

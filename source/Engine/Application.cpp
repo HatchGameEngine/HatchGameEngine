@@ -1974,7 +1974,9 @@ void Application::LoadSceneInfo() {
 				Scene::SetInfoFromCurrentID();
 
 				StringUtils::Copy(StartingScene,
-					SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(),
+					SceneInfo::GetFilename(
+						Scene::ActiveCategory, Scene::CurrentSceneInList)
+						.c_str(),
 					sizeof(StartingScene));
 			}
 

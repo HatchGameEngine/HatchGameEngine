@@ -2,7 +2,7 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0003
+#define BYTECODE_VERSION 0x0004
 
 const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;

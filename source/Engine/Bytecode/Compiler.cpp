@@ -51,7 +51,7 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_CLASS",
 	"OP_CALL",
 	"OP_SUPER",
-	"OP_INVOKE",
+	"OP_INVOKE_V3",
 	"OP_JUMP",
 	"OP_JUMP_IF_FALSE",
 	"OP_JUMP_BACK",
@@ -111,7 +111,9 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_USE_NAMESPACE",
 	"OP_DEFINE_CONSTANT",
 	"OP_INTEGER",
-	"OP_DECIMAL"};
+	"OP_DECIMAL",
+	"OP_INVOKE",
+	"OP_SUPER_INVOKE"};
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -1222,14 +1224,16 @@ void Compiler::EmitCopy(Uint8 count) {
 }
 
 void Compiler::EmitCall(const char* name, int argCount, bool isSuper) {
-	EmitBytes(OP_INVOKE, argCount);
+	EmitCallOpcode(argCount, isSuper);
 	EmitStringHash(name);
-	EmitByte(isSuper ? 1 : 0);
 }
 void Compiler::EmitCall(Token name, int argCount, bool isSuper) {
-	EmitBytes(OP_INVOKE, argCount);
+	EmitCallOpcode(argCount, isSuper);
 	EmitStringHash(name);
-	EmitByte(isSuper ? 1 : 0);
+}
+void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
+	EmitByte(isSuper ? OP_SUPER_INVOKE : OP_INVOKE);
+	EmitByte(argCount);
 }
 
 void Compiler::NamedVariable(Token name, bool canAssign) {
@@ -4047,6 +4051,9 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_JUMP_BACK:
 		return 3;
 	case OP_INVOKE:
+	case OP_SUPER_INVOKE:
+		return 6;
+	case OP_INVOKE_V3:
 		return 7;
 	case OP_WITH:
 		if (*(op + 1) == 3) {
@@ -4132,6 +4139,9 @@ int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+	return Compiler::MethodInstruction(opcode, chunk, offset);
+}
+int Compiler::InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::MethodInstruction(opcode, chunk, offset);
 }
 int Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
@@ -4254,7 +4264,10 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_JUMP_BACK:
 		return JumpInstruction(instruction, -1, chunk, offset);
 	case OP_INVOKE:
+	case OP_SUPER_INVOKE:
 		return InvokeInstruction(instruction, chunk, offset);
+	case OP_INVOKE_V3:
+		return InvokeInstructionV3(instruction, chunk, offset);
 
 	case OP_PRINT_STACK: {
 		offset++;

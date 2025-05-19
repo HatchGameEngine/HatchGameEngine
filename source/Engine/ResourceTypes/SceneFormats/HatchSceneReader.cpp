@@ -46,6 +46,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_HATCH;
+
 	// Read scene version
 	Uint8 verMajor = r->ReadByte();
 	Uint8 verMinor = r->ReadByte();
@@ -464,6 +466,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
+		if (!(filter & Scene::Filter)) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 		if (objectList->SpawnFunction) {
@@ -478,10 +485,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			obj->InitialX = posX;
 			obj->InitialY = posY;
 			obj->List = objectList;
-			obj->SlotID = (int)i;
+			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
+			obj->Filter = filter;
 			obj->Properties->Put("filter", INTEGER_VAL(filter));
 
 			// Add all properties

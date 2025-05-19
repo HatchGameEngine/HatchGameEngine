@@ -70,11 +70,13 @@ public:
 	int CurrentFrameCount = 0;
 	float AnimationSpeedMult = 1.0;
 	int AnimationSpeedAdd = 0;
+	int PrevAnimation = -1;
 	int AutoAnimate = true;
 	float AnimationSpeed = 0.0;
 	float AnimationTimer = 0.0;
 	int AnimationFrameDuration = 0;
 	int AnimationLoopIndex = 0;
+	int RotationStyle = ROTSTYLE_NONE;
 	EntityHitbox Hitbox;
 	int FlipFlag = 0;
 	float SensorX = 0.0f;
@@ -92,6 +94,7 @@ public:
 	int CollisionPlane = 0;
 	int CollisionMode = 0;
 	int SlotID = -1;
+	int Filter = 0xFF;
 	bool Removed = false;
 	Entity* PrevEntity = NULL;
 	Entity* NextEntity = NULL;

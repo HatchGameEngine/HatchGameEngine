@@ -218,7 +218,7 @@ void ScriptEntity::LinkFields() {
     * \type Integer
     * \default -1
     * \ns Instance
-    * \desc The current sprite  animation index of the entity.
+    * \desc The current sprite animation index of the entity.
     */
 	LINK_INT(CurrentAnimation);
 	/***
@@ -270,6 +270,14 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_INT(AnimationLoopIndex);
 	/***
+	* \field RotationStyle
+	* \type Enumeration
+	* \default ROTSTYLE_NONE
+	* \ns Instance
+	* \desc The rotation style to use when this entity is called in <linkto ref="Draw.SpriteBasic"></linkto>.
+	*/
+	LINK_INT(AnimationLoopIndex);
+	/***
     * \field AnimationSpeedMult
     * \type Decimal
     * \default 1.0
@@ -285,6 +293,14 @@ void ScriptEntity::LinkFields() {
     * \desc This value is added to the result of <linkto ref="instance.AnimationSpeed"></linkto> * <linkto ref="instance.AnimationSpeedMult"></linkto> when the entity is being animated.
     */
 	LINK_INT(AnimationSpeedAdd);
+	/***
+    * \field PrevAnimation
+    * \type Integer
+    * \default -1
+    * \ns Instance
+    * \desc The previous sprite animation index of the entity, if it was changed.
+    */
+	LINK_INT(PrevAnimation);
 	/***
     * \field AutoAnimate
     * \type Boolean
@@ -572,6 +588,15 @@ void ScriptEntity::LinkFields() {
     * \desc If this entity was spawned from a scene file, this field contains the slot ID in which it was placed. If not, this field contains the default value of <code>-1</code>.
     */
 	LINK_INT(SlotID);
+
+	/***
+	* \field Filter
+	* \type Integer
+	* \default 0xFF
+	* \ns Instance
+	* \desc If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. Defaults to <code>0xFF</code>.
+	*/
+	LINK_INT(Filter);
 
 	/***
     * \field ZDepth
@@ -937,6 +962,7 @@ void ScriptEntity::Initialize() {
 	AnimationTimer = 0.0;
 	AnimationFrameDuration = 0;
 	AnimationLoopIndex = 0;
+	RotationStyle = ROTSTYLE_NONE;
 
 	Hitbox.Clear();
 	FlipFlag = 0;
@@ -1523,64 +1549,73 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32
  */
 VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	ScriptEntity* self = GET_ENTITY(0);
-	if (!IsValidEntity(self))
+	if (!IsValidEntity(self)) {
 		return NULL_VAL;
+	}
 
 	ISprite* sprite;
 	int animationID = 0, frameID = 0, hitboxID = 0;
 
 	switch (argCount) {
-		case 1:
-		case 2:
-			if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-				if (ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite index \"%d\" outside bounds of list.", self->Sprite) == ERROR_RES_CONTINUE)
-					ScriptManager::Threads[threadID].ReturnFromNative();
-
-				return NULL_VAL;
+	case 1:
+	case 2:
+		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
+			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+				    "Sprite index \"%d\" outside bounds of list.",
+				    self->Sprite) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
 
-			if (!Scene::SpriteList[self->Sprite])
-				return NULL_VAL;
+			return NULL_VAL;
+		}
 
-			sprite = Scene::SpriteList[self->Sprite]->AsSprite;
-			animationID = self->CurrentAnimation;
-			frameID = self->CurrentFrame;
-			hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
-			break;
-		default:
-			StandardLibrary::CheckAtLeastArgCount(argCount, 4);
-			sprite = GET_ARG(1, GetSprite);
-			animationID = GET_ARG(2, GetInteger);
-			frameID = GET_ARG(3, GetInteger);
-			hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
-			break;
+		if (!Scene::SpriteList[self->Sprite]) {
+			return NULL_VAL;
+		}
+
+		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+		animationID = self->CurrentAnimation;
+		frameID = self->CurrentFrame;
+		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
+		break;
+	default:
+		StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+		sprite = GET_ARG(1, GetSprite);
+		animationID = GET_ARG(2, GetInteger);
+		frameID = GET_ARG(3, GetInteger);
+		hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
+		break;
 	}
 
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite %d does not exist!", self->Sprite);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	if (!(animationID >= 0 && (Uint32)animationID < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Animation %d is not in bounds of sprite.", animationID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
 	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
 	}
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
 	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
 		return NULL_VAL;
 	}
 
 	CollisionBox box = frame.Boxes[hitboxID];
 	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Right));
 	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 	return OBJECT_VAL(hitbox);

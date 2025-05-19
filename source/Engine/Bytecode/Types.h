@@ -261,9 +261,7 @@ struct ObjClass {
 	ObjString* Name;
 	Uint32 Hash;
 	Table* Methods;
-	Table* Fields; // Keep this as a pointer, so that a new table
-	// isn't created when passing an ObjClass value
-	// around
+	Table* Fields;
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
 	StructGetFn ElementGet;
@@ -271,7 +269,6 @@ struct ObjClass {
 	VMValue Initializer;
 	ClassNewFn NewFn;
 	Uint8 Type;
-	Uint32 ParentHash;
 	ObjClass* Parent;
 };
 struct ObjInstance {
@@ -408,7 +405,7 @@ enum OpCode : uint8_t {
 	// Function Operations
 	OP_CALL,
 	OP_SUPER,
-	OP_INVOKE,
+	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,
 	OP_JUMP_IF_FALSE,
@@ -476,10 +473,11 @@ enum OpCode : uint8_t {
 	OP_SET_MODULE_LOCAL,
 	OP_DEFINE_MODULE_LOCAL,
 	OP_USE_NAMESPACE,
-	// New constant opcodes
 	OP_DEFINE_CONSTANT,
 	OP_INTEGER,
 	OP_DECIMAL,
+	OP_INVOKE,
+	OP_SUPER_INVOKE,
 
 	OP_LAST
 };

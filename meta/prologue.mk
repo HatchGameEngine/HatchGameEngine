@@ -26,9 +26,14 @@
 # Check Make version; we need at least GNU Make 3.82. Fortunately,
 # 'undefine' directive has been introduced exactly in GNU Make 3.82.
 ifeq ($(filter undefine,$(value .FEATURES)),)
-$(error Unsupported Make version. \
+ifneq ($(strip $(MAKE_VERSION)),)
+$(error Unsupported GNU Make version. \
 The build system does not work properly with GNU Make $(MAKE_VERSION). \
 Please use GNU Make 3.82 or later)
+else
+$(error Unsupported Make utility. \
+Please use GNU Make 3.82 or later)
+endif
 endif
 
 # INB_OVERRIDE : If set, epilogue.mk will take user-set *FLAGS
@@ -784,6 +789,8 @@ override LINT    := $(LINT.O_$(.O_LINT))
 override INSTALL := $(INSTALL.O_$(.O_INSTALL))
 override ECHO    := $(ECHO.O_$(.O_ECHO))
 override CP      := $(CP.O_$(.O_CP))
+
+BITBOUND := $(shell $(ECHO) -e '\n#include <stdio.h>\nstatic const char*const s="_BB_CSZ=%lu _BB_SSZ=%lu _BB_ISZ=%lu _BB_LSZ=%lu _BB_PSZ=%lu _BB_FSZ=%lu _BB_DSZ=%lu _BB_LDSZ=%lu \\n";int main(int ac,char*av[]){(void)ac;(void)av;printf(s,sizeof(char),sizeof(short),sizeof(int),sizeof(long),sizeof(void*),sizeof(float),sizeof(double),sizeof(long double));return 0;}' > bitbound.c ; cc -obitbound.tmp bitbound.c && ./bitbound.tmp && $(RM) bitbound.c && $(RM) bitbound.tmp)
 
 ## Suffixes.
 

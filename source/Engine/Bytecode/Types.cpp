@@ -131,7 +131,6 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->NewFn = NULL;
 	klass->Type = CLASS_TYPE_NORMAL;
-	klass->ParentHash = 0;
 	klass->Parent = NULL;
 	return klass;
 }
@@ -334,7 +333,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
 			OPCASE(OP_SUPER);
-			OPCASE(OP_INVOKE);
+			OPCASE(OP_INVOKE_V3);
 			OPCASE(OP_JUMP);
 			OPCASE(OP_JUMP_IF_FALSE);
 			OPCASE(OP_JUMP_BACK);
@@ -395,6 +394,8 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_DEFINE_CONSTANT);
 			OPCASE(OP_INTEGER);
 			OPCASE(OP_DECIMAL);
+			OPCASE(OP_INVOKE);
+			OPCASE(OP_SUPER_INVOKE);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;
