@@ -1605,8 +1605,8 @@ VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 thread
 
 	CollisionBox box = frame.Boxes[hitboxID];
 	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Right));
 	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 	return OBJECT_VAL(hitbox);

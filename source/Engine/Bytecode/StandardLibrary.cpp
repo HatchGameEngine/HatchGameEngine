@@ -837,8 +837,8 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
 		CollisionBox box = frame.Boxes[hitboxID];
 		ObjArray* array = NewArray();
-		array->Values->push_back(INTEGER_VAL(box.Top));
 		array->Values->push_back(INTEGER_VAL(box.Left));
+		array->Values->push_back(INTEGER_VAL(box.Top));
 		array->Values->push_back(INTEGER_VAL(box.Right));
 		array->Values->push_back(INTEGER_VAL(box.Bottom));
 		return OBJECT_VAL(array);
@@ -15079,8 +15079,8 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
 	CollisionBox box = frame.Boxes[hitboxID];
 	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
 	hitbox->Values->push_back(INTEGER_VAL(box.Right));
 	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 	return OBJECT_VAL(hitbox);

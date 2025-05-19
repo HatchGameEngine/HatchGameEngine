@@ -197,7 +197,7 @@
                     <li><a href="#Reference_functions_Animator_GetCurrentAnimation">Animator.GetCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_GetCurrentFrame">Animator.GetCurrentFrame</a></li>
                     <li><a href="#Reference_functions_Animator_GetHitbox">Animator.GetHitbox</a></li>
-                    <li><a href="#Reference_functions_Animator_GetPreviousAnimation">Animator.GetPreviousAnimation</a></li>
+                    <li><a href="#Reference_functions_Animator_GetPrevAnimation">Animator.GetPrevAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_GetAnimationSpeed">Animator.GetAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_GetAnimationTimer">Animator.GetAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_GetDuration">Animator.GetDuration</a></li>
@@ -207,7 +207,7 @@
                     <li><a href="#Reference_functions_Animator_SetSprite">Animator.SetSprite</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentAnimation">Animator.SetCurrentAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetCurrentFrame">Animator.SetCurrentFrame</a></li>
-                    <li><a href="#Reference_functions_Animator_SetPreviousAnimation">Animator.SetPreviousAnimation</a></li>
+                    <li><a href="#Reference_functions_Animator_SetPrevAnimation">Animator.SetPrevAnimation</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationSpeed">Animator.SetAnimationSpeed</a></li>
                     <li><a href="#Reference_functions_Animator_SetAnimationTimer">Animator.SetAnimationTimer</a></li>
                     <li><a href="#Reference_functions_Animator_SetDuration">Animator.SetDuration</a></li>
@@ -678,6 +678,7 @@
                     <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
                     <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
@@ -1175,6 +1176,7 @@
                     <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetAnimationName">Sprite.GetAnimationName</a></li>
                     <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameExists">Sprite.GetFrameExists</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameDuration">Sprite.GetFrameDuration</a></li>
@@ -1485,6 +1487,7 @@
                     <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
                     <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
                     <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
@@ -1546,6 +1549,7 @@
                     <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetAnimationName">Sprite.GetAnimationName</a></li>
                     <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameExists">Sprite.GetFrameExists</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameDuration">Sprite.GetFrameDuration</a></li>
@@ -2145,9 +2149,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
-        <p id="Reference_functions_Animator_GetPreviousAnimation">
-        <h2 style="margin-bottom: 8px;">Animator.GetPreviousAnimation</h2>
-        <code>Animator.GetPreviousAnimation(animator)</code>
+        <p id="Reference_functions_Animator_GetPrevAnimation">
+        <h2 style="margin-bottom: 8px;">Animator.GetPrevAnimation</h2>
+        <code>Animator.GetPrevAnimation(animator)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the previous animation value of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2252,9 +2256,9 @@
         <li>frameID (Integer): The frame ID.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Animator_SetPreviousAnimation">
-        <h2 style="margin-bottom: 8px;">Animator.SetPreviousAnimation</h2>
-        <code>Animator.SetPreviousAnimation(animator, prevAnimationID)</code>
+        <p id="Reference_functions_Animator_SetPrevAnimation">
+        <h2 style="margin-bottom: 8px;">Animator.SetPrevAnimation</h2>
+        <code>Animator.SetPrevAnimation(animator, prevAnimationID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the previous animation of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -5476,7 +5480,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the instance is of a specified object class.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>instance (Instance): The instance to check.</li>
+        <li>instance (Instance): The instance to check. If there is no instance, this automatically returns false.</li>
         <li>className (String): Name of the object class.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8762,6 +8766,19 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the first animation index with the specified name, or -1 if there was no match.</div>
         </p>
+        <p id="Reference_functions_Sprite_GetFrameExists">
+        <h2 style="margin-bottom: 8px;">Sprite.GetFrameExists</h2>
+        <code>Sprite.GetFrameExists(sprite, animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
+        <li>frame (Integer): The sprite index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether the frame is valid.</div>
+        </p>
         <p id="Reference_functions_Sprite_GetFrameLoopIndex">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameLoopIndex</h2>
         <code>Sprite.GetFrameLoopIndex(sprite, animation)</code>
@@ -10250,7 +10267,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>738 out of 797 functions have descriptions. </p>
+        <p>739 out of 798 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -10637,7 +10654,7 @@
         <h3 style="margin-bottom: 8px;"><code>instance.CurrentAnimation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The current sprite  animation index of the entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The current sprite animation index of the entity.</div>
         </p>
         <p id="Reference_fields_instance_CurrentFrame">
         <h3 style="margin-bottom: 8px;"><code>instance.CurrentFrame</code></h2>
@@ -10692,6 +10709,12 @@
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">This value is added to the result of <code><a href="#Reference_fields_instance_AnimationSpeed">instance.AnimationSpeed</a></code> * <code><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></code> when the entity is being animated.</div>
+        </p>
+        <p id="Reference_fields_instance_PrevAnimation">
+        <h3 style="margin-bottom: 8px;"><code>instance.PrevAnimation</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The previous sprite animation index of the entity, if it was changed.</div>
         </p>
         <p id="Reference_fields_instance_AutoAnimate">
         <h3 style="margin-bottom: 8px;"><code>instance.AutoAnimate</code></h2>
@@ -11001,7 +11024,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>77 out of 81 fields have descriptions. </p>
+        <p>78 out of 82 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
