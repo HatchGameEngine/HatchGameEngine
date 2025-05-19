@@ -709,6 +709,9 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->PrevAnimation = animator->CurrentAnimation;
 	animator->CurrentAnimation = animationID;
 
+	if (animator->RotationStyle == ROTSTYLE_STATICFRAMES)
+		animator->FrameCount >>= 1;
+
 	return NULL_VAL;
 }
 /***
@@ -1864,6 +1867,278 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Collision
+/***
+ * Collision.ProcessObjectMovement
+ * \desc Processes movement of an instance with an outer hitbox and an inner hitboxes.
+ * \param entity (Instance): The instance to move.
+ * \param outer (Array): Array containing the outer hitbox.
+ * \param inner (Array): Array containing the inner hitbox.
+ * \ns Collision
+ */
+VMValue Collision_ProcessObjectMovement(int argCount, VMValue * args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjArray* outer = GET_ARG(1, GetArray);
+	ObjArray* inner = GET_ARG(2, GetArray);
+
+	CollisionBox outerBox;
+	CollisionBox innerBox;
+
+	if (entity && outer && inner) {
+		auto ent = (Entity*)entity->EntityPtr;
+
+		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
+		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
+		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
+		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
+
+		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
+		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
+		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
+		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+	}
+	return NULL_VAL;
+}
+/***
+ * Collision.ObjectTileCollision
+ * \desc Checks tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to base the values on.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Number): How far from the entity's X value to start from.
+ * \param yOffset (Number): How far from the entity's Y value to start from.
+ * \param setPos (Boolean): Whether to set the entity's position if collision is found.
+ * \return Returns whether the instance has collided with a tile.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(7);
+	ObjInstance* entity = GET_ARG(0, GetInstance);
+	int cLayers = GET_ARG(1, GetInteger);
+	int cMode = GET_ARG(2, GetInteger);
+	int cPlane = GET_ARG(3, GetInteger);
+	int xOffset = GET_ARG(4, GetDecimal);
+	int yOffset = GET_ARG(5, GetDecimal);
+	int setPos = GET_ARG(6, GetInteger);
+
+	auto ent = (Entity*)entity->EntityPtr;
+
+	return INTEGER_VAL(
+		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+}
+/***
+ * Collision.ObjectTileGrip
+ * \desc Keeps an instance gripped to tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to move.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Decimal): How far from the entity's X value to start from.
+ * \param yOffset (Decimal): How far from the entity's Y value to start from.
+ * \param tolerance (Decimal): How far of a tolerance the entity should check for.
+ * \return Returns whether to grip the instance.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(7);
+	ObjInstance* entity = GET_ARG(0, GetInstance);
+	int cLayers = GET_ARG(1, GetInteger);
+	int cMode = GET_ARG(2, GetInteger);
+	int cPlane = GET_ARG(3, GetInteger);
+	float xOffset = GET_ARG(4, GetDecimal);
+	float yOffset = GET_ARG(5, GetDecimal);
+	float tolerance = GET_ARG(6, GetDecimal);
+
+	auto ent = (Entity*)entity->EntityPtr;
+
+	return INTEGER_VAL(
+		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+}
+/***
+ * Collision.CheckObjectCollisionTouch
+ * \desc Checks if an instance is touching another instance with their respective hitboxes.
+ * \param thisEntity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \return Returns a Boolean value whether the entities are touching.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(
+		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+}
+/***
+ * Collision.CheckObjectCollisionCircle
+ * \desc Checks if an instance is touching another instance with within their respective radii.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisRadius (Decimal): Radius of the first entity to check.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherRadius (Array): Radius of the other entity to check.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	float thisRadius = GET_ARG(1, GetDecimal);
+	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	float otherRadius = GET_ARG(3, GetDecimal);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	return INTEGER_VAL(
+		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+}
+/***
+ * Collision.CheckObjectCollisionBox
+ * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns the side the entities are colliding on.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	bool setValues = !!GET_ARG(4, GetInteger);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(
+		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+}
+/***
+ * Collision.CheckObjectCollisionPlatform
+ * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	bool setValues = !!GET_ARG(4, GetInteger);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
+		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+}
+// #endregion
+
 // #region Controller
 /***
  * Controller.GetCount
@@ -2479,40 +2754,18 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-				case ROTSTYLE_NONE:
-					rot = 0;
-					break;
-				case ROTSTYLE_FULL:
-					rot = rot & 0x1FF;
-					break;
-				case ROTSTYLE_45DEG:
-					rot = (rot + 0x20) & 0x1C0;
-					break;
-				case ROTSTYLE_90DEG:
-					rot = (rot + 0x40) & 0x180;
-					break;
-				case ROTSTYLE_180DEG:
-					rot = (rot + 0x80) & 0x100;
-					break;
-				case ROTSTYLE_STATICFRAMES:
-					break;
-				default:
-					break;
+				case ROTSTYLE_NONE: rot = 0; break;
+				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
+				default: break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
 
-		Graphics::DrawSprite(sprite,
-			animation,
-			frame,
-			x,
-			y,
-			flipX,
-			flipY,
-			scaleX,
-			scaleY,
-			rotation,
-			(unsigned)paletteID);
+		Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, (unsigned)paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2520,7 +2773,8 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.SpriteBasic
  * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param instance (Instance): The instance to draw.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -2528,39 +2782,84 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjInstance* instance = GET_ARG(0, GetInstance);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite, threadID));
+	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
+	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
-		switch (sprite->Animations[entity->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
+		int frame = entity->CurrentFrame;
+		switch (entity->RotationStyle) {
+			case ROTSTYLE_NONE: rot = 0; break;
+			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
 			case ROTSTYLE_STATICFRAMES:
+				if (rot >= 0x100)
+					rot = 0x08 - ((0x214 - rot) >> 6);
+				else
+					rot = (rot + 20) >> 6;
+
+				switch (rot) {
+					case 0: // 0 degrees
+					case 8: // 360 degrees
+						rot = 0x00;
+						break;
+
+					case 1: // 45 degrees
+						rot = 0x80;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x00;
+						break;
+
+					case 2: // 90 degrees
+						rot = 0x80;
+						break;
+
+					case 3: // 135 degrees
+						rot = 0x100;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x80;
+						break;
+
+					case 4: // 180 degrees
+						rot = 0x100;
+						break;
+
+					case 5: // 225 degrees
+						rot = 0x180;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x100;
+						break;
+
+					case 6: // 270 degrees
+						rot = 0x180;
+						break;
+
+					case 7: // 315 degrees
+						rot = 0x180;
+						frame += entity->CurrentFrameCount;
+						if (!entity->Direction)
+							rot = 0x00;
+						break;
+
+					default: break;
+				}
 				break;
-			default:
-				break;
+			default: break;
 		}
 		rotation = rot * M_PI / 256.0;
 
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
-			entity->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
+			frame,
+			x,
+			y,
 			entity->Direction & 1,
 			entity->Direction & 2,
 			entity->ScaleX,
@@ -2606,39 +2905,18 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		int rot = (int)rotation;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
-		}
+		switch (animator->RotationStyle) {
+			case ROTSTYLE_NONE: rot = 0; break;
+				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
+				default: break;
+			}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite,
-			animator->CurrentAnimation,
-			animator->CurrentFrame,
-			x,
-			y,
-			flipX,
-			flipY,
-			scaleX,
-			scaleY,
-			rotation);
+		Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, flipX, flipY, scaleX, scaleY, rotation);
 	}
 	return NULL_VAL;
 }
@@ -2647,7 +2925,8 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param animator (Animator): The animator to draw.
  * \param instance (Instance): The instance to pull other values from.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -2656,59 +2935,87 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 	Animator* animator = GET_ARG(0, GetAnimator);
 	ObjInstance* instance = GET_ARG(1, GetInstance);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite =
-		(argCount > 2) ? GET_ARG(2, GetSprite) : GetSpriteIndex(animator->Sprite, threadID);
+	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
 	float rotation = 0.0f;
 
 	if (!animator || !animator->Frames.size()) {
 		return NULL_VAL;
 	}
 
-	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
-		animator->CurrentFrame >= 0) {
-		ISprite* animatorSprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (animatorSprite) {
-			sprite = animatorSprite;
-		}
-
-		if (!sprite) {
+	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		if (!sprite)
 			return NULL_VAL;
-		}
 
-		int rot = (int)rotation;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
+		int rot = (int)entity->Rotation;
+		int frame = animator->CurrentFrame;
+		switch (animator->RotationStyle) {
+			case ROTSTYLE_NONE: rot = 0; break;
+			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
 			case ROTSTYLE_STATICFRAMES:
+				if (rot >= 0x100)
+					rot = 0x08 - ((0x214 - rot) >> 6);
+				else
+					rot = (rot + 20) >> 6;
+
+				switch (rot) {
+					case 0: // 0 degrees
+					case 8: // 360 degrees
+						rot = 0x00;
+						break;
+
+					case 1: // 45 degrees
+						rot = 0x80;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x00;
+						break;
+
+					case 2: // 90 degrees
+						rot = 0x80;
+						break;
+
+					case 3: // 135 degrees
+						rot = 0x100;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x80;
+						break;
+
+					case 4: // 180 degrees
+						rot = 0x100;
+						break;
+
+					case 5: // 225 degrees
+						rot = 0x180;
+						frame += animator->FrameCount;
+						if (entity->Direction)
+							rot = 0x100;
+						break;
+
+					case 6: // 270 degrees
+						rot = 0x180;
+						break;
+
+					case 7: // 315 degrees
+						rot = 0x180;
+						frame += animator->FrameCount;
+						if (!entity->Direction)
+							rot = 0x00;
+						break;
+
+					default: break;
+				}
 				break;
-			default:
-				break;
+			default: break;
 		}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite,
-			animator->CurrentAnimation,
-			animator->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
-			entity->Direction & 1,
-			entity->Direction & 2,
-			entity->ScaleX,
-			entity->ScaleY,
-			rotation);
+		Graphics::DrawSprite(sprite, animator->CurrentAnimation, frame, x, y, entity->Direction & FLIP_X, entity->Direction & FLIP_Y, entity->ScaleX, entity->ScaleY, rotation);
 	}
 	return NULL_VAL;
 }
@@ -9828,60 +10135,44 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
  * Music.Play
  * \desc Places the music onto the music stack and plays it.
  * \param music (Integer): The music index to play.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the track once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default).
+ * \paramOpt startPoint (Decimal): The time (in seconds) to start the music at. (0.0 is the default).
+ * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 is the default, which disables it).
  * \ns Music
  */
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(4, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusicAt(
-			audio, 0.0, false, 0, panning, speed, volume, fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
- * Music.PlayAtTime
- * \desc Places the music onto the music stack and plays it at a time (in seconds).
- * \param music (Integer): The music index to play.
- * \param startPoint (Decimal): The time (in seconds) to start the music at.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	ISound* audio = GET_ARG(0, GetMusic);
-	double start_point = GET_ARG(1, GetDecimal);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(5, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
+	double startPoint = GET_ARG_OPT(5, GetDecimal, 0.0);
+	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
+
+	if (fadeInAfterFinished < 0.f)
 		fadeInAfterFinished = 0.f;
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		return NULL_VAL;
 	}
-	if (audio) {
-		AudioManager::PushMusicAt(
-			audio, start_point, false, 0, panning, speed, volume, fadeInAfterFinished);
-	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT)
+		loopPoint = audio->LoopPoint;
+
+	if (audio)
+		AudioManager::PushMusicAt(audio, startPoint, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, fadeInAfterFinished);
+
 	return NULL_VAL;
 }
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Integer): The music index to play.
+ * \param music (Integer): The music index to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -9948,74 +10239,6 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Music.Loop
- * \desc Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.
- * \param music (Integer): The music index to play.
- * \param loop (Boolean): Unused.
- * \param loopPoint (Integer): The sample index to loop back to.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_Loop(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(3);
-	ISound* audio = GET_ARG(0, GetMusic);
-	// int loop = GET_ARG(1, GetInteger);
-	int loop_point = GET_ARG(2, GetInteger);
-	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusic(
-			audio, true, loop_point, panning, speed, volume, fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
- * Music.LoopAtTime
- * \desc Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.
- * \param music (Integer): The music index to play.
- * \param startPoint (Decimal): The time (in seconds) to start the music at.
- * \param loop (Boolean): Unused.
- * \param loopPoint (Integer): The sample index to loop back to.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_LoopAtTime(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(4);
-	ISound* audio = GET_ARG(0, GetMusic);
-	double start_point = GET_ARG(1, GetDecimal);
-	// int loop = GET_ARG(2, GetInteger);
-	int loop_point = GET_ARG(3, GetInteger);
-	float panning = GET_ARG_OPT(4, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(5, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(6, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(7, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusicAt(audio,
-			start_point,
-			true,
-			loop_point,
-			panning,
-			speed,
-			volume,
-			fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
  * \param music (Integer): The music index to play.
@@ -10060,6 +10283,40 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 	float volume = GET_ARG(2, GetDecimal);
 
 	AudioManager::AlterMusic(panning, speed, volume);
+	return NULL_VAL;
+}
+/***
+ * Music.GetLoopPoint
+ * \desc Gets the loop point of a music index, if it has one.
+ * \param music (Integer): The music index to get the loop point.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \ns Music
+ */
+VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio || audio->LoopPoint == -1) {
+		return NULL_VAL;
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Music.SetLoopPoint
+ * \desc Sets the loop point of a music index.
+ * \param music (Integer): The music index to set the loop point.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \ns Music
+ */
+VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	if (loopPoint >= -1) {
+		audio->LoopPoint = loopPoint;
+	}
 	return NULL_VAL;
 }
 // #endregion
@@ -10982,275 +11239,6 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 		x >= Scene::Layers[layer].Width || y >= Scene::Layers[layer].Height) \
 		return NULL_VAL;
 
-/***
- * Scene.ProcessObjectMovement
- * \desc Processes movement of an instance with an outer hitbox and an inner hitboxe.
- * \param entity (Instance): The instance to move.
- * \param outer (Array): Array containing the outer hitbox.
- * \param inner (Array): Array containing the inner hitbox.
- * \ns Scene
- */
-VMValue Scene_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	ObjArray* outer = GET_ARG(1, GetArray);
-	ObjArray* inner = GET_ARG(2, GetArray);
-
-	CollisionBox outerBox;
-	CollisionBox innerBox;
-
-	if (entity && outer && inner) {
-		auto ent = (Entity*)entity->EntityPtr;
-
-		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-
-		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
-		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
-	}
-	return NULL_VAL;
-}
-/***
- * Scene.ObjectTileCollision
- * \desc Checks tile collision based on where an instance should check.
- * \param entity (Instance): The instance to base the values on.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Number): How far from the entity's X value to start from.
- * \param yOffset (Number): How far from the entity's Y value to start from.
- * \param setPos (Boolean): Whether to set the entity's position if collision is found.
- * \return Returns whether the instance has collided with a tile.
- * \ns Scene
- */
-VMValue Scene_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	int cLayers = GET_ARG(1, GetInteger);
-	int cMode = GET_ARG(2, GetInteger);
-	int cPlane = GET_ARG(3, GetInteger);
-	int xOffset = GET_ARG(4, GetDecimal);
-	int yOffset = GET_ARG(5, GetDecimal);
-	int setPos = GET_ARG(6, GetInteger);
-
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
-}
-/***
- * Scene.ObjectTileGrip
- * \desc Keeps an instance gripped to tile collision based on where an instance should check.
- * \param entity (Instance): The instance to move.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Decimal): How far from the entity's X value to start from.
- * \param yOffset (Decimal): How far from the entity's Y value to start from.
- * \param tolerance (Decimal): How far of a tolerance the entity should check for.
- * \return Returns whether to grip the instance.
- * \ns Scene
- */
-VMValue Scene_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	int cLayers = GET_ARG(1, GetInteger);
-	int cMode = GET_ARG(2, GetInteger);
-	int cPlane = GET_ARG(3, GetInteger);
-	float xOffset = GET_ARG(4, GetDecimal);
-	float yOffset = GET_ARG(5, GetDecimal);
-	float tolerance = GET_ARG(6, GetDecimal);
-
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
-}
-/***
- * Scene.CheckObjectCollisionTouch
- * \desc Checks if an instance is touching another instance with their respective hitboxes.
- * \param thisEntity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \return Returns a Boolean value whether the entities are touching.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
-}
-/***
- * Scene.CheckObjectCollisionCircle
- * \desc Checks if an instance is touching another instance with within their respective radii.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisRadius (Decimal): Radius of the first entity to check.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherRadius (Array): Radius of the other entity to check.
- * \return Returns a Boolean value whether the entities have collided.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	float thisRadius = GET_ARG(1, GetDecimal);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	float otherRadius = GET_ARG(3, GetDecimal);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
-}
-/***
- * Scene.CheckObjectCollisionBox
- * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns the side the entities are colliding on.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-	bool setValues = !!GET_ARG(4, GetInteger);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
-}
-/***
- * Scene.CheckObjectCollisionPlatform
- * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns a Boolean value whether the entities have collided.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-	bool setValues = !!GET_ARG(4, GetInteger);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
-		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
-}
 /***
  * Scene.Load
  * \desc Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <linkto ref="SceneList"></linkto>.)
@@ -14465,8 +14453,9 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 // #region Sound
 /***
  * Sound.Play
- * \desc Plays a sound once.
+ * \desc Plays a sound either once or in a loop.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14476,39 +14465,23 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.Loop
- * \desc Plays a sound, looping back when it ends.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT)
+		loopPoint = audio->LoopPoint;
+
 	if (audio) {
 		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -14601,8 +14574,9 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.PlayMultiple
- * \desc Plays a sound once, without interrupting channels playing the same sound.
+ * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14612,45 +14586,31 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.LoopMultiple
- * \desc Plays a sound, looping back when it ends, without interrupting channels playing the same sound.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT)
+		loopPoint = audio->LoopPoint;
+
 	if (audio) {
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
 /***
  * Sound.PlayAtChannel
- * \desc Plays a sound at the specified channel.
+ * \desc Plays or loops a sound at the specified channel.
  * \param channel (Integer): The channel index.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14661,58 +14621,26 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
 	ISound* audio = GET_ARG(1, GetSound);
-	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	if (channel < 0) {
-		THROW_ERROR("Invalid channel index %d.", channel);
-		return NULL_VAL;
-	}
-	if (audio) {
-		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
-			audio,
-			false,
-			0,
-			panning,
-			speed,
-			volume,
-			nullptr);
-	}
-	return NULL_VAL;
-}
-/***
- * Sound.LoopAtChannel
- * \desc Plays a sound at the specified channel, looping back when it ends.
- * \param channel (Integer): The channel index.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return
- * \ns Sound
- */
-VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	int channel = GET_ARG(0, GetInteger);
-	ISound* audio = GET_ARG(1, GetSound);
-	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
-	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
+	int loopPoint = IS_NULL(args[2]) ? AUDIO_LOOP_DEFAULT : GET_ARG_OPT(2, GetInteger, AUDIO_LOOP_DEFAULT);
+	float panning = GET_ARG_OPT(3, GetDecimal, 0.0);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
+
 	if (channel < 0) {
 		THROW_ERROR("Invalid channel index %d.", channel);
 		return NULL_VAL;
 	}
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR("Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d", loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT)
+		loopPoint = audio->LoopPoint;
+
 	if (audio) {
-		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
-			audio,
-			true,
-			loopPoint,
-			panning,
-			speed,
-			volume,
-			nullptr);
+		AudioManager::SetSound(channel & AudioManager::SoundArrayLength, audio, loopPoint >= 0, loopPoint >= 0 ? loopPoint : 0, panning, speed, volume, nullptr);
 	}
 	return NULL_VAL;
 }
@@ -14815,6 +14743,40 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(AudioManager::AudioIsPlaying(channel % AudioManager::SoundArrayLength));
+}
+/***
+ * Sound.GetLoopPoint
+ * \desc Gets the loop point of a sound index, if it has one.
+ * \param sound (Integer): The sound index to get the loop point.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \ns Sound
+ */
+VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	if (!audio || audio->LoopPoint == -1) {
+		return NULL_VAL;
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Sound.SetLoopPoint
+ * \desc Sets the loop point of a sound index.
+ * \param sound (Integer): The sound index to set the loop point.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \ns Sound
+ */
+VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	if (loopPoint >= -1) {
+		audio->LoopPoint = loopPoint;
+	}
+	return NULL_VAL;
 }
 // #endregion
 
@@ -17951,6 +17913,17 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Audio, SetSoundVolume);
 	// #endregion
 
+	// #region Collision
+	INIT_CLASS(Collision);
+	DEF_NATIVE(Collision, ProcessObjectMovement);
+	DEF_NATIVE(Collision, ObjectTileCollision);
+	DEF_NATIVE(Collision, ObjectTileGrip);
+	DEF_NATIVE(Collision, CheckObjectCollisionTouch);
+	DEF_NATIVE(Collision, CheckObjectCollisionCircle);
+	DEF_NATIVE(Collision, CheckObjectCollisionBox);
+	DEF_NATIVE(Collision, CheckObjectCollisionPlatform);
+	// #endregion
+
 	// #region Controller
 	INIT_CLASS(Controller);
 	DEF_NATIVE(Controller, GetCount);
@@ -18743,6 +18716,36 @@ void StandardLibrary::Link() {
     * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
     */
 	DEF_ENUM(BlendFactor_INV_DST_ALPHA);
+	/***
+	* \enum ROTSTYLE_NONE
+	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_NONE);
+	/***
+	* \enum ROTSTYLE_FULL
+	* \desc Allows the sprite 256 angles of rotation in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_FULL);
+	/***
+	* \enum ROTSTYLE_45DEG
+	* \desc Allows the sprite to rotate in intervals of 45 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_45DEG);
+	/***
+	* \enum ROTSTYLE_90DEG
+	* \desc Allows the sprite to rotate in intervals of 90 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_90DEG);
+	/***
+	* \enum ROTSTYLE_180DEG
+	* \desc Allows the sprite to rotate in intervals of 180 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_180DEG);
+	/***
+	* \enum ROTSTYLE_STATICFRAMES
+	* \desc Uses extra frames to rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto> and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_STATICFRAMES);
 	// #endregion
 
 	// #region Draw3D
@@ -19098,17 +19101,26 @@ void StandardLibrary::Link() {
 	// #region Music
 	INIT_CLASS(Music);
 	DEF_NATIVE(Music, Play);
-	DEF_NATIVE(Music, PlayAtTime);
 	DEF_NATIVE(Music, Stop);
 	DEF_NATIVE(Music, StopWithFadeOut);
 	DEF_NATIVE(Music, Pause);
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
-	DEF_NATIVE(Music, Loop);
-	DEF_NATIVE(Music, LoopAtTime);
 	DEF_NATIVE(Music, IsPlaying);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
+	DEF_NATIVE(Music, GetLoopPoint);
+	DEF_NATIVE(Music, SetLoopPoint);
+	/***
+	* \enum AUDIO_LOOP_NONE
+	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should not loop, even if the audio file has a loop point.
+	*/
+	DEF_CONST_INT("AUDIO_LOOP_NONE", AUDIO_LOOP_NONE);
+	/***
+	* \enum AUDIO_LOOP_DEFAULT
+	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should use loop point defined in the metadata of the audio file.
+	*/
+	DEF_CONST_INT("AUDIO_LOOP_DEFAULT", AUDIO_LOOP_DEFAULT);
 	// #endregion
 
 	// #region Number
@@ -19177,13 +19189,6 @@ void StandardLibrary::Link() {
 
 	// #region Scene
 	INIT_CLASS(Scene);
-	DEF_NATIVE(Scene, ProcessObjectMovement);
-	DEF_NATIVE(Scene, ObjectTileCollision);
-	DEF_NATIVE(Scene, ObjectTileGrip);
-	DEF_NATIVE(Scene, CheckObjectCollisionTouch);
-	DEF_NATIVE(Scene, CheckObjectCollisionCircle);
-	DEF_NATIVE(Scene, CheckObjectCollisionBox);
-	DEF_NATIVE(Scene, CheckObjectCollisionPlatform);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
 	DEF_NATIVE(Scene, LoadTileCollisions);
@@ -19447,7 +19452,6 @@ void StandardLibrary::Link() {
 	// #region Sound
 	INIT_CLASS(Sound);
 	DEF_NATIVE(Sound, Play);
-	DEF_NATIVE(Sound, Loop);
 	DEF_NATIVE(Sound, Stop);
 	DEF_NATIVE(Sound, Pause);
 	DEF_NATIVE(Sound, Resume);
@@ -19456,15 +19460,15 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sound, ResumeAll);
 	DEF_NATIVE(Sound, IsPlaying);
 	DEF_NATIVE(Sound, PlayMultiple);
-	DEF_NATIVE(Sound, LoopMultiple);
 	DEF_NATIVE(Sound, PlayAtChannel);
-	DEF_NATIVE(Sound, LoopAtChannel);
 	DEF_NATIVE(Sound, StopChannel);
 	DEF_NATIVE(Sound, PauseChannel);
 	DEF_NATIVE(Sound, ResumeChannel);
 	DEF_NATIVE(Sound, AlterChannel);
 	DEF_NATIVE(Sound, GetFreeChannel);
 	DEF_NATIVE(Sound, IsChannelFree);
+	DEF_NATIVE(Sound, GetLoopPoint);
+	DEF_NATIVE(Sound, SetLoopPoint);
 	// #endregion
 
 	// #region Sprite

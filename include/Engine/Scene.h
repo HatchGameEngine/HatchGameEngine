@@ -221,7 +221,7 @@ public:
 		float thisRadius,
 		Entity* otherEntity,
 		float otherRadius);
-	static bool CheckObjectCollisionBox(Entity* thisEntity,
+	static int CheckObjectCollisionBox(Entity* thisEntity,
 		CollisionBox* thisHitbox,
 		Entity* otherEntity,
 		CollisionBox* otherHitbox,
