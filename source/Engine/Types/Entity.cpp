@@ -94,6 +94,7 @@ void Entity::ResetAnimation(int animation, int frame) {
 		return;
 	}
 
+	PrevAnimation = CurrentAnimation;
 	CurrentAnimation = animation;
 	AnimationTimer = 0.0;
 	CurrentFrame = frame;
@@ -434,6 +435,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(CurrentFrameCount);
 	COPY(AnimationSpeedMult);
 	COPY(AnimationSpeedAdd);
+	COPY(PrevAnimation);
 	COPY(AutoAnimate);
 	COPY(AnimationSpeed);
 	COPY(AnimationTimer);

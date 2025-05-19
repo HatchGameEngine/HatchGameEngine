@@ -70,6 +70,7 @@ public:
 	int CurrentFrameCount = 0;
 	float AnimationSpeedMult = 1.0;
 	int AnimationSpeedAdd = 0;
+	int PrevAnimation = -1;
 	int AutoAnimate = true;
 	float AnimationSpeed = 0.0;
 	float AnimationTimer = 0.0;
