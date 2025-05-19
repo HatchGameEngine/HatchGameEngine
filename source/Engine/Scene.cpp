@@ -3646,7 +3646,7 @@ bool Scene::CheckObjectCollisionCircle(Entity* thisEntity,
 	return x * x + y * y < r * r;
 }
 
-bool Scene::CheckObjectCollisionBox(Entity* thisEntity,
+int Scene::CheckObjectCollisionBox(Entity* thisEntity,
 	CollisionBox* thisHitbox,
 	Entity* otherEntity,
 	CollisionBox* otherHitbox,
