@@ -463,9 +463,9 @@ void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
 void Scene::AddToScene(Entity* obj) {
 	// When the scene is loading, all entities are added to the end, because they will be sorted later.
 	// Also added to the end if NeedEntitySort is already set anyway.
-	if (NeedEntitySort || Initializing || Scene::ObjectFirst == NULL
-	|| (Scene::ObjectLast != NULL && Scene::ObjectLast->UpdatePriority == obj->UpdatePriority)
-	) {
+	if (NeedEntitySort || Initializing || Scene::ObjectFirst == NULL ||
+		(Scene::ObjectLast != NULL &&
+			Scene::ObjectLast->UpdatePriority == obj->UpdatePriority)) {
 		obj->PrevSceneEntity = Scene::ObjectLast;
 		obj->NextSceneEntity = NULL;
 
@@ -484,16 +484,16 @@ void Scene::AddToScene(Entity* obj) {
 		if (obj->UpdatePriority < 0) {
 			prevObj = Scene::ObjectFirst;
 
-			while (prevObj->NextSceneEntity != NULL
-			&& prevObj->NextSceneEntity->UpdatePriority < obj->UpdatePriority) {
+			while (prevObj->NextSceneEntity != NULL &&
+				prevObj->NextSceneEntity->UpdatePriority < obj->UpdatePriority) {
 				prevObj = prevObj->NextSceneEntity;
 			}
 		}
 		else {
 			prevObj = Scene::ObjectLast;
 
-			while (prevObj->PrevSceneEntity != NULL
-			&& prevObj->PrevSceneEntity->UpdatePriority > obj->UpdatePriority) {
+			while (prevObj->PrevSceneEntity != NULL &&
+				prevObj->PrevSceneEntity->UpdatePriority > obj->UpdatePriority) {
 				prevObj = prevObj->PrevSceneEntity;
 			}
 		}
@@ -514,13 +514,16 @@ void Scene::AddToScene(Entity* obj) {
 	Scene::ObjectCount++;
 }
 void Scene::RemoveFromScene(Entity* obj) {
-	if (obj->NextSceneEntity == nullptr && obj->PrevSceneEntity == nullptr)
+	if (obj->NextSceneEntity == nullptr && obj->PrevSceneEntity == nullptr) {
 		return;
+	}
 
-	if (Scene::ObjectFirst == obj)
+	if (Scene::ObjectFirst == obj) {
 		Scene::ObjectFirst = obj->NextSceneEntity;
-	if (Scene::ObjectLast == obj)
+	}
+	if (Scene::ObjectLast == obj) {
 		Scene::ObjectLast = obj->PrevSceneEntity;
+	}
 
 	if (obj->PrevSceneEntity) {
 		obj->PrevSceneEntity->NextSceneEntity = obj->NextSceneEntity;
@@ -571,7 +574,10 @@ void Scene::Clear(Entity** first, Entity** last, int* count) {
 
 // Object management
 bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
-	Scene::Add(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount, obj);
+	Scene::Add(&Scene::StaticObjectFirst,
+		&Scene::StaticObjectLast,
+		&Scene::StaticObjectCount,
+		obj);
 
 	obj->Dynamic = false;
 
@@ -582,7 +588,10 @@ bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 	else {
 		Log::Print(Log::LOG_ERROR, "Entity %d has no list!", obj->SlotID);
 
-		Scene::Remove(&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount, obj);
+		Scene::Remove(&Scene::StaticObjectFirst,
+			&Scene::StaticObjectLast,
+			&Scene::StaticObjectCount,
+			obj);
 
 		return false;
 	}
@@ -590,7 +599,10 @@ bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 	return true;
 }
 void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
-	Scene::Add(&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount, obj);
+	Scene::Add(&Scene::DynamicObjectFirst,
+		&Scene::DynamicObjectLast,
+		&Scene::DynamicObjectCount,
+		obj);
 
 	obj->Dynamic = true;
 }
@@ -750,13 +762,13 @@ void Scene::Update() {
 	Scene::SortEntities();
 
 	// Early Update
-	for (Entity* ent = Scene::ObjectFirst, *next; ent; ent = next) {
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
 
 	// Update objects
-	for (Entity* ent = Scene::ObjectFirst, *next; ent; ent = next) {
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		// Store the "next" so that when/if the current is removed,
 		// it can still be used to point at the end of the loop.
 		next = ent->NextSceneEntity;
@@ -766,16 +778,16 @@ void Scene::Update() {
 	}
 
 	// Late Update
-	for (Entity* ent = Scene::ObjectFirst, *next; ent; ent = next) {
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 
 		// Removes the object from the scene, but doesn't delete it yet.
 		if (ent->Dynamic && !ent->Active) {
 			Scene::Remove(&Scene::DynamicObjectFirst,
-			    &Scene::DynamicObjectLast,
-			    &Scene::DynamicObjectCount,
-			    ent);
+				&Scene::DynamicObjectLast,
+				&Scene::DynamicObjectCount,
+				ent);
 		}
 	}
 
@@ -1402,79 +1414,85 @@ void Scene::ResetPriorityListIndex(Entity* first) {
 }
 
 void Scene::SortEntities() {
-    if (!Scene::NeedEntitySort)
-        return;
+	if (!Scene::NeedEntitySort) {
+		return;
+	}
 
-    Scene::ObjectFirst = SortEntityList(ObjectFirst);
-    Scene::ObjectLast = nullptr;
+	Scene::ObjectFirst = SortEntityList(ObjectFirst);
+	Scene::ObjectLast = nullptr;
 
-    // Tail points to nowhere, but we'll fix that here.
-    for (Entity* ent = Scene::ObjectFirst; ent != nullptr; ent = ent->NextSceneEntity) {
-        Scene::ObjectLast = ent;
-    }
+	// Tail points to nowhere, but we'll fix that here.
+	for (Entity* ent = Scene::ObjectFirst; ent != nullptr; ent = ent->NextSceneEntity) {
+		Scene::ObjectLast = ent;
+	}
 
-    Scene::NeedEntitySort = false;
+	Scene::NeedEntitySort = false;
 }
 Entity* Scene::SortEntityList(Entity* head) {
-    Entity* left, *right;
+	Entity *left, *right;
 
-    if (head == nullptr || head->NextSceneEntity == nullptr)
-        return head;
+	if (head == nullptr || head->NextSceneEntity == nullptr) {
+		return head;
+	}
 
-    SplitEntityList(head, &left, &right);
+	SplitEntityList(head, &left, &right);
 
-    return MergeEntityList(SortEntityList(left), SortEntityList(right));
+	return MergeEntityList(SortEntityList(left), SortEntityList(right));
 }
 bool Scene::SplitEntityList(Entity* head, Entity** left, Entity** right) {
-    Entity* a = head, *b;
+	Entity *a = head, *b;
 
-    if (a == nullptr || a->NextSceneEntity == nullptr) {
-        *left = a;
-        *right = nullptr;
-        return false;
-    }
+	if (a == nullptr || a->NextSceneEntity == nullptr) {
+		*left = a;
+		*right = nullptr;
+		return false;
+	}
 
-    b = head->NextSceneEntity;
-    while (b != nullptr) {
-        b = b->NextSceneEntity;
-        if (b != nullptr) {
-            b = b->NextSceneEntity;
-            a = a->NextSceneEntity;
-        }
-    }
+	b = head->NextSceneEntity;
+	while (b != nullptr) {
+		b = b->NextSceneEntity;
+		if (b != nullptr) {
+			b = b->NextSceneEntity;
+			a = a->NextSceneEntity;
+		}
+	}
 
-    *left = head;
-    *right = a->NextSceneEntity;
+	*left = head;
+	*right = a->NextSceneEntity;
 
-    a->NextSceneEntity = nullptr;
+	a->NextSceneEntity = nullptr;
 
-    return true;
+	return true;
 }
 Entity* Scene::MergeEntityList(Entity* left, Entity* right) {
-    if (left == nullptr)
-        return right;
-    else if (right == nullptr)
-        return left;
+	if (left == nullptr) {
+		return right;
+	}
+	else if (right == nullptr) {
+		return left;
+	}
 
-    // Left side
-    if (left->UpdatePriority <= right->UpdatePriority) {
-        left->NextSceneEntity = MergeEntityList(left->NextSceneEntity, right);
+	// Left side
+	if (left->UpdatePriority <= right->UpdatePriority) {
+		left->NextSceneEntity = MergeEntityList(left->NextSceneEntity, right);
 
-        if (left->NextSceneEntity)
-            left->NextSceneEntity->PrevSceneEntity = left;
-        left->PrevSceneEntity = nullptr;
+		if (left->NextSceneEntity) {
+			left->NextSceneEntity->PrevSceneEntity = left;
+		}
+		left->PrevSceneEntity = nullptr;
 
-        return left;
-    }
+		return left;
+	}
 
-    // Right side
-    right->NextSceneEntity = MergeEntityList(left, right->NextSceneEntity);
+	// Right side
+	right->NextSceneEntity = MergeEntityList(left, right->NextSceneEntity);
 
-    if (right->NextSceneEntity)
-        right->NextSceneEntity->PrevSceneEntity = right;
-    right->PrevSceneEntity = nullptr;
+	if (right->NextSceneEntity) {
+		right->NextSceneEntity->PrevSceneEntity = right;
+	}
+	right->PrevSceneEntity = nullptr;
 
-    return right;
+	return right;
 }
 
 int Scene::GetPersistenceScopeForObjectDeletion() {
