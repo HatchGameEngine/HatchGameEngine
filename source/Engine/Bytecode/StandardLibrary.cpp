@@ -818,13 +818,17 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
 	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 && animator->CurrentFrame >= 0) {
-		if (animator->CurrentAnimation > Scene::SpriteList[animator->Sprite]->AsSprite->Animations.size())
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		if (!sprite)
 			return NULL_VAL;
 
-		if (animator->CurrentFrame > Scene::SpriteList[animator->Sprite]->AsSprite->Animations[animator->CurrentFrame].Frames.size())
+		if (animator->CurrentAnimation > sprite->Animations.size())
 			return NULL_VAL;
 
-		AnimFrame frame = Scene::SpriteList[animator->Sprite]->AsSprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame];
+		if (animator->CurrentFrame > sprite->Animations[animator->CurrentFrame].Frames.size())
+			return NULL_VAL;
+
+		AnimFrame frame = sprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame];
 
 		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
 			THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, animator->CurrentFrame);
@@ -833,10 +837,10 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
 		CollisionBox box = frame.Boxes[hitboxID];
 		ObjArray* array = NewArray();
-		array->Values->push_back(DECIMAL_VAL((float)box.Top));
-		array->Values->push_back(DECIMAL_VAL((float)box.Left));
-		array->Values->push_back(DECIMAL_VAL((float)box.Right));
-		array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+		array->Values->push_back(INTEGER_VAL(box.Top));
+		array->Values->push_back(INTEGER_VAL(box.Left));
+		array->Values->push_back(INTEGER_VAL(box.Right));
+		array->Values->push_back(INTEGER_VAL(box.Bottom));
 		return OBJECT_VAL(array);
 	}
 	else {
