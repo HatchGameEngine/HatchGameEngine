@@ -848,13 +848,13 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	}
 }
 /***
- * Animator.GetPreviousAnimation
+ * Animator.GetPrevAnimation
  * \desc Gets the previous animation value of an animator.
  * \param animator (Integer): The index of the animator.
  * \return Returns an Integer value.
  * \ns Animator
  */
-VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator)
@@ -991,13 +991,13 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Animator.SetPreviousAnimation
+ * Animator.SetPrevAnimation
  * \desc Sets the previous animation of an animator.
  * \param animator (Integer): The animator index to change.
  * \param prevAnimationID (Integer): The animation ID.
  * \ns Animator
  */
-VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator)
@@ -8157,13 +8157,16 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.IsClass
  * \desc Determines whether or not the instance is of a specified object class.
- * \param instance (Instance): The instance to check.
+ * \param instance (Instance): The instance to check. If there is no instance, this automatically returns false.
  * \param className (String): Name of the object class.
  * \return Returns whether or not the instance is of a specified object class.
  * \ns Instance
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
+
+	if (IS_NULL(args[0]))
+		return INTEGER_VAL(false);
 
 	ObjInstance* instance = GET_ARG(0, GetInstance);
 	char* objectName = GET_ARG(1, GetString);
@@ -17784,7 +17787,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetCurrentAnimation);
 	DEF_NATIVE(Animator, GetCurrentFrame);
 	DEF_NATIVE(Animator, GetHitbox);
-	DEF_NATIVE(Animator, GetPreviousAnimation);
+	DEF_NATIVE(Animator, GetPrevAnimation);
 	DEF_NATIVE(Animator, GetAnimationSpeed);
 	DEF_NATIVE(Animator, GetAnimationTimer);
 	DEF_NATIVE(Animator, GetDuration);
@@ -17793,7 +17796,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, SetSprite);
 	DEF_NATIVE(Animator, SetCurrentAnimation);
 	DEF_NATIVE(Animator, SetCurrentFrame);
-	DEF_NATIVE(Animator, SetPreviousAnimation);
+	DEF_NATIVE(Animator, SetPrevAnimation);
 	DEF_NATIVE(Animator, SetAnimationSpeed);
 	DEF_NATIVE(Animator, SetAnimationTimer);
 	DEF_NATIVE(Animator, SetDuration);
