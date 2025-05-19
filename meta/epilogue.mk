@@ -42,7 +42,7 @@ else
 endif # $(origin INB_DEBUGLOG)
 
 # Set the origin-dependent values of the new variable.
-INB_DEBUGLOG.O_DEFAULT := debug.log
+INB_DEBUGLOG.O_DEFAULT := build.log
 INB_DEBUGLOG.O_CUSTOM := $(INB_DEBUGLOG)
 
 # Finally, set the variable.
@@ -391,19 +391,19 @@ ifeq ($(TP),IBMPC)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else ifeq ($(TP),PCDOS)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else ifeq ($(TP),WIN311)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else
 .K_INCLUDE := -isystem $(TROOT)/include $(patsubst %,-isystem \
@@ -411,10 +411,8 @@ else
 	$(patsubst %,-iquote %,$(INCLUDEL))
 .K_ASINCLUDE := -I$(TROOT)/include $(patsubst %,-I%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
-.K_DEFINE := \
-	$(patsubst %,-D%,$(DEFINES))
-.K_ASDEFINE := \
-	$(patsubst %,--defsym %=1,$(DEFINES))
+.K_DEFINE := $(patsubst %,-D%,$(DEFINES)) $(patsubst %,-D%,$(BITBOUND))
+.K_ASDEFINE := $(patsubst %,--defsym %=1,$(DEFINES))
 endif
 
 ## Name the targets.
@@ -768,6 +766,21 @@ check: $(.L_TARGETS)
 	@cat $< | $(FMT) $(FMTFLAGS) > $@
 	@mv $@ $<
 
+%.cc.fmt: %.cc
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
+%.cxx.fmt: %.cxx
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
+%.c++.fmt: %.c++
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
 # Objective-C
 %.m.fmt: %.m
 	$(call .FN_FILE,FMT,$<)
@@ -790,6 +803,30 @@ check: $(.L_TARGETS)
 
 # C++
 %.cpp.sch: %.cpp
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.cc.sch: %.cc
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.cxx.sch: %.cxx
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.c++.sch: %.c++
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
@@ -831,6 +868,21 @@ check: $(.L_TARGETS)
 
 # C++
 %.cpp.o: %.cpp
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.cc.o: %.cc
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.cxx.o: %.cxx
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.c++.o: $.c++
 	$(call .FN_FILE,CXX,$@)
 	@$(CXX) -c -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
 		2>>$(INB_DEBUGLOG)
@@ -908,7 +960,7 @@ clean:
 	@$(RM) $(.L_OFILES.WINNT32)
 	@$(RM) $(.L_OFILES.WINNT64)
 	@$(RM) $(FMTFILES)
-	@$(RM) debug.log
+	@$(RM) $(INB_DEBUGLOG)
 
 # Auto-format the sources.
 
