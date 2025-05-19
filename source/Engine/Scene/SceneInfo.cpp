@@ -1,4 +1,5 @@
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 
 vector<SceneListCategory> SceneInfo::Categories;
@@ -122,22 +123,20 @@ std::string SceneInfo::GetFilename(int categoryID, int entryID) {
 
 	SceneListEntry& entry = Categories[categoryID].Entries[entryID];
 
-	if (entry.Path != nullptr) {
+	if (entry.Path != nullptr)
 		return std::string(entry.Path);
-	}
 
 	std::string parentPath = GetParentPath(categoryID, entryID);
-
-	std::string id = entry.ID != nullptr ? std::string(entry.ID) : std::string(entry.Name);
 
 	std::string filePath = "";
 
 	// RSDK compatibility.
-	if (entry.Filetype != nullptr && strcmp(entry.Filetype, "bin") == 0) {
-		filePath = "Scene";
+	if (entry.Filetype != nullptr && !strcmp(entry.Filetype, "bin")) {
+		// v3/4 versus v5
+		filePath = ResourceManager::ResourceExists((parentPath + "128x128Tiles.bin").c_str()) ? "Act" : "Scene";
 	}
 
-	filePath += id;
+	filePath += entry.ID != nullptr ? std::string(entry.ID) : std::string(entry.Name);
 
 	if (entry.Filetype != nullptr) {
 		filePath += "." + std::string(entry.Filetype);
