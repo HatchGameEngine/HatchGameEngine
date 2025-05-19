@@ -8337,6 +8337,7 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (self->ChangeClass(className)) {
+		self->Initialize();
 		return INTEGER_VAL(true);
 	}
 
@@ -8836,6 +8837,50 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Sign(GET_ARG(0, GetDecimal)));
+}
+/***
+ * Math.Uint8
+ * \desc Converts an integer to an 8-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint8)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint16
+ * \desc Converts an integer to a 16-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint16)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint32
+ * \desc Converts an integer to a 32-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint32)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint64
+ * \desc Converts an integer to a 64-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint64)GET_ARG(0, GetInteger));
 }
 /***
  * Math.Random
@@ -11497,6 +11542,26 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 	return ReturnString(Scene::CurrentScene);
 }
 /***
+ * Scene.GetType
+ * \desc Gets the type of the active scene.
+ * \return Returns the type of the active scene, see <linkto ref="SCENETYPE_*"></linkto>.
+ * \ns Scene
+ */
+VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::SceneType);
+}
+/***
+ * Scene.GetFilter
+ * \desc Gets the filter of the active scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetFilter(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::Filter);
+}
+/***
  * Scene.GetWidth
  * \desc Gets the width of the scene (in tiles).
  * \return Returns an Integer value.
@@ -11918,6 +11983,16 @@ VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.GetReservedSlotIDs
+ * \desc Gets the number of reserved slot IDs to account for before creating instances.
+ * \return Returns how many reserved slot IDs are being used.
+ * \ns Scene
+ */
+VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::ReservedSlotIDs);
+}
+/***
  * Scene.GetInstanceCount
  * \desc Gets the count of instances currently in the scene.
  * \return Returns the amount of instances in the scene.
@@ -12155,6 +12230,17 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)Scene::Paused);
+}
+/***
+ * Scene.SetReservedSlotIDs
+ * \desc Sets the number of reserved slot IDs to account for before creating instances.
+ * \param amount (Integer): How many reserved slot IDs to use.
+ * \ns Scene
+ */
+VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Scene::ReservedSlotIDs = GET_ARG(0, GetInteger);
+	return NULL_VAL;
 }
 /***
  * Scene.SetDebugMode
@@ -18924,6 +19010,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Math, Max);
 	DEF_NATIVE(Math, Clamp);
 	DEF_NATIVE(Math, Sign);
+	DEF_NATIVE(Math, Uint8);
+	DEF_NATIVE(Math, Uint16);
+	DEF_NATIVE(Math, Uint32);
+	DEF_NATIVE(Math, Uint64);
 	DEF_NATIVE(Math, Random);
 	DEF_NATIVE(Math, RandomMax);
 	DEF_NATIVE(Math, RandomRange);
@@ -19119,6 +19209,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerDeformOffsetB);
 	DEF_NATIVE(Scene, LayerPropertyExists);
 	DEF_NATIVE(Scene, GetName);
+	DEF_NATIVE(Scene, GetType);
+	DEF_NATIVE(Scene, GetFilter);
 	DEF_NATIVE(Scene, GetWidth);
 	DEF_NATIVE(Scene, GetHeight);
 	DEF_NATIVE(Scene, GetLayerWidth);
@@ -19148,6 +19240,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetDebugMode);
 	DEF_NATIVE(Scene, GetFirstInstance);
 	DEF_NATIVE(Scene, GetLastInstance);
+	DEF_NATIVE(Scene, GetReservedSlotIDs);
 	DEF_NATIVE(Scene, GetInstanceCount);
 	DEF_NATIVE(Scene, GetStaticInstanceCount);
 	DEF_NATIVE(Scene, GetDynamicInstanceCount);
@@ -19161,6 +19254,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, IsUsingFolder);
 	DEF_NATIVE(Scene, IsUsingID);
 	DEF_NATIVE(Scene, IsPaused);
+	DEF_NATIVE(Scene, SetReservedSlotIDs);
 	DEF_NATIVE(Scene, SetDebugMode);
 	DEF_NATIVE(Scene, SetTile);
 	DEF_NATIVE(Scene, SetTileCollisionSides);
@@ -19203,6 +19297,26 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetObjectViewRender);
 	DEF_NATIVE(Scene, SetTileViewRender);
 
+	/***
+	* \enum SCENETYPE_NONE
+	* \desc The current scene loaded in the game is not a scene.
+	*/
+	DEF_ENUM(SCENETYPE_NONE);
+	/***
+	* \enum SCENETYPE_HATCH
+	* \desc The current scene loaded in the game is a Hatch scene.
+	*/
+	DEF_ENUM(SCENETYPE_HATCH);
+	/***
+	* \enum SCENETYPE_TILED
+	* \desc The current scene loaded in the game is a Tiled map.
+	*/
+	DEF_ENUM(SCENETYPE_TILED);
+	/***
+	* \enum SCENETYPE_RSDK
+	* \desc The current scene loaded in the game is an RSDK scene.
+	*/
+	DEF_ENUM(SCENETYPE_RSDK);
 	/***
     * \enum DrawBehavior_HorizontalParallax
     * \desc Horizontal parallax.
@@ -19827,12 +19941,6 @@ void StandardLibrary::Link() {
     * \desc The milliseconds value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
-	/***
-    * \global Scene_Filter
-    * \type Integer
-    * \desc The scene's entity filter value.
-    */
-	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
 	/***
     * \global Scene_ListPos
     * \type Integer
