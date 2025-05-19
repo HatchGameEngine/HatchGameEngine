@@ -8343,6 +8343,8 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (self->ChangeClass(className)) {
+		self->Instance->Fields->Clear();
+		self->LinkFields();
 		self->Initialize();
 		return INTEGER_VAL(true);
 	}
