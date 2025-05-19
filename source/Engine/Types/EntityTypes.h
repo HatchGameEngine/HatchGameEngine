@@ -18,7 +18,8 @@ enum {
 	// accounting for y bound)
 	ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting
 	// for x bound)
-	ACTIVE_RBOUNDS = 7 // Updates within a radius (UpdateRegionW)
+	ACTIVE_RBOUNDS = 7, // Updates within a radius (UpdateRegionW)
+	ACTIVE_DISABLED = 0XFF, // For stopping entities from even checking for an update in some cases
 };
 
 namespace CollideSide {
