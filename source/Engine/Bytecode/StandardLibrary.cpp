@@ -598,8 +598,8 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
  * Animator.Create
  * \desc Creates a new animator.
  * \param sprite (Integer): The index of the sprite.
- * \param animationID (Integer): The animator's changed animation ID.
- * \param frameID (Integer): The animator's changed frame ID.
+ * \param animationID (Integer): Which animation to use.
+ * \param frameID (Integer): Which frame to use.
  * \param unloadPolicy (Integer): When to unload the animator.
  * \return Returns the index of the Animator.
  * \ns Animator
