@@ -2053,7 +2053,6 @@ void Application::ReloadSettings(const char* filename) {
 void Application::InitSettings(const char* filename) {
 	// Create settings with default values.
 	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
-	Log::Print(Log::LOG_IMPORTANT, "Settings file is %s", Application::SettingsFile);
 
 	Application::Settings = INI::New(Application::SettingsFile);
 
