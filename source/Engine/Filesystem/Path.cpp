@@ -48,6 +48,10 @@ bool Path::Create(const char* path) {
 	if (ptr) {
 		ptr[1] = '\0';
 	}
+	else {
+		// No folder afterwards, must be at the root "/"
+		return true;
+	}
 
 	ptr = strchr(bufferPtr, '/');
 	while (ptr != nullptr) {
@@ -92,7 +96,6 @@ bool Path::GetCurrentWorkingDirectory(char* out, size_t sz) {
 #endif
 }
 
-#ifdef PORTABLE_MODE
 std::string Path::GetPortableModePath() {
 	char workingDir[MAX_PATH_LENGTH];
 	if (!GetCurrentWorkingDirectory(workingDir, sizeof workingDir)) {
@@ -101,7 +104,6 @@ std::string Path::GetPortableModePath() {
 
 	return std::string(workingDir);
 }
-#endif
 
 bool Path::AreMatching(std::string base, std::string path) {
 	auto const last = std::prev(base.end());
@@ -192,7 +194,38 @@ PathLocation Path::LocationFromURL(const char* filename) {
 	return PathLocation::DEFAULT;
 }
 
+#ifdef CONSOLE_FILESYSTEM
+std::string Path::GetConsoleBasePath() {
+#ifdef CONSOLE_BASE_PATH
+	// Compile-time defined base path
+	constexpr std::string_view basePath = CONSOLE_BASE_PATH;
+	// Safety check for base path macro
+	static_assert(!basePath.empty() && basePath.back() == '/', "Path must end with '/'");
+	return std::string(basePath);
+#elif defined(SWITCH_ROMFS)
+	return std::string("romfs:/");
+#else
+	// Fallback path is cwd, add a custom path if needed (ending with '/')
+	return GetPortableModePath();
+#endif
+}
+
+std::string Path::GetConsolePrefPath() {
+#if defined(SWITCH)
+	// "/GAME_NAME/" (root of the SD card)
+	std::string gameName = Application::GetGameIdentifier();
+	return std::string("/" + gameName + "/");
+#else
+	// Fallback path is cwd, add a custom path if needed (ending with '/')
+	return GetPortableModePath();
+#endif
+}
+#endif
+
 std::string Path::GetBasePath() {
+#ifdef CONSOLE_FILESYSTEM
+	return GetConsoleBasePath();
+#else
 	char* basePath = SDL_GetBasePath();
 	if (basePath == nullptr) {
 		return "";
@@ -203,10 +236,13 @@ std::string Path::GetBasePath() {
 	SDL_free(basePath);
 
 	return path;
+#endif
 }
 
 std::string Path::GetPrefPath() {
-#ifdef PORTABLE_MODE
+#ifdef CONSOLE_FILESYSTEM
+	return GetConsolePrefPath();
+#elif defined(PORTABLE_MODE)
 	return GetPortableModePath();
 #else
 	const char* devName = Application::GetDeveloperIdentifier();
@@ -412,9 +448,12 @@ std::string Path::GetForLocation(PathLocation location) {
 		break;
 	}
 
+// FIXME: If using root "/" as current working directory, this fails to find files
+#ifndef CONSOLE_FILESYSTEM
 	if (finalPath == "") {
 		return "";
 	}
+#endif
 
 	// Ensure it ends in '/'
 	if (finalPath.back() != '/') {

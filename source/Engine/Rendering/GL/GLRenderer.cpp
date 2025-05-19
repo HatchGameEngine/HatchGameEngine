@@ -1167,29 +1167,6 @@ void GLRenderer::Init() {
 
 	Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
-#ifndef MACOSX
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-#endif
-
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-#ifdef GL_SUPPORTS_MULTISAMPLING
-	if (Graphics::MultisamplingEnabled) {
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, Graphics::MultisamplingEnabled);
-	}
-#endif
-
-	if (Application::Platform == Platforms::iOS) {
-		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
-	}
-
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-
 	Context = SDL_GL_CreateContext(Application::Window);
 	CHECK_GL();
 	if (!Context) {
@@ -1296,6 +1273,29 @@ void GLRenderer::Init() {
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 }
 Uint32 GLRenderer::GetWindowFlags() {
+#ifndef MACOSX
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+#ifdef GL_SUPPORTS_MULTISAMPLING
+	if (Graphics::MultisamplingEnabled) {
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, Graphics::MultisamplingEnabled);
+	}
+#endif
+
+	if (Application::Platform == Platforms::iOS) {
+		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
+	}
+
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
 #ifdef GL_SUPPORTS_MULTISAMPLING
 	if (Graphics::MultisamplingEnabled) {
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
@@ -2386,7 +2386,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 #endif
 
-	glPointSize(scene->PointSize);
+	// glPointSize(scene->PointSize);
 
 	Matrix4x4 projMat = scene->ProjectionMatrix;
 	Matrix4x4 viewMat = scene->ViewMatrix;
@@ -2595,7 +2595,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 #endif
 
-	glPointSize(1.0f);
+	// glPointSize(1.0f);
 	glDisable(GL_CULL_FACE);
 	glDepthMask(GL_TRUE);
 	glFrontFace(GL_CCW);
