@@ -726,16 +726,13 @@ void ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float 
 		klass->Methods->Put(name, DECIMAL_VAL(value));
 	}
 }
-ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
-	return klass->Parent;
-}
 VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
 	VMValue method;
 	if (klass->Methods->GetIfExists(hash, &method)) {
 		return method;
 	}
 	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
 			return GetClassMethod(parentClass, hash);
 		}

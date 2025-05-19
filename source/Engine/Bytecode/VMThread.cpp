@@ -2142,7 +2142,7 @@ int VMThread::RunInstruction() {
 		}
 
 		if (ScriptManager::Lock()) {
-			ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+			ObjClass* parentClass = klass->Parent;
 			if (parentClass) {
 				Pop();
 				Push(OBJECT_VAL(parentClass));
@@ -2394,7 +2394,7 @@ int VMThread::SuperInvoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
 		return INVOKE_RUNTIME_ERROR;
 	}
 
-	ObjClass* parentClass = ScriptManager::GetClassParent(baseClass);
+	ObjClass* parentClass = baseClass->Parent;
 	if (parentClass == nullptr) {
 		ThrowRuntimeError(false,
 			"Class '%s' does not have a parent to call method from!",
@@ -2502,7 +2502,7 @@ bool VMThread::GetProperty(Obj* object,
 			return true;
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
 			ScriptManager::Unlock();
 			return GetProperty((Obj*)parentClass, parentClass, hash, checkFields);
@@ -2544,7 +2544,7 @@ bool VMThread::HasProperty(Obj* object,
 			return true;
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
 			ScriptManager::Unlock();
 			return HasProperty((Obj*)parentClass,
@@ -2767,7 +2767,7 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 		else {
 			// If there is a parent class, walk up the
 			// inheritance chain until we find the method.
-			ObjClass* parentClass = ScriptManager::GetClassParent(klass);
+			ObjClass* parentClass = klass->Parent;
 			if (parentClass) {
 				ScriptManager::Unlock();
 				return InvokeFromClass(parentClass, hash, argCount);
