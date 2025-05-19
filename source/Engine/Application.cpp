@@ -1178,7 +1178,7 @@ void Application::RunFrame(int runFrames) {
 		Scene::ResetPerf();
 		MetricPollTime = 0.0;
 		MetricUpdateTime = 0.0;
-		if ((Stepper && Step) || !Stepper) {
+		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
 			// Poll for inputs
 			MetricPollTime = Clock::GetTicks();
 			InputManager::Poll();
