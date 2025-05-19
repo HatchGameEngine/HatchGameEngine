@@ -107,6 +107,7 @@
         <h3>Enums</h3>
         <ul>
             <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
+            <li><a href="#Reference_ALIGN_*">ALIGN_*</a></li>
             <li><a href="#Reference_AUDIO_*">AUDIO_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
             <li><a href="#Reference_BlendFactor_*">BlendFactor_*</a></li>
@@ -580,9 +581,15 @@
                     <li><a href="#Reference_functions_Input_IsActionHeld">Input.IsActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsActionPressed">Input.IsActionPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsActionReleased">Input.IsActionReleased</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionHeldByAny">Input.IsActionHeldByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionPressedByAny">Input.IsActionPressedByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionReleasedByAny">Input.IsActionReleasedByAny</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionHeld">Input.IsAnyActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionPressed">Input.IsAnyActionPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionReleased">Input.IsAnyActionReleased</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionHeldByAny">Input.IsAnyActionHeldByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionPressedByAny">Input.IsAnyActionPressedByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionReleasedByAny">Input.IsAnyActionReleasedByAny</a></li>
                     <li><a href="#Reference_functions_Input_GetAnalogActionInput">Input.GetAnalogActionInput</a></li>
                     <li><a href="#Reference_functions_Input_GetActionBind">Input.GetActionBind</a></li>
                     <li><a href="#Reference_functions_Input_SetActionBind">Input.SetActionBind</a></li>
@@ -1581,6 +1588,14 @@
                     <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_DISABLED">ACTIVE_DISABLED</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ALIGN_*">
+                <h2><code>ALIGN_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_ALIGN_LEFT">ALIGN_LEFT</a></li>
+                    <li><a href="#Reference_enums_ALIGN_CENTER">ALIGN_CENTER</a></li>
+                    <li><a href="#Reference_enums_ALIGN_RIGHT">ALIGN_RIGHT</a></li>
                 </ul>
             </p>
             <p id="Reference_AUDIO_*">
@@ -5186,6 +5201,42 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
+        <p id="Reference_functions_Input_IsActionHeldByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionHeldByAny</h2>
+        <code>Input.IsActionHeldByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently held by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsActionPressedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionPressedByAny</h2>
+        <code>Input.IsActionPressedByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently pressed by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsActionReleasedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionReleasedByAny</h2>
+        <code>Input.IsActionReleasedByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action was released by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Input_IsAnyActionHeld">
         <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeld</h2>
         <code>Input.IsAnyActionHeld(playerID[, inputDevice])</code>
@@ -5217,6 +5268,39 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionHeldByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeldByAny</h2>
+        <code>Input.IsAnyActionHeldByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently held by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionPressedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionPressedByAny</h2>
+        <code>Input.IsAnyActionPressedByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently pressed by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionReleasedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionReleasedByAny</h2>
+        <code>Input.IsAnyActionReleasedByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action was released by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -10267,7 +10351,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>739 out of 798 functions have descriptions. </p>
+        <p>745 out of 804 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -11062,6 +11146,18 @@
         <p id="Reference_enums_ACTIVE_DISABLED">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_DISABLED</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity will not even reach a point where it would check for an update.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_CENTER">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_CENTER</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Center alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right alignment for text drawing.</div>
         </p>
         <p id="Reference_enums_AUDIO_LOOP_NONE">
         <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>
@@ -12271,7 +12367,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>311 out of 311 enums have descriptions. </p>
+        <p>314 out of 314 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

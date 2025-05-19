@@ -51,6 +51,8 @@ enum {
 	StencilOp_DecrWrap
 };
 
+enum { ALIGN_LEFT, ALIGN_CENTER, ALIGN_RIGHT };
+
 enum {
 	DrawBehavior_HorizontalParallax = 0,
 	DrawBehavior_VerticalParallax = 1,

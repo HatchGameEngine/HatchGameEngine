@@ -62,6 +62,51 @@ enum class KeyBind {
 	Max
 };
 
+enum {
+    VIEWVAR_INVALID,
+    VIEWVAR_BOOL,
+    VIEWVAR_UINT8,
+    VIEWVAR_UINT16,
+    VIEWVAR_UINT32,
+    VIEWVAR_INT8,
+    VIEWVAR_INT16,
+    VIEWVAR_INT32,
+};
+
+enum {
+    VIEWVAR_DISPLAY_BOOL,
+    VIEWVAR_DISPLAY_UNSIGNED,
+    VIEWVAR_DISPLAY_SIGNED,
+};
+
+struct DeveloperMenu {
+    void (*State)();
+    int Selection;
+    int SubSelection;
+    int ScrollPos;
+    int SubScrollPos;
+    int Timer;
+    bool Windowed;
+    int SceneState;
+    int ListPos;
+    int WindowScale;
+    int WindowAspect;
+    bool ModsChanged;
+    int PlayerListPos;
+    bool MusicPausedStore;
+};
+
+struct ViewableVariable {
+    char Name[0x10];
+    void* Value;
+    int Type;
+    int Size;
+    int Min;
+    int Max;
+};
+
+#define VIEWABLEVARIABLE_COUNT 64
+
 #define DEFAULT_TARGET_FRAMERATE 60
 
 #define MAX_TARGET_FRAMERATE 240

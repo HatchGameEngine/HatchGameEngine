@@ -53,6 +53,22 @@ private:
 	static string ParseGameVersion(XMLNode* versionNode);
 	static void LoadGameInfo();
 	static int HandleAppEvents(void* data, SDL_Event* event);
+	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
+	static void OpenDevMenu();
+	static void CloseDevMenu();
+	static void SetBlendColor(int color);
+	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative);
+	static void DevMenu_DrawMainMenu();
+	static void DevMenu_DrawTitleBar();
+	static void DevMenu_MainMenu();
+	static void DevMenu_CategorySelectMenu();
+	static void DevMenu_SceneSelectMenu();
+	static void DevMenu_SettingsMenu();
+	static void DevMenu_VideoMenu();
+	static void DevMenu_AudioMenu();
+	static void DevMenu_InputMenu();
+	static void DevMenu_DebugMenu();
+	static void DevMenu_ModsMenu();
 
 public:
 	static vector<char*> CmdLineArgs;
@@ -85,6 +101,12 @@ public:
 	static bool DevMenuActivated;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
+
+	static ViewableVariable ViewableVariableList[64];
+	static int ViewableVariableCount;
+	static DeveloperMenu DevMenu;
+	static int DeveloperDarkFont;
+	static int DeveloperLightFont;
 
 	static void Init(int argc, char* args[]);
 	static void SetTargetFrameRate(int targetFPS);
@@ -119,6 +141,9 @@ public:
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);
+	static void AddViewableVariable(const char* name, void* value, int type, int min, int max);
+	static Uint16* UTF8toUTF16(const char* utf8string);
+	static int LoadDevFont(const char* fileName);
 };
 
 #endif /* ENGINE_APPLICATION_H */
