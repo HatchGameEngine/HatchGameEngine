@@ -75,6 +75,7 @@ public:
 	float AnimationTimer = 0.0;
 	int AnimationFrameDuration = 0;
 	int AnimationLoopIndex = 0;
+	int RotationStyle = ROTSTYLE_NONE;
 	EntityHitbox Hitbox;
 	int FlipFlag = 0;
 	float SensorX = 0.0f;
