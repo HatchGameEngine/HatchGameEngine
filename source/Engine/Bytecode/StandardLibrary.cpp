@@ -2864,8 +2864,8 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 			frame,
 			x,
 			y,
-			entity->Direction & 1,
-			entity->Direction & 2,
+			entity->Direction & FLIP_X,
+			entity->Direction & FLIP_Y,
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
@@ -14860,6 +14860,24 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 	return INTEGER_VAL(-1);
 }
 /***
+ * Sprite.GetFrameExists
+ * \desc Checks if an animation and frame is valid within a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The sprite index to check.
+ * \return Returns whether the frame is valid.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	if (!sprite)
+		return INTEGER_VAL(false);
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) && (frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
+}
+/***
  * Sprite.GetFrameLoopIndex
  * \desc Gets the index of the frame that the specified animation will loop back to when it finishes.
  * \param sprite (Integer): The sprite index to check.
@@ -19487,6 +19505,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetAnimationCount);
 	DEF_NATIVE(Sprite, GetAnimationName);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);
+	DEF_NATIVE(Sprite, GetFrameExists);
 	DEF_NATIVE(Sprite, GetFrameLoopIndex);
 	DEF_NATIVE(Sprite, GetFrameCount);
 	DEF_NATIVE(Sprite, GetFrameDuration);
