@@ -129,6 +129,7 @@
             <li><a href="#Reference_Key_*">Key_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
+            <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
@@ -659,6 +660,7 @@
                     <li><a href="#Reference_fields_instance_AnimationTimer">instance.AnimationTimer</a></li>
                     <li><a href="#Reference_fields_instance_AnimationFrameDuration">instance.AnimationFrameDuration</a></li>
                     <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
+                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
@@ -1465,6 +1467,7 @@
                     <li><a href="#Reference_fields_instance_AnimationTimer">instance.AnimationTimer</a></li>
                     <li><a href="#Reference_fields_instance_AnimationFrameDuration">instance.AnimationFrameDuration</a></li>
                     <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
+                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
                     <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
                     <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
@@ -1922,6 +1925,17 @@
                     <li><a href="#Reference_enums_Platform_Android">Platform_Android</a></li>
                     <li><a href="#Reference_enums_Platform_iOS">Platform_iOS</a></li>
                     <li><a href="#Reference_enums_Platform_Unknown">Platform_Unknown</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ROTSTYLE_*">
+                <h2><code>ROTSTYLE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_ROTSTYLE_NONE">ROTSTYLE_NONE</a></li>
+                    <li><a href="#Reference_enums_ROTSTYLE_FULL">ROTSTYLE_FULL</a></li>
+                    <li><a href="#Reference_enums_ROTSTYLE_45DEG">ROTSTYLE_45DEG</a></li>
+                    <li><a href="#Reference_enums_ROTSTYLE_90DEG">ROTSTYLE_90DEG</a></li>
+                    <li><a href="#Reference_enums_ROTSTYLE_180DEG">ROTSTYLE_180DEG</a></li>
+                    <li><a href="#Reference_enums_ROTSTYLE_STATICFRAMES">ROTSTYLE_STATICFRAMES</a></li>
                 </ul>
             </p>
             <p id="Reference_SCOPE_*">
@@ -3088,12 +3102,13 @@
         </p>
         <p id="Reference_functions_Draw_SpriteBasic">
         <h2 style="margin-bottom: 8px;">Draw.SpriteBasic</h2>
-        <code>Draw.SpriteBasic(instance[, sprite])</code>
+        <code>Draw.SpriteBasic(instance[, x, y])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>instance (Instance): The instance to draw.</li>
-        <li>sprite (Integer): The sprite index to use if not using the entity's sprite index.</li>
+        <li>x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.</li>
+        <li>y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Animator">
@@ -3114,13 +3129,14 @@
         </p>
         <p id="Reference_functions_Draw_AnimatorBasic">
         <h2 style="margin-bottom: 8px;">Draw.AnimatorBasic</h2>
-        <code>Draw.AnimatorBasic(animator, instance[, sprite])</code>
+        <code>Draw.AnimatorBasic(animator, instance[, x, y])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Animator): The animator to draw.</li>
         <li>instance (Instance): The instance to pull other values from.</li>
-        <li>sprite (Integer): The sprite index to use if not using the entity's sprite index.</li>
+        <li>x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.</li>
+        <li>y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SpritePart">
@@ -10592,6 +10608,12 @@
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The loop index of entity's current animation.</div>
         </p>
+        <p id="Reference_fields_instance_RotationStyle">
+        <h3 style="margin-bottom: 8px;"><code>instance.RotationStyle</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Enumeration</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>ROTSTYLE_NONE</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The rotation style to use when this entity is called in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>.</div>
+        </p>
         <p id="Reference_fields_instance_AnimationSpeedMult">
         <h3 style="margin-bottom: 8px;"><code>instance.AnimationSpeedMult</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
@@ -10906,7 +10928,7 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>75 out of 79 fields have descriptions. </p>
+        <p>76 out of 80 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -11941,6 +11963,30 @@
         <h3 style="margin-bottom: 8px;"><code>Platform_Unknown</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Unknown platform.</div>
         </p>
+        <p id="Reference_enums_ROTSTYLE_NONE">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Does not rotate the sprite in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>, <code><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></code>, and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
+        <p id="Reference_enums_ROTSTYLE_FULL">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_FULL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Allows the sprite 256 angles of rotation in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>, <code><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></code>, and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
+        <p id="Reference_enums_ROTSTYLE_45DEG">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_45DEG</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Allows the sprite to rotate in intervals of 45 degrees in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>, <code><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></code>, and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
+        <p id="Reference_enums_ROTSTYLE_90DEG">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_90DEG</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Allows the sprite to rotate in intervals of 90 degrees in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>, <code><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></code>, and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
+        <p id="Reference_enums_ROTSTYLE_180DEG">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_180DEG</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Allows the sprite to rotate in intervals of 180 degrees in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>, <code><a href="#Reference_functions_Draw_Animator">Draw.Animator</a></code>, and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
+        <p id="Reference_enums_ROTSTYLE_STATICFRAMES">
+        <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_STATICFRAMES</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Uses extra frames to rotate the sprite in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code> and <code><a href="#Reference_functions_Draw_AnimatorBasic">Draw.AnimatorBasic</a></code>.</div>
+        </p>
         <p id="Reference_enums_SCOPE_SCENE">
         <h3 style="margin-bottom: 8px;"><code>SCOPE_SCENE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Scene scope.</div>
@@ -12101,7 +12147,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>298 out of 298 enums have descriptions. </p>
+        <p>304 out of 304 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

@@ -2482,40 +2482,18 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
-				case ROTSTYLE_NONE:
-					rot = 0;
-					break;
-				case ROTSTYLE_FULL:
-					rot = rot & 0x1FF;
-					break;
-				case ROTSTYLE_45DEG:
-					rot = (rot + 0x20) & 0x1C0;
-					break;
-				case ROTSTYLE_90DEG:
-					rot = (rot + 0x40) & 0x180;
-					break;
-				case ROTSTYLE_180DEG:
-					rot = (rot + 0x80) & 0x100;
-					break;
-				case ROTSTYLE_STATICFRAMES:
-					break;
-				default:
-					break;
+				case ROTSTYLE_NONE: rot = 0; break;
+				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
+				default: break;
 			}
 			rotation = rot * M_PI / 256.0;
 		}
 
-		Graphics::DrawSprite(sprite,
-			animation,
-			frame,
-			x,
-			y,
-			flipX,
-			flipY,
-			scaleX,
-			scaleY,
-			rotation,
-			(unsigned)paletteID);
+		Graphics::DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleX, scaleY, rotation, (unsigned)paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2523,7 +2501,8 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.SpriteBasic
  * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param instance (Instance): The instance to draw.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -2531,39 +2510,84 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjInstance* instance = GET_ARG(0, GetInstance);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite, threadID));
+	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
+	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
-		switch (sprite->Animations[entity->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
+		int frame = entity->CurrentFrame;
+		switch (entity->RotationStyle) {
+			case ROTSTYLE_NONE: rot = 0; break;
+			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+			case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+			case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
 			case ROTSTYLE_STATICFRAMES:
+				if (rot >= 0x100)
+					rot = 0x08 - ((0x214 - rot) >> 6);
+				else
+					rot = (rot + 20) >> 6;
+
+				switch (rot) {
+					case 0: // 0 degrees
+					case 8: // 360 degrees
+						rot = 0x00;
+						break;
+
+					case 1: // 45 degrees
+						rot = 0x80;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x00;
+						break;
+
+					case 2: // 90 degrees
+						rot = 0x80;
+						break;
+
+					case 3: // 135 degrees
+						rot = 0x100;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x80;
+						break;
+
+					case 4: // 180 degrees
+						rot = 0x100;
+						break;
+
+					case 5: // 225 degrees
+						rot = 0x180;
+						frame += entity->CurrentFrameCount;
+						if (entity->Direction)
+							rot = 0x100;
+						break;
+
+					case 6: // 270 degrees
+						rot = 0x180;
+						break;
+
+					case 7: // 315 degrees
+						rot = 0x180;
+						frame += entity->CurrentFrameCount;
+						if (!entity->Direction)
+							rot = 0x00;
+						break;
+
+					default: break;
+				}
 				break;
-			default:
-				break;
+			default: break;
 		}
 		rotation = rot * M_PI / 256.0;
 
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
-			entity->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
+			frame,
+			x,
+			y,
 			entity->Direction & 1,
 			entity->Direction & 2,
 			entity->ScaleX,
@@ -2609,39 +2633,18 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		int rot = (int)rotation;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
-			case ROTSTYLE_NONE:
-				rot = 0;
-				break;
-			case ROTSTYLE_FULL:
-				rot = rot & 0x1FF;
-				break;
-			case ROTSTYLE_45DEG:
-				rot = (rot + 0x20) & 0x1C0;
-				break;
-			case ROTSTYLE_90DEG:
-				rot = (rot + 0x40) & 0x180;
-				break;
-			case ROTSTYLE_180DEG:
-				rot = (rot + 0x80) & 0x100;
-				break;
-			case ROTSTYLE_STATICFRAMES:
-				break;
-			default:
-				break;
-		}
+		switch (animator->RotationStyle) {
+			case ROTSTYLE_NONE: rot = 0; break;
+				case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
+				case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
+				case ROTSTYLE_90DEG: rot = (rot + 0x40) & 0x180; break;
+				case ROTSTYLE_180DEG: rot = (rot + 0x80) & 0x100; break;
+				case ROTSTYLE_STATICFRAMES: break; // Not implemented here because it requires extra fields from an entity
+				default: break;
+			}
 		rotation = rot * M_PI / 256.0;
 
-		Graphics::DrawSprite(sprite,
-			animator->CurrentAnimation,
-			animator->CurrentFrame,
-			x,
-			y,
-			flipX,
-			flipY,
-			scaleX,
-			scaleY,
-			rotation);
+		Graphics::DrawSprite(sprite, animator->CurrentAnimation, animator->CurrentFrame, x, y, flipX, flipY, scaleX, scaleY, rotation);
 	}
 	return NULL_VAL;
 }
@@ -2675,7 +2678,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		int rot = (int)entity->Rotation;
 		int frame = animator->CurrentFrame;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
+		switch (animator->RotationStyle) {
 			case ROTSTYLE_NONE: rot = 0; break;
 			case ROTSTYLE_FULL: rot = rot & 0x1FF; break;
 			case ROTSTYLE_45DEG: rot = (rot + 0x20) & 0x1C0; break;
@@ -18689,6 +18692,36 @@ void StandardLibrary::Link() {
     * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
     */
 	DEF_ENUM(BlendFactor_INV_DST_ALPHA);
+	/***
+	* \enum ROTSTYLE_NONE
+	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_NONE);
+	/***
+	* \enum ROTSTYLE_FULL
+	* \desc Allows the sprite 256 angles of rotation in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_FULL);
+	/***
+	* \enum ROTSTYLE_45DEG
+	* \desc Allows the sprite to rotate in intervals of 45 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_45DEG);
+	/***
+	* \enum ROTSTYLE_90DEG
+	* \desc Allows the sprite to rotate in intervals of 90 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_90DEG);
+	/***
+	* \enum ROTSTYLE_180DEG
+	* \desc Allows the sprite to rotate in intervals of 180 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_180DEG);
+	/***
+	* \enum ROTSTYLE_STATICFRAMES
+	* \desc Uses extra frames to rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto> and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_STATICFRAMES);
 	// #endregion
 
 	// #region Draw3D

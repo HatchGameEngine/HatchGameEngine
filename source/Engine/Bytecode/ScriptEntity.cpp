@@ -270,6 +270,14 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_INT(AnimationLoopIndex);
 	/***
+	* \field RotationStyle
+	* \type Enumeration
+	* \default ROTSTYLE_NONE
+	* \ns Instance
+	* \desc The rotation style to use when this entity is called in <linkto ref="Draw.SpriteBasic"></linkto>.
+	*/
+	LINK_INT(AnimationLoopIndex);
+	/***
     * \field AnimationSpeedMult
     * \type Decimal
     * \default 1.0
@@ -937,6 +945,7 @@ void ScriptEntity::Initialize() {
 	AnimationTimer = 0.0;
 	AnimationFrameDuration = 0;
 	AnimationLoopIndex = 0;
+	RotationStyle = ROTSTYLE_NONE;
 
 	Hitbox.Clear();
 	FlipFlag = 0;
