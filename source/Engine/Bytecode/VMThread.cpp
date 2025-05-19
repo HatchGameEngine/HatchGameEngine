@@ -3215,27 +3215,56 @@ VMValue VMThread::Values_BitwiseNOT() {
 	}
 	return INTEGER_VAL(~AS_INTEGER(a));
 }
-VMValue VMThread::Value_TypeOf() {
-	const char* valueType = "unknown";
-
-	VMValue value = Pop();
-
+static const char* GetTypeOfValue(VMValue value) {
 	switch (value.Type) {
 	case VAL_NULL:
-		valueType = "null";
-		break;
+		return "null";
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		valueType = "integer";
-		break;
+		return "integer";
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
-		valueType = "decimal";
-		break;
+		return "decimal";
 	case VAL_OBJECT:
-		valueType = Value::GetObjectTypeName(value);
-		break;
+		switch (OBJECT_TYPE(value)) {
+		case OBJ_FUNCTION:
+		case OBJ_BOUND_METHOD:
+			return "function";
+		case OBJ_CLASS:
+			return "class";
+		case OBJ_CLOSURE:
+			return "closure";
+		case OBJ_INSTANCE:
+			return "instance";
+		case OBJ_NATIVE:
+			return "native function";
+		case OBJ_STRING:
+			return "string";
+		case OBJ_UPVALUE:
+			return "upvalue";
+		case OBJ_ARRAY:
+			return "array";
+		case OBJ_MAP:
+			return "map";
+		case OBJ_STREAM:
+			return "stream";
+		case OBJ_NAMESPACE:
+			return "namespace";
+		case OBJ_ENUM:
+			return "enum";
+		case OBJ_MODULE:
+			return "module";
+		case OBJ_MATERIAL:
+			return "material";
+		}
 	}
+
+	return "unknown";
+}
+VMValue VMThread::Value_TypeOf() {
+	VMValue value = Pop();
+
+	const char* valueType = GetTypeOfValue(value);
 
 	return OBJECT_VAL(CopyString(valueType));
 }
