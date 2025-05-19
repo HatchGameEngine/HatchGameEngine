@@ -1301,6 +1301,20 @@ VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 /***
+ * \method GetUpdatePriority
+ * \desc Gets the update priority of the entity.
+ * \return Returns an Integer value.
+ * \ns Instance
+ */
+VMValue ScriptEntity::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 1);
+    Entity* self = GET_ENTITY(0);
+    if (self != nullptr) {
+        return INTEGER_VAL(self->UpdatePriority);
+    }
+    return NULL_VAL;
+}
+/***
  * \method SetUpdatePriority
  * \desc Sets the update priority of the entity.
  * \param priority (Integer): The update priority.
