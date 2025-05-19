@@ -44,6 +44,8 @@ public:
 	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Animate(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID);

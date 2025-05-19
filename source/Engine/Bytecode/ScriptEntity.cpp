@@ -1301,6 +1301,44 @@ VMValue ScriptEntity::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 /***
+ * \method GetUpdatePriority
+ * \desc Gets the update priority of the entity.
+ * \return Returns an Integer value.
+ * \ns Instance
+ */
+VMValue ScriptEntity::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 1);
+    Entity* self = GET_ENTITY(0);
+    if (self != nullptr) {
+        return INTEGER_VAL(self->UpdatePriority);
+    }
+    return NULL_VAL;
+}
+/***
+ * \method SetUpdatePriority
+ * \desc Sets the update priority of the entity.
+ * \param priority (Integer): The update priority.
+ * \ns Instance
+ */
+VMValue ScriptEntity::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
+    StandardLibrary::CheckArgCount(argCount, 2);
+    Entity* self = GET_ENTITY(0);
+    int priority = GET_ARG(1, GetInteger);
+
+    if (self && self->UpdatePriority != priority) {
+        self->UpdatePriority = priority;
+
+        // If the scene is loading, NeedEntitySort is set to true,
+        // so that the entities are sorted always and Scene::AddToScene
+        // doesn't have to insert the entities in a sorted manner.
+        if (Scene::Initializing || self->Created)
+            Scene::NeedEntitySort = true;
+    }
+
+    return NULL_VAL;
+}
+
+/***
  * \method GetIDWithinClass
  * \desc Gets the ordered ID of the entity amongst other entities of the same type.
  * \return Returns an Integer value.
