@@ -19,6 +19,8 @@ void ResourceImpl::Init() {
 
 	Hash_Filename = Murmur::EncryptString("Filename");
 
+	ScriptManager::DefineNative(Class, "Unload", ResourceImpl::VM_Unload);
+
 	ScriptManager::ClassImplList.push_back(Class);
 
 	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
@@ -54,11 +56,6 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	return value;
 }
 
-#undef GET_ARG
-#undef GET_ARG_OPT
-
-#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
-
 bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	ObjResource* objResource = (ObjResource*)object;
 	ResourceType* resource = (ResourceType*)objResource->ResourcePtr;
@@ -78,3 +75,17 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	return false;
 }
 
+VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	void* ptr = GET_ARG(0, GetResource);
+	if (ptr != nullptr) {
+		ResourceType* resource = (ResourceType*)ptr;
+		Resource::Unload(resource);
+	}
+
+	return NULL_VAL;
+}
+
+#undef GET_ARG
+#undef GET_ARG_OPT

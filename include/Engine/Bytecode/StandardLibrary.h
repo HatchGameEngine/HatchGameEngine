@@ -18,6 +18,7 @@ public:
 	static ObjString* GetVMString(VMValue* args, int index, Uint32 threadID);
 	static ObjArray* GetArray(VMValue* args, int index, Uint32 threadID);
 	static ObjMap* GetMap(VMValue* args, int index, Uint32 threadID);
+	static void* GetResource(VMValue* args, int index, Uint32 threadID);
 	static ISprite* GetSprite(VMValue* args, int index, Uint32 threadID);
 	static ISound* GetAudio(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);

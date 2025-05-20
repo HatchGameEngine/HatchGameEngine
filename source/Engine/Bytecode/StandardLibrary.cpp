@@ -84,11 +84,12 @@ namespace LOCAL {
 inline bool ValidateResource(void* ptr, Uint8 type, Uint32 threadID) {
 	ResourceType* resource = (ResourceType*)ptr;
 	if (!resource || !resource->Loaded) {
-		THROW_ERROR("Resource was not loaded.");
+		THROW_ERROR("Resource is not loaded!");
 		return false;
 	}
 
-	if (resource->Type != type) {
+	// Validate if type != RESOURCE_NONE
+	if (type != RESOURCE_NONE && resource->Type != type) {
 		THROW_ERROR("Expected resource to be of type '%s' instead of '%s'.",
 		    GetResourceTypeString(type),
 		    GetResourceTypeString(resource->Type));
@@ -392,6 +393,9 @@ ObjArray* StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
 }
 ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetMap(args, index, threadID);
+}
+void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetResource(RESOURCE_NONE, args, index, threadID);
 }
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
@@ -16885,7 +16889,7 @@ VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 #ifdef USING_FFMPEG
-	MediaBag* video = resource->AsMedia;
+	MediaBag* video = ((ResourceType*)resource)->AsMedia;
 	if (video) {
 		video->Source->Close();
 		video->Player->Close();

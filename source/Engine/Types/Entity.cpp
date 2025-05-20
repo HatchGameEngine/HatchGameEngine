@@ -81,7 +81,7 @@ void Entity::ResetAnimation(int animation, int frame) {
 	}
 
 	ISprite* sprite = ((ResourceType*)Sprite)->AsSprite;
-	if (animation < 0 || (size_t)animation >= sprite->Animations.size()) {
+	if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size()) {
 		return;
 	}
 
