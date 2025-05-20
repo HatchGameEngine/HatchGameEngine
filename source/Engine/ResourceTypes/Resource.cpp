@@ -76,13 +76,10 @@ bool Resource::Reload(ResourceType* resource) {
 		return false;
 	}
 
-	UnloadData(resource);
-
-	resource->Loaded = false;
-
 	// Try loading it.
 	void* resData = LoadData(resource->Type, resource->Filename);
 	if (resData != nullptr) {
+		UnloadData(resource); // Unload only if loading succeeded
 		resource->AsAny = resData;
 		resource->Loaded = true;
 	}
