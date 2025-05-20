@@ -75,8 +75,12 @@ bool Application::FirstFrame = true;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];
-int Application::WindowWidth = 848;
-int Application::WindowHeight = 480;
+int Application::WindowWidth = 424;
+int Application::WindowHeight = 240;
+int Application::WindowScale = 2;
+bool Application::WindowFullscreen = false;
+bool Application::WindowBorderless = false;
+
 int Application::DefaultMonitor = 0;
 
 char Application::EngineVersion[256];
@@ -288,12 +292,16 @@ void Application::CreateWindow() {
 		window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	}
 
+	Application::WindowScale = 2;
+	Application::Settings->GetInteger("display", "scale", &Application::WindowScale);
+	if (Application::WindowScale <= 0)
+		Application::WindowScale = 0;
+	if (Application::WindowScale > 5)
+		Application::WindowScale = 5;
+
 	Application::Window = SDL_CreateWindow(NULL,
-		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
-		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
-		Application::WindowWidth,
-		Application::WindowHeight,
-		window_flags);
+		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
+		Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale, window_flags);
 
 	if (Application::Platform == Platforms::iOS) {
 		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
@@ -309,13 +317,14 @@ void Application::CreateWindow() {
 #endif
 	}
 	else {
-		bool fullscreen = false;
-		Application::Settings->GetBool("display", "fullscreen", &fullscreen);
+		Application::Settings->GetBool("display", "fullscreen", &Application::WindowFullscreen);
 
-		if (Application::GetWindowFullscreen() != fullscreen) {
-			Application::SetWindowFullscreen(fullscreen);
-		}
+		if (Application::GetWindowFullscreen() != Application::WindowFullscreen)
+			Application::SetWindowFullscreen(Application::WindowFullscreen);
 	}
+
+	Application::Settings->GetBool("display", "borderless", &Application::WindowBorderless);
+	Application::SetWindowBorderless(Application::WindowBorderless);
 
 	Application::SetWindowTitle(Application::GameTitleShort);
 }
@@ -962,8 +971,9 @@ bool Application::GetWindowFullscreen() {
 }
 
 void Application::SetWindowFullscreen(bool isFullscreen) {
-	SDL_SetWindowFullscreen(
-		Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	SDL_SetWindowFullscreen(Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	Application::WindowFullscreen = isFullscreen;
+	Application::Settings->SetBool("display", "fullscreen", Application::WindowFullscreen);
 
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
@@ -972,6 +982,8 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 }
 
 void Application::SetWindowBorderless(bool isBorderless) {
+	Application::WindowBorderless = isBorderless;
+	Application::Settings->SetBool("display", "borderless", isBorderless);
 	SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
 }
 
@@ -1525,7 +1537,7 @@ void Application::Run(int argc, char* args[]) {
 
 	Application::StartGame(scenePath);
 	Application::UpdateWindowTitle();
-	Application::SetWindowSize(Application::WindowWidth, Application::WindowHeight);
+	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
 
 	Graphics::Clear();
 	Graphics::Present();
@@ -2759,7 +2771,7 @@ void Application::DevMenu_SettingsMenu() {
 
 	View view = Scene::Views[0];
 
-	DrawDevString("Change settings...", (int)view.Width / 2, 7566, ALIGN_CENTER, true);
+	DrawDevString("Change settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
 	int y = 93;
 	for (int i = 0; i < 4; i++) {

@@ -83,6 +83,9 @@ public:
 	static char WindowTitle[256];
 	static int WindowWidth;
 	static int WindowHeight;
+	static int WindowScale;
+	static bool WindowFullscreen;
+	static bool WindowBorderless;
 	static int DefaultMonitor;
 	static Platforms Platform;
 	static char EngineVersion[256];

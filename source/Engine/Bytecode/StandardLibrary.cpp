@@ -17613,7 +17613,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	int window_h = (int)GET_ARG(1, GetDecimal);
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
-	Application::SetWindowSize(window_w, window_h);
+	Application::SetWindowSize(window_w * Application::WindowScale, window_h * Application::WindowScale);
 	return NULL_VAL;
 }
 /***
@@ -17628,6 +17628,26 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetScale
+ * \desc Sets the scale of the active window.
+ * \param scale (Integer): Window scale.
+ * \ns Window
+ */
+VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	if (!Application::IsWindowResizeable())
+		return NULL_VAL;
+
+	Application::WindowScale = GET_ARG(0, GetInteger);
+	if (Application::WindowScale <= 0)
+		Application::WindowScale = 1;
+	if (Application::WindowScale > 5)
+		Application::WindowScale = 5;
+	Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+	return NULL_VAL;
+}
+/***
  * Window.SetBorderless
  * \desc Sets the bordered state of the active window.
  * \param isBorderless (Boolean): Whether or not the window should be borderless.
@@ -17635,7 +17655,7 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Application::SetWindowBorderless(GET_ARG(0, GetInteger));
+	Application::SetWindowBorderless(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -17716,6 +17736,16 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::GetWindowFullscreen());
+}
+/***
+ * Window.GetScale
+ * \desc Gets the scale of the active window.
+ * \return Returns the scale of the window.
+ * \ns Window
+ */
+VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowScale);
 }
 /***
  * Window.IsResizeable
@@ -19878,6 +19908,7 @@ void StandardLibrary::Link() {
 	INIT_CLASS(Window);
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
+	DEF_NATIVE(Window, SetScale);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
@@ -19886,6 +19917,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
+	DEF_NATIVE(Window, GetScale);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 
