@@ -975,6 +975,8 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 	Application::WindowFullscreen = isFullscreen;
 	Application::Settings->SetBool("display", "fullscreen", Application::WindowFullscreen);
 
+	DevMenu.Fullscreen = isFullscreen;
+
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
 
@@ -2313,6 +2315,10 @@ void Application::OpenDevMenu() {
 	DevMenu.SubScrollPos = 0;
 	DevMenu.Timer = 0;
 
+	DevMenu.WindowScale = Application::WindowScale;
+	DevMenu.Fullscreen = Application::WindowFullscreen;
+	DevMenu.WindowBorderless = Application::WindowBorderless;
+
 	AudioManager::AudioPauseAll();
 	AudioManager::Lock();
 	if (AudioManager::MusicStack.size() > 0) {
@@ -2326,6 +2332,10 @@ void Application::OpenDevMenu() {
 
 void Application::CloseDevMenu() {
 	Application::DevMenuActivated = false;
+
+	DevMenu.WindowScale = Application::WindowScale;
+	DevMenu.Fullscreen = Application::WindowFullscreen;
+	DevMenu.WindowBorderless = Application::WindowBorderless;
 
 	Application::SaveSettings();
 
@@ -2846,7 +2856,142 @@ void Application::DevMenu_SettingsMenu() {
 void Application::DevMenu_VideoMenu() {
 	DevMenu_DrawTitleBar();
 
+	int selectionCount = 5;
 
+	View view = Scene::Views[0];
+
+	DrawDevString("Change video settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
+
+	DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
+
+	DrawDevString("Window Scale", ((int)view.Width / 2) - 124, 105, ALIGN_LEFT, DevMenu.SubSelection == 0);
+	char scale[2];
+	snprintf(scale, sizeof scale, "%d", DevMenu.WindowScale);
+	DrawDevString(scale, ((int)view.Width / 2) + 80, 105, ALIGN_CENTER, DevMenu.SubSelection == 0);
+
+	DrawDevString("Fullscreen", ((int)view.Width / 2) - 124, 121, ALIGN_LEFT, DevMenu.SubSelection == 1);
+	DrawDevString(DevMenu.Fullscreen ? "YES" : "NO", ((int)view.Width / 2) + 80, 121, ALIGN_CENTER, DevMenu.SubSelection == 1);
+
+	DrawDevString("Borderless", ((int)view.Width / 2) - 124, 137, ALIGN_LEFT, DevMenu.SubSelection == 2);
+	DrawDevString(DevMenu.WindowBorderless ? "YES" : "NO", ((int)view.Width / 2) + 80, 137, ALIGN_CENTER, DevMenu.SubSelection == 2);
+
+	DrawDevString("Confirm", (int)view.Width / 2, 161, ALIGN_CENTER, DevMenu.SubSelection == 3);
+	DrawDevString("Cancel", (int)view.Width / 2, 177, ALIGN_CENTER, DevMenu.SubSelection == 4);
+
+	if (InputManager::GetActionID("Up") != -1) {
+		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
+			DevMenu.SubSelection--;
+			DevMenu.Timer = 1;
+
+			if (DevMenu.SubSelection < 0)
+				DevMenu.SubSelection += selectionCount;
+		}
+		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
+			if (DevMenu.Timer) {
+				DevMenu.Timer = ++DevMenu.Timer & 7;
+			}
+			else {
+				DevMenu.SubSelection--;
+				DevMenu.Timer = ++DevMenu.Timer & 7;
+
+				if (DevMenu.SubSelection < 0)
+					DevMenu.SubSelection += selectionCount;
+			}
+		}
+	}
+
+	if (InputManager::GetActionID("Down") != -1) {
+		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
+			DevMenu.SubSelection++;
+			DevMenu.Timer = 1;
+
+			if (DevMenu.SubSelection >= selectionCount)
+				DevMenu.SubSelection -= selectionCount;
+		}
+		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
+			if (DevMenu.Timer) {
+				DevMenu.Timer = ++DevMenu.Timer & 7;
+			}
+			else {
+				DevMenu.SubSelection++;
+				DevMenu.Timer = ++DevMenu.Timer & 7;
+
+				if (DevMenu.SubSelection >= selectionCount)
+					DevMenu.SubSelection -= selectionCount;
+			}
+		}
+	}
+
+	switch (DevMenu.SubSelection) {
+		case 0: { // Scale
+			for (const char* direction : { "Left", "Right" }) {
+				int actionID = InputManager::GetActionID(direction);
+				if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+					DevMenu.WindowScale += (direction[0] == 'L') ? -1 : 1;
+					DevMenu.WindowScale = (DevMenu.WindowScale + 4) % 5 + 1;
+				}
+			}
+			break;
+		}
+		case 1: { // Fullscreen
+			if (InputManager::GetActionID("Left") != -1 || InputManager::GetActionID("Right") != -1) {
+				if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
+					InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
+					DevMenu.Fullscreen ^= 1;
+				}
+			}
+			break;
+		}
+		case 2: { // Borderless
+			if (InputManager::GetActionID("Left") != -1 || InputManager::GetActionID("Right") != -1) {
+				if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
+					InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
+					DevMenu.WindowBorderless ^= 1;
+				}
+			}
+			break;
+		}
+		case 3: { // Confirm
+			bool confirm = false;
+			for (const char* action : { "A", "Start" }) {
+				int actionID = InputManager::GetActionID(action);
+				if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+					confirm = true;
+					break;
+				}
+			}
+			if (confirm) {
+				Application::SetWindowFullscreen(DevMenu.Fullscreen);
+				Application::SetWindowBorderless(DevMenu.WindowBorderless);
+				if (Application::IsWindowResizeable()) {
+					Application::WindowScale = DevMenu.WindowScale;
+					Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+					Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+				}
+				DevMenu.State = DevMenu_SettingsMenu;
+				DevMenu.SubSelection = 0;
+			}
+			break;
+		}
+		case 4: { // Cancel
+			bool confirm = false;
+			for (const char* action : { "A", "Start" }) {
+				int actionID = InputManager::GetActionID(action);
+				if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+					confirm = true;
+					break;
+				}
+			}
+			if (confirm) {
+				DevMenu.WindowScale = Application::WindowScale;
+				DevMenu.Fullscreen = Application::WindowFullscreen;
+				DevMenu.WindowBorderless = Application::WindowBorderless;
+				DevMenu.State = DevMenu_SettingsMenu;
+				DevMenu.SubSelection = 0;
+			}
+			break;
+		}
+	}
 }
 
 void Application::DevMenu_AudioMenu() {
@@ -2863,7 +3008,7 @@ void Application::DevMenu_AudioMenu() {
 	DrawDevString("Master Volume", ((int)view.Width / 2) - 124, 105, ALIGN_LEFT, DevMenu.SubSelection == 0);
 	DrawDevString("Music Volume", ((int)view.Width / 2) - 124, 121, ALIGN_LEFT, DevMenu.SubSelection == 1);
 	DrawDevString("Sound Volume", ((int)view.Width / 2) - 124, 137, ALIGN_LEFT, DevMenu.SubSelection == 2);
-	DrawDevString("Confirm", (int)view.Width / 2, 171, ALIGN_CENTER, DevMenu.SubSelection == 3);
+	DrawDevString("Confirm", (int)view.Width / 2, 169, ALIGN_CENTER, DevMenu.SubSelection == 3);
 
 	float y = 98.0;
 	for (int i = 0; i < 3; i++) {

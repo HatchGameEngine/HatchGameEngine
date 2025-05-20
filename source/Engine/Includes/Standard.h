@@ -86,11 +86,11 @@ struct DeveloperMenu {
     int ScrollPos;
     int SubScrollPos;
     int Timer;
-    bool Windowed;
+    bool Fullscreen;
     int SceneState;
     int ListPos;
     int WindowScale;
-    int WindowAspect;
+    bool WindowBorderless;
     bool ModsChanged;
     int PlayerListPos;
     bool MusicPausedStore;
