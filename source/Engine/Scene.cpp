@@ -121,7 +121,6 @@ int Scene::ActiveCategory;
 int Scene::DebugMode;
 
 // Resource managing variables
-vector<ResourceType*> Scene::ResourceList;
 vector<GameTexture*> Scene::TextureList;
 vector<Animator*> Scene::AnimatorList;
 
@@ -2548,7 +2547,7 @@ void Scene::UnloadTileCollisions() {
 // Resource Management
 void Scene::DisposeInScope(Uint32 scope) {
 	// Resources
-	Resource::DisposeInList(&Scene::ResourceList, scope);
+	Resource::DisposeInScope(scope);
 	// Textures
 	for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
 		if (!Scene::TextureList[i]) {
@@ -2598,7 +2597,6 @@ void Scene::Dispose() {
 
 	// Dispose of all resources
 	Scene::DisposeInScope(SCOPE_GAME);
-	Scene::ResourceList.clear();
 	Scene::TextureList.clear();
 	Scene::AnimatorList.clear();
 

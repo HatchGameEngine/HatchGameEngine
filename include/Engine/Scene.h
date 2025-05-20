@@ -80,7 +80,6 @@ public:
 	static int BaseTilesetCount;
 	static bool TileCfgLoaded;
 	static vector<TileConfig*> TileCfg;
-	static vector<ResourceType*> ResourceList;
 	static vector<GameTexture*> TextureList;
 	static vector<Animator*> AnimatorList;
 	static int Frame;

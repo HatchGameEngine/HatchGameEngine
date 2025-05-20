@@ -11263,9 +11263,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Resources
 ObjResource* LoadResource(Uint8 type, char* filename, int unloadPolicy) {
-	vector<ResourceType*>* list = Resource::GetList(unloadPolicy);
-
-	ResourceType* resource = Resource::Load(list, type, filename, unloadPolicy);
+	ResourceType* resource = Resource::Load(type, filename, unloadPolicy);
 	if (resource != nullptr) {
 		return (ObjResource*)(Resource::GetVMObject(resource));
 	}
@@ -11356,9 +11354,7 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
 	int pixel_sz = (int)GET_ARG(1, GetDecimal);
 	int unloadPolicy = GET_ARG(2, GetInteger);
 
-	vector<ResourceType*>* list = Resource::GetList(unloadPolicy);
-
-	ResourceType* resource = Resource::LoadFont(list, filename, pixel_sz, unloadPolicy);
+	ResourceType* resource = Resource::LoadFont(filename, pixel_sz, unloadPolicy);
 	if (resource != nullptr) {
 		return OBJECT_VAL(Resource::GetVMObject(resource));
 	}

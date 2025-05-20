@@ -756,7 +756,7 @@ void Application::Restart() {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
-	Resource::DisposeGlobal();
+	Resource::DisposeAll();
 	Graphics::DeleteSpriteSheetMap();
 
 	ScriptManager::LoadAllClasses = false;
@@ -1041,19 +1041,15 @@ void Application::PollEvents() {
 				}
 				// Show resource info (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevResourceInfo]) {
-					for (Uint32 i = SCOPE_SCENE; i <= SCOPE_GAME; i++) {
-						std::vector<ResourceType*>* list = Resource::GetList(i);
+					std::vector<ResourceType*>* list = Resource::GetList();
 
-						Log::Print(Log::LOG_IMPORTANT, "Resource List %d:", i);
-
-						for (size_t j = 0; j < list->size(); j++) {
-							ResourceType* resource = (*list)[j];
-							Log::Print(Log::LOG_IMPORTANT,
-								"- %d: %s (%s)",
-								j,
-								resource->Filename,
-								GetResourceTypeString(resource->Type));
-						}
+					for (size_t i = 0; i < list->size(); i++) {
+						ResourceType* resource = (*list)[i];
+						Log::Print(Log::LOG_IMPORTANT,
+							"- %d: %s (%s)",
+							i,
+							resource->Filename,
+							GetResourceTypeString(resource->Type));
 					}
 					break;
 				}
@@ -1204,7 +1200,7 @@ void Application::RunFrame(int runFrames) {
 	AudioManager::Lock();
 	Uint8 audio_buffer[0x8000]; // <-- Should be larger than AudioManager::AudioQueueMaxSize
 	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	vector<ResourceType*>* list = Resource::GetList(SCOPE_GAME);
+	vector<ResourceType*>* list = Resource::GetList();
 	for (size_t i = 0, i_sz = list->size(); i < i_sz; i++) {
 		if ((*list)[i]->Type != RESOURCE_MEDIA) {
 			continue;
@@ -1637,7 +1633,7 @@ void Application::Cleanup() {
 		Application::Settings->Dispose();
 	}
 
-	Resource::DisposeGlobal();
+	Resource::DisposeAll();
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();

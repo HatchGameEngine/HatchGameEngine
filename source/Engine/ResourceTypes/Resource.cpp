@@ -18,31 +18,25 @@ ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int u
 	return resource;
 }
 
-std::vector<ResourceType*>* Resource::GetList(Uint32 scope) {
-	if (scope == SCOPE_SCENE) {
-		return &Scene::ResourceList;
-	}
-
+std::vector<ResourceType*>* Resource::GetList() {
 	return &List;
 }
 
-void Resource::DisposeInList(std::vector<ResourceType*>* list, Uint32 scope) {
-	for (size_t i = 0; i < list->size();) {
-		ResourceType* resource = (*list)[i];
+void Resource::DisposeInScope(Uint32 scope) {
+	for (size_t i = 0; i < List.size();) {
+		ResourceType* resource = List[i];
 		if (resource->UnloadPolicy > scope) {
 			i++;
 			continue;
 		}
 		Resource::Unload(resource);
 		Resource::Release(resource);
-		list->erase(list->begin() + i);
+		List.erase(List.begin() + i);
 	}
 }
 
-void Resource::DisposeGlobal() {
-	const Uint32 scope = SCOPE_GAME;
-
-	DisposeInList(GetList(scope), scope);
+void Resource::DisposeAll() {
+	DisposeInScope(SCOPE_GAME);
 }
 
 void* Resource::GetVMObject(ResourceType* resource) {
@@ -113,11 +107,11 @@ void Resource::Delete(ResourceType* resource) {
 	}
 }
 
-int Resource::Search(vector<ResourceType*>* list, Uint8 type, const char* filename, Uint32 hash) {
-	for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
-		if ((*list)[i]->Type == type
-		&& (*list)[i]->FilenameHash == hash
-		&& strcmp((*list)[i]->Filename, filename) == 0) {
+int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
+	for (size_t i = 0, listSz = List.size(); i < listSz; i++) {
+		if (List[i]->Type == type
+		&& List[i]->FilenameHash == hash
+		&& strcmp(List[i]->Filename, filename) == 0) {
 			return (int)i;
 		}
 	}
@@ -125,7 +119,7 @@ int Resource::Search(vector<ResourceType*>* list, Uint8 type, const char* filena
 	return -1;
 }
 
-ResourceType* Resource::Load(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy) {
+ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy) {
 	switch (type) {
 	case RESOURCE_NONE:
 	case RESOURCE_SPRITE:
@@ -133,7 +127,7 @@ ResourceType* Resource::Load(vector<ResourceType*>* list, Uint8 type, const char
 	case RESOURCE_AUDIO:
 	case RESOURCE_MODEL:
 	case RESOURCE_MEDIA:
-		return LoadInternal(list, type, filename, unloadPolicy);
+		return LoadInternal(type, filename, unloadPolicy);
 	default:
 		break;
 	}
@@ -141,7 +135,7 @@ ResourceType* Resource::Load(vector<ResourceType*>* list, Uint8 type, const char
 	return nullptr;
 }
 
-ResourceType* Resource::LoadInternal(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy) {
+ResourceType* Resource::LoadInternal(Uint8 type, const char* filename, int unloadPolicy) {
 	// Guess resource type if none was given
 	if (type == RESOURCE_NONE) {
 		type = GuessType(filename);
@@ -152,9 +146,9 @@ ResourceType* Resource::LoadInternal(vector<ResourceType*>* list, Uint8 type, co
 
 	// Find a resource that already exists.
 	Uint32 hash = CRC32::EncryptString(filename);
-	int result = Search(list, type, filename, hash);
+	int result = Search(type, filename, hash);
 	if (result != -1) {
-		return (*list)[result];
+		return List[result];
 	}
 
 	// Try loading it.
@@ -169,19 +163,19 @@ ResourceType* Resource::LoadInternal(vector<ResourceType*>* list, Uint8 type, co
 	resource->Loaded = true;
 
 	// Add it to the list.
-	list->push_back(resource);
+	List.push_back(resource);
 
 	return resource;
 }
 
-ResourceType* Resource::LoadFont(vector<ResourceType*>* list, const char* filename, int pixel_sz, int unloadPolicy) {
+ResourceType* Resource::LoadFont(const char* filename, int pixel_sz, int unloadPolicy) {
 	// Find a resource that already exists.
 	Uint32 hash = CRC32::EncryptString(filename);
 	hash = CRC32::EncryptData(&pixel_sz, sizeof(int), hash);
 
-	int result = Search(list, RESOURCE_FONT, filename, hash);
+	int result = Search(RESOURCE_FONT, filename, hash);
 	if (result != -1) {
-		return (*list)[result];
+		return List[result];
 	}
 
 	// Try loading it.
@@ -196,7 +190,7 @@ ResourceType* Resource::LoadFont(vector<ResourceType*>* list, const char* filena
 	resource->Loaded = true;
 
 	// Add it to the list.
-	list->push_back(resource);
+	List.push_back(resource);
 
 	return resource;
 }

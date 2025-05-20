@@ -10,20 +10,20 @@ private:
 	static void AddRef(ResourceType* resource);
 	static void DecRef(ResourceType* resource);
 	static bool UnloadData(ResourceType* resource);
-	static int Search(vector<ResourceType*>* list, Uint8 type, const char* filename, Uint32 hash);
-	static ResourceType* LoadInternal(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy);
+	static int Search(Uint8 type, const char* filename, Uint32 hash);
+	static ResourceType* LoadInternal(Uint8 type, const char* filename, int unloadPolicy);
 	static Uint8 GuessType(const char* filename);
 	static void* LoadData(Uint8 type, const char* filename);
 	static ISprite* LoadFontData(const char* filename, int pixel_sz);
 	static MediaBag* LoadMediaBag(const char* filename);
 
 public:
-	static vector<ResourceType*>* GetList(Uint32 scope);
-	static void DisposeInList(std::vector<ResourceType*>* list, Uint32 scope);
-	static void DisposeGlobal();
+	static vector<ResourceType*>* GetList();
+	static void DisposeInScope(Uint32 scope);
+	static void DisposeAll();
 	static void* GetVMObject(ResourceType* resource);
-	static ResourceType* Load(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy);
-	static ResourceType* LoadFont(vector<ResourceType*>* list, const char* filename, int pixel_sz, int unloadPolicy);
+	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy);
+	static ResourceType* LoadFont(const char* filename, int pixel_sz, int unloadPolicy);
 	static void TakeRef(ResourceType* resource);
 	static bool Reload(ResourceType* resource);
 	static void Unload(ResourceType* resource);

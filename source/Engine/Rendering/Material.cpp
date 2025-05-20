@@ -39,9 +39,7 @@ void* Material::TryLoadForModel(std::string imagePath, const char* parentDirecto
 		filename = Path::Concat(std::string(parentDirectory), filename);
 	}
 
-	vector<ResourceType*>* list = Resource::GetList(SCOPE_GAME);
-
-	ResourceType* resource = Resource::Load(list, RESOURCE_IMAGE, filename.c_str(), SCOPE_GAME);
+	ResourceType* resource = Resource::Load(RESOURCE_IMAGE, filename.c_str(), SCOPE_GAME);
 	if (resource) {
 		Resource::TakeRef(resource);
 
