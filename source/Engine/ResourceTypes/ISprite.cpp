@@ -45,12 +45,12 @@ size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
-	Texture* texture = nullptr;
-
 	char* filename = StringUtils::NormalizePath(sheetFilename);
 
 	std::string sheetPath = std::string(filename);
 
+	// Check to see if this spritesheet is already loaded.
+	// TODO: Just use image Resources for this somehow?
 	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
 		SpritesheetFilenames.push_back(sheetPath);
@@ -59,11 +59,13 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 		return textureRef->TexturePtr;
 	}
 
-	texture = Image::LoadTextureFromResource(filename);
-
-	Graphics::AddSpriteSheet(sheetPath, texture);
-	Spritesheets.push_back(texture);
-	SpritesheetFilenames.push_back(sheetPath);
+	// Wasn't loaded before, so do it now.
+	Texture* texture = Image::LoadTextureFromResource(filename);
+	if (texture) {
+		Graphics::AddSpriteSheet(sheetPath, texture);
+		Spritesheets.push_back(texture);
+		SpritesheetFilenames.push_back(sheetPath);
+	}
 
 	Memory::Free(filename);
 
