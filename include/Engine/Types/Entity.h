@@ -116,6 +116,7 @@ public:
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
 	void ApplyPhysics();
+	void SetSprite(void* sprite);
 	virtual void Initialize();
 	virtual void Create();
 	virtual void PostCreate();

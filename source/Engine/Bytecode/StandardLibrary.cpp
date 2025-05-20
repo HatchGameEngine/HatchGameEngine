@@ -834,7 +834,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
-	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
+	// Do not throw errors here because Animators are allowed to have negative animation and frame indexes
 	if (animator && animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
 		ISprite* sprite = GetSprite((ResourceType*)animator->Sprite, threadID);

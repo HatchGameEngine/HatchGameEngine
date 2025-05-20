@@ -1,3 +1,4 @@
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Types/Entity.h>
 
 void Entity::ApplyMotion() {
@@ -465,6 +466,18 @@ void Entity::CopyFields(Entity* other) {
 #undef COPY
 }
 
+void Entity::SetSprite(void* newSprite) {
+	if (Sprite != nullptr) {
+		Resource::Release((ResourceType*)Sprite);
+		Sprite = nullptr;
+	}
+
+	if (newSprite != nullptr) {
+		Resource::TakeRef((ResourceType*)newSprite);
+		Sprite = newSprite;
+	}
+}
+
 void Entity::ApplyPhysics() {}
 
 void Entity::Initialize() {}
@@ -491,4 +504,6 @@ void Entity::RenderLate() {}
 
 void Entity::Remove() {}
 
-void Entity::Dispose() {}
+void Entity::Dispose() {
+	SetSprite(nullptr);
+}

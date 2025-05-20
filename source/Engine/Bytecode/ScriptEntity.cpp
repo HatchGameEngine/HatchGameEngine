@@ -1092,6 +1092,8 @@ void ScriptEntity::Remove() {
 
 	Active = false;
 	Removed = true;
+
+	SetSprite(nullptr);
 }
 void ScriptEntity::Dispose() {
 	Entity::Dispose();
@@ -1188,11 +1190,11 @@ bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 thr
 
 	if (hash == Hash_Sprite) {
 		if (IS_NULL(value)) {
-			Resource::Release((ResourceType*)self->Sprite);
-			self->Sprite = nullptr;
+			self->SetSprite(nullptr);
 			return true;
 		}
-		else if (!IS_RESOURCE(value)) {
+
+		if (!IS_RESOURCE(value)) {
 			StandardLibrary::ExpectedObjectTypeError(value, OBJ_RESOURCE, threadID);
 			return true;
 		}
@@ -1200,8 +1202,7 @@ bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 thr
 		ObjResource* resourceObj = AS_RESOURCE(value);
 		void* resource = resourceObj->ResourcePtr;
 		if (StandardLibrary::ValidateResource(resource, RESOURCE_SPRITE, threadID)) {
-			Resource::TakeRef((ResourceType*)resource);
-			self->Sprite = resource;
+			self->SetSprite(resource);
 		}
 
 		return true;
