@@ -570,10 +570,10 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \param sprite (Resource): The index of the sprite.
- * \param animationID (Integer): Which animation to use.
- * \param frameID (Integer): Which frame to use.
- * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the animator.
+ * \paramOpt sprite (Resource): A sprite resource.
+ * \paramOpt animationID (Integer): Which animation to use.
+ * \paramOpt frameID (Integer): Which frame to use.
+ * \paramOpt unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the animator.
  * \return Returns the index of the Animator.
  * \ns Animator
  */
@@ -640,7 +640,7 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetAnimation
  * \desc Sets the current animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \param sprite (Resource): The index of the sprite.
+ * \param sprite (Resource): A sprite resource.
  * \param animationID (Integer): The animator's changed animation ID.
  * \param frameID (Integer): The animator's changed frame ID.
  * \param forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.

@@ -2062,11 +2062,11 @@
         <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
-        <code>Animator.Create(sprite, animationID, frameID, unloadPolicy)</code>
+        <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): The index of the sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animationID (Integer): Which animation to use.</li>
         <li>frameID (Integer): Which frame to use.</li>
         <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the animator.</li>
@@ -2090,7 +2090,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
-        <li>sprite (Resource): The index of the sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animationID (Integer): The animator's changed animation ID.</li>
         <li>frameID (Integer): The animator's changed frame ID.</li>
         <li>forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.</li>
