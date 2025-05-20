@@ -50,7 +50,7 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	VMValue value = NULL_VAL;
 
 	if (filename != nullptr) {
-		vector<ResourceType*>* list = &Scene::ResourceList;
+		vector<ResourceType*>* list = Resource::GetList(unloadPolicy);
 		ResourceType* resource = Resource::Load(list, RESOURCE_NONE, filename, unloadPolicy);
 		if (resource != nullptr) {
 			value = OBJECT_VAL(Resource::GetVMObject(resource));

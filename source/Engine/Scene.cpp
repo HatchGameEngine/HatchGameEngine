@@ -736,32 +736,6 @@ void Scene::Update() {
 		}
 	}
 
-#ifdef USING_FFMPEG
-	AudioManager::Lock();
-	Uint8 audio_buffer[0x8000]; // <-- Should be larger than
-	// AudioManager::AudioQueueMaxSize
-	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	for (size_t i = 0, i_sz = Scene::ResourceList.size(); i < i_sz; i++) {
-		if (Scene::ResourceList[i]->Type != RESOURCE_MEDIA) {
-			continue;
-		}
-
-		MediaBag* media = Scene::ResourceList[i]->AsMedia;
-		int queued = (int)AudioManager::AudioQueueSize;
-		if (queued < needed) {
-			int ready_bytes =
-				media->Player->GetAudioData(audio_buffer, needed - queued);
-			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
-					audio_buffer,
-					ready_bytes);
-				AudioManager::AudioQueueSize += ready_bytes;
-			}
-		}
-	}
-	AudioManager::Unlock();
-#endif
-
 	if (!Scene::Paused) {
 		Scene::Frame++;
 		Scene::ProcessSceneTimer();
@@ -2574,16 +2548,7 @@ void Scene::UnloadTileCollisions() {
 // Resource Management
 void Scene::DisposeInScope(Uint32 scope) {
 	// Resources
-	for (size_t i = 0; i < ResourceList.size();) {
-		ResourceType* resource = ResourceList[i];
-		if (resource->UnloadPolicy > scope) {
-			i++;
-			continue;
-		}
-		Resource::Unload(resource);
-		Resource::Release(resource);
-		ResourceList.erase(ResourceList.begin() + i);
-	}
+	Resource::DisposeInList(&Scene::ResourceList, scope);
 	// Textures
 	for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
 		if (!Scene::TextureList[i]) {
@@ -2631,8 +2596,8 @@ void Scene::Dispose() {
 		}
 	}
 
-	Scene::DisposeInScope(SCOPE_GAME);
 	// Dispose of all resources
+	Scene::DisposeInScope(SCOPE_GAME);
 	Scene::ResourceList.clear();
 	Scene::TextureList.clear();
 	Scene::AnimatorList.clear();

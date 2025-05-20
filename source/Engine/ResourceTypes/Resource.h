@@ -18,6 +18,9 @@ private:
 	static MediaBag* LoadMediaBag(const char* filename);
 
 public:
+	static vector<ResourceType*>* GetList(Uint32 scope);
+	static void DisposeInList(std::vector<ResourceType*>* list, Uint32 scope);
+	static void DisposeGlobal();
 	static void* GetVMObject(ResourceType* resource);
 	static ResourceType* Load(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy);
 	static ResourceType* LoadFont(vector<ResourceType*>* list, const char* filename, int pixel_sz, int unloadPolicy);

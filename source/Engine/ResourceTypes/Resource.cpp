@@ -3,7 +3,10 @@
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/Resource.h>
+#include <Engine/Scene.h>
 #include <Engine/Utilities/StringUtils.h>
+
+static vector<ResourceType*> List;
 
 ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
@@ -13,6 +16,33 @@ ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int u
 	resource->UnloadPolicy = unloadPolicy;
 	AddRef(resource);
 	return resource;
+}
+
+std::vector<ResourceType*>* Resource::GetList(Uint32 scope) {
+	if (scope == SCOPE_SCENE) {
+		return &Scene::ResourceList;
+	}
+
+	return &List;
+}
+
+void Resource::DisposeInList(std::vector<ResourceType*>* list, Uint32 scope) {
+	for (size_t i = 0; i < list->size();) {
+		ResourceType* resource = (*list)[i];
+		if (resource->UnloadPolicy > scope) {
+			i++;
+			continue;
+		}
+		Resource::Unload(resource);
+		Resource::Release(resource);
+		list->erase(list->begin() + i);
+	}
+}
+
+void Resource::DisposeGlobal() {
+	const Uint32 scope = SCOPE_GAME;
+
+	DisposeInList(GetList(scope), scope);
 }
 
 void* Resource::GetVMObject(ResourceType* resource) {

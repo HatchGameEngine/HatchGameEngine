@@ -73,8 +73,10 @@ enum class KeyBind {
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
-#define SCOPE_SCENE 0
-#define SCOPE_GAME 1
+enum {
+	SCOPE_SCENE,
+	SCOPE_GAME
+};
 
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;

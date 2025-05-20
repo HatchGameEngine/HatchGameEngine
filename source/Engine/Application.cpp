@@ -11,14 +11,17 @@
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Utilities/StringUtils.h>
 
+#ifdef USING_FFMPEG
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
+#endif
 
 #ifdef IOS
 extern "C" {
@@ -753,6 +756,7 @@ void Application::Restart() {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
+	Resource::DisposeGlobal();
 	Graphics::DeleteSpriteSheetMap();
 
 	ScriptManager::LoadAllClasses = false;
@@ -1177,6 +1181,32 @@ void Application::RunFrame(int runFrames) {
 		}
 	}
 
+#ifdef USING_FFMPEG
+	AudioManager::Lock();
+	Uint8 audio_buffer[0x8000]; // <-- Should be larger than AudioManager::AudioQueueMaxSize
+	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
+	vector<ResourceType*>* list = Resource::GetList(SCOPE_GAME);
+	for (size_t i = 0, i_sz = list->size(); i < i_sz; i++) {
+		if ((*list)[i]->Type != RESOURCE_MEDIA) {
+			continue;
+		}
+
+		MediaBag* media = (*list)[i]->AsMedia;
+		int queued = (int)AudioManager::AudioQueueSize;
+		if (queued < needed) {
+			int ready_bytes =
+				media->Player->GetAudioData(audio_buffer, needed - queued);
+			if (ready_bytes > 0) {
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
+					audio_buffer,
+					ready_bytes);
+				AudioManager::AudioQueueSize += ready_bytes;
+			}
+		}
+	}
+	AudioManager::Unlock();
+#endif
+
 	// Rendering
 	MetricClearTime = Clock::GetTicks();
 	Graphics::Clear();
@@ -1587,6 +1617,8 @@ void Application::Cleanup() {
 	if (Application::Settings) {
 		Application::Settings->Dispose();
 	}
+
+	Resource::DisposeGlobal();
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
