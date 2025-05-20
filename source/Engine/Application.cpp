@@ -876,12 +876,13 @@ void Application::LoadKeyBinds() {
 		Application::SetKeyBind((int)KeyBind::bind, key); \
 	}
 
-	GET_KEY("fullscreen", Fullscreen, Key_F4);
+	GET_KEY("fullscreen", Fullscreen, Key_UNKNOWN);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
 	GET_KEY("devPerfSnapshot", DevPerfSnapshot, Key_F3);
 	GET_KEY("devLogLayerInfo", DevLayerInfo, Key_F2);
+	GET_KEY("devLogResourceInfo", DevResourceInfo, Key_F4);
 	GET_KEY("devFastForward", DevFastForward, Key_BACKSPACE);
 	GET_KEY("devToggleFrameStepper", DevFrameStepper, Key_F9);
 	GET_KEY("devStepFrame", DevStepFrame, Key_F10);
@@ -1035,6 +1036,24 @@ void Application::PollEvents() {
 							layer.DrawGroup,
 							layer.DrawBehavior,
 							layer.Flags);
+					}
+					break;
+				}
+				// Show resource info (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevResourceInfo]) {
+					for (Uint32 i = SCOPE_SCENE; i <= SCOPE_GAME; i++) {
+						std::vector<ResourceType*>* list = Resource::GetList(i);
+
+						Log::Print(Log::LOG_IMPORTANT, "Resource List %d:", i);
+
+						for (size_t j = 0; j < list->size(); j++) {
+							ResourceType* resource = (*list)[j];
+							Log::Print(Log::LOG_IMPORTANT,
+								"- %d: %s (%s)",
+								j,
+								resource->Filename,
+								GetResourceTypeString(resource->Type));
+						}
 					}
 					break;
 				}

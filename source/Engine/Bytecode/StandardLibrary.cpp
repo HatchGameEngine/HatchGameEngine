@@ -18119,10 +18119,15 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, DevPerfSnapshot);
 	/***
-    * \enum KeyBind_Fullscreen
+    * \enum KeyBind_DevLayerInfo
     * \desc Scene layer info keybind. (dev)
     */
 	DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
+	/***
+    * \enum KeyBind_DevResourceInfo
+    * \desc Resource info keybind. (dev)
+    */
+	DEF_ENUM_CLASS(KeyBind, DevResourceInfo);
 	/***
     * \enum KeyBind_DevFastForward
     * \desc Fast forward keybind. (dev)

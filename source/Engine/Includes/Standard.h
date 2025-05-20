@@ -52,6 +52,7 @@ enum class KeyBind {
 	DevRecompile,
 	DevPerfSnapshot,
 	DevLayerInfo,
+	DevResourceInfo,
 	DevFastForward,
 	DevFrameStepper,
 	DevStepFrame,
