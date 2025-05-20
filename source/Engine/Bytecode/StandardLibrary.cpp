@@ -10702,6 +10702,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 		RSDKSceneReader::GameConfig_GetColors(filename);
 	}
 	else {
+		// TODO: This sucks.
 		ResourceStream* reader;
 		if ((reader = ResourceStream::New(filename))) {
 			MemoryStream* memoryReader;
@@ -10831,7 +10832,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					GIF* gif;
 
 					Graphics::UsePalettes = false;
-					gif = GIF::Load(filename);
+					gif = GIF::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (gif) {
@@ -10863,7 +10864,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					PNG* png;
 
 					Graphics::UsePalettes = true;
-					png = PNG::Load(filename);
+					png = PNG::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (png) {

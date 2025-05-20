@@ -2,8 +2,16 @@
 #define ENGINE_RESOURCETYPES_IMAGE_H
 
 #include <Engine/Includes/Standard.h>
+#include <Engine/IO/Stream.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
+
+enum {
+	IMAGE_FORMAT_UNKNOWN,
+	IMAGE_FORMAT_PNG,
+	IMAGE_FORMAT_GIF,
+	IMAGE_FORMAT_JPEG
+};
 
 class Image {
 private:
@@ -21,6 +29,8 @@ public:
 	void Dispose();
 	~Image();
 
+	static Uint8 DetectFormat(Stream* stream);
+	static bool IsFile(Stream* stream);
 	static Texture* LoadTextureFromResource(const char* filename);
 };
 

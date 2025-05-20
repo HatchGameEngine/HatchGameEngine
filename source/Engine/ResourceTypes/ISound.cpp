@@ -3,6 +3,7 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/Utilities/StringUtils.h>
 // Import sound formats
@@ -16,6 +17,25 @@ ISound::ISound(const char* filename, bool streamFromFile) {
 	ISound::Load(filename, streamFromFile);
 }
 
+Uint8 ISound::DetectFormat(Stream* stream) {
+	Uint8 magic[12] = {0};
+	stream->ReadBytes(magic, sizeof magic);
+
+	// OGG
+	if (memcmp(magic, "\x4F\x67\x67\x53", 4) == 0) {
+		return AUDIO_FORMAT_OGG;
+	}
+	// WAV
+	else if (memcmp(magic, "RIFF", 4) == 0 && memcmp(magic + 8, "WAVE", 4) == 0) {
+		return AUDIO_FORMAT_WAV;
+	}
+
+	return AUDIO_FORMAT_UNKNOWN;
+}
+bool ISound::IsFile(Stream* stream) {
+	return DetectFormat(stream) != AUDIO_FORMAT_UNKNOWN;
+}
+
 void ISound::Load(const char* filename, bool streamFromFile) {
 	LoadFailed = true;
 	StreamFromFile = streamFromFile;
@@ -23,11 +43,21 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 	double ticks = Clock::GetTicks();
 
+	Uint8 format = AUDIO_FORMAT_UNKNOWN;
+	Stream* stream = ResourceStream::New(Filename);
+	if (stream) {
+		format = DetectFormat(stream);
+		stream->Seek(0);
+	}
+	else {
+		return;
+	}
+
 	// .OGG format
-	if (StringUtils::StrCaseStr(Filename, ".ogg")) {
+	if (format == AUDIO_FORMAT_OGG) {
 		ticks = Clock::GetTicks();
 
-		SoundData = OGG::Load(Filename);
+		SoundData = OGG::Load(stream);
 		if (!SoundData) {
 			return;
 		}
@@ -42,10 +72,10 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 			Filename);
 	}
 	// .WAV format
-	else if (StringUtils::StrCaseStr(Filename, ".wav")) {
+	else if (format == AUDIO_FORMAT_WAV) {
 		ticks = Clock::GetTicks();
 
-		SoundData = WAV::Load(Filename);
+		SoundData = WAV::Load(stream);
 		if (!SoundData) {
 			return;
 		}
@@ -59,7 +89,8 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 	}
 	// Unsupported format
 	else {
-		Log::Print(Log::LOG_ERROR, "Unsupported audio format from file \"%s\"!", Filename);
+		stream->Close();
+		Log::Print(Log::LOG_ERROR, "Unsupported audio format for file \"%s\"!", Filename);
 		return;
 	}
 

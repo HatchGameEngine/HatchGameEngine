@@ -3,11 +3,8 @@
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
 
-#include <Engine/ResourceTypes/ImageFormats/GIF.h>
-#include <Engine/ResourceTypes/ImageFormats/JPEG.h>
-#include <Engine/ResourceTypes/ImageFormats/PNG.h>
+#include <Engine/ResourceTypes/Image.h>
 
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
@@ -48,12 +45,7 @@ size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
-	Texture* texture = NULL;
-	Uint32* data = NULL;
-	Uint32 width = 0;
-	Uint32 height = 0;
-	Uint32* paletteColors = NULL;
-	unsigned numPaletteColors = 0;
+	Texture* texture = nullptr;
 
 	char* filename = StringUtils::NormalizePath(sheetFilename);
 
@@ -67,114 +59,7 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 		return textureRef->TexturePtr;
 	}
 
-	float loadDelta = 0.0f;
-	if (StringUtils::StrCaseStr(filename, ".png")) {
-		Clock::Start();
-		PNG* png = PNG::Load(filename);
-		loadDelta = Clock::End();
-
-		if (png && png->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"PNG load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = png->Width;
-			height = png->Height;
-
-			data = png->Data;
-			Memory::Track(data, "Texture::Data");
-
-			if (png->Paletted) {
-				paletteColors = png->GetPalette();
-				numPaletteColors = png->NumPaletteColors;
-			}
-
-			delete png;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
-	}
-	else if (StringUtils::StrCaseStr(filename, ".jpg") ||
-		StringUtils::StrCaseStr(filename, ".jpeg")) {
-		Clock::Start();
-		JPEG* jpeg = JPEG::Load(filename);
-		loadDelta = Clock::End();
-
-		if (jpeg && jpeg->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"JPEG load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = jpeg->Width;
-			height = jpeg->Height;
-
-			data = jpeg->Data;
-			Memory::Track(data, "Texture::Data");
-
-			delete jpeg;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
-	}
-	else if (StringUtils::StrCaseStr(filename, ".gif")) {
-		Clock::Start();
-		GIF* gif = GIF::Load(filename);
-		loadDelta = Clock::End();
-
-		if (gif && gif->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"GIF load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = gif->Width;
-			height = gif->Height;
-
-			data = gif->Data;
-			Memory::Track(data, "Texture::Data");
-
-			if (gif->Paletted) {
-				paletteColors = gif->GetPalette();
-				numPaletteColors = gif->NumPaletteColors;
-			}
-
-			delete gif;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
-	}
-	else {
-		Log::Print(Log::LOG_ERROR, "Unsupported image format for sprite!");
-		Memory::Free(filename);
-		return texture;
-	}
-
-	bool forceSoftwareTextures = false;
-	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
-	if (forceSoftwareTextures) {
-		Graphics::NoInternalTextures = true;
-	}
-
-	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
-
-	if (texture == NULL) {
-		Log::Print(Log::LOG_ERROR, "Couldn't create sprite sheet texture!");
-		abort();
-	}
-
-	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
-
-	Graphics::NoInternalTextures = false;
-
-	Memory::Free(data);
+	texture = Image::LoadTextureFromResource(filename);
 
 	Graphics::AddSpriteSheet(sheetPath, texture);
 	Spritesheets.push_back(texture);
@@ -280,6 +165,9 @@ void ISprite::ConvertToPalette(unsigned paletteNumber) {
 	}
 }
 
+bool ISprite::IsFile(Stream* stream) {
+	return stream->ReadUInt32() == 0x00525053;
+}
 bool ISprite::LoadAnimation(const char* filename) {
 	char* str;
 	int animationCount, previousAnimationCount;
@@ -299,7 +187,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 	/// =======================
 
 	// Check MAGIC
-	if (reader->ReadUInt32() != 0x00525053) {
+	if (!IsFile(reader)) {
 		reader->Close();
 		return false;
 	}

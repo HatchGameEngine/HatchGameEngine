@@ -188,23 +188,16 @@ void GIF::FreeTree(void* root, int degree) {
 		Clock::Start(); \
 	}
 
-GIF* GIF::Load(const char* filename) {
+GIF* GIF::Load(Stream* stream) {
 	bool loadPalette = Graphics::UsePalettes;
 	Entry* codeTable = (Entry*)Memory::Malloc(0x1000 * sizeof(Entry));
 
 	GIF* gif = new GIF;
-	Stream* stream = NULL;
 
 	size_t fileSize;
 	void* fileBuffer = NULL;
 
 	Clock::Start();
-
-	stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto GIF_Load_FAIL;
-	}
 
 #ifdef DO_GIF_PERF
 	MARK_PERF_LABEL("stream open");
@@ -213,7 +206,6 @@ GIF* GIF::Load(const char* filename) {
 	fileSize = stream->Length();
 	fileBuffer = Memory::Malloc(fileSize);
 	stream->ReadBytes(fileBuffer, fileSize);
-	stream->Close();
 
 #ifdef DO_GIF_PERF
 	MARK_PERF_LABEL("read to buffer");
@@ -233,9 +225,8 @@ GIF* GIF::Load(const char* filename) {
 	if (memcmp(magicGIF, "GIF", 3) != 0) {
 		magicGIF[3] = 0;
 		Log::Print(Log::LOG_ERROR,
-			"Invalid GIF file! Found \"%s\", expected \"GIF\"! (%s)",
-			magicGIF,
-			filename);
+			"Invalid GIF file! Found \"%s\", expected \"GIF\"!",
+			magicGIF);
 		goto GIF_Load_FAIL;
 	}
 
@@ -244,9 +235,8 @@ GIF* GIF::Load(const char* filename) {
 	if (memcmp(magic89a, "89a", 3) != 0 && memcmp(magic89a, "87a", 3) != 0) {
 		magic89a[3] = 0;
 		Log::Print(Log::LOG_ERROR,
-			"Invalid GIF version! Found \"%s\", expected \"89a\"! (%s)",
-			magic89a,
-			filename);
+			"Invalid GIF version! Found \"%s\", expected \"89a\"!)",
+			magic89a);
 		goto GIF_Load_FAIL;
 	}
 
@@ -263,7 +253,7 @@ GIF* GIF::Load(const char* filename) {
 	stream->Skip(1); // pixelAspectRatio = stream->ReadByte();
 
 	if ((logicalScreenDesc & 0x80) == 0) {
-		Log::Print(Log::LOG_ERROR, "GIF missing palette table! (%s)", filename);
+		Log::Print(Log::LOG_ERROR, "GIF missing palette table!");
 		goto GIF_Load_FAIL;
 	}
 
@@ -575,9 +565,6 @@ GIF_Load_Success:
 	MARK_PERF_LABEL("decode gif data");
 #endif
 	Clock::End();
-	if (stream) {
-		stream->Close();
-	}
 	Memory::Free(fileBuffer);
 	Memory::Free(codeTable);
 	return gif;
@@ -645,7 +632,6 @@ bool GIF::Save(const char* filename) {
 
 	stream->WriteByte(0x3B);
 
-	stream->Close();
 	return true;
 }
 

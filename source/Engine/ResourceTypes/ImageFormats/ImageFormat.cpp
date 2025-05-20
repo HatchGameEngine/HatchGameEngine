@@ -1,4 +1,6 @@
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/IO/ResourceStream.h>
+#include <Engine/IO/Stream.h>
 #include <Engine/ResourceTypes/ImageFormats/ImageFormat.h>
 
 Uint32* ImageFormat::GetPalette() {

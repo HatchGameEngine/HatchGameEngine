@@ -49,6 +49,29 @@ Image::~Image() {
 	Dispose();
 }
 
+Uint8 Image::DetectFormat(Stream* stream) {
+	Uint8 magic[8];
+	stream->ReadBytes(magic, sizeof magic);
+
+	// PNG
+	if (memcmp(magic, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 8) == 0) {
+		return IMAGE_FORMAT_PNG;
+	}
+	// GIF
+	else if (memcmp(magic, "GIF87a", 6) == 0 || memcmp(magic, "GIF89a", 6) == 0) {
+		return IMAGE_FORMAT_GIF;
+	}
+	// JPEG
+	else if (memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 || memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0) {
+		return IMAGE_FORMAT_JPEG;
+	}
+
+	return IMAGE_FORMAT_UNKNOWN;
+}
+bool Image::IsFile(Stream* stream) {
+	return DetectFormat(stream) != IMAGE_FORMAT_UNKNOWN;
+}
+
 Texture* Image::LoadTextureFromResource(const char* filename) {
 	Texture* texture = NULL;
 	Uint32* data = NULL;
@@ -57,29 +80,24 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	Uint32* paletteColors = NULL;
 	unsigned numPaletteColors = 0;
 
-	const char* altered = filename;
-
-	Uint32 magic = 0x000000;
-	Stream* stream = ResourceStream::New(altered);
+	Uint8 format = IMAGE_FORMAT_UNKNOWN;
+	Stream* stream = ResourceStream::New(filename);
 	if (stream) {
-		magic = stream->ReadUInt32();
-		stream->Close();
+		format = DetectFormat(stream);
+		stream->Seek(0);
 	}
 	else {
-		// Log::Print(Log::LOG_ERROR, "Image \"%s\" does not
-		// exist!", filename);
-		return NULL;
+		return nullptr;
 	}
 
-	// 0x474E5089U PNG
-	if (magic == 0x474E5089U) {
+	if (format == IMAGE_FORMAT_PNG) {
 		Clock::Start();
-		PNG* png = PNG::Load(altered);
+		PNG* png = PNG::Load(stream);
 		if (png) {
 			Log::Print(Log::LOG_VERBOSE,
 				"PNG load took %.3f ms (%s)",
 				Clock::End(),
-				altered);
+				filename);
 			width = (Uint32)png->Width;
 			height = (Uint32)png->Height;
 
@@ -94,19 +112,19 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete png;
 		}
 		else {
+			stream->Close();
 			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
-			return NULL;
+			return nullptr;
 		}
 	}
-	// 0xE0FFD8FFU JPEG
-	else if ((magic & 0xFFFF) == 0xD8FFU) {
+	else if (format == IMAGE_FORMAT_JPEG) {
 		Clock::Start();
-		JPEG* jpeg = JPEG::Load(altered);
+		JPEG* jpeg = JPEG::Load(stream);
 		if (jpeg) {
 			Log::Print(Log::LOG_VERBOSE,
 				"JPEG load took %.3f ms (%s)",
 				Clock::End(),
-				altered);
+				filename);
 			width = (Uint32)jpeg->Width;
 			height = (Uint32)jpeg->Height;
 
@@ -116,18 +134,19 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete jpeg;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
-			return NULL;
+			stream->Close();
+			Log::Print(Log::LOG_ERROR, "JPEG %s could not be loaded!", filename);
+			return nullptr;
 		}
 	}
-	else if (StringUtils::StrCaseStr(altered, ".gif")) {
+	else if (format == IMAGE_FORMAT_GIF) {
 		Clock::Start();
-		GIF* gif = GIF::Load(altered);
+		GIF* gif = GIF::Load(stream);
 		if (gif) {
 			Log::Print(Log::LOG_VERBOSE,
 				"GIF load took %.3f ms (%s)",
 				Clock::End(),
-				altered);
+				filename);
 			width = (Uint32)gif->Width;
 			height = (Uint32)gif->Height;
 
@@ -142,14 +161,18 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete gif;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
-			return NULL;
+			stream->Close();
+			Log::Print(Log::LOG_ERROR, "GIF %s could not be loaded!", filename);
+			return nullptr;
 		}
 	}
 	else {
-		Log::Print(Log::LOG_ERROR, "Unsupported image format! %s", filename);
-		return NULL;
+		stream->Close();
+		Log::Print(Log::LOG_ERROR, "Unsupported image format for file \"%s\"!", filename);
+		return nullptr;
 	}
+
+	stream->Close();
 
 	bool forceSoftwareTextures = false;
 	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
@@ -161,7 +184,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		(width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight)) {
 		Log::Print(Log::LOG_WARN,
 			"Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!",
-			altered,
+			filename,
 			width,
 			height,
 			Graphics::MaxTextureWidth,

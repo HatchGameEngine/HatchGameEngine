@@ -12,6 +12,7 @@ private:
 	static bool UnloadData(ResourceType* resource);
 	static int Search(vector<ResourceType*>* list, Uint8 type, const char* filename, Uint32 hash);
 	static ResourceType* LoadInternal(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy);
+	static Uint8 GuessType(const char* filename);
 	static void* LoadData(Uint8 type, const char* filename);
 	static ISprite* LoadFontData(const char* filename, int pixel_sz);
 	static MediaBag* LoadMediaBag(const char* filename);

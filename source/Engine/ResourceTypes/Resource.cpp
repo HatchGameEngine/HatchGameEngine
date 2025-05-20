@@ -81,6 +81,7 @@ int Resource::Search(vector<ResourceType*>* list, Uint8 type, const char* filena
 
 ResourceType* Resource::Load(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy) {
 	switch (type) {
+	case RESOURCE_NONE:
 	case RESOURCE_SPRITE:
 	case RESOURCE_IMAGE:
 	case RESOURCE_AUDIO:
@@ -95,6 +96,14 @@ ResourceType* Resource::Load(vector<ResourceType*>* list, Uint8 type, const char
 }
 
 ResourceType* Resource::LoadInternal(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy) {
+	// Guess resource type if none was given
+	if (type == RESOURCE_NONE) {
+		type = GuessType(filename);
+		if (type == RESOURCE_NONE) {
+			return nullptr;
+		}
+	}
+
 	// Find a resource that already exists.
 	Uint32 hash = CRC32::EncryptString(filename);
 	int result = Search(list, type, filename, hash);
@@ -146,6 +155,45 @@ ResourceType* Resource::LoadFont(vector<ResourceType*>* list, const char* filena
 	return resource;
 }
 
+Uint8 Resource::GuessType(const char* filename) {
+	Stream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return RESOURCE_NONE;
+	}
+
+	// Guess sprite
+	if (ISprite::IsFile(stream)) {
+		stream->Close();
+		return RESOURCE_SPRITE;
+	}
+	stream->Seek(0);
+
+	// Guess audio
+	if (ISound::IsFile(stream)) {
+		stream->Close();
+		return RESOURCE_AUDIO;
+	}
+	stream->Seek(0);
+
+	// Guess image
+	if (Image::IsFile(stream)) {
+		stream->Close();
+		return RESOURCE_IMAGE;
+	}
+	stream->Seek(0);
+
+	// Guess model
+	if (IModel::IsFile(stream)) {
+		stream->Close();
+		return RESOURCE_MODEL;
+	}
+
+	// Couldn't guess type
+	stream->Close();
+
+	return RESOURCE_NONE;
+}
+
 void* Resource::LoadData(Uint8 type, const char* filename) {
 	switch (type) {
 	case RESOURCE_SPRITE: {
@@ -173,14 +221,8 @@ void* Resource::LoadData(Uint8 type, const char* filename) {
 		return resData;
 	}
 	case RESOURCE_MODEL: {
-		// TODO: Make IModel constructor consistent with the others
-		ResourceStream* stream = ResourceStream::New(filename);
-		if (!stream) {
-			return nullptr;
-		}
-
-		IModel* resData = new (std::nothrow) IModel();
-		if (!resData->Load(stream, filename)) {
+		IModel* resData = new (std::nothrow) IModel(filename);
+		if (!resData->LoadFailed) {
 			delete resData;
 			return nullptr;
 		}

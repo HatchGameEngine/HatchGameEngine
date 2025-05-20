@@ -13,12 +13,14 @@ private:
 	static Skeleton* LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
 	static SkeletalAnim*
 	LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim);
+	static int GetConversionFlags();
 	static bool DoConversion(const struct aiScene* scene, IModel* imodel);
 
 public:
 	static vector<int> MeshIDs;
 	static char* ParentDirectory;
 
+	static bool IsValid(Stream* stream);
 	static bool Convert(IModel* model, Stream* stream, const char* path);
 };
 
