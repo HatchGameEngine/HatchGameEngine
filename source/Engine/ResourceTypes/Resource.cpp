@@ -271,7 +271,7 @@ void* Resource::LoadData(Uint8 type, const char* filename) {
 	}
 	case RESOURCE_MODEL: {
 		IModel* resData = new (std::nothrow) IModel(filename);
-		if (!resData->LoadFailed) {
+		if (resData->LoadFailed) {
 			delete resData;
 			return nullptr;
 		}
