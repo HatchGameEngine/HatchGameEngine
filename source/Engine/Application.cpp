@@ -213,7 +213,7 @@ void Application::Init(int argc, char* args[]) {
 	Application::LogSystemInfo();
 
 	// Keep loading game stuff.
-	Application::LoadSceneInfo();
+	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
 
@@ -754,7 +754,7 @@ void Application::UpdateWindowTitle() {
 	SDL_SetWindowTitle(Application::Window, titleText.c_str());
 }
 
-void Application::Restart() {
+void Application::Restart(bool keepScene) {
 	if (DEBUG_fontSprite) {
 		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
@@ -778,7 +778,7 @@ void Application::Restart() {
 	Application::LoadGameConfig();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
-	Application::LoadSceneInfo();
+	keepScene ? Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true) : Application::LoadSceneInfo(0, 0, false);
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
@@ -1028,7 +1028,7 @@ void Application::PollEvents() {
 				}
 				// Restart application (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
-					Application::Restart();
+					Application::Restart(false);
 					Application::StartGame(StartingScene);
 					if (Application::DevMenuActivated)
 					Application::UpdateWindowTitle();
@@ -1067,7 +1067,7 @@ void Application::PollEvents() {
 						Scene::CurrentScene,
 						MAX_RESOURCE_PATH_LENGTH);
 
-					Application::Restart();
+					Application::Restart(true);
 					Application::StartGame(lastScene);
 					if (Application::DevMenuActivated)
 						Application::CloseDevMenu();
@@ -1938,84 +1938,74 @@ void Application::LoadGameInfo() {
 	}
 }
 
-void Application::LoadSceneInfo() {
+void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene) {
+	Scene::ActiveCategory = activeCategory;
+	Scene::CurrentSceneInList = currentSceneNum;
+
 	XMLNode* sceneConfig = nullptr;
+	int startSceneNum = currentSceneNum; // Default to provided value
 
-	int startSceneNum = 0;
+	// If keepScene is true, skip parsing SceneConfig.xml
+	if (!keepScene) {
+		if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
+			sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
+		}
+		else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
+			sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
+		}
 
-	Scene::ActiveCategory = 0;
-	Scene::CurrentSceneInList = 0;
+		if (sceneConfig) {
+			if (SceneInfo::Load(sceneConfig->children[0])) {
+				if (Application::GameConfig) {
+					XMLNode* node = Application::GameConfig->children[0];
+					if (node) {
+						// Parse active category only if not overridden
+						if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
+							char* text = ParseGameConfigText(node, "activeCategory");
+							if (text) {
+								int id = SceneInfo::GetCategoryID(text);
+								if (id >= 0) {
+									Scene::ActiveCategory = id;
+								}
+								Memory::Free(text);
+							}
+						}
 
-	// Open and read SceneConfig
-	if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-		sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
-	}
-	else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
-		sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
-	}
-
-	// Parse Scene List
-	if (sceneConfig) {
-		if (SceneInfo::Load(sceneConfig->children[0])) {
-			// Read category and starting scene number to
-			// be used by the SceneConfig
-			if (Application::GameConfig) {
-				XMLNode* node = Application::GameConfig->children[0];
-				if (node) {
-					// Parse active category
-					if (!ParseGameConfigInt(node,
-						    "activeCategory",
-						    Scene::ActiveCategory)) { // backwards compat
-						char* text =
-							ParseGameConfigText(node, "activeCategory");
+						// Parse starting scene only if not overridden
+						ParseGameConfigInt(node, "startSceneNum", startSceneNum);
+						char* text = ParseGameConfigText(node, "startscene");
 						if (text) {
-							int id = SceneInfo::GetCategoryID(text);
+							int id = SceneInfo::GetEntryID(Scene::ActiveCategory, text);
 							if (id >= 0) {
-								Scene::ActiveCategory = id;
+								startSceneNum = id;
 							}
 							Memory::Free(text);
 						}
 					}
-
-					// Parse starting scene
-					ParseGameConfigInt(node,
-						"startSceneNum",
-						startSceneNum); // backwards
-					// compat
-
-					char* text = ParseGameConfigText(node, "startscene");
-					if (text) {
-						int id = SceneInfo::GetEntryID(
-							Scene::ActiveCategory, text);
-						if (id >= 0) {
-							startSceneNum = id;
-						}
-						Memory::Free(text);
-					}
 				}
 			}
-
-			// TODO: Check existing scene folder and id
-			// here to reset them upon reload
-			if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
-				Scene::CurrentSceneInList = startSceneNum;
-			}
-
-			if (StartingScene[0] == '\0' &&
-				SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
-				Scene::SetInfoFromCurrentID();
-
-				StringUtils::Copy(StartingScene,
-					SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(),
-					sizeof(StartingScene));
-			}
-
-			Log::Print(Log::LOG_VERBOSE,
-				"Loaded scene list (%d categories, %d scenes)",
-				SceneInfo::Categories.size(),
-				SceneInfo::NumTotalScenes);
 		}
+	}
 
+	// Check for scene entry validity (preserves TODO logic)
+	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
+		Scene::CurrentSceneInList = startSceneNum;
+	}
+
+	// Ensure StartingScene is set correctly
+	if (StartingScene[0] == '\0' && SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
+		Scene::SetInfoFromCurrentID();
+		StringUtils::Copy(StartingScene,
+			SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(),
+			sizeof(StartingScene));
+	}
+
+	Log::Print(Log::LOG_VERBOSE,
+		"Loaded scene list (%d categories, %d scenes)",
+		SceneInfo::Categories.size(),
+		SceneInfo::NumTotalScenes);
+
+	if (sceneConfig) {
 		XMLParser::Free(sceneConfig);
 	}
 }

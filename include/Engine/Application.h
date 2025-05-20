@@ -37,7 +37,7 @@ private:
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
-	static void Restart();
+	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -134,7 +134,7 @@ public:
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
-	static void LoadSceneInfo();
+	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
