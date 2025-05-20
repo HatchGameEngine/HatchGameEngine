@@ -41,6 +41,25 @@ void Resource::TakeRef(ResourceType* resource) {
 	}
 }
 
+bool Resource::Reload(ResourceType* resource) {
+	if (!resource) {
+		return false;
+	}
+
+	UnloadData(resource);
+
+	resource->Loaded = false;
+
+	// Try loading it.
+	void* resData = LoadData(resource->Type, resource->Filename);
+	if (resData != nullptr) {
+		resource->AsAny = resData;
+		resource->Loaded = true;
+	}
+
+	return resource->Loaded;
+}
+
 void Resource::Unload(ResourceType* resource) {
 	if (resource && resource->Loaded) {
 		UnloadData(resource);

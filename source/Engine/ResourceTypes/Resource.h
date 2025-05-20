@@ -22,6 +22,7 @@ public:
 	static ResourceType* Load(vector<ResourceType*>* list, Uint8 type, const char* filename, int unloadPolicy);
 	static ResourceType* LoadFont(vector<ResourceType*>* list, const char* filename, int pixel_sz, int unloadPolicy);
 	static void TakeRef(ResourceType* resource);
+	static bool Reload(ResourceType* resource);
 	static void Unload(ResourceType* resource);
 	static void Release(ResourceType* resource);
 };

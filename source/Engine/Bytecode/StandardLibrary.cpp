@@ -256,7 +256,7 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
-inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+inline void* GetResource(VMValue* args, int index, Uint32 threadID) {
 	ObjResource* resourceObj = nullptr;
 
 	if (ScriptManager::Lock()) {
@@ -269,11 +269,14 @@ inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) 
 		ScriptManager::Unlock();
 	}
 
-	if (!resourceObj) {
-		return nullptr;
+	if (resourceObj) {
+		return resourceObj->ResourcePtr;
 	}
 
-	void* resource = resourceObj->ResourcePtr;
+	return nullptr;
+}
+inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+	void* resource = GetResource(args, index, threadID);
 	if (ValidateResource(resource, type, threadID)) {
 		return resource;
 	}
@@ -395,7 +398,7 @@ ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetMap(args, index, threadID);
 }
 void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetResource(RESOURCE_NONE, args, index, threadID);
+	return LOCAL::GetResource(args, index, threadID);
 }
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
