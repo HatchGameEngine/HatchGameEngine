@@ -11266,8 +11266,11 @@ ObjResource* LoadResource(Uint8 type, char* filename, int unloadPolicy) {
 	vector<ResourceType*>* list = Resource::GetList(unloadPolicy);
 
 	ResourceType* resource = Resource::Load(list, type, filename, unloadPolicy);
+	if (resource != nullptr) {
+		return (ObjResource*)(Resource::GetVMObject(resource));
+	}
 
-	return (ObjResource*)(Resource::GetVMObject(resource));
+	return nullptr;
 }
 /***
  * Resources.LoadSprite
@@ -11283,7 +11286,10 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_SPRITE, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadDynamicSprite
@@ -11311,7 +11317,10 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	ObjResource* object = LoadResource(RESOURCE_SPRITE, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadImage
@@ -11327,7 +11336,10 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_IMAGE, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadFont
@@ -11347,8 +11359,10 @@ VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
 	vector<ResourceType*>* list = Resource::GetList(unloadPolicy);
 
 	ResourceType* resource = Resource::LoadFont(list, filename, pixel_sz, unloadPolicy);
-
-	return OBJECT_VAL(Resource::GetVMObject(resource));
+	if (resource != nullptr) {
+		return OBJECT_VAL(Resource::GetVMObject(resource));
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadModel
@@ -11364,7 +11378,10 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_MODEL, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadMusic
@@ -11380,7 +11397,10 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_AUDIO, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadSound
@@ -11396,7 +11416,10 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_AUDIO, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadVideo
@@ -11412,7 +11435,10 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
 	ObjResource* object = LoadResource(RESOURCE_MEDIA, filename, unloadPolicy);
-	return OBJECT_VAL(object);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.FileExists
