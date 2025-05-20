@@ -19,13 +19,10 @@ private:
 
 public:
 	int ID = -1;
-	int References = 0;
 	char* Filename;
 	Texture* TexturePtr = NULL;
 
 	Image(const char* filename);
-	void TakeRef();
-	bool ReleaseRef();
 	void Dispose();
 	~Image();
 

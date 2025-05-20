@@ -15,23 +15,8 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-	TakeRef();
 	Filename = StringUtils::Duplicate(filename);
 	TexturePtr = Image::LoadTextureFromResource(Filename);
-}
-
-void Image::TakeRef() {
-	References++;
-}
-
-bool Image::ReleaseRef() {
-	if (References == 0) {
-		abort();
-	}
-
-	References--;
-
-	return References == 0;
 }
 
 void Image::Dispose() {

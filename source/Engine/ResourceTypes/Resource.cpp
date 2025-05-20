@@ -365,9 +365,7 @@ bool Resource::UnloadData(ResourceType* resource) {
 		break;
 	case RESOURCE_IMAGE:
 		if (resource->AsImage != nullptr) {
-			if (resource->AsImage->ReleaseRef()) {
-				delete resource->AsImage;
-			}
+			delete resource->AsImage;
 			resource->AsImage = nullptr;
 			return true;
 		}
