@@ -508,9 +508,15 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 #endif
 
 int ModelImporter::GetConversionFlags() {
+#ifdef USING_ASSIMP
 	return aiProcessPreset_TargetRealtime_Fast | aiProcess_ConvertToLeftHanded;
+#else
+	return 0;
+#endif
 }
 bool ModelImporter::IsValid(Stream* stream) {
+	bool success = false;
+
 #ifdef USING_ASSIMP
 	size_t size = stream->Length();
 	void* data = Memory::Malloc(size);
@@ -526,15 +532,14 @@ bool ModelImporter::IsValid(Stream* stream) {
 	int flags = GetConversionFlags();
 
 	const struct aiScene* scene = importer.ReadFileFromMemory(data, size, flags);
-	if (scene && scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 0) {
-		Memory::Free(data);
-		return true;
+	if (scene != nullptr) {
+		success = scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 0;
 	}
 
 	Memory::Free(data);
 #endif
 
-	return false;
+	return success;
 }
 bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 #ifdef USING_ASSIMP
