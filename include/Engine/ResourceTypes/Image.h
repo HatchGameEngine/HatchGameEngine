@@ -18,7 +18,6 @@ private:
 	static Image* New(const char* filename);
 
 public:
-	int ID = -1;
 	char* Filename;
 	Texture* TexturePtr = NULL;
 
